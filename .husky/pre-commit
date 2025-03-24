@@ -1,1 +1,8 @@
+branch="$(git symbolic-ref HEAD 2>/dev/null)"
+
+if [ "$branch" = "refs/heads/main" ]; then
+  echo "Commits to the main branch are not allowed. Create a new branch"
+  exit 1
+fi
+
 pnpm exec lint-staged
