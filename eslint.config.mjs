@@ -13,6 +13,7 @@ export default antfu(
     },
     ignores: [
       "public/**",
+      "api/**",
     ],
   },
   {
