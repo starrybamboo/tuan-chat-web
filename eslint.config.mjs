@@ -11,8 +11,12 @@ export default antfu(
       semi: true,
       quotes: "double",
     },
+    ignores: [
+      "public/**",
+    ],
   },
   {
+    files: ["**/*.js", "**/*.ts"],
     rules: {
       "ts/no-redeclare": "off",
       "ts/consistent-type-definitions": ["error", "type"],
@@ -29,10 +33,19 @@ export default antfu(
       "unicorn/filename-case": [
         "error",
         {
-          case: "kebabCase",
+          cases: {
+            camelCase: true,
+            pascalCase: true,
+          },
           ignore: ["README.md"],
         },
       ],
+    },
+  },
+  {
+    files: ["api/**/*.js", "api/**/*.ts", "services/**/*.ts"],
+    rules: {
+      "eslint-comments/no-unlimited-disable": "off",
     },
   },
 );
