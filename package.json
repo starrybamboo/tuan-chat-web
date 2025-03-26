@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "prepare": "husky",
-    "openapi": "openapi --input ./public/tuanchat_OpenAPI.json --output ./app/api --client axios --name TuanChat",
+    "openapi": "openapi --input ./api/tuanchat_OpenAPI.json --output ./app/api --client axios --name TuanChat",
     "electron:dev": "electron .",
     "electron:build": "react-router build & electron-builder build --config electron-builder.json"
   },
