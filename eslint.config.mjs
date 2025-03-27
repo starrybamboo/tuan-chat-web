@@ -1,4 +1,5 @@
 import antfu from "@antfu/eslint-config";
+import pluginQuery from "@tanstack/eslint-plugin-query";
 
 export default antfu(
   {
@@ -11,9 +12,18 @@ export default antfu(
       semi: true,
       quotes: "double",
     },
+    ignores: [
+      "public/**",
+      "api/**",
+    ],
+    plugins: {
+      "@tanstack/query": pluginQuery,
+    },
   },
   {
+    files: ["**/*.js", "**/*.ts"],
     rules: {
+      "@tanstack/query/exhaustive-deps": "error",
       "ts/no-redeclare": "off",
       "ts/consistent-type-definitions": ["error", "type"],
       "no-console": ["warn"],
@@ -29,10 +39,19 @@ export default antfu(
       "unicorn/filename-case": [
         "error",
         {
-          case: "kebabCase",
+          cases: {
+            camelCase: true,
+            pascalCase: true,
+          },
           ignore: ["README.md"],
         },
       ],
+    },
+  },
+  {
+    files: ["api/**/*.js", "api/**/*.ts", "services/**/*.ts"],
+    rules: {
+      "eslint-comments/no-unlimited-disable": "off",
     },
   },
 );

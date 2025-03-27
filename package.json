@@ -9,12 +9,15 @@
     "typecheck": "react-router typegen && tsc",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "prepare": "husky"
+    "prepare": "husky",
+    "openapi": "openapi --input ./api/tuanchat_OpenAPI.json --output ./api --client fetch --name TuanChat",
+    "electron:dev": "electron .",
+    "electron:build": "react-router build & electron-builder build --config electron-builder.json"
   },
   "dependencies": {
     "@react-router/node": "^7.4.0",
     "@react-router/serve": "^7.4.0",
-    "isbot": "^5.1.17",
+    "@tanstack/react-query": "^5.69.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router": "^7.4.0"
@@ -24,9 +27,11 @@
     "@eslint/js": "^9.23.0",
     "@react-router/dev": "^7.4.0",
     "@tailwindcss/vite": "^4.0.0",
+    "@tanstack/eslint-plugin-query": "^5.68.0",
     "@types/node": "^20",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.1",
+    "electron": "^35.0.3",
     "eslint": "^9.23.0",
     "eslint-plugin-format": "^1.0.1",
     "eslint-plugin-react": "^7.37.4",
