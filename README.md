@@ -12,9 +12,10 @@ A modern, production-ready template for building full-stack React applications u
 - 🎉 [Tailwind CSS](https://tailwindcss.com/) for styling
 - 📖 [React Router docs](https://reactrouter.com/)
 
-## Alternative Features (in disucssion)
+## Addon Libraries (in disucssion)
 
-- [ ] React Query
+- [x] [React Query](https://tanstack.com/query/latest)
+- [x] [DaisyUI](https://daisyui.com/)
 
 ## Getting Started
 
