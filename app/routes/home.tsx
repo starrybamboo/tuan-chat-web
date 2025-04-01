@@ -1,6 +1,12 @@
 import type { Route } from "./+types/home";
 
-import { Welcome } from "../welcome/welcome";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+// import { Welcome } from "../welcome/welcome";
+
+import ChatDialog from "../view/dialogWindows";
+
+const queryClient = new QueryClient();
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -10,5 +16,19 @@ export function meta(_args: Route.MetaArgs) {
 }
 
 export default function Home() {
-  return <Welcome />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <div className="min-h-screen bg-base-200">
+        {/* 骨架结构, 纯为了测试 */}
+        <div className="flex h-screen">
+          {/* 侧边栏骨架 */}
+          <aside className="w-64 bg-base-100 border-r p-4 animate-pulse">
+          </aside>
+          <ChatDialog />
+          <aside className="w-64 bg-base-100 border-r p-4 animate-pulse">
+          </aside>
+        </div>
+      </div>
+    </QueryClientProvider>
+  );
 }
