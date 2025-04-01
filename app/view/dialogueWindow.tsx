@@ -138,7 +138,14 @@ export function DialogueWindow() {
           className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm"
         >
           <div className="flex gap-2">
-
+            <div className="avatar flex justify-center">
+              <div className="w-32 h-32 rounded-full">
+                <img
+                  src={avatars[curAvatarId].img}
+                  alt={`id:${avatars[curAvatarId].id}`}
+                />
+              </div>
+            </div>
             <div className="w-full textarea">
               <textarea
                 className="textarea w-full h-20 md:h-32 lg:h-40 resize-none border-none focus:outline-none focus:ring-0"
@@ -170,45 +177,34 @@ export function DialogueWindow() {
                     }
                   </ul>
                 </div>
-                <div className="avatar flex justify-center">
-                  <div className="w-8 rounded-full">
-                    <img
-                      src={avatars[curAvatarId].img}
-                      alt={`id:${avatars[curAvatarId].id}`}
-                    />
-                  </div>
-                </div>
               </div>
-              <div className="flex items-center float-right ">
-                <div className="border">
-                  <p>Some other stuff</p>
-
-                </div>
+              <div className="float-right">
+                <button
+                  type="submit"
+                  className="btn btn-primary "
+                  disabled={!inputText.trim()}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                    />
+                  </svg>
+                </button>
               </div>
               {/* text input */}
             </div>
 
             {/* send button */}
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={!inputText.trim()}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                />
-              </svg>
-            </button>
+
           </div>
         </form>
       </div>
