@@ -15,7 +15,7 @@ interface Message {
   timestamp: Date;
 }
 
-export function ChatBubble({ message }: { message: Message }) {
+function ChatBubble({ message }: { message: Message }) {
   return (
   // <div className={message.type !== "user" ? "chat chat-start" : "chat chat-end"} key={message.id}>
     <div className="chat chat-start" key={message.id}>
@@ -28,25 +28,27 @@ export function ChatBubble({ message }: { message: Message }) {
         </div>
 
       </div>
-      <div className="chat-header">
+      <div
+        className={message.type !== "user" ? "chat-bubble" : "chat-bubble chat-bubble-neutral"}
+      >
+        <div style={{ whiteSpace: "pre-wrap" }}>
+          {message.content}
+        </div>
+      </div>
+      <div className="chat-footer">
         {message.avatar.name}
         <time className="text-xs opacity-50">
           {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </time>
-      </div>
-      <div
-        className={message.type !== "user" ? "chat-bubble" : "chat-bubble chat-bubble-neutral"}
-      >
-        {message.content}
       </div>
       {/* <div className="chat-footer opacity-50">Seen</div> */}
     </div>
   );
 }
 
-export function ChatDialog() {
+export function DialogueWindow() {
   const [inputText, setInputText] = useState("");
-  const [curAvatarId] = useState(1);
+  const [curAvatarId, setCurAvatarId] = useState(1);
   const [avatars] = useState<Avatar[]>([
     {
       name: "系统",
@@ -79,6 +81,20 @@ export function ChatDialog() {
       type: "user",
       timestamp: new Date(Date.now() - 40000),
     },
+    {
+      avatar: avatars[2],
+      id: "2",
+      content: "典",
+      type: "user",
+      timestamp: new Date(Date.now() - 40000),
+    },
+    {
+      avatar: avatars[1],
+      id: "3",
+      content: "你说的对但是\n你说的对\n",
+      type: "user",
+      timestamp: new Date(Date.now() - 40000),
+    },
   ]);
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -95,10 +111,17 @@ export function ChatDialog() {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+  };
+
   return (
     <div className="flex-1 overflow-hidden p-6">
       <div className="h-full flex flex-col">
-        {/* 聊天消息容器 */}
+        {/* chat messages area */}
         <div className="card bg-base-100 shadow-sm flex-1 overflow-auto">
           <div className="card-body overflow-y-auto">
             {messages.map(message => (
@@ -109,20 +132,56 @@ export function ChatDialog() {
             ))}
           </div>
         </div>
-        {/* 输入区域 */}
+        {/* input area */}
         <form
           onSubmit={handleSubmit}
           className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm"
         >
           <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="输入消息..."
-              className="input input-bordered flex-1"
+            {/* avatar selector */}
+            <div className="flex items-center">
+              <div className="dropdown dropdown-top">
+                <div tabIndex={0} role="button" className="btn m-1">Choose Avatar ⬆️</div>
+                <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-30 p-2 shadow-sm">
+                  {
+                    avatars.filter(avatar => avatar.id !== 0).map(avatar => (
+                      <li key={avatar.id} onClick={() => setCurAvatarId(avatar.id)}>
+                        <div className="avatar">
+                          <div className="w-8 rounded">
+                            <img
+                              src={avatar.img}
+                              alt={`id:${avatar.id}`}
+                            />
+                          </div>
+                          {`  ${avatar.name}`}
+                        </div>
+                      </li>
+                    ))
+                  }
+                </ul>
+              </div>
+              <div className="avatar flex justify-center">
+                <div className="w-8 rounded-full">
+                  <img
+                    src={avatars[curAvatarId].img}
+                    alt={`id:${avatars[curAvatarId].id}`}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* show the avatar img before the text input */}
+
+            {/* text input */}
+            <textarea
+              className="textarea textarea-bordered w-full h-20 md:h-32 lg:h-40 resize-none"
+              rows={3}
+              placeholder="Enter your message here...(shift+enter to change line)"
               value={inputText}
               onChange={e => setInputText(e.target.value)}
-              aria-label="消息输入框"
+              onKeyDown={handleKeyDown}
             />
+            {/* send button */}
             <button
               type="submit"
               className="btn btn-primary"
@@ -147,20 +206,7 @@ export function ChatDialog() {
         </form>
       </div>
     </div>
-
   );
-
-  // return (
-  //   <>
-  //     <div className="card w-196 bg-base-400 shadow-sm">
-  //       <div className="card-body">
-  //         {messages.map(message => (
-  //           <ChatBubble key={message.id} message={message} atLeft={message.type !== "user"} />
-  //         ))}
-  //       </div>
-  //     </div>
-  //   </>
-  // );
 }
 
-export default ChatDialog;
+export default DialogueWindow;
