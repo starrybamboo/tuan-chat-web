@@ -138,49 +138,56 @@ export function DialogueWindow() {
           className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm"
         >
           <div className="flex gap-2">
-            {/* avatar selector */}
-            <div className="flex items-center">
-              <div className="dropdown dropdown-top">
-                <div tabIndex={0} role="button" className="btn m-1">Choose Avatar ⬆️</div>
-                <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-30 p-2 shadow-sm">
-                  {
-                    avatars.filter(avatar => avatar.id !== 0).map(avatar => (
-                      <li key={avatar.id} onClick={() => setCurAvatarId(avatar.id)}>
-                        <div className="avatar">
-                          <div className="w-8 rounded">
-                            <img
-                              src={avatar.img}
-                              alt={`id:${avatar.id}`}
-                            />
+
+            <div className="w-full textarea">
+              <textarea
+                className="textarea w-full h-20 md:h-32 lg:h-40 resize-none border-none focus:outline-none focus:ring-0"
+                rows={3}
+                placeholder="Enter your message here...(shift+enter to change line)"
+                value={inputText}
+                onChange={e => setInputText(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              <div className="flex items-center float-left">
+                {/* avatar selector */}
+                <div className="dropdown dropdown-top">
+                  <div tabIndex={0} role="button" className="btn m-1">Choose Avatar ⬆️</div>
+                  <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-30 p-2 shadow-sm">
+                    {
+                      avatars.filter(avatar => avatar.id !== 0).map(avatar => (
+                        <li key={avatar.id} onClick={() => setCurAvatarId(avatar.id)}>
+                          <div className="avatar">
+                            <div className="w-8 rounded">
+                              <img
+                                src={avatar.img}
+                                alt={`id:${avatar.id}`}
+                              />
+                            </div>
+                            {`  ${avatar.name}`}
                           </div>
-                          {`  ${avatar.name}`}
-                        </div>
-                      </li>
-                    ))
-                  }
-                </ul>
-              </div>
-              <div className="avatar flex justify-center">
-                <div className="w-8 rounded-full">
-                  <img
-                    src={avatars[curAvatarId].img}
-                    alt={`id:${avatars[curAvatarId].id}`}
-                  />
+                        </li>
+                      ))
+                    }
+                  </ul>
+                </div>
+                <div className="avatar flex justify-center">
+                  <div className="w-8 rounded-full">
+                    <img
+                      src={avatars[curAvatarId].img}
+                      alt={`id:${avatars[curAvatarId].id}`}
+                    />
+                  </div>
                 </div>
               </div>
+              <div className="flex items-center float-right ">
+                <div className="border">
+                  <p>Some other stuff</p>
+
+                </div>
+              </div>
+              {/* text input */}
             </div>
 
-            {/* show the avatar img before the text input */}
-
-            {/* text input */}
-            <textarea
-              className="textarea textarea-bordered w-full h-20 md:h-32 lg:h-40 resize-none"
-              rows={3}
-              placeholder="Enter your message here...(shift+enter to change line)"
-              value={inputText}
-              onChange={e => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
             {/* send button */}
             <button
               type="submit"
