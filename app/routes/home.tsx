@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // import { Welcome } from "../welcome/welcome";
 
-import ChatDialog from "../view/dialogWindows";
+import DialogueWindow from "../view/dialogueWindow";
 
 const queryClient = new QueryClient();
 
@@ -24,7 +24,7 @@ export default function Home() {
           {/* 侧边栏骨架 */}
           <aside className="w-64 bg-base-100 border-r p-4 animate-pulse">
           </aside>
-          <ChatDialog />
+          <DialogueWindow />
           <aside className="w-64 bg-base-100 border-r p-4 animate-pulse">
           </aside>
         </div>
