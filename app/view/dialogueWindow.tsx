@@ -22,6 +22,13 @@ interface Message {
   updateTime: Date;
 }
 
+// Here are two different chat styles.
+
+/**
+ * 聊天风格的对话框组件
+ * @param message
+ * @constructor
+ */
 function ChatBubble({ message }: { message: Message }) {
   return (
   // <div className={message.type !== "user" ? "chat chat-start" : "chat chat-end"} key={message.id}>
@@ -53,10 +60,53 @@ function ChatBubble({ message }: { message: Message }) {
   );
 }
 
+/**
+ * Gal风格的对话框组件
+ * @param message
+ * @constructor
+ */
+function ChatBox({ message }: { message: Message }) {
+  return (
+    <div className="flex w-full mb-4" key={message.messageId}>
+      {/* 圆角矩形头像（始终显示） */}
+      <div className="flex-shrink-0 mr-3">
+        <div className="w-20 h-20 rounded-md overflow-hidden">
+          <img
+            alt={message.userRole.roleName}
+            src={message.avatar.avatarUrl}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </div>
+
+      {/* 消息内容 */}
+      <div className="flex-1">
+        {/* 角色名（始终显示） */}
+        <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
+          {message.userRole.roleName}
+        </div>
+
+        {/* 消息文本（纯文字，无边框） */}
+        <div
+          className="text-base text-gray-700 dark:text-gray-300 mt-1"
+          style={{ whiteSpace: "pre-wrap" }}
+        >
+          {message.content}
+        </div>
+
+        {/* 时间（小字，低调） */}
+        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          {message.createTime.toLocaleString()}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function DialogueWindow() {
   const [inputText, setInputText] = useState("");
   const [curRoleId, setCurRoleId] = useState(1);
-  const [roles, updateRoles] = useImmer<Role[]> ([
+  const [roles, updateRoles] = useImmer<Role[]>([
     {
       userRole: {
         userId: 0,
@@ -125,7 +175,7 @@ export function DialogueWindow() {
       currentAvatarIndex: 0,
     },
   ]);
-
+  const [useChatBoxStyle, setUseChatBoxStyle] = useState(true);
   const [messages, setMessages] = useState<Message[]>([
     {
       avatar: roles[0].roleAvatars[0],
@@ -143,7 +193,7 @@ export function DialogueWindow() {
       userRole: roles[1].userRole,
       messageId: 2,
       content: "gugugaga\ngugugaga!",
-      type: 0,
+      type: 1,
       createTime: new Date(Date.now() - 40000),
       userId: 0,
       roleId: 0,
@@ -154,13 +204,14 @@ export function DialogueWindow() {
       userRole: roles[2].userRole,
       messageId: 3,
       content: "喵喵喵喵喵喵",
-      type: 0,
+      type: 1,
       createTime: new Date(Date.now() - 40000),
       userId: 0,
       roleId: 0,
       updateTime: new Date(Date.now() - 40000),
     },
   ]);
+
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (inputText.trim()) {
@@ -200,10 +251,16 @@ export function DialogueWindow() {
         <div className="card bg-base-100 shadow-sm flex-1 overflow-auto">
           <div className="card-body overflow-y-auto">
             {messages.map(message => (
-              <ChatBubble
-                key={message.messageId}
-                message={message}
-              />
+              useChatBoxStyle
+                ? (
+                    <ChatBox message={message} key={message.messageId} />
+                  )
+                : (
+                    <ChatBubble
+                      key={message.messageId}
+                      message={message}
+                    />
+                  )
             ))}
           </div>
         </div>
@@ -275,6 +332,11 @@ export function DialogueWindow() {
                 </div>
               </div>
               <div className="float-right">
+                <label className="swap w-30 btn right-2">
+                  <input type="checkbox" />
+                  <div className="swap-on" onClick={() => setUseChatBoxStyle(true)}>Use Chat Bubble Style</div>
+                  <div className="swap-off" onClick={() => setUseChatBoxStyle(false)}>Use Chat Box Style</div>
+                </label>
                 {/* send button */}
                 <button
                   type="submit"
