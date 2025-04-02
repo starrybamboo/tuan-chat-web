@@ -3,7 +3,13 @@
 /* tslint:disable */
 /* eslint-disable */
 export type MemberDeleteRequest = {
+    /**
+     * 会话id
+     */
     roomId: number;
+    /**
+     * 删除的用户id
+     */
     userIdList: Array<number>;
 };
 

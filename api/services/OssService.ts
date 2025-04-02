@@ -6,9 +6,10 @@ import type { ApiResultOssResp } from '../models/ApiResultOssResp';
 import type { UploadUrlRequest } from '../models/UploadUrlRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
-export class OssControllerService {
+export class OssService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
+     * 获取临时上传链接
      * @param requestBody
      * @returns ApiResultOssResp OK
      * @throws ApiError
