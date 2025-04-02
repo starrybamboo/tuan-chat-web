@@ -1,44 +1,51 @@
 import type { FormEvent } from "react";
-import { useState } from "react";
+import type { RoleAvatar, UserRole } from "../../api";
 
-interface Avatar {
-  name: string;
-  id: number;
-  img: string;
+import { useState } from "react";
+import { useImmer } from "use-immer";
+
+interface Role {
+  userRole: UserRole;
+  roleAvatars: RoleAvatar[];
+  currentAvatarIndex: number;
 }
 
 interface Message {
-  avatar: Avatar;
-  id: string;
+  avatar: RoleAvatar;
+  userRole: UserRole;
+  messageId: number;
+  userId: number;
+  roleId: number;
   content: string;
-  type: "user" | "system" | "error";
-  timestamp: Date;
+  type: number; // 0: system, 1: user, 2: group
+  createTime: Date;
+  updateTime: Date;
 }
 
 function ChatBubble({ message }: { message: Message }) {
   return (
   // <div className={message.type !== "user" ? "chat chat-start" : "chat chat-end"} key={message.id}>
-    <div className="chat chat-start" key={message.id}>
+    <div className="chat chat-start" key={message.messageId}>
       <div className="chat-image avatar">
         <div className="w-10 rounded-full">
           <img
             alt="Tailwind CSS chat bubble component"
-            src={message.avatar.img}
+            src={message.avatar.avatarUrl}
           />
         </div>
 
       </div>
       <div
-        className={message.type !== "user" ? "chat-bubble" : "chat-bubble chat-bubble-neutral"}
+        className={message.type !== 1 ? "chat-bubble" : "chat-bubble chat-bubble-neutral"}
       >
         <div style={{ whiteSpace: "pre-wrap" }}>
           {message.content}
         </div>
       </div>
       <div className="chat-footer">
-        {message.avatar.name}
+        {message.userRole.roleName}
         <time className="text-xs opacity-50">
-          {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          {message.createTime.toLocaleString()}
         </time>
       </div>
       {/* <div className="chat-footer opacity-50">Seen</div> */}
@@ -48,67 +55,135 @@ function ChatBubble({ message }: { message: Message }) {
 
 export function DialogueWindow() {
   const [inputText, setInputText] = useState("");
-  const [curAvatarId, setCurAvatarId] = useState(1);
-  const [avatars] = useState<Avatar[]>([
+  const [curRoleId, setCurRoleId] = useState(1);
+  const [roles, updateRoles] = useImmer<Role[]> ([
     {
-      name: "系统",
-      id: 0,
-      img: "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp",
+      userRole: {
+        userId: 0,
+        roleId: 0,
+        roleName: "系统",
+        description: "系统",
+        avatarId: 0,
+        createTime: (new Date(Date.now() - 40000)).toString(),
+        updateTime: (new Date(Date.now() - 40000)).toString(),
+      },
+      roleAvatars: [
+        {
+          avatarId: 0,
+          avatarUrl: "https://avatars.githubusercontent.com/u/47094597?v=4",
+          roleId: 0,
+        },
+      ],
+      currentAvatarIndex: 0,
     },
     {
-      name: "用户",
-      id: 1,
-      img: "https://entropy622.github.io/img/avatar_hud9e0e7c4951e871acf83365066e399f1_1041756_300x0_resize_box_3.png",
+      userRole: {
+        userId: 0,
+        roleId: 1,
+        roleName: "用户",
+        description: "旧都",
+        avatarId: 0,
+        createTime: (new Date(Date.now() - 40000)).toString(),
+        updateTime: (new Date(Date.now() - 40000)).toString(),
+      },
+      roleAvatars: [
+        {
+          avatarId: 3,
+          avatarUrl: "https://entropy622.github.io/img/avatar_hud9e0e7c4951e871acf83365066e399f1_1041756_300x0_resize_box_3.png",
+          roleId: 1,
+        },
+        {
+          avatarId: 4,
+          avatarUrl: "https://avatars.githubusercontent.com/u/176760093?v=4",
+          roleId: 1,
+        },
+      ],
+      currentAvatarIndex: 0,
     },
     {
-      name: "兴爷",
-      id: 2,
-      img: "https://avatars.githubusercontent.com/u/107794984?v=4",
+      userRole: {
+        userId: 0,
+        roleId: 2,
+        roleName: "兴爷",
+        description: "兴爷",
+        avatarId: 5,
+        createTime: (new Date(Date.now() - 40000)).toString(),
+        updateTime: (new Date(Date.now() - 40000)).toString(),
+      },
+      roleAvatars: [
+        {
+          avatarId: 6,
+          avatarUrl: "https://avatars.githubusercontent.com/u/107794984?v=4",
+          roleId: 2,
+        },
+        {
+          avatarId: 7,
+          avatarUrl: "https://entropy622.github.io/img/avatar_hud9e0e7c4951e871acf83365066e399f1_1041756_300x0_resize_box_3.png",
+          roleId: 2,
+        },
+      ],
+      currentAvatarIndex: 0,
     },
   ]);
+
   const [messages, setMessages] = useState<Message[]>([
     {
-      avatar: avatars[0],
-      id: "1",
+      avatar: roles[0].roleAvatars[0],
+      userRole: roles[0].userRole,
+      messageId: 1,
       content: "团聚共创聊天室demo",
-      type: "system",
-      timestamp: new Date(Date.now() - 60000),
+      type: 0,
+      createTime: new Date(Date.now() - 40000),
+      userId: 0,
+      roleId: 0,
+      updateTime: new Date(Date.now() - 40000),
     },
     {
-      avatar: avatars[1],
-      id: "2",
-      content: "乐",
-      type: "user",
-      timestamp: new Date(Date.now() - 40000),
+      avatar: roles[1].roleAvatars[0],
+      userRole: roles[1].userRole,
+      messageId: 2,
+      content: "gugugaga\ngugugaga!",
+      type: 0,
+      createTime: new Date(Date.now() - 40000),
+      userId: 0,
+      roleId: 0,
+      updateTime: new Date(Date.now() - 40000),
     },
     {
-      avatar: avatars[2],
-      id: "2",
-      content: "典",
-      type: "user",
-      timestamp: new Date(Date.now() - 40000),
-    },
-    {
-      avatar: avatars[1],
-      id: "3",
-      content: "你说的对但是\n你说的对\n",
-      type: "user",
-      timestamp: new Date(Date.now() - 40000),
+      avatar: roles[2].roleAvatars[0],
+      userRole: roles[2].userRole,
+      messageId: 3,
+      content: "喵喵喵喵喵喵",
+      type: 0,
+      createTime: new Date(Date.now() - 40000),
+      userId: 0,
+      roleId: 0,
+      updateTime: new Date(Date.now() - 40000),
     },
   ]);
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (inputText.trim()) {
       const userMessage: Message = {
-        avatar: avatars[curAvatarId], // TODO: replace it with true name
-        id: Date.now().toString(),
-        content: inputText,
-        type: "user",
-        timestamp: new Date(),
+        avatar: roles[curRoleId].roleAvatars[roles[curRoleId].currentAvatarIndex],
+        userRole: roles[curRoleId].userRole,
+        messageId: Date.now(),
+        content: inputText.trim(),
+        type: 0,
+        createTime: new Date(Date.now()),
+        userId: 0,
+        roleId: 0,
+        updateTime: new Date(Date.now()),
       };
       setMessages([...messages, userMessage]);
       setInputText("");
     }
+  };
+
+  const handleAvatarChange = (avatarIndex: number) => {
+    updateRoles((draft) => {
+      draft[curRoleId].currentAvatarIndex = avatarIndex;
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -126,7 +201,7 @@ export function DialogueWindow() {
           <div className="card-body overflow-y-auto">
             {messages.map(message => (
               <ChatBubble
-                key={message.id}
+                key={message.messageId}
                 message={message}
               />
             ))}
@@ -140,15 +215,34 @@ export function DialogueWindow() {
           className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm"
         >
           <div className="flex gap-2">
-            <div className="avatar flex justify-center">
-              <div className="w-32 h-32 rounded-full">
-                <img
-                  src={avatars[curAvatarId].img}
-                  alt={`id:${avatars[curAvatarId].id}`}
-                />
+            {/* 表情差分展示与选择 */}
+            <div className="dropdown dropdown-top">
+              <div className="avatar flex justify-center">
+                <div className="w-32 h-32 rounded-full">
+                  <img
+                    src={roles[curRoleId].roleAvatars[roles[curRoleId].currentAvatarIndex].avatarUrl}
+                    alt="Avatar"
+                    tabIndex={0}
+                    role="button"
+                  />
+                </div>
               </div>
+              <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm">
+                {
+                  roles[curRoleId].roleAvatars.map((avatar, index) => (
+                    <img
+                      src={avatar.avatarUrl}
+                      alt="Avatar"
+                      tabIndex={0}
+                      key={avatar.avatarId}
+                      onClick={() => handleAvatarChange(index)}
+                    />
+                  ))
+                }
+              </ul>
             </div>
             <div className="w-full textarea">
+              {/* text input */}
               <textarea
                 className="textarea w-full h-20 md:h-32 lg:h-40 resize-none border-none focus:outline-none focus:ring-0"
                 rows={3}
@@ -158,21 +252,21 @@ export function DialogueWindow() {
                 onKeyDown={handleKeyDown}
               />
               <div className="flex items-center float-left">
-                {/* avatar selector */}
+                {/* role selector */}
                 <div className="dropdown dropdown-top">
-                  <div tabIndex={0} role="button" className="btn m-1">Choose Avatar ⬆️</div>
+                  <div tabIndex={0} role="button" className="btn m-1">Choose Role ⬆️</div>
                   <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-30 p-2 shadow-sm">
                     {
-                      avatars.filter(avatar => avatar.id !== 0).map(avatar => (
-                        <li key={avatar.id} onClick={() => setCurAvatarId(avatar.id)}>
+                      roles.map(role => (
+                        <li key={role.userRole.roleId} onClick={() => setCurRoleId(role.userRole.roleId)}>
                           <div className="avatar">
                             <div className="w-8 rounded">
                               <img
-                                src={avatar.img}
-                                alt={`id:${avatar.id}`}
+                                src={role.roleAvatars[0].avatarUrl}
+                                alt="Avatar"
                               />
                             </div>
-                            {`  ${avatar.name}`}
+                            {`  ${role.userRole?.roleName ?? ""}`}
                           </div>
                         </li>
                       ))
@@ -181,6 +275,7 @@ export function DialogueWindow() {
                 </div>
               </div>
               <div className="float-right">
+                {/* send button */}
                 <button
                   type="submit"
                   className="btn btn-primary "
@@ -202,11 +297,7 @@ export function DialogueWindow() {
                   </svg>
                 </button>
               </div>
-              {/* text input */}
             </div>
-
-            {/* send button */}
-
           </div>
         </form>
       </div>
