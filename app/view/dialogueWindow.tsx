@@ -132,13 +132,22 @@ export function DialogueWindow() {
             ))}
           </div>
         </div>
+
         {/* input area */}
+
         <form
           onSubmit={handleSubmit}
           className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm"
         >
           <div className="flex gap-2">
-
+            <div className="avatar flex justify-center">
+              <div className="w-32 h-32 rounded-full">
+                <img
+                  src={avatars[curAvatarId].img}
+                  alt={`id:${avatars[curAvatarId].id}`}
+                />
+              </div>
+            </div>
             <div className="w-full textarea">
               <textarea
                 className="textarea w-full h-20 md:h-32 lg:h-40 resize-none border-none focus:outline-none focus:ring-0"
@@ -169,14 +178,6 @@ export function DialogueWindow() {
                       ))
                     }
                   </ul>
-                </div>
-                <div className="avatar flex justify-center">
-                  <div className="w-8 rounded-full">
-                    <img
-                      src={avatars[curAvatarId].img}
-                      alt={`id:${avatars[curAvatarId].id}`}
-                    />
-                  </div>
                 </div>
               </div>
               <div className="float-right">
