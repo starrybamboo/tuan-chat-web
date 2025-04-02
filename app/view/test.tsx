@@ -76,10 +76,54 @@ export default function LoginView() {
   // 表单状态管理
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  // 修改状态定义，添加成功消息状态
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // 使用React Query的useMutation处理登录请求
+  // 在组件顶部添加样式
+  const fadeOutAnimation = `
+    @keyframes fadeOut {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+  `;
+
+  // 修改消息处理函数
+  const showTemporaryMessage = (message: string, type: "success" | "error") => {
+    // 先清除可能存在的消息
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    if (type === "error") {
+      setErrorMessage(message);
+    }
+    else {
+      setSuccessMessage(message);
+    }
+
+    // 在消息即将消失前添加动画
+    setTimeout(() => {
+      const messageElement = document.querySelector(
+        type === "error" ? ".alert-error" : ".alert-success",
+      ) as HTMLDivElement;
+      if (messageElement) {
+        messageElement.style.animation = "fadeOut 1s ease-out forwards";
+      }
+    }, 500);
+
+    // 动画结束后清除消息
+    setTimeout(() => {
+      if (type === "error") {
+        setErrorMessage("");
+      }
+      else {
+        setSuccessMessage("");
+      }
+    }, 1000);
+  };
+
+  // 修改登录mutation的错误处理
   const loginMutation = useMutation({
     mutationFn: loginUser,
     onSuccess: (data) => {
@@ -90,25 +134,57 @@ export default function LoginView() {
     },
     onError: (error) => {
       // 显示错误信息
-      setErrorMessage(error instanceof Error ? error.message : "登录失败，请重试");
+      showTemporaryMessage(
+        error instanceof Error ? error.message : "登录失败，请重试",
+        "error",
+      );
     },
   });
 
-  // 添加注册mutation
+  // 修改注册mutation
   const registerMutation = useMutation({
     mutationFn: registerUser,
     onSuccess: (data) => {
       if (data.success) {
-        // 注册成功后自动登录
-        loginMutation.mutate({ username, password });
+        // 注册成功后，先跳转到登录界面
+        const registeredUsername = username;
+        const registeredPassword = password;
+
+        // 清空表单
+        setUsername("");
+        setPassword("");
+        setConfirmPassword("");
+
+        // 跳转到登录界面
+        setSearchParams({ mode: "login" });
+
+        // 显示成功消息
+        showTemporaryMessage("注册成功！正在登录您的账号", "success");
+
+        // 自动填充用户名和密码
+        setTimeout(() => {
+          setUsername(registeredUsername);
+          setPassword(registeredPassword);
+
+          // 再延迟一会自动登录
+          setTimeout(() => {
+            loginMutation.mutate({
+              username: registeredUsername,
+              password: registeredPassword,
+            });
+          }, 1000);
+        }, 500);
       }
     },
     onError: (error) => {
-      setErrorMessage(error instanceof Error ? error.message : "注册失败，请重试");
+      showTemporaryMessage(
+        error instanceof Error ? error.message : "注册失败，请重试",
+        "error",
+      );
     },
   });
 
-  // 修改表单提交处理函数
+  // 修改表单提交处理函数中的密码不一致错误
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
@@ -118,7 +194,7 @@ export default function LoginView() {
     else {
       // 添加密码确认验证
       if (password !== confirmPassword) {
-        setErrorMessage("两次输入的密码不一致");
+        showTemporaryMessage("两次输入的密码不一致", "error");
         return;
       }
       registerMutation.mutate({ username, password });
@@ -129,15 +205,23 @@ export default function LoginView() {
     // 页面主容器
     <div className="min-h-screen bg-base-200 flex items-center justify-center">
       {/* 登录卡片 */}
+      <style>{fadeOutAnimation}</style>
       <div className="card w-96 bg-base-100 shadow-xl">
         <div className="card-body">
           {/* 标题 */}
           <h2 className="card-title text-2xl font-bold text-center mb-6">{isLogin ? "登录" : "注册"}</h2>
 
-          {/* 错误信息显示，在mutation的onerror时触发 */}
+          {/* 错误信息显示 */}
           {errorMessage && (
             <div className="alert alert-error mb-4">
               <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {/* 成功信息显示 */}
+          {successMessage && (
+            <div className="alert alert-success mb-4">
+              <span>{successMessage}</span>
             </div>
           )}
 
@@ -179,7 +263,7 @@ export default function LoginView() {
               )}
             </div>
 
-            {/* 添加确认密码输入框 */}
+            {/* 注册模式添加确认密码输入框 */}
             {!isLogin && (
               <div className="form-control w-full mt-2">
                 <label className="floating-label">
