@@ -3,6 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type RoleAvatarCreateRequest = {
+    /**
+     * 角色id
+     */
     roleId?: number;
 };
 
