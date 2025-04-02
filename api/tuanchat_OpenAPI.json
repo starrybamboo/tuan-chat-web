@@ -12,16 +12,40 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8081",
+      "url": "http://192.168.2.17:8081",
       "description": "Generated server url"
+    }
+  ],
+  "security": [
+    {
+      "Authorization": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "角色相关接口",
+      "description": "角色相关接口"
+    },
+    {
+      "name": "聊天室相关接口",
+      "description": "消息收发，消息标记，与消息相关的基本在这"
+    },
+    {
+      "name": "用户相关接口",
+      "description": "用户相关接口"
+    },
+    {
+      "name": "头像相关接口",
+      "description": "头像相关接口"
     }
   ],
   "paths": {
     "/capi/role": {
       "get": {
         "tags": [
-          "role-controller"
+          "角色相关接口"
         ],
+        "summary": "根据id获取角色",
         "operationId": "getRole",
         "parameters": [
           {
@@ -89,8 +113,9 @@
       },
       "put": {
         "tags": [
-          "role-controller"
+          "角色相关接口"
         ],
+        "summary": "更新角色信息",
         "operationId": "updateRole",
         "requestBody": {
           "content": {
@@ -157,8 +182,9 @@
       },
       "post": {
         "tags": [
-          "role-controller"
+          "角色相关接口"
         ],
+        "summary": "新增角色",
         "operationId": "createRole",
         "responses": {
           "200": {
@@ -215,8 +241,9 @@
       },
       "delete": {
         "tags": [
-          "role-controller"
+          "角色相关接口"
         ],
+        "summary": "根据id删除角色",
         "operationId": "deleteRole",
         "parameters": [
           {
@@ -286,8 +313,9 @@
     "/capi/group/member/player": {
       "put": {
         "tags": [
-          "group-member-controller"
+          "群组成员相关接口"
         ],
+        "summary": "设置用户为玩家",
         "operationId": "setPlayer",
         "requestBody": {
           "content": {
@@ -354,8 +382,9 @@
       },
       "delete": {
         "tags": [
-          "group-member-controller"
+          "群组成员相关接口"
         ],
+        "summary": "撤销用户玩家的身份",
         "operationId": "revokePlayer",
         "requestBody": {
           "content": {
@@ -424,8 +453,10 @@
     "/capi/chat/message": {
       "put": {
         "tags": [
-          "chat-controller"
+          "聊天室相关接口"
         ],
+        "summary": "更新消息",
+        "description": "只要有更新都走这个接口",
         "operationId": "updateMessage",
         "requestBody": {
           "content": {
@@ -492,8 +523,10 @@
       },
       "post": {
         "tags": [
-          "chat-controller"
+          "聊天室相关接口"
         ],
+        "summary": "发送消息（备用）",
+        "description": "从设计上是为了弱网环境的处理，但实际上没怎么用",
         "operationId": "sendMessage",
         "requestBody": {
           "content": {
@@ -559,11 +592,84 @@
         }
       }
     },
+    "/capi/chat/message/move": {
+      "put": {
+        "tags": [
+          "聊天室相关接口"
+        ],
+        "summary": "移动消息位置",
+        "description": "根据beforeMessageId和afterMessageId自动判断移动类型：当都为null时返回错误，一个为null时分别对应移动到顶部或底部，都有值时表示移动到两者之间",
+        "operationId": "moveMessage",
+        "parameters": [
+          {
+            "name": "request",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/MoveMessageRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultMessage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/avatar": {
       "get": {
         "tags": [
-          "avatar-controller"
+          "头像相关接口"
         ],
+        "summary": "根据id获取头像",
         "operationId": "getRoleAvatar",
         "parameters": [
           {
@@ -631,14 +737,15 @@
       },
       "put": {
         "tags": [
-          "avatar-controller"
+          "头像相关接口"
         ],
+        "summary": "根据头像id更新头像",
         "operationId": "updateRoleAvatar",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RoleAvatarRequest"
+                "$ref": "#/components/schemas/RoleAvatar"
               }
             }
           },
@@ -699,8 +806,9 @@
       },
       "post": {
         "tags": [
-          "avatar-controller"
+          "头像相关接口"
         ],
+        "summary": "创建头像，并返回头像ID",
         "operationId": "setRoleAvatar",
         "requestBody": {
           "content": {
@@ -767,8 +875,9 @@
       },
       "delete": {
         "tags": [
-          "avatar-controller"
+          "头像相关接口"
         ],
+        "summary": "根据id删除头像",
         "operationId": "deleteRoleAvatar",
         "parameters": [
           {
@@ -838,8 +947,10 @@
     "/capi/user/public/register": {
       "post": {
         "tags": [
-          "user-controller"
+          "用户相关接口"
         ],
+        "summary": "用户注册",
+        "description": "用户注册接口",
         "operationId": "register",
         "requestBody": {
           "content": {
@@ -908,8 +1019,10 @@
     "/capi/user/public/login": {
       "post": {
         "tags": [
-          "user-controller"
+          "用户相关接口"
         ],
+        "summary": "用户登录",
+        "description": "用户登录接口",
         "operationId": "login",
         "requestBody": {
           "content": {
@@ -978,8 +1091,9 @@
     "/capi/role/ability": {
       "get": {
         "tags": [
-          "role-controller"
+          "角色相关接口"
         ],
+        "summary": "获取角色能力",
         "operationId": "getRoleAbility",
         "parameters": [
           {
@@ -1047,8 +1161,9 @@
       },
       "post": {
         "tags": [
-          "role-controller"
+          "角色相关接口"
         ],
+        "summary": "设置&&更新角色能力",
         "operationId": "setRoleAbility",
         "requestBody": {
           "content": {
@@ -1117,8 +1232,9 @@
     "/capi/oss/upload/url": {
       "post": {
         "tags": [
-          "oss-controller"
+          "oss相关接口"
         ],
+        "summary": "获取临时上传链接",
         "operationId": "getUploadUrl",
         "requestBody": {
           "content": {
@@ -1187,8 +1303,9 @@
     "/capi/group/subgroup": {
       "post": {
         "tags": [
-          "group-controller"
+          "群组相关接口"
         ],
+        "summary": "创建子群",
         "operationId": "createSubgroup",
         "requestBody": {
           "content": {
@@ -1257,8 +1374,9 @@
     "/capi/group/role/": {
       "post": {
         "tags": [
-          "group-role-controller"
+          "群组角色相关接口"
         ],
+        "summary": "增加群聊的角色",
         "operationId": "addRole",
         "requestBody": {
           "content": {
@@ -1325,8 +1443,9 @@
       },
       "delete": {
         "tags": [
-          "group-role-controller"
+          "群组角色相关接口"
         ],
+        "summary": "删除群聊的角色",
         "operationId": "deleteRole_1",
         "requestBody": {
           "content": {
@@ -1395,8 +1514,9 @@
     "/capi/group/member/": {
       "post": {
         "tags": [
-          "group-member-controller"
+          "群组成员相关接口"
         ],
+        "summary": "新增群成员",
         "operationId": "addMember",
         "requestBody": {
           "content": {
@@ -1463,8 +1583,9 @@
       },
       "delete": {
         "tags": [
-          "group-member-controller"
+          "群组成员相关接口"
         ],
+        "summary": "删除群成员",
         "operationId": "deleteMember",
         "requestBody": {
           "content": {
@@ -1533,8 +1654,9 @@
     "/capi/group/": {
       "post": {
         "tags": [
-          "group-controller"
+          "群组相关接口"
         ],
+        "summary": "创建群组",
         "operationId": "createGroup",
         "requestBody": {
           "content": {
@@ -1603,8 +1725,10 @@
     "/capi/chat/message/page": {
       "post": {
         "tags": [
-          "chat-controller"
+          "聊天室相关接口"
         ],
+        "summary": "按页获取消息列表",
+        "description": "用的是游标翻页",
         "operationId": "getMsgPage",
         "requestBody": {
           "content": {
@@ -1673,8 +1797,10 @@
     "/capi/user/info": {
       "get": {
         "tags": [
-          "user-controller"
+          "用户相关接口"
         ],
+        "summary": "获取用户信息",
+        "description": "用户登录接口",
         "operationId": "getUserInfo",
         "parameters": [
           {
@@ -1744,8 +1870,9 @@
     "/capi/role/user/{userId}": {
       "get": {
         "tags": [
-          "role-controller"
+          "角色相关接口"
         ],
+        "summary": "获取用户的所有角色",
         "operationId": "getUserRoles",
         "parameters": [
           {
@@ -1815,8 +1942,9 @@
     "/capi/role/avatar": {
       "get": {
         "tags": [
-          "role-controller"
+          "角色相关接口"
         ],
+        "summary": "获取角色所有的头像",
         "operationId": "getRoleAvatars",
         "parameters": [
           {
@@ -1886,8 +2014,9 @@
     "/capi/group/{groupId}": {
       "get": {
         "tags": [
-          "group-controller"
+          "群组相关接口"
         ],
+        "summary": "获取群组信息",
         "operationId": "getGroupInfo",
         "parameters": [
           {
@@ -1957,8 +2086,9 @@
     "/capi/group/role/list": {
       "get": {
         "tags": [
-          "group-role-controller"
+          "群组角色相关接口"
         ],
+        "summary": "获取群聊的所有角色",
         "operationId": "groupRole",
         "parameters": [
           {
@@ -2028,8 +2158,9 @@
     "/capi/group/member/list": {
       "get": {
         "tags": [
-          "group-member-controller"
+          "群组成员相关接口"
         ],
+        "summary": "获取群成员列表",
         "operationId": "getMemberList",
         "parameters": [
           {
@@ -2099,8 +2230,9 @@
     "/capi/group/list": {
       "get": {
         "tags": [
-          "group-controller"
+          "群组相关接口"
         ],
+        "summary": "获取当前用户加入的所有群聊",
         "operationId": "getUserGroups",
         "responses": {
           "200": {
@@ -2159,8 +2291,9 @@
     "/capi/chat/message/all": {
       "get": {
         "tags": [
-          "chat-controller"
+          "聊天室相关接口"
         ],
+        "summary": "获取一个群的所有消息",
         "operationId": "getAllMessage",
         "parameters": [
           {
@@ -2237,19 +2370,24 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
-            "type": "object"
+            "type": "object",
+            "description": "返回对象"
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "ApiResult": {
         "required": [
@@ -2258,19 +2396,24 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
-            "type": "object"
+            "type": "object",
+            "description": "返回对象"
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "ApiResultObject": {
         "required": [
@@ -2279,19 +2422,24 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
-            "type": "object"
+            "type": "object",
+            "description": "返回对象"
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "UserRole": {
         "required": [
@@ -2302,20 +2450,25 @@
         "properties": {
           "userId": {
             "type": "integer",
+            "description": "用户id",
             "format": "int64"
           },
           "roleId": {
             "type": "integer",
+            "description": "角色id",
             "format": "int64"
           },
           "roleName": {
-            "type": "string"
+            "type": "string",
+            "description": "角色名字"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "简介"
           },
           "avatarId": {
             "type": "integer",
+            "description": "角色头像",
             "format": "int64"
           },
           "createTime": {
@@ -2335,19 +2488,23 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
             "$ref": "#/components/schemas/UserRole"
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "AdminAddRequset": {
         "required": [
@@ -2358,12 +2515,15 @@
         "properties": {
           "roomId": {
             "type": "integer",
+            "description": "房间号",
             "format": "int64"
           },
           "uidList": {
             "type": "array",
+            "description": "需要添加管理的列表",
             "items": {
               "type": "integer",
+              "description": "需要添加管理的列表",
               "format": "int64"
             }
           }
@@ -2376,19 +2536,24 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "返回对象"
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "Message": {
         "required": [
@@ -2396,6 +2561,7 @@
           "content",
           "messageID",
           "messageType",
+          "position",
           "roleId",
           "roomId",
           "status",
@@ -2406,50 +2572,67 @@
         "properties": {
           "messageID": {
             "type": "integer",
+            "description": "全局的ID，全局唯一，用于表示",
             "format": "int64"
           },
           "syncId": {
             "type": "integer",
+            "description": "用于确定用户发送的消息顺序，是万有一失的严格递增，session级别的Id",
             "format": "int64"
           },
           "roomId": {
             "type": "integer",
+            "description": "消息的房间号",
             "format": "int64"
           },
           "userId": {
             "type": "integer",
+            "description": "用户id",
             "format": "int64"
           },
           "roleId": {
             "type": "integer",
+            "description": "角色id",
             "format": "int64"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "内容"
           },
           "avatarId": {
             "type": "integer",
+            "description": "说话人的这个时候的立绘",
             "format": "int64"
           },
           "animation": {
             "type": "integer",
+            "description": "BA那种，比如说人旁边飘过去一个问号这样子",
             "format": "int32"
           },
           "specialEffects": {
             "type": "integer",
+            "description": "比如说，立绘的抖动，这种",
             "format": "int32"
           },
           "replyMessageId": {
             "type": "integer",
+            "description": "回复的消息id",
             "format": "int64"
           },
           "status": {
             "type": "integer",
+            "description": "消息状态",
             "format": "int32"
           },
           "messageType": {
             "type": "integer",
+            "description": "消息类型",
             "format": "int32"
+          },
+          "position": {
+            "type": "number",
+            "description": "位置",
+            "format": "double"
           },
           "extra": {
             "$ref": "#/components/schemas/MessageExtra"
@@ -2462,7 +2645,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "description": "Message"
       },
       "MessageExtra": {
         "type": "object",
@@ -2474,7 +2658,8 @@
               "format": "int64"
             }
           }
-        }
+        },
+        "description": "不同类型消息持有的额外信息"
       },
       "ApiResultMessage": {
         "required": [
@@ -2483,39 +2668,71 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
             "$ref": "#/components/schemas/Message"
           }
+        },
+        "description": "基础返回体"
+      },
+      "MoveMessageRequest": {
+        "required": [
+          "messageId"
+        ],
+        "type": "object",
+        "properties": {
+          "messageId": {
+            "type": "integer",
+            "description": "消息id",
+            "format": "int64"
+          },
+          "beforeMessageId": {
+            "type": "integer",
+            "description": "移动到此消息之前",
+            "format": "int64"
+          },
+          "afterMessageId": {
+            "type": "integer",
+            "description": "移动到此消息之后",
+            "format": "int64"
+          }
         }
       },
-      "RoleAvatarRequest": {
+      "RoleAvatar": {
         "type": "object",
         "properties": {
           "roleId": {
             "type": "integer",
+            "description": "角色id",
             "format": "int64"
           },
           "avatarId": {
             "type": "integer",
+            "description": "角色id",
             "format": "int64"
           },
           "avatarTitle": {
-            "type": "string"
+            "type": "string",
+            "description": "头像的标题"
           },
           "avatarUrl": {
-            "type": "string"
+            "type": "string",
+            "description": "头像的url"
           },
           "spriteUrl": {
-            "type": "string"
+            "type": "string",
+            "description": "立绘的url"
           }
         }
       },
@@ -2526,53 +2743,23 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
             "$ref": "#/components/schemas/RoleAvatar"
           }
-        }
-      },
-      "RoleAvatar": {
-        "required": [
-          "avatarId",
-          "roleId"
-        ],
-        "type": "object",
-        "properties": {
-          "roleId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "avatarId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "avatarTitle": {
-            "type": "string"
-          },
-          "avatarUrl": {
-            "type": "string"
-          },
-          "spriteUrl": {
-            "type": "string"
-          },
-          "createTime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updateTime": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
+        },
+        "description": "基础返回体"
       },
       "UserRegisterRequest": {
         "required": [
@@ -2582,12 +2769,15 @@
         "type": "object",
         "properties": {
           "username": {
-            "type": "string"
+            "type": "string",
+            "description": "用户名"
           },
           "password": {
-            "type": "string"
+            "type": "string",
+            "description": "密码"
           }
-        }
+        },
+        "description": "用户注册请求"
       },
       "ApiResultString": {
         "required": [
@@ -2596,19 +2786,24 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
-            "type": "string"
+            "type": "string",
+            "description": "返回对象"
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "UserLoginRequest": {
         "required": [
@@ -2618,25 +2813,35 @@
         "type": "object",
         "properties": {
           "userId": {
-            "type": "string"
+            "type": "string",
+            "description": "登录的用户ID"
           },
           "password": {
-            "type": "string"
+            "type": "string",
+            "description": "登录的用户密码"
           }
         }
       },
       "RoleAbilityTable": {
         "type": "object",
         "properties": {
+          "abilityId": {
+            "type": "integer",
+            "format": "int64"
+          },
           "roleId": {
             "type": "integer",
             "format": "int64"
           },
-          "rule": {
+          "ruleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "act": {
             "type": "string"
           },
-          "extra": {
-            "type": "object"
+          "ability": {
+            "type": "string"
           }
         }
       },
@@ -2648,10 +2853,12 @@
         "type": "object",
         "properties": {
           "fileName": {
-            "type": "string"
+            "type": "string",
+            "description": "文件名（带后缀）"
           },
           "scene": {
             "type": "integer",
+            "description": "上传场景1.聊天室,2.表情包，3.角色差分 4.模组图片",
             "format": "int32"
           }
         }
@@ -2663,30 +2870,37 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
             "$ref": "#/components/schemas/OssResp"
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "OssResp": {
         "type": "object",
         "properties": {
           "uploadUrl": {
-            "type": "string"
+            "type": "string",
+            "description": "上传的临时url"
           },
           "downloadUrl": {
-            "type": "string"
+            "type": "string",
+            "description": "成功后能够下载的url"
           }
-        }
+        },
+        "description": "返回对象"
       },
       "SubRoomRequest": {
         "required": [
@@ -2697,12 +2911,15 @@
         "properties": {
           "parentRoomId": {
             "type": "integer",
+            "description": "父房间号",
             "format": "int64"
           },
           "userIdList": {
             "type": "array",
+            "description": "邀请的用户Id列表",
             "items": {
               "type": "integer",
+              "description": "邀请的用户Id列表",
               "format": "int64"
             }
           }
@@ -2715,47 +2932,55 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
             "$ref": "#/components/schemas/Group"
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "Group": {
         "required": [
           "avatar",
-          "backgroundImage",
-          "deleteStatus",
           "description",
           "name",
           "parentGroupId",
-          "roomId"
+          "roomId",
+          "status"
         ],
         "type": "object",
         "properties": {
           "roomId": {
             "type": "integer",
+            "description": "房间id",
             "format": "int64"
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "群聊名称"
           },
           "avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "群聊头像"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "群描述"
           },
-          "deleteStatus": {
+          "status": {
             "type": "integer",
+            "description": "群状态 0正常 1 删除",
             "format": "int32"
           },
           "createTime": {
@@ -2768,12 +2993,11 @@
           },
           "parentGroupId": {
             "type": "integer",
+            "description": "父群聊",
             "format": "int64"
-          },
-          "backgroundImage": {
-            "type": "string"
           }
-        }
+        },
+        "description": "返回对象"
       },
       "AddRoleRequest": {
         "required": [
@@ -2784,12 +3008,15 @@
         "properties": {
           "roomId": {
             "type": "integer",
+            "description": "房间id",
             "format": "int64"
           },
           "roleIdList": {
             "type": "array",
+            "description": "角色id",
             "items": {
               "type": "integer",
+              "description": "角色id",
               "format": "int64"
             }
           }
@@ -2804,12 +3031,15 @@
         "properties": {
           "roomId": {
             "type": "integer",
+            "description": "房间id",
             "format": "int64"
           },
           "userIdList": {
             "type": "array",
+            "description": "邀请的用户Id",
             "items": {
               "type": "integer",
+              "description": "邀请的用户Id",
               "format": "int64"
             }
           }
@@ -2823,8 +3053,10 @@
         "properties": {
           "userIdList": {
             "type": "array",
+            "description": "邀请的uid",
             "items": {
               "type": "integer",
+              "description": "邀请的uid",
               "format": "int64"
             }
           }
@@ -2843,29 +3075,36 @@
         "properties": {
           "roomId": {
             "type": "integer",
+            "description": "房间id",
             "format": "int64"
           },
           "messageType": {
             "type": "integer",
+            "description": "消息类型",
             "format": "int32"
           },
           "roleId": {
             "type": "integer",
+            "description": "发送者扮演的角色的id",
             "format": "int64"
           },
           "avatarId": {
             "type": "integer",
+            "description": "发送者扮演的角色的立绘id",
             "format": "int64"
           },
           "content": {
-            "type": "string"
+            "type": "string",
+            "description": "消息内容"
           },
           "replayMessageId": {
             "type": "integer",
+            "description": "回复的消息id,如果没有别传就好",
             "format": "int64"
           },
           "body": {
-            "type": "object"
+            "type": "object",
+            "description": "消息内容，类型不同传值不同."
           }
         }
       },
@@ -2877,14 +3116,17 @@
         "properties": {
           "pageSize": {
             "type": "integer",
+            "description": "页面大小",
             "format": "int32"
           },
           "cursor": {
             "type": "integer",
+            "description": "游标（初始为null，后续请求附带上次翻页的游标）",
             "format": "int64"
           },
           "roomId": {
             "type": "integer",
+            "description": "会话id",
             "format": "int64"
           }
         }
@@ -2896,19 +3138,23 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
             "$ref": "#/components/schemas/CursorPageBaseResponseChatMessageResponse"
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "ChatMessageResponse": {
         "required": [
@@ -2921,29 +3167,35 @@
           },
           "messageMark": {
             "type": "array",
+            "description": "消息标记",
             "items": {
               "$ref": "#/components/schemas/MessageMark"
             }
           }
-        }
+        },
+        "description": "数据列表"
       },
       "CursorPageBaseResponseChatMessageResponse": {
         "type": "object",
         "properties": {
           "cursor": {
-            "type": "integer",
-            "format": "int64"
+            "type": "number",
+            "description": "游标（下次翻页带上这参数）",
+            "format": "double"
           },
           "isLast": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "是否最后一页"
           },
           "list": {
             "type": "array",
+            "description": "数据列表",
             "items": {
               "$ref": "#/components/schemas/ChatMessageResponse"
             }
           }
-        }
+        },
+        "description": "游标翻页返回"
       },
       "MessageMark": {
         "type": "object",
@@ -2966,10 +3218,12 @@
           },
           "type": {
             "type": "integer",
+            "description": "消息类型",
             "format": "int64"
           },
           "avatarId": {
             "type": "integer",
+            "description": "回复的",
             "format": "int64"
           },
           "createTime": {
@@ -2980,13 +3234,15 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "description": "MessageMark"
       },
       "RoleAvatarCreateRequest": {
         "type": "object",
         "properties": {
           "roleId": {
             "type": "integer",
+            "description": "角色id",
             "format": "int64"
           }
         }
@@ -2998,20 +3254,25 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
             "type": "integer",
+            "description": "返回对象",
             "format": "int64"
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "ApiResultUserInfoResponse": {
         "required": [
@@ -3020,19 +3281,23 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
             "$ref": "#/components/schemas/UserInfoResponse"
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "UserInfoResponse": {
         "required": [
@@ -3042,23 +3307,28 @@
         "properties": {
           "userId": {
             "type": "integer",
+            "description": "用户的uid，全局唯一",
             "format": "int64"
           },
           "username": {
             "type": "string"
           },
           "avatar": {
-            "type": "string"
+            "type": "string",
+            "description": "头像的url"
           },
           "activeStatus": {
             "type": "string",
+            "description": "1 在线 2离线",
             "format": "byte"
           },
           "lastLoginTime": {
             "type": "string",
+            "description": "最后一次上下线时间",
             "format": "date-time"
           }
-        }
+        },
+        "description": "返回对象"
       },
       "ApiResultListUserRole": {
         "required": [
@@ -3067,22 +3337,27 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
             "type": "array",
+            "description": "返回对象",
             "items": {
               "$ref": "#/components/schemas/UserRole"
             }
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "ApiResultListRoleAvatar": {
         "required": [
@@ -3091,22 +3366,27 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
             "type": "array",
+            "description": "返回对象",
             "items": {
               "$ref": "#/components/schemas/RoleAvatar"
             }
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "ApiResultRoleAbilityTable": {
         "required": [
@@ -3115,19 +3395,23 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
             "$ref": "#/components/schemas/RoleAbilityTable"
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "ApiResultListGroupMember": {
         "required": [
@@ -3136,22 +3420,27 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
             "type": "array",
+            "description": "返回对象",
             "items": {
               "$ref": "#/components/schemas/GroupMember"
             }
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "GroupMember": {
         "type": "object",
@@ -3166,6 +3455,7 @@
           },
           "memberType": {
             "type": "integer",
+            "description": "1 群主 2 管理员 3普通成员",
             "format": "int32"
           },
           "createTime": {
@@ -3176,7 +3466,8 @@
             "type": "string",
             "format": "date-time"
           }
-        }
+        },
+        "description": "返回对象"
       },
       "ApiResultListGroup": {
         "required": [
@@ -3185,22 +3476,27 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
             "type": "array",
+            "description": "返回对象",
             "items": {
               "$ref": "#/components/schemas/Group"
             }
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "ApiResultListChatMessageResponse": {
         "required": [
@@ -3209,22 +3505,27 @@
         "type": "object",
         "properties": {
           "success": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
           "errCode": {
             "type": "integer",
+            "description": "错误码",
             "format": "int32"
           },
           "errMsg": {
-            "type": "string"
+            "type": "string",
+            "description": "错误消息"
           },
           "data": {
             "type": "array",
+            "description": "返回对象",
             "items": {
               "$ref": "#/components/schemas/ChatMessageResponse"
             }
           }
-        }
+        },
+        "description": "基础返回体"
       },
       "DeleteRoleRequest": {
         "required": [
@@ -3235,12 +3536,15 @@
         "properties": {
           "roomId": {
             "type": "integer",
+            "description": "房间id",
             "format": "int64"
           },
           "roleIdList": {
             "type": "array",
+            "description": "角色id",
             "items": {
               "type": "integer",
+              "description": "角色id",
               "format": "int64"
             }
           }
@@ -3255,12 +3559,15 @@
         "properties": {
           "roomId": {
             "type": "integer",
+            "description": "房间号",
             "format": "int64"
           },
           "uidList": {
             "type": "array",
+            "description": "需要撤销管理的列表",
             "items": {
               "type": "integer",
+              "description": "需要撤销管理的列表",
               "format": "int64"
             }
           }
@@ -3275,16 +3582,26 @@
         "properties": {
           "roomId": {
             "type": "integer",
+            "description": "会话id",
             "format": "int64"
           },
           "userIdList": {
             "type": "array",
+            "description": "删除的用户id",
             "items": {
               "type": "integer",
+              "description": "删除的用户id",
               "format": "int64"
             }
           }
         }
+      }
+    },
+    "securitySchemes": {
+      "Authorization": {
+        "type": "http",
+        "scheme": "Bearer",
+        "bearerFormat": "JWT"
       }
     }
   },

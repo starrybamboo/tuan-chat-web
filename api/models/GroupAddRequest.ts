@@ -3,6 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type GroupAddRequest = {
+    /**
+     * 邀请的uid
+     */
     userIdList: Array<number>;
 };
 
