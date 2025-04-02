@@ -1,216 +1,45 @@
+import type { Message } from "@/view/chat/components/message";
+
+import type { Role } from "@/view/chat/components/role";
 import type { FormEvent } from "react";
-import type { RoleAvatar, UserRole } from "../../api";
+
+import { ChatBox } from "@/view/chat/components/chatBox";
+import { ChatBubble } from "@/view/chat/components/chatBubble";
+
+import { mockMessages } from "@/view/chat/components/message";
+import { mockRoles } from "@/view/chat/components/role";
 
 import { useState } from "react";
 import { useImmer } from "use-immer";
 
-interface Role {
-  userRole: UserRole;
-  roleAvatars: RoleAvatar[];
-  currentAvatarIndex: number;
-}
-
-interface Message {
-  avatar: RoleAvatar;
-  userRole: UserRole;
-  messageId: number;
-  userId: number;
-  roleId: number;
-  content: string;
-  type: number; // 0: system, 1: user, 2: group
-  createTime: Date;
-  updateTime: Date;
-}
-
 // Here are two different chat styles.
-
-/**
- * 聊天风格的对话框组件
- * @param message
- * @constructor
- */
-function ChatBubble({ message }: { message: Message }) {
-  return (
-  // <div className={message.type !== "user" ? "chat chat-start" : "chat chat-end"} key={message.id}>
-    <div className="chat chat-start" key={message.messageId}>
-      <div className="chat-image avatar">
-        <div className="w-10 rounded-full">
-          <img
-            alt="Tailwind CSS chat bubble component"
-            src={message.avatar.avatarUrl}
-          />
-        </div>
-
-      </div>
-      <div
-        className={message.type !== 1 ? "chat-bubble" : "chat-bubble chat-bubble-neutral"}
-      >
-        <div style={{ whiteSpace: "pre-wrap" }}>
-          {message.content}
-        </div>
-      </div>
-      <div className="chat-footer">
-        {message.userRole.roleName}
-        <time className="text-xs opacity-50">
-          {message.createTime.toLocaleString()}
-        </time>
-      </div>
-      {/* <div className="chat-footer opacity-50">Seen</div> */}
-    </div>
-  );
-}
-
-/**
- * Gal风格的对话框组件
- * @param message
- * @constructor
- */
-function ChatBox({ message }: { message: Message }) {
-  return (
-    <div className="flex w-full mb-4" key={message.messageId}>
-      {/* 圆角矩形头像（始终显示） */}
-      <div className="flex-shrink-0 mr-3">
-        <div className="w-20 h-20 rounded-md overflow-hidden">
-          <img
-            alt={message.userRole.roleName}
-            src={message.avatar.avatarUrl}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      </div>
-
-      {/* 消息内容 */}
-      <div className="flex-1">
-        {/* 角色名（始终显示） */}
-        <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
-          {message.userRole.roleName}
-        </div>
-
-        {/* 消息文本（纯文字，无边框） */}
-        <div
-          className="text-base text-gray-700 dark:text-gray-300 mt-1"
-          style={{ whiteSpace: "pre-wrap" }}
-        >
-          {message.content}
-        </div>
-
-        {/* 时间（小字，低调） */}
-        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          {message.createTime.toLocaleString()}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function DialogueWindow() {
   const [inputText, setInputText] = useState("");
   const [curRoleId, setCurRoleId] = useState(1);
-  const [roles, updateRoles] = useImmer<Role[]>([
-    {
-      userRole: {
-        userId: 0,
-        roleId: 0,
-        roleName: "系统",
-        description: "系统",
-        avatarId: 0,
-        createTime: (new Date(Date.now() - 40000)).toString(),
-        updateTime: (new Date(Date.now() - 40000)).toString(),
-      },
-      roleAvatars: [
-        {
-          avatarId: 0,
-          avatarUrl: "https://avatars.githubusercontent.com/u/47094597?v=4",
-          roleId: 0,
-        },
-      ],
-      currentAvatarIndex: 0,
-    },
-    {
-      userRole: {
-        userId: 0,
-        roleId: 1,
-        roleName: "用户",
-        description: "旧都",
-        avatarId: 0,
-        createTime: (new Date(Date.now() - 40000)).toString(),
-        updateTime: (new Date(Date.now() - 40000)).toString(),
-      },
-      roleAvatars: [
-        {
-          avatarId: 3,
-          avatarUrl: "https://entropy622.github.io/img/avatar_hud9e0e7c4951e871acf83365066e399f1_1041756_300x0_resize_box_3.png",
-          roleId: 1,
-        },
-        {
-          avatarId: 4,
-          avatarUrl: "https://avatars.githubusercontent.com/u/176760093?v=4",
-          roleId: 1,
-        },
-      ],
-      currentAvatarIndex: 0,
-    },
-    {
-      userRole: {
-        userId: 0,
-        roleId: 2,
-        roleName: "兴爷",
-        description: "兴爷",
-        avatarId: 5,
-        createTime: (new Date(Date.now() - 40000)).toString(),
-        updateTime: (new Date(Date.now() - 40000)).toString(),
-      },
-      roleAvatars: [
-        {
-          avatarId: 6,
-          avatarUrl: "https://avatars.githubusercontent.com/u/107794984?v=4",
-          roleId: 2,
-        },
-        {
-          avatarId: 7,
-          avatarUrl: "https://entropy622.github.io/img/avatar_hud9e0e7c4951e871acf83365066e399f1_1041756_300x0_resize_box_3.png",
-          roleId: 2,
-        },
-      ],
-      currentAvatarIndex: 0,
-    },
-  ]);
+  const [roles, updateRoles] = useImmer<Role[]>(mockRoles);
   const [useChatBoxStyle, setUseChatBoxStyle] = useState(true);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      avatar: roles[0].roleAvatars[0],
-      userRole: roles[0].userRole,
-      messageId: 1,
-      content: "团聚共创聊天室demo",
-      type: 0,
-      createTime: new Date(Date.now() - 40000),
-      userId: 0,
-      roleId: 0,
-      updateTime: new Date(Date.now() - 40000),
-    },
-    {
-      avatar: roles[1].roleAvatars[0],
-      userRole: roles[1].userRole,
-      messageId: 2,
-      content: "gugugaga\ngugugaga!",
-      type: 1,
-      createTime: new Date(Date.now() - 40000),
-      userId: 0,
-      roleId: 0,
-      updateTime: new Date(Date.now() - 40000),
-    },
-    {
-      avatar: roles[2].roleAvatars[0],
-      userRole: roles[2].userRole,
-      messageId: 3,
-      content: "喵喵喵喵喵喵",
-      type: 1,
-      createTime: new Date(Date.now() - 40000),
-      userId: 0,
-      roleId: 0,
-      updateTime: new Date(Date.now() - 40000),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(mockMessages);
+
+  // // 修正RoleControllerService实例化，使用OpenAPI配置
+  // const roleControllerService = new RoleControllerService(new FetchHttpRequest(OpenAPI));
+  //
+  // // 新增示例方法调用/capi/role/avatar接口
+  // const fetchRoleAvatars = async (roleId: number) => {
+  //   try {
+  //     const result = await roleControllerService.getRoleAvatars(roleId);
+  //     console.log("Role avatars:", result.data);
+  //   }
+  //   catch (error) {
+  //     console.error("Failed to fetch role avatars:", error);
+  //   }
+  // };
+  //
+  // useEffect(() => { fetchRoleAvatars(1); });
+  // // 示例调用（假设在某个按钮点击事件中）
+  // const handleAvatarButton = () => {
+  //   fetchRoleAvatars(1); // 传入roleId参数
+  // };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
