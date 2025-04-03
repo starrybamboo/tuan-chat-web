@@ -1,4 +1,5 @@
 import type { RoleAvatar, UserRole } from "../../../../api";
+// import type { RoleAvatar, UserRole } from "../../../../api";
 import { mockRoles as roles } from "@/view/chat/components/role";
 
 export interface Message {

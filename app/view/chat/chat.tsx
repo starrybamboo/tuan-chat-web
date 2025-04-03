@@ -10,8 +10,8 @@ export default function Chat() {
         </aside>
         <DialogueWindow groupId={1}>
         </DialogueWindow>
-        <aside className="w-64 bg-base-100 border-r p-4 animate-pulse">
-        </aside>
+        {/* <aside className="w-64 bg-base-100 border-r p-4 animate-pulse"> */}
+        {/* </aside> */}
       </div>
     </div>
   );
