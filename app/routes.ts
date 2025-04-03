@@ -4,5 +4,5 @@ import { index, route } from "@react-router/dev/routes";
 
 export default [
   index("routes/home.tsx"),
-  route("auth", "view/auth.tsx"),
+  route("login", "view/loginButton.tsx"),
 ] satisfies RouteConfig;

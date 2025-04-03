@@ -1,16 +1,17 @@
-export type LoginRequest = {
+export type LoginCredentials = {
   username: string;
   password: string;
 };
 
-export type RegisterRequest = {
+export type RegisterCredentials = {
   username: string;
   password: string;
 };
 
-export type AuthResponse = {
+export type RegisterResponse = {
   success: boolean;
   message?: string;
+  errMsg?: string;
   data?: string;
   token?: string;
 };

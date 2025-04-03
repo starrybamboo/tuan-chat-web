@@ -5,8 +5,8 @@ import { checkAuthStatus, loginUser, registerUser } from "../api/authapi";
 
 const queryClient = new QueryClient();
 
-// 登录页面组件
-export default function LoginView() {
+// 登录弹窗组件
+export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const isLogin = searchParams.get("mode") !== "register";
   const [username, setUsername] = useState("");
@@ -24,12 +24,12 @@ export default function LoginView() {
   const isLoggedIn = authStatus?.isLoggedIn || false;
 
   // 在组件顶部添加样式
-  const fadeOutAnimation = `
-    @keyframes fadeOut {
-      0% { opacity: 1; }
-      100% { opacity: 0; }
-    }
-  `;
+  // const fadeOutAnimation = `
+  // @keyframes fadeOut {
+  // 0% { opacity: 1; }
+  // 100% { opacity: 0; }
+  // }
+  // `;
 
   // 修改消息处理函数
   function showTemporaryMessage(message: string, type: "success" | "error") {
@@ -65,17 +65,19 @@ export default function LoginView() {
     }, 1000);
   };
 
-  // 修改登录mutation的错误处理
+  // 处理成功登录后的关闭
+  const handleSuccessAndClose = () => {
+    onClose();
+    window.location.reload();
+  };
+
+  // 修改登录mutation
   const loginMutation = useMutation({
     mutationFn: loginUser,
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
       showTemporaryMessage("登录成功！", "success");
-
-      // 延迟一秒后刷新页面，确保用户能看到成功消息
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      setTimeout(handleSuccessAndClose, 1000);
     },
     onError: (error) => {
       showTemporaryMessage(
@@ -85,11 +87,11 @@ export default function LoginView() {
     },
   });
 
-  // 修改注册mutation
+  // 修改注册mutation中的成功处理
   const registerMutation = useMutation({
     mutationFn: registerUser,
     onSuccess: (data) => {
-      if (data.success && data.data) { // 确保有返回的userId
+      if (data.success && data.data) {
         // 保存注册返回的userId和密码
         const userId = data.data;
         const registeredPassword = password;
@@ -150,21 +152,28 @@ export default function LoginView() {
     localStorage.removeItem("token");
     queryClient.invalidateQueries({ queryKey: ["authStatus"] });
     showTemporaryMessage("已成功退出登录", "success");
-    // 添加延时以确保消息显示后再刷新页面
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
+    setTimeout(handleSuccessAndClose, 1000);
   };
 
   return (
-    // 页面主容器
-    <div className="min-h-screen flex items-center justify-center">
-      {/* 登录卡片 */}
-      <style>{fadeOutAnimation}</style>
-      <div className="card w-96 bg-base-100 shadow-xl">
-        <div className="card-body">
-          {/* 标题 */}
-          <h2 className="card-title text-2xl font-bold text-center mb-6">{isLogin ? "登录" : "注册"}</h2>
+    // Modal 容器
+    <div className={`modal ${isOpen ? "modal-open" : ""}`}>
+      <div className="modal-box relative">
+        {/* 关闭按钮 */}
+        <button
+          type="button"
+          className="btn btn-sm btn-circle absolute right-2 top-2"
+          onClick={onClose}
+        >
+          ✕
+        </button>
+
+        {/* 原有的卡片内容，移除外层容器样式 */}
+        <div className="card-body px-0">
+          {/* 原有内容保持不变 */}
+          <h2 className="card-title text-2xl font-bold text-center mb-6 justify-center w-full">
+            {isLoggedIn ? "您已成功登录" : (isLogin ? "登录" : "注册")}
+          </h2>
 
           {/* 错误信息显示 */}
           {errorMessage && (
@@ -183,22 +192,22 @@ export default function LoginView() {
           { isLoggedIn
             ? (
                 <div className="flex flex-col items-center">
-                  <div className="alert alert-success mb-4">
-                    <span>您已成功登录！</span>
+                  <div className="flex flex-row items-center justify-center gap-4">
+                    <a
+                      href="/"
+                      className="btn btn-primary"
+                    >
+                      前往主页
+                    </a>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="btn btn-outline btn-error"
+                    >
+                      退出登录
+                    </button>
                   </div>
-                  <a
-                    href="/"
-                    className="btn btn-primary mb-4"
-                  >
-                    前往主页
-                  </a>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="btn btn-outline btn-error"
-                  >
-                    退出登录
-                  </button>
+
                 </div>
               )
             : (
@@ -292,6 +301,9 @@ export default function LoginView() {
           )}
         </div>
       </div>
+
+      {/* 添加模态框背景遮罩 */}
+      <div className="modal-backdrop" onClick={onClose}></div>
     </div>
   );
 }
