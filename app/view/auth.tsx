@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 
 // 定义登录凭证的接口类型
 interface LoginCredentials {
@@ -71,8 +71,6 @@ async function registerUser(credentials: RegisterCredentials) {
 export default function LoginView() {
   const [searchParams, setSearchParams] = useSearchParams();
   const isLogin = searchParams.get("mode") !== "register"; // 如果mode不是register，就是登录状态
-  // 用于页面导航的hook
-  const navigate = useNavigate();
   // 表单状态管理
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -80,6 +78,9 @@ export default function LoginView() {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  // 在组件顶部添加已登录状态
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // 在组件顶部添加样式
   const fadeOutAnimation = `
@@ -127,10 +128,16 @@ export default function LoginView() {
   const loginMutation = useMutation({
     mutationFn: loginUser,
     onSuccess: (data) => {
+      // 显示登录成功消息
+      showTemporaryMessage("登录成功！", "success");
+
       // 登录成功后将token存储到localStorage
       localStorage.setItem("token", data.token);
-      // 导航到聊天页面
-      navigate("/chat");
+
+      // 延迟500毫秒后设置已登录状态
+      setTimeout(() => {
+        setIsLoggedIn(true);
+      }, 1000);
     },
     onError: (error) => {
       // 显示错误信息
@@ -145,9 +152,9 @@ export default function LoginView() {
   const registerMutation = useMutation({
     mutationFn: registerUser,
     onSuccess: (data) => {
-      if (data.success) {
-        // 注册成功后，先跳转到登录界面
-        const registeredUsername = username;
+      if (data.success && data.data) { // 确保有返回的userId
+        // 保存注册返回的userId和密码
+        const userId = data.data;
         const registeredPassword = password;
 
         // 清空表单
@@ -163,13 +170,13 @@ export default function LoginView() {
 
         // 自动填充用户名和密码
         setTimeout(() => {
-          setUsername(registeredUsername);
+          setUsername(userId); // 使用返回的userId
           setPassword(registeredPassword);
 
           // 再延迟一会自动登录
           setTimeout(() => {
             loginMutation.mutate({
-              username: registeredUsername,
+              username: userId, // 使用userId进行登录
               password: registeredPassword,
             });
           }, 1000);
@@ -225,102 +232,93 @@ export default function LoginView() {
             </div>
           )}
 
-          {/* 登录表单 */}
-          <form onSubmit={handleSubmit}>
-            {/* 用户名输入框 */}
-            <div className="form-control w-full mt-2">
-              <label className="floating-label">
-                <span className="label-text">用户名</span>
-                <input
-                  type="text"
-                  placeholder="请输入用户名"
-                  className="input input-bordered w-full"
-                  value={username}
-                  onChange={e => setUsername(e.target.value)}
-                  required
-                />
-              </label>
-            </div>
+          { isLoggedIn
+            ? (
+                <div className="flex flex-col items-center">
+                  <div className="alert alert-success mb-4">
+                    <span>您已成功登录！</span>
+                  </div>
+                  <a
+                    href="/"
+                    className="btn btn-primary mb-4"
+                  >
+                    前往主页
+                  </a>
+                </div>
+              )
+            : (
+                <form onSubmit={handleSubmit}>
+                  {/* 用户名输入框 */}
+                  <div className="form-control w-full mt-2">
+                    <label className="floating-label">
+                      <span className="label-text">用户ID</span>
+                      <input
+                        type="text"
+                        placeholder="请输入用户ID"
+                        className="input input-bordered w-full"
+                        value={username}
+                        onChange={e => setUsername(e.target.value)}
+                        required
+                      />
+                    </label>
+                  </div>
 
-            {/* 密码输入框 */}
-            <div className="form-control w-full mt-2">
-              <label className="floating-label">
-                <span className="label-text">密码</span>
-                <input
-                  type="password"
-                  placeholder="请输入密码"
-                  className="input input-bordered w-full"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                />
-              </label>
-              {/* 忘记密码链接 */}
-              {isLogin && (
-                <label className="label mt-2">
-                  <a href="#" className="label-text-alt link link-hover">忘记密码？</a>
-                </label>
+                  {/* 密码输入框 */}
+                  <div className="form-control w-full mt-2">
+                    <label className="floating-label">
+                      <span className="label-text">密码</span>
+                      <input
+                        type="password"
+                        placeholder="请输入密码"
+                        className="input input-bordered w-full"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        required
+                      />
+                    </label>
+                  </div>
+
+                  {/* 注册模式添加确认密码输入框 */}
+                  {!isLogin && (
+                    <div className="form-control w-full mt-2">
+                      <label className="floating-label">
+                        <span className="label-text">确认密码</span>
+                        <input
+                          type="password"
+                          placeholder="请再次输入密码"
+                          className="input input-bordered w-full"
+                          value={confirmPassword}
+                          onChange={e => setConfirmPassword(e.target.value)}
+                          required
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  {/* 登录/注册按钮 */}
+                  <div className="form-control mt-6">
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={loginMutation.isPending || registerMutation.isPending}
+                    >
+                      {loginMutation.isPending || registerMutation.isPending
+                        ? (
+                            <>
+                              <span className="loading loading-spinner"></span>
+                              {isLogin ? "登录中..." : "注册中..."}
+                            </>
+                          )
+                        : (
+                            isLogin ? "登录" : "注册"
+                          )}
+                    </button>
+                  </div>
+                </form>
               )}
-            </div>
-
-            {/* 注册模式添加确认密码输入框 */}
-            {!isLogin && (
-              <div className="form-control w-full mt-2">
-                <label className="floating-label">
-                  <span className="label-text">确认密码</span>
-                  <input
-                    type="password"
-                    placeholder="请再次输入密码"
-                    className="input input-bordered w-full"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    required
-                  />
-                </label>
-              </div>
-            )}
-
-            {/* 登录/注册按钮 */}
-            <div className="form-control mt-6">
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={loginMutation.isPending || registerMutation.isPending}
-              >
-                {loginMutation.isPending || registerMutation.isPending
-                  ? (
-                      <>
-                        <span className="loading loading-spinner"></span>
-                        {isLogin ? "登录中..." : "注册中..."}
-                      </>
-                    )
-                  : (
-                      isLogin ? "登录" : "注册"
-                    )}
-              </button>
-            </div>
-          </form>
 
           {/* 分隔线 */}
-          <div className="divider">或</div>
-
-          {/* 第三方登录选项 */}
-          <div className="flex flex-col gap-2">
-            {/* GitHub登录按钮 */}
-            <button type="button" className="btn btn-outline">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-              </svg>
-              使用 GitHub 登录
-            </button>
-            {/* Google登录按钮 */}
-            <button type="button" className="btn btn-outline">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              使用 Google 登录
-            </button>
-          </div>
+          <div className="divider" />
 
           {/* 注册链接 */}
           <p className="text-center mt-4">
