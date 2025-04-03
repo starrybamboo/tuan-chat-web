@@ -1,12 +1,12 @@
 import type { RoleAvatar, UserRole } from "../../../../api";
 
-export interface Role {
+export interface RoleVO {
   userRole: UserRole;
   roleAvatars: RoleAvatar[];
   currentAvatarIndex: number;
 }
 
-export const mockRoles: Role[] = [
+export const mockRoles: RoleVO[] = [
   {
     userRole: {
       userId: 0,

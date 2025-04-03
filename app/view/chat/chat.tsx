@@ -8,7 +8,8 @@ export default function Chat() {
         {/* 侧边栏骨架 */}
         <aside className="w-64 bg-base-100 border-r p-4 animate-pulse">
         </aside>
-        <DialogueWindow />
+        <DialogueWindow groupId={1}>
+        </DialogueWindow>
         <aside className="w-64 bg-base-100 border-r p-4 animate-pulse">
         </aside>
       </div>

@@ -1,52 +1,72 @@
 import type { Message } from "@/view/chat/components/message";
 
-import type { Role } from "@/view/chat/components/role";
+import type { RoleVO } from "@/view/chat/components/role";
 import type { FormEvent } from "react";
 
+import type { UserRole } from "../../../../api";
 import { ChatBox } from "@/view/chat/components/chatBox";
+
 import { ChatBubble } from "@/view/chat/components/chatBubble";
-
 import { mockMessages } from "@/view/chat/components/message";
-import { mockRoles } from "@/view/chat/components/role";
 
-import { useState } from "react";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+
 import { useImmer } from "use-immer";
+import { tuanchat } from "../../../../api/instance";
 
 // Here are two different chat styles.
 
-export function DialogueWindow() {
+export function DialogueWindow({ groupId }: { groupId: number }) {
   const [inputText, setInputText] = useState("");
   const [curRoleId, setCurRoleId] = useState(1);
-  const [roles, updateRoles] = useImmer<Role[]>(mockRoles);
+  const [roleVOs, updateRoleVOs] = useImmer<RoleVO[]>([]); // 先初始化空数组
   const [useChatBoxStyle, setUseChatBoxStyle] = useState(true);
   const [messages, setMessages] = useState<Message[]>(mockMessages);
+  // 数据请求
+  const curAvatarRolesQuery = useQuery({
+    queryKey: ["groupRoleController.groupRole", groupId],
+    queryFn: () => tuanchat.groupRoleController.groupRole(groupId),
+  });
+  const roleAvatarsQueries = useQueries({
+    queries: (curAvatarRolesQuery.data?.data || []).map((role: UserRole) => ({
+      queryKey: ["roleController.getRoleAvatars", role.roleId],
+      queryFn: () => tuanchat.roleController.getRoleAvatars(role.roleId),
+      enabled: !!curAvatarRolesQuery.data,
+    })),
+  });
 
-  // // 修正RoleControllerService实例化，使用OpenAPI配置
-  // const roleControllerService = new RoleControllerService(new FetchHttpRequest(OpenAPI));
-  //
-  // // 新增示例方法调用/capi/role/avatar接口
-  // const fetchRoleAvatars = async (roleId: number) => {
-  //   try {
-  //     const result = await roleControllerService.getRoleAvatars(roleId);
-  //     console.log("Role avatars:", result.data);
-  //   }
-  //   catch (error) {
-  //     console.error("Failed to fetch role avatars:", error);
-  //   }
-  // };
-  //
-  // useEffect(() => { fetchRoleAvatars(1); });
-  // // 示例调用（假设在某个按钮点击事件中）
-  // const handleAvatarButton = () => {
-  //   fetchRoleAvatars(1); // 传入roleId参数
-  // };
-
+  // 数据加载完成后更新 roleVOs
+  useEffect(() => {
+    if (
+      curAvatarRolesQuery.data?.data
+      && roleAvatarsQueries.every(q => q.isSuccess)
+    ) {
+      updateRoleVOs((draft) => {
+        draft.splice(0, draft.length);
+        curAvatarRolesQuery.data.data!.forEach((role, index) => {
+          draft.push({
+            userRole: role,
+            roleAvatars: roleAvatarsQueries[index].data.data || [],
+            currentAvatarIndex: 0,
+          });
+        });
+      });
+    }
+  }, [curAvatarRolesQuery.data, roleAvatarsQueries, updateRoleVOs]);
+  // 条件渲染放在最后
+  if (curAvatarRolesQuery.isLoading || roleAvatarsQueries.some(q => q.isLoading)) {
+    return <div>Loading roles...</div>;
+  }
+  if (curAvatarRolesQuery.isError || roleAvatarsQueries.some(q => q.isError)) {
+    return <div>Error loading data</div>;
+  }
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (inputText.trim()) {
       const userMessage: Message = {
-        avatar: roles[curRoleId].roleAvatars[roles[curRoleId].currentAvatarIndex],
-        userRole: roles[curRoleId].userRole,
+        avatar: roleVOs[curRoleId].roleAvatars[roleVOs[curRoleId].currentAvatarIndex],
+        userRole: roleVOs[curRoleId].userRole,
         messageId: Date.now(),
         content: inputText.trim(),
         type: 0,
@@ -61,7 +81,7 @@ export function DialogueWindow() {
   };
 
   const handleAvatarChange = (avatarIndex: number) => {
-    updateRoles((draft) => {
+    updateRoleVOs((draft) => {
       draft[curRoleId].currentAvatarIndex = avatarIndex;
     });
   };
@@ -106,7 +126,7 @@ export function DialogueWindow() {
               <div className="avatar flex justify-center">
                 <div className="w-32 h-32 rounded-full">
                   <img
-                    src={roles[curRoleId].roleAvatars[roles[curRoleId].currentAvatarIndex].avatarUrl}
+                    src={roleVOs[curRoleId]?.roleAvatars[roleVOs[curRoleId].currentAvatarIndex]?.avatarUrl || ""}
                     alt="Avatar"
                     tabIndex={0}
                     role="button"
@@ -115,15 +135,23 @@ export function DialogueWindow() {
               </div>
               <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm">
                 {
-                  roles[curRoleId].roleAvatars.map((avatar, index) => (
-                    <img
-                      src={avatar.avatarUrl}
-                      alt="Avatar"
-                      tabIndex={0}
-                      key={avatar.avatarId}
-                      onClick={() => handleAvatarChange(index)}
-                    />
-                  ))
+                  roleVOs.length > 0
+                  && curRoleId >= 0
+                  && curRoleId < roleVOs.length
+                  && roleVOs[curRoleId].roleAvatars
+                    ? (
+                        <div className="avatars-grid">
+                          {roleVOs[curRoleId].roleAvatars.map((avatar, index) => (
+                            <img
+                              key={avatar.avatarId}
+                              src={avatar.avatarUrl}
+                              alt={`Avatar ${index}`}
+                              onClick={() => handleAvatarChange(index)}
+                            />
+                          ))}
+                        </div>
+                      )
+                    : <div className="no-avatars">暂无可用头像</div>
                 }
               </ul>
             </div>
@@ -143,7 +171,7 @@ export function DialogueWindow() {
                   <div tabIndex={0} role="button" className="btn m-1">Choose Role ⬆️</div>
                   <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-30 p-2 shadow-sm">
                     {
-                      roles.map(role => (
+                      roleVOs.map(role => (
                         <li key={role.userRole.roleId} onClick={() => setCurRoleId(role.userRole.roleId)}>
                           <div className="avatar">
                             <div className="w-8 rounded">
