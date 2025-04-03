@@ -19,7 +19,7 @@ import { tuanchat } from "../../../../api/instance";
 
 export function DialogueWindow({ groupId }: { groupId: number }) {
   const [inputText, setInputText] = useState("");
-  const [curRoleId, setCurRoleId] = useState(1);
+  const [curRoleIndex, setCurRoleIndex] = useState(0);
   const [roleVOs, updateRoleVOs] = useImmer<RoleVO[]>([]); // 先初始化空数组
   const [useChatBoxStyle, setUseChatBoxStyle] = useState(true);
   const [messages, setMessages] = useState<Message[]>(mockMessages);
@@ -42,18 +42,18 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
       curAvatarRolesQuery.data?.data
       && roleAvatarsQueries.every(q => q.isSuccess)
     ) {
-      updateRoleVOs((draft) => {
-        draft.splice(0, draft.length);
-        curAvatarRolesQuery.data.data!.forEach((role, index) => {
-          draft.push({
-            userRole: role,
-            roleAvatars: roleAvatarsQueries[index].data.data || [],
-            currentAvatarIndex: 0,
-          });
-        });
-      });
+      // 先准备新数据
+      const newRoles = curAvatarRolesQuery.data.data.map((role, index) => ({
+        userRole: role,
+        roleAvatars: roleAvatarsQueries[index].data?.data || [],
+        currentAvatarIndex: 0,
+      }));
+      if (JSON.stringify(newRoles) !== JSON.stringify(roleVOs)) {
+        updateRoleVOs(() => newRoles);
+      }
     }
-  }, [curAvatarRolesQuery.data, roleAvatarsQueries, updateRoleVOs]);
+  }, [curAvatarRolesQuery.data?.data, curAvatarRolesQuery.dataUpdatedAt, roleAvatarsQueries, roleVOs, updateRoleVOs]);
+
   // 条件渲染放在最后
   if (curAvatarRolesQuery.isLoading || roleAvatarsQueries.some(q => q.isLoading)) {
     return <div>Loading roles...</div>;
@@ -65,8 +65,8 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     e.preventDefault();
     if (inputText.trim()) {
       const userMessage: Message = {
-        avatar: roleVOs[curRoleId].roleAvatars[roleVOs[curRoleId].currentAvatarIndex],
-        userRole: roleVOs[curRoleId].userRole,
+        avatar: roleVOs[curRoleIndex].roleAvatars[roleVOs[curRoleIndex].currentAvatarIndex],
+        userRole: roleVOs[curRoleIndex].userRole,
         messageId: Date.now(),
         content: inputText.trim(),
         type: 0,
@@ -82,7 +82,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
 
   const handleAvatarChange = (avatarIndex: number) => {
     updateRoleVOs((draft) => {
-      draft[curRoleId].currentAvatarIndex = avatarIndex;
+      draft[curRoleIndex].currentAvatarIndex = avatarIndex;
     });
   };
 
@@ -91,6 +91,10 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
       e.preventDefault();
       handleSubmit(e);
     }
+  };
+
+  const handleRoleChange = (roleIndex: number) => {
+    setCurRoleIndex(roleIndex);
   };
 
   return (
@@ -126,24 +130,28 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
               <div className="avatar flex justify-center">
                 <div className="w-32 h-32 rounded-full">
                   <img
-                    src={roleVOs[curRoleId]?.roleAvatars[roleVOs[curRoleId].currentAvatarIndex]?.avatarUrl || ""}
+                    src={roleVOs[curRoleIndex]?.roleAvatars[roleVOs[curRoleIndex].currentAvatarIndex]?.avatarUrl || ""}
                     alt="Avatar"
+                    className="object-cover w-full h-full" // 确保图片填充容器
                     tabIndex={0}
                     role="button"
                   />
                 </div>
               </div>
-              <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm">
+
+              <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-92 p-2 shadow-sm">
                 {
-                  roleVOs.length > 0
-                  && curRoleId >= 0
-                  && curRoleId < roleVOs.length
-                  && roleVOs[curRoleId].roleAvatars
+                  roleVOs
+                  && roleVOs.length >= 0
+                  && roleVOs[curRoleIndex]
+                  && roleVOs[curRoleIndex].roleAvatars
+                  && roleVOs[curRoleIndex].roleAvatars.length > 0
                     ? (
-                        <div className="avatars-grid">
-                          {roleVOs[curRoleId].roleAvatars.map((avatar, index) => (
+                        <div className="grid grid-cols-5 gap-2">
+                          {roleVOs[curRoleIndex].roleAvatars.map((avatar, index) => (
                             <img
                               key={avatar.avatarId}
+                              className="w-16 h-16 object-cover rounded cursor-pointer hover:ring-2 ring-primary transition-all"
                               src={avatar.avatarUrl}
                               alt={`Avatar ${index}`}
                               onClick={() => handleAvatarChange(index)}
@@ -151,10 +159,15 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                           ))}
                         </div>
                       )
-                    : <div className="no-avatars">暂无可用头像</div>
+                    : (
+                        <div className="text-center p-2 text-gray-500 text-sm">
+                          暂无可用头像
+                        </div>
+                      )
                 }
               </ul>
             </div>
+
             <div className="w-full textarea">
               {/* text input */}
               <textarea
@@ -171,8 +184,8 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                   <div tabIndex={0} role="button" className="btn m-1">Choose Role ⬆️</div>
                   <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-30 p-2 shadow-sm">
                     {
-                      roleVOs.map(role => (
-                        <li key={role.userRole.roleId} onClick={() => setCurRoleId(role.userRole.roleId)}>
+                      roleVOs.map((role, index) => (
+                        <li key={role.userRole.roleId} onClick={() => handleRoleChange(index)}>
                           <div className="avatar">
                             <div className="w-8 rounded">
                               <img
