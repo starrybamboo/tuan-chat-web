@@ -1,81 +1,9 @@
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
+import { checkAuthStatus, loginUser, registerUser } from "../api/authapi";
 
-// 定义登录凭证的接口类型
-interface LoginCredentials {
-  username: string;
-  password: string;
-}
-
-// 添加注册用户的接口类型
-interface RegisterCredentials extends LoginCredentials {
-  confirmPassword?: string;
-}
-
-// 修改注册请求的响应类型
-interface RegisterResponse {
-  success: boolean;
-  errCode?: number;
-  errMsg?: string;
-  data?: string;
-}
 const queryClient = new QueryClient();
-
-// 处理登录请求的异步函数
-async function loginUser(credentials: LoginCredentials) {
-  // 发送登录请求到后端API
-  const res = await fetch("http://39.103.58.31:8081/capi/user/public/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer 10001",
-    },
-    body: JSON.stringify({
-      userId: credentials.username,
-      password: credentials.password,
-    }),
-  });
-
-  // 如果请求不成功，抛出错误
-  if (!res.ok)
-    throw new Error("登录失败");
-
-  // 返回解析后的响应数据
-  return await res.json();
-}
-
-// 注册请求的异步函数
-async function registerUser(credentials: RegisterCredentials) {
-  const res = await fetch("http://39.103.58.31:8081/capi/user/public/register", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer 10001",
-    },
-    body: JSON.stringify({
-      username: credentials.username, // 修改为与接口匹配的参数名
-      password: credentials.password,
-    }),
-  });
-
-  const data: RegisterResponse = await res.json();
-
-  if (!data.success) {
-    throw new Error(data.errMsg || "注册失败");
-  }
-
-  return data;
-}
-
-// 添加检查登录状态的函数
-async function checkAuthStatus() {
-  const token = localStorage.getItem("token");
-  if (!token) {
-    return { isLoggedIn: false };
-  }
-  return { isLoggedIn: true, token };
-}
 
 // 登录页面组件
 export default function LoginView() {
@@ -104,7 +32,7 @@ export default function LoginView() {
   `;
 
   // 修改消息处理函数
-  const showTemporaryMessage = (message: string, type: "success" | "error") => {
+  function showTemporaryMessage(message: string, type: "success" | "error") {
     // 先清除可能存在的消息
     setErrorMessage("");
     setSuccessMessage("");
@@ -230,7 +158,7 @@ export default function LoginView() {
 
   return (
     // 页面主容器
-    <div className="min-h-screen bg-base-200 flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center">
       {/* 登录卡片 */}
       <style>{fadeOutAnimation}</style>
       <div className="card w-96 bg-base-100 shadow-xl">
