@@ -6,7 +6,7 @@ export default function Chat() {
       {/* 骨架结构, 纯为了测试 */}
       <div className="flex h-screen">
         {/* 侧边栏骨架 */}
-        <aside className="w-64 bg-base-100 border-r p-4 animate-pulse">
+        <aside className="w-100 bg-base-100 border-r p-4 animate-pulse">
         </aside>
         <DialogueWindow groupId={1}>
         </DialogueWindow>

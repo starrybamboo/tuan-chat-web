@@ -1,13 +1,16 @@
 import type { FormEvent } from "react";
 
-import type { ChatMessageRequest, Message, UserRole } from "../../../../api";
+import type { ChatMessagePageRequest, ChatMessageRequest, Message, UserRole } from "../../../../api";
 
 import { ChatBubble } from "@/view/chat/components/chatBubble";
 
 import AvatarComponent from "@/view/common/avatar";
-import { useQueries, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
+import { useIntersectionObserver } from "@uidotdev/usehooks";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import { useImmer } from "use-immer";
+
 import { tuanchat } from "../../../../api/instance";
 
 export function DialogueWindow({ groupId }: { groupId: number }) {
@@ -18,7 +21,11 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const [useChatBoxStyle, setUseChatBoxStyle] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
 
-  // 数据请求
+  // 承载聊天记录窗口的ref
+  const chatFrameRef = useRef<HTMLDivElement>(null);
+  // 目前仅用于让首次渲染时对话框滚动到底部
+  const hasInitialized = useRef(false);
+
   const userRolesQuery = useQuery({
     queryKey: ["groupRoleController.groupRole", groupId],
     queryFn: () => tuanchat.groupRoleController.groupRole(groupId),
@@ -30,6 +37,62 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
       enabled: !!userRolesQuery.data,
     })),
   });
+
+  const PAGE_SIZE = 20; // 每页消息数量
+
+  // 分页获取消息
+  // cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
+  const {
+    data: messagesData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["messageHistory", groupId],
+    queryFn: async ({ pageParam }) => {
+      return tuanchat.chatController.getMsgPage(pageParam);
+    },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.data === undefined || lastPage.data.isLast) {
+        return undefined;
+      }
+      else {
+        const params: ChatMessagePageRequest = {
+          roomId: groupId,
+          pageSize: PAGE_SIZE,
+          cursor: lastPage.data.cursor,
+        };
+        return params;
+      }
+    },
+    initialPageParam: {
+      roomId: groupId,
+      pageSize: PAGE_SIZE,
+      cursor: null,
+    } as unknown as ChatMessagePageRequest,
+    refetchOnWindowFocus: false,
+  });
+
+  // 合并所有分页消息
+  const allMessages: Message[] = useMemo(() => {
+    return (messagesData?.pages.flatMap(p =>
+      p.data?.list?.map(item => item.message) ?? [],
+    ) ?? []).reverse();
+  }, [messagesData]);
+
+  // 滚动加载逻辑
+  const [messageRef, messageEntry] = useIntersectionObserver();
+  useEffect(() => {
+    // 让首次渲染时对话框滚动到底部
+    if (!hasInitialized.current && chatFrameRef.current) {
+      chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight });
+      hasInitialized.current = true;
+      return;
+    }
+    if (messageEntry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [messageEntry?.isIntersecting, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // 条件渲染放在最后
   if (userRolesQuery.isLoading || roleAvatarsQueries.some(q => q.isLoading)) {
@@ -118,14 +181,25 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   };
 
   return (
-    <div className="flex space-x-2 flex-row overflow-hidden p-6 w-max">
+    <div className="flex flex-row p-6 gap-4 w-full min-w-0">
       {/* 聊天区域主体 */}
-      <div className="h-full flex flex-col">
+      <div className="flex-1 min-w-[480px] flex flex-col overflow-hidden">
         {/* chat messages area */}
         <div className="card bg-base-100 shadow-sm flex-1 overflow-auto">
-          <div className="card-body overflow-y-auto">
-            {messages.map(message => (
-              <ChatBubble message={message} useChatBoxStyle={useChatBoxStyle} key={message.messageID} />
+          {/* 加载指示器 */}
+          {isFetchingNextPage && (
+            <div className="text-center p-2 text-gray-500">
+              加载历史消息中...
+            </div>
+          )}
+          <div className="card-body overflow-y-auto h-[60vh]" ref={chatFrameRef}>
+            {allMessages.map((message, index) => (
+              <div ref={index === 3 ? messageRef : null} key={message.messageID}>
+                <ChatBubble
+                  message={message}
+                  useChatBoxStyle={useChatBoxStyle}
+                />
+              </div>
             ))}
           </div>
         </div>
@@ -264,8 +338,8 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
           ))}
         </div>
       </div>
+      <p>{messages ? "" : ""}</p>
     </div>
-
   );
 }
 
