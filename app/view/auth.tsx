@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 
@@ -20,6 +20,7 @@ interface RegisterResponse {
   errMsg?: string;
   data?: string;
 }
+const queryClient = new QueryClient();
 
 // 处理登录请求的异步函数
 async function loginUser(credentials: LoginCredentials) {
@@ -67,20 +68,32 @@ async function registerUser(credentials: RegisterCredentials) {
   return data;
 }
 
+// 添加检查登录状态的函数
+async function checkAuthStatus() {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    return { isLoggedIn: false };
+  }
+  return { isLoggedIn: true, token };
+}
+
 // 登录页面组件
 export default function LoginView() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const isLogin = searchParams.get("mode") !== "register"; // 如果mode不是register，就是登录状态
-  // 表单状态管理
+  const isLogin = searchParams.get("mode") !== "register";
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  // 修改状态定义，添加成功消息状态
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // 在组件顶部添加已登录状态
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // 使用 React Query 检查登录状态
+  const { data: authStatus } = useQuery({
+    queryKey: ["authStatus"],
+    queryFn: checkAuthStatus,
+  });
+
+  const isLoggedIn = authStatus?.isLoggedIn || false;
 
   // 在组件顶部添加样式
   const fadeOutAnimation = `
@@ -128,19 +141,15 @@ export default function LoginView() {
   const loginMutation = useMutation({
     mutationFn: loginUser,
     onSuccess: (data) => {
-      // 显示登录成功消息
+      localStorage.setItem("token", data.token);
       showTemporaryMessage("登录成功！", "success");
 
-      // 登录成功后将token存储到localStorage
-      localStorage.setItem("token", data.token);
-
-      // 延迟500毫秒后设置已登录状态
+      // 延迟一秒后刷新页面，确保用户能看到成功消息
       setTimeout(() => {
-        setIsLoggedIn(true);
+        window.location.reload();
       }, 1000);
     },
     onError: (error) => {
-      // 显示错误信息
       showTemporaryMessage(
         error instanceof Error ? error.message : "登录失败，请重试",
         "error",
@@ -208,6 +217,17 @@ export default function LoginView() {
     }
   };
 
+  // 添加退出登录函数
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    queryClient.invalidateQueries({ queryKey: ["authStatus"] });
+    showTemporaryMessage("已成功退出登录", "success");
+    // 添加延时以确保消息显示后再刷新页面
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  };
+
   return (
     // 页面主容器
     <div className="min-h-screen bg-base-200 flex items-center justify-center">
@@ -244,6 +264,13 @@ export default function LoginView() {
                   >
                     前往主页
                   </a>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="btn btn-outline btn-error"
+                  >
+                    退出登录
+                  </button>
                 </div>
               )
             : (
@@ -317,19 +344,24 @@ export default function LoginView() {
                 </form>
               )}
 
-          {/* 分隔线 */}
-          <div className="divider" />
+          {/* 只在未登录状态显示分隔线和注册链接 */}
+          {!isLoggedIn && (
+            <>
+              {/* 分隔线 */}
+              <div className="divider" />
 
-          {/* 注册链接 */}
-          <p className="text-center mt-4">
-            {isLogin ? "还没有账号？" : "已有账号？"}
-            <span
-              onClick={() => setSearchParams({ mode: isLogin ? "register" : "login" })}
-              className="link link-primary cursor-pointer ml-1"
-            >
-              {isLogin ? "立即注册" : "立即登录"}
-            </span>
-          </p>
+              {/* 注册链接 */}
+              <p className="text-center mt-4">
+                {isLogin ? "还没有账号？" : "已有账号？"}
+                <span
+                  onClick={() => setSearchParams({ mode: isLogin ? "register" : "login" })}
+                  className="link link-primary cursor-pointer ml-1"
+                >
+                  {isLogin ? "立即注册" : "立即登录"}
+                </span>
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>
