@@ -71,7 +71,7 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
   const loginMutation = useMutation({
     mutationFn: loginUser,
     onSuccess: (data) => {
-      localStorage.setItem("token", data.token);
+      localStorage.setItem("token", data.data);
       showTemporaryMessage("登录成功！", "success");
       setTimeout(handleSuccessAndClose, 1000);
     },
