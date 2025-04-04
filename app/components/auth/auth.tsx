@@ -1,7 +1,11 @@
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
-import { checkAuthStatus, loginUser, registerUser } from "../api/authapi";
+import { checkAuthStatus, loginUser, registerUser } from "../../utils/auth/authapi";
+import { AlertMessage } from "./AlertMessage";
+import { LoggedInView } from "./LoggedInView";
+import { LoginForm } from "./LoginForm";
+import { RegisterForm } from "./RegisterForm";
 
 const queryClient = new QueryClient();
 
@@ -22,14 +26,6 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
   });
 
   const isLoggedIn = authStatus?.isLoggedIn || false;
-
-  // 在组件顶部添加样式
-  // const fadeOutAnimation = `
-  // @keyframes fadeOut {
-  // 0% { opacity: 1; }
-  // 100% { opacity: 0; }
-  // }
-  // `;
 
   // 修改消息处理函数
   function showTemporaryMessage(message: string, type: "success" | "error") {
@@ -174,113 +170,39 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
             {isLoggedIn ? "您已成功登录" : (isLogin ? "登录" : "注册")}
           </h2>
 
-          {/* 错误信息显示 */}
-          {errorMessage && (
-            <div className="alert alert-error mb-4">
-              <span>{errorMessage}</span>
-            </div>
-          )}
+          <AlertMessage
+            errorMessage={errorMessage}
+            successMessage={successMessage}
+          />
 
-          {/* 成功信息显示 */}
-          {successMessage && (
-            <div className="alert alert-success mb-4">
-              <span>{successMessage}</span>
-            </div>
-          )}
-
-          { isLoggedIn
+          {isLoggedIn
             ? (
-                <div className="flex flex-col items-center">
-                  <div className="flex flex-row items-center justify-center gap-4">
-                    <a
-                      href="/"
-                      className="btn btn-primary"
-                    >
-                      前往主页
-                    </a>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="btn btn-outline btn-error"
-                    >
-                      退出登录
-                    </button>
-                  </div>
-
-                </div>
+                <LoggedInView handleLogout={handleLogout} />
               )
-            : (
-                <form onSubmit={handleSubmit}>
-                  {/* 用户名输入框 */}
-                  <div className="form-control w-full mt-2">
-                    <label className="floating-label">
-                      <span className="label-text">用户ID</span>
-                      <input
-                        type="text"
-                        placeholder="请输入用户ID"
-                        className="input input-bordered w-full bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
-                        value={username}
-                        onChange={e => setUsername(e.target.value)}
-                        required
-                      />
-                    </label>
-                  </div>
+            : isLogin
+              ? (
+                  <LoginForm
+                    username={username}
+                    setUsername={setUsername}
+                    password={password}
+                    setPassword={setPassword}
+                    handleSubmit={handleSubmit}
+                    isLoading={loginMutation.isPending}
+                  />
+                )
+              : (
+                  <RegisterForm
+                    username={username}
+                    setUsername={setUsername}
+                    password={password}
+                    setPassword={setPassword}
+                    confirmPassword={confirmPassword}
+                    setConfirmPassword={setConfirmPassword}
+                    handleSubmit={handleSubmit}
+                    isLoading={registerMutation.isPending}
+                  />
+                )}
 
-                  {/* 密码输入框 */}
-                  <div className="form-control w-full mt-2">
-                    <label className="floating-label">
-                      <span className="label-text">密码</span>
-                      <input
-                        type="password"
-                        placeholder="请输入密码"
-                        className="input input-bordered w-full bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        required
-                      />
-                    </label>
-                  </div>
-
-                  {/* 注册模式添加确认密码输入框 */}
-                  {!isLogin && (
-                    <div className="form-control w-full mt-2">
-                      <label className="floating-label">
-                        <span className="label-text">确认密码</span>
-                        <input
-                          type="password"
-                          placeholder="请再次输入密码"
-                          className="input input-bordered w-full bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
-                          value={confirmPassword}
-                          onChange={e => setConfirmPassword(e.target.value)}
-                          required
-                        />
-                      </label>
-                    </div>
-                  )}
-
-                  {/* 登录/注册按钮 */}
-                  <div className="form-control mt-6">
-                    <button
-                      type="submit"
-                      className="btn btn-primary hover:brightness-110 transition-all"
-                      disabled={loginMutation.isPending || registerMutation.isPending}
-                    >
-                      {loginMutation.isPending || registerMutation.isPending
-                        ? (
-                            <>
-                              <span className="loading loading-spinner"></span>
-                              {isLogin ? "登录中..." : "注册中..."}
-                            </>
-                          )
-                        : (
-                            isLogin ? "登录" : "注册"
-                          )}
-                    </button>
-                  </div>
-                </form>
-              )}
-
-          {/* 只在未登录状态显示分隔线和注册链接 */}
           {!isLoggedIn && (
             <>
               {/* 分隔线 */}

@@ -1,4 +1,4 @@
-import type { LoginCredentials, RegisterCredentials, RegisterResponse } from "../types/authtype";
+import type { LoginCredentials, RegisterCredentials, RegisterResponse } from "../../types/authtype";
 
 export async function loginUser(credentials: LoginCredentials) {
   const res = await fetch("http://39.103.58.31:8081/capi/user/public/login", {
