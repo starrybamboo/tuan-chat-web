@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import type {ChatMessageRequest} from "./models/ChatMessageRequest";
 import type {ChatMessageResponse} from "./models/ChatMessageResponse";
+import {useImmer} from "use-immer";
 
 type WsMessageType =
     | 2 // 心跳
@@ -23,7 +24,7 @@ export const useWebSocket = () => {
     const reconnectAttempts = useRef(0)
     const heartbeatTimer = useRef<NodeJS.Timeout>(setTimeout(()=>{}))
     // 接受消息的存储
-    const [receivedMessages, setReceivedMessages] = useState<ChatMessageResponse[]>([])
+    const [groupMessages, updateGroupMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
 
     // 配置参数
     const MAX_RECONNECT_ATTEMPTS = 5
@@ -55,7 +56,14 @@ export const useWebSocket = () => {
                     const message: WsMessage<ChatMessageResponse> = JSON.parse(event.data)
                     // console.log('Received message:', JSON.stringify(message))
                     if(message.data!=undefined && message.data){
-                        setReceivedMessages(prev => [...prev, message.data!])
+                        updateGroupMessages(draft => {
+                            const chatMessageResponse = message.data!
+                            if (chatMessageResponse.message.roomId in draft) {
+                                draft[chatMessageResponse.message.roomId].push(chatMessageResponse)
+                            } else {
+                                draft[chatMessageResponse.message.roomId] = [chatMessageResponse]
+                            }
+                        })
                     }
                 } catch (error) {
                     console.error('Message parsing failed:', error)
@@ -73,7 +81,7 @@ export const useWebSocket = () => {
         }
     }, [])
 
-    // 智能重连机制
+    // 重连机制
     const handleReconnect = useCallback(() => {
         if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
             console.error('Max reconnect attempts reached')
@@ -131,29 +139,15 @@ export const useWebSocket = () => {
             connect();
         }
     }
-    // function mockResponse(request:ChatMessageRequest){
-    //     const responseMessage: ChatMessageResponse
-    //         = {
-    //         message: {
-    //             messageID: Date.now(),
-    //             syncId: 1,
-    //             roomId: request.roomId,
-    //             userId: 1,
-    //             roleId: request.roleId,
-    //             content: request.content,
-    //             avatarId: request.avatarId,
-    //             status: 1,
-    //             messageType: 1,
-    //         },
-    //         messageMark: [],
-    //     };
-    //     setReceivedMessages(prev => [...prev, responseMessage])
-    // }
+
+    //
+    const getMessagesByRoomId = (roomId: number): ChatMessageResponse[] => {
+        return groupMessages[roomId] || []
+    }
 
     return {
         isConnected,
-        receivedMessages,
-        setReceivedMessages,
+        getMessagesByRoomId,
         connect,
         send,
     }

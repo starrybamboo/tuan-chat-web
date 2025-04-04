@@ -24,7 +24,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
 
   // 承载聊天记录窗口的ref
   const chatFrameRef = useRef<HTMLDivElement>(null);
-  // 滚动加载逻辑, 设置为倒数第n条消息的ref, 当这条消息进入用户窗口时, messageEntry.isIntersecting为true, 之后启动滚动加载
+  // 滚动加载逻辑, 设置为倒数第n条消息的ref, 当这条消息进入用户窗口时, messageEntry.isIntersecting变为true, 之后启动滚动加载
   const [messageRef, messageEntry] = useIntersectionObserver();
   // 目前仅用于让首次渲染时对话框滚动到底部
   const hasInitialized = useRef(false);
@@ -61,10 +61,11 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
    * websocket
    */
   // websocket封装, 用于发送接受消息
-  const { send, connect, receivedMessages } = useWebSocket();
+  const { send, connect, getMessagesByRoomId } = useWebSocket();
   useEffect(() => {
     connect();
   }, [connect]);
+  const receivedMessages = getMessagesByRoomId(groupId);
 
   /**
    * 获取历史消息
