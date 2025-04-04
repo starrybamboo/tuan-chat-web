@@ -29,10 +29,16 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   // 目前仅用于让首次渲染时对话框滚动到底部
   const hasInitialized = useRef(false);
 
+  let userId: number;
+  try {
+    userId = Number(localStorage?.getItem("token"));
+  }
+  catch (e) { console.error(e); }
+
   // 获取用户的所有角色
   const userRolesQuery = useQuery({
     queryKey: ["roleController.getUserRoles", groupId],
-    queryFn: () => tuanchat.roleController.getUserRoles(10001),
+    queryFn: () => tuanchat.roleController.getUserRoles(userId),
     staleTime: 10000,
   });
   // 获取当前群聊中的所有角色
@@ -130,6 +136,9 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const handleMessageSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) {
+      return;
+    }
+    if (!userId) {
       return;
     }
 

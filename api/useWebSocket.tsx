@@ -54,7 +54,7 @@ export const useWebSocket = () => {
             wsRef.current.onmessage = (event) => {
                 try {
                     const message: WsMessage<ChatMessageResponse> = JSON.parse(event.data)
-                    // console.log('Received message:', JSON.stringify(message))
+                    console.log('Received message:', JSON.stringify(message))
                     if(message.data!=undefined && message.data){
                         updateGroupMessages(draft => {
                             const chatMessageResponse = message.data!
