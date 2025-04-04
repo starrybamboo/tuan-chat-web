@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { tuanchat } from "../../../api/instance";
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const sizeMap = {
+const sizeMap = {
   6: "w-6 h-6", // 24px
   8: "w-8 h-8", // 32px
   10: "w-10 h-10", // 40px
@@ -15,7 +14,7 @@ export const sizeMap = {
   36: "w-36 h-36", // 144px
 } as const;
 
-export default function AvatarComponent({ avatarId, width, isRounded }: { avatarId: number; width: keyof typeof sizeMap; isRounded: boolean }) {
+export default function RoleAvatarComponent({ avatarId, width, isRounded }: { avatarId: number; width: keyof typeof sizeMap; isRounded: boolean }) {
   const avatarQuery = useQuery(
     {
       queryKey: ["avatarController.getRoleAvatar", avatarId],
@@ -24,10 +23,10 @@ export default function AvatarComponent({ avatarId, width, isRounded }: { avatar
   );
 
   return (
-    <div className="avatar w-">
+    <div className="avatar">
       <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""}`}>
         <img
-          src={avatarQuery.isPending || avatarQuery.error || !avatarQuery.data?.data?.avatarUrl ? "" : avatarQuery.data?.data?.avatarUrl}
+          src={avatarQuery.isPending || avatarQuery.error || !avatarQuery.data?.data?.avatarUrl ? "?" : avatarQuery.data?.data?.avatarUrl}
           alt="Avatar"
         />
       </div>
