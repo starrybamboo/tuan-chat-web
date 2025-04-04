@@ -1,5 +1,5 @@
 import { useState } from "react";
-import LoginModal from "../components/auth/auth";
+import LoginModal from "./AuthMain"; // 更新导入路径
 
 export default function LoginButton() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
