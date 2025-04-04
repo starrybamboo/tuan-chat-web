@@ -1,7 +1,7 @@
+import { checkAuthStatus, loginUser, registerUser } from "@/utils/auth/authapi";
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useSearchParams } from "react-router";
-import { checkAuthStatus, loginUser, registerUser } from "../../utils/auth/authapi";
 import { AlertMessage } from "./AlertMessage";
 import { LoggedInView } from "./LoggedInView";
 import { LoginForm } from "./LoginForm";
@@ -59,7 +59,7 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
         setSuccessMessage("");
       }
     }, 1000);
-  };
+  }
 
   // 处理成功登录后的关闭
   const handleSuccessAndClose = () => {

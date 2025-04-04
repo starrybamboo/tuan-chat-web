@@ -27,7 +27,7 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded }: { av
     <div className="avatar">
       <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""}`}>
         <img
-          src={avatarQuery.isPending || avatarQuery.error || !avatarQuery.data?.data?.avatarUrl ? "?" : avatarQuery.data?.data?.avatarUrl}
+          src={avatarQuery.isPending || avatarQuery.error || !avatarQuery.data?.data?.avatarUrl ? undefined : avatarQuery.data?.data?.avatarUrl}
           alt="Avatar"
         />
       </div>

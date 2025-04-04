@@ -1,3 +1,4 @@
+import DialogueWindow from "@/view/chat/components/dialogueWindow";
 import { tuanchat } from "api/instance";
 import { useEffect, useState } from "react";
 // import { useNavigate} from "react-router";
@@ -92,69 +93,73 @@ export default function CannelSelect() {
   []);
 
   return (
-    <div className="channel-selector flex">
-      {/* 服务器列表容器 */}
-      <div className="server-list primary-servers w-1/2">
-        {servers.map(server => (
-          <div
-            key={server.id}
-            className={`server-item ${server.hasNotification ? "has-notification" : ""} ${activeServerId === server.id ? "active" : ""}`}
-            onClick={() => {
-              setActiveServerId(server.id);
-              updateSubGroups(server.id);
-            }}
-          >
-            <div className="server-icon">
-              {server.icon.startsWith("http")
-                ? (
-                    <img
-                      src={server.icon}
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = "🏠";
-                      }}
-                      alt={server.name}
-                    />
-                  )
-                : (
-                    <span>{server.icon}</span>
-                  )}
+    <div className="flex flex-row w-full">
+      <div className="channel-selector flex">
+        {/* 服务器列表容器 */}
+        <div className="server-list primary-servers">
+          {servers.map(server => (
+            <div
+              key={server.id}
+              className={`server-item ${server.hasNotification ? "has-notification" : ""} ${activeServerId === server.id ? "active" : ""}`}
+              onClick={() => {
+                setActiveServerId(server.id);
+                updateSubGroups(server.id);
+              }}
+            >
+              <div className="server-icon">
+                {server.icon.startsWith("http")
+                  ? (
+                      <img
+                        src={server.icon}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "🏠";
+                        }}
+                        alt={server.name}
+                      />
+                    )
+                  : (
+                      <span>{server.icon}</span>
+                    )}
+              </div>
+              <div className="server-name">{server.name}</div>
+              {server.hasNotification && <div className="notification-dot"></div>}
             </div>
-            <div className="server-name">{server.name}</div>
-            {server.hasNotification && <div className="notification-dot"></div>}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {/* 二级群组列表 */}
-      <div className="server-list secondary-servers w-1/2">
-        {activeServerId && servers.find(s => s.id === activeServerId)?.children?.map(subGroup => (
-          <div
-            key={subGroup.id}
-            className={`server-item ${subGroup.hasNotification ? "has-notification" : ""} ${activeSubGroupId === subGroup.id ? "active" : ""}`}
-            onClick={() => switchSubGroup(subGroup.id)}
-          >
-            <div className="server-icon">
-              {subGroup.icon.startsWith("http")
-                ? (
-                    <img
-                      src={subGroup.icon}
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = "📚";
-                      }}
-                      alt={subGroup.name}
-                    />
-                  )
-                : (
-                    <span>{subGroup.icon}</span>
-                  )}
+        {/* 二级群组列表 */}
+        <div className="server-list secondary-servers w-1/2">
+          {activeServerId && servers.find(s => s.id === activeServerId)?.children?.map(subGroup => (
+            <div
+              key={subGroup.id}
+              className={`server-item ${subGroup.hasNotification ? "has-notification" : ""} ${activeSubGroupId === subGroup.id ? "active" : ""}`}
+              onClick={() => switchSubGroup(subGroup.id)}
+            >
+              <div className="server-icon">
+                {subGroup.icon.startsWith("http")
+                  ? (
+                      <img
+                        src={subGroup.icon}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "📚";
+                        }}
+                        alt={subGroup.name}
+                      />
+                    )
+                  : (
+                      <span>{subGroup.icon}</span>
+                    )}
+              </div>
+              <div className="server-name">{subGroup.name}</div>
+              {subGroup.hasNotification && <div className="notification-dot"></div>}
             </div>
-            <div className="server-name">{subGroup.name}</div>
-            {subGroup.hasNotification && <div className="notification-dot"></div>}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+      <DialogueWindow groupId={activeSubGroupId ?? 1} key={activeSubGroupId ?? 1} />
     </div>
+
   );
 }

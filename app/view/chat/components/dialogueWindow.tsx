@@ -9,8 +9,8 @@ import RoleAvatarComponent from "@/view/common/roleAvatar";
 import UserAvatarComponent from "@/view/common/userAvatar";
 import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
-
 import { useEffect, useMemo, useRef, useState } from "react";
+
 import { useImmer } from "use-immer";
 import { tuanchat } from "../../../../api/instance";
 import { useWebSocket } from "../../../../api/useWebSocket";
@@ -29,23 +29,21 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   // 目前仅用于让首次渲染时对话框滚动到底部
   const hasInitialized = useRef(false);
 
-  let userId: number;
-  try {
-    userId = Number(localStorage?.getItem("token"));
-  }
-  catch (e) { console.error(e); }
+  const [userId, setUserId] = useState<number | undefined>(undefined);
 
   // 获取用户的所有角色
   const userRolesQuery = useQuery({
     queryKey: ["roleController.getUserRoles", groupId],
-    queryFn: () => tuanchat.roleController.getUserRoles(userId),
+    queryFn: () => tuanchat.roleController.getUserRoles(userId!),
     staleTime: 10000,
+    enabled: !!userId,
   });
   // 获取当前群聊中的所有角色
   const groupRolesQuery = useQuery({
     queryKey: ["groupRoleController.groupRole", groupId],
     queryFn: () => tuanchat.groupRoleController.groupRole(groupId),
     staleTime: 10000,
+    enabled: !!userRolesQuery.data,
   });
   // 获取当前用户每一个角色的所有头像
   const roleAvatarsQueries = useQueries({
@@ -117,16 +115,33 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   }, [messagesData]);
 
   /**
-   * 让首次渲染时对话框滚动到底部
+   * 获取userId
+   */
+  const handleUserChange = (userId: number) => {
+    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+    setUserId(userId);
+  };
+  useEffect(() => {
+    handleUserChange(Number(localStorage.getItem("token")));
+  }, []);
+  /**
+   * messageEntry触发时候的effect, 同时让首次渲染时对话框滚动到底部
    */
   useEffect(() => {
+    // 让首次渲染时对话框滚动到底部, 逻辑是: 在首次获取消息并渲染完成后, messageEntry所绑定的判定消息在屏幕内, 则触发一次messageEntry, 拦截这次加载, 并让页面滚动到底部
     if (!hasInitialized.current && chatFrameRef.current) {
       chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight });
       hasInitialized.current = true;
       return;
     }
-    if (messageEntry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+    if (messageEntry?.isIntersecting && hasNextPage && !isFetchingNextPage && chatFrameRef.current) {
+      // 记录之前的滚动位置并在fetch完后移动到该位置, 防止连续多次获取
+      const scrollTop = chatFrameRef.current.scrollTop;
+      fetchNextPage().then(() => {
+        if (chatFrameRef.current) {
+          chatFrameRef.current.scrollTo({ top: scrollTop, behavior: "instant" });
+        }
+      });
     }
   }, [messageEntry?.isIntersecting, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
@@ -224,7 +239,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
           )}
           <div className="card-body overflow-y-auto h-[60vh]" ref={chatFrameRef}>
             {historyMessages.map((chatMessageResponse, index) => (
-              <div ref={index === 3 ? messageRef : null} key={chatMessageResponse.message.messageID}>
+              <div ref={index === 0 ? messageRef : null} key={chatMessageResponse.message.messageID}>
                 <ChatBubble
                   chatMessageResponse={chatMessageResponse}
                   useChatBoxStyle={useChatBoxStyle}
@@ -266,9 +281,9 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
               <div className="avatar flex justify-center flex-col items-center space-y-2">
                 <div className="w-32 h-32 rounded-full">
                   <img
-                    src={roleAvatarsQueries?.[curRoleIndex]?.data?.data?.[
+                    src={roleAvatarsQueries[curRoleIndex]?.data?.data?.[
                       curAvatarIndexes?.[curRoleIndex] ?? 0
-                    ]?.avatarUrl || ""}
+                    ]?.avatarUrl || undefined}
                     alt="Avatar"
                     className="object-cover w-full h-full" // 确保图片填充容器
                     tabIndex={0}
@@ -364,7 +379,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
         </form>
       </div>
       {/* 成员与角色展示框 */}
-      <div className="flex flex-row gap-4 overflow-auto w-70">
+      <div className="flex flex-row gap-4 overflow-auto w-70 h-max-screen">
         <div className="flex flex-col gap-2 p-4 bg-base-100 rounded-box shadow-sm h-max items-center w-full space-y-4">
           {/* 群成员列表 */}
           <div className="space-y-2">

@@ -17,9 +17,12 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Home() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <LoginButton></LoginButton>
-      <Chat />
-    </QueryClientProvider>
+    <div className="h-screen">
+      <QueryClientProvider client={queryClient}>
+        <LoginButton></LoginButton>
+        <Chat />
+      </QueryClientProvider>
+    </div>
+
   );
 }

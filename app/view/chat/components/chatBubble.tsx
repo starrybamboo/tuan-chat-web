@@ -43,8 +43,7 @@ export function ChatBubble({ chatMessageResponse, useChatBoxStyle }: { chatMessa
   else {
     return (
       <div className="flex w-full mb-4" key={message.messageID}>
-        {/* 圆角矩形头像（始终显示） */}
-
+        {/* 圆角矩形头像 */}
         <div className="flex-shrink-0 mr-3">
           <div className="w-20 h-20 rounded-md overflow-hidden">
             <RoleAvatarComponent avatarId={message.avatarId} width={20} isRounded={false}></RoleAvatarComponent>
@@ -53,7 +52,7 @@ export function ChatBubble({ chatMessageResponse, useChatBoxStyle }: { chatMessa
 
         {/* 消息内容 */}
         <div className="flex-1">
-          {/* 角色名（始终显示） */}
+          {/* 角色名 */}
           <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
             {useRoleRequest.isPending || useRoleRequest.error || useRoleRequest.data === undefined ? "" : useRoleRequest.data.data?.roleName}
           </div>
@@ -66,7 +65,7 @@ export function ChatBubble({ chatMessageResponse, useChatBoxStyle }: { chatMessa
             {message.content}
           </div>
 
-          {/* 时间（小字，低调） */}
+          {/* 时间 */}
           <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             {message.createTime?.toLocaleString() ?? ""}
           </div>
@@ -75,34 +74,3 @@ export function ChatBubble({ chatMessageResponse, useChatBoxStyle }: { chatMessa
     );
   }
 }
-
-// export function ChatBubble({ message }: { message: Message }) {
-//   return (
-//   // <div className={message.type !== "user" ? "chat chat-start" : "chat chat-end"} key={message.id}>
-//     <div className="chat chat-start" key={message.messageId}>
-//       <div className="chat-image avatar">
-//         <div className="w-10 rounded-full">
-//           <img
-//             alt="Tailwind CSS chat bubble component"
-//             src={message.avatar.avatarUrl}
-//           />
-//         </div>
-//
-//       </div>
-//       <div
-//         className={message.type !== 1 ? "chat-bubble" : "chat-bubble chat-bubble-neutral"}
-//       >
-//         <div style={{ whiteSpace: "pre-wrap" }}>
-//           {message.content}
-//         </div>
-//       </div>
-//       <div className="chat-footer">
-//         {message.userRole.roleName}
-//         <time className="text-xs opacity-50">
-//           {message.createTime.toLocaleString()}
-//         </time>
-//       </div>
-//       {/* <div className="chat-footer opacity-50">Seen</div> */}
-//     </div>
-//   );
-// }

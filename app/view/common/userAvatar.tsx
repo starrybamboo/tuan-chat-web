@@ -27,7 +27,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
       <div className="avatar w-">
         <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""}`}>
           <img
-            src={userQuery.isPending || userQuery.error || !userQuery.data?.data?.avatar ? "?" : userQuery.data?.data?.avatar}
+            src={userQuery.isPending || userQuery.error || !userQuery.data?.data?.avatar ? undefined : userQuery.data?.data?.avatar}
             alt="Avatar"
           />
         </div>
