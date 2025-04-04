@@ -1,6 +1,6 @@
 // import type { Message } from "@/view/chat/components/message";
 import type { Message } from "../../../../api";
-import AvatarComponent from "@/view/common/avatar";
+import RoleAvatarComponent from "@/view/common/roleAvatar";
 import { useQuery } from "@tanstack/react-query";
 import { tuanchat } from "../../../../api/instance";
 /**
@@ -18,7 +18,7 @@ export function ChatBubble({ message, useChatBoxStyle }: { message: Message; use
     // <div className={message.type !== "user" ? "chat chat-start" : "chat chat-end"} key={message.id}>
       <div className="chat chat-start" key={message.messageID}>
         <div className="avatar chat-image">
-          <AvatarComponent avatarId={message.avatarId} width={10} isRounded={true}></AvatarComponent>
+          <RoleAvatarComponent avatarId={message.avatarId} width={10} isRounded={true}></RoleAvatarComponent>
         </div>
 
         <div
@@ -45,7 +45,7 @@ export function ChatBubble({ message, useChatBoxStyle }: { message: Message; use
 
         <div className="flex-shrink-0 mr-3">
           <div className="w-20 h-20 rounded-md overflow-hidden">
-            <AvatarComponent avatarId={message.avatarId} width={20} isRounded={false}></AvatarComponent>
+            <RoleAvatarComponent avatarId={message.avatarId} width={20} isRounded={false}></RoleAvatarComponent>
           </div>
         </div>
 
