@@ -19,6 +19,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
   const userQuery = useQuery({
     queryKey: ["avatarController.getUserAvatar", userId],
     queryFn: () => tuanchat.userController.getUserInfo(userId),
+    staleTime: 600000,
   });
 
   return (

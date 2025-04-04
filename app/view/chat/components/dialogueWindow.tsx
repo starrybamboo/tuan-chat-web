@@ -1,30 +1,31 @@
 import type { FormEvent } from "react";
-
-import type { ChatMessagePageRequest, ChatMessageRequest, Message, UserRole } from "../../../../api";
+import type { ChatMessagePageRequest, ChatMessageRequest, ChatMessageResponse, UserRole } from "../../../../api";
 
 import { ChatBubble } from "@/view/chat/components/chatBubble";
 
 import { MemberTypeTag } from "@/view/chat/components/memberTypeTag";
+
 import RoleAvatarComponent from "@/view/common/roleAvatar";
 import UserAvatarComponent from "@/view/common/userAvatar";
 import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
-
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
 import { tuanchat } from "../../../../api/instance";
+import { useWebSocket } from "../../../../api/useWebSocket";
 
 export function DialogueWindow({ groupId }: { groupId: number }) {
   const [inputText, setInputText] = useState("");
   const [curRoleIndex, setCurRoleIndex] = useState(0);
-  // const [roleVOs, updateRoleVOs] = useImmer<RoleVO[]>([]); // 先初始化空数组
   const [curAvatarIndexes, updateCurAvatarIndexes] = useImmer<number[]>([]); // curAvatarIndexes[i] 表示role[i]的头像索引
   const [useChatBoxStyle, setUseChatBoxStyle] = useState(true);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const PAGE_SIZE = 30; // 每页消息数量
 
   // 承载聊天记录窗口的ref
   const chatFrameRef = useRef<HTMLDivElement>(null);
+  // 滚动加载逻辑, 设置为倒数第n条消息的ref, 当这条消息进入用户窗口时, messageEntry.isIntersecting为true, 之后启动滚动加载
+  const [messageRef, messageEntry] = useIntersectionObserver();
   // 目前仅用于让首次渲染时对话框滚动到底部
   const hasInitialized = useRef(false);
 
@@ -32,11 +33,13 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const userRolesQuery = useQuery({
     queryKey: ["roleController.getUserRoles", groupId],
     queryFn: () => tuanchat.roleController.getUserRoles(10001),
+    staleTime: 10000,
   });
   // 获取当前群聊中的所有角色
   const groupRolesQuery = useQuery({
     queryKey: ["groupRoleController.groupRole", groupId],
     queryFn: () => tuanchat.groupRoleController.groupRole(groupId),
+    staleTime: 10000,
   });
   // 获取当前用户每一个角色的所有头像
   const roleAvatarsQueries = useQueries({
@@ -44,16 +47,28 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
       queryKey: ["roleController.getRoleAvatars", role.roleId],
       queryFn: () => tuanchat.roleController.getRoleAvatars(role.roleId),
       enabled: !!userRolesQuery.data,
+      staleTime: 10000,
     })),
   });
   // 获取当前群聊中的所有成员
   const membersQuery = useQuery({
     queryKey: ["groupMemberController.groupMember", groupId],
     queryFn: () => tuanchat.groupMemberController.getMemberList(groupId),
+    staleTime: 5000,
   });
 
-  const PAGE_SIZE = 20; // 每页消息数量
+  /**
+   * websocket
+   */
+  // websocket封装, 用于发送接受消息
+  const { send, connect, receivedMessages } = useWebSocket();
+  useEffect(() => {
+    connect();
+  }, [connect]);
 
+  /**
+   * 获取历史消息
+   */
   // 分页获取消息
   // cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
   const {
@@ -88,16 +103,16 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   });
 
   // 合并所有分页消息
-  const historyMessages: Message[] = useMemo(() => {
-    return (messagesData?.pages.flatMap(p =>
-      p.data?.list?.map(item => item.message) ?? [],
-    ) ?? []).reverse();
+  const historyMessages: ChatMessageResponse[] = useMemo(() => {
+    return (messagesData?.pages.reverse().flatMap(p =>
+      p.data?.list ?? [],
+    ) ?? []);
   }, [messagesData]);
 
-  // 滚动加载逻辑
-  const [messageRef, messageEntry] = useIntersectionObserver();
+  /**
+   * 让首次渲染时对话框滚动到底部
+   */
   useEffect(() => {
-    // 让首次渲染时对话框滚动到底部
     if (!hasInitialized.current && chatFrameRef.current) {
       chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight });
       hasInitialized.current = true;
@@ -108,29 +123,9 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     }
   }, [messageEntry?.isIntersecting, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // 条件渲染放在最后
-  if (userRolesQuery.isLoading || roleAvatarsQueries.some(q => q.isLoading)) {
-    return <div>Loading roles...</div>;
-  }
-  if (userRolesQuery.isError || roleAvatarsQueries.some(q => q.isError)) {
-    return <div>Error loading data</div>;
-  }
-
-  const sendMessage = (messageRequest: ChatMessageRequest) => {
-    // TOD 发送消息到后端
-    const message: Message = {
-      messageID: Date.now(), // TOD:把他改为后端返回的值
-      syncId: 1,
-      roomId: groupId,
-      userId: 1,
-      roleId: messageRequest.roleId,
-      content: messageRequest.content,
-      avatarId: messageRequest.avatarId,
-      status: 1,
-      messageType: 1,
-    };
-    return message;
-  };
+  /**
+   *处理与组件的各种交互
+   */
   const handleMessageSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) {
@@ -147,30 +142,25 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     const avatarId = currentAvatars[avatarIndex]?.avatarId ?? 0;
 
     // 构造消息请求对象
-
     const messageRequest: ChatMessageRequest = {
       roomId: groupId,
       roleId,
       content: inputText.trim(),
       avatarId,
       messageType: 1,
-      // eslint-disable-next-line ts/ban-ts-comment
-      // @ts-expect-error
-      body: -1, // TOD 这是什么?
+      body: {}, // 这是什么?
     };
 
     // 发送消息
-    const message: Message = sendMessage(messageRequest);
+    send(messageRequest);
 
-    // 更新消息列表
-    setMessages(prev => [...prev, message]);
     setInputText("");
-    // 滚动到底部, 设置异步是为了等待新消息被渲染好
+    // 滚动到底部, 设置异步是为了等待新消息接受并渲染好
     setTimeout(() => {
       if (chatFrameRef.current) {
         chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight, behavior: "smooth" });
       }
-    }, 50);
+    }, 300);
   };
 
   const handleAvatarChange = (avatarIndex: number) => {
@@ -200,6 +190,16 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     setCurRoleIndex(roleIndex);
   };
 
+  /**
+   * 条件渲染
+   */
+  if (userRolesQuery.isLoading || roleAvatarsQueries.some(q => q.isLoading)) {
+    return <div>Loading roles...</div>;
+  }
+  if (userRolesQuery.isError || roleAvatarsQueries.some(q => q.isError)) {
+    return <div>Error loading data</div>;
+  }
+
   return (
     <div className="flex flex-row p-6 gap-4 w-full min-w-0">
       {/* 聊天区域主体 */}
@@ -213,18 +213,18 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
             </div>
           )}
           <div className="card-body overflow-y-auto h-[60vh]" ref={chatFrameRef}>
-            {historyMessages.map((message, index) => (
-              <div ref={index === 3 ? messageRef : null} key={message.messageID}>
+            {historyMessages.map((chatMessageResponse, index) => (
+              <div ref={index === 3 ? messageRef : null} key={chatMessageResponse.message.messageID}>
                 <ChatBubble
-                  message={message}
+                  chatMessageResponse={chatMessageResponse}
                   useChatBoxStyle={useChatBoxStyle}
                 />
               </div>
             ))}
-            {messages.map(message => (
-              <div key={message.messageID}>
+            {receivedMessages.map(receivedMessage => (
+              <div key={receivedMessage.message.messageID}>
                 <ChatBubble
-                  message={message}
+                  chatMessageResponse={receivedMessage}
                   useChatBoxStyle={useChatBoxStyle}
                 />
               </div>
@@ -376,7 +376,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
           <div className="space-y-2">
             <p className="text-center">
               角色列表-
-              <span className="text-sm">{userRolesQuery?.data?.data?.length}</span>
+              <span className="text-sm">{groupRolesQuery?.data?.data?.length}</span>
             </p>
             {(groupRolesQuery?.data?.data ?? []).map(role => (
               <div key={role.roleId} className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center ">

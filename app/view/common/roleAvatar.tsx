@@ -19,6 +19,7 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded }: { av
     {
       queryKey: ["avatarController.getRoleAvatar", avatarId],
       queryFn: () => tuanchat.avatarController.getRoleAvatar(avatarId),
+      staleTime: 600000,
     },
   );
 
