@@ -128,22 +128,38 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
    * messageEntry触发时候的effect, 同时让首次渲染时对话框滚动到底部
    */
   useEffect(() => {
-    // 让首次渲染时对话框滚动到底部, 逻辑是: 在首次获取消息并渲染完成后, messageEntry所绑定的判定消息在屏幕内, 则触发一次messageEntry, 拦截这次加载, 并让页面滚动到底部
-    if (!hasInitialized.current && chatFrameRef.current) {
-      chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight });
-      hasInitialized.current = true;
+    if (!hasInitialized.current) {
       return;
     }
     if (messageEntry?.isIntersecting && hasNextPage && !isFetchingNextPage && chatFrameRef.current) {
       // 记录之前的滚动位置并在fetch完后移动到该位置, 防止连续多次获取
-      const scrollTop = chatFrameRef.current.scrollTop;
+      const scrollButton = chatFrameRef.current.scrollHeight - chatFrameRef.current.scrollTop;
       fetchNextPage().then(() => {
         if (chatFrameRef.current) {
-          chatFrameRef.current.scrollTo({ top: scrollTop, behavior: "instant" });
+          chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight - scrollButton, behavior: "instant" });
         }
       });
     }
   }, [messageEntry?.isIntersecting, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  /**
+   * 第一次获取消息的时候, 滚动到底部
+   */
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    if (!hasInitialized.current) {
+      timeoutId = setTimeout(() => {
+        if (chatFrameRef.current) {
+          chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight, behavior: "instant" });
+        }
+        hasInitialized.current = true;
+      }, 200);
+    }
+    return () => { // 清理函数
+      if (timeoutId) {
+        clearTimeout(timeoutId); // 清除定时器
+      }
+    };
+  }, [historyMessages]);
 
   /**
    *处理与组件的各种交互
@@ -239,7 +255,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
           )}
           <div className="card-body overflow-y-auto h-[60vh]" ref={chatFrameRef}>
             {historyMessages.map((chatMessageResponse, index) => (
-              <div ref={index === 0 ? messageRef : null} key={chatMessageResponse.message.messageID}>
+              <div ref={index === 1 ? messageRef : null} key={chatMessageResponse.message.messageID}>
                 <ChatBubble
                   chatMessageResponse={chatMessageResponse}
                   useChatBoxStyle={useChatBoxStyle}
@@ -379,8 +395,8 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
         </form>
       </div>
       {/* 成员与角色展示框 */}
-      <div className="flex flex-row gap-4 overflow-auto w-70 h-max-screen">
-        <div className="flex flex-col gap-2 p-4 bg-base-100 rounded-box shadow-sm h-max items-center w-full space-y-4">
+      <div className="flex flex-row gap-4 h-full">
+        <div className="flex flex-col gap-2 p-4 bg-base-100 rounded-box shadow-sm items-center w-full space-y-4 max-h-[calc(100vh-6rem)] overflow-y-auto">
           {/* 群成员列表 */}
           <div className="space-y-2">
             <p className="text-center">
