@@ -4,6 +4,15 @@ import { useEffect, useState } from "react";
 import "./channelSelect.css";
 
 export default function CannelSelect() {
+  // 服务器列表数据
+  const [servers, setServers] = useState<Server[]>([]);
+  // 当前选中的服务器ID
+  const [activeServerId, setActiveServerId] = useState<number | null>(null);
+  // 当前选中的二级群组ID
+  const [activeSubGroupId, setActiveSubGroupId] = useState<number | null>(null);
+  // 更新路由函数
+  // const navigate = useNavigate();
+
   // 定义服务器和频道的接口
   interface Server {
     id: number;
@@ -12,18 +21,6 @@ export default function CannelSelect() {
     hasNotification: boolean;
     children?: Server[];
   }
-
-  // 服务器列表数据
-  const [servers, setServers] = useState<Server[]>([]);
-
-  // 当前选中的服务器ID
-  const [activeServerId, setActiveServerId] = useState<number | null>(null);
-
-  // 当前选中的二级群组ID
-  const [activeSubGroupId, setActiveSubGroupId] = useState<number | null>(null);
-
-  // 更新路由函数
-  // const navigate = useNavigate();
 
   // 切换二级群组
   const switchSubGroup = (subGroupId: number) => {
@@ -90,9 +87,9 @@ export default function CannelSelect() {
   // 初始化时设置默认群组并获取群组列表
   useEffect(() => {
     initServers();
-
     // 设置默认选中的频道为当前数组
-  });
+  }, // eslint-disable-next-line react-hooks/exhaustive-deps
+  []);
 
   return (
     <div className="channel-selector flex">
