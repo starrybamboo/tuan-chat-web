@@ -6,9 +6,9 @@ import "./groupSelect.css";
 
 export default function GroupSelect() {
   // 一级群组列表数据
-  const [groups, setGroups] = useState<Group[]>([]);
+  const [mainGroups, setMainGroups] = useState<Group[]>([]);
   // 当前选中的一级群组ID
-  const [activeGroupId, setActiveGroupId] = useState<number | null>(null);
+  const [activeMainGroupId, setActiveMainGroupId] = useState<number | null>(null);
   // 当前选中的二级群组ID
   const [activeSubGroupId, setActiveSubGroupId] = useState<number | null>(null);
   // 更新路由函数
@@ -38,11 +38,11 @@ export default function GroupSelect() {
   };
 
   // 更新二级群组列表
-  const updateSubGroups = (groupId: number) => {
-    const group = groups.find(s => s.id === groupId);
-    if (group && group.children && group.children.length > 0) {
+  const updateSubGroups = (mainGroupId: number) => {
+    const mainGroup = mainGroups.find(s => s.id === mainGroupId);
+    if (mainGroup && mainGroup.children && mainGroup.children.length > 0) {
       // 默认选中第一个二级群组
-      const firstSubGroup = group.children[0];
+      const firstSubGroup = mainGroup.children[0];
       setActiveSubGroupId(firstSubGroup.id);
       switchSubGroup(firstSubGroup.id);
     }
@@ -58,13 +58,13 @@ export default function GroupSelect() {
         const secondLevelGroups = response.data;
 
         // 更新服务器列表，将二级群组作为一级群组的子元素
-        setGroups(firstLevelGroups.map(group => ({
-          id: Number(group.roomId),
-          name: group.name,
-          icon: group.avatar || "🏠",
+        setMainGroups(firstLevelGroups.map(mainGroup => ({
+          id: Number(mainGroup.roomId),
+          name: mainGroup.name,
+          icon: mainGroup.avatar || "🏠",
           hasNotification: false,
           children: secondLevelGroups
-            .filter(subGroup => subGroup.parentGroupId === group.roomId)
+            .filter(subGroup => subGroup.parentGroupId === mainGroup.roomId)
             .map(subGroup => ({
               id: Number(subGroup.roomId),
               name: subGroup.name,
@@ -74,9 +74,9 @@ export default function GroupSelect() {
         })));
 
         // 如果有一级群组，默认选中第一个
-        if (groups.length > 0) {
-          setActiveGroupId(groups[0].id);
-          updateSubGroups(groups[0].id);
+        if (mainGroups.length > 0) {
+          setActiveMainGroupId(mainGroups[0].id);
+          updateSubGroups(mainGroups[0].id);
         }
       }
     }
@@ -97,40 +97,40 @@ export default function GroupSelect() {
       <div className="channel-selector flex">
         {/* 一级群组列表容器 */}
         <div className="server-list primary-servers">
-          {groups.map(server => (
+          {mainGroups.map(mainGroup => (
             <div
-              key={server.id}
-              className={`server-item ${server.hasNotification ? "has-notification" : ""} ${activeGroupId === server.id ? "active" : ""}`}
+              key={mainGroup.id}
+              className={`server-item ${mainGroup.hasNotification ? "has-notification" : ""} ${activeMainGroupId === mainGroup.id ? "active" : ""}`}
               onClick={() => {
-                setActiveGroupId(server.id);
-                updateSubGroups(server.id);
+                setActiveMainGroupId(mainGroup.id);
+                updateSubGroups(mainGroup.id);
               }}
             >
               <div className="server-icon">
-                {server.icon.startsWith("http")
+                {mainGroup.icon.startsWith("http")
                   ? (
                       <img
-                        src={server.icon}
+                        src={mainGroup.icon}
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.src = "🏠";
                         }}
-                        alt={server.name}
+                        alt={mainGroup.name}
                       />
                     )
                   : (
-                      <span>{server.icon}</span>
+                      <span>{mainGroup.icon}</span>
                     )}
               </div>
-              <div className="server-name">{server.name}</div>
-              {server.hasNotification && <div className="notification-dot"></div>}
+              <div className="server-name">{mainGroup.name}</div>
+              {mainGroup.hasNotification && <div className="notification-dot"></div>}
             </div>
           ))}
         </div>
 
         {/* 二级群组列表 */}
         <div className="server-list secondary-servers w-1/2">
-          {activeGroupId && groups.find(s => s.id === activeGroupId)?.children?.map(subGroup => (
+          {activeMainGroupId && mainGroups.find(s => s.id === activeMainGroupId)?.children?.map(subGroup => (
             <div
               key={subGroup.id}
               className={`server-item ${subGroup.hasNotification ? "has-notification" : ""} ${activeSubGroupId === subGroup.id ? "active" : ""}`}
