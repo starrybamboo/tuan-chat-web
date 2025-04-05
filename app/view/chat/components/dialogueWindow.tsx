@@ -7,10 +7,11 @@ import { ChatBubble } from "@/view/chat/components/chatBubble";
 
 import { MemberTypeTag } from "@/view/chat/components/memberTypeTag";
 import RoleAvatarComponent from "@/view/common/roleAvatar";
+import { ImgUploaderWithCopper } from "@/view/common/uploader/imgUploaderWithCopper";
 import UserAvatarComponent from "@/view/common/userAvatar";
+
 import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
 import { tuanchat } from "../../../../api/instance";
@@ -31,6 +32,8 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const hasInitialized = useRef(false);
 
   const [userId, setUserId] = useState<number | undefined>(undefined);
+
+  const [imgDownLoadUrl, setImgDownLoadUrl] = useState<string | undefined>(undefined);
 
   // 获取用户的所有角色
   const userRolesQuery = useQuery({
@@ -235,7 +238,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   /**
    * 命令补全部分
    */
-  const suggestionNumber = 6;
+  const suggestionNumber = 10;
   const isCommandMode = () => {
     return inputText.length > 0 && [".", "。"].includes(inputText[0]);
   };
@@ -244,7 +247,8 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
       return [];
     }
     return commands.filter(command => command.name.startsWith(inputText.slice(1)))
-      .sort((a, b) => b.priority - a.priority)
+      .sort((a, b) => b.importance - a.importance)
+      .reverse()
       .slice(0, suggestionNumber);
   }
   const selectCommand = (cmdName: string) => {
@@ -355,6 +359,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                   ))}
                 </div>
               )}
+              <img src={imgDownLoadUrl} alt="" />
               {/* text input */}
               <textarea
                 className="textarea w-full h-20 md:h-32 lg:h-40 resize-none border-none focus:outline-none focus:ring-0"
@@ -372,7 +377,12 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                     {
                       (userRolesQuery?.data?.data ?? []).map((role, index) => (
                         <li key={role.roleId} onClick={() => handleRoleChange(index)} className="flex, flex-row">
-                          <RoleAvatarComponent avatarId={role.avatarId ?? 0} width={10} isRounded={false} withTitle={true}>
+                          <RoleAvatarComponent
+                            avatarId={role.avatarId ?? 0}
+                            width={10}
+                            isRounded={false}
+                            withTitle={true}
+                          >
                           </RoleAvatarComponent>
                           <div>{role.roleName}</div>
                         </li>
@@ -380,6 +390,30 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                     }
                   </ul>
                 </div>
+                <ImgUploaderWithCopper setCopperedDownloadUrl={setImgDownLoadUrl} setDownloadUrl={() => {}}>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-12 w-12 text-gray-600 hover:text-blue-500 transition-colors"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                  >
+                    {/* 图片框 */}
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2-2h4l2 2h4a2 2 0 012 2v10a2 2 0 01-2 2H5z"
+                    />
+                    {/* 山峰图形 */}
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 14l-3-3m0 0l3-3m-3 3h6"
+                    />
+                  </svg>
+
+                </ImgUploaderWithCopper>
               </div>
               <div className="float-right">
                 <label className="swap w-30 btn right-2">
@@ -424,7 +458,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
             </p>
             {(membersQuery?.data?.data ?? []).map(member => (
               <div key={member.userId} className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center ">
-                {/* role列表 */}
+                {/* 成员列表 */}
                 <UserAvatarComponent userId={member.userId ?? 0} width={8} isRounded={true} withName={true}></UserAvatarComponent>
                 <div className="flex flex-col items-center gap-2 text-sm font-medium">
                 </div>

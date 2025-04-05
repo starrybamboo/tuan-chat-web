@@ -1,13 +1,53 @@
 export type command = {
   name: string;
-  priority: number;
+  importance: number;
   description: string;
 };
 
 export const commands: command[] = [
-  { name: "help", priority: 3, description: "显示帮助信息" },
-  { name: "search", priority: 2, description: "执行内容搜索" },
-  { name: "history", priority: 1, description: "查看历史记录" },
-  { name: "clear", priority: 5, description: "清空当前对话" },
-  { name: "settings", priority: 4, description: "打开设置面板" },
+  {
+    name: "r",
+    importance: 5,
+    description: "掷骰（例：.r3d6 骰3个6面骰，多个骰子可叠加如.r2d6+1d4）",
+  },
+  {
+    name: "set",
+    importance: 4,
+    description: "设置默认骰（例：.set d10 设置默认骰为10面，使用.rd时自动调用）",
+  },
+  {
+    name: "st",
+    importance: 5,
+    description: "属性设置（例：.st 幸运 65 将幸运属性设为65，支持多属性.st 力量70 敏捷60）",
+  },
+  {
+    name: "rc",
+    importance: 5,
+    description: "技能检定（例：.rc 侦查 进行侦查检定，自动与属性值比较生成成功等级）",
+  },
+  {
+    name: "sc",
+    importance: 5,
+    description: "理智检定（例：.sc 1/1d6 成功扣1，失败扣1d6；支持多阶段.sc 0/1d3+1/1d10）",
+  },
+  {
+    name: "en",
+    importance: 3,
+    description: "技能成长（例：.en 急救 进行成长检定，成功后增加1d10点技能值",
+  },
+  {
+    name: "ti",
+    importance: 2,
+    description: "临时疯狂症状（例：.ti 骰1d10获取临时疯狂症状，持续轮数=当前san值/10）",
+  },
+  {
+    name: "li",
+    importance: 2,
+    description: "总结疯狂症状（例：.li 骰1d10获取总结疯狂症状，效果持续至恢复理智）",
+  },
+  {
+    name: "help",
+    importance: 4,
+    description: "显示所有指令帮助（支持.help sc 查看特定指令详细说明）",
+  },
 ];
