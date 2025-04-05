@@ -1,16 +1,17 @@
 import type { FormEvent } from "react";
+
 import type { ChatMessagePageRequest, ChatMessageRequest, ChatMessageResponse, UserRole } from "../../../../api";
+import { commands } from "@/utils/commands";
 
 import { ChatBubble } from "@/view/chat/components/chatBubble";
 
 import { MemberTypeTag } from "@/view/chat/components/memberTypeTag";
-
 import RoleAvatarComponent from "@/view/common/roleAvatar";
 import UserAvatarComponent from "@/view/common/userAvatar";
 import { useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
-import { useEffect, useMemo, useRef, useState } from "react";
 
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
 import { tuanchat } from "../../../../api/instance";
 import { useWebSocket } from "../../../../api/useWebSocket";
@@ -232,6 +233,26 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   };
 
   /**
+   * 命令补全部分
+   */
+  const suggestionNumber = 6;
+  const isCommandMode = () => {
+    return inputText.length > 0 && [".", "。"].includes(inputText[0]);
+  };
+  function getSuggestions() {
+    if (!isCommandMode()) {
+      return [];
+    }
+    return commands.filter(command => command.name.startsWith(inputText.slice(1)))
+      .sort((a, b) => b.priority - a.priority)
+      .slice(0, suggestionNumber);
+  }
+  const selectCommand = (cmdName: string) => {
+    // 保持命令前缀格式（保留原输入的 . 或 。）
+    const prefixChar = inputText[0];
+    setInputText(`${prefixChar}${cmdName} `);
+  };
+  /**
    * 条件渲染
    */
   if (userRolesQuery.isLoading || roleAvatarsQueries.some(q => q.isLoading)) {
@@ -274,12 +295,8 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
         </div>
 
         {/* input area */}
-
-        <form
-          onSubmit={handleMessageSubmit}
-          className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm"
-        >
-          <div className="flex gap-2">
+        <form onSubmit={handleMessageSubmit} className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm">
+          <div className="flex gap-2 relative">
             {/* 表情差分展示与选择 */}
             <div className="dropdown dropdown-top">
               <div role="button" tabIndex={0} className="flex justify-center flex-col items-center space-y-2">
@@ -318,6 +335,26 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
             </div>
 
             <div className="w-full textarea">
+              {/* 命令建议列表 */}
+              {isCommandMode() && getSuggestions().length > 0 && (
+                <div className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden">
+                  {getSuggestions().map(cmd => (
+                    <div
+                      key={cmd.name}
+                      onClick={() => selectCommand(cmd.name)}
+                      className="p-2 w-full last:border-0 hover:bg-base-300 transform origin-left hover:scale-110"
+                    >
+                      <span className="font-mono text-blue-600 dark:text-blue-400">
+                        .
+                        {cmd.name}
+                      </span>
+                      <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">
+                        {cmd.description}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
               {/* text input */}
               <textarea
                 className="textarea w-full h-20 md:h-32 lg:h-40 resize-none border-none focus:outline-none focus:ring-0"
