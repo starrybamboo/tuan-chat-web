@@ -1,5 +1,4 @@
 import type { CharacterData } from "./characterWrapper";
-// characterNav.tsx
 import { useState } from "react";
 
 interface Props {

@@ -7,7 +7,7 @@ import useUserQuery from "./apiRequest/useUserQuery";
 import CharacterNav from "./characterNav";
 import CreatCharacter from "./creatCharacter";
 import PreviewCharacter from "./previewCharacter";
-
+// 这是一段毫无意义的注释，用于git提交检测
 // 接收数据的接口
 export interface CharacterData {
   id: number;
