@@ -1,14 +1,19 @@
-import type { Route } from "./+types/home";
+import CharacterWrapper from "@/view/characterWrapper";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import { Welcome } from "../welcome/welcome";
+const queryClient = new QueryClient();
 
-export function meta(_args: Route.MetaArgs) {
+export function meta() {
   return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
+    { title: "角色管理" },
+    { name: "description", content: "角色管理" },
   ];
 }
 
 export default function Home() {
-  return <Welcome />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <CharacterWrapper></CharacterWrapper>
+    </QueryClientProvider>
+  );
 }

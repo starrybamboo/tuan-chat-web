@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type RoleAvatar = {
+    id: number;
     roleId: number;
     avatarId: number;
     avatarTitle?: string;
