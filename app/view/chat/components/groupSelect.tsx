@@ -2,25 +2,25 @@ import DialogueWindow from "@/view/chat/components/dialogueWindow";
 import { tuanchat } from "api/instance";
 import { useEffect, useState } from "react";
 // import { useNavigate} from "react-router";
-import "./channelSelect.css";
+import "./groupSelect.css";
 
-export default function CannelSelect() {
-  // 服务器列表数据
-  const [servers, setServers] = useState<Server[]>([]);
-  // 当前选中的服务器ID
-  const [activeServerId, setActiveServerId] = useState<number | null>(null);
+export default function GroupSelect() {
+  // 一级群组列表数据
+  const [groups, setGroups] = useState<Group[]>([]);
+  // 当前选中的一级群组ID
+  const [activeGroupId, setActiveGroupId] = useState<number | null>(null);
   // 当前选中的二级群组ID
   const [activeSubGroupId, setActiveSubGroupId] = useState<number | null>(null);
   // 更新路由函数
   // const navigate = useNavigate();
 
-  // 定义服务器和频道的接口
-  interface Server {
+  // 定义群组
+  interface Group {
     id: number;
     name: string;
     icon: string;
     hasNotification: boolean;
-    children?: Server[];
+    children?: Group[];
   }
 
   // 切换二级群组
@@ -38,18 +38,18 @@ export default function CannelSelect() {
   };
 
   // 更新二级群组列表
-  const updateSubGroups = (serverId: number) => {
-    const server = servers.find(s => s.id === serverId);
-    if (server && server.children && server.children.length > 0) {
+  const updateSubGroups = (groupId: number) => {
+    const group = groups.find(s => s.id === groupId);
+    if (group && group.children && group.children.length > 0) {
       // 默认选中第一个二级群组
-      const firstSubGroup = server.children[0];
+      const firstSubGroup = group.children[0];
       setActiveSubGroupId(firstSubGroup.id);
       switchSubGroup(firstSubGroup.id);
     }
   };
 
-  // 初始化服务器列表
-  const initServers = async () => {
+  // 初始化群组列表
+  const initGroups = async () => {
     try {
       const response = await tuanchat.groupController.getUserGroups();
       if (response.data) {
@@ -58,7 +58,7 @@ export default function CannelSelect() {
         const secondLevelGroups = response.data;
 
         // 更新服务器列表，将二级群组作为一级群组的子元素
-        setServers(firstLevelGroups.map(group => ({
+        setGroups(firstLevelGroups.map(group => ({
           id: Number(group.roomId),
           name: group.name,
           icon: group.avatar || "🏠",
@@ -73,10 +73,10 @@ export default function CannelSelect() {
             })),
         })));
 
-        // 如果有群组，默认选中第一个
-        if (servers.length > 0) {
-          setActiveServerId(servers[0].id);
-          updateSubGroups(servers[0].id);
+        // 如果有一级群组，默认选中第一个
+        if (groups.length > 0) {
+          setActiveGroupId(groups[0].id);
+          updateSubGroups(groups[0].id);
         }
       }
     }
@@ -87,7 +87,7 @@ export default function CannelSelect() {
 
   // 初始化时设置默认群组并获取群组列表
   useEffect(() => {
-    initServers();
+    initGroups();
     // 设置默认选中的频道为当前数组
   }, // eslint-disable-next-line react-hooks/exhaustive-deps
   []);
@@ -95,14 +95,14 @@ export default function CannelSelect() {
   return (
     <div className="flex flex-row w-full">
       <div className="channel-selector flex">
-        {/* 服务器列表容器 */}
+        {/* 一级群组列表容器 */}
         <div className="server-list primary-servers">
-          {servers.map(server => (
+          {groups.map(server => (
             <div
               key={server.id}
-              className={`server-item ${server.hasNotification ? "has-notification" : ""} ${activeServerId === server.id ? "active" : ""}`}
+              className={`server-item ${server.hasNotification ? "has-notification" : ""} ${activeGroupId === server.id ? "active" : ""}`}
               onClick={() => {
-                setActiveServerId(server.id);
+                setActiveGroupId(server.id);
                 updateSubGroups(server.id);
               }}
             >
@@ -130,7 +130,7 @@ export default function CannelSelect() {
 
         {/* 二级群组列表 */}
         <div className="server-list secondary-servers w-1/2">
-          {activeServerId && servers.find(s => s.id === activeServerId)?.children?.map(subGroup => (
+          {activeGroupId && groups.find(s => s.id === activeGroupId)?.children?.map(subGroup => (
             <div
               key={subGroup.id}
               className={`server-item ${subGroup.hasNotification ? "has-notification" : ""} ${activeSubGroupId === subGroup.id ? "active" : ""}`}
