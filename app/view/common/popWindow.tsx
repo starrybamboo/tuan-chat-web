@@ -3,7 +3,7 @@ import React from "react";
 export function PopWindow({ isOpen, children, onClose }: { isOpen: boolean; children: React.ReactNode; onClose: () => void }) {
   return (
     <div className={`modal ${isOpen ? "modal-open" : ""}`}>
-      <div className="modal-box relative bg-base-100 dark:bg-base-300">
+      <div className="modal-box relative bg-base-100 dark:bg-base-300 w-max max-w-none h-max max-h-none">
         {/* 关闭按钮 */}
         <button
           type="button"
@@ -13,7 +13,7 @@ export function PopWindow({ isOpen, children, onClose }: { isOpen: boolean; chil
           ✕
         </button>
         {/* 卡片内容 */}
-        <div className="card-body px-0">
+        <div className="card-body px-0 w-max">
           {children}
         </div>
       </div>

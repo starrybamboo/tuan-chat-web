@@ -173,41 +173,45 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
         {children}
       </div>
       <PopWindow isOpen={isOpen} onClose={() => { setIsOpen(false); }}>
-        {!!imgSrc && (
-          <ReactCrop
-            crop={crop}
-            onChange={(_, percentCrop) => setCrop(percentCrop)}
-            onComplete={c => setCompletedCrop(c)}
-            aspect={1}
-            // minWidth={400}
-            minHeight={100}
-            // circularCrop
-          >
-            <img
-              ref={imgRef}
-              alt="Crop me"
-              src={imgSrc}
-              // style={{ transform: `scale(${scale})` }}
-              onLoad={onImageLoad}
-            />
-          </ReactCrop>
-        )}
-        {!!completedCrop && (
-          <>
-            <div>
-              <canvas
-                ref={previewCanvasRef}
-                style={{
-                  border: "1px solid black",
-                  objectFit: "contain",
-                  width: completedCrop.width,
-                  height: completedCrop.height,
-                }}
-              />
+        <div className="flex flex-row w-max h-max items-center">
+          {!!imgSrc && (
+            <div className="w-128 h-128">
+              <ReactCrop
+                crop={crop}
+                onChange={(_, percentCrop) => setCrop(percentCrop)}
+                onComplete={c => setCompletedCrop(c)}
+                aspect={1}
+                // minWidth={400}
+                minHeight={10}
+                // circularCrop
+              >
+                <img
+                  ref={imgRef}
+                  alt="Crop me"
+                  src={imgSrc}
+                  // style={{ transform: `scale(${scale})` }}
+                  onLoad={onImageLoad}
+                  className="w-max h-max"
+                />
+              </ReactCrop>
             </div>
-          </>
-        )}
-        <button className="btn" onClick={handleSubmit} type="button">完成</button>
+          )}
+          <div className="divider lg:divider-horizontal"></div>
+          {!!completedCrop && (
+            <div className="flex flex-col gap-3">
+              <div className="w-96 h-96">
+                <canvas
+                  ref={previewCanvasRef}
+                  style={{
+                    objectFit: "contain",
+                  }}
+                  className="w-full h-full"
+                />
+              </div>
+              <button className="btn btn-dash" onClick={handleSubmit} type="button">完成</button>
+            </div>
+          )}
+        </div>
       </PopWindow>
     </div>
   );
