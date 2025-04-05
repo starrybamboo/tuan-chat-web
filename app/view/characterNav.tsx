@@ -15,12 +15,12 @@ export default function CharacterNav({ characters, onCreate, onSelect, selected 
     character.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
   return (
-    <div className="w-full bg-blue-200 border-base-200 text-center h-full overflow-y-scroll">
+    <div className="w-full bg-[#5D9DBE] border-base-200 text-center h-full overflow-y-scroll">
       {/* 搜索框 */}
       <input
         type="text"
         placeholder="搜索角色"
-        className="input input-sm w-6/7 mb-2 mt-[30px]"
+        className="input input-sm w-6/7 mb-2 mt-[30px] bg-[#A3C7E6] hover:bg-[#B1D1ED] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         value={searchTerm}
         onChange={e => setSearchTerm(e.target.value)}
       />
@@ -28,10 +28,9 @@ export default function CharacterNav({ characters, onCreate, onSelect, selected 
       {/* 创建新角色 */}
       <button
         onClick={onCreate}
-        className="btn w-4/5 btn-accent text-white m-5"
+        className="btn w-4/5 bg-[#2A6F97] text-white m-5"
       >
-        <div className="bg-primary-content w-8 h-8 rounded-full text-center pt-1.5">+</div>
-        创建新角色
+        + 创建新角色
       </button>
 
       {/* 列表 */}
@@ -42,8 +41,8 @@ export default function CharacterNav({ characters, onCreate, onSelect, selected 
             onClick={() => onSelect(character.id)}
             className={`h-15 p-2 mb-2 ml-2 mr-2 cursor-pointer rounded-[16px] ${
               selected === character.id
-                ? "bg-info bg-opacity-20"
-                : "hover:bg-gray-200 hover:bg-opacity-10"
+                ? "bg-[#D4E6F5] bg-opacity-20"
+                : "hover:bg-[#9EC5E4] hover:bg-opacity-10"
             }`}
           >
             {/* 左侧人物预览组件 */}
@@ -57,10 +56,10 @@ export default function CharacterNav({ characters, onCreate, onSelect, selected 
               </div>
               <div className="flex-1 min-w-0">
                 {/* 高亮名字 */}
-                <p className="truncate font-medium text-info-content">
+                <p className="truncate font-medium text-[#1E3A8A] ">
                   {highlightMatch(character.name, searchTerm)}
                 </p>
-                <p className="text-sm text-info-content truncate">{character.description}</p>
+                <p className="text-sm text-info-content truncate text-[#3B82F6]">{character.description}</p>
               </div>
             </div>
           </div>

@@ -32,7 +32,7 @@ export default function Head({ onAvatarChange, currentAvatar, userQuery, roleQue
       </div>
       <div className="w-full relative mt-5">
         {/* 选择和上传图像 */}
-        <div className="border-t-2 border-white float-left p-2">
+        <div className="border-t-2 border-white float-left p-2 w-full">
           <div className="mb-2">选择一个头像 :</div>
           <button className="btn btn-dash m-auto block" onClick={handleUpload}>
             <b className="text-white ml-0">+</b>

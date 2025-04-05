@@ -12,6 +12,25 @@ import PreviewCharacter from "./previewCharacter";
 export interface CharacterData {
   id: number;
   name: string;
+  age: number;
+  gender: string;
+  profession: string;
+  hometown: string;
+  address: string;
+  currentTime: string;
+  health: {
+    max: number;
+    current: number;
+  };
+  magic: {
+    max: number;
+    current: number;
+  };
+  sanity: {
+    max: number;
+    current: number;
+  };
+  luck: number;
   description: string;
   avatar: string | undefined;
 }
@@ -35,10 +54,28 @@ export default function CharacterWrapper() {
       const mappedCharacters = roleQuery.data.data.map((role: UserRole) => ({
         id: role.roleId || 0,
         name: role.roleName || "",
+        age: 25,
+        gender: "未知",
+        profession: "",
+        hometown: "",
+        address: "",
+        currentTime: new Date().toLocaleString(),
+        health: {
+          max: 100,
+          current: 100,
+        },
+        magic: {
+          max: 100,
+          current: 100,
+        },
+        sanity: {
+          max: 100,
+          current: 100,
+        },
+        luck: 50,
         description: role.description || "无描述",
         avatar: undefined,
       }));
-
       // 封装 setCharacters 调用，避免直接在 useEffect 中更新状态
       const updateCharacters = () => {
         setCharacters(mappedCharacters);
@@ -101,13 +138,13 @@ export default function CharacterWrapper() {
   };
 
   return (
-    <div className="h-screen w-screen bg-base-500">
-      <div className="h-1/15 w-screen bg-accent text-white flex items-center justify-center">
+    <div className="h-screen w-screen bg-[#E6F2F9]">
+      <div className="h-1/15 w-screen bg-[#3A7CA5] text-white flex items-center justify-center">
         {/* 主导航栏 */}
         <h1 className="text-2xl font-bold">角色管理</h1>
       </div>
       <div className="flex h-14/15">
-        <div className="w-1/5 bg-blue-200">
+        <div className="w-1/4">
           <CharacterNav
             characters={characters}
             onCreate={() => setCreating(true)}
