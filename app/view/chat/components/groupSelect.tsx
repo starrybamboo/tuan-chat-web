@@ -57,7 +57,7 @@ export default function GroupSelect() {
         const firstLevelGroups = response.data.filter(group => group.parentGroupId === group.roomId);
         const secondLevelGroups = response.data;
 
-        // 更新服务器列表，将二级群组作为一级群组的子元素
+        // 更新群组列表
         setMainGroups(firstLevelGroups.map(mainGroup => ({
           id: Number(mainGroup.roomId),
           name: mainGroup.name,
@@ -72,11 +72,13 @@ export default function GroupSelect() {
               hasNotification: false,
             })),
         })));
-
         // 如果有一级群组，默认选中第一个
-        if (mainGroups.length > 0) {
-          setActiveMainGroupId(mainGroups[0].id);
-          updateSubGroups(mainGroups[0].id);
+        if (firstLevelGroups.length > 0) {
+          setActiveMainGroupId(firstLevelGroups[0].roomId);
+          // 如果有二级数组，默认选择第一个
+          if (secondLevelGroups.length > 0) {
+            setActiveSubGroupId(secondLevelGroups[0].roomId);
+          }
         }
       }
     }
@@ -88,9 +90,7 @@ export default function GroupSelect() {
   // 初始化时设置默认群组并获取群组列表
   useEffect(() => {
     initGroups();
-    // 设置默认选中的频道为当前数组
-  }, // eslint-disable-next-line react-hooks/exhaustive-deps
-  []);
+  }, []);
 
   return (
     <div className="flex flex-row w-full">
@@ -160,6 +160,5 @@ export default function GroupSelect() {
       </div>
       <DialogueWindow groupId={activeSubGroupId ?? 1} key={activeSubGroupId ?? 1} />
     </div>
-
   );
 }
