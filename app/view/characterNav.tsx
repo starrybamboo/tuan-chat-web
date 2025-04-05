@@ -1,6 +1,6 @@
-/* eslint-disable react-dom/no-missing-button-type */
-// characterNav.tsx
 import type { CharacterData } from "./characterWrapper";
+// characterNav.tsx
+import { useState } from "react";
 
 interface Props {
   characters: CharacterData[];
@@ -10,45 +10,87 @@ interface Props {
 }
 
 export default function CharacterNav({ characters, onCreate, onSelect, selected }: Props) {
+  const [searchTerm, setSearchTerm] = useState("");
+  // 过滤角色名
+  const filteredCharacters = characters.filter(character =>
+    character.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
   return (
-    <div className="w-64 p-4 bg-gray-600 border-r-1 border-black">
-      {/* 新建角色 */}
+    <div className="w-full bg-blue-200 border-base-200 text-center h-full overflow-y-scroll">
+      {/* 搜索框 */}
+      <input
+        type="text"
+        placeholder="搜索角色"
+        className="input input-sm w-6/7 mb-2 mt-[30px]"
+        value={searchTerm}
+        onChange={e => setSearchTerm(e.target.value)}
+      />
+
+      {/* 创建新角色 */}
       <button
         onClick={onCreate}
-        className="btn btn-primary btn-block bg-gray-500 border-1 border-dashed border-amber-100 h-15 rounded-none text-white mb-4"
+        className="btn w-4/5 btn-accent text-white m-5"
       >
-        <div className="bg-gray-700 w-9 h-9 rounded-full text-center pt-1.5">+</div>
+        <div className="bg-primary-content w-8 h-8 rounded-full text-center pt-1.5">+</div>
         创建新角色
       </button>
 
-      <div className="overflow-y-auto h-[calc(100%-100px)]">
-        {characters.map(character => (
-          // 渲染
+      {/* 列表 */}
+      <div className="overflow-y-auto h-[calc(100%-160px)]">
+        {filteredCharacters.map(character => (
           <div
             key={character.id}
             onClick={() => onSelect(character.id)}
-            className={`p-2 mb-2 cursor-pointer ${
-              selected === character.id ? "bg-gray-700" : "hover:bg-gray-700"
+            className={`h-15 p-2 mb-2 ml-2 mr-2 cursor-pointer rounded-[16px] ${
+              selected === character.id
+                ? "bg-info bg-opacity-20"
+                : "hover:bg-gray-200 hover:bg-opacity-10"
             }`}
           >
             {/* 左侧人物预览组件 */}
             <div className="flex items-center">
-              <div className="w-8 h-8 rounded-full mr-2 overflow-hidden">
+              <div className="w-12 h-12 rounded-full mr-2 overflow-hidden">
                 <img
-                // 你需要在这里调用正确的头像
                   src={character.avatar}
                   alt={character.name}
-                  className="h-full w-full"
+                  className="h-full w-full object-cover"
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="truncate font-medium">{character.name}</p>
-                <p className="text-sm text-gray-300 truncate">{character.description}</p>
+                {/* 高亮名字 */}
+                <p className="truncate font-medium text-info-content">
+                  {highlightMatch(character.name, searchTerm)}
+                </p>
+                <p className="text-sm text-info-content truncate">{character.description}</p>
               </div>
             </div>
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+// 高亮匹配关键字函数
+function highlightMatch(text: string, keyword: string) {
+  // 处理关键字为空的情况
+  if (!keyword)
+    return text;
+  // gi：全局 不区分大小写
+  const regex = new RegExp(`(${keyword})`, "gi");
+  const parts = text.split(regex);
+
+  // 遍历渲染
+  return parts.map((part, i) =>
+    part.toLowerCase() === keyword.toLowerCase()
+    // 判断那些需要高亮
+      ? (
+          <span key={i} className="bg-yellow-300 text-black font-bold">
+            {part}
+          </span>
+        )
+      : (
+          part
+        ),
   );
 }
