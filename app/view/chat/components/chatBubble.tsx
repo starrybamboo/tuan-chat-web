@@ -33,7 +33,7 @@ export function ChatBubble({ chatMessageResponse, useChatBoxStyle }: { chatMessa
         <div className="chat-footer">
           {(useRoleRequest.isPending || useRoleRequest.error || useRoleRequest.data === undefined) ? "" : useRoleRequest.data.data?.roleName}
           <time className="text-xs opacity-50">
-            {message.createTime?.toLocaleString() ?? ""}
+            {message.createTime ?? ""}
           </time>
         </div>
         {/* <div className="chat-footer opacity-50">Seen</div> */}

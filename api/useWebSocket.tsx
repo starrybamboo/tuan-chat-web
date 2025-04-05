@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import type {ChatMessageRequest} from "./models/ChatMessageRequest";
 import type {ChatMessageResponse} from "./models/ChatMessageResponse";
 import {useImmer} from "use-immer";
+import {formatToLocalISO} from "@/utils/dataUtil";
 
 type WsMessageType =
     | 2 // 心跳
@@ -55,6 +56,9 @@ export const useWebSocket = () => {
                 try {
                     const message: WsMessage<ChatMessageResponse> = JSON.parse(event.data)
                     console.log('Received message:', JSON.stringify(message))
+                    if(!(message.data?.message.createTime) && message.data != undefined){
+                        message.data.message.createTime = formatToLocalISO(new Date)
+                    }
                     if(message.data!=undefined && message.data){
                         updateGroupMessages(draft => {
                             const chatMessageResponse = message.data!

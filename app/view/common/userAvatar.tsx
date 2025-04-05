@@ -29,6 +29,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
           <img
             src={userQuery.isPending || userQuery.error || !userQuery.data?.data?.avatar ? undefined : userQuery.data?.data?.avatar}
             alt="Avatar"
+            className="hover:scale-110 transition-transform"
           />
         </div>
       </div>

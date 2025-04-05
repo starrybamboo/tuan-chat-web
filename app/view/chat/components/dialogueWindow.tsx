@@ -244,9 +244,9 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   return (
     <div className="flex flex-row p-6 gap-4 w-full min-w-0">
       {/* 聊天区域主体 */}
-      <div className="flex-1 min-w-[480px] flex flex-col overflow-hidden">
+      <div className="flex-1 min-w-[480px] flex flex-col">
         {/* chat messages area */}
-        <div className="card bg-base-100 shadow-sm flex-1 overflow-auto">
+        <div className="card bg-base-100 shadow-sm flex-1">
           {/* 加载指示器 */}
           {isFetchingNextPage && (
             <div className="text-center p-2 text-gray-500">
@@ -282,30 +282,16 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
           <div className="flex gap-2">
             {/* 表情差分展示与选择 */}
             <div className="dropdown dropdown-top">
-              {/* 表情展示 */}
-              {/* <AvatarComponent */}
-              {/*  avatarId={ */}
-              {/*    roleAvatarsQueries?.[curRoleIndex]?.data?.data?.[ */}
-              {/*      curAvatarIndexes?.[curRoleIndex] ?? 0 */}
-              {/*    ]?.avatarId ?? 0 */}
-              {/*  } */}
-              {/*  width={32} */}
-              {/*  isRounded={false} */}
-              {/* > */}
-              {/* </AvatarComponent> */}
-              {/* 上面这么做不能触发daisyUI的组件效果 */}
-              <div className="avatar flex justify-center flex-col items-center space-y-2">
-                <div className="w-32 h-32 rounded-full">
-                  <img
-                    src={roleAvatarsQueries[curRoleIndex]?.data?.data?.[
-                      curAvatarIndexes?.[curRoleIndex] ?? 0
-                    ]?.avatarUrl || undefined}
-                    alt="Avatar"
-                    className="object-cover w-full h-full" // 确保图片填充容器
-                    tabIndex={0}
-                    role="button"
-                  />
-                </div>
+              <div role="button" tabIndex={0} className="flex justify-center flex-col items-center space-y-2">
+                <RoleAvatarComponent
+                  avatarId={roleAvatarsQueries[curRoleIndex]?.data?.data?.[
+                    curAvatarIndexes?.[curRoleIndex] ?? 0
+                  ]?.avatarId || 0}
+                  width={32}
+                  isRounded={true}
+                  withTitle={false}
+                >
+                </RoleAvatarComponent>
                 <div>{userRolesQuery.data?.data?.[curRoleIndex]?.roleName || ""}</div>
               </div>
               {/* 表情差分选择器 */}
@@ -314,15 +300,11 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                   roleAvatarsQueries[curRoleIndex]?.data?.data
                   && roleAvatarsQueries[curRoleIndex]?.data?.data.length >= 0
                     ? (
-                        <div className="grid grid-cols-5 gap-2">
+                        <div className="grid grid-cols-5 gap-2 ">
                           {roleAvatarsQueries[curRoleIndex]?.data?.data?.map((avatar, index) => (
-                            <img
-                              key={avatar.avatarId}
-                              className="w-16 h-16 object-cover rounded cursor-pointer hover:ring-2 ring-primary transition-all"
-                              src={avatar.avatarUrl}
-                              alt={`Avatar ${index}`}
-                              onClick={() => handleAvatarChange(index)}
-                            />
+                            <div onClick={() => handleAvatarChange(index)} className="object-cover rounded transition-all" key={avatar.avatarId}>
+                              <RoleAvatarComponent avatarId={avatar.avatarId} width={16} isRounded={false} withTitle={true}></RoleAvatarComponent>
+                            </div>
                           ))}
                         </div>
                       )
@@ -353,7 +335,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                     {
                       (userRolesQuery?.data?.data ?? []).map((role, index) => (
                         <li key={role.roleId} onClick={() => handleRoleChange(index)} className="flex, flex-row">
-                          <RoleAvatarComponent avatarId={role.avatarId ?? 0} width={10} isRounded={false}>
+                          <RoleAvatarComponent avatarId={role.avatarId ?? 0} width={10} isRounded={false} withTitle={true}>
                           </RoleAvatarComponent>
                           <div>{role.roleName}</div>
                         </li>
@@ -422,7 +404,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
             {(groupRolesQuery?.data?.data ?? []).map(role => (
               <div key={role.roleId} className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center ">
                 {/* role列表 */}
-                <RoleAvatarComponent avatarId={role.avatarId ?? 0} width={8} isRounded={true}></RoleAvatarComponent>
+                <RoleAvatarComponent avatarId={role.avatarId ?? 0} width={8} isRounded={true} withTitle={false}></RoleAvatarComponent>
                 <div className="flex flex-col items-center gap-2 text-sm font-medium">
                   <span>{role.roleName}</span>
                 </div>
