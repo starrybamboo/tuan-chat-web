@@ -7,9 +7,10 @@ import { useGroupRoleQuery, useUserRoleQuery } from "@/view/chat/api/role";
 
 import { useUserInfoQuery } from "@/view/chat/api/user";
 import { ChatBubble } from "@/view/chat/components/chatBubble";
+import { GroupContext } from "@/view/chat/components/GroupContext";
 import { MemberTypeTag } from "@/view/chat/components/memberTypeTag";
-import { PopWindow } from "@/view/common/popWindow";
 
+import { PopWindow } from "@/view/common/popWindow";
 import RoleAvatarComponent from "@/view/common/roleAvatar";
 import { ImgUploaderWithCopper } from "@/view/common/uploader/imgUploaderWithCopper";
 import UserAvatarComponent from "@/view/common/userAvatar";
@@ -44,7 +45,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   // 成员添加框的打开状态
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
   // 添加成员输入框内的输入
-  const [inputUserId, setInputUserId] = useState<number | undefined>(undefined);
+  const [inputUserId, setInputUserId] = useState<number>(-1);
   // 检验输入的Id是否有效
   const inputUserInfo = useUserInfoQuery(inputUserId ?? -1).data?.data;
 
@@ -282,7 +283,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   }
 
   return (
-    <div>
+    <GroupContext value={{ groupId }}>
       <div className="flex flex-row p-6 gap-4 w-full min-w-0">
         {/* 聊天区域主体 */}
         <div className="flex-1 min-w-[480px] flex flex-col">
@@ -506,7 +507,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
           <p className="text-lg font-bold text-center w-full mb-4 ">输入要加入的用户的ID</p>
           <input type="text" placeholder="输入要加入的成员的ID" className="input mb-8" onInput={e => setInputUserId(Number(e.currentTarget.value))} />
           {
-            (inputUserId && inputUserId > 0 && inputUserInfo)
+            (inputUserId > 0 && inputUserInfo)
             && (
               <div className="w-full items-center flex flex-col gap-y-4">
                 <UserDetail userId={inputUserId}></UserDetail>
@@ -518,7 +519,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
           }
         </div>
       </PopWindow>
-    </div>
+    </GroupContext>
   );
 }
 

@@ -1,7 +1,10 @@
 import { useUserInfoQuery } from "@/view/chat/api/user";
+import { GroupContext } from "@/view/chat/components/GroupContext";
 import { PopWindow } from "@/view/common/popWindow";
 import { UserDetail } from "@/view/common/userDetail";
-import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { use, useState } from "react";
+import { tuanchat } from "../../../api/instance";
 
 // 如果是 import 的sizeMap 就不能在className中用了, 于是复制了一份, 够丑的 :(
 const sizeMap = {
@@ -19,9 +22,30 @@ const sizeMap = {
 
 export default function UserAvatarComponent({ userId, width, isRounded, withName = false, stopPopWindow = false }: { userId: number; width: keyof typeof sizeMap; isRounded: boolean; withName: boolean; stopPopWindow?: boolean }) {
   const userQuery = useUserInfoQuery(userId);
-
+  const queryClient = useQueryClient();
   // 控制用户详情的popWindow
   const [isOpen, setIsOpen] = useState(false);
+
+  const groupContext = use(GroupContext);
+  const groupId = groupContext?.groupId;
+
+  const mutateMember = useMutation({
+    mutationFn: tuanchat.groupMemberController.deleteMember,
+    mutationKey: ["groupMemberController.groupMember", groupId],
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["groupMemberController.groupMember", groupId] });
+    },
+  });
+  const handleRemoveMember = async () => {
+    if (!groupId)
+      return;
+    mutateMember.mutate(
+      { roomId: groupId, userIdList: [userId] },
+      {
+        onSettled: () => setIsOpen(false), // 最终关闭弹窗
+      },
+    );
+  };
 
   return (
     <div className="w-full flex flex-row items-center space-x-2 space-y-2">
@@ -48,7 +72,16 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
         {
           (isOpen && !stopPopWindow) && (
             <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>
-              <UserDetail userId={userId}></UserDetail>
+              <div className="items-center justify-center gap-y-4 flex flex-col">
+                <UserDetail userId={userId}></UserDetail>
+                {
+                  (groupContext && groupContext.groupId) && (
+                    <button type="button" className="btn btn-error" onClick={handleRemoveMember}>
+                      踢出成员
+                    </button>
+                  )
+                }
+              </div>
             </PopWindow>
           )
         }

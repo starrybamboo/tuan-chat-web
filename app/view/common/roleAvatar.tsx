@@ -1,7 +1,8 @@
+import { GroupContext } from "@/view/chat/components/GroupContext";
 import { PopWindow } from "@/view/common/popWindow";
 import { RoleDetail } from "@/view/common/roleDetail";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { use, useState } from "react";
 import { tuanchat } from "../../../api/instance";
 
 const sizeMap = {
@@ -27,10 +28,32 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
       staleTime: 600000,
     },
   );
+  const queryClient = useQueryClient();
 
   // 控制角色详情的popWindow
   const [isOpen, setIsOpen] = useState(false);
   const roleAvatar = avatarQuery.data?.data;
+
+  const groupContext = use(GroupContext);
+  const groupId = groupContext?.groupId;
+
+  const removeRoleMutation = useMutation({
+    mutationFn: tuanchat.groupRoleController.deleteRole1,
+    mutationKey: ["groupRoleController.groupRole", groupId],
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["groupMemberController.groupMember", groupId] });
+    },
+  });
+  const handleRemoveRole = async () => {
+    if (!groupId || !roleAvatar?.roleId)
+      return;
+    removeRoleMutation.mutate(
+      { roomId: groupId, roleIdList: [roleAvatar?.roleId] },
+      {
+        onSettled: () => setIsOpen(false), // 最终关闭弹窗
+      },
+    );
+  };
 
   return (
     <div className="flex flex-col items-center space-x-2 space-y-2">
@@ -49,10 +72,20 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
       }
       <div className="absolute">
         {
-          (isOpen && !stopPopWindow) && (
+          (isOpen && !stopPopWindow && groupId) && (
             <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>
-              <RoleDetail roleId={roleAvatar?.roleId ?? -1}></RoleDetail>
+              <div className="items-center justify-center gap-y-4 flex flex-col">
+                <RoleDetail roleId={roleAvatar?.roleId ?? -1}></RoleDetail>
+                {
+                  (groupContext && groupContext.groupId) && (
+                    <button type="button" className="btn btn-error" onClick={handleRemoveRole}>
+                      踢出角色
+                    </button>
+                  )
+                }
+              </div>
             </PopWindow>
+
           )
         }
       </div>
