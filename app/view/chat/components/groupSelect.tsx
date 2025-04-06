@@ -107,20 +107,10 @@ export default function GroupSelect() {
               }}
             >
               <div className="server-icon">
-                {mainGroup.icon.startsWith("http")
-                  ? (
-                      <img
-                        src={mainGroup.icon}
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = "🏠";
-                        }}
-                        alt={mainGroup.name}
-                      />
-                    )
-                  : (
-                      <span>{mainGroup.icon}</span>
-                    )}
+                <img
+                  src={mainGroup.icon}
+                  alt={mainGroup.name}
+                />
               </div>
               <div className="server-name">{mainGroup.name}</div>
               {mainGroup.hasNotification && <div className="notification-dot"></div>}
@@ -137,20 +127,10 @@ export default function GroupSelect() {
               onClick={() => switchSubGroup(subGroup.id)}
             >
               <div className="server-icon">
-                {subGroup.icon.startsWith("http")
-                  ? (
-                      <img
-                        src={subGroup.icon}
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = "📚";
-                        }}
-                        alt={subGroup.name}
-                      />
-                    )
-                  : (
-                      <span>{subGroup.icon}</span>
-                    )}
+                <img
+                  src={subGroup.icon}
+                  alt={subGroup.name}
+                />
               </div>
               <div className="server-name">{subGroup.name}</div>
               {subGroup.hasNotification && <div className="notification-dot"></div>}
