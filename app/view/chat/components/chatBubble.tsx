@@ -15,6 +15,8 @@ export function ChatBubble({ chatMessageResponse, useChatBoxStyle }: { chatMessa
     staleTime: 600000,
   });
 
+  const role = useRoleRequest.data?.data;
+
   if (useChatBoxStyle) {
     return (
     // <div className={message.type !== "user" ? "chat chat-start" : "chat chat-end"} key={message.id}>
@@ -31,7 +33,7 @@ export function ChatBubble({ chatMessageResponse, useChatBoxStyle }: { chatMessa
           </div>
         </div>
         <div className="chat-footer">
-          {(useRoleRequest.isPending || useRoleRequest.error || useRoleRequest.data === undefined) ? "" : useRoleRequest.data.data?.roleName}
+          {role?.roleName?.trim() || "Undefined"}
           <time className="text-xs opacity-50">
             {message.createTime ?? ""}
           </time>
@@ -54,7 +56,7 @@ export function ChatBubble({ chatMessageResponse, useChatBoxStyle }: { chatMessa
         <div className="flex-1">
           {/* 角色名 */}
           <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
-            {useRoleRequest.isPending || useRoleRequest.error || useRoleRequest.data === undefined ? "" : useRoleRequest.data.data?.roleName}
+            {role?.roleName?.trim() || "Undefined"}
           </div>
 
           {/* 消息文本（纯文字，无边框） */}
