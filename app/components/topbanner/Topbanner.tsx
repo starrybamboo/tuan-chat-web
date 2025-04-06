@@ -29,22 +29,22 @@ export default function Topbar() {
           className="h-8 w-8 mr-4"
         />
 
-        <a href="/recommend" className="hover:text-primary transition-colors">
+        <a href="/feed" className="hover:text-primary transition-colors">
           推荐
         </a>
         <a href="/community" className="hover:text-primary transition-colors">
           社区
         </a>
-        <a href="/gameplay" className="hover:text-primary transition-colors">
+        <a href="/chat" className="hover:text-primary transition-colors">
           游玩
         </a>
-        <a href="/characters" className="hover:text-primary transition-colors">
+        <a href="/role" className="hover:text-primary transition-colors">
           角色
         </a>
-        <a href="/mods" className="hover:text-primary transition-colors">
+        <a href="/module" className="hover:text-primary transition-colors">
           模组
         </a>
-        <a href="/creation" className="hover:text-primary transition-colors">
+        <a href="/create" className="hover:text-primary transition-colors">
           创作
         </a>
       </div>
