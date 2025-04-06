@@ -70,10 +70,15 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
   // 修改登录mutation
   const loginMutation = useMutation({
     mutationFn: loginUser,
-    onSuccess: (data) => {
-      localStorage.setItem("token", data.data);
-      showTemporaryMessage("登录成功！", "success");
-      setTimeout(handleSuccessAndClose, 1000);
+    onSuccess: (res) => {
+      if (res.data) {
+        localStorage.setItem("token", res.data);
+        showTemporaryMessage("登录成功！", "success");
+        setTimeout(handleSuccessAndClose, 1000);
+      }
+      else {
+        showTemporaryMessage("登录失败：未获取到有效的令牌", "error");
+      }
     },
     onError: (error) => {
       showTemporaryMessage(
@@ -86,10 +91,10 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
   // 修改注册mutation中的成功处理
   const registerMutation = useMutation({
     mutationFn: registerUser,
-    onSuccess: (data) => {
-      if (data.success && data.data) {
+    onSuccess: (res) => {
+      if (res.success && res.data) {
         // 保存注册返回的userId和密码
-        const userId = data.data;
+        const userId = res.data;
         const registeredPassword = password;
 
         // 清空表单
@@ -212,7 +217,16 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
               <p className="text-center mt-4">
                 {isLogin ? "还没有账号？" : "已有账号？"}
                 <span
-                  onClick={() => setSearchParams({ mode: isLogin ? "register" : "login" })}
+                  onClick={() => {
+                    setSearchParams({ mode: isLogin ? "register" : "login" });
+                    // 清空表单
+                    setUsername("");
+                    setPassword("");
+                    setConfirmPassword("");
+                    // 清空错误信息
+                    setErrorMessage("");
+                    setSuccessMessage("");
+                  }}
                   className="link link-primary cursor-pointer ml-1"
                 >
                   {isLogin ? "立即注册" : "立即登录"}

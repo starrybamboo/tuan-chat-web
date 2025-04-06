@@ -1,44 +1,31 @@
-import type { LoginCredentials, RegisterCredentials, RegisterResponse } from "../../types/authtype";
+import type { LoginCredentials, RegisterCredentials } from "../../types/authtype";
+
+import { tuanchat } from "../../../api/instance";
 
 export async function loginUser(credentials: LoginCredentials) {
-  const res = await fetch("http://39.103.58.31:8081/capi/user/public/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer 10001",
-    },
-    body: JSON.stringify({
-      userId: credentials.username,
-      password: credentials.password,
-    }),
+  const response = await tuanchat.userController.login({
+    userId: credentials.username,
+    password: credentials.password,
   });
 
-  if (!res.ok)
-    throw new Error("登录失败");
+  if (!response.success) {
+    throw new Error(response.errMsg || "登录失败");
+  }
 
-  return await res.json();
+  return response;
 }
 
 export async function registerUser(credentials: RegisterCredentials) {
-  const res = await fetch("http://39.103.58.31:8081/capi/user/public/register", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer 10001",
-    },
-    body: JSON.stringify({
-      username: credentials.username,
-      password: credentials.password,
-    }),
+  const response = await tuanchat.userController.register({
+    username: credentials.username,
+    password: credentials.password,
   });
 
-  const data: RegisterResponse = await res.json();
-
-  if (!data.success) {
-    throw new Error(data.errMsg || "注册失败");
+  if (!response.success) {
+    throw new Error(response.errMsg || "注册失败");
   }
 
-  return data;
+  return response;
 }
 
 export async function checkAuthStatus() {
