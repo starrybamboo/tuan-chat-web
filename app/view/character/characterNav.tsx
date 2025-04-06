@@ -1,3 +1,4 @@
+/* eslint-disable react-dom/no-missing-button-type */
 import type { CharacterData } from "./characterWrapper";
 import { useState } from "react";
 
@@ -59,7 +60,7 @@ export default function CharacterNav({ characters, onCreate, onSelect, selected 
                 <p className="truncate font-medium text-[#1E3A8A] ">
                   {highlightMatch(character.name, searchTerm)}
                 </p>
-                <p className="text-sm text-info-content truncate text-[#3B82F6]">{character.description}</p>
+                <p className="text-sm truncate text-[#3B82F6]">{character.description}</p>
               </div>
             </div>
           </div>

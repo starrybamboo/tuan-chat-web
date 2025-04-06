@@ -1,4 +1,4 @@
-import CharacterWrapper from "@/view/characterWrapper";
+import CharacterWrapper from "@/view/character/characterWrapper";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const queryClient = new QueryClient();

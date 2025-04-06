@@ -1,3 +1,4 @@
+/* eslint-disable react-dom/no-missing-button-type */
 import type { CharacterData } from "./characterWrapper";
 
 interface Props {

@@ -2,7 +2,7 @@
 import type { RoleAvatar, UserRole } from "api";
 import { useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 interface Props {
   initialAvatar?: string;
@@ -122,14 +122,14 @@ export default function GainUserAvatar({ initialAvatar, onAvatarChange, userQuer
         <div className="mt-5 ml-2">
           <p>
             当前角色id:
-            {user.userRole.userId || "未设置"}
+            {user.userRole.roleId || "未设置"}
           </p>
           <p>
             当前头像id:
             {user.userRole.roleId || "未设置"}
           </p>
           <p>
-            可用头像数量:
+            表情差分数量:
             {user.roleAvatars.length}
           </p>
         </div>
@@ -164,7 +164,7 @@ export default function GainUserAvatar({ initialAvatar, onAvatarChange, userQuer
       </div>
       {/* 大图预览 */}
       <div className="w-4/10 bg-base-200 float-left p-2">
-        <p className="text-center mt-2 mb-2">精灵图预览</p>
+        <p className="text-center mt-2 mb-2">大图预览</p>
         <img
           src={previewSrc || ""}
           alt=""

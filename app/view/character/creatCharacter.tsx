@@ -1,7 +1,10 @@
+/* eslint-disable react-dom/no-missing-button-type */
 import type { CharacterData } from "./characterWrapper";
+import { useMutation } from "@tanstack/react-query";
+import { tuanchat } from "api/instance";
 import { useState } from "react";
+import DefaultAvatar from "../test_avatar/defaultAvatar.png";
 import Head from "./head";
-import DefaultAvatar from "./test_avatar/defaultAvatar.png";
 
 interface Props {
   onSave: (character: CharacterData) => void;
@@ -27,6 +30,96 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
   const [description, setDescription] = useState(initialData?.description || "");
   const [avatar, setAvatar] = useState(initialData?.avatar || "");
 
+  // 发送post数据部分,创建角色不知道为什么总是500
+  const { mutate } = useMutation({
+    mutationKey: ["creatOrUpdateRole"],
+    mutationFn: async (data: any) => {
+      if (initialData === null) {
+        const res = await tuanchat.roleController.createRole();
+        console.warn(`创建角色信息`);
+        if (res.success) {
+          const roleId = res.data?.roleId;
+          if (roleId) {
+            const updateRes = await tuanchat.roleController.updateRole({
+              userId: userQuery?.data?.userId,
+              roleId,
+              roleName: data.name,
+              description: data.description,
+            },
+            );
+            console.warn(`成功${roleId}`);
+            return updateRes;
+          }
+          else {
+            console.error(`更新角色信息失败`);
+            return undefined;
+          }
+        }
+        else {
+          console.error("创建角色失败");
+        }
+      }
+      else {
+        const updateRes = await tuanchat.roleController.updateRole({
+          userId: userQuery?.data?.userId,
+          roleId: initialData?.id as number,
+          roleName: data.name,
+          description: data.description,
+        },
+        );
+        return updateRes;
+      }
+    },
+    onSuccess: (data) => {
+      if (data?.success) {
+        const newCharacter = {
+          id: initialData?.id || Date.now(),
+          name: name.trim() || "未命名角色",
+          age,
+          gender,
+          profession,
+          hometown,
+          address,
+          currentTime,
+          health,
+          magic,
+          sanity,
+          luck,
+          description: description || "无描述",
+          avatar: avatar || DefaultAvatar,
+        };
+        onSave(newCharacter);
+      }
+    },
+    onError: (error) => {
+      console.error("Mutation failed:", error);
+    },
+  });
+
+  // // 头像改变
+  // const { mutate: mutateAvatar } = useMutation({
+  //   mutationKey: ["avatarChange"],
+  //   mutationFn: async (data: { id: number; avatar: string }) => {
+  //     if (!data || !data.id || !data.avatar) {
+  //       console.error("Invalid data for avatar update:", data);
+  //       return;
+  //     }
+  //     const res = await tuanchat.avatarController.updateRoleAvatar({
+  //       avatarUrl: data.avatar,
+  //       roleId: data.id,
+  //       avatarId: 0,
+  //     });
+  //     if (res.success) {
+  //       console.warn("头像设置成功");
+  //       return res;
+  //     }
+  //     else {
+  //       console.error("头像设置失败");
+  //       return undefined;
+  //     }
+  //   },
+  // });
+
   const handleSubmit = () => {
     const cleanDescription = description
       .replace(/\r\n/g, "\n")
@@ -48,9 +141,22 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
       sanity,
       luck,
       description: cleanDescription || "无描述",
-      avatar: avatar || DefaultAvatar,
+      avatar: avatar || "",
     };
+
     onSave(newCharacter);
+    const dataToSend = newCharacter;
+    mutate(dataToSend);
+
+    // // 如果头像有变化，触发头像更新逻辑
+    // if (avatar && avatar !== initialData?.avatar) {
+    //   if (initialData && initialData.id) {
+    //     mutateAvatar({ id: initialData.id, avatar });
+    //   }
+    //   else {
+    //     console.error("initialData 或 initialData.id 未定义");
+    //   }
+    // }
   };
 
   return (

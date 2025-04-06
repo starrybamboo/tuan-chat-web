@@ -1,9 +1,11 @@
+/* eslint-disable react-dom/no-missing-button-type */
 import type { UserRole } from "api";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { tuanchat } from "../../api/instance";
-import useRoleQuery from "./apiRequest/useRoleQuery";
-import useUserQuery from "./apiRequest/useUserQuery";
+import { tuanchat } from "../../../api/instance";
+import useRoleQuery from "../apiRequest/useRoleQuery";
+import useUserQuery from "../apiRequest/useUserQuery";
+import { PopWindow } from "../avatarComponent/popWindow";
 import CharacterNav from "./characterNav";
 import CreatCharacter from "./creatCharacter";
 import PreviewCharacter from "./previewCharacter";
@@ -47,6 +49,10 @@ export default function CharacterWrapper() {
   const [selectedCharacter, setSelectedCharacter] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<number | null>(null);
+
+  // 传入popWindow
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
 
   // 初始化用户角色信息
   useEffect(() => {
@@ -113,6 +119,24 @@ export default function CharacterWrapper() {
       });
     }
   }, [roleQuery.data, queryClient]);
+
+  const { mutate: deleteRole } = useMutation({
+    mutationKey: ["deleteRole"],
+    mutationFn: async (roleId: number) => {
+      const res = await tuanchat.roleController.deleteRole(roleId);
+      if (res.success) {
+        console.warn("角色删除成功");
+        return res;
+      }
+      else {
+        console.error("删除角色失败");
+        return undefined;
+      }
+    },
+    onError: (error) => {
+      console.error("Mutation failed:", error);
+    },
+  });
   // 各种事件的处理
   const handleCreate = (newCharacter: CharacterData) => {
     setCharacters([...characters, newCharacter]);
@@ -128,13 +152,30 @@ export default function CharacterWrapper() {
     setSelectedCharacter(updatedCharacter.id);
   };
 
-  const handleDelete = async (id: number) => {
-    // 使用自定义确认对话框替换下方函数
-    const confirmDelete = window.confirm("确定要删除这个角色吗？"); // eslint-disable-line no-alert
-    if (confirmDelete) {
-      setCharacters(characters.filter(c => c.id !== id));
-      setSelectedCharacter(null);
+  const handleDelete = (id: number) => {
+    setDeleteConfirmOpen(true);
+    setDeleteCharacterId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteCharacterId !== null && roleQuery.data?.data) {
+      const roleId = deleteCharacterId;
+      if (roleId) {
+        deleteRole(roleId);
+        setCharacters(characters.filter(c => c.id !== deleteCharacterId));
+        setSelectedCharacter(null);
+      }
+      else {
+        console.error("无法获取角色ID");
+      }
     }
+    setDeleteConfirmOpen(false);
+    setDeleteCharacterId(null);
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteConfirmOpen(false);
+    setDeleteCharacterId(null);
   };
 
   return (
@@ -187,6 +228,21 @@ export default function CharacterWrapper() {
                 )}
         </div>
       </div>
+      {/* 删除确认对话框 */}
+      <PopWindow isOpen={deleteConfirmOpen} onClose={handleCancelDelete}>
+        <div className="p-4">
+          <h3 className="text-lg font-bold mb-4">确认删除角色</h3>
+          <p className="mb-4">确定要删除这个角色吗？</p>
+          <div className="flex justify-end">
+            <button className="btn btn-sm btn-outline btn-error mr-2" onClick={handleCancelDelete}>
+              取消
+            </button>
+            <button className="btn btn-sm bg-[#3A7CA5] text-white hover:bg-[#2A6F97]" onClick={handleConfirmDelete}>
+              确认删除
+            </button>
+          </div>
+        </div>
+      </PopWindow>
     </div>
   );
 }
