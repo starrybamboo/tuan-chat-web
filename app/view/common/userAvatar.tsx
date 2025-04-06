@@ -3,8 +3,8 @@ import { GroupContext } from "@/view/chat/components/GroupContext";
 import { PopWindow } from "@/view/common/popWindow";
 import { UserDetail } from "@/view/common/userDetail";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { tuanchat } from "api/instance";
 import { use, useState } from "react";
-import { tuanchat } from "../../../api/instance";
 
 // 如果是 import 的sizeMap 就不能在className中用了, 于是复制了一份, 够丑的 :(
 const sizeMap = {

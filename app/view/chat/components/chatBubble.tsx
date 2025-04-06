@@ -1,8 +1,8 @@
 // import type { Message } from "@/view/chat/components/message";
-import type { ChatMessageResponse } from "../../../../api";
+import type { ChatMessageResponse } from "api";
 import RoleAvatarComponent from "@/view/common/roleAvatar";
 import { useQuery } from "@tanstack/react-query";
-import { tuanchat } from "../../../../api/instance";
+import { tuanchat } from "api/instance";
 /**
  * 聊天风格的对话框组件
  */

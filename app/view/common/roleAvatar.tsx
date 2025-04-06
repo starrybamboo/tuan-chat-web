@@ -2,8 +2,8 @@ import { GroupContext } from "@/view/chat/components/GroupContext";
 import { PopWindow } from "@/view/common/popWindow";
 import { RoleDetail } from "@/view/common/roleDetail";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { tuanchat } from "api/instance";
 import { use, useState } from "react";
-import { tuanchat } from "../../../api/instance";
 
 const sizeMap = {
   6: "w-6 h-6", // 24px

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { tuanchat } from "../../../api/instance";
+import { tuanchat } from "api/instance";
 
 export function RoleDetail({ roleId }: { roleId: number }) {
   const roleQuery = useQuery({

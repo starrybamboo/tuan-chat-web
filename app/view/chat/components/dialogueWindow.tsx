@@ -1,6 +1,6 @@
-import type { FormEvent } from "react";
+import type { ChatMessagePageRequest, ChatMessageRequest, ChatMessageResponse, UserRole } from "api";
 
-import type { ChatMessagePageRequest, ChatMessageRequest, ChatMessageResponse, UserRole } from "../../../../api";
+import type { FormEvent } from "react";
 import { commands } from "@/utils/commands";
 
 import { useGroupRoleQuery, useUserRoleQuery } from "@/view/chat/api/role";
@@ -17,10 +17,10 @@ import UserAvatarComponent from "@/view/common/userAvatar";
 import { UserDetail } from "@/view/common/userDetail";
 import { useInfiniteQuery, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
+import { tuanchat } from "api/instance";
+import { useWebSocket } from "api/useWebSocket";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
-import { tuanchat } from "../../../../api/instance";
-import { useWebSocket } from "../../../../api/useWebSocket";
 
 export function DialogueWindow({ groupId }: { groupId: number }) {
   const queryClient = useQueryClient();

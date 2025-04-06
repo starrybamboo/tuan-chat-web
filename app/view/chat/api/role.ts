@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { tuanchat } from "../../../../api/instance";
+
+import { tuanchat } from "api/instance";
 
 export function useGroupRoleQuery(groupId: number) {
   return useQuery({
