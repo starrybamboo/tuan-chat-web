@@ -1,7 +1,7 @@
 const typeConfig = {
-  1: { text: "群主", color: "bg-red-100 text-red-800" },
-  2: { text: "管理员", color: "bg-blue-100 text-blue-800" },
-  3: { text: "成员", color: "bg-gray-100 text-gray-800" },
+  1: { text: "主持人", color: "bg-red-100 text-red-800" },
+  2: { text: "玩家", color: "bg-blue-100 text-blue-800" },
+  3: { text: "观战", color: "bg-gray-100 text-gray-800" },
   4: { text: "骰娘", color: "bg-yellow-100 text-gray-800" },
 };
 

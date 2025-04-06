@@ -2,6 +2,7 @@ import type { Route } from "./+types/home";
 
 // import { Welcome } from "../welcome/welcome";
 
+import Topbar from "@/components/topbanner/Topbanner";
 import Chat from "@/view/chat/chat";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -18,7 +19,7 @@ export default function Home() {
   return (
     <div className="h-screen">
       <QueryClientProvider client={queryClient}>
-        {/* <LoginButton></LoginButton> */}
+        <Topbar></Topbar>
         <Chat />
       </QueryClientProvider>
     </div>
