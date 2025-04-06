@@ -30,7 +30,7 @@ export const useWebSocket = () => {
     // 配置参数
     const MAX_RECONNECT_ATTEMPTS = 5
     const HEARTBEAT_INTERVAL = 25000
-    const RECONNECT_DELAY_BASE = 1000
+    const RECONNECT_DELAY_BASE = 1
 
     // 核心连接逻辑
     const connect = useCallback(() => {

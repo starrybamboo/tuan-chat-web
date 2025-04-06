@@ -311,6 +311,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                   width={32}
                   isRounded={true}
                   withTitle={false}
+                  stopPopWindow={true}
                 >
                 </RoleAvatarComponent>
                 <div>{userRolesQuery.data?.data?.[curRoleIndex]?.roleName || ""}</div>
@@ -324,7 +325,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                         <div className="grid grid-cols-5 gap-2 ">
                           {roleAvatarsQueries[curRoleIndex]?.data?.data?.map((avatar, index) => (
                             <div onClick={() => handleAvatarChange(index)} className="object-cover rounded transition-all" key={avatar.avatarId}>
-                              <RoleAvatarComponent avatarId={avatar.avatarId} width={16} isRounded={false} withTitle={true}></RoleAvatarComponent>
+                              <RoleAvatarComponent avatarId={avatar.avatarId} width={16} isRounded={false} withTitle={true} stopPopWindow={true}></RoleAvatarComponent>
                             </div>
                           ))}
                         </div>
@@ -373,18 +374,21 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                 {/* 角色选择器 */}
                 <div className="dropdown dropdown-top">
                   <div tabIndex={0} role="button" className="btn m-1">Choose Role ⬆️</div>
-                  <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm">
+                  <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto">
                     {
                       (userRolesQuery?.data?.data ?? []).map((role, index) => (
                         <li key={role.roleId} onClick={() => handleRoleChange(index)} className="flex, flex-row">
-                          <RoleAvatarComponent
-                            avatarId={role.avatarId ?? 0}
-                            width={10}
-                            isRounded={false}
-                            withTitle={true}
-                          >
-                          </RoleAvatarComponent>
-                          <div>{role.roleName}</div>
+                          <div className="w-full">
+                            <RoleAvatarComponent
+                              avatarId={role.avatarId ?? 0}
+                              width={10}
+                              isRounded={false}
+                              withTitle={false}
+                              stopPopWindow={true}
+                            >
+                            </RoleAvatarComponent>
+                            <div>{role.roleName}</div>
+                          </div>
                         </li>
                       ))
                     }

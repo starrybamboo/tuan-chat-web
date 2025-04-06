@@ -20,13 +20,13 @@ export function ChatBubble({ chatMessageResponse, useChatBoxStyle }: { chatMessa
     // <div className={message.type !== "user" ? "chat chat-start" : "chat chat-end"} key={message.id}>
       <div className="chat chat-start" key={message.messageID}>
         <div className="avatar chat-image">
-          <RoleAvatarComponent avatarId={message.avatarId} width={10} isRounded={true}></RoleAvatarComponent>
+          <RoleAvatarComponent avatarId={message.avatarId} width={10} isRounded={true} withTitle={false}></RoleAvatarComponent>
         </div>
 
         <div
           className={message.messageType !== 0 ? "chat-bubble" : "chat-bubble chat-bubble-neutral"}
         >
-          <div style={{ whiteSpace: "pre-wrap" }}>
+          <div className="" style={{ whiteSpace: "pre-wrap" }}>
             {message.content}
           </div>
         </div>
@@ -46,7 +46,7 @@ export function ChatBubble({ chatMessageResponse, useChatBoxStyle }: { chatMessa
         {/* 圆角矩形头像 */}
         <div className="flex-shrink-0 mr-3">
           <div className="w-20 h-20 rounded-md overflow-hidden">
-            <RoleAvatarComponent avatarId={message.avatarId} width={20} isRounded={false}></RoleAvatarComponent>
+            <RoleAvatarComponent avatarId={message.avatarId} width={20} isRounded={false} withTitle={false}></RoleAvatarComponent>
           </div>
         </div>
 
