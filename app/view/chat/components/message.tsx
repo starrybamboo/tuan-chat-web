@@ -9,7 +9,7 @@ export interface Message {
   userId: number;
   roleId: number;
   content: string;
-  type: number; // 0: system, 1: user, 2: group
+  type: number; // 0: system, 1: user.tsx, 2: group
   createTime: Date;
   updateTime: Date;
 }

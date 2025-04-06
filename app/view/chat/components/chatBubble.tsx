@@ -19,7 +19,7 @@ export function ChatBubble({ chatMessageResponse, useChatBoxStyle }: { chatMessa
 
   if (useChatBoxStyle) {
     return (
-    // <div className={message.type !== "user" ? "chat chat-start" : "chat chat-end"} key={message.id}>
+    // <div className={message.type !== "user.tsx" ? "chat chat-start" : "chat chat-end"} key={message.id}>
       <div className="chat chat-start" key={message.messageID}>
         <div className="avatar chat-image">
           <RoleAvatarComponent avatarId={message.avatarId} width={10} isRounded={true} withTitle={false}></RoleAvatarComponent>

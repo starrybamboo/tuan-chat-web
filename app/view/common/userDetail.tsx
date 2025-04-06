@@ -1,12 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
-import { tuanchat } from "../../../api/instance";
+import { useUserInfoQuery } from "@/view/chat/api/user";
 
 export function UserDetail({ userId }: { userId: number }) {
-  const userQuery = useQuery({
-    queryKey: ["avatarController.getUserAvatar", userId],
-    queryFn: () => tuanchat.userController.getUserInfo(userId),
-    staleTime: 600000,
-  });
+  const userQuery = useUserInfoQuery(userId);
 
   const user = userQuery.data?.data;
 
@@ -53,11 +48,13 @@ export function UserDetail({ userId }: { userId: number }) {
             : (
                 <div className="text-center space-y-1">
                   <h2 className="card-title text-2xl">
-                    {user?.username || `用户 ${userId}`}
+                    {user?.username || "未知用户" }
                   </h2>
-                  <div className={`badge ${statusColor} gap-2`}>
-                    {user?.activeStatus || "离线"}
-                  </div>
+                  {user?.activeStatus && (
+                    <div className={`badge ${statusColor} gap-2`}>
+                      user?.activeStatus
+                    </div>
+                  )}
                 </div>
               )}
         </div>

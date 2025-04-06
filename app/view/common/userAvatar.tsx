@@ -1,8 +1,7 @@
+import { useUserInfoQuery } from "@/view/chat/api/user";
 import { PopWindow } from "@/view/common/popWindow";
 import { UserDetail } from "@/view/common/userDetail";
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { tuanchat } from "../../../api/instance";
 
 // 如果是 import 的sizeMap 就不能在className中用了, 于是复制了一份, 够丑的 :(
 const sizeMap = {
@@ -19,11 +18,7 @@ const sizeMap = {
 } as const;
 
 export default function UserAvatarComponent({ userId, width, isRounded, withName = false, stopPopWindow = false }: { userId: number; width: keyof typeof sizeMap; isRounded: boolean; withName: boolean; stopPopWindow?: boolean }) {
-  const userQuery = useQuery({
-    queryKey: ["avatarController.getUserAvatar", userId],
-    queryFn: () => tuanchat.userController.getUserInfo(userId),
-    staleTime: 600000,
-  });
+  const userQuery = useUserInfoQuery(userId);
 
   // 控制用户详情的popWindow
   const [isOpen, setIsOpen] = useState(false);
