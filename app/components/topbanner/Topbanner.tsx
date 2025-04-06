@@ -12,6 +12,7 @@ export default function Topbar() {
   });
 
   const isLoggedIn = authStatus?.isLoggedIn || false;
+  const userId = (isLoggedIn && authStatus?.token) ? Number(authStatus.token) : 0;
 
   if (isLoading) {
     return <div className="w-full h-16 flex items-center justify-center" />;
@@ -23,7 +24,7 @@ export default function Topbar() {
       <div className="flex items-center space-x-6">
 
         <img
-          src="/logo.png"
+          src="http://47.119.147.6/tuan/favicon.ico"
           alt="Logo"
           className="h-8 w-8 mr-4"
         />
@@ -55,7 +56,7 @@ export default function Topbar() {
               <div className="dropdown dropdown-end">
                 <div className="flex items-center">
                   <UserAvatarComponent
-                    userId={1}
+                    userId={userId || 1}
                     width={8}
                     isRounded={true}
                     withName={true}
