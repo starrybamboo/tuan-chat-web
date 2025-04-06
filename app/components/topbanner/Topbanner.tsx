@@ -12,6 +12,7 @@ export default function Topbar() {
   });
 
   const isLoggedIn = authStatus?.isLoggedIn || false;
+  const userId = (isLoggedIn && authStatus?.token) ? Number(authStatus.token) : 0;
 
   if (isLoading) {
     return <div className="w-full h-16 flex items-center justify-center" />;
@@ -23,27 +24,27 @@ export default function Topbar() {
       <div className="flex items-center space-x-6">
 
         <img
-          src="/logo.png"
+          src="http://47.119.147.6/tuan/favicon.ico"
           alt="Logo"
           className="h-8 w-8 mr-4"
         />
 
-        <a href="/recommend" className="hover:text-primary transition-colors">
+        <a href="/feed" className="hover:text-primary transition-colors">
           推荐
         </a>
         <a href="/community" className="hover:text-primary transition-colors">
           社区
         </a>
-        <a href="/gameplay" className="hover:text-primary transition-colors">
+        <a href="/chat" className="hover:text-primary transition-colors">
           游玩
         </a>
-        <a href="/characters" className="hover:text-primary transition-colors">
+        <a href="/role" className="hover:text-primary transition-colors">
           角色
         </a>
-        <a href="/mods" className="hover:text-primary transition-colors">
+        <a href="/module" className="hover:text-primary transition-colors">
           模组
         </a>
-        <a href="/creation" className="hover:text-primary transition-colors">
+        <a href="/create" className="hover:text-primary transition-colors">
           创作
         </a>
       </div>
@@ -55,7 +56,7 @@ export default function Topbar() {
               <div className="dropdown dropdown-end">
                 <div className="flex items-center">
                   <UserAvatarComponent
-                    userId={1}
+                    userId={userId || 1}
                     width={8}
                     isRounded={true}
                     withName={true}
