@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+
 import { tuanchat } from "api/instance";
 
 export default function useRoleAvaterQuery(roleId: number) {

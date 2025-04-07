@@ -50,9 +50,12 @@ export default function CharacterWrapper() {
   const [creating, setCreating] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<number | null>(null);
 
-  // 传入popWindow
+  // 传入popWindow,处理删除的缺人
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
+
+  // 切换角色后的保存
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
 
   // 初始化用户角色信息
   useEffect(() => {
@@ -144,6 +147,7 @@ export default function CharacterWrapper() {
     setSelectedCharacter(newCharacter.id);
   };
 
+  // 编辑角色
   const handleUpdate = (updatedCharacter: CharacterData) => {
     setCharacters(characters.map(c =>
       c.id === updatedCharacter.id ? updatedCharacter : c,
@@ -151,7 +155,7 @@ export default function CharacterWrapper() {
     setEditingCharacterId(null);
     setSelectedCharacter(updatedCharacter.id);
   };
-
+  // 删除角色
   const handleDelete = (id: number) => {
     setDeleteConfirmOpen(true);
     setDeleteCharacterId(id);
@@ -178,6 +182,30 @@ export default function CharacterWrapper() {
     setDeleteCharacterId(null);
   };
 
+  // 保存角色的方法
+  const handleSaveCharacter = () => {
+    // 调用 handleSumbit 更新角色
+    const characterToSave = characters.find(c => c.id === editingCharacterId);
+    if (characterToSave) {
+      handleUpdate(characterToSave);
+      // 这里应该使用handleSubmit,但一旦移植到本文件,可能要大改
+    }
+    // 关闭保存确认弹窗
+    setSaveConfirmOpen(false);
+  };
+
+  // 取消保存的方法
+  const handleCancelSave = () => {
+    setSaveConfirmOpen(false);
+  };
+
+  const handleCharacterSelect = (id: number) => {
+    if (editingCharacterId !== null && editingCharacterId !== id) {
+      setSaveConfirmOpen(true);
+    }
+    setSelectedCharacter(id);
+  };
+
   return (
     <div className="h-screen w-screen bg-[#E6F2F9]">
       <div className="h-1/15 w-screen bg-[#3A7CA5] text-white flex items-center justify-center">
@@ -189,7 +217,7 @@ export default function CharacterWrapper() {
           <CharacterNav
             characters={characters}
             onCreate={() => setCreating(true)}
-            onSelect={id => setSelectedCharacter(id)}
+            onSelect={handleCharacterSelect}
             selected={selectedCharacter}
           />
         </div>
@@ -239,6 +267,22 @@ export default function CharacterWrapper() {
             </button>
             <button className="btn btn-sm bg-[#3A7CA5] text-white hover:bg-[#2A6F97]" onClick={handleConfirmDelete}>
               确认删除
+            </button>
+          </div>
+        </div>
+      </PopWindow>
+
+      {/* 切换选择角色时保存角色 */}
+      <PopWindow isOpen={saveConfirmOpen} onClose={handleCancelSave}>
+        <div className="p-4">
+          <h3 className="text-lg font-bold mb-4">确认保存角色</h3>
+          <p className="mb-4">确定要保存当前角色吗？</p>
+          <div className="flex justify-end">
+            <button className="btn btn-sm btn-outline btn-error mr-2" onClick={handleCancelSave}>
+              取消
+            </button>
+            <button className="btn btn-sm bg-[#3A7CA5] text-white hover:bg-[#2A6F97]" onClick={() => handleSaveCharacter()}>
+              确认保存
             </button>
           </div>
         </div>

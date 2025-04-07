@@ -1,6 +1,9 @@
 import type { UseQueryResult } from "@tanstack/react-query";
-import type { ApiResultListUserRole, ApiResultUserInfoResponse } from "api";
+
 import { useQuery } from "@tanstack/react-query";
+
+import type { ApiResultListUserRole, ApiResultUserInfoResponse } from "api";
+
 import { tuanchat } from "api/instance";
 
 export default function useRoleQuery(userQuery: UseQueryResult<ApiResultUserInfoResponse | undefined>) {

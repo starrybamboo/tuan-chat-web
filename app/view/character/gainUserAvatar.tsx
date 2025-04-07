@@ -126,7 +126,7 @@ export default function GainUserAvatar({ initialAvatar, onAvatarChange, userQuer
           </p>
           <p>
             当前头像id:
-            {user.userRole.roleId || "未设置"}
+            {user.currentAvatarIndex + 1}
           </p>
           <p>
             表情差分数量:

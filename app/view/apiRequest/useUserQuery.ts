@@ -1,5 +1,7 @@
-import type { ApiResultUserInfoResponse } from "api";
 import { useQuery } from "@tanstack/react-query";
+
+import type { ApiResultUserInfoResponse } from "api";
+
 import { tuanchat } from "api/instance";
 
 export default function useUserQuery() {

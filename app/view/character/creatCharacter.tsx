@@ -96,29 +96,29 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
     },
   });
 
-  // // 头像改变
-  // const { mutate: mutateAvatar } = useMutation({
-  //   mutationKey: ["avatarChange"],
-  //   mutationFn: async (data: { id: number; avatar: string }) => {
-  //     if (!data || !data.id || !data.avatar) {
-  //       console.error("Invalid data for avatar update:", data);
-  //       return;
-  //     }
-  //     const res = await tuanchat.avatarController.updateRoleAvatar({
-  //       avatarUrl: data.avatar,
-  //       roleId: data.id,
-  //       avatarId: 0,
-  //     });
-  //     if (res.success) {
-  //       console.warn("头像设置成功");
-  //       return res;
-  //     }
-  //     else {
-  //       console.error("头像设置失败");
-  //       return undefined;
-  //     }
-  //   },
-  // });
+  // 头像改变
+  const { mutate: mutateAvatar } = useMutation({
+    mutationKey: ["avatarChange"],
+    mutationFn: async (data: { id: number; avatar: string }) => {
+      if (!data || !data.id || !data.avatar) {
+        console.error("Invalid data for avatar update:", data);
+        return;
+      }
+      const res = await tuanchat.avatarController.updateRoleAvatar({
+        avatarUrl: data.avatar,
+        roleId: data.id,
+        avatarId: 1000,
+      });
+      if (res.success) {
+        console.warn("头像设置成功");
+        return res;
+      }
+      else {
+        console.error("头像设置失败");
+        return undefined;
+      }
+    },
+  });
 
   const handleSubmit = () => {
     const cleanDescription = description
@@ -148,15 +148,8 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
     const dataToSend = newCharacter;
     mutate(dataToSend);
 
-    // // 如果头像有变化，触发头像更新逻辑
-    // if (avatar && avatar !== initialData?.avatar) {
-    //   if (initialData && initialData.id) {
-    //     mutateAvatar({ id: initialData.id, avatar });
-    //   }
-    //   else {
-    //     console.error("initialData 或 initialData.id 未定义");
-    //   }
-    // }
+    // 如果头像有变化，触发头像更新逻辑
+    mutateAvatar({ id: initialData?.id || Date.now(), avatar });
   };
 
   return (
