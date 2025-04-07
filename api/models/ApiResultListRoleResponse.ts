@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { RoleAbilityTable } from './RoleAbilityTable';
+import type { RoleResponse } from './RoleResponse';
 /**
  * 基础返回体
  */
-export type ApiResultRoleAbilityTable = {
+export type ApiResultListRoleResponse = {
     /**
      * 成功标识true or false
      */
@@ -19,6 +19,9 @@ export type ApiResultRoleAbilityTable = {
      * 错误消息
      */
     errMsg?: string;
-    data?: RoleAbilityTable;
+    /**
+     * 返回对象
+     */
+    data?: Array<RoleResponse>;
 };
 
