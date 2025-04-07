@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { UserRole } from './UserRole';
+import type { RoleResponse } from './RoleResponse';
 /**
  * 基础返回体
  */
-export type ApiResultUserRole = {
+export type ApiResultRoleResponse = {
     /**
      * 成功标识true or false
      */
@@ -19,6 +19,6 @@ export type ApiResultUserRole = {
      * 错误消息
      */
     errMsg?: string;
-    data?: UserRole;
+    data?: RoleResponse;
 };
 

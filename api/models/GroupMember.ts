@@ -9,7 +9,7 @@ export type GroupMember = {
     roomId?: number;
     userId?: number;
     /**
-     * 1 群主 2 管理员 3普通成员
+     * 群成员类型 1群主 2管理员 3普通成员 4机器人
      */
     memberType?: number;
     createTime?: string;

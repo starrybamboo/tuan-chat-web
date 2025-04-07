@@ -12,7 +12,7 @@
   },
   "servers": [
     {
-      "url": "http://192.168.2.17:8081",
+      "url": "http://localhost:8081",
       "description": "Generated server url"
     }
   ],
@@ -35,11 +35,91 @@
       "description": "用户相关接口"
     },
     {
+      "name": "规则管理接口",
+      "description": "提供规则的增删改查功能"
+    },
+    {
       "name": "头像相关接口",
       "description": "头像相关接口"
+    },
+    {
+      "name": "角色能力相关接口",
+      "description": "角色能力相关接口"
     }
   ],
   "paths": {
+    "/capi/rule/update": {
+      "put": {
+        "tags": [
+          "规则管理接口"
+        ],
+        "summary": "更新规则",
+        "description": "更新现有规则的信息，包括名称、描述及相关模板",
+        "operationId": "updateRule",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuleUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/role": {
       "get": {
         "tags": [
@@ -64,7 +144,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultUserRole"
+                  "$ref": "#/components/schemas/ApiResultRoleResponse"
                 }
               }
             }
@@ -121,7 +201,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UserRole"
+                "$ref": "#/components/schemas/RoleUpdateRequest"
               }
             }
           },
@@ -133,7 +213,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultUserRole"
+                  "$ref": "#/components/schemas/ApiResultVoid"
                 }
               }
             }
@@ -184,15 +264,25 @@
         "tags": [
           "角色相关接口"
         ],
-        "summary": "新增角色",
+        "summary": "新增角色，返回角色id",
         "operationId": "createRole",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultUserRole"
+                  "$ref": "#/components/schemas/ApiResultLong"
                 }
               }
             }
@@ -243,11 +333,296 @@
         "tags": [
           "角色相关接口"
         ],
-        "summary": "根据id删除角色",
+        "summary": "根据id批量删除角色",
         "operationId": "deleteRole",
         "parameters": [
           {
             "name": "roleId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/role/ability": {
+      "get": {
+        "tags": [
+          "角色能力相关接口"
+        ],
+        "summary": "根据能力id获取角色能力",
+        "operationId": "getRoleAbility",
+        "parameters": [
+          {
+            "name": "abilityId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultRoleAbility"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "角色能力相关接口"
+        ],
+        "summary": "更新能力",
+        "description": "更新指定角色的能力信息，act和ability字段不能为null或者空json",
+        "operationId": "updateRoleAbility",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AbilityUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "角色能力相关接口"
+        ],
+        "summary": "创建能力",
+        "description": "创建指定角色在指定规则下的能力信息，返回创建的能力ID，act和ability字段不能为null或者空json",
+        "operationId": "setRoleAbility",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AbilitySetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultLong"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "角色能力相关接口"
+        ],
+        "summary": "根据id删除能力",
+        "operationId": "deleteRoleAbility",
+        "parameters": [
+          {
+            "name": "abilityId",
             "in": "query",
             "required": true,
             "schema": {
@@ -896,7 +1271,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
+                  "$ref": "#/components/schemas/ApiResultVoid"
                 }
               }
             }
@@ -1088,31 +1463,31 @@
         }
       }
     },
-    "/capi/role/ability": {
-      "get": {
+    "/capi/rule/create": {
+      "post": {
         "tags": [
-          "角色相关接口"
+          "规则管理接口"
         ],
-        "summary": "获取角色能力",
-        "operationId": "getRoleAbility",
-        "parameters": [
-          {
-            "name": "roleId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
+        "summary": "创建规则",
+        "description": "创建一个新的游戏规则，包含规则名称、描述及相关模板",
+        "operationId": "createRule",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuleCreateRequest"
+              }
             }
-          }
-        ],
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultRoleAbilityTable"
+                  "$ref": "#/components/schemas/ApiResultLong"
                 }
               }
             }
@@ -1158,18 +1533,21 @@
             }
           }
         }
-      },
+      }
+    },
+    "/capi/rule/clone": {
       "post": {
         "tags": [
-          "角色相关接口"
+          "规则管理接口"
         ],
-        "summary": "设置&&更新角色能力",
-        "operationId": "setRoleAbility",
+        "summary": "克隆规则",
+        "description": "基于现有规则创建一个新的规则副本，可自定义名称和描述",
+        "operationId": "cloneRule",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RoleAbilityTable"
+                "$ref": "#/components/schemas/RuleCloneRequest"
               }
             }
           },
@@ -1181,7 +1559,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
+                  "$ref": "#/components/schemas/ApiResultRule"
                 }
               }
             }
@@ -1794,6 +2172,366 @@
         }
       }
     },
+    "/capi/chat/message/ai": {
+      "post": {
+        "tags": [
+          "聊天室相关接口"
+        ],
+        "summary": "发送消息（备用）,骰娘回复",
+        "description": "从设计上是为了弱网环境的处理，但实际上没怎么用",
+        "operationId": "sendMessageAiResponse",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/ai/generateBasicInfoByRule": {
+      "post": {
+        "tags": [
+          "ai 相关接口"
+        ],
+        "summary": "AI 根据规则生成角色基本信息",
+        "description": "根据规则生成角色基本信息。",
+        "operationId": "generateBasicInfoByRule",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AI生成请求"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultMapObjectObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/ai/generateAbilityByRule": {
+      "post": {
+        "tags": [
+          "ai 相关接口"
+        ],
+        "summary": "AI 根据规则生成角色基本属性",
+        "description": "根据规则生成角色基本属性。",
+        "operationId": "generateAbilityByRule",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AI生成请求"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultMapObjectObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/image/textToImage": {
+      "post": {
+        "tags": [
+          "ai 图像生成相关接口"
+        ],
+        "summary": "根据文本生成图像",
+        "description": "根据提供的文本描述（包括风格、外貌描述和情感差分）生成图像",
+        "operationId": "textToImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TextToImageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/image/imageToImage": {
+      "post": {
+        "tags": [
+          "ai 图像生成相关接口"
+        ],
+        "summary": "图像变换",
+        "description": "根据原始图片和情感差分类型生成新的图像变体",
+        "operationId": "imageToImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageToImageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/user/info": {
       "get": {
         "tags": [
@@ -1867,21 +2605,21 @@
         }
       }
     },
-    "/capi/role/user/{userId}": {
+    "/capi/rule/page": {
       "get": {
         "tags": [
-          "角色相关接口"
+          "规则管理接口"
         ],
-        "summary": "获取用户的所有角色",
-        "operationId": "getUserRoles",
+        "summary": "分页获取规则列表",
+        "description": "分页获取规则列表，支持通过关键词搜索规则名称或描述",
+        "operationId": "getRulePage",
         "parameters": [
           {
-            "name": "userId",
-            "in": "path",
+            "name": "request",
+            "in": "query",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "$ref": "#/components/schemas/RulePageRequest"
             }
           }
         ],
@@ -1891,7 +2629,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultListUserRole"
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespRule"
                 }
               }
             }
@@ -1939,13 +2677,364 @@
         }
       }
     },
-    "/capi/role/avatar": {
+    "/capi/rule/list": {
+      "get": {
+        "tags": [
+          "规则管理接口"
+        ],
+        "summary": "获取规则列表",
+        "description": "获取所有规则的列表",
+        "operationId": "getRuleList",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListRule"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/rule/detail/{ruleId}": {
+      "get": {
+        "tags": [
+          "规则管理接口"
+        ],
+        "summary": "获取规则详情",
+        "description": "获取指定ID规则的详细信息",
+        "operationId": "getRuleDetail",
+        "parameters": [
+          {
+            "name": "ruleId",
+            "in": "path",
+            "description": "规则ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultRule"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/role/user": {
       "get": {
         "tags": [
           "角色相关接口"
         ],
-        "summary": "获取角色所有的头像",
-        "operationId": "getRoleAvatars",
+        "summary": "获取用户的所有角色",
+        "operationId": "getUserRoles",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListRoleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/role/page": {
+      "get": {
+        "tags": [
+          "角色相关接口"
+        ],
+        "summary": "分页获取角色,支持姓名模糊查询",
+        "operationId": "getRolesByPage",
+        "parameters": [
+          {
+            "name": "request",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/RolePageQueryRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespRoleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/role/ability/page": {
+      "get": {
+        "tags": [
+          "角色能力相关接口"
+        ],
+        "summary": "分页查询角色能力",
+        "description": "根据角色Id分页查询角色能力",
+        "operationId": "pageRoleAbility",
+        "parameters": [
+          {
+            "name": "abilityPageRequest",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AbilityPageRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespRoleAbility"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/role/ability/list": {
+      "get": {
+        "tags": [
+          "角色能力相关接口"
+        ],
+        "summary": "根据角色id获得角色的所有能力",
+        "operationId": "listRoleAbility",
         "parameters": [
           {
             "name": "roleId",
@@ -1963,7 +3052,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultListRoleAvatar"
+                  "$ref": "#/components/schemas/ApiResultListRoleAbility"
                 }
               }
             }
@@ -2359,6 +3448,152 @@
           }
         }
       }
+    },
+    "/capi/avatar/list": {
+      "get": {
+        "tags": [
+          "头像相关接口"
+        ],
+        "summary": "获取角色所有的头像",
+        "operationId": "getRoleAvatars",
+        "parameters": [
+          {
+            "name": "roleId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListRoleAvatar"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/rule/delete/{ruleId}": {
+      "delete": {
+        "tags": [
+          "规则管理接口"
+        ],
+        "summary": "删除规则",
+        "description": "删除指定ID的规则",
+        "operationId": "deleteRule",
+        "parameters": [
+          {
+            "name": "ruleId",
+            "in": "path",
+            "description": "规则ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2441,18 +3676,53 @@
         },
         "description": "基础返回体"
       },
-      "UserRole": {
+      "RuleUpdateRequest": {
         "required": [
-          "roleId",
-          "userId"
+          "ruleId"
         ],
         "type": "object",
         "properties": {
-          "userId": {
+          "ruleId": {
             "type": "integer",
-            "description": "用户id",
-            "format": "int64"
+            "description": "规则ID",
+            "format": "int64",
+            "example": 1
           },
+          "ruleName": {
+            "type": "string",
+            "description": "规则名称",
+            "example": "COC7版修改版"
+          },
+          "ruleDescription": {
+            "type": "string",
+            "description": "规则描述",
+            "example": "克苏鲁神话7版规则修改版"
+          },
+          "actTemplate": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "表演相关字段模板，如性别、年龄等信息"
+            },
+            "description": "表演相关字段模板，如性别、年龄等信息"
+          },
+          "abilityDefault": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "数值相关默认值，如力量、敏捷等属性值"
+            },
+            "description": "数值相关默认值，如力量、敏捷等属性值"
+          }
+        },
+        "description": "规则更新请求对象"
+      },
+      "RoleUpdateRequest": {
+        "required": [
+          "roleId"
+        ],
+        "type": "object",
+        "properties": {
           "roleId": {
             "type": "integer",
             "description": "角色id",
@@ -2470,41 +3740,57 @@
             "type": "integer",
             "description": "角色头像",
             "format": "int64"
-          },
-          "createTime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updateTime": {
-            "type": "string",
-            "format": "date-time"
           }
-        }
+        },
+        "description": "更新角色请求体"
       },
-      "ApiResultUserRole": {
+      "AbilityUpdateRequest": {
         "required": [
-          "success"
+          "ability",
+          "abilityId",
+          "act"
         ],
         "type": "object",
         "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
+          "abilityId": {
             "type": "integer",
-            "description": "错误码",
-            "format": "int32"
+            "description": "能力ID",
+            "format": "int64"
           },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
+          "act": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "表演相关字段，不能为空或null，必须为单层",
+              "example": {
+                "外貌": "外貌描述",
+                "体型": "体型描述"
+              }
+            },
+            "description": "表演相关字段，不能为空或null，必须为单层",
+            "example": {
+              "外貌": "外貌描述",
+              "体型": "体型描述"
+            }
           },
-          "data": {
-            "$ref": "#/components/schemas/UserRole"
+          "ability": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "能力字段，不能为空或null，必须为单层",
+              "example": {
+                "力量": 85,
+                "敏捷": 90
+              }
+            },
+            "description": "能力字段，不能为空或null，必须为单层",
+            "example": {
+              "力量": 85,
+              "敏捷": 90
+            }
           }
         },
-        "description": "基础返回体"
+        "description": "能力更新请求"
       },
       "AdminAddRequset": {
         "required": [
@@ -2519,6 +3805,8 @@
             "format": "int64"
           },
           "uidList": {
+            "maxItems": 3,
+            "minItems": 1,
             "type": "array",
             "description": "需要添加管理的列表",
             "items": {
@@ -2769,10 +4057,14 @@
         "type": "object",
         "properties": {
           "username": {
+            "maxLength": 20,
+            "minLength": 2,
             "type": "string",
             "description": "用户名"
           },
           "password": {
+            "maxLength": 20,
+            "minLength": 6,
             "type": "string",
             "description": "密码"
           }
@@ -2822,28 +4114,216 @@
           }
         }
       },
-      "RoleAbilityTable": {
+      "RuleCreateRequest": {
         "type": "object",
         "properties": {
-          "abilityId": {
-            "type": "integer",
-            "format": "int64"
+          "ruleName": {
+            "type": "string",
+            "description": "规则名称",
+            "example": "COC7版"
           },
-          "roleId": {
-            "type": "integer",
-            "format": "int64"
+          "ruleDescription": {
+            "type": "string",
+            "description": "规则描述",
+            "example": "克苏鲁神话7版规则"
           },
+          "actTemplate": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "表演相关字段模板，如性别、年龄等信息"
+            },
+            "description": "表演相关字段模板，如性别、年龄等信息"
+          },
+          "abilityDefault": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "数值相关默认值，如力量、敏捷等属性值"
+            },
+            "description": "数值相关默认值，如力量、敏捷等属性值"
+          }
+        },
+        "description": "规则创建请求对象"
+      },
+      "ApiResultLong": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "integer",
+            "description": "返回对象",
+            "format": "int64"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "RuleCloneRequest": {
+        "required": [
+          "newRuleName",
+          "sourceRuleId"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceRuleId": {
+            "type": "integer",
+            "description": "源规则ID",
+            "format": "int64",
+            "example": 1
+          },
+          "newRuleName": {
+            "type": "string",
+            "description": "新规则名称",
+            "example": "我的COC7版"
+          },
+          "newRuleDescription": {
+            "type": "string",
+            "description": "新规则描述",
+            "example": "基于COC7版的自定义规则"
+          }
+        },
+        "description": "规则克隆请求对象"
+      },
+      "ApiResultRule": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Rule"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "Rule": {
+        "type": "object",
+        "properties": {
           "ruleId": {
             "type": "integer",
             "format": "int64"
           },
-          "act": {
+          "ruleName": {
             "type": "string"
           },
-          "ability": {
+          "ruleDescription": {
             "type": "string"
+          },
+          "actTemplate": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "abilityDefault": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
           }
-        }
+        },
+        "description": "返回对象"
+      },
+      "RoleCreateRequest": {
+        "type": "object",
+        "properties": {
+          "roleName": {
+            "type": "string",
+            "description": "角色名字"
+          },
+          "description": {
+            "type": "string",
+            "description": "简介"
+          },
+          "avatarId": {
+            "type": "integer",
+            "description": "角色头像",
+            "format": "int64"
+          }
+        },
+        "description": "创建角色请求体"
+      },
+      "AbilitySetRequest": {
+        "required": [
+          "ability",
+          "act",
+          "roleId",
+          "ruleId"
+        ],
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "integer",
+            "description": "角色ID",
+            "format": "int64"
+          },
+          "ruleId": {
+            "type": "integer",
+            "description": "规则ID",
+            "format": "int64"
+          },
+          "act": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "表演相关字段，不能为空或null，必须为单层",
+              "example": {
+                "外貌": "外貌描述",
+                "体型": "体型描述"
+              }
+            },
+            "description": "表演相关字段，不能为空或null，必须为单层",
+            "example": {
+              "外貌": "外貌描述",
+              "体型": "体型描述"
+            }
+          },
+          "ability": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "能力字段，不能为空或null，必须为单层",
+              "example": {
+                "力量": 85,
+                "敏捷": 90
+              }
+            },
+            "description": "能力字段，不能为空或null，必须为单层",
+            "example": {
+              "力量": 85,
+              "敏捷": 90
+            }
+          }
+        },
+        "description": "能力设置请求"
       },
       "UploadUrlRequest": {
         "required": [
@@ -2980,7 +4460,7 @@
           },
           "status": {
             "type": "integer",
-            "description": "群状态 0正常 1 删除",
+            "description": "群状态 0正常 1删除 2归档",
             "format": "int32"
           },
           "createTime": {
@@ -3052,6 +4532,8 @@
         "type": "object",
         "properties": {
           "userIdList": {
+            "maxItems": 50,
+            "minItems": 1,
             "type": "array",
             "description": "邀请的uid",
             "items": {
@@ -3094,6 +4576,8 @@
             "format": "int64"
           },
           "content": {
+            "maxLength": 1024,
+            "minLength": 0,
             "type": "string",
             "description": "消息内容"
           },
@@ -3115,6 +4599,8 @@
         "type": "object",
         "properties": {
           "pageSize": {
+            "maximum": 100,
+            "minimum": 1,
             "type": "integer",
             "description": "页面大小",
             "format": "int32"
@@ -3245,9 +4731,24 @@
             "description": "角色id",
             "format": "int64"
           }
+        },
+        "description": "创建角色头像的请求"
+      },
+      "AI生成请求": {
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "description": "用户提示词和上下文"
+          },
+          "ruleId": {
+            "type": "integer",
+            "description": "规则id",
+            "format": "int64"
+          }
         }
       },
-      "ApiResultLong": {
+      "ApiResultMapObjectObject": {
         "required": [
           "success"
         ],
@@ -3267,12 +4768,51 @@
             "description": "错误消息"
           },
           "data": {
-            "type": "integer",
-            "description": "返回对象",
-            "format": "int64"
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "返回对象"
+            },
+            "description": "返回对象"
           }
         },
         "description": "基础返回体"
+      },
+      "TextToImageRequest": {
+        "type": "object",
+        "properties": {
+          "style": {
+            "type": "string",
+            "description": "图像风格",
+            "example": "动漫风格"
+          },
+          "appearance": {
+            "type": "string",
+            "description": "外貌描述",
+            "example": "一位深棕色齐肩发、身着深蓝色校服配红色蝴蝶结的日本女高中生"
+          },
+          "emotionType": {
+            "type": "string",
+            "description": "情感差分类型",
+            "example": "开朗/满足/沉思/悲伤/调皮/哭泣/愤怒/嫉妒"
+          }
+        },
+        "description": "文本生成图像请求"
+      },
+      "ImageToImageRequest": {
+        "type": "object",
+        "properties": {
+          "imageBase64": {
+            "type": "string",
+            "description": "原始图片的Base64编码"
+          },
+          "emotionType": {
+            "type": "string",
+            "description": "情感差分类型",
+            "example": "开朗/满足/沉思/悲伤/调皮/哭泣/愤怒/嫉妒等"
+          }
+        },
+        "description": "图像变换请求"
       },
       "ApiResultUserInfoResponse": {
         "required": [
@@ -3330,6 +4870,469 @@
         },
         "description": "返回对象"
       },
+      "RulePageRequest": {
+        "required": [
+          "ruleId"
+        ],
+        "type": "object",
+        "properties": {
+          "pageSize": {
+            "maximum": 50,
+            "minimum": 0,
+            "type": "integer",
+            "description": "页面大小",
+            "format": "int32"
+          },
+          "pageNo": {
+            "type": "integer",
+            "description": "页面索引（从1开始）",
+            "format": "int32"
+          },
+          "keyword": {
+            "type": "string",
+            "description": "搜索关键词（可选）",
+            "example": "克苏鲁"
+          },
+          "ruleId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "规则分页查询请求"
+      },
+      "ApiResultPageBaseRespRule": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageBaseRespRule"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "PageBaseRespRule": {
+        "type": "object",
+        "properties": {
+          "pageNo": {
+            "type": "integer",
+            "description": "当前页数",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "每页查询数量",
+            "format": "int32"
+          },
+          "totalRecords": {
+            "type": "integer",
+            "description": "总记录数",
+            "format": "int64"
+          },
+          "isLast": {
+            "type": "boolean",
+            "description": "是否最后一页"
+          },
+          "list": {
+            "type": "array",
+            "description": "数据列表",
+            "items": {
+              "$ref": "#/components/schemas/Rule"
+            }
+          }
+        },
+        "description": "基础翻页返回"
+      },
+      "ApiResultListRule": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/Rule"
+            }
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ApiResultRoleResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RoleResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "RoleResponse": {
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "integer",
+            "description": "角色id",
+            "format": "int64"
+          },
+          "roleName": {
+            "type": "string",
+            "description": "角色名字"
+          },
+          "description": {
+            "type": "string",
+            "description": "简介"
+          },
+          "avatarId": {
+            "type": "integer",
+            "description": "角色头像",
+            "format": "int64"
+          }
+        },
+        "description": "返回对象"
+      },
+      "ApiResultListRoleResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/RoleResponse"
+            }
+          }
+        },
+        "description": "基础返回体"
+      },
+      "RolePageQueryRequest": {
+        "type": "object",
+        "properties": {
+          "pageSize": {
+            "maximum": 50,
+            "minimum": 0,
+            "type": "integer",
+            "description": "页面大小",
+            "format": "int32"
+          },
+          "pageNo": {
+            "type": "integer",
+            "description": "页面索引（从1开始）",
+            "format": "int32"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "请求用户id",
+            "format": "int64"
+          },
+          "roleName": {
+            "type": "string",
+            "description": "角色名称，支持模糊查询"
+          }
+        },
+        "description": "查询用户信息翻页请求"
+      },
+      "ApiResultPageBaseRespRoleResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageBaseRespRoleResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "PageBaseRespRoleResponse": {
+        "type": "object",
+        "properties": {
+          "pageNo": {
+            "type": "integer",
+            "description": "当前页数",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "每页查询数量",
+            "format": "int32"
+          },
+          "totalRecords": {
+            "type": "integer",
+            "description": "总记录数",
+            "format": "int64"
+          },
+          "isLast": {
+            "type": "boolean",
+            "description": "是否最后一页"
+          },
+          "list": {
+            "type": "array",
+            "description": "数据列表",
+            "items": {
+              "$ref": "#/components/schemas/RoleResponse"
+            }
+          }
+        },
+        "description": "基础翻页返回"
+      },
+      "ApiResultRoleAbility": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RoleAbility"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "RoleAbility": {
+        "type": "object",
+        "properties": {
+          "abilityId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "roleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ruleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "act": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "表演相关字段，不能为空或null，必须为单层",
+              "example": {
+                "外貌": "外貌描述",
+                "体型": "体型描述"
+              }
+            },
+            "description": "表演相关字段，不能为空或null，必须为单层",
+            "example": {
+              "外貌": "外貌描述",
+              "体型": "体型描述"
+            }
+          },
+          "ability": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "能力字段，不能为空或null，必须为单层",
+              "example": {
+                "力量": 85,
+                "敏捷": 90
+              }
+            },
+            "description": "能力字段，不能为空或null，必须为单层",
+            "example": {
+              "力量": 85,
+              "敏捷": 90
+            }
+          }
+        },
+        "description": "角色能力"
+      },
+      "AbilityPageRequest": {
+        "required": [
+          "roleId"
+        ],
+        "type": "object",
+        "properties": {
+          "pageSize": {
+            "maximum": 50,
+            "minimum": 0,
+            "type": "integer",
+            "description": "页面大小",
+            "format": "int32"
+          },
+          "pageNo": {
+            "type": "integer",
+            "description": "页面索引（从1开始）",
+            "format": "int32"
+          },
+          "roleId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ApiResultPageBaseRespRoleAbility": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageBaseRespRoleAbility"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "PageBaseRespRoleAbility": {
+        "type": "object",
+        "properties": {
+          "pageNo": {
+            "type": "integer",
+            "description": "当前页数",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "每页查询数量",
+            "format": "int32"
+          },
+          "totalRecords": {
+            "type": "integer",
+            "description": "总记录数",
+            "format": "int64"
+          },
+          "isLast": {
+            "type": "boolean",
+            "description": "是否最后一页"
+          },
+          "list": {
+            "type": "array",
+            "description": "数据列表",
+            "items": {
+              "$ref": "#/components/schemas/RoleAbility"
+            }
+          }
+        },
+        "description": "基础翻页返回"
+      },
+      "ApiResultListRoleAbility": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/RoleAbility"
+            }
+          }
+        },
+        "description": "基础返回体"
+      },
       "ApiResultListUserRole": {
         "required": [
           "success"
@@ -3359,59 +5362,46 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultListRoleAvatar": {
+      "UserRole": {
         "required": [
-          "success"
+          "roleId",
+          "userId"
         ],
         "type": "object",
         "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
+          "userId": {
             "type": "integer",
-            "description": "错误码",
-            "format": "int32"
+            "description": "用户id",
+            "format": "int64"
           },
-          "errMsg": {
+          "roleId": {
+            "type": "integer",
+            "description": "角色id",
+            "format": "int64"
+          },
+          "roleName": {
             "type": "string",
-            "description": "错误消息"
+            "description": "角色名字"
           },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "$ref": "#/components/schemas/RoleAvatar"
-            }
+          "description": {
+            "type": "string",
+            "description": "简介"
+          },
+          "avatarId": {
+            "type": "integer",
+            "description": "角色头像",
+            "format": "int64"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
           }
         },
-        "description": "基础返回体"
-      },
-      "ApiResultRoleAbilityTable": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/RoleAbilityTable"
-          }
-        },
-        "description": "基础返回体"
+        "description": "角色实体类"
       },
       "ApiResultListGroupMember": {
         "required": [
@@ -3455,7 +5445,7 @@
           },
           "memberType": {
             "type": "integer",
-            "description": "1 群主 2 管理员 3普通成员",
+            "description": "群成员类型 1群主 2管理员 3普通成员 4机器人",
             "format": "int32"
           },
           "createTime": {
@@ -3527,6 +5517,35 @@
         },
         "description": "基础返回体"
       },
+      "ApiResultListRoleAvatar": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/RoleAvatar"
+            }
+          }
+        },
+        "description": "基础返回体"
+      },
       "DeleteRoleRequest": {
         "required": [
           "roleIdList",
@@ -3563,6 +5582,8 @@
             "format": "int64"
           },
           "uidList": {
+            "maxItems": 3,
+            "minItems": 1,
             "type": "array",
             "description": "需要撤销管理的列表",
             "items": {
