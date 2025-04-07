@@ -16,11 +16,12 @@ import RoleAvatarComponent from "@/view/common/roleAvatar";
 import { ImgUploaderWithCopper } from "@/view/common/uploader/imgUploaderWithCopper";
 import UserAvatarComponent from "@/view/common/userAvatar";
 import { UserDetail } from "@/view/common/userDetail";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { tuanchat } from "api/instance";
 import {
   useAddMemberMutation,
+  useAddRoleMutation,
   useGetGroupRoleQuery,
   useGetMemberListQuery,
   useGetRoleAvatarsQuery,
@@ -31,7 +32,6 @@ import { useWebSocket } from "api/useWebSocket";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 export function DialogueWindow({ groupId }: { groupId: number }) {
-  const queryClient = useQueryClient();
   const [inputText, setInputText] = useState("");
   const [curRoleIndex, setCurRoleIndex] = useState(0);
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
@@ -58,7 +58,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const inputUserInfo = useGetUserInfoQuery(inputUserId).data?.data;
 
   // 获取用户的所有角色
-  const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
+  const userRolesQuery = useGetUserRolesQuery(userId ?? 10001);
   const userRoles = userRolesQuery.data?.data ?? [];
   // 获取当前群聊中的所有角色
   const groupRolesQuery = useGetGroupRoleQuery(groupId);
@@ -71,6 +71,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
 
   // Mutations
   const addMemberMutation = useAddMemberMutation();
+  const addRoleMutation = useAddRoleMutation();
 
   /**
    * websocket
@@ -241,18 +242,15 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     setCurAvatarIndex(0);
   };
 
-  // TODO
   const handleAddRole = async (roleId: number) => {
-    await tuanchat.service.addRole({
+    addRoleMutation.mutate({
       roomId: groupId,
       roleIdList: [roleId],
+    }, {
+      onSettled: () => {
+        setIsRoleHandleOpen(false);
+      },
     });
-    // 刷新角色列表
-    await queryClient.invalidateQueries({
-      queryKey: ["groupRoleController.groupRole", groupId],
-    });
-    // 关闭弹窗
-    setIsRoleHandleOpen(false);
   };
 
   async function handleAddMember(userId: number) {

@@ -26,7 +26,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
   const groupContext = use(GroupContext);
   const groupId = groupContext.groupId ?? -1;
 
-  const mutateMember = useDeleteMemberMutation(groupId);
+  const mutateMember = useDeleteMemberMutation();
   const handleRemoveMember = async () => {
     if (groupId < 0)
       return;

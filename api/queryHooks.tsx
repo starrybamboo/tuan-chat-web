@@ -144,7 +144,6 @@ export function useGetMemberListQuery(roomId: number) {
 
 /**
  * 新增群成员
- * groupId: 群聊ID, 用于更新缓存
  */
 // api/queryHooks.ts
 export function useAddMemberMutation() {
@@ -154,7 +153,7 @@ export function useAddMemberMutation() {
         mutationKey: ['addMember'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
-                queryKey:  ["getMemberList", v],
+                queryKey:  ["getMemberList", variables.roomId],
                 exact: true
             });
         },
@@ -164,18 +163,16 @@ export function useAddMemberMutation() {
 
 /**
  * 删除群成员（批量）
- * @param groupId 关联的群聊ID（用于缓存刷新）
  */
-export function useDeleteMemberMutation(groupId: number) {
+export function useDeleteMemberMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: MemberDeleteRequest) => tuanchat.service.deleteMember(req),
         mutationKey: ['deleteMember'],
-        onSettled: (_, variables) => {
+        onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
-                queryKey: ["getMemberList", groupId],
+                queryKey: ["getMemberList", variables.roomId],
             });
-            console.log("getMemberList", groupId)
         }
     });
 }
@@ -420,30 +417,28 @@ export function useGroupRoleQuery(roomId: number) {
 
 /**
  * 添加群组角色
- * @param roomId 关联的群聊ID（用于缓存刷新）
  */
-export function useAddRoleMutation(roomId: number) {
+export function useAddRoleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: AddRoleRequest) => tuanchat.service.addRole(req),
         mutationKey: ['addRole'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['groupRole', roomId] });
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['groupRole', variables.roomId] });
         }
     });
 }
 
 /**
  * 删除群组角色
- * @param roomId 关联的群聊ID（用于缓存刷新）
  */
-export function useDeleteRole1Mutation(roomId: number) {
+export function useDeleteRole1Mutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: DeleteRoleRequest) => tuanchat.service.deleteRole1(req),
         mutationKey: ['deleteRole1'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['groupRole', roomId] });
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['groupRole', variables.roomId] });
         }
     });
 }

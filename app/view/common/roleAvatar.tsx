@@ -1,9 +1,10 @@
 import { GroupContext } from "@/view/chat/components/GroupContext";
 import { PopWindow } from "@/view/common/popWindow";
 import { RoleDetail } from "@/view/common/roleDetail";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { use, useState } from "react";
+import { useDeleteRole1Mutation } from "../../../api/queryHooks";
 
 const sizeMap = {
   6: "w-6 h-6", // 24px
@@ -28,7 +29,6 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
       staleTime: 600000,
     },
   );
-  const queryClient = useQueryClient();
 
   // 控制角色详情的popWindow
   const [isOpen, setIsOpen] = useState(false);
@@ -37,13 +37,7 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
   const groupContext = use(GroupContext);
   const groupId = groupContext?.groupId;
 
-  const deleteRoleMutation = useMutation({
-    mutationFn: tuanchat.service.deleteRole1,
-    mutationKey: ["deleteRole1", groupId],
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["groupMember", groupId] });
-    },
-  });
+  const deleteRoleMutation = useDeleteRole1Mutation();
   const handleRemoveRole = async () => {
     if (!groupId || !roleAvatar?.roleId)
       return;
