@@ -3,8 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type RoleAbilityTable = {
+    abilityId?: number;
     roleId?: number;
-    rule?: string;
-    extra?: Record<string, any>;
+    ruleId?: number;
+    act?: string;
+    ability?: string;
 };
 
