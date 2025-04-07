@@ -1,11 +1,12 @@
 /**
  * AI根据Service生成的hook, 使用的时候请好好检查.
+ * 请不要在function外定义一个queryClient, React 上下文作用域外使用是不行的
  */
 /* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import { useQuery, useMutation, QueryClient } from '@tanstack/react-query';
+import {useQuery, useMutation, QueryClient, useQueryClient} from '@tanstack/react-query';
 import { tuanchat } from './instance';
 import type { AddRoleRequest } from './models/AddRoleRequest';
 import type { AdminAddRequset } from './models/AdminAddRequset';
@@ -25,7 +26,6 @@ import type { UserLoginRequest } from './models/UserLoginRequest';
 import type { UserRegisterRequest } from './models/UserRegisterRequest';
 import type { UserRole } from './models/UserRole';
 
-const queryClient = new QueryClient();
 
 // ==================== 角色管理 ====================
 /**
@@ -45,6 +45,7 @@ export function useGetRoleQuery(roleId: number) {
  * @param onSuccess 可选的副作用回调
  */
 export function useUpdateRoleMutation(onSuccess?: () => void) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (requestBody: UserRole) => tuanchat.service.updateRole(requestBody),
         mutationKey: ['updateRole'],
@@ -60,6 +61,7 @@ export function useUpdateRoleMutation(onSuccess?: () => void) {
  * 创建新角色
  */
 export function useCreateRoleMutation() {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: () => tuanchat.service.createRole(),
         mutationKey: ['createRole'],
@@ -74,6 +76,7 @@ export function useCreateRoleMutation() {
  * @param roleId 要删除的角色ID
  */
 export function useDeleteRoleMutation(roleId: number) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: () => tuanchat.service.deleteRole(roleId),
         mutationKey: ['deleteRole', roleId],
@@ -131,6 +134,7 @@ export function useGetUserInfoQuery(userId: number) {
  * @param roomId 群聊ID
  */
 export function useGetMemberListQuery(roomId: number) {
+
     return useQuery({
         queryKey: ['getMemberList', roomId],
         queryFn: () => tuanchat.service.getMemberList(roomId),
@@ -140,30 +144,38 @@ export function useGetMemberListQuery(roomId: number) {
 
 /**
  * 新增群成员
- * @param roomId 关联的群聊ID（用于缓存刷新）
+ * groupId: 群聊ID, 用于更新缓存
  */
-export function useAddMemberMutation(roomId: number) {
+// api/queryHooks.ts
+export function useAddMemberMutation() {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: MemberAddRequest) => tuanchat.service.addMember(req),
         mutationKey: ['addMember'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['getMemberList', roomId] });
-            queryClient.invalidateQueries({ queryKey: ['getGroupInfo', roomId] });
-        }
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey:  ["getMemberList", v],
+                exact: true
+            });
+        },
     });
 }
+// queryClient.invalidateQueries({ queryKey: ["getMemberList", groupId] });
 
 /**
  * 删除群成员（批量）
- * @param roomId 关联的群聊ID（用于缓存刷新）
+ * @param groupId 关联的群聊ID（用于缓存刷新）
  */
-export function useDeleteMemberMutation(roomId: number) {
+export function useDeleteMemberMutation(groupId: number) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: MemberDeleteRequest) => tuanchat.service.deleteMember(req),
         mutationKey: ['deleteMember'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['getMemberList', roomId] });
-            queryClient.invalidateQueries({ queryKey: ['getGroupInfo', roomId] });
+        onSettled: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: ["getMemberList", groupId],
+            });
+            console.log("getMemberList", groupId)
         }
     });
 }
@@ -184,6 +196,7 @@ export function useGetGroupInfoQuery(groupId: number) {
  * 创建群组
  */
 export function useCreateGroupMutation() {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: GroupAddRequest) => tuanchat.service.createGroup(req),
         mutationKey: ['createGroup'],
@@ -198,6 +211,7 @@ export function useCreateGroupMutation() {
  * @param parentRoomId 父群ID（用于缓存刷新）
  */
 export function useCreateSubgroupMutation(parentRoomId: number) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: SubRoomRequest) => tuanchat.service.createSubgroup(req),
         mutationKey: ['createSubgroup'],
@@ -225,6 +239,7 @@ export function useGetAllMessageQuery(roomId: number) {
  * @param roomId 关联的群聊ID（用于缓存刷新）
  */
 export function useSendMessageMutation(roomId: number) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: ChatMessageRequest) => tuanchat.service.sendMessage(req),
         mutationKey: ['sendMessage'],
@@ -251,6 +266,7 @@ export function useGetMsgPageQuery(requestBody: ChatMessagePageRequest) {
  * @param roomId 关联的群聊ID（用于缓存刷新）
  */
 export function useMoveMessageMutation(roomId: number) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: MoveMessageRequest) => tuanchat.service.moveMessage(req),
         mutationKey: ['moveMessage'],
@@ -267,6 +283,7 @@ export function useMoveMessageMutation(roomId: number) {
  * @param roomId 关联的群聊ID（用于缓存刷新）
  */
 export function useSetPlayerMutation(roomId: number) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: AdminAddRequset) => tuanchat.service.setPlayer(req),
         mutationKey: ['setPlayer'],
@@ -281,6 +298,7 @@ export function useSetPlayerMutation(roomId: number) {
  * @param roomId 关联的群聊ID（用于缓存刷新）
  */
 export function useRevokePlayerMutation(roomId: number) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: AdminRevokeRequest) => tuanchat.service.revokePlayer(req),
         mutationKey: ['revokePlayer'],
@@ -307,6 +325,7 @@ export function useGetRoleAbilityQuery(roleId: number) {
  * @param roleId 关联的角色ID（用于缓存刷新）
  */
 export function useSetRoleAbilityMutation(roleId: number) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: RoleAbilityTable) => tuanchat.service.setRoleAbility(req),
         mutationKey: ['setRoleAbility'],
@@ -346,6 +365,7 @@ export function useGetRoleAvatarQuery(avatarId: number) {
  * @param roleId 关联的角色ID（用于缓存刷新）
  */
 export function useUpdateRoleAvatarMutation(roleId: number) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: RoleAvatar) => tuanchat.service.updateRoleAvatar(req),
         mutationKey: ['updateRoleAvatar'],
@@ -360,6 +380,7 @@ export function useUpdateRoleAvatarMutation(roleId: number) {
  * @param roleId 关联的角色ID（用于缓存刷新）
  */
 export function useSetRoleAvatarMutation(roleId: number) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: RoleAvatarCreateRequest) => tuanchat.service.setRoleAvatar(req),
         mutationKey: ['setRoleAvatar'],
@@ -374,6 +395,7 @@ export function useSetRoleAvatarMutation(roleId: number) {
  * @param roleId 关联的角色ID（用于缓存刷新）
  */
 export function useDeleteRoleAvatarMutation(roleId: number) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (avatarId: number) => tuanchat.service.deleteRoleAvatar(avatarId),
         mutationKey: ['deleteRoleAvatar'],
@@ -401,6 +423,7 @@ export function useGroupRoleQuery(roomId: number) {
  * @param roomId 关联的群聊ID（用于缓存刷新）
  */
 export function useAddRoleMutation(roomId: number) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: AddRoleRequest) => tuanchat.service.addRole(req),
         mutationKey: ['addRole'],
@@ -415,6 +438,7 @@ export function useAddRoleMutation(roomId: number) {
  * @param roomId 关联的群聊ID（用于缓存刷新）
  */
 export function useDeleteRole1Mutation(roomId: number) {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: DeleteRoleRequest) => tuanchat.service.deleteRole1(req),
         mutationKey: ['deleteRole1'],
@@ -454,6 +478,7 @@ export function useGetUserGroupsQuery() {
  * 强制刷新用户群组列表
  */
 export function refreshUserGroups() {
+    const queryClient = useQueryClient();
     queryClient.invalidateQueries({ queryKey: ['getUserGroups'] });
 }
 
@@ -462,6 +487,7 @@ export function refreshUserGroups() {
  * @param groupId 群组ID
  */
 export function refreshGroupInfo(groupId: number) {
+    const queryClient = useQueryClient();
     queryClient.invalidateQueries({ queryKey: ['getGroupInfo', groupId] });
 }
 

@@ -20,6 +20,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { tuanchat } from "api/instance";
 import {
+  useAddMemberMutation,
   useGetGroupRoleQuery,
   useGetMemberListQuery,
   useGetRoleAvatarsQuery,
@@ -67,6 +68,9 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const roleAvatars = roleAvatarQuery.data?.data ?? [];
   const membersQuery = useGetMemberListQuery(groupId);
   const members = membersQuery.data?.data ?? [];
+
+  // Mutations
+  const addMemberMutation = useAddMemberMutation();
 
   /**
    * websocket
@@ -234,8 +238,10 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
 
   const handleRoleChange = (roleIndex: number) => {
     setCurRoleIndex(roleIndex);
+    setCurAvatarIndex(0);
   };
 
+  // TODO
   const handleAddRole = async (roleId: number) => {
     await tuanchat.service.addRole({
       roomId: groupId,
@@ -250,16 +256,14 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   };
 
   async function handleAddMember(userId: number) {
-    await tuanchat.service.addMember({
+    addMemberMutation.mutate({
       roomId: groupId,
       userIdList: [userId],
+    }, {
+      onSettled: () => {
+        setIsMemberHandleOpen(false);
+      },
     });
-    // 刷新列表
-    await queryClient.invalidateQueries({
-      queryKey: ["groupMemberController.groupMember", groupId],
-    });
-    // 关闭弹窗
-    setIsMemberHandleOpen(false);
   }
 
   return (

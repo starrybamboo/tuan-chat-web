@@ -5,7 +5,7 @@ export class UploadUtils {
   constructor(private readonly scene: number = 2) {}
 
   async upload(file: File): Promise<string> {
-    const ossData = await tuanchat.ossController.getUploadUrl({
+    const ossData = await tuanchat.oss.getUploadUrl({
       fileName: file.name,
       scene: this.scene,
     });

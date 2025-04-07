@@ -24,11 +24,11 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
   const [isOpen, setIsOpen] = useState(false);
 
   const groupContext = use(GroupContext);
-  const groupId = groupContext?.groupId;
+  const groupId = groupContext.groupId ?? -1;
 
-  const mutateMember = useDeleteMemberMutation(groupId ?? -1);
+  const mutateMember = useDeleteMemberMutation(groupId);
   const handleRemoveMember = async () => {
-    if (!groupId)
+    if (groupId < 0)
       return;
     mutateMember.mutate(
       { roomId: groupId, userIdList: [userId] },
@@ -66,7 +66,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
               <div className="items-center justify-center gap-y-4 flex flex-col">
                 <UserDetail userId={userId}></UserDetail>
                 {
-                  (groupContext && groupContext.groupId) && (
+                  (groupId >= 0) && (
                     <button type="button" className="btn btn-error" onClick={handleRemoveMember}>
                       踢出成员
                     </button>

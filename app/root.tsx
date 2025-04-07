@@ -1,14 +1,15 @@
 import type { Route } from "./+types/root";
+import Home from "@/routes/home";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
   isRouteErrorResponse,
   Links,
   Meta,
-  Outlet,
   Scripts,
   ScrollRestoration,
 } from "react-router";
-
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
@@ -47,7 +48,9 @@ const queryClient = new QueryClient();
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      {/* <Outlet /> */}
+      <Home></Home>
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }
