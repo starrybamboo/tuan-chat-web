@@ -30,7 +30,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
   const groupId = groupContext?.groupId;
 
   const mutateMember = useMutation({
-    mutationFn: tuanchat.groupMemberController.deleteMember,
+    mutationFn: tuanchat.service.deleteMember,
     mutationKey: ["groupMemberController.groupMember", groupId],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["groupMemberController.groupMember", groupId] });

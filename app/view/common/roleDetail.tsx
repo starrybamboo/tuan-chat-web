@@ -4,7 +4,7 @@ import { tuanchat } from "api/instance";
 export function RoleDetail({ roleId }: { roleId: number }) {
   const roleQuery = useQuery({
     queryKey: ["roleController.getRole", roleId],
-    queryFn: () => tuanchat.roleController.getRole(roleId),
+    queryFn: () => tuanchat.service.getRole(roleId),
   });
 
   const role = roleQuery.data?.data;
@@ -12,7 +12,7 @@ export function RoleDetail({ roleId }: { roleId: number }) {
   const avatarQuery = useQuery(
     {
       queryKey: ["avatarController.getRoleAvatar", role?.avatarId],
-      queryFn: () => tuanchat.avatarController.getRoleAvatar(role?.avatarId ?? -1),
+      queryFn: () => tuanchat.service.getRoleAvatar(role?.avatarId ?? -1),
       staleTime: 600000,
       enabled: !!role,
     },

@@ -1,32 +1,34 @@
-import type { ChatMessagePageRequest, ChatMessageRequest, ChatMessageResponse, UserRole } from "api";
-
+import type {
+  ChatMessagePageRequest,
+  ChatMessageRequest,
+  ChatMessageResponse,
+} from "api";
 import type { FormEvent } from "react";
+
 import { commands } from "@/utils/commands";
 
 import { useGroupRoleQuery, useUserRoleQuery } from "@/view/chat/api/role";
-
 import { useUserInfoQuery } from "@/view/chat/api/user";
 import { ChatBubble } from "@/view/chat/components/chatBubble";
 import { GroupContext } from "@/view/chat/components/GroupContext";
-import { MemberTypeTag } from "@/view/chat/components/memberTypeTag";
 
+import { MemberTypeTag } from "@/view/chat/components/memberTypeTag";
 import { PopWindow } from "@/view/common/popWindow";
 import RoleAvatarComponent from "@/view/common/roleAvatar";
 import { ImgUploaderWithCopper } from "@/view/common/uploader/imgUploaderWithCopper";
 import UserAvatarComponent from "@/view/common/userAvatar";
 import { UserDetail } from "@/view/common/userDetail";
-import { useInfiniteQuery, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { tuanchat } from "api/instance";
 import { useWebSocket } from "api/useWebSocket";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useImmer } from "use-immer";
 
 export function DialogueWindow({ groupId }: { groupId: number }) {
   const queryClient = useQueryClient();
   const [inputText, setInputText] = useState("");
   const [curRoleIndex, setCurRoleIndex] = useState(0);
-  const [curAvatarIndexes, updateCurAvatarIndexes] = useImmer<number[]>([]); // curAvatarIndexes[i] 表示role[i]的头像索引
+  const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const [useChatBoxStyle, setUseChatBoxStyle] = useState(true);
   const PAGE_SIZE = 30; // 每页消息数量
 
@@ -55,19 +57,17 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   // 获取当前群聊中的所有角色
   const groupRolesQuery = useGroupRoleQuery(groupId);
   const groupRoles = groupRolesQuery.data?.data ?? [];
-  // 获取当前用户每一个角色的所有头像
-  const roleAvatarsQueries = useQueries({
-    queries: userRoles.map((role: UserRole) => ({
-      queryKey: ["roleController.getRoleAvatars", role.roleId],
-      queryFn: () => tuanchat.roleController.getRoleAvatars(role.roleId),
-      enabled: !!userRolesQuery.data,
-      staleTime: 10000,
-    })),
+  // 获取当前用户选择角色的所有头像(表情差分)
+  const roleAvatarQuery = useQuery({
+    queryKey: ["roleController.getRoleAvatars", userRoles[curRoleIndex]?.roleId],
+    queryFn: () => tuanchat.service.getRoleAvatars(userRoles[curRoleIndex]?.roleId ?? -1),
+    enabled: !!userRolesQuery.data,
+    staleTime: 10000,
   });
-  // 获取当前群聊中的所有成员
+  const roleAvatars = roleAvatarQuery.data?.data ?? [];
   const membersQuery = useQuery({
     queryKey: ["groupMemberController.groupMember", groupId],
-    queryFn: () => tuanchat.groupMemberController.getMemberList(groupId),
+    queryFn: () => tuanchat.service.getMemberList(groupId),
     staleTime: 5000,
   });
   const members = membersQuery.data?.data ?? [];
@@ -95,7 +95,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   } = useInfiniteQuery({
     queryKey: ["messageHistory", groupId],
     queryFn: async ({ pageParam }) => {
-      return tuanchat.chatController.getMsgPage(pageParam);
+      return tuanchat.service.getMsgPage(pageParam);
     },
     getNextPageParam: (lastPage) => {
       if (lastPage.data === undefined || lastPage.data.isLast) {
@@ -203,18 +203,12 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
       return;
     }
 
-    // 安全获取信息
-    const roleId = userRoles[curRoleIndex]?.roleId ?? 0;
-    const currentAvatars = roleAvatarsQueries[curRoleIndex]?.data?.data || [];
-    const avatarIndex = curAvatarIndexes[curRoleIndex] || 0;
-    const avatarId = currentAvatars[avatarIndex]?.avatarId ?? 0;
-
     // 构造消息请求对象
     const messageRequest: ChatMessageRequest = {
       roomId: groupId,
-      roleId,
+      roleId: userRoles[curRoleIndex].roleId,
       content: inputText.trim(),
-      avatarId,
+      avatarId: roleAvatars[curAvatarIndex].avatarId || -1,
       messageType: 1,
       body: {},
     };
@@ -232,17 +226,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   };
 
   const handleAvatarChange = (avatarIndex: number) => {
-    updateCurAvatarIndexes((draft) => {
-      const neededLength = roleAvatarsQueries.length - draft.length;
-      if (neededLength > 0) {
-        draft.push(...Array.from<number>({ length: neededLength }).fill(0));
-      }
-      // 安全更新索引
-      if (curRoleIndex >= 0 && curRoleIndex < draft.length) {
-        draft[curRoleIndex] = avatarIndex;
-      }
-      return draft;
-    });
+    setCurAvatarIndex(avatarIndex);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -257,7 +241,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   };
 
   const handleAddRole = async (roleId: number) => {
-    await tuanchat.groupRoleController.addRole({
+    await tuanchat.service.addRole({
       roomId: groupId,
       roleIdList: [roleId],
     });
@@ -270,7 +254,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   };
 
   async function handleAddMember(userId: number) {
-    await tuanchat.groupMemberController.addMember({
+    await tuanchat.service.addMember({
       roomId: groupId,
       userIdList: [userId],
     });
@@ -316,9 +300,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
               <div className="dropdown dropdown-top">
                 <div role="button" tabIndex={0} className="flex justify-center flex-col items-center space-y-2">
                   <RoleAvatarComponent
-                    avatarId={roleAvatarsQueries[curRoleIndex]?.data?.data?.[
-                      curAvatarIndexes?.[curRoleIndex] ?? 0
-                    ]?.avatarId || 0}
+                    avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
                     width={32}
                     isRounded={true}
                     withTitle={false}
@@ -330,18 +312,17 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                 {/* 表情差分选择器 */}
                 <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-92 p-2 shadow-sm">
                   {
-                    roleAvatarsQueries[curRoleIndex]?.data?.data
-                    && roleAvatarsQueries[curRoleIndex]?.data?.data.length >= 0
+                    roleAvatars && roleAvatars.length > 0
                       ? (
                           <div className="grid grid-cols-5 gap-2 ">
-                            {roleAvatarsQueries[curRoleIndex]?.data?.data?.map((avatar, index) => (
+                            {roleAvatars.map((avatar, index) => (
                               <div
                                 onClick={() => handleAvatarChange(index)}
                                 className="object-cover rounded transition-all"
                                 key={avatar.avatarId}
                               >
                                 <RoleAvatarComponent
-                                  avatarId={avatar.avatarId}
+                                  avatarId={avatar.avatarId || -1}
                                   width={16}
                                   isRounded={false}
                                   withTitle={true}

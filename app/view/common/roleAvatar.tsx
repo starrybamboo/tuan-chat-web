@@ -24,7 +24,7 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
   const avatarQuery = useQuery(
     {
       queryKey: ["avatarController.getRoleAvatar", avatarId],
-      queryFn: () => tuanchat.avatarController.getRoleAvatar(avatarId),
+      queryFn: () => tuanchat.service.getRoleAvatar(avatarId),
       staleTime: 600000,
     },
   );
@@ -37,8 +37,8 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
   const groupContext = use(GroupContext);
   const groupId = groupContext?.groupId;
 
-  const removeRoleMutation = useMutation({
-    mutationFn: tuanchat.groupRoleController.deleteRole1,
+  const deleteRoleMutation = useMutation({
+    mutationFn: tuanchat.service.deleteRole1,
     mutationKey: ["groupRoleController.groupRole", groupId],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["groupMemberController.groupMember", groupId] });
@@ -47,7 +47,7 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
   const handleRemoveRole = async () => {
     if (!groupId || !roleAvatar?.roleId)
       return;
-    removeRoleMutation.mutate(
+    deleteRoleMutation.mutate(
       { roomId: groupId, roleIdList: [roleAvatar?.roleId] },
       {
         onSettled: () => setIsOpen(false), // 最终关闭弹窗
