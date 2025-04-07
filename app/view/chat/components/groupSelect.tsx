@@ -1,7 +1,4 @@
 import DialogueWindow from "@/view/chat/components/dialogueWindow";
-import ExpandLess from "@mui/icons-material/ExpandLess";
-import ExpandMore from "@mui/icons-material/ExpandMore";
-import { Collapse, List, ListItem, ListItemButton, ListItemIcon, ListItemText } from "@mui/material";
 import { tuanchat } from "api/instance";
 import React, { useEffect, useState } from "react";
 
@@ -64,57 +61,57 @@ export default function GroupSelect() {
   return (
     <div className="flex flex-row w-full">
       <div className="channel-selector flex">
-        <List
-          sx={{ width: 300, bgcolor: "#2f3136" }}
-          component="nav"
-        >
+        <ul className="menu w-[300px] bg-neutral">
           {mainGroups.map(mainGroup => (
             <React.Fragment key={mainGroup.id}>
-              <ListItem disablePadding>
-                <ListItemButton onClick={() => unfoldSubGroup(mainGroup.id)}>
-                  <ListItemIcon>
-                    <img
-                      src={mainGroup.icon}
-                      alt={mainGroup.name}
-                      style={{ width: "32px", height: "32px" }}
-                    />
-                    <ListItemText
-                      primary={mainGroup.name}
-                      sx={{
-                        ml: 2,
-                        color: "#96989d",
-                      }}
-                    />
-                    {openGroup === mainGroup.id ? <ExpandLess sx={{ color: "white" }} /> : <ExpandMore sx={{ color: "white" }} />}
-                  </ListItemIcon>
-                </ListItemButton>
-              </ListItem>
-              <Collapse in={openGroup === mainGroup.id} timeout="auto" unmountOnExit>
-                <List component="nav" disablePadding>
-                  {mainGroup.children && mainGroup.children.map(subGroup => (
-                    <ListItem key={subGroup.id}>
-                      <ListItemButton sx={{ pl: 4 }} onClick={() => setActiveSubGroupId(subGroup.id)}>
-                        <ListItemIcon>
-                          <img
-                            src={subGroup.icon}
-                            alt={subGroup.name}
-                            style={{ width: "32px", height: "32px" }}
-                          />
-                        </ListItemIcon>
-                        <ListItemText
-                          primary={subGroup.name}
-                          sx={{
-                            color: "#96989d",
-                          }}
-                        />
-                      </ListItemButton>
-                    </ListItem>
-                  ))}
-                </List>
-              </Collapse>
+              <li>
+                <button
+                  type="button"
+                  className="flex items-center w-full"
+                  onClick={() => unfoldSubGroup(mainGroup.id)}
+                >
+                  <div className="avatar">
+                    <div className="mask mask-squircle w-8">
+                      <img
+                        src={mainGroup.icon}
+                        alt={mainGroup.name}
+                      />
+                    </div>
+                  </div>
+                  <span className="ml-2 text-base-content/60">{mainGroup.name}</span>
+                  <span className="ml-auto text-base-content">
+                    {openGroup === mainGroup.id ? "▼" : "▶"}
+                  </span>
+                </button>
+              </li>
+              {openGroup === mainGroup.id && mainGroup.children && (
+                <li>
+                  <ul className="pl-4">
+                    {mainGroup.children.map(subGroup => (
+                      <li key={subGroup.id}>
+                        <button
+                          type="button"
+                          className="flex items-center w-full"
+                          onClick={() => setActiveSubGroupId(subGroup.id)}
+                        >
+                          <div className="avatar">
+                            <div className="mask mask-squircle w-8">
+                              <img
+                                src={subGroup.icon}
+                                alt={subGroup.name}
+                              />
+                            </div>
+                          </div>
+                          <span className="ml-2 text-base-content/60">{subGroup.name}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              )}
             </React.Fragment>
           ))}
-        </List>
+        </ul>
       </div>
       <DialogueWindow groupId={activeSubGroupId ?? 1} key={activeSubGroupId ?? 1} />
     </div>

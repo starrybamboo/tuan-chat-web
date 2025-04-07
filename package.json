@@ -15,14 +15,9 @@
     "electron:build": "react-router build & electron-builder build --config electron-builder.json"
   },
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
-    "@mui/icons-material": "^7.0.1",
-    "@mui/material": "^7.0.1",
     "@react-router/node": "^7.4.1",
     "@react-router/serve": "^7.4.1",
     "@tanstack/react-query": "^5.69.0",
-    "@tanstack/react-query-devtools": "^5.71.10",
     "@uidotdev/usehooks": "^2.4.1",
     "daisyui": "^5.0.9",
     "immer": "^10.1.1",
@@ -39,6 +34,7 @@
     "@react-router/dev": "^7.4.1",
     "@tailwindcss/vite": "^4.0.17",
     "@tanstack/eslint-plugin-query": "^5.68.0",
+    "@tanstack/react-query-devtools": "^5.69.0",
     "@types/node": "^20",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.1",
