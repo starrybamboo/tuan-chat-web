@@ -39,9 +39,9 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
 
   const deleteRoleMutation = useMutation({
     mutationFn: tuanchat.service.deleteRole1,
-    mutationKey: ["groupRoleController.groupRole", groupId],
+    mutationKey: ["deleteRole1", groupId],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["groupMemberController.groupMember", groupId] });
+      queryClient.invalidateQueries({ queryKey: ["groupMember", groupId] });
     },
   });
   const handleRemoveRole = async () => {

@@ -3,7 +3,7 @@ import type { LoginCredentials, RegisterCredentials } from "../../types/authtype
 import { tuanchat } from "../../../api/instance";
 
 export async function loginUser(credentials: LoginCredentials) {
-  const response = await tuanchat.userController.login({
+  const response = await tuanchat.service.login({
     userId: credentials.username,
     password: credentials.password,
   });
@@ -16,7 +16,7 @@ export async function loginUser(credentials: LoginCredentials) {
 }
 
 export async function registerUser(credentials: RegisterCredentials) {
-  const response = await tuanchat.userController.register({
+  const response = await tuanchat.service.register({
     username: credentials.username,
     password: credentials.password,
   });

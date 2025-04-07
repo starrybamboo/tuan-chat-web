@@ -11,7 +11,7 @@ export function RoleDetail({ roleId }: { roleId: number }) {
 
   const avatarQuery = useQuery(
     {
-      queryKey: ["avatarController.getRoleAvatar", role?.avatarId],
+      queryKey: ["getRoleAvatar", role?.avatarId],
       queryFn: () => tuanchat.service.getRoleAvatar(role?.avatarId ?? -1),
       staleTime: 600000,
       enabled: !!role,

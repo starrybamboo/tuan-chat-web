@@ -1,19 +1,14 @@
 // import type { Message } from "@/view/chat/components/message";
 import type { ChatMessageResponse } from "api";
 import RoleAvatarComponent from "@/view/common/roleAvatar";
-import { useQuery } from "@tanstack/react-query";
-import { tuanchat } from "api/instance";
+import { useGetRoleQuery } from "../../../../api/queryHooks";
 /**
  * 聊天风格的对话框组件
  */
 
 export function ChatBubble({ chatMessageResponse, useChatBoxStyle }: { chatMessageResponse: ChatMessageResponse; useChatBoxStyle: boolean }) {
   const message = chatMessageResponse.message;
-  const useRoleRequest = useQuery({
-    queryKey: ["roleController.getRole", message.roleId],
-    queryFn: () => tuanchat.roleController.getRole(message.roleId),
-    staleTime: 600000,
-  });
+  const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId);
 
   const role = useRoleRequest.data?.data;
 

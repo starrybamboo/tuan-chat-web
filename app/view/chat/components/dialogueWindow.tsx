@@ -7,8 +7,6 @@ import type { FormEvent } from "react";
 
 import { commands } from "@/utils/commands";
 
-import { useGroupRoleQuery, useUserRoleQuery } from "@/view/chat/api/role";
-import { useUserInfoQuery } from "@/view/chat/api/user";
 import { ChatBubble } from "@/view/chat/components/chatBubble";
 import { GroupContext } from "@/view/chat/components/GroupContext";
 
@@ -18,9 +16,16 @@ import RoleAvatarComponent from "@/view/common/roleAvatar";
 import { ImgUploaderWithCopper } from "@/view/common/uploader/imgUploaderWithCopper";
 import UserAvatarComponent from "@/view/common/userAvatar";
 import { UserDetail } from "@/view/common/userDetail";
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { tuanchat } from "api/instance";
+import {
+  useGetGroupRoleQuery,
+  useGetMemberListQuery,
+  useGetRoleAvatarsQuery,
+  useGetUserInfoQuery,
+  useGetUserRolesQuery,
+} from "api/queryHooks";
 import { useWebSocket } from "api/useWebSocket";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -49,27 +54,18 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   // 添加成员输入框内的输入
   const [inputUserId, setInputUserId] = useState<number>(-1);
   // 检验输入的Id是否有效
-  const inputUserInfo = useUserInfoQuery(inputUserId ?? -1).data?.data;
+  const inputUserInfo = useGetUserInfoQuery(inputUserId).data?.data;
 
   // 获取用户的所有角色
-  const userRolesQuery = useUserRoleQuery(userId ?? -1);
+  const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const userRoles = userRolesQuery.data?.data ?? [];
   // 获取当前群聊中的所有角色
-  const groupRolesQuery = useGroupRoleQuery(groupId);
+  const groupRolesQuery = useGetGroupRoleQuery(groupId);
   const groupRoles = groupRolesQuery.data?.data ?? [];
   // 获取当前用户选择角色的所有头像(表情差分)
-  const roleAvatarQuery = useQuery({
-    queryKey: ["roleController.getRoleAvatars", userRoles[curRoleIndex]?.roleId],
-    queryFn: () => tuanchat.service.getRoleAvatars(userRoles[curRoleIndex]?.roleId ?? -1),
-    enabled: !!userRolesQuery.data,
-    staleTime: 10000,
-  });
+  const roleAvatarQuery = useGetRoleAvatarsQuery(userRoles[curRoleIndex]?.roleId ?? -1);
   const roleAvatars = roleAvatarQuery.data?.data ?? [];
-  const membersQuery = useQuery({
-    queryKey: ["groupMemberController.groupMember", groupId],
-    queryFn: () => tuanchat.service.getMemberList(groupId),
-    staleTime: 5000,
-  });
+  const membersQuery = useGetMemberListQuery(groupId);
   const members = membersQuery.data?.data ?? [];
 
   /**

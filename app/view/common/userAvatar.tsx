@@ -1,10 +1,8 @@
-import { useUserInfoQuery } from "@/view/chat/api/user";
 import { GroupContext } from "@/view/chat/components/GroupContext";
 import { PopWindow } from "@/view/common/popWindow";
 import { UserDetail } from "@/view/common/userDetail";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { tuanchat } from "api/instance";
 import { use, useState } from "react";
+import { useDeleteMemberMutation, useGetUserInfoQuery } from "../../../api/queryHooks";
 
 // 如果是 import 的sizeMap 就不能在className中用了, 于是复制了一份, 够丑的 :(
 const sizeMap = {
@@ -21,21 +19,14 @@ const sizeMap = {
 } as const;
 
 export default function UserAvatarComponent({ userId, width, isRounded, withName = false, stopPopWindow = false }: { userId: number; width: keyof typeof sizeMap; isRounded: boolean; withName: boolean; stopPopWindow?: boolean }) {
-  const userQuery = useUserInfoQuery(userId);
-  const queryClient = useQueryClient();
+  const userQuery = useGetUserInfoQuery(userId);
   // 控制用户详情的popWindow
   const [isOpen, setIsOpen] = useState(false);
 
   const groupContext = use(GroupContext);
   const groupId = groupContext?.groupId;
 
-  const mutateMember = useMutation({
-    mutationFn: tuanchat.service.deleteMember,
-    mutationKey: ["groupMemberController.groupMember", groupId],
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["groupMemberController.groupMember", groupId] });
-    },
-  });
+  const mutateMember = useDeleteMemberMutation(groupId ?? -1);
   const handleRemoveMember = async () => {
     if (!groupId)
       return;
