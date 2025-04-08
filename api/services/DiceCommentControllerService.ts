@@ -2,26 +2,26 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResultOssResp } from '../models/ApiResultOssResp';
-import type { UploadUrlRequest } from '../models/UploadUrlRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
-export class OssService {
+export class DiceCommentControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * 获取临时上传链接
-     * @param requestBody
-     * @returns ApiResultOssResp OK
+     * 测试骰子评论生成
+     * 传入骰子结果，生成相应的评论
+     * @param result 骰子结果
+     * @returns string OK
      * @throws ApiError
      */
-    public getUploadUrl(
-        requestBody: UploadUrlRequest,
-    ): CancelablePromise<ApiResultOssResp> {
+    public testDiceComment(
+        result: string,
+    ): CancelablePromise<string> {
         return this.httpRequest.request({
-            method: 'POST',
-            url: '/capi/oss/upload/url',
-            body: requestBody,
-            mediaType: 'application/json',
+            method: 'GET',
+            url: '/api/test/dice-comment',
+            query: {
+                'result': result,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
