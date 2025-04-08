@@ -1,111 +1,73 @@
 import DialogueWindow from "@/components/chat/dialogueWindow";
-import React, { useEffect, useState } from "react";
-import { tuanchat } from "../../../api/instance";
+import { useGetUserGroupsQuery } from "api/queryHooks";
+import React, { useState } from "react";
 
 export default function GroupSelect() {
-  // 一级群组列表数据
-  const [mainGroups, setMainGroups] = useState<Group[]>([]);
-  // 当前展开二级群组的一级群组
+  // 当前展开子群的父群
   const [openGroup, setOpenGroup] = useState<number | null>(null);
-  // 当前选中的二级群组ID
+  // 当前选中的子群ID
   const [activeSubGroupId, setActiveSubGroupId] = useState<number | null>(null);
+  // 获取用户群组列表
+  const getUserGroupsQuery = useGetUserGroupsQuery();
+  const UserGroups = getUserGroupsQuery.data?.data ?? [];
+  // 分离子群和父群
+  const groups = UserGroups.filter(group => group.parentGroupId === group.roomId);
+  const subGroups = UserGroups;
 
-  // 定义群组
-  interface Group {
-    id: number;
-    name: string;
-    icon: string;
-    children?: Group[];
-  }
-
-  // 展开二级群组
+  // 展开子群
   const unfoldSubGroup = (mainGroupId: number) => {
     setOpenGroup(openGroup === mainGroupId ? null : mainGroupId);
   };
-
-  // 初始化群组列表
-  const initGroups = async () => {
-    try {
-      const response = await tuanchat.groupController.getUserGroups();
-      if (response.data) {
-        // 分离一级群组和二级群组
-        const firstLevelGroups = response.data.filter(group => group.parentGroupId === group.roomId);
-        const secondLevelGroups = response.data;
-
-        // 更新群组列表
-        setMainGroups(firstLevelGroups.map(mainGroup => ({
-          id: Number(mainGroup.roomId),
-          name: mainGroup.name,
-          icon: mainGroup.avatar,
-          children: secondLevelGroups
-            .filter(subGroup => subGroup.parentGroupId === mainGroup.roomId)
-            .map(subGroup => ({
-              id: Number(subGroup.roomId),
-              name: subGroup.name,
-              icon: subGroup.avatar,
-              hasNotification: false,
-            })),
-        })));
-      }
-    }
-    catch (error) {
-      console.error("获取群组列表失败:", error);
-    }
-  };
-
-  // 初始化时获取群组列表
-  useEffect(() => {
-    initGroups();
-  }, []);
 
   return (
     <div className="flex flex-row w-full">
       <div className="channel-selector flex">
         <ul className="menu w-[300px] bg-base-300">
-          {mainGroups.map(mainGroup => (
-            <React.Fragment key={mainGroup.id}>
+          {groups.map(group => (
+            <React.Fragment key={group.roomId}>
               <li>
                 <button
                   type="button"
                   className="flex items-center w-full"
-                  onClick={() => unfoldSubGroup(mainGroup.id)}
+                  onClick={() => unfoldSubGroup(group.roomId)}
                 >
                   <div className="avatar">
                     <div className="mask mask-squircle w-8">
                       <img
-                        src={mainGroup.icon}
-                        alt={mainGroup.name}
+                        src={group.avatar}
+                        alt={group.name}
                       />
                     </div>
                   </div>
-                  <span className="ml-2 text-base-content/60">{mainGroup.name}</span>
+                  <span className="ml-2 text-base-content/60">{group.name}</span>
                   <span className="ml-auto text-base-content">
-                    {openGroup === mainGroup.id ? "▼" : "▶"}
+                    {openGroup === group.roomId ? "▼" : "▶"}
                   </span>
                 </button>
               </li>
-              {openGroup === mainGroup.id && mainGroup.children && (
+              {openGroup === group.roomId && (
                 <li>
                   <ul className="pl-4">
-                    {mainGroup.children.map(subGroup => (
-                      <li key={subGroup.id}>
-                        <button
-                          type="button"
-                          className="flex items-center w-full"
-                          onClick={() => setActiveSubGroupId(subGroup.id)}
-                        >
-                          <div className="avatar">
-                            <div className="mask mask-squircle w-8">
-                              <img
-                                src={subGroup.icon}
-                                alt={subGroup.name}
-                              />
+                    {subGroups.filter(subGroup => subGroup.parentGroupId === group.roomId)
+                      .map(subGroup => (
+                        <li key={subGroup.roomId}>
+                          <button
+                            type="button"
+                            className="flex items-center w-full"
+                            onClick={() => setActiveSubGroupId(subGroup.roomId)}
+                          >
+                            <div className="avatar">
+                              <div className="mask mask-squircle w-8">
+                                <img
+                                  src={subGroup.avatar}
+                                  alt={subGroup.name}
+                                />
+                              </div>
                             </div>
-                          </div>
-                          <span className="ml-2 text-base-content/60">{subGroup.name}</span>
-                        </button>
-                      </li>
-                    ))}
+                            <span className="ml-2 text-base-content/60">{subGroup.name}</span>
+                          </button>
+                        </li>
+                      ))}
                   </ul>
                 </li>
               )}
