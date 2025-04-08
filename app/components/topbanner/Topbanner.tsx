@@ -2,6 +2,7 @@ import { checkAuthStatus } from "@/utils/auth/authapi";
 import UserAvatarComponent from "@/view/common/userAvatar";
 import { QueryClient, useQuery } from "@tanstack/react-query";
 import LoginButton from "../auth/LoginButton";
+import ThemeSwitch from "../themeSwitch";
 
 const queryClient = new QueryClient();
 
@@ -19,7 +20,7 @@ export default function Topbar() {
   }
 
   return (
-    <div className="w-full h-16 flex items-center justify-between px-4 border-b">
+    <div className="w-full h-16 flex items-center justify-between px-4 bg-base-300">
       {/* 左侧 */}
       <div className="flex items-center space-x-6">
 
@@ -29,28 +30,29 @@ export default function Topbar() {
           className="h-8 w-8 mr-4"
         />
 
-        <a href="/feed" className="hover:text-primary transition-colors">
+        <a href="/feed" className="text-base-content hover:text-primary transition-colors">
           推荐
         </a>
-        <a href="/community" className="hover:text-primary transition-colors">
+        <a href="/community" className="text-base-content hover:text-primary transition-colors">
           社区
         </a>
-        <a href="/chat" className="hover:text-primary transition-colors">
+        <a href="/chat" className="text-base-content hover:text-primary transition-colors">
           游玩
         </a>
-        <a href="/role" className="hover:text-primary transition-colors">
+        <a href="/role" className="text-base-content hover:text-primary transition-colors">
           角色
         </a>
-        <a href="/module" className="hover:text-primary transition-colors">
+        <a href="/module" className="text-base-content hover:text-primary transition-colors">
           模组
         </a>
-        <a href="/create" className="hover:text-primary transition-colors">
+        <a href="/create" className="text-base-content hover:text-primary transition-colors">
           创作
         </a>
       </div>
 
-      {/* 右侧登录按钮 */}
-      <div className="flex items-center">
+      {/* 右侧 */}
+      <div className="flex items-center space-x-6">
+        <ThemeSwitch />
         {isLoggedIn
           ? (
               <div className="dropdown dropdown-end">

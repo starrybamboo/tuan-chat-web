@@ -61,7 +61,7 @@ export default function GroupSelect() {
   return (
     <div className="flex flex-row w-full">
       <div className="channel-selector flex">
-        <ul className="menu w-[300px] bg-neutral">
+        <ul className="menu w-[300px] bg-base-300">
           {mainGroups.map(mainGroup => (
             <React.Fragment key={mainGroup.id}>
               <li>
