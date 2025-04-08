@@ -15,6 +15,7 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { UserDetail } from "@/components/common/userDetail";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { commands } from "@/utils/commands";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
@@ -45,7 +46,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   // 目前仅用于让首次渲染时对话框滚动到底部
   const hasInitialized = useRef(false);
 
-  const [userId, setUserId] = useState<number | undefined>(undefined);
+  const userId = useGlobalContext().userId;
 
   const [imgDownLoadUrl, setImgDownLoadUrl] = useState<string | undefined>(undefined);
   // 角色添加框的打开状态
@@ -130,16 +131,6 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     ) ?? []);
   }, [messagesData]);
 
-  /**
-   * 获取userId
-   */
-  const handleUserChange = (userId: number) => {
-    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-    setUserId(userId);
-  };
-  useEffect(() => {
-    handleUserChange(Number(localStorage.getItem("token")));
-  }, []);
   /**
    * messageEntry触发时候的effect, 同时让首次渲染时对话框滚动到底部
    */

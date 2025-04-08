@@ -26,7 +26,7 @@ export default function GroupSelect() {
   // 初始化群组列表
   const initGroups = async () => {
     try {
-      const response = await tuanchat.service.getUserGroups();
+      const response = await tuanchat.groupController.getUserGroups();
       if (response.data) {
         // 分离一级群组和二级群组
         const firstLevelGroups = response.data.filter(group => group.parentGroupId === group.roomId);
