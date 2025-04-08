@@ -32,6 +32,8 @@ export const useWebSocket = () => {
     const HEARTBEAT_INTERVAL = 25000
     const RECONNECT_DELAY_BASE = 1
 
+
+
     // 核心连接逻辑
     const connect = useCallback(() => {
         if (wsRef.current || !WS_URL) return
@@ -63,9 +65,18 @@ export const useWebSocket = () => {
                         updateGroupMessages(draft => {
                             const chatMessageResponse = message.data!
                             if (chatMessageResponse.message.roomId in draft) {
-                                draft[chatMessageResponse.message.roomId].push(chatMessageResponse)
+                                // 查找已存在消息的索引
+                                const existingIndex = draft[chatMessageResponse.message.roomId].findIndex(
+                                    (msg) => msg.message.messageID === chatMessageResponse.message.messageID
+                                );
+                                if (existingIndex !== -1) {
+                                    // 更新已存在的消息
+                                    draft[chatMessageResponse.message.roomId][existingIndex] = chatMessageResponse;
+                                } else {
+                                    draft[chatMessageResponse.message.roomId].push(chatMessageResponse);
+                                }
                             } else {
-                                draft[chatMessageResponse.message.roomId] = [chatMessageResponse]
+                                draft[chatMessageResponse.message.roomId] = [chatMessageResponse];
                             }
                         })
                     }
@@ -135,6 +146,7 @@ export const useWebSocket = () => {
                     data: request
                 }
                 wsRef.current.send(JSON.stringify(message))
+                console.log('Sent message:', JSON.stringify(message))
             }catch (e){
                 console.error('Message Serialization Failed:', e)
             }

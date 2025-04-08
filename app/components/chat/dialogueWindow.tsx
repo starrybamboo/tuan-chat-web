@@ -1,4 +1,3 @@
-import type { FormEvent } from "react";
 import type {
   ChatMessagePageRequest,
   ChatMessageRequest,
@@ -7,9 +6,10 @@ import type {
 
 import { ChatBubble } from "@/components/chat/chatBubble";
 
+import { CommandExecutor, isCommand } from "@/components/chat/commandExecutor";
+
 import { GroupContext } from "@/components/chat/GroupContext";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
-
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
@@ -38,6 +38,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const [useChatBoxStyle, setUseChatBoxStyle] = useState(true);
   const PAGE_SIZE = 30; // 每页消息数量
+  const commandExecutor = new CommandExecutor(curRoleId);
 
   // 承载聊天记录窗口的ref
   const chatFrameRef = useRef<HTMLDivElement>(null);
@@ -93,7 +94,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
    */
   // 分页获取消息
   // cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
-  const { data: messagesData, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+  const messagesInfiniteQuery = useInfiniteQuery({
     queryKey: ["messageHistory", groupId],
     queryFn: async ({ pageParam }) => {
       return tuanchat.chatController.getMsgPage(pageParam);
@@ -113,8 +114,8 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
 
   // 合并所有分页消息
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    return (messagesData?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
-  }, [messagesData]);
+    return (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
+  }, [messagesInfiniteQuery.data]);
 
   /**
    * messageEntry触发时候的effect, 同时让首次渲染时对话框滚动到底部
@@ -123,16 +124,16 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     if (!hasInitialized.current) {
       return;
     }
-    if (messageEntry?.isIntersecting && hasNextPage && !isFetchingNextPage && chatFrameRef.current) {
+    if (messageEntry?.isIntersecting && messagesInfiniteQuery.hasNextPage && !messagesInfiniteQuery.isFetchingNextPage && chatFrameRef.current) {
       // 记录之前的滚动位置并在fetch完后移动到该位置, 防止连续多次获取
       const scrollBottom = chatFrameRef.current.scrollHeight - chatFrameRef.current.scrollTop;
-      fetchNextPage().then(() => {
+      messagesInfiniteQuery.fetchNextPage().then(() => {
         if (chatFrameRef.current) {
           chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight - scrollBottom, behavior: "instant" });
         }
       });
     }
-  }, [messageEntry?.isIntersecting, hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [messageEntry?.isIntersecting, messagesInfiniteQuery.hasNextPage, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage]);
   /**
    * 第一次获取消息的时候, 滚动到底部
    */
@@ -151,7 +152,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
         clearTimeout(timeoutId); // 清除定时器
       }
     };
-  }, []);
+  }, [messagesInfiniteQuery.isFetchedAfterMount]);
   /**
    * 默认设置启用第一个角色
    */
@@ -184,8 +185,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   /**
    *处理与组件的各种交互
    */
-  const handleMessageSubmit = (e: FormEvent) => {
-    e.preventDefault();
+  const handleMessageSubmit = () => {
     if (!inputText.trim() || !userId) {
       return;
     }
@@ -199,11 +199,20 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
       messageType: 1,
       body: {},
     };
-
+    if (isCommand(inputText)) {
+      const commandResult = commandExecutor.execute(inputText);
+      messageRequest.body = {
+        result: commandResult,
+      };
+      tuanchat.chatController.sendMessageAiResponse(messageRequest);
+    }
+    else {
+      send(messageRequest);
+    }
     // 发送消息
-    send(messageRequest);
 
     setInputText("");
+    // console.log("发送消息:", messageRequest);
     // 滚动到底部, 设置异步是为了等待新消息接受并渲染好
     setTimeout(() => {
       if (chatFrameRef.current) {
@@ -219,7 +228,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleMessageSubmit(e);
+      handleMessageSubmit();
     }
   };
 
@@ -258,7 +267,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
           {/* chat messages area */}
           <div className="card bg-base-100 shadow-sm flex-1">
             {/* 加载指示器 */}
-            {isFetchingNextPage && (
+            {messagesInfiniteQuery.isFetchingNextPage && (
               <div className="text-center p-2 text-gray-500">
                 加载历史消息中...
               </div>
@@ -278,7 +287,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
           </div>
 
           {/* 输入区域 */}
-          <form onSubmit={handleMessageSubmit} className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm">
+          <form className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm">
             <div className="flex gap-2 relative">
               {/* 表情差分展示与选择 */}
               <div className="dropdown dropdown-top">
@@ -387,7 +396,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                     <div className="swap-off" onClick={() => setUseChatBoxStyle(true)}>Use Chat Box Style</div>
                   </label>
                   {/* send button */}
-                  <button type="submit" className="btn btn-primary " disabled={!inputText.trim()}>
+                  <button type="button" className="btn btn-primary " disabled={!inputText.trim()} onClick={handleMessageSubmit}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
