@@ -23,7 +23,7 @@ export type Group = {
      */
     description: string;
     /**
-     * 群状态 0正常 1 删除
+     * 群状态 0正常 1删除 2归档
      */
     status: number;
     createTime?: string;

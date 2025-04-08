@@ -2,11 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type RoleAbilityTable = {
-    abilityId?: number;
-    roleId?: number;
+export type AI_ = {
+    /**
+     * 用户提示词和上下文
+     */
+    prompt?: string;
+    /**
+     * 规则id
+     */
     ruleId?: number;
-    act?: string;
-    ability?: string;
 };
 

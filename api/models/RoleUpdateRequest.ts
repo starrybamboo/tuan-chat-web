@@ -3,13 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 角色实体类
+ * 更新角色请求体
  */
-export type UserRole = {
-    /**
-     * 用户id
-     */
-    userId: number;
+export type RoleUpdateRequest = {
     /**
      * 角色id
      */
@@ -26,7 +22,5 @@ export type UserRole = {
      * 角色头像
      */
     avatarId?: number;
-    createTime?: string;
-    updateTime?: string;
 };
 
