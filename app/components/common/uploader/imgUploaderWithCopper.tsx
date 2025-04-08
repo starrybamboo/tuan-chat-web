@@ -175,7 +175,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
       <PopWindow isOpen={isOpen} onClose={() => { setIsOpen(false); }}>
         <div className="flex flex-row w-max h-max items-center">
           {!!imgSrc && (
-            <div className="w-128 h-128">
+            <div className="max-w-1/3 min-w-1/6 overflow-auto">
               <ReactCrop
                 crop={crop}
                 onChange={(_, percentCrop) => setCrop(percentCrop)}
@@ -183,7 +183,6 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
                 aspect={1}
                 // minWidth={400}
                 minHeight={10}
-                // circularCrop
               >
                 <img
                   ref={imgRef}

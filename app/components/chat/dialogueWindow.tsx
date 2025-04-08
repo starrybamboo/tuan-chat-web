@@ -93,12 +93,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
    */
   // 分页获取消息
   // cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
-  const {
-    data: messagesData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
+  const { data: messagesData, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["messageHistory", groupId],
     queryFn: async ({ pageParam }) => {
       return tuanchat.chatController.getMsgPage(pageParam);
@@ -108,27 +103,17 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
         return undefined;
       }
       else {
-        const params: ChatMessagePageRequest = {
-          roomId: groupId,
-          pageSize: PAGE_SIZE,
-          cursor: lastPage.data.cursor,
-        };
+        const params: ChatMessagePageRequest = { roomId: groupId, pageSize: PAGE_SIZE, cursor: lastPage.data.cursor };
         return params;
       }
     },
-    initialPageParam: {
-      roomId: groupId,
-      pageSize: PAGE_SIZE,
-      cursor: null,
-    } as unknown as ChatMessagePageRequest,
+    initialPageParam: { roomId: groupId, pageSize: PAGE_SIZE, cursor: null } as unknown as ChatMessagePageRequest,
     refetchOnWindowFocus: false,
   });
 
   // 合并所有分页消息
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    return (messagesData?.pages.reverse().flatMap(p =>
-      p.data?.list ?? [],
-    ) ?? []);
+    return (messagesData?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
   }, [messagesData]);
 
   /**
