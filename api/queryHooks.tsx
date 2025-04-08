@@ -497,3 +497,14 @@ export function useGetGroupRoleQuery(groupId: number) {
         staleTime: 10000,
     });
 }
+
+/**
+ * 获取角色所有的ability
+ */
+export function useGetRoleAbilitiesQuery(roleId: number) {
+    return useQuery({
+        queryKey: ["listRoleAbility", roleId],
+        queryFn: () => tuanchat.abilityController.listRoleAbility(roleId),
+        staleTime: 10000,
+    });
+}

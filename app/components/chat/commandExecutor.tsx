@@ -1,12 +1,15 @@
 // type DiceResult = { x: number; y: number; rolls: number[]; total: number };
+import { useGetRoleAbilitiesQuery } from "../../../api/queryHooks";
+
 export function isCommand(command: string) {
   const trimmed = command.trim();
   return (trimmed.startsWith(".") || trimmed.startsWith("。"));
 }
 
 export class CommandExecutor {
-  private defaultDice: number = 0;
-  private attributes: Record<string, number> = {};
+  // 从localstorage中获取吧
+  public defaultDice: number = 0;
+  public attributes: Record<string, number> = {};
 
   constructor(readonly roleId: number) {}
 
@@ -78,6 +81,7 @@ export class CommandExecutor {
     return `掷骰结果：${rolls.join("+")}=${total} (${x}D${y})`;
   }
 
+  // TODO 也许可以把默认值设置到localstorage
   private handleSet(args: string[]): string {
     const [faces] = args;
     if (!faces)
@@ -145,6 +149,7 @@ export class CommandExecutor {
     return `${attr}检定：D100=${roll}/${value} ${result}`;
   }
 
+  // TODO
   private handleSc(args: string[]): string {
     const [expr] = args;
     if (!expr)
@@ -174,12 +179,8 @@ export class CommandExecutor {
   }
 
   /** 计算SAN值扣除 */
-  private calculateSanLoss(
-    roll: number,
-    san: number,
-    successVal: number,
-    failureExpr: string,
-  ): number {
+  // TODO
+  private calculateSanLoss(roll: number, san: number, successVal: number, failureExpr: string): number {
     if (roll <= san) {
       return successVal;
     }
@@ -203,6 +204,7 @@ export class CommandExecutor {
       .reduce((sum, val) => sum + val, 0);
   }
 
+  // TODO
   private handleEn(args: string[]): string {
     const [attr] = args;
     if (!attr)
@@ -224,4 +226,22 @@ export class CommandExecutor {
   private rollDice(sides: number): number {
     return Math.floor(Math.random() * sides) + 1;
   }
+}
+
+export default function useCommandExecutor(roleId: number) {
+  const executor = new CommandExecutor(roleId);
+  const abilityQuery = useGetRoleAbilitiesQuery(roleId);
+  // 合并所有的ability
+  const mergedAbilities = abilityQuery.data?.data?.reduce((acc, cur) => {
+    if (cur?.ability) {
+      return { ...acc, ...cur.ability };
+    }
+    return acc;
+  }, {} as Record<string, number>);
+  // 更新执行器属性
+  if (mergedAbilities) {
+    executor.attributes = mergedAbilities;
+  }
+
+  return executor;
 }

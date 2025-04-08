@@ -6,7 +6,7 @@ import type {
 
 import { ChatBubble } from "@/components/chat/chatBubble";
 
-import { CommandExecutor, isCommand } from "@/components/chat/commandExecutor";
+import useCommandExecutor, { isCommand } from "@/components/chat/commandExecutor";
 
 import { GroupContext } from "@/components/chat/GroupContext";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
@@ -38,7 +38,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const [useChatBoxStyle, setUseChatBoxStyle] = useState(true);
   const PAGE_SIZE = 30; // 每页消息数量
-  const commandExecutor = new CommandExecutor(curRoleId);
+  const commandExecutor = useCommandExecutor(curRoleId);
 
   // 承载聊天记录窗口的ref
   const chatFrameRef = useRef<HTMLDivElement>(null);
