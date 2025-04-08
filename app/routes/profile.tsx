@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 
-import { UserDetail } from "@/view/common/userDetail";
+import { UserDetail } from "@/components/common/userDetail";
 
 export function meta(_args: Route.MetaArgs) {
   return [

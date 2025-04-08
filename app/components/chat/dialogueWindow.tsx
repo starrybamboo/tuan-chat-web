@@ -1,24 +1,25 @@
+import type { FormEvent } from "react";
 import type {
   ChatMessagePageRequest,
   ChatMessageRequest,
   ChatMessageResponse,
-} from "api";
-import type { FormEvent } from "react";
+} from "../../../api";
 
+import { ChatBubble } from "@/components/chat/chatBubble";
+
+import { GroupContext } from "@/components/chat/GroupContext";
+import { MemberTypeTag } from "@/components/chat/memberTypeTag";
+
+import { PopWindow } from "@/components/common/popWindow";
+import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import UserAvatarComponent from "@/components/common/userAvatar";
+import { UserDetail } from "@/components/common/userDetail";
 import { commands } from "@/utils/commands";
-
-import { ChatBubble } from "@/view/chat/components/chatBubble";
-import { GroupContext } from "@/view/chat/components/GroupContext";
-
-import { MemberTypeTag } from "@/view/chat/components/memberTypeTag";
-import { PopWindow } from "@/view/common/popWindow";
-import RoleAvatarComponent from "@/view/common/roleAvatar";
-import { ImgUploaderWithCopper } from "@/view/common/uploader/imgUploaderWithCopper";
-import UserAvatarComponent from "@/view/common/userAvatar";
-import { UserDetail } from "@/view/common/userDetail";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
-import { tuanchat } from "api/instance";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { tuanchat } from "../../../api/instance";
 import {
   useAddMemberMutation,
   useAddRoleMutation,
@@ -27,9 +28,8 @@ import {
   useGetRoleAvatarsQuery,
   useGetUserInfoQuery,
   useGetUserRolesQuery,
-} from "api/queryHooks";
-import { useWebSocket } from "api/useWebSocket";
-import { useEffect, useMemo, useRef, useState } from "react";
+} from "../../../api/queryHooks";
+import { useWebSocket } from "../../../api/useWebSocket";
 
 export function DialogueWindow({ groupId }: { groupId: number }) {
   const [inputText, setInputText] = useState("");

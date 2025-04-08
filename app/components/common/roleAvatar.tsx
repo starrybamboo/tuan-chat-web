@@ -1,6 +1,6 @@
-import { GroupContext } from "@/view/chat/components/GroupContext";
-import { PopWindow } from "@/view/common/popWindow";
-import { RoleDetail } from "@/view/common/roleDetail";
+import { GroupContext } from "@/components/chat/GroupContext";
+import { PopWindow } from "@/components/common/popWindow";
+import { RoleDetail } from "@/components/common/roleDetail";
 import { use, useState } from "react";
 import { useDeleteRole1Mutation, useGetRoleAvatarQuery } from "../../../api/queryHooks";
 

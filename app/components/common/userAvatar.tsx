@@ -1,6 +1,6 @@
-import { GroupContext } from "@/view/chat/components/GroupContext";
-import { PopWindow } from "@/view/common/popWindow";
-import { UserDetail } from "@/view/common/userDetail";
+import { GroupContext } from "@/components/chat/GroupContext";
+import { PopWindow } from "@/components/common/popWindow";
+import { UserDetail } from "@/components/common/userDetail";
 import { use, useState } from "react";
 import { useDeleteMemberMutation, useGetUserInfoQuery } from "../../../api/queryHooks";
 

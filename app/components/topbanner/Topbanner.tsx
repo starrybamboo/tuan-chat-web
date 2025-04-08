@@ -1,5 +1,5 @@
+import UserAvatarComponent from "@/components/common/userAvatar";
 import { checkAuthStatus } from "@/utils/auth/authapi";
-import UserAvatarComponent from "@/view/common/userAvatar";
 import { QueryClient, useQuery } from "@tanstack/react-query";
 import LoginButton from "../auth/LoginButton";
 import ThemeSwitch from "../themeSwitch";

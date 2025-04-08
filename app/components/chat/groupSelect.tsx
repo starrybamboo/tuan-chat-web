@@ -1,6 +1,6 @@
-import DialogueWindow from "@/view/chat/components/dialogueWindow";
-import { tuanchat } from "api/instance";
+import DialogueWindow from "@/components/chat/dialogueWindow";
 import React, { useEffect, useState } from "react";
+import { tuanchat } from "../../../api/instance";
 
 export default function GroupSelect() {
   // 一级群组列表数据

@@ -1,7 +1,7 @@
-// import type { Message } from "@/view/chat/components/message";
-import type { ChatMessageResponse } from "api";
-import RoleAvatarComponent from "@/view/common/roleAvatar";
-import { useGetRoleQuery } from "../../../../api/queryHooks";
+// import type { Message } from "@/view/chat/chat/message";
+import type { ChatMessageResponse } from "../../../api";
+import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { useGetRoleQuery } from "../../../api/queryHooks";
 /**
  * 聊天风格的对话框组件
  */

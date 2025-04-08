@@ -1,7 +1,7 @@
-import { useUserInfoQuery } from "@/view/chat/api/user";
+import { useGetUserInfoQuery } from "../../../api/queryHooks";
 
 export function UserDetail({ userId }: { userId: number }) {
-  const userQuery = useUserInfoQuery(userId);
+  const userQuery = useGetUserInfoQuery(userId);
 
   const user = userQuery.data?.data;
 

@@ -3,11 +3,11 @@
  */
 
 import type { Crop, PixelCrop } from "react-image-crop";
-import { UploadUtils } from "@/utils/UploadUtils";
-import { PopWindow } from "@/view/common/popWindow";
+import { PopWindow } from "@/components/common/popWindow";
+import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
 
-import { canvasPreview } from "@/view/common/uploader/imgCopper/canvasPreview";
-import { useDebounceEffect } from "@/view/common/uploader/imgCopper/useDebounceEffect";
+import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
+import { UploadUtils } from "@/utils/UploadUtils";
 
 import React, { useRef, useState } from "react";
 import { centerCrop, makeAspectCrop, ReactCrop } from "react-image-crop";
