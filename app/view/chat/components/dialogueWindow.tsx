@@ -59,13 +59,17 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
 
   // 获取用户的所有角色
   const userRolesQuery = useGetUserRolesQuery(userId ?? 10001);
-  const userRoles = userRolesQuery.data?.data ?? [];
+  const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
   // 获取当前群聊中的所有角色
   const groupRolesQuery = useGetGroupRoleQuery(groupId);
-  const groupRoles = groupRolesQuery.data?.data ?? [];
+  const groupRoles = useMemo(() => groupRolesQuery.data?.data ?? [], [groupRolesQuery.data?.data]);
+  const groupRolesThatUserOwn = useMemo(() => {
+    return groupRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
+  }, [groupRoles, userRoles]);
   // 获取当前用户选择角色的所有头像(表情差分)
   const roleAvatarQuery = useGetRoleAvatarsQuery(curRoleId ?? -1);
   const roleAvatars = roleAvatarQuery.data?.data ?? [];
+  // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(groupId);
   const members = membersQuery.data?.data ?? [];
 
@@ -171,8 +175,14 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
         clearTimeout(timeoutId); // 清除定时器
       }
     };
-  }, [historyMessages]);
-
+  }, []);
+  /**
+   * 默认设置启用第一个角色
+   */
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+    setCurRoleId(groupRolesThatUserOwn[0]?.roleId ?? -1);
+  }, [groupRolesQuery.isFetchedAfterMount]);
   /**
    * 命令补全部分
    */
@@ -374,15 +384,14 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                     <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto">
                       {
                         // 仅显示角色列表里面有的角色
-                        userRoles.filter(userRole => groupRoles.some(groupRole => groupRole.roleId === userRole.roleId))
-                          .map(role => (
-                            <li key={role.roleId} onClick={() => handleRoleChange(role.roleId ?? -1)} className="flex, flex-row">
-                              <div className="w-full">
-                                <RoleAvatarComponent avatarId={role.avatarId ?? 0} width={10} isRounded={false} withTitle={false} stopPopWindow={true}></RoleAvatarComponent>
-                                <div>{role.roleName}</div>
-                              </div>
-                            </li>
-                          ))
+                        groupRolesThatUserOwn.map(role => (
+                          <li key={role.roleId} onClick={() => handleRoleChange(role.roleId ?? -1)} className="flex, flex-row">
+                            <div className="w-full">
+                              <RoleAvatarComponent avatarId={role.avatarId ?? 0} width={10} isRounded={false} withTitle={false} stopPopWindow={true}></RoleAvatarComponent>
+                              <div>{role.roleName}</div>
+                            </div>
+                          </li>
+                        ))
                       }
                     </ul>
                   </div>

@@ -1,12 +1,13 @@
 import type { Route } from "./+types/root";
-import Home from "@/routes/home";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Topbar from "@/components/topbanner/Topbanner";
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
   isRouteErrorResponse,
   Links,
   Meta,
+  Outlet,
   Scripts,
   ScrollRestoration,
 } from "react-router";
@@ -48,8 +49,8 @@ const queryClient = new QueryClient();
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      {/* <Outlet /> */}
-      <Home></Home>
+      <Topbar></Topbar>
+      <Outlet />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

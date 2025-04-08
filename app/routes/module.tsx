@@ -10,7 +10,7 @@ export function meta(_args: Route.MetaArgs) {
 export default function Home() {
   return (
     <div className="h-screen">
-      <p>欢迎来到团聚共创</p>
+      <p>module</p>
     </div>
   );
 }
