@@ -33,7 +33,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 export function DialogueWindow({ groupId }: { groupId: number }) {
   const [inputText, setInputText] = useState("");
-  const [curRoleIndex, setCurRoleIndex] = useState(0);
+  const [curRoleId, setCurRoleId] = useState(-1);
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const [useChatBoxStyle, setUseChatBoxStyle] = useState(true);
   const PAGE_SIZE = 30; // 每页消息数量
@@ -64,7 +64,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const groupRolesQuery = useGetGroupRoleQuery(groupId);
   const groupRoles = groupRolesQuery.data?.data ?? [];
   // 获取当前用户选择角色的所有头像(表情差分)
-  const roleAvatarQuery = useGetRoleAvatarsQuery(userRoles[curRoleIndex]?.roleId ?? -1);
+  const roleAvatarQuery = useGetRoleAvatarsQuery(curRoleId ?? -1);
   const roleAvatars = roleAvatarQuery.data?.data ?? [];
   const membersQuery = useGetMemberListQuery(groupId);
   const members = membersQuery.data?.data ?? [];
@@ -145,10 +145,10 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     }
     if (messageEntry?.isIntersecting && hasNextPage && !isFetchingNextPage && chatFrameRef.current) {
       // 记录之前的滚动位置并在fetch完后移动到该位置, 防止连续多次获取
-      const scrollButton = chatFrameRef.current.scrollHeight - chatFrameRef.current.scrollTop;
+      const scrollBottom = chatFrameRef.current.scrollHeight - chatFrameRef.current.scrollTop;
       fetchNextPage().then(() => {
         if (chatFrameRef.current) {
-          chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight - scrollButton, behavior: "instant" });
+          chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight - scrollBottom, behavior: "instant" });
         }
       });
     }
@@ -164,7 +164,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
           chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight, behavior: "instant" });
         }
         hasInitialized.current = true;
-      }, 200);
+      }, 400);
     }
     return () => { // 清理函数
       if (timeoutId) {
@@ -207,7 +207,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     // 构造消息请求对象
     const messageRequest: ChatMessageRequest = {
       roomId: groupId,
-      roleId: userRoles[curRoleIndex].roleId,
+      roleId: curRoleId,
       content: inputText.trim(),
       avatarId: roleAvatars[curAvatarIndex].avatarId || -1,
       messageType: 1,
@@ -237,8 +237,8 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     }
   };
 
-  const handleRoleChange = (roleIndex: number) => {
-    setCurRoleIndex(roleIndex);
+  const handleRoleChange = (roleId: number) => {
+    setCurRoleId(roleId);
     setCurAvatarIndex(0);
   };
 
@@ -305,7 +305,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                     stopPopWindow={true}
                   >
                   </RoleAvatarComponent>
-                  <div>{userRoles?.[curRoleIndex]?.roleName || ""}</div>
+                  <div>{userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}</div>
                 </div>
                 {/* 表情差分选择器 */}
                 <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-92 p-2 shadow-sm">
@@ -375,8 +375,8 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                       {
                         // 仅显示角色列表里面有的角色
                         userRoles.filter(userRole => groupRoles.some(groupRole => groupRole.roleId === userRole.roleId))
-                          .map((role, index) => (
-                            <li key={role.roleId} onClick={() => handleRoleChange(index)} className="flex, flex-row">
+                          .map(role => (
+                            <li key={role.roleId} onClick={() => handleRoleChange(role.roleId)} className="flex, flex-row">
                               <div className="w-full">
                                 <RoleAvatarComponent avatarId={role.avatarId ?? 0} width={10} isRounded={false} withTitle={false} stopPopWindow={true}></RoleAvatarComponent>
                                 <div>{role.roleName}</div>

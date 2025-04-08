@@ -10,7 +10,7 @@ import { AiService } from './services/AiService';
 import { OssService } from './services/OssService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class TuanChat {
-    public readonly : Service;
+    public readonly service: Service;
     public readonly ai: AiService;
     public readonly oss: OssService;
     public readonly request: BaseHttpRequest;
@@ -26,7 +26,7 @@ export class TuanChat {
             HEADERS: config?.HEADERS,
             ENCODE_PATH: config?.ENCODE_PATH,
         });
-        this. = new Service(this.request);
+        this.service = new Service(this.request);
         this.ai = new AiService(this.request);
         this.oss = new OssService(this.request);
     }
