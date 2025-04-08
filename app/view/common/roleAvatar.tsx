@@ -1,10 +1,8 @@
 import { GroupContext } from "@/view/chat/components/GroupContext";
 import { PopWindow } from "@/view/common/popWindow";
 import { RoleDetail } from "@/view/common/roleDetail";
-import { useQuery } from "@tanstack/react-query";
-import { tuanchat } from "api/instance";
 import { use, useState } from "react";
-import { useDeleteRole1Mutation } from "../../../api/queryHooks";
+import { useDeleteRole1Mutation, useGetRoleAvatarQuery } from "../../../api/queryHooks";
 
 const sizeMap = {
   6: "w-6 h-6", // 24px
@@ -22,13 +20,7 @@ const sizeMap = {
 } as const;
 
 export default function RoleAvatarComponent({ avatarId, width, isRounded, withTitle, stopPopWindow = false }: { avatarId: number; width: keyof typeof sizeMap; isRounded: boolean; withTitle: boolean; stopPopWindow?: boolean }) {
-  const avatarQuery = useQuery(
-    {
-      queryKey: ["avatarController.getRoleAvatar", avatarId],
-      queryFn: () => tuanchat.service.getRoleAvatar(avatarId),
-      staleTime: 600000,
-    },
-  );
+  const avatarQuery = useGetRoleAvatarQuery(avatarId);
 
   // 控制角色详情的popWindow
   const [isOpen, setIsOpen] = useState(false);

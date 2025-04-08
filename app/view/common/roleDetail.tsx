@@ -1,22 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-import { tuanchat } from "api/instance";
+import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../api/queryHooks";
 
 export function RoleDetail({ roleId }: { roleId: number }) {
-  const roleQuery = useQuery({
-    queryKey: ["roleController.getRole", roleId],
-    queryFn: () => tuanchat.service.getRole(roleId),
-  });
+  const roleQuery = useGetRoleQuery(roleId);
 
   const role = roleQuery.data?.data;
 
-  const avatarQuery = useQuery(
-    {
-      queryKey: ["getRoleAvatar", role?.avatarId],
-      queryFn: () => tuanchat.service.getRoleAvatar(role?.avatarId ?? -1),
-      staleTime: 600000,
-      enabled: !!role,
-    },
-  );
+  const avatarQuery = useGetRoleAvatarQuery(role?.avatarId || 0);
 
   return (
     <div className="card bg-base-100 shadow-xl min-w-[20vw]">
@@ -73,23 +62,23 @@ export function RoleDetail({ roleId }: { roleId: number }) {
             <span className="font-mono">{roleId}</span>
           </div>
 
-          {role?.createTime && (
-            <div className="flex justify-between">
-              <span className="text-base-content/70">创建时间</span>
-              <span>
-                {role.createTime}
-              </span>
-            </div>
-          )}
+          {/* {role?.createTime && ( */}
+          {/*  <div className="flex justify-between"> */}
+          {/*    <span className="text-base-content/70">创建时间</span> */}
+          {/*    <span> */}
+          {/*      {role.createTime} */}
+          {/*    </span> */}
+          {/*  </div> */}
+          {/* )} */}
 
-          {role?.updateTime && (
-            <div className="flex justify-between">
-              <span className="text-base-content/70">最后更新</span>
-              <span>
-                {role.updateTime}
-              </span>
-            </div>
-          )}
+          {/* {role?.updateTime && ( */}
+          {/*  <div className="flex justify-between"> */}
+          {/*    <span className="text-base-content/70">最后更新</span> */}
+          {/*    <span> */}
+          {/*      {role.updateTime} */}
+          {/*    </span> */}
+          {/*  </div> */}
+          {/* )} */}
         </div>
 
         {/* 加载错误处理 */}

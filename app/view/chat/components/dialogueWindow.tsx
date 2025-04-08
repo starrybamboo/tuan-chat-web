@@ -96,7 +96,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   } = useInfiniteQuery({
     queryKey: ["messageHistory", groupId],
     queryFn: async ({ pageParam }) => {
-      return tuanchat.service.getMsgPage(pageParam);
+      return tuanchat.chatController.getMsgPage(pageParam);
     },
     getNextPageParam: (lastPage) => {
       if (lastPage.data === undefined || lastPage.data.isLast) {
@@ -376,7 +376,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                         // 仅显示角色列表里面有的角色
                         userRoles.filter(userRole => groupRoles.some(groupRole => groupRole.roleId === userRole.roleId))
                           .map(role => (
-                            <li key={role.roleId} onClick={() => handleRoleChange(role.roleId)} className="flex, flex-row">
+                            <li key={role.roleId} onClick={() => handleRoleChange(role.roleId ?? -1)} className="flex, flex-row">
                               <div className="w-full">
                                 <RoleAvatarComponent avatarId={role.avatarId ?? 0} width={10} isRounded={false} withTitle={false} stopPopWindow={true}></RoleAvatarComponent>
                                 <div>{role.roleName}</div>
@@ -465,7 +465,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
             {userRoles.map(role => (
               <div className="" key={role.avatarId}>
                 <div className="flex flex-col items-center">
-                  <div onClick={() => handleAddRole(role.roleId)} className="">
+                  <div onClick={() => handleAddRole(role.roleId ?? -1)} className="">
                     <RoleAvatarComponent
                       avatarId={role.avatarId ?? -1}
                       width={24}
