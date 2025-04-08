@@ -5,24 +5,14 @@
 import type { BaseHttpRequest } from './core/BaseHttpRequest';
 import type { OpenAPIConfig } from './core/OpenAPI';
 import { FetchHttpRequest } from './core/FetchHttpRequest';
-import { AvatarControllerService } from './services/AvatarControllerService';
-import { ChatControllerService } from './services/ChatControllerService';
-import { GroupControllerService } from './services/GroupControllerService';
-import { GroupMemberControllerService } from './services/GroupMemberControllerService';
-import { GroupRoleControllerService } from './services/GroupRoleControllerService';
-import { OssControllerService } from './services/OssControllerService';
-import { RoleControllerService } from './services/RoleControllerService';
-import { UserControllerService } from './services/UserControllerService';
+import { Service } from './services/Service';
+import { AiService } from './services/AiService';
+import { OssService } from './services/OssService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class TuanChat {
-    public readonly avatarController: AvatarControllerService;
-    public readonly chatController: ChatControllerService;
-    public readonly groupController: GroupControllerService;
-    public readonly groupMemberController: GroupMemberControllerService;
-    public readonly groupRoleController: GroupRoleControllerService;
-    public readonly ossController: OssControllerService;
-    public readonly roleController: RoleControllerService;
-    public readonly userController: UserControllerService;
+    public readonly : Service;
+    public readonly ai: AiService;
+    public readonly oss: OssService;
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
         this.request = new HttpRequest({
@@ -36,14 +26,9 @@ export class TuanChat {
             HEADERS: config?.HEADERS,
             ENCODE_PATH: config?.ENCODE_PATH,
         });
-        this.avatarController = new AvatarControllerService(this.request);
-        this.chatController = new ChatControllerService(this.request);
-        this.groupController = new GroupControllerService(this.request);
-        this.groupMemberController = new GroupMemberControllerService(this.request);
-        this.groupRoleController = new GroupRoleControllerService(this.request);
-        this.ossController = new OssControllerService(this.request);
-        this.roleController = new RoleControllerService(this.request);
-        this.userController = new UserControllerService(this.request);
+        this. = new Service(this.request);
+        this.ai = new AiService(this.request);
+        this.oss = new OssService(this.request);
     }
 }
 
