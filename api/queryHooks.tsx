@@ -29,7 +29,8 @@ import type {AbilitySetRequest} from "./models/AbilitySetRequest";
 import type {AbilityUpdateRequest} from "./models/AbilityUpdateRequest";
 import type { UseQueryResult } from "@tanstack/react-query";
 
-import type { ApiResultListRoleResponse, ApiResultRoleAbility, ApiResultUserInfoResponse } from "api";
+import type { ApiResultListRoleResponse, ApiResultRoleAbility, ApiResultUserInfoResponse, RoleResponse } from "api";
+import { useCallback, useState } from 'react';
 
 
 // ==================== 角色管理 ====================
@@ -618,6 +619,7 @@ export function useRoleQuery(userQuery: UseQueryResult<ApiResultUserInfoResponse
   return roleQuery;
 }
 
+// 头像查询
 export function useRoleAvaterQuery(roleId: number) {
   const roleAvatarQuery = useQuery({
     queryKey: ["roleAvatar", roleId],
@@ -679,5 +681,77 @@ export function useAbilityQuery(roleId: number) {
   return abilityQuery;
 }
 
+
+//Warpper界面useEffect的逻辑,去掉了useEffect
+import type { CharacterData } from '@/components/character/characterWrapper';
+export const useCharacterInitialization = (roleQuery: any) => {
+  const queryClient = useQueryClient();
+  const [characters, setCharacters] = useState<CharacterData[]>([]);
+
+  const initializeCharacters = useCallback(async () => {
+    if (roleQuery.data && Array.isArray(roleQuery.data.data)) {
+      const mappedCharacters = roleQuery.data.data.map((role: RoleResponse) => ({
+        id: role.roleId || 0,
+        name: role.roleName || "",
+        age: 25,
+        gender: "未知",
+        profession: "",
+        hometown: "",
+        address: "",
+        currentTime: new Date().toLocaleString(),
+        health: {
+          max: 100,
+          current: 100,
+        },
+        magic: {
+          max: 100,
+          current: 100,
+        },
+        sanity: {
+          max: 100,
+          current: 100,
+        },
+        luck: 50,
+        description: role.description || "无描述",
+        avatar: undefined,
+        currentIndex: 0,
+      }));
+
+      setCharacters(mappedCharacters);
+
+      // 异步加载每个角色的头像
+      for (const character of mappedCharacters) {
+        try {
+          const res = await tuanchat.avatarController.getRoleAvatars(character.id);
+          if (
+            res.success &&
+            Array.isArray(res.data) &&
+            res.data.length > 0 &&
+            res.data[0]?.avatarUrl !== undefined &&
+            res.data[0] !== undefined
+          ) {
+            const avatarUrl = res.data.find((avatar: RoleAvatar) => avatar.avatarId === character.currentIndex)?.avatarUrl || res.data[0]?.avatarUrl;
+            queryClient.setQueryData(["roleAvatar", character.id], avatarUrl);
+            setCharacters((prevChars: any[]) =>
+              prevChars.map(char =>
+                char.id === character.id ? { ...char, avatar: avatarUrl } : char,
+              ),
+            );
+          } else {
+            console.warn(`角色 ${character.id} 的头像数据无效或为空`);
+          }
+        } catch (error) {
+          console.error(`加载角色 ${character.id} 的头像时出错`, error);
+        }
+      }
+    }
+  }, [roleQuery.data, queryClient]);
+
+  const updateCharacters = (newCharacters: CharacterData[]) => {
+    setCharacters(newCharacters);
+  };
+
+  return { characters, initializeCharacters, updateCharacters };
+};
    
 

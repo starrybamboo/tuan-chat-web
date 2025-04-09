@@ -1,5 +1,5 @@
 /* eslint-disable react-dom/no-missing-button-type */
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useState } from "react";
 import { ImgUploaderWithCopper } from "../common/uploader/imgUploaderWithCopper";
@@ -16,6 +16,7 @@ interface HeadProps {
 
 export default function Head({ onAvatarChange, onAvatarIdChange, roleId, currentAvatar, userQuery, roleQuery }: HeadProps) {
   const [recordNewAvatar, setRecordNewAvatar] = useState<number | null>(null);
+  const queryClient = useQueryClient();
   // 上传头像到服务器
   const { mutate } = useMutation({
     mutationKey: ["uploadAvatar"],
@@ -51,6 +52,7 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
           }
 
           console.warn("头像上传成功");
+          queryClient.invalidateQueries({ queryKey: ["roleAvatar", roleId] });
           return uploadRes;
         }
         else {

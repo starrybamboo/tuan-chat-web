@@ -1,8 +1,7 @@
 /* eslint-disable react-dom/no-missing-button-type */
-import type { RoleAvatar, RoleResponse } from "api";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { useRoleQuery, useUserQuery } from "api/queryHooks";
+import { useCharacterInitialization, useRoleQuery, useUserQuery } from "api/queryHooks";
 import CharacterNav from "app/components/character/characterNav";
 import CreatCharacter from "app/components/character/creatCharacter";
 import PreviewCharacter from "app/components/character/previewCharacter";
@@ -40,12 +39,10 @@ export interface CharacterData {
 export default function CharacterWrapper() {
   // 调用API部分
   // 获取用户数据
-  const queryClient = useQueryClient();
   const userQuery = useUserQuery();
   const roleQuery = useRoleQuery(userQuery);
 
   // 动态页面的规划
-  const [characters, setCharacters] = useState<CharacterData[]>([]);
   const [selectedCharacter, setSelectedCharacter] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<number | null>(null);
@@ -57,74 +54,13 @@ export default function CharacterWrapper() {
   // 切换角色后的保存
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
 
-  // 初始化用户角色信息
+  // 使用自定义 Hook 初始化角色数据
+  const { characters, initializeCharacters, updateCharacters } = useCharacterInitialization(roleQuery);
+
+  // 初始化用户角色信息,这里改不了,不然会创建角色时会出问题
   useEffect(() => {
-    if (roleQuery.data && Array.isArray(roleQuery.data.data)) {
-      const mappedCharacters = roleQuery.data.data.map((role: RoleResponse) => ({
-        id: role.roleId || 0,
-        name: role.roleName || "",
-        age: 25,
-        gender: "未知",
-        profession: "",
-        hometown: "",
-        address: "",
-        currentTime: new Date().toLocaleString(),
-        health: {
-          max: 100,
-          current: 100,
-        },
-        magic: {
-          max: 100,
-          current: 100,
-        },
-        sanity: {
-          max: 100,
-          current: 100,
-        },
-        luck: 50,
-        description: role.description || "无描述",
-        avatar: undefined,
-        currentIndex: 0,
-      }));
-      // 封装 setCharacters 调用，避免直接在 useEffect 中更新状态
-      const updateCharacters = () => {
-        setCharacters(mappedCharacters);
-      };
-
-      // 使用 Promise.resolve 延迟执行状态更新
-      Promise.resolve().then(updateCharacters);
-
-      // 异步加载每个角色的头像
-      mappedCharacters.forEach(async (character: CharacterData) => {
-        try {
-          const res = await tuanchat.avatarController.getRoleAvatars(character.id);
-          if (
-            res.success
-            && Array.isArray(res.data) // 检查是否为数组
-            && res.data.length > 0 // 检查数组是否非空
-            && res.data[0]?.avatarUrl !== undefined // 检查是否有 avatarUrl 属性
-            && res.data[0] !== undefined
-          ) {
-            const avatarUrl = res.data.find((avatar: RoleAvatar) => {
-              return avatar.avatarId === character.currentIndex;
-            })?.avatarUrl || res.data[0]?.avatarUrl;
-            queryClient.setQueryData(["roleAvatar", character.id], avatarUrl);
-            setCharacters(prevChars =>
-              prevChars.map(char =>
-                char.id === character.id ? { ...char, avatar: avatarUrl } : char,
-              ),
-            );
-          }
-          else {
-            console.warn(`角色 ${character.id} 的头像数据无效或为空`);
-          }
-        }
-        catch (error) {
-          console.error(`加载角色 ${character.id} 的头像时出错`, error);
-        }
-      });
-    }
-  }, [roleQuery.data, queryClient]);
+    initializeCharacters();
+  }, [initializeCharacters]);
 
   const { mutate: deleteRole } = useMutation({
     mutationKey: ["deleteRole"],
@@ -145,14 +81,14 @@ export default function CharacterWrapper() {
   });
   // 各种事件的处理
   const handleCreate = (newCharacter: CharacterData) => {
-    setCharacters([...characters, newCharacter]);
+    updateCharacters([...characters, newCharacter]);
     setCreating(false);
     setSelectedCharacter(newCharacter.id);
   };
 
   // 编辑角色
   const handleUpdate = (updatedCharacter: CharacterData) => {
-    setCharacters(characters.map(c =>
+    updateCharacters(characters.map(c =>
       c.id === updatedCharacter.id ? updatedCharacter : c,
     ));
     setEditingCharacterId(null);
@@ -169,7 +105,7 @@ export default function CharacterWrapper() {
       const roleId = deleteCharacterId;
       if (roleId) {
         deleteRole([roleId]);
-        setCharacters(characters.filter(c => c.id !== deleteCharacterId));
+        updateCharacters(characters.filter(c => c.id !== deleteCharacterId));
         setSelectedCharacter(null);
       }
       else {
