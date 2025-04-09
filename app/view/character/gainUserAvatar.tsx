@@ -1,11 +1,14 @@
 /* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
-import type { RoleAvatar, UserRole } from "api";
+import type { RoleAvatar, RoleResponse, UserRole } from "api";
 import { useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
+import { useRoleQuery, useUserQuery } from "api/queryHooks";
 import { useEffect, useState } from "react";
+import { PopWindow } from "../avatarComponent/popWindow";
 
 interface Props {
   initialAvatar?: string;
+  roleId: number;
   onAvatarChange: (avatarUrl: string) => void;
   onAvatarIdChange: (avatarId: number) => void;
   userQuery?: any;
@@ -30,27 +33,28 @@ const defaultUser: User = {
   currentAvatarIndex: 0,
 };
 
-export default function GainUserAvatar({ initialAvatar, onAvatarChange, onAvatarIdChange, userQuery, roleQuery }: Props) {
+export default function GainUserAvatar({ initialAvatar, onAvatarChange, onAvatarIdChange }: Props) {
   const queryClient = useQueryClient();
+  const userQuery = useUserQuery();
+  const roleQuery = useRoleQuery(userQuery);
 
   const [user, setUser] = useState<User>(defaultUser);
   const [previewSrc, setPreviewSrc] = useState(initialAvatar || "");
 
+  // 删除弹窗用
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [avatarToDeleteIndex, setAvatarToDeleteIndex] = useState<number | null>(null);
+
   // 初始化用户角色信息
   useEffect(() => {
     if (roleQuery.data && Array.isArray(roleQuery.data.data) && userQuery.data && userQuery.data.data) {
-      const mappedCharacters = roleQuery.data.data.map((role: UserRole, index: number) => ({
+      const mappedCharacters = roleQuery.data.data.map((role: RoleResponse, index: number) => ({
         userRole: {
-          userId: userQuery.data.data.UserId || 0,
+          userId: userQuery.data?.data?.userId || 0,
           roleId: role.roleId || 0,
           roleName: role.roleName || "",
         },
-        roleAvatars: roleQuery.data.data.map((role: UserRole) => ({
-          roleId: role.roleId || 0,
-          avatarUrl: "",
-          avatarTitle: role.roleName || "",
-          avatarId: role.avatarId || 0,
-        })),
+        roleAvatars: [],
         currentAvatarIndex: index,
       }));
 
@@ -78,9 +82,7 @@ export default function GainUserAvatar({ initialAvatar, onAvatarChange, onAvatar
             // 更新角色头像
             setUser(prev => ({
               ...prev,
-              roleAvatars: prev.roleAvatars.map(char =>
-                char.roleId === user.userRole.roleId ? { ...char, avatarUrl } : char,
-              ),
+              roleAvatars: [...(res.data || [])],
             }));
           }
           else {
@@ -114,18 +116,28 @@ export default function GainUserAvatar({ initialAvatar, onAvatarChange, onAvatar
   };
 
   const handleDeleteAvatar = (index: number) => {
-    // eslint-disable-next-line no-alert
-    if (window.confirm("确定要删除该头像吗？")) {
+    setAvatarToDeleteIndex(index);
+    setIsDeleteModalOpen(true);
+  };
+  const confirmDeleteAvatar = () => {
+    if (avatarToDeleteIndex !== null) {
       setUser(prev => ({
         ...prev,
-        roleAvatars: prev.roleAvatars.filter((_, i) => i !== index),
+        roleAvatars: prev.roleAvatars.filter((_, i) => i !== avatarToDeleteIndex),
       }));
+      setAvatarToDeleteIndex(null);
+      setIsDeleteModalOpen(false);
     }
+  };
+
+  const cancelDeleteAvatar = () => {
+    setAvatarToDeleteIndex(null);
+    setIsDeleteModalOpen(false);
   };
 
   return (
     <div className="w-full relative mt-5">
-      {/* 选择和上传图像 */}
+      {/* 选择和更新图像 */}
       <div className="w-6/10 float-left">
         <div className="mt-5 ml-2">
           <p>
@@ -182,6 +194,30 @@ export default function GainUserAvatar({ initialAvatar, onAvatarChange, onAvatar
           id="correspongdLeftImage"
         />
       </div>
+
+      {/* 删除确认弹窗 */}
+      <PopWindow isOpen={isDeleteModalOpen} onClose={cancelDeleteAvatar}>
+        <div className="flex flex-col items-center">
+          <h3 className="text-lg font-bold mb-4">确认删除头像</h3>
+          <p className="mb-4">确定要删除该头像吗？</p>
+          <div className="flex space-x-4">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={cancelDeleteAvatar}
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={confirmDeleteAvatar}
+            >
+              确认
+            </button>
+          </div>
+        </div>
+      </PopWindow>
     </div>
   );
 }

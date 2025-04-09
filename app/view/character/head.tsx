@@ -1,7 +1,6 @@
 /* eslint-disable react-dom/no-missing-button-type */
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { useState } from "react";
 import { ImgUploaderWithCopper } from "../avatarComponent/imgUploaderWithCopper";
 import GainUserAvatar from "./gainUserAvatar";
 
@@ -15,8 +14,6 @@ interface HeadProps {
 }
 
 export default function Head({ onAvatarChange, onAvatarIdChange, roleId, currentAvatar, userQuery, roleQuery }: HeadProps) {
-  const [croppedAvatar, setCroppedAvatar] = useState<string | undefined>(undefined);
-
   // 记录新头像的id
   let recordNewAvatar = 0;
 
@@ -30,7 +27,10 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
       }
 
       try {
-        const res = await tuanchat.avatarController.setRoleAvatar({});
+        const res = await tuanchat.avatarController.setRoleAvatar({
+          roleId,
+        });
+
         if (!res.success || !res.data) {
           console.error("头像创建失败", res);
           return undefined;
@@ -73,7 +73,7 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
     <div className="h-155 p-2 w-full">
       <div className="text-center">
         <div className="m-auto w-32 h-32 bg-primary rounded-full flex items-center justify-center text-white text-2xl overflow-hidden">
-          <img src={croppedAvatar || currentAvatar} alt="" className="w-full" />
+          <img src={currentAvatar} alt="" className="w-full" />
         </div>
         <input
           type="text"
@@ -97,7 +97,6 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
               }
             }}
             setCopperedDownloadUrl={(newUrl: string): void => {
-              setCroppedAvatar(newUrl); // 存储裁剪后的头像URL
               if (onAvatarChange) {
                 onAvatarChange(newUrl); // 更新用户头像
                 onAvatarIdChange(recordNewAvatar);
@@ -112,6 +111,7 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
           </ImgUploaderWithCopper>
           <GainUserAvatar
             initialAvatar={currentAvatar}
+            roleId={roleId}
             onAvatarChange={onAvatarChange || (() => {})}
             onAvatarIdChange={onAvatarIdChange || (() => {})}
             userQuery={userQuery}

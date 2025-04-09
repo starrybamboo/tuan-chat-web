@@ -95,7 +95,7 @@ export default function CharacterWrapper() {
       Promise.resolve().then(updateCharacters);
 
       // 异步加载每个角色的头像
-      mappedCharacters.forEach(async (character) => {
+      mappedCharacters.forEach(async (character: CharacterData) => {
         try {
           const res = await tuanchat.avatarController.getRoleAvatars(character.id);
           if (
@@ -165,7 +165,7 @@ export default function CharacterWrapper() {
   };
 
   const handleConfirmDelete = async () => {
-    if (deleteCharacterId !== null && roleQuery.data?.data) {
+    if (deleteCharacterId !== null) {
       const roleId = deleteCharacterId;
       if (roleId) {
         deleteRole([roleId]);

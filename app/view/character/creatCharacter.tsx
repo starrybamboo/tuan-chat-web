@@ -3,7 +3,6 @@ import type { CharacterData } from "./characterWrapper";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useState } from "react";
-import DefaultAvatar from "../test_avatar/defaultAvatar.png";
 import Head from "./head";
 
 interface Props {
@@ -85,7 +84,7 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
           sanity,
           luck,
           description: description || "无描述",
-          avatar: avatar || DefaultAvatar,
+          avatar: avatar || "",
           currentIndex: 0,
         };
         onSave(newCharacter);
