@@ -20,18 +20,17 @@ interface User {
   currentAvatarIndex: number;
 }
 
-// 默认用户数据
-const defaultUser: User = {
-  userRole: {
-    userId: 0,
-    roleId: 0,
-    roleName: "",
-  },
-  roleAvatars: [],
-  currentAvatarIndex: 0,
-};
-
-export default function GainUserAvatar({ initialAvatar, roleId, onAvatarChange, onAvatarIdChange }: Props) {
+export default function GainUserAvatar({ initialAvatar, roleId, onAvatarChange, onAvatarIdChange, userQuery }: Props) {
+  // 默认用户数据
+  const defaultUser: User = {
+    userRole: {
+      userId: userQuery?.data?.userId || 0,
+      roleId,
+      roleName: "",
+    },
+    roleAvatars: [],
+    currentAvatarIndex: 0,
+  };
   const [user, setUser] = useState<User>(defaultUser);
   const [previewSrc, setPreviewSrc] = useState(initialAvatar || "");
 
