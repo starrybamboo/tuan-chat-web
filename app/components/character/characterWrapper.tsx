@@ -210,12 +210,9 @@ export default function CharacterWrapper() {
   };
 
   return (
-    <div className="h-screen w-screen bg-[#E6F2F9]">
-      <div className="h-1/15 w-screen bg-[#3A7CA5] text-white flex items-center justify-center">
-        {/* 主导航栏 */}
-        <h1 className="text-2xl font-bold">角色管理</h1>
-      </div>
-      <div className="flex h-14/15">
+    <div className="h-full w-screen bg-[#E6F2F9]">
+
+      <div className="flex h-full">
         <div className="w-1/4">
           <CharacterNav
             characters={characters}
