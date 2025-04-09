@@ -23,23 +23,39 @@
   ],
   "tags": [
     {
-      "name": "角色相关接口",
-      "description": "角色相关接口"
+      "name": "RoleGenerationController",
+      "description": "角色能力生成相关的接口"
     },
     {
-      "name": "聊天室相关接口",
+      "name": "ChatController",
       "description": "消息收发，消息标记，与消息相关的基本在这"
     },
     {
-      "name": "用户相关接口",
+      "name": "RoleController",
+      "description": "角色相关接口"
+    },
+    {
+      "name": "UserController",
       "description": "用户相关接口"
     },
     {
-      "name": "规则管理接口",
+      "name": "AbilityController",
+      "description": "角色能力相关接口"
+    },
+    {
+      "name": "RuleController",
       "description": "提供规则的增删改查功能"
     },
     {
-      "name": "头像相关接口",
+      "name": "DiceCommentController",
+      "description": "用于测试骰娘功能的接口"
+    },
+    {
+      "name": "ImageGenerationController",
+      "description": "图像生成相关的接口"
+    },
+    {
+      "name": "AvatarController",
       "description": "头像相关接口"
     },
     {
@@ -51,7 +67,7 @@
     "/capi/rule/update": {
       "put": {
         "tags": [
-          "规则管理接口"
+          "RuleController"
         ],
         "summary": "更新规则",
         "description": "更新现有规则的信息，包括名称、描述及相关模板",
@@ -123,7 +139,7 @@
     "/capi/role": {
       "get": {
         "tags": [
-          "角色相关接口"
+          "RoleController"
         ],
         "summary": "根据id获取角色",
         "operationId": "getRole",
@@ -193,7 +209,7 @@
       },
       "put": {
         "tags": [
-          "角色相关接口"
+          "RoleController"
         ],
         "summary": "更新角色信息",
         "operationId": "updateRole",
@@ -262,7 +278,7 @@
       },
       "post": {
         "tags": [
-          "角色相关接口"
+          "RoleController"
         ],
         "summary": "新增角色，返回角色id",
         "operationId": "createRole",
@@ -331,7 +347,7 @@
       },
       "delete": {
         "tags": [
-          "角色相关接口"
+          "RoleController"
         ],
         "summary": "根据id批量删除角色",
         "operationId": "deleteRole",
@@ -406,7 +422,7 @@
     "/capi/role/ability": {
       "get": {
         "tags": [
-          "角色能力相关接口"
+          "AbilityController"
         ],
         "summary": "根据能力id获取角色能力",
         "operationId": "getRoleAbility",
@@ -476,7 +492,7 @@
       },
       "put": {
         "tags": [
-          "角色能力相关接口"
+          "AbilityController"
         ],
         "summary": "更新能力",
         "description": "更新指定角色的能力信息，act和ability字段不能为null或者空json",
@@ -546,7 +562,7 @@
       },
       "post": {
         "tags": [
-          "角色能力相关接口"
+          "AbilityController"
         ],
         "summary": "创建能力",
         "description": "创建指定角色在指定规则下的能力信息，返回创建的能力ID，act和ability字段不能为null或者空json",
@@ -616,7 +632,7 @@
       },
       "delete": {
         "tags": [
-          "角色能力相关接口"
+          "AbilityController"
         ],
         "summary": "根据id删除能力",
         "operationId": "deleteRoleAbility",
@@ -688,7 +704,7 @@
     "/capi/group/member/player": {
       "put": {
         "tags": [
-          "群组成员相关接口"
+          "GroupMemberController"
         ],
         "summary": "设置用户为玩家",
         "operationId": "setPlayer",
@@ -757,7 +773,7 @@
       },
       "delete": {
         "tags": [
-          "群组成员相关接口"
+          "GroupMemberController"
         ],
         "summary": "撤销用户玩家的身份",
         "operationId": "revokePlayer",
@@ -828,7 +844,7 @@
     "/capi/chat/message": {
       "put": {
         "tags": [
-          "聊天室相关接口"
+          "ChatController"
         ],
         "summary": "更新消息",
         "description": "只要有更新都走这个接口",
@@ -898,7 +914,7 @@
       },
       "post": {
         "tags": [
-          "聊天室相关接口"
+          "ChatController"
         ],
         "summary": "发送消息（备用）",
         "description": "从设计上是为了弱网环境的处理，但实际上没怎么用",
@@ -970,7 +986,7 @@
     "/capi/chat/message/move": {
       "put": {
         "tags": [
-          "聊天室相关接口"
+          "ChatController"
         ],
         "summary": "移动消息位置",
         "description": "根据beforeMessageId和afterMessageId自动判断移动类型：当都为null时返回错误，一个为null时分别对应移动到顶部或底部，都有值时表示移动到两者之间",
@@ -1042,7 +1058,7 @@
     "/capi/avatar": {
       "get": {
         "tags": [
-          "头像相关接口"
+          "AvatarController"
         ],
         "summary": "根据id获取头像",
         "operationId": "getRoleAvatar",
@@ -1112,7 +1128,7 @@
       },
       "put": {
         "tags": [
-          "头像相关接口"
+          "AvatarController"
         ],
         "summary": "根据头像id更新头像",
         "operationId": "updateRoleAvatar",
@@ -1181,7 +1197,7 @@
       },
       "post": {
         "tags": [
-          "头像相关接口"
+          "AvatarController"
         ],
         "summary": "创建头像，并返回头像ID",
         "operationId": "setRoleAvatar",
@@ -1250,7 +1266,7 @@
       },
       "delete": {
         "tags": [
-          "头像相关接口"
+          "AvatarController"
         ],
         "summary": "根据id删除头像",
         "operationId": "deleteRoleAvatar",
@@ -1322,7 +1338,7 @@
     "/capi/user/public/register": {
       "post": {
         "tags": [
-          "用户相关接口"
+          "UserController"
         ],
         "summary": "用户注册",
         "description": "用户注册接口",
@@ -1394,7 +1410,7 @@
     "/capi/user/public/login": {
       "post": {
         "tags": [
-          "用户相关接口"
+          "UserController"
         ],
         "summary": "用户登录",
         "description": "用户登录接口",
@@ -1466,7 +1482,7 @@
     "/capi/rule/create": {
       "post": {
         "tags": [
-          "规则管理接口"
+          "RuleController"
         ],
         "summary": "创建规则",
         "description": "创建一个新的游戏规则，包含规则名称、描述及相关模板",
@@ -1538,7 +1554,7 @@
     "/capi/rule/clone": {
       "post": {
         "tags": [
-          "规则管理接口"
+          "RuleController"
         ],
         "summary": "克隆规则",
         "description": "基于现有规则创建一个新的规则副本，可自定义名称和描述",
@@ -1610,7 +1626,7 @@
     "/capi/oss/upload/url": {
       "post": {
         "tags": [
-          "oss相关接口"
+          "OssController"
         ],
         "summary": "获取临时上传链接",
         "operationId": "getUploadUrl",
@@ -1681,7 +1697,7 @@
     "/capi/group/subgroup": {
       "post": {
         "tags": [
-          "群组相关接口"
+          "GroupController"
         ],
         "summary": "创建子群",
         "operationId": "createSubgroup",
@@ -1752,7 +1768,7 @@
     "/capi/group/role/": {
       "post": {
         "tags": [
-          "群组角色相关接口"
+          "GroupRoleController"
         ],
         "summary": "增加群聊的角色",
         "operationId": "addRole",
@@ -1821,7 +1837,7 @@
       },
       "delete": {
         "tags": [
-          "群组角色相关接口"
+          "GroupRoleController"
         ],
         "summary": "删除群聊的角色",
         "operationId": "deleteRole_1",
@@ -1892,7 +1908,7 @@
     "/capi/group/member/": {
       "post": {
         "tags": [
-          "群组成员相关接口"
+          "GroupMemberController"
         ],
         "summary": "新增群成员",
         "operationId": "addMember",
@@ -1961,7 +1977,7 @@
       },
       "delete": {
         "tags": [
-          "群组成员相关接口"
+          "GroupMemberController"
         ],
         "summary": "删除群成员",
         "operationId": "deleteMember",
@@ -2032,7 +2048,7 @@
     "/capi/group/": {
       "post": {
         "tags": [
-          "群组相关接口"
+          "GroupController"
         ],
         "summary": "创建群组",
         "operationId": "createGroup",
@@ -2103,7 +2119,7 @@
     "/capi/chat/message/page": {
       "post": {
         "tags": [
-          "聊天室相关接口"
+          "ChatController"
         ],
         "summary": "按页获取消息列表",
         "description": "用的是游标翻页",
@@ -2175,7 +2191,7 @@
     "/capi/chat/message/ai": {
       "post": {
         "tags": [
-          "聊天室相关接口"
+          "ChatController"
         ],
         "summary": "发送消息（备用）,骰娘回复",
         "description": "从设计上是为了弱网环境的处理，但实际上没怎么用",
@@ -2247,7 +2263,7 @@
     "/capi/ai/generateBasicInfoByRule": {
       "post": {
         "tags": [
-          "ai 相关接口"
+          "RoleGenerationController"
         ],
         "summary": "AI 根据规则生成角色基本信息",
         "description": "根据规则生成角色基本信息。",
@@ -2319,7 +2335,7 @@
     "/capi/ai/generateAbilityByRule": {
       "post": {
         "tags": [
-          "ai 相关接口"
+          "RoleGenerationController"
         ],
         "summary": "AI 根据规则生成角色基本属性",
         "description": "根据规则生成角色基本属性。",
@@ -2391,7 +2407,7 @@
     "/ai/image/textToImage": {
       "post": {
         "tags": [
-          "ai 图像生成相关接口"
+          "ImageGenerationController"
         ],
         "summary": "根据文本生成图像",
         "description": "根据提供的文本描述（包括风格、外貌描述和情感差分）生成图像",
@@ -2463,7 +2479,7 @@
     "/ai/image/imageToImage": {
       "post": {
         "tags": [
-          "ai 图像生成相关接口"
+          "ImageGenerationController"
         ],
         "summary": "图像变换",
         "description": "根据原始图片和情感差分类型生成新的图像变体",
@@ -2535,7 +2551,7 @@
     "/capi/user/info": {
       "get": {
         "tags": [
-          "用户相关接口"
+          "UserController"
         ],
         "summary": "获取用户信息",
         "description": "用户登录接口",
@@ -2608,7 +2624,7 @@
     "/capi/rule/page": {
       "get": {
         "tags": [
-          "规则管理接口"
+          "RuleController"
         ],
         "summary": "分页获取规则列表",
         "description": "分页获取规则列表，支持通过关键词搜索规则名称或描述",
@@ -2680,7 +2696,7 @@
     "/capi/rule/list": {
       "get": {
         "tags": [
-          "规则管理接口"
+          "RuleController"
         ],
         "summary": "获取规则列表",
         "description": "获取所有规则的列表",
@@ -2742,7 +2758,7 @@
     "/capi/rule/detail/{ruleId}": {
       "get": {
         "tags": [
-          "规则管理接口"
+          "RuleController"
         ],
         "summary": "获取规则详情",
         "description": "获取指定ID规则的详细信息",
@@ -2816,7 +2832,7 @@
     "/capi/role/user": {
       "get": {
         "tags": [
-          "角色相关接口"
+          "RoleController"
         ],
         "summary": "获取用户的所有角色",
         "operationId": "getUserRoles",
@@ -2888,7 +2904,7 @@
     "/capi/role/page": {
       "get": {
         "tags": [
-          "角色相关接口"
+          "RoleController"
         ],
         "summary": "分页获取角色,支持姓名模糊查询",
         "operationId": "getRolesByPage",
@@ -2959,7 +2975,7 @@
     "/capi/role/ability/page": {
       "get": {
         "tags": [
-          "角色能力相关接口"
+          "AbilityController"
         ],
         "summary": "分页查询角色能力",
         "description": "根据角色Id分页查询角色能力",
@@ -3031,7 +3047,7 @@
     "/capi/role/ability/list": {
       "get": {
         "tags": [
-          "角色能力相关接口"
+          "AbilityController"
         ],
         "summary": "根据角色id获得角色的所有能力",
         "operationId": "listRoleAbility",
@@ -3103,7 +3119,7 @@
     "/capi/group/{groupId}": {
       "get": {
         "tags": [
-          "群组相关接口"
+          "GroupController"
         ],
         "summary": "获取群组信息",
         "operationId": "getGroupInfo",
@@ -3175,7 +3191,7 @@
     "/capi/group/role/list": {
       "get": {
         "tags": [
-          "群组角色相关接口"
+          "GroupRoleController"
         ],
         "summary": "获取群聊的所有角色",
         "operationId": "groupRole",
@@ -3247,7 +3263,7 @@
     "/capi/group/member/list": {
       "get": {
         "tags": [
-          "群组成员相关接口"
+          "GroupMemberController"
         ],
         "summary": "获取群成员列表",
         "operationId": "getMemberList",
@@ -3319,7 +3335,7 @@
     "/capi/group/list": {
       "get": {
         "tags": [
-          "群组相关接口"
+          "GroupController"
         ],
         "summary": "获取当前用户加入的所有群聊",
         "operationId": "getUserGroups",
@@ -3380,7 +3396,7 @@
     "/capi/chat/message/all": {
       "get": {
         "tags": [
-          "聊天室相关接口"
+          "ChatController"
         ],
         "summary": "获取一个群的所有消息",
         "operationId": "getAllMessage",
@@ -3452,7 +3468,7 @@
     "/capi/avatar/list": {
       "get": {
         "tags": [
-          "头像相关接口"
+          "AvatarController"
         ],
         "summary": "获取角色所有的头像",
         "operationId": "getRoleAvatars",
@@ -3521,10 +3537,84 @@
         }
       }
     },
+    "/api/test/dice-comment": {
+      "get": {
+        "tags": [
+          "DiceCommentController"
+        ],
+        "summary": "测试骰子评论生成",
+        "description": "传入骰子结果，生成相应的评论",
+        "operationId": "testDiceComment",
+        "parameters": [
+          {
+            "name": "result",
+            "in": "query",
+            "description": "骰子结果",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "掷骰子结果：4+6=10"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/rule/delete/{ruleId}": {
       "delete": {
         "tags": [
-          "规则管理接口"
+          "RuleController"
         ],
         "summary": "删除规则",
         "description": "删除指定ID的规则",
