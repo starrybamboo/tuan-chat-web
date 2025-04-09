@@ -57,6 +57,10 @@
     {
       "name": "AvatarController",
       "description": "头像相关接口"
+    },
+    {
+      "name": "角色能力相关接口",
+      "description": "角色能力相关接口"
     }
   ],
   "paths": {
