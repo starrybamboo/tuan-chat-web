@@ -139,13 +139,13 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
    */
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-    if (!hasInitialized.current) {
+    if (!hasInitialized.current && messagesInfiniteQuery.isFetchedAfterMount) {
       timeoutId = setTimeout(() => {
         if (chatFrameRef.current) {
           chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight, behavior: "instant" });
         }
         hasInitialized.current = true;
-      }, 400);
+      }, 200);
     }
     return () => { // 清理函数
       if (timeoutId) {
@@ -157,9 +157,11 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
    * 默认设置启用第一个角色
    */
   useEffect(() => {
-    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-    setCurRoleId(groupRolesThatUserOwn[0]?.roleId ?? -1);
-  }, [groupRolesQuery.isFetchedAfterMount]);
+    if (groupRolesQuery.isFetchedAfterMount) {
+      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+      setCurRoleId(groupRolesThatUserOwn[0]?.roleId ?? -1);
+    }
+  }, [groupRolesQuery.data]);
   /**
    * 命令补全部分
    */
