@@ -1,13 +1,13 @@
 /* eslint-disable react-dom/no-missing-button-type */
 import type { RoleAvatar, RoleResponse } from "api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { tuanchat } from "api/instance";
 import { useRoleQuery, useUserQuery } from "api/queryHooks";
+import CharacterNav from "app/components/character/characterNav";
+import CreatCharacter from "app/components/character/creatCharacter";
+import PreviewCharacter from "app/components/character/previewCharacter";
+import { PopWindow } from "app/components/common/popWindow";
 import { useEffect, useState } from "react";
-import { tuanchat } from "../../../api/instance";
-import { PopWindow } from "../avatarComponent/popWindow";
-import CharacterNav from "./characterNav";
-import CreatCharacter from "./creatCharacter";
-import PreviewCharacter from "./previewCharacter";
 // 这是一段毫无意义的注释，用于git提交检测
 // 接收数据的接口
 export interface CharacterData {

@@ -1,5 +1,5 @@
 /* eslint-disable react-dom/no-missing-button-type */
-import type { CharacterData } from "./characterWrapper";
+import type { CharacterData } from "../../routes/characterWrapper";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useState } from "react";

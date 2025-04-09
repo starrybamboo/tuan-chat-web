@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useRoleQuery, useUserQuery } from "api/queryHooks";
 import { useEffect, useState } from "react";
-import { PopWindow } from "../avatarComponent/popWindow";
+import { PopWindow } from "../common/popWindow";
 
 interface Props {
   initialAvatar?: string;

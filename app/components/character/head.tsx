@@ -1,7 +1,8 @@
 /* eslint-disable react-dom/no-missing-button-type */
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { ImgUploaderWithCopper } from "../avatarComponent/imgUploaderWithCopper";
+import { useState } from "react";
+import { ImgUploaderWithCopper } from "../common/uploader/imgUploaderWithCopper";
 import GainUserAvatar from "./gainUserAvatar";
 
 interface HeadProps {
@@ -14,9 +15,7 @@ interface HeadProps {
 }
 
 export default function Head({ onAvatarChange, onAvatarIdChange, roleId, currentAvatar, userQuery, roleQuery }: HeadProps) {
-  // 记录新头像的id
-  let recordNewAvatar = 0;
-
+  const [recordNewAvatar, setRecordNewAvatar] = useState<number | null>(null);
   // 上传头像到服务器
   const { mutate } = useMutation({
     mutationKey: ["uploadAvatar"],
@@ -37,13 +36,13 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
         }
 
         const avatarId = res.data;
-        recordNewAvatar = avatarId || 0;
+        setRecordNewAvatar(avatarId || null);
 
         if (avatarId) {
           const uploadRes = await tuanchat.avatarController.updateRoleAvatar({
-            avatarUrl,
-            avatarId,
             roleId,
+            avatarId,
+            avatarUrl,
           });
 
           if (!uploadRes.success) {
@@ -92,13 +91,13 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
             setDownloadUrl={(newUrl: string): void => {
               if (onAvatarChange) {
                 onAvatarChange(newUrl);
-                onAvatarIdChange(recordNewAvatar);
+                onAvatarIdChange(recordNewAvatar || 0);
               }
             }}
             setCopperedDownloadUrl={(newUrl: string): void => {
               if (onAvatarChange) {
                 onAvatarChange(newUrl); // 更新用户头像
-                onAvatarIdChange(recordNewAvatar);
+                onAvatarIdChange(recordNewAvatar || 0);
                 mutate(newUrl);
               }
             }}

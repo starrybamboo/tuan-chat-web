@@ -1,5 +1,5 @@
 /* eslint-disable react-dom/no-missing-button-type */
-import type { CharacterData } from "./characterWrapper";
+import type { CharacterData } from "app/routes/characterWrapper";
 import { useState } from "react";
 
 interface Props {
