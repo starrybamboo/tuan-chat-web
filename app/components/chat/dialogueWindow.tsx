@@ -200,7 +200,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
       body: {},
     };
     if (isCommand(inputText)) {
-      const commandResult = commandExecutor.execute(inputText);
+      const commandResult = commandExecutor(inputText);
       messageRequest.body = {
         result: commandResult,
       };

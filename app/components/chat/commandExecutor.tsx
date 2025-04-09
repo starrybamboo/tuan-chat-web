@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 // type DiceResult = { x: number; y: number; rolls: number[]; total: number };
 import { useGetRoleAbilitiesQuery } from "../../../api/queryHooks";
 
@@ -6,25 +7,39 @@ export function isCommand(command: string) {
   return (trimmed.startsWith(".") || trimmed.startsWith("。"));
 }
 
-export class CommandExecutor {
-  // 从localstorage中获取吧
-  public defaultDice: number = 0;
-  public attributes: Record<string, number> = {};
+export default function useCommandExecutor(roleId: number) {
+  const defaultDice = useRef(100);
 
-  constructor(readonly roleId: number) {}
+  const abilityQuery = useGetRoleAbilitiesQuery(roleId);
 
-  execute(command: string): string {
-    const [cmdPart, ...args] = this.parseCommand(command);
+  useEffect(() => {
+    try {
+      defaultDice.current = Number(localStorage.getItem("defaultDice")) ?? 100;
+    }
+    catch (e) {
+      console.error(e);
+    }
+  }, []);
+  // 合并所有的ability
+  const attributes = abilityQuery.data?.data?.reduce((acc, cur) => {
+    if (cur?.ability) {
+      return { ...acc, ...cur.ability };
+    }
+    return acc;
+  }, {} as Record<string, number>) ?? {};
+
+  function execute(command: string): string {
+    const [cmdPart, ...args] = parseCommand(command);
     const normalizedCmd = cmdPart.toLowerCase();
 
     try {
       switch (normalizedCmd) {
-        case "r": return this.handleRoll(args);
-        case "set": return this.handleSet(args);
-        case "st": return this.handleSt(args);
-        case "rc": return this.handleRc(args);
-        case "sc": return this.handleSc(args);
-        case "en": return this.handleEn(args);
+        case "r": return handleRoll(args);
+        case "set": return handleSet(args);
+        case "st": return handleSt(args);
+        case "rc": return handleRc(args);
+        case "sc": return handleSc(args);
+        case "en": return handleEn(args);
         case "ti":
         case "li": return "疯狂症状功能暂未实现";
         default: return "未知命令";
@@ -35,7 +50,11 @@ export class CommandExecutor {
     }
   }
 
-  private parseCommand(input: string): [string, ...string[]] {
+  /**
+   *解析骰子表达式
+   * @const
+   */
+  function parseCommand(input: string): [string, ...string[]] {
     const trimmed = input.trim();
     if (!(trimmed.startsWith(".") || trimmed.startsWith("。"))) {
       throw new Error("命令需要以.或。开头");
@@ -43,13 +62,41 @@ export class CommandExecutor {
     return trimmed.slice(1).split(/\s+/) as [string, ...string[]];
   }
 
+  function parseDices(input: string): Array<{ sign: number; x: number; y: number }> {
+    // 处理空输入使用默认骰子
+    if (input.trim() === "") {
+      if (!defaultDice)
+        throw new Error("未设置默认骰子");
+      return [{ sign: 1, x: 1, y: defaultDice.current }];
+    }
+    // 使用正则拆分带符号的表达式
+    const segments = input.split(/(?=[+-])/g);
+    const parsedSegments = [];
+    for (const segment of segments) {
+      let sign = 1;
+      let diceExpr = segment;
+      // 解析符号
+      if (diceExpr.startsWith("+")) {
+        diceExpr = diceExpr.slice(1);
+      }
+      else if (diceExpr.startsWith("-")) {
+        sign = -1;
+        diceExpr = diceExpr.slice(1);
+      }
+      // 解析单个骰子
+      const { x, y } = parseSingleDice(diceExpr);
+      parsedSegments.push({ sign, x, y });
+    }
+    return parsedSegments;
+  }
+
   /** 核心骰子解析逻辑 */
-  private parseDice(input: string): { x: number; y: number } {
+  function parseSingleDice(input: string): { x: number; y: number } {
     // 处理默认骰子情况
     if (input === "d" || input === "") {
-      if (!this.defaultDice)
+      if (!defaultDice)
         throw new Error("未设置默认骰子");
-      return { x: 1, y: this.defaultDice };
+      return { x: 1, y: defaultDice.current };
     }
 
     // 分割d前后的数字
@@ -65,7 +112,7 @@ export class CommandExecutor {
       throw new Error(`无效的骰子数量: ${xPart}`);
 
     // 解析y值
-    const y = yPart ? Number.parseInt(yPart) : this.defaultDice;
+    const y = yPart ? Number.parseInt(yPart) : defaultDice.current;
     if (Number.isNaN(y) || y < 1) {
       throw new Error(`无效的骰子面数: ${yPart || "未指定"}`);
     }
@@ -73,16 +120,58 @@ export class CommandExecutor {
     return { x, y };
   }
 
-  private handleRoll(args: string[]): string {
+  /** 可以处理多个骰子相加 */
+  function handleRoll(args: string[]): string {
     const input = args[0] || "";
-    const { x, y } = this.parseDice(input);
-    const rolls = Array.from({ length: x }, () => this.rollDice(y));
-    const total = rolls.reduce((sum, val) => sum + val, 0);
-    return `掷骰结果：${rolls.join("+")}=${total} (${x}D${y})`;
+    try {
+      const diceSegments = parseDices(input);
+      const segmentResults = [];
+
+      // 计算每个骰子段的结果
+      for (const { sign, x, y } of diceSegments) {
+        const rolls = Array.from({ length: x }, () => rollDice(y));
+        const segmentValue = rolls.reduce((sum, val) => sum + val, 0) * sign;
+        segmentResults.push({ sign, rolls, segmentValue });
+      }
+      // 计算总和
+      const total = segmentResults.reduce((sum, r) => sum + r.segmentValue, 0);
+      // 构建展示表达式
+      const expressionParts = [];
+      const diceNotationParts = [];
+      for (let i = 0; i < segmentResults.length; i++) {
+        const { sign, rolls } = segmentResults[i];
+        const { x, y } = diceSegments[i];
+        const isFirst = i === 0;
+        // 骰子表达式部分
+        diceNotationParts.push(
+          `${sign === -1 ? "-" : (isFirst ? "" : "+")}${x}D${y}`,
+        );
+        // 结果展示部分
+        const rollSum = rolls.reduce((a, b) => a + b, 0);
+        if (isFirst) {
+          expressionParts.push(rolls.length > 1 ? `${rolls.join("+")}` : `${rollSum}`);
+        }
+        else {
+          const operator = sign === 1 ? "+" : "-";
+          expressionParts.push(
+            rolls.length > 1
+              ? `${operator}(${rolls.join("+")})`
+              : `${operator}${rollSum}`,
+          );
+        }
+      }
+      return `掷骰结果：${expressionParts.join(" ")}=${total} (${diceNotationParts.join("")})`;
+    }
+    catch (error) {
+      return `错误：${error ?? "未知错误"}`;
+    }
   }
 
-  // TODO 也许可以把默认值设置到localstorage
-  private handleSet(args: string[]): string {
+  /**
+   *解析set命令(设置默认骰)
+   * @const
+   */
+  function handleSet(args: string[]): string {
     const [faces] = args;
     if (!faces)
       throw new Error("缺少骰子面数参数");
@@ -91,11 +180,16 @@ export class CommandExecutor {
     if (Number.isNaN(y) || y < 1)
       throw new Error("无效的骰子面数");
 
-    this.defaultDice = y;
+    localStorage.setItem("defaultDice", y.toString());
+    defaultDice.current = y;
     return `已设置默认骰子为 ${y} 面骰`;
   }
 
-  private handleSt(args: string[]): string {
+  /**
+   *设置属性
+   * @const
+   */
+  function handleSt(args: string[]): string {
     const [attr, valueStr] = args;
     if (!attr || !valueStr)
       throw new Error("缺少参数");
@@ -104,25 +198,35 @@ export class CommandExecutor {
     if (Number.isNaN(value))
       throw new Error("无效的数值");
 
-    this.attributes[attr] = value;
+    attributes[attr] = value;
     return `${attr} 已设置为 ${value}`;
   }
 
-  private handleRc(args: string[]): string {
+  /**
+   *能力检定
+   * @const
+   */
+  function handleRc(args: string[]): string {
     const [attr] = args;
     if (!attr)
       throw new Error("缺少技能名称");
 
-    const value = this.attributes[attr];
+    const value = attributes[attr];
     if (value === undefined)
       throw new Error(`未设置 ${attr} 属性值`);
 
-    const roll = this.rollDice(100);
-    return this.buildCheckResult(attr, roll, value);
+    const roll = rollDice(100);
+    return buildCheckResult(attr, roll, value);
   }
 
-  /** 构建检定结果描述 */
-  private buildCheckResult(attr: string, roll: number, value: number): string {
+  /**
+   * 构建检定结果
+   * @param attr 属性名
+   * @param roll 投掷结果
+   * @param value 属性值
+   * @const
+   */
+  function buildCheckResult(attr: string, roll: number, value: number): string {
     let result = "";
     const fifth = Math.floor(value / 5);
     const half = Math.floor(value / 2);
@@ -149,8 +253,13 @@ export class CommandExecutor {
     return `${attr}检定：D100=${roll}/${value} ${result}`;
   }
 
+  /**
+   * SAN检定
+   * @param args
+   * @const
+   */
   // TODO
-  private handleSc(args: string[]): string {
+  function handleSc(args: string[]): string {
     const [expr] = args;
     if (!expr)
       throw new Error("缺少SAN检定表达式");
@@ -167,20 +276,20 @@ export class CommandExecutor {
     if (Number.isNaN(successVal))
       throw new Error("无效的成功扣除值");
 
-    const san = this.attributes.san;
+    const san = attributes.san;
     if (san === undefined)
       throw new Error("未设置SAN值");
 
-    const roll = this.rollDice(100);
-    const loss = this.calculateSanLoss(roll, san, successVal, failureExpr);
+    const roll = rollDice(100);
+    const loss = calculateSanLoss(roll, san, successVal, failureExpr);
 
-    this.attributes.san = Math.max(san - loss, 0);
-    return `SAN检定：${roll}/${san}，${roll <= san ? "成功" : "失败"}，SAN减少${loss}，剩余${this.attributes.san}`;
+    attributes.san = Math.max(san - loss, 0);
+    return `SAN检定：${roll}/${san}，${roll <= san ? "成功" : "失败"}，SAN减少${loss}，剩余${attributes.san}`;
   }
 
   /** 计算SAN值扣除 */
   // TODO
-  private calculateSanLoss(roll: number, san: number, successVal: number, failureExpr: string): number {
+  function calculateSanLoss(roll: number, san: number, successVal: number, failureExpr: string): number {
     if (roll <= san) {
       return successVal;
     }
@@ -200,48 +309,35 @@ export class CommandExecutor {
       throw new Error("无效的失败骰子表达式");
     }
 
-    return Array.from({ length: x }, () => this.rollDice(y))
+    return Array.from({ length: x }, () => rollDice(y))
       .reduce((sum, val) => sum + val, 0);
   }
 
+  /**
+   * 能力成长检定
+   */
   // TODO
-  private handleEn(args: string[]): string {
+  function handleEn(args: string[]): string {
     const [attr] = args;
     if (!attr)
       throw new Error("缺少技能名称");
 
-    const value = this.attributes[attr];
+    const value = attributes[attr];
     if (value === undefined)
       throw new Error(`未设置 ${attr} 属性值`);
 
-    const roll = this.rollDice(100);
+    const roll = rollDice(100);
     if (roll > value) {
-      const gain = this.rollDice(10);
-      this.attributes[attr] += gain;
-      return `${attr}成长检定：${roll}/${value} 成功，增加${gain}，当前值${this.attributes[attr]}`;
+      const gain = rollDice(10);
+      attributes[attr] += gain;
+      return `${attr}成长检定：${roll}/${value} 成功，增加${gain}，当前值${attributes[attr]}`;
     }
     return `${attr}成长检定：${roll}/${value} 失败`;
   }
 
-  private rollDice(sides: number): number {
+  function rollDice(sides: number): number {
     return Math.floor(Math.random() * sides) + 1;
   }
-}
 
-export default function useCommandExecutor(roleId: number) {
-  const executor = new CommandExecutor(roleId);
-  const abilityQuery = useGetRoleAbilitiesQuery(roleId);
-  // 合并所有的ability
-  const mergedAbilities = abilityQuery.data?.data?.reduce((acc, cur) => {
-    if (cur?.ability) {
-      return { ...acc, ...cur.ability };
-    }
-    return acc;
-  }, {} as Record<string, number>);
-  // 更新执行器属性
-  if (mergedAbilities) {
-    executor.attributes = mergedAbilities;
-  }
-
-  return executor;
+  return execute;
 }
