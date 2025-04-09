@@ -6,10 +6,10 @@ import type {
 
 import { ChatBubble } from "@/components/chat/chatBubble";
 
-import useCommandExecutor, { isCommand } from "@/components/chat/commandExecutor";
-
 import { GroupContext } from "@/components/chat/GroupContext";
+
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
+import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";

@@ -1,6 +1,27 @@
 import { useEffect, useRef } from "react";
 // type DiceResult = { x: number; y: number; rolls: number[]; total: number };
-import { useGetRoleAbilitiesQuery } from "../../../api/queryHooks";
+import {
+  useGetRoleAbilitiesQuery,
+  useSetRoleAbilityMutation,
+  useUpdateRoleAbilityMutation,
+} from "../../../api/queryHooks";
+
+// 属性名中英文对照表
+const ABILITY_MAP: { [key: string]: string } = {
+  str: "力量",
+  dex: "敏捷",
+  pow: "意志",
+  con: "体质",
+  app: "外貌",
+  edu: "教育",
+  siz: "体型",
+  int: "智力",
+  san: "san值",
+  luck: "幸运",
+  mp: "魔法",
+  hp: "体力",
+  cm: "克苏鲁神话",
+};
 
 export function isCommand(command: string) {
   const trimmed = command.trim();
@@ -11,6 +32,10 @@ export default function useCommandExecutor(roleId: number) {
   const defaultDice = useRef(100);
 
   const abilityQuery = useGetRoleAbilitiesQuery(roleId);
+  const abilityIds = abilityQuery.data?.data?.map(a => a.abilityId) ?? [];
+
+  const updateAbilityMutation = useUpdateRoleAbilityMutation();
+  const setAbilityMutation = useSetRoleAbilityMutation();
 
   useEffect(() => {
     try {
@@ -28,6 +53,10 @@ export default function useCommandExecutor(roleId: number) {
     return acc;
   }, {} as Record<string, number>) ?? {};
 
+  /**
+   * 返回这个函数
+   * @param command
+   */
   function execute(command: string): string {
     const [cmdPart, ...args] = parseCommand(command);
     const normalizedCmd = cmdPart.toLowerCase();
@@ -59,7 +88,10 @@ export default function useCommandExecutor(roleId: number) {
     if (!(trimmed.startsWith(".") || trimmed.startsWith("。"))) {
       throw new Error("命令需要以.或。开头");
     }
-    return trimmed.slice(1).split(/\s+/) as [string, ...string[]];
+    // 暂时把后边的所有指令都看成一个整体并去除空格
+    const [cmdPart, ...args] = trimmed.slice(1).split(/\s+/) as [string, ...string[]];
+    const wholeArg = args.join("");
+    return [cmdPart, wholeArg];
   }
 
   function parseDices(input: string): Array<{ sign: number; x: number; y: number }> {
@@ -90,7 +122,7 @@ export default function useCommandExecutor(roleId: number) {
     return parsedSegments;
   }
 
-  /** 核心骰子解析逻辑 */
+  /** 解析一个骰子 */
   function parseSingleDice(input: string): { x: number; y: number } {
     // 处理默认骰子情况
     if (input === "d" || input === "") {
@@ -190,16 +222,44 @@ export default function useCommandExecutor(roleId: number) {
    * @const
    */
   function handleSt(args: string[]): string {
-    const [attr, valueStr] = args;
-    if (!attr || !valueStr)
-      throw new Error("缺少参数");
+    const input = args[0];
+    const ability: { [key: string]: number } = {};
+    // 使用正则匹配所有属性+数值的组合
+    const matches = input.matchAll(/(\D+)(\d+)/g);
 
-    const value = Number.parseInt(valueStr);
-    if (Number.isNaN(value))
-      throw new Error("无效的数值");
+    for (const match of matches) {
+      const rawKey = match[1].trim();
+      const value = Number.parseInt(match[2], 10);
 
-    attributes[attr] = value;
-    return `${attr} 已设置为 ${value}`;
+      // 统一转换为小写进行比较
+      const normalizedKey = rawKey.toLowerCase();
+
+      // 查找映射关系
+      if (ABILITY_MAP[normalizedKey]) {
+        ability[ABILITY_MAP[normalizedKey]] = value;
+      }
+      else {
+        ability[rawKey] = value;
+      }
+    }
+
+    // 如果已存在能力就更新, 不然创建.
+    if (abilityIds.length !== 0) {
+      updateAbilityMutation.mutate({
+        abilityId: abilityIds[0] ?? -1,
+        ability,
+        act: { default: "default" },
+      });
+    }
+    else {
+      setAbilityMutation.mutate({
+        roleId,
+        ruleId: 1,
+        act: { default: "default" },
+        ability,
+      });
+    }
+    return `更新属性: ${JSON.stringify(ability, null, 2)}`;
   }
 
   /**

@@ -25,6 +25,8 @@ import type { SubRoomRequest } from './models/SubRoomRequest';
 import type { UserLoginRequest } from './models/UserLoginRequest';
 import type { UserRegisterRequest } from './models/UserRegisterRequest';
 import type { UserRole } from './models/UserRole';
+import type {AbilitySetRequest} from "./models/AbilitySetRequest";
+import type {AbilityUpdateRequest} from "./models/AbilityUpdateRequest";
 
 
 // ==================== 角色管理 ====================
@@ -305,32 +307,6 @@ export function useRevokePlayerMutation(roomId: number) {
     });
 }
 
-/**
- * 获取角色权限配置
- * @param roleId 角色ID
- */
-export function useGetRoleAbilityQuery(roleId: number) {
-    return useQuery({
-        queryKey: ['getRoleAbility', roleId],
-        queryFn: () => tuanchat.abilityController.getRoleAbility(roleId),
-        staleTime: 86400000 // 24小时缓存
-    });
-}
-
-/**
- * 更新角色权限 需要更改
- * @param roleId 关联的角色ID（用于缓存刷新）
- */
-export function useSetRoleAbilityMutation(roleId: number) {
-    // const queryClient = useQueryClient();
-    // return useMutation({
-    //     mutationFn: (req: RoleAbilityTable) => tuanchat.abilityController.setRoleAbility(req),
-    //     mutationKey: ['setRoleAbility'],
-    //     onSuccess: () => {
-    //         queryClient.invalidateQueries({ queryKey: ['getRoleAbility', roleId] });
-    //     }
-    // });
-}
 
 // ==================== 头像系统 ====================
 /**
@@ -507,4 +483,54 @@ export function useGetRoleAbilitiesQuery(roleId: number) {
         queryFn: () => tuanchat.abilityController.listRoleAbility(roleId),
         staleTime: 10000,
     });
+}
+
+/**
+ * 更新能力
+ * 更新指定角色的能力信息，act和ability字段不能为null或者空json
+ */
+export function useGetRoleAbilityQuery(abilityId: number){
+    return useQuery({
+        queryKey: ["getRoleAbility", abilityId],
+        queryFn: () => tuanchat.abilityController.getRoleAbility(abilityId),
+        staleTime: 10000,
+    });
+}
+
+/**
+ * 创建能力
+ * 创建指定角色在指定规则下的能力信息，返回创建的能力ID，act和ability字段不能为null或者空json
+ */
+
+export function useSetRoleAbilityMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: AbilitySetRequest) => tuanchat.abilityController.setRoleAbility(req),
+        mutationKey: ["setRoleAbility"],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ["listRoleAbility", variables.roleId] });
+        },
+    });
+}
+
+export function useDeleteRoleAbilityMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (abilityId: number) => tuanchat.abilityController.deleteRoleAbility(abilityId),
+        mutationKey: ["deleteRoleAbility"],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
+        }
+    })
+}
+
+export function useUpdateRoleAbilityMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: AbilityUpdateRequest) => tuanchat.abilityController.updateRoleAbility(req),
+        mutationKey: ["updateRoleAbility"],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
+        }
+    })
 }
