@@ -93,7 +93,6 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
               if (onAvatarChange) {
                 onAvatarChange(newUrl);
                 onAvatarIdChange(recordNewAvatar);
-                mutate(newUrl);
               }
             }}
             setCopperedDownloadUrl={(newUrl: string): void => {
