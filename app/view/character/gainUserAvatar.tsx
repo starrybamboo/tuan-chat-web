@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 interface Props {
   initialAvatar?: string;
   onAvatarChange: (avatarUrl: string) => void;
+  onAvatarIdChange: (avatarId: number) => void;
   userQuery?: any;
   roleQuery?: any;
 }
@@ -29,7 +30,7 @@ const defaultUser: User = {
   currentAvatarIndex: 0,
 };
 
-export default function GainUserAvatar({ initialAvatar, onAvatarChange, userQuery, roleQuery }: Props) {
+export default function GainUserAvatar({ initialAvatar, onAvatarChange, onAvatarIdChange, userQuery, roleQuery }: Props) {
   const queryClient = useQueryClient();
 
   const [user, setUser] = useState<User>(defaultUser);
@@ -38,7 +39,7 @@ export default function GainUserAvatar({ initialAvatar, onAvatarChange, userQuer
   // 初始化用户角色信息
   useEffect(() => {
     if (roleQuery.data && Array.isArray(roleQuery.data.data) && userQuery.data && userQuery.data.data) {
-      const mappedCharacters = roleQuery.data.data.map((role: UserRole) => ({
+      const mappedCharacters = roleQuery.data.data.map((role: UserRole, index: number) => ({
         userRole: {
           userId: userQuery.data.data.UserId || 0,
           roleId: role.roleId || 0,
@@ -48,8 +49,9 @@ export default function GainUserAvatar({ initialAvatar, onAvatarChange, userQuer
           roleId: role.roleId || 0,
           avatarUrl: "",
           avatarTitle: role.roleName || "",
+          avatarId: role.avatarId || 0,
         })),
-        currentAvatarIndex: 0,
+        currentAvatarIndex: index,
       }));
 
       // 封装 setCharacters 调用，避免直接在 useEffect 中更新状态
@@ -63,7 +65,7 @@ export default function GainUserAvatar({ initialAvatar, onAvatarChange, userQuer
       // 异步加载每个角色的头像
       mappedCharacters.forEach(async (user: User) => {
         try {
-          const res = await tuanchat.roleController.getRoleAvatars(user.userRole.roleId);
+          const res = await tuanchat.avatarController.getRoleAvatars(user.userRole.roleId);
           if (
             res.success
             && Array.isArray(res.data)
@@ -103,6 +105,12 @@ export default function GainUserAvatar({ initialAvatar, onAvatarChange, userQuer
     setPreviewSrc(avatarUrl);
     setUser(prev => ({ ...prev, currentAvatarIndex: index }));
     onAvatarChange(avatarUrl); // 同步到父组件
+    // 确保 avatarId 存在且为 number 类型
+    const avatarId = user.roleAvatars.length > 0 && user.currentAvatarIndex < user.roleAvatars.length
+      ? user.roleAvatars[user.currentAvatarIndex]?.avatarId || 0
+      : 0;
+
+    onAvatarIdChange(avatarId); // 安全传递;
   };
 
   const handleDeleteAvatar = (index: number) => {
@@ -126,7 +134,9 @@ export default function GainUserAvatar({ initialAvatar, onAvatarChange, userQuer
           </p>
           <p>
             当前头像id:
-            {user.currentAvatarIndex + 1}
+            {user.roleAvatars.length > 0 && user.currentAvatarIndex < user.roleAvatars.length
+              ? user.roleAvatars[user.currentAvatarIndex].avatarId || "未设置"
+              : "未设置"}
           </p>
           <p>
             表情差分数量:

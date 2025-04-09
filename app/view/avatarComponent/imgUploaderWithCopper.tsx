@@ -3,10 +3,10 @@
  */
 
 import type { Crop, PixelCrop } from "react-image-crop";
+import { UploadUtils } from "api/queryHooks";
 import React, { useRef, useState } from "react";
-import { centerCrop, makeAspectCrop, ReactCrop } from "react-image-crop";
 
-import { UploadUtils } from "../apiRequest/upLoadUtils";
+import { centerCrop, makeAspectCrop, ReactCrop } from "react-image-crop";
 import { canvasPreview } from "./imgCopper/canvasPreview";
 
 import { useDebounceEffect } from "./imgCopper/useDebounceEffect";

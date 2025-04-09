@@ -1,10 +1,9 @@
 /* eslint-disable react-dom/no-missing-button-type */
-import type { UserRole } from "api";
+import type { RoleAvatar, RoleResponse } from "api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRoleQuery, useUserQuery } from "api/queryHooks";
 import { useEffect, useState } from "react";
 import { tuanchat } from "../../../api/instance";
-import useRoleQuery from "../apiRequest/useRoleQuery";
-import useUserQuery from "../apiRequest/useUserQuery";
 import { PopWindow } from "../avatarComponent/popWindow";
 import CharacterNav from "./characterNav";
 import CreatCharacter from "./creatCharacter";
@@ -35,6 +34,7 @@ export interface CharacterData {
   luck: number;
   description: string;
   avatar: string | undefined;
+  currentIndex: number;
 }
 
 export default function CharacterWrapper() {
@@ -50,7 +50,7 @@ export default function CharacterWrapper() {
   const [creating, setCreating] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<number | null>(null);
 
-  // 传入popWindow,处理删除的缺人
+  // 传入popWindow,处理删除的弹窗
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
 
@@ -60,7 +60,7 @@ export default function CharacterWrapper() {
   // 初始化用户角色信息
   useEffect(() => {
     if (roleQuery.data && Array.isArray(roleQuery.data.data)) {
-      const mappedCharacters = roleQuery.data.data.map((role: UserRole) => ({
+      const mappedCharacters = roleQuery.data.data.map((role: RoleResponse) => ({
         id: role.roleId || 0,
         name: role.roleName || "",
         age: 25,
@@ -84,6 +84,7 @@ export default function CharacterWrapper() {
         luck: 50,
         description: role.description || "无描述",
         avatar: undefined,
+        currentIndex: 0,
       }));
       // 封装 setCharacters 调用，避免直接在 useEffect 中更新状态
       const updateCharacters = () => {
@@ -96,7 +97,7 @@ export default function CharacterWrapper() {
       // 异步加载每个角色的头像
       mappedCharacters.forEach(async (character) => {
         try {
-          const res = await tuanchat.roleController.getRoleAvatars(character.id);
+          const res = await tuanchat.avatarController.getRoleAvatars(character.id);
           if (
             res.success
             && Array.isArray(res.data) // 检查是否为数组
@@ -104,8 +105,10 @@ export default function CharacterWrapper() {
             && res.data[0]?.avatarUrl !== undefined // 检查是否有 avatarUrl 属性
             && res.data[0] !== undefined
           ) {
-            const avatarUrl = res.data[0].avatarUrl as string; // 类型断言
-            queryClient.setQueryData(["roleAvatar", character.id], res.data[0].avatarUrl);
+            const avatarUrl = res.data.find((avatar: RoleAvatar) => {
+              return avatar.avatarId === character.currentIndex;
+            })?.avatarUrl || res.data[0]?.avatarUrl;
+            queryClient.setQueryData(["roleAvatar", character.id], avatarUrl);
             setCharacters(prevChars =>
               prevChars.map(char =>
                 char.id === character.id ? { ...char, avatar: avatarUrl } : char,
@@ -125,7 +128,7 @@ export default function CharacterWrapper() {
 
   const { mutate: deleteRole } = useMutation({
     mutationKey: ["deleteRole"],
-    mutationFn: async (roleId: number) => {
+    mutationFn: async (roleId: number[]) => {
       const res = await tuanchat.roleController.deleteRole(roleId);
       if (res.success) {
         console.warn("角色删除成功");
@@ -165,7 +168,7 @@ export default function CharacterWrapper() {
     if (deleteCharacterId !== null && roleQuery.data?.data) {
       const roleId = deleteCharacterId;
       if (roleId) {
-        deleteRole(roleId);
+        deleteRole([roleId]);
         setCharacters(characters.filter(c => c.id !== deleteCharacterId));
         setSelectedCharacter(null);
       }

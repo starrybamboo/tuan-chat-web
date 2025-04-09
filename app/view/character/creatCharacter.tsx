@@ -29,19 +29,19 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
   const [luck, setLuck] = useState(initialData?.luck || 50);
   const [description, setDescription] = useState(initialData?.description || "");
   const [avatar, setAvatar] = useState(initialData?.avatar || "");
+  const [avatarId, setAvatarId] = useState(0);
 
-  // 发送post数据部分,创建角色不知道为什么总是500
+  // 发送post数据部分
   const { mutate } = useMutation({
     mutationKey: ["creatOrUpdateRole"],
     mutationFn: async (data: any) => {
-      if (initialData === null) {
-        const res = await tuanchat.roleController.createRole();
+      if (initialData === undefined) {
+        const res = await tuanchat.roleController.createRole({});
         console.warn(`创建角色信息`);
         if (res.success) {
-          const roleId = res.data?.roleId;
+          const roleId = res.data;
           if (roleId) {
             const updateRes = await tuanchat.roleController.updateRole({
-              userId: userQuery?.data?.userId,
               roleId,
               roleName: data.name,
               description: data.description,
@@ -61,7 +61,6 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
       }
       else {
         const updateRes = await tuanchat.roleController.updateRole({
-          userId: userQuery?.data?.userId,
           roleId: initialData?.id as number,
           roleName: data.name,
           description: data.description,
@@ -87,12 +86,16 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
           luck,
           description: description || "无描述",
           avatar: avatar || DefaultAvatar,
+          currentIndex: 0,
         };
         onSave(newCharacter);
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Mutation failed:", error);
+      if (error.response && error.response.data) {
+        console.error("Server response:", error.response.data);
+      }
     },
   });
 
@@ -107,7 +110,7 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
       const res = await tuanchat.avatarController.updateRoleAvatar({
         avatarUrl: data.avatar,
         roleId: data.id,
-        avatarId: 1000,
+        avatarId,
       });
       if (res.success) {
         console.warn("头像设置成功");
@@ -142,6 +145,7 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
       luck,
       description: cleanDescription || "无描述",
       avatar: avatar || "",
+      currentIndex: avatarId,
     };
 
     onSave(newCharacter);
@@ -356,6 +360,8 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
         {/* 头像选择 */}
         <Head
           onAvatarChange={setAvatar}
+          onAvatarIdChange={setAvatarId}
+          roleId={initialData?.id ? initialData?.id : 0}
           currentAvatar={initialData?.avatar}
           userQuery={userQuery}
           roleQuery={roleQuery}
