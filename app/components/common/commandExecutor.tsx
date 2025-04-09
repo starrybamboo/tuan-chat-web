@@ -131,6 +131,11 @@ export default function useCommandExecutor(roleId: number) {
       return { x: 1, y: defaultDice.current };
     }
 
+    const num = Number(input);
+    if (!Number.isNaN(num)) {
+      return { x: Math.abs(num), y: 1 }; // 固定值视为1面骰子
+    }
+
     // 分割d前后的数字
     const dIndex = input.indexOf("d");
     const hasD = dIndex !== -1;
@@ -160,8 +165,11 @@ export default function useCommandExecutor(roleId: number) {
       const segmentResults = [];
 
       // 计算每个骰子段的结果
+      // 如果是一面骰, 那么直接放入结果
       for (const { sign, x, y } of diceSegments) {
-        const rolls = Array.from({ length: x }, () => rollDice(y));
+        const rolls = (y !== 1)
+          ? Array.from({ length: x }, () => rollDice(y))
+          : [x];
         const segmentValue = rolls.reduce((sum, val) => sum + val, 0) * sign;
         segmentResults.push({ sign, rolls, segmentValue });
       }
@@ -174,10 +182,11 @@ export default function useCommandExecutor(roleId: number) {
         const { sign, rolls } = segmentResults[i];
         const { x, y } = diceSegments[i];
         const isFirst = i === 0;
-        // 骰子表达式部分
-        diceNotationParts.push(
-          `${sign === -1 ? "-" : (isFirst ? "" : "+")}${x}D${y}`,
-        );
+        const notation = (y === 1)
+          ? `${sign === -1 ? "-" : (isFirst ? "" : "+")}${x}`
+          : `${sign === -1 ? "-" : (isFirst ? "" : "+")}${x}D${y}`;
+        diceNotationParts.push(notation);
+
         // 结果展示部分
         const rollSum = rolls.reduce((a, b) => a + b, 0);
         if (isFirst) {
@@ -192,7 +201,7 @@ export default function useCommandExecutor(roleId: number) {
           );
         }
       }
-      return `掷骰结果：${expressionParts.join(" ")}=${total} (${diceNotationParts.join("")})`;
+      return `掷骰结果：${expressionParts.join("")}=${total}   (${diceNotationParts.join("")})`;
     }
     catch (error) {
       return `错误：${error ?? "未知错误"}`;
