@@ -1,3 +1,4 @@
+import { RoleAbilityDetail } from "@/components/common/roleAbilityDetail";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../api/queryHooks";
 
 export function RoleDetail({ roleId }: { roleId: number }) {
@@ -8,7 +9,7 @@ export function RoleDetail({ roleId }: { roleId: number }) {
   const avatarQuery = useGetRoleAvatarQuery(role?.avatarId || 0);
 
   return (
-    <div className="card bg-base-100 shadow-xl min-w-[20vw]">
+    <div className="card bg-base-100 shadow-xl min-w-[20vw] flex flex-row gap-8 ">
       <div className="card-body">
         {/* 角色标识部分 */}
         <div className="flex flex-col items-center gap-4">
@@ -61,24 +62,6 @@ export function RoleDetail({ roleId }: { roleId: number }) {
             <span className="text-base-content/70">角色ID</span>
             <span className="font-mono">{roleId}</span>
           </div>
-
-          {/* {role?.createTime && ( */}
-          {/*  <div className="flex justify-between"> */}
-          {/*    <span className="text-base-content/70">创建时间</span> */}
-          {/*    <span> */}
-          {/*      {role.createTime} */}
-          {/*    </span> */}
-          {/*  </div> */}
-          {/* )} */}
-
-          {/* {role?.updateTime && ( */}
-          {/*  <div className="flex justify-between"> */}
-          {/*    <span className="text-base-content/70">最后更新</span> */}
-          {/*    <span> */}
-          {/*      {role.updateTime} */}
-          {/*    </span> */}
-          {/*  </div> */}
-          {/* )} */}
         </div>
 
         {/* 加载错误处理 */}
@@ -101,6 +84,7 @@ export function RoleDetail({ roleId }: { roleId: number }) {
           </div>
         )}
       </div>
+      <RoleAbilityDetail roleId={roleId}></RoleAbilityDetail>
     </div>
 
   );

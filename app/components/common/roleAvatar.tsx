@@ -60,7 +60,7 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
         {
           (isOpen && !stopPopWindow && groupId) && (
             <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>
-              <div className="items-center justify-center gap-y-4 flex flex-col">
+              <div className="items-center justify-center gap-y-4 flex flex-col w-full overflow-auto">
                 <RoleDetail roleId={roleAvatar?.roleId ?? -1}></RoleDetail>
                 {
                   (groupContext && groupContext.groupId) && (
@@ -71,7 +71,6 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
                 }
               </div>
             </PopWindow>
-
           )
         }
       </div>
