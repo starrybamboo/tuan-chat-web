@@ -6,5 +6,4 @@ export const tuanchat = new TuanChat({
   WITH_CREDENTIALS: true,
   CREDENTIALS: "include",
   TOKEN: "10001",
-//   TOKEN: ,
 });

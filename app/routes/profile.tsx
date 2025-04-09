@@ -1,5 +1,7 @@
 import type { Route } from "./+types/home";
 
+import { UserDetail } from "@/components/common/userDetail";
+
 export function meta(_args: Route.MetaArgs) {
   return [
     { title: "New React Router App" },
@@ -10,7 +12,7 @@ export function meta(_args: Route.MetaArgs) {
 export default function Home() {
   return (
     <div className="h-screen">
-      <p>欢迎来到团聚共创</p>
+      <UserDetail userId={10001}></UserDetail>
     </div>
   );
 }
