@@ -173,9 +173,9 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
         {children}
       </div>
       <PopWindow isOpen={isOpen} onClose={() => { setIsOpen(false); }}>
-        <div className="flex flex-row w-max h-max items-center">
+        <div className="flex flex-row items-center">
           {!!imgSrc && (
-            <div className="max-w-1/3 min-w-1/6 overflow-auto">
+            <div className="overflow-auto">
               <ReactCrop
                 crop={crop}
                 onChange={(_, percentCrop) => setCrop(percentCrop)}
@@ -190,7 +190,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
                   src={imgSrc}
                   // style={{ transform: `scale(${scale})` }}
                   onLoad={onImageLoad}
-                  className="w-max h-max"
+                  className="w-128 h-auto"
                 />
               </ReactCrop>
             </div>
