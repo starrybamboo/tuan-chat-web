@@ -136,7 +136,7 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
   };
 
   return (
-    <div className="h-full overflow-y-scroll w-full">
+    <div className="h-full overflow-y-scroll w-full bg-base-100">
       <div className="h-10 border-b-1 border-white p-2 flex justify-between items-center">
         {initialData ? "编辑角色" : "创建角色"}
         <div>

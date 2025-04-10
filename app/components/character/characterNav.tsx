@@ -16,7 +16,7 @@ export default function CharacterNav({ characters, onCreate, onSelect, selected 
     character.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
   return (
-    <div className="w-full bg-[#5D9DBE] border-base-200 text-center h-full overflow-y-scroll text-info-content">
+    <div className="w-full bg-base-100 border-base-300 text-center h-full overflow-y-scroll text-info-content">
       {/* 搜索框 */}
       <input
         type="text"
@@ -29,7 +29,7 @@ export default function CharacterNav({ characters, onCreate, onSelect, selected 
       {/* 创建新角色 */}
       <button
         onClick={onCreate}
-        className="btn w-4/5 bg-[#2A6F97] text-white m-5"
+        className="btn w-4/5 bg-primary text-white m-5"
       >
         + 创建新角色
       </button>

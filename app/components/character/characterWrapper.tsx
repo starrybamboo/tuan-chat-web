@@ -129,7 +129,7 @@ export default function CharacterWrapper() {
   };
 
   return (
-    <div className="h-full w-full bg-[#E6F2F9]">
+    <div className="h-full w-full bg-base-100">
 
       <div className="flex h-full">
         <div className="w-1/4">
@@ -177,14 +177,14 @@ export default function CharacterWrapper() {
       </div>
       {/* 删除确认对话框 */}
       <PopWindow isOpen={deleteConfirmOpen} onClose={handleCancelDelete}>
-        <div className="p-4">
+        <div className="p-4 bg-base-200">
           <h3 className="text-lg font-bold mb-4">确认删除角色</h3>
           <p className="mb-4">确定要删除这个角色吗？</p>
           <div className="flex justify-end">
             <button className="btn btn-sm btn-outline btn-error mr-2" onClick={handleCancelDelete}>
               取消
             </button>
-            <button className="btn btn-sm bg-[#3A7CA5] text-white hover:bg-[#2A6F97]" onClick={handleConfirmDelete}>
+            <button className="btn btn-sm bg-primary text-white hover:bg-primary-focus" onClick={handleConfirmDelete}>
               确认删除
             </button>
           </div>
