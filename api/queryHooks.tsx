@@ -578,6 +578,17 @@ export class UploadUtils {
   }
 }
 
+export function useUpdateMessageMutation(){
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: tuanchat.chatController.updateMessage,
+        mutationKey: ["updateMessage"],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ["getMsgPage"] });
+        }
+    })
+}
+
 // 用户查询
 export function useUserQuery() {
   const userQuery = useQuery({
@@ -678,6 +689,7 @@ export function useAbilityQuery(roleId: number) {
   );
   return abilityQuery;
 }
+
 
    
 
