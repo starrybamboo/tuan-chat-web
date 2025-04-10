@@ -84,11 +84,11 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
    * websocket
    */
   // websocket封装, 用于发送接受消息
-  const { send, connect, getMessagesByRoomId } = useWebSocket();
+  const { send, connect, getNewMessagesByRoomId, messageSignals } = useWebSocket();
   useEffect(() => {
     connect();
   }, [connect]);
-  const receivedMessages = getMessagesByRoomId(groupId);
+  // const receivedMessages = getNewMessagesByRoomId(groupId);
 
   /**
    * 获取历史消息
@@ -113,10 +113,23 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     refetchOnWindowFocus: false,
   });
 
-  // 合并所有分页消息
+  const curMessageSignal = messageSignals[groupId];
+  // 合并所有分页消息 与 从 ws来的新消息, 并去重
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    return (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
-  }, [messagesInfiniteQuery.data]);
+    const historyMessages = (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
+    const messageMap = new Map<number, ChatMessageResponse>();
+
+    const receivedMessages = getNewMessagesByRoomId(groupId);
+    // 这是为了更新历史消息(ws发过来的消息有可能是带有相同的messageId的, 代表消息的更新)
+    historyMessages.forEach(msg =>
+      messageMap.set(msg.message.messageID, msg),
+    );
+    receivedMessages.forEach(msg =>
+      messageMap.set(msg.message.messageID, msg),
+    );
+
+    return Array.from(messageMap.values());
+  }, [messagesInfiniteQuery.data?.pages, curMessageSignal]);
 
   /**
    * messageEntry触发时候的effect, 同时让首次渲染时对话框滚动到底部
@@ -281,11 +294,11 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                   <ChatBubble chatMessageResponse={chatMessageResponse} useChatBubbleStyle={useChatBubbleStyle} />
                 </div>
               ))}
-              {receivedMessages.map(receivedMessage => (
-                <div key={receivedMessage.message.messageID}>
-                  <ChatBubble chatMessageResponse={receivedMessage} useChatBubbleStyle={useChatBubbleStyle} />
-                </div>
-              ))}
+              {/* {receivedMessages.map(receivedMessage => ( */}
+              {/*  <div key={receivedMessage.message.messageID}> */}
+              {/*    <ChatBubble chatMessageResponse={receivedMessage} useChatBubbleStyle={useChatBubbleStyle} /> */}
+              {/*  </div> */}
+              {/* ))} */}
             </div>
           </div>
 
@@ -299,7 +312,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                   <div>{userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}</div>
                 </div>
                 {/* 表情差分选择器 */}
-                <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-92 p-2 shadow-sm">
+                <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm">
                   <ExpressionChooser roleId={curRoleId} handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}></ExpressionChooser>
                 </ul>
               </div>
