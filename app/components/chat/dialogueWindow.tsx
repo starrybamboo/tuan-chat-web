@@ -2,12 +2,13 @@ import type {
   ChatMessagePageRequest,
   ChatMessageRequest,
   ChatMessageResponse,
-} from "../../../api";
+} from "api";
 
 import { ChatBubble } from "@/components/chat/chatBubble";
 
-import { GroupContext } from "@/components/chat/GroupContext";
+import { ExpressionChooser } from "@/components/chat/ExpressionChooser";
 
+import { GroupContext } from "@/components/chat/GroupContext";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import { PopWindow } from "@/components/common/popWindow";
@@ -19,8 +20,8 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { commands } from "@/utils/commands";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
+import { tuanchat } from "api/instance";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { tuanchat } from "../../../api/instance";
 import {
   useAddMemberMutation,
   useAddRoleMutation,
@@ -34,11 +35,9 @@ import { useWebSocket } from "../../../api/useWebSocket";
 
 export function DialogueWindow({ groupId }: { groupId: number }) {
   const [inputText, setInputText] = useState("");
-  const [curRoleId, setCurRoleId] = useState(-1);
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
-  const [useChatBoxStyle, setUseChatBoxStyle] = useState(true);
+  const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(true);
   const PAGE_SIZE = 30; // 每页消息数量
-  const commandExecutor = useCommandExecutor(curRoleId);
 
   // 承载聊天记录窗口的ref
   const chatFrameRef = useRef<HTMLDivElement>(null);
@@ -68,6 +67,8 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const groupRolesThatUserOwn = useMemo(() => {
     return groupRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
   }, [groupRoles, userRoles]);
+  const [curRoleId, setCurRoleId] = useState(groupRolesThatUserOwn[0]?.roleId ?? -1);
+  const commandExecutor = useCommandExecutor(curRoleId);
   // 获取当前用户选择角色的所有头像(表情差分)
   const roleAvatarQuery = useGetRoleAvatarsQuery(curRoleId ?? -1);
   const roleAvatars = roleAvatarQuery.data?.data ?? [];
@@ -95,7 +96,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   // 分页获取消息
   // cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
   const messagesInfiniteQuery = useInfiniteQuery({
-    queryKey: ["messageHistory", groupId],
+    queryKey: ["getMsgPage", groupId],
     queryFn: async ({ pageParam }) => {
       return tuanchat.chatController.getMsgPage(pageParam);
     },
@@ -277,12 +278,12 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
             <div className="card-body overflow-y-auto h-[60vh]" ref={chatFrameRef}>
               {historyMessages.map((chatMessageResponse, index) => (
                 <div ref={index === 1 ? messageRef : null} key={chatMessageResponse.message.messageID}>
-                  <ChatBubble chatMessageResponse={chatMessageResponse} useChatBoxStyle={useChatBoxStyle} />
+                  <ChatBubble chatMessageResponse={chatMessageResponse} useChatBubbleStyle={useChatBubbleStyle} />
                 </div>
               ))}
               {receivedMessages.map(receivedMessage => (
                 <div key={receivedMessage.message.messageID}>
-                  <ChatBubble chatMessageResponse={receivedMessage} useChatBoxStyle={useChatBoxStyle} />
+                  <ChatBubble chatMessageResponse={receivedMessage} useChatBubbleStyle={useChatBubbleStyle} />
                 </div>
               ))}
             </div>
@@ -294,44 +295,12 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
               {/* 表情差分展示与选择 */}
               <div className="dropdown dropdown-top">
                 <div role="button" tabIndex={0} className="flex justify-center flex-col items-center space-y-2">
-                  <RoleAvatarComponent
-                    avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
-                    width={32}
-                    isRounded={true}
-                    withTitle={false}
-                    stopPopWindow={true}
-                  >
-                  </RoleAvatarComponent>
+                  <RoleAvatarComponent avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1} width={32} isRounded={true} withTitle={false} stopPopWindow={true} />
                   <div>{userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}</div>
                 </div>
                 {/* 表情差分选择器 */}
                 <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-92 p-2 shadow-sm">
-                  {
-                    roleAvatars && roleAvatars.length > 0
-                      ? (
-                          <div className="grid grid-cols-5 gap-2 ">
-                            {roleAvatars.map((avatar, index) => (
-                              <div
-                                onClick={() => handleAvatarChange(index)}
-                                className="object-cover rounded transition-all"
-                                key={avatar.avatarId}
-                              >
-                                <RoleAvatarComponent
-                                  avatarId={avatar.avatarId || -1}
-                                  width={16}
-                                  isRounded={false}
-                                  withTitle={true}
-                                  stopPopWindow={true}
-                                >
-                                </RoleAvatarComponent>
-                              </div>
-                            ))}
-                          </div>
-                        )
-                      : (
-                          <div className="text-center p-2 text-gray-500 text-sm">暂无可用头像</div>
-                        )
-                  }
+                  <ExpressionChooser roleId={curRoleId} handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}></ExpressionChooser>
                 </ul>
               </div>
 
@@ -382,7 +351,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                       }
                     </ul>
                   </div>
-                  <ImgUploaderWithCopper setCopperedDownloadUrl={setImgDownLoadUrl} setDownloadUrl={() => {}}>
+                  <ImgUploaderWithCopper setCopperedDownloadUrl={setImgDownLoadUrl} setDownloadUrl={() => {}} fileName="test!test!!!!">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-600 hover:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       {/* 图片框 */}
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2-2h4l2 2h4a2 2 0 012 2v10a2 2 0 01-2 2H5z" />
@@ -394,8 +363,8 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                 <div className="float-right">
                   <label className="swap w-30 btn right-2">
                     <input type="checkbox" />
-                    <div className="swap-on" onClick={() => setUseChatBoxStyle(false)}>Use Chat Bubble Style</div>
-                    <div className="swap-off" onClick={() => setUseChatBoxStyle(true)}>Use Chat Box Style</div>
+                    <div className="swap-on" onClick={() => setUseChatBubbleStyle(false)}>Use Chat Bubble Style</div>
+                    <div className="swap-off" onClick={() => setUseChatBubbleStyle(true)}>Use Chat Box Style</div>
                   </label>
                   {/* send button */}
                   <button type="button" className="btn btn-primary " disabled={!inputText.trim()} onClick={handleMessageSubmit}>

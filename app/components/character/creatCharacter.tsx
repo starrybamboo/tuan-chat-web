@@ -2,7 +2,7 @@
 import type { CharacterData } from "./characterWrapper";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Head from "./head";
 
 interface Props {
@@ -11,9 +11,10 @@ interface Props {
   initialData?: CharacterData;
   userQuery?: any;
   roleQuery?: any;
+  exposeHandleSubmit?: (fn: () => void) => void;
 }
 
-export default function CreatCharacter({ onSave, onCancel, initialData, userQuery, roleQuery }: Props) {
+export default function CreatCharacter({ onSave, onCancel, initialData, userQuery, roleQuery, exposeHandleSubmit }: Props) {
   const [name, setName] = useState(initialData?.name || "");
   const [age, setAge] = useState(initialData?.age || 20);
   const [gender, setGender] = useState(initialData?.gender || "未知");
@@ -148,15 +149,25 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
     };
 
     onSave(newCharacter);
-    const dataToSend = newCharacter;
-    mutate(dataToSend);
+    mutate(newCharacter);
 
     // 如果头像有变化，触发头像更新逻辑
     mutateAvatar({ id: initialData?.id || Date.now(), avatar });
   };
 
+  // 仅在组件挂载时调用回调，暴露 handleSubmit 给父组件使用
+  useEffect(() => {
+    if (exposeHandleSubmit) {
+      exposeHandleSubmit(() => new Promise<void>((resolve) => {
+        handleSubmit();
+        // 模拟 handleSubmit 完成（真实可通过状态或回调改成真正 resolve 位置）
+        setTimeout(() => resolve(), 300); // 临时延迟确保保存完
+      }));
+    }
+  }, [exposeHandleSubmit, handleSubmit]);
+
   return (
-    <div className="h-full overflow-y-scroll w-full">
+    <div className="h-full overflow-y-scroll w-full bg-base-100">
       <div className="h-10 border-b-1 border-white p-2 flex justify-between items-center">
         {initialData ? "编辑角色" : "创建角色"}
         <div>

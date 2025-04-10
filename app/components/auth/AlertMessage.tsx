@@ -5,7 +5,7 @@ interface AlertMessageProps {
 
 export function AlertMessage({ errorMessage, successMessage }: AlertMessageProps) {
   return (
-    <>
+    <div className="toast toast-top toast-center">
       {errorMessage && (
         <div className="alert alert-error mb-4">
           <span>{errorMessage}</span>
@@ -16,6 +16,6 @@ export function AlertMessage({ errorMessage, successMessage }: AlertMessageProps
           <span>{successMessage}</span>
         </div>
       )}
-    </>
+    </div>
   );
 }
