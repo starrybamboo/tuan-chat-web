@@ -1,12 +1,12 @@
 /* eslint-disable react-dom/no-missing-button-type */
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useCharacterInitialization, useRoleQuery, useUserQuery } from "api/queryHooks";
 import CharacterNav from "app/components/character/characterNav";
 import CreatCharacter from "app/components/character/creatCharacter";
 import PreviewCharacter from "app/components/character/previewCharacter";
 import { PopWindow } from "app/components/common/popWindow";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 // 这是一段毫无意义的注释，用于git提交检测
 // 接收数据的接口
 export interface CharacterData {
@@ -57,10 +57,13 @@ export default function CharacterWrapper() {
   // 使用自定义 Hook 初始化角色数据
   const { characters, initializeCharacters, updateCharacters } = useCharacterInitialization(roleQuery);
 
-  // 初始化用户角色信息,这里改不了,不然会创建角色时会出问题
-  useEffect(() => {
-    initializeCharacters();
-  }, [initializeCharacters]);
+  // 初始化用户角色信息,这里可以直接使用useQuery初始化
+  useQuery({
+    queryKey: ["initializeCharacters"],
+    queryFn: async () => {
+      initializeCharacters();
+    },
+  });
 
   const { mutate: deleteRole } = useMutation({
     mutationKey: ["deleteRole"],
