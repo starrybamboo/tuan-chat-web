@@ -125,7 +125,10 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
       messageMap.set(msg.message.messageID, msg),
     );
 
-    return Array.from(messageMap.values());
+    return Array.from(messageMap.values()).sort((a, b) =>
+      new Date(a.message.createTime ?? 0).getTime()
+        - new Date(b.message.createTime ?? 0).getTime(),
+    );
   }, [getNewMessagesByRoomId, groupId, messagesInfiniteQuery.data?.pages]);
 
   /**
