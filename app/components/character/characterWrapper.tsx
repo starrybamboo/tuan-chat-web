@@ -146,7 +146,7 @@ export default function CharacterWrapper() {
   };
 
   return (
-    <div className="h-full w-screen bg-[#E6F2F9]">
+    <div className="h-full w-full bg-[#E6F2F9]">
 
       <div className="flex h-full">
         <div className="w-1/4">

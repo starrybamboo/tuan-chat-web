@@ -100,9 +100,11 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
               if (onAvatarChange) {
                 onAvatarChange(newUrl); // 更新用户头像
                 onAvatarIdChange(recordNewAvatar || 0);
-                mutate(newUrl);
+                queryClient.invalidateQueries({ queryKey: ["roleAvatar", roleId] });
               }
             }}
+            roleId={roleId}
+            mutate={mutate}
           >
             <button className="btn btn-dash m-auto block">
               <b className="text-white ml-0">+</b>
