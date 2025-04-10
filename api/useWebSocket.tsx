@@ -28,9 +28,7 @@ export function useWebSocket() {
     const reconnectAttempts = useRef(0)
     const heartbeatTimer = useRef<NodeJS.Timeout>(setTimeout(()=>{}))
     // 接受消息的存储
-    // const [groupMessages, updateGroupMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
-    const groupMessagesBuffer = useRef<Record<number, ChatMessageResponse[]>>({})
-    const [messageSignals, setMessageSignals] = useState<Record<number, number>>({});
+    const [groupMessages, updateGroupMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
 
     // 配置参数
     const MAX_RECONNECT_ATTEMPTS = 5
@@ -65,30 +63,23 @@ export function useWebSocket() {
                         message.data.message.createTime = formatToLocalISO(new Date)
                     }
                     if(message.data!=undefined && message.data){
-                        const roomId = message.data.message.roomId
-                        groupMessagesBuffer.current[roomId].push(message.data)
-                        setMessageSignals(prev => ({
-                            ...prev,
-                            [roomId]: (prev[roomId] || 0) + 1
-                        }));
-
-                        // (draft => {
-                        //     const chatMessageResponse = message.data!
-                        //     if (chatMessageResponse.message.roomId in draft) {
-                        //         // 查找已存在消息的索引
-                        //         const existingIndex = draft[chatMessageResponse.message.roomId].findIndex(
-                        //             (msg) => msg.message.messageID === chatMessageResponse.message.messageID
-                        //         );
-                        //         if (existingIndex !== -1) {
-                        //             // 更新已存在的消息
-                        //             draft[chatMessageResponse.message.roomId][existingIndex] = chatMessageResponse;
-                        //         } else {
-                        //             draft[chatMessageResponse.message.roomId].push(chatMessageResponse);
-                        //         }
-                        //     } else {
-                        //         draft[chatMessageResponse.message.roomId] = [chatMessageResponse];
-                        //     }
-                        // })
+                        updateGroupMessages(draft => {
+                            const chatMessageResponse = message.data!
+                            if (chatMessageResponse.message.roomId in draft) {
+                                // 查找已存在消息的索引
+                                const existingIndex = draft[chatMessageResponse.message.roomId].findIndex(
+                                    (msg) => msg.message.messageID === chatMessageResponse.message.messageID
+                                );
+                                if (existingIndex !== -1) {
+                                    // 更新已存在的消息
+                                    draft[chatMessageResponse.message.roomId][existingIndex] = chatMessageResponse;
+                                } else {
+                                    draft[chatMessageResponse.message.roomId].push(chatMessageResponse);
+                                }
+                            } else {
+                                draft[chatMessageResponse.message.roomId] = [chatMessageResponse];
+                            }
+                        })
                     }
                 } catch (error) {
                     console.error('Message parsing failed:', error)
@@ -168,9 +159,7 @@ export function useWebSocket() {
 
     //
     const getNewMessagesByRoomId = (roomId: number): ChatMessageResponse[] => {
-        const buffer = groupMessagesBuffer.current[roomId]
-        groupMessagesBuffer.current[roomId] = []
-        return buffer ? [...buffer] : []
+        return groupMessages[roomId] || []
     }
 
     return {
@@ -178,6 +167,5 @@ export function useWebSocket() {
         getNewMessagesByRoomId,
         connect,
         send,
-        messageSignals,
     }
 }

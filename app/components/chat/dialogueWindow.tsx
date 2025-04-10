@@ -84,12 +84,10 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
    * websocket
    */
   // websocket封装, 用于发送接受消息
-  const { send, connect, getNewMessagesByRoomId, messageSignals } = useWebSocket();
+  const { send, connect, getNewMessagesByRoomId } = useWebSocket();
   useEffect(() => {
     connect();
   }, [connect]);
-  // const receivedMessages = getNewMessagesByRoomId(groupId);
-
   /**
    * 获取历史消息
    */
@@ -113,8 +111,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     refetchOnWindowFocus: false,
   });
 
-  const curMessageSignal = messageSignals[groupId];
-  // 合并所有分页消息 与 从 ws来的新消息, 并去重
+  // 合并所有分页消息 同时更新重复的消息
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     const historyMessages = (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
     const messageMap = new Map<number, ChatMessageResponse>();
@@ -129,7 +126,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     );
 
     return Array.from(messageMap.values());
-  }, [messagesInfiniteQuery.data?.pages, curMessageSignal]);
+  }, [getNewMessagesByRoomId, groupId, messagesInfiniteQuery.data?.pages]);
 
   /**
    * messageEntry触发时候的effect, 同时让首次渲染时对话框滚动到底部
