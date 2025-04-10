@@ -91,8 +91,8 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
             <div className="flex w-full mb-4" key={message.messageID}>
               {/* 圆角矩形头像 */}
               <div className="flex-shrink-0 mr-3">
-                <div className="w-20 h-20 rounded-md overflow-hidden">
-                  <RoleAvatarComponent avatarId={message.avatarId} width={20} isRounded={false} withTitle={false}></RoleAvatarComponent>
+                <div className="w-20 h-20 rounded-md overflow-hidden" onClick={() => setIsOpen(true)}>
+                  <RoleAvatarComponent avatarId={message.avatarId} width={20} isRounded={false} withTitle={false} stopPopWindow={true}></RoleAvatarComponent>
                 </div>
               </div>
 
