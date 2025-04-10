@@ -29,8 +29,7 @@ import type {AbilitySetRequest} from "./models/AbilitySetRequest";
 import type {AbilityUpdateRequest} from "./models/AbilityUpdateRequest";
 import type { UseQueryResult } from "@tanstack/react-query";
 
-import type { ApiResultListRoleResponse, ApiResultRoleAbility, ApiResultUserInfoResponse, RoleResponse } from "api";
-import { useCallback, useState } from 'react';
+import type {ApiResultListRoleResponse, ApiResultRoleAbility, ApiResultUserInfoResponse, Message, RoleResponse} from "api";
 
 
 // ==================== 角色管理 ====================
@@ -579,6 +578,19 @@ export class UploadUtils {
   }
 }
 
+export function useUpdateMessageMutation(){
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn:  (req: Message) =>tuanchat.chatController.updateMessage(req),
+        mutationKey: ["updateMessage"],
+    })
+}
+
+
+
+
+   
+
 // 用户查询
 export function useUserQuery() {
   const userQuery = useQuery({
@@ -684,6 +696,7 @@ export function useAbilityQuery(roleId: number) {
 
 //Warpper界面useEffect的逻辑,去掉了useEffect
 import type { CharacterData } from '@/components/character/characterWrapper';
+import { useCallback, useState } from 'react';
 export const useCharacterInitialization = (roleQuery: any) => {
   const queryClient = useQueryClient();
   const [characters, setCharacters] = useState<CharacterData[]>([]);
@@ -754,4 +767,50 @@ export const useCharacterInitialization = (roleQuery: any) => {
   return { characters, initializeCharacters, updateCharacters };
 };
    
+// post部分
+//删除角色
+export function useDeleteRole() {
+  return useMutation({
+    mutationKey: ["deleteRole"],
+    mutationFn: async (roleId: number[]) => {
+      const res = await tuanchat.roleController.deleteRole(roleId);
+      if (res.success) {
+        console.warn("角色删除成功");
+        return res;
+      }
+      else {
+        console.error("删除角色失败");
+        return undefined;
+      }
+    },
+    onError: (error) => {
+      console.error("Mutation failed:", error);
+    },
+  });
+}
 
+// 改变角色头像
+export function useUpdateRoleAvatar(avatarId: number) {
+  return useMutation({
+      mutationKey: ["avatarChange"],
+      mutationFn: async (data: { id: number; avatar: string }) => {
+        if (!data || !data.id || !data.avatar) {
+          console.error("Invalid data for avatar update:", data);
+          return;
+        }
+        const res = await tuanchat.avatarController.updateRoleAvatar({
+          avatarUrl: data.avatar,
+          roleId: data.id,
+          avatarId,
+        });
+        if (res.success) {
+          console.warn("头像设置成功");
+          return res;
+        }
+        else {
+          console.error("头像设置失败");
+          return undefined;
+        }
+      },
+    });
+}

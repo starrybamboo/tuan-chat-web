@@ -41,9 +41,10 @@ interface ImgUploaderWithCopperProps {
   setCopperedDownloadUrl: (newUrl: string) => void;
   children: React.ReactNode;
   fileName: string;
+  mutate?: (variables: string) => void;
 }
 
-export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName }: ImgUploaderWithCopperProps) {
+export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName, mutate }: ImgUploaderWithCopperProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadUtils = new UploadUtils(2);
   // 控制弹窗的显示与隐藏
@@ -122,6 +123,9 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
       const copperedImgFile = await getCopperedImg();
       const copperedDownloadUrl = await uploadUtils.upload(copperedImgFile);
       setCopperedDownloadUrl(copperedDownloadUrl);
+      if (mutate !== undefined) {
+        mutate(copperedDownloadUrl);
+      }
       setIsOpen(false);
     }
     catch (error) {

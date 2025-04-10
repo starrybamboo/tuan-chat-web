@@ -2,6 +2,7 @@
 import type { CharacterData } from "./characterWrapper";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
+import { useUpdateRoleAvatar } from "api/queryHooks";
 import { useState } from "react";
 import Head from "./head";
 
@@ -99,28 +100,7 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
   });
 
   // 头像改变
-  const { mutate: mutateAvatar } = useMutation({
-    mutationKey: ["avatarChange"],
-    mutationFn: async (data: { id: number; avatar: string }) => {
-      if (!data || !data.id || !data.avatar) {
-        console.error("Invalid data for avatar update:", data);
-        return;
-      }
-      const res = await tuanchat.avatarController.updateRoleAvatar({
-        avatarUrl: data.avatar,
-        roleId: data.id,
-        avatarId,
-      });
-      if (res.success) {
-        console.warn("头像设置成功");
-        return res;
-      }
-      else {
-        console.error("头像设置失败");
-        return undefined;
-      }
-    },
-  });
+  const { mutate: mutateAvatar } = useUpdateRoleAvatar(avatarId);
 
   const handleSubmit = () => {
     const cleanDescription = description

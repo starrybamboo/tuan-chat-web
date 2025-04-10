@@ -1,7 +1,5 @@
 /* eslint-disable react-dom/no-missing-button-type */
-import { useMutation } from "@tanstack/react-query";
-import { tuanchat } from "api/instance";
-import { useCharacterInitialization, useRoleQuery, useUserQuery } from "api/queryHooks";
+import { useCharacterInitialization, useDeleteRole, useRoleQuery, useUserQuery } from "api/queryHooks";
 import CharacterNav from "app/components/character/characterNav";
 import CreatCharacter from "app/components/character/creatCharacter";
 import PreviewCharacter from "app/components/character/previewCharacter";
@@ -62,23 +60,8 @@ export default function CharacterWrapper() {
     initializeCharacters();
   }, [initializeCharacters]);
 
-  const { mutate: deleteRole } = useMutation({
-    mutationKey: ["deleteRole"],
-    mutationFn: async (roleId: number[]) => {
-      const res = await tuanchat.roleController.deleteRole(roleId);
-      if (res.success) {
-        console.warn("角色删除成功");
-        return res;
-      }
-      else {
-        console.error("删除角色失败");
-        return undefined;
-      }
-    },
-    onError: (error) => {
-      console.error("Mutation failed:", error);
-    },
-  });
+  // 删除角色
+  const { mutate: deleteRole } = useDeleteRole();
   // 各种事件的处理
   const handleCreate = (newCharacter: CharacterData) => {
     updateCharacters([...characters, newCharacter]);

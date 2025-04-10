@@ -17,6 +17,13 @@ interface HeadProps {
 export default function Head({ onAvatarChange, onAvatarIdChange, roleId, currentAvatar, userQuery, roleQuery }: HeadProps) {
   const [recordNewAvatar, setRecordNewAvatar] = useState<number | null>(null);
   const queryClient = useQueryClient();
+
+  // 辅助函数生成唯一文件名
+  const generateUniqueFileName = (roleId: number): string => {
+    const timestamp = Date.now();
+    return `avatar-${roleId}-${timestamp}.png`;
+  };
+
   // 上传头像到服务器
   const { mutate } = useMutation({
     mutationKey: ["uploadAvatar"],
@@ -70,6 +77,9 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
     },
   });
 
+  // 生成唯一文件名
+  const uniqueFileName = generateUniqueFileName(roleId);
+
   return (
     <div className="h-155 p-2 w-full">
       <div className="text-center">
@@ -103,7 +113,7 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
                 queryClient.invalidateQueries({ queryKey: ["roleAvatar", roleId] });
               }
             }}
-            roleId={roleId}
+            fileName={uniqueFileName}
             mutate={mutate}
           >
             <button className="btn btn-dash m-auto block">

@@ -2,16 +2,13 @@
 import { tuanchat } from "../../api/instance";
 
 export class UploadUtils {
-  constructor(private readonly scene: number = 2) {
-  }
+  constructor(private readonly scene: number = 2) {}
 
   async upload(file: File): Promise<string> {
     const ossData = await tuanchat.ossController.getUploadUrl({
       fileName: file.name,
       scene: this.scene,
     });
-
-    console.log(ossData.data?.downloadUrl);
 
     if (!ossData.data?.uploadUrl) {
       throw new Error("获取上传地址失败");
