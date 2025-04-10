@@ -29,7 +29,7 @@ import type {AbilitySetRequest} from "./models/AbilitySetRequest";
 import type {AbilityUpdateRequest} from "./models/AbilityUpdateRequest";
 import type { UseQueryResult } from "@tanstack/react-query";
 
-import type { ApiResultListRoleResponse, ApiResultRoleAbility, ApiResultUserInfoResponse } from "api";
+import type {ApiResultListRoleResponse, ApiResultRoleAbility, ApiResultUserInfoResponse, Message} from "api";
 
 
 // ==================== 角色管理 ====================
@@ -581,11 +581,8 @@ export class UploadUtils {
 export function useUpdateMessageMutation(){
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: tuanchat.chatController.updateMessage,
+        mutationFn:  (req: Message) =>tuanchat.chatController.updateMessage(req),
         mutationKey: ["updateMessage"],
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ["getMsgPage"] });
-        }
     })
 }
 

@@ -36,7 +36,7 @@ import { useWebSocket } from "../../../api/useWebSocket";
 export function DialogueWindow({ groupId }: { groupId: number }) {
   const [inputText, setInputText] = useState("");
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
-  const [useChatBubbleStyle, setuseChatBubbleStyle] = useState(true);
+  const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(true);
   const PAGE_SIZE = 30; // 每页消息数量
 
   // 承载聊天记录窗口的ref
@@ -351,7 +351,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                       }
                     </ul>
                   </div>
-                  <ImgUploaderWithCopper setCopperedDownloadUrl={setImgDownLoadUrl} setDownloadUrl={() => {}}>
+                  <ImgUploaderWithCopper setCopperedDownloadUrl={setImgDownLoadUrl} setDownloadUrl={() => {}} fileName="test!test!!!!">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-600 hover:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       {/* 图片框 */}
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2-2h4l2 2h4a2 2 0 012 2v10a2 2 0 01-2 2H5z" />
@@ -363,8 +363,8 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                 <div className="float-right">
                   <label className="swap w-30 btn right-2">
                     <input type="checkbox" />
-                    <div className="swap-on" onClick={() => setuseChatBubbleStyle(false)}>Use Chat Bubble Style</div>
-                    <div className="swap-off" onClick={() => setuseChatBubbleStyle(true)}>Use Chat Box Style</div>
+                    <div className="swap-on" onClick={() => setUseChatBubbleStyle(false)}>Use Chat Bubble Style</div>
+                    <div className="swap-off" onClick={() => setUseChatBubbleStyle(true)}>Use Chat Box Style</div>
                   </label>
                   {/* send button */}
                   <button type="button" className="btn btn-primary " disabled={!inputText.trim()} onClick={handleMessageSubmit}>

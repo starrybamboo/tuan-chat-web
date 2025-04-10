@@ -22,7 +22,9 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
       ...message,
       avatarId,
     };
-    updateMessageMutation.mutate(newMessage);
+    updateMessageMutation.mutate(newMessage, {
+      onSettled: () => setIsOpen(false),
+    });
   }
 
   return (

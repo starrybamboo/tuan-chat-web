@@ -40,9 +40,10 @@ interface ImgUploaderWithCopperProps {
   setDownloadUrl: (newUrl: string) => void;
   setCopperedDownloadUrl: (newUrl: string) => void;
   children: React.ReactNode;
+  fileName: string;
 }
 
-export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, children }: ImgUploaderWithCopperProps) {
+export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName }: ImgUploaderWithCopperProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadUtils = new UploadUtils(2);
   // 控制弹窗的显示与隐藏
@@ -104,8 +105,19 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
     if (!imgFile.current) {
       return;
     }
+
+    const originalFile = imgFile.current;
+    const fileWithNewName = new File(
+      [originalFile],
+      fileName,
+      {
+        type: originalFile.type,
+        lastModified: originalFile.lastModified,
+      },
+    );
+
     try {
-      const downloadUrl = await uploadUtils.upload(imgFile.current);
+      const downloadUrl = await uploadUtils.upload(fileWithNewName);
       setDownloadUrl(downloadUrl);
       const copperedImgFile = await getCopperedImg();
       const copperedDownloadUrl = await uploadUtils.upload(copperedImgFile);
@@ -154,7 +166,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
     const blob = await offscreen.convertToBlob({
       type: "image/png",
     });
-    return new File([blob], "cropped-image.jpg", {
+    return new File([blob], `${fileName}-coppered`, {
       type: "image/png",
       lastModified: Date.now(),
     });
