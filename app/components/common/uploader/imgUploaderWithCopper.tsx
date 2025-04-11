@@ -58,6 +58,8 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
 
   const imgFile = useRef<File>(null);
 
+  const [isSubmiting, setIsSubmiting] = useState(false);
+
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
     setCrop(centerAspectCrop(width, height, 1));
@@ -103,6 +105,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
   }
 
   async function handleSubmit() {
+    setIsSubmiting(true);
     if (!imgFile.current) {
       return;
     }
@@ -126,10 +129,13 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
       if (mutate !== undefined) {
         mutate({ avatarUrl: copperedDownloadUrl, spriteUrl: downloadUrl });
       }
-      setIsOpen(false);
     }
     catch (error) {
       console.error("上传失败:", error);
+    }
+    finally {
+      setIsSubmiting(false);
+      setIsOpen(false);
     }
   }
 
@@ -228,7 +234,14 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
                   className="w-full h-full"
                 />
               </div>
-              <button className="btn btn-dash" onClick={handleSubmit} type="button">完成</button>
+              {
+                isSubmiting
+                  ? (
+                      <button className="btn loading" disabled={true} type="button"></button>
+                    )
+                  : <button className="btn btn-dash" onClick={handleSubmit} type="button">完成</button>
+              }
+
             </div>
           )}
         </div>
