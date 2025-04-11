@@ -147,7 +147,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
         }
       });
     }
-  }, [messageEntry?.isIntersecting, messagesInfiniteQuery.hasNextPage, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage]);
+  }, [messageEntry?.isIntersecting, messagesInfiniteQuery.hasNextPage, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage, messagesInfiniteQuery]);
   /**
    * 第一次获取消息的时候, 滚动到底部
    */
@@ -175,7 +175,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
       // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setCurRoleId(groupRolesThatUserOwn[0]?.roleId ?? -1);
     }
-  }, [groupRolesQuery.data]);
+  }, [groupRolesQuery.data, groupRolesQuery.isFetchedAfterMount, groupRolesThatUserOwn]);
   /**
    * 命令补全部分
    */

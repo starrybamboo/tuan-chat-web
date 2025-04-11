@@ -1,8 +1,7 @@
 /* eslint-disable react-dom/no-missing-button-type */
-import type { RoleAvatar, RoleResponse } from "api";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { useRoleQuery, useUserQuery } from "api/queryHooks";
+import { useCharacterInitialization, useUserInfo, useUserRoles } from "api/queryHooks";
 import CharacterNav from "app/components/character/characterNav";
 import CreatCharacter from "app/components/character/creatCharacter";
 import PreviewCharacter from "app/components/character/previewCharacter";
@@ -40,91 +39,33 @@ export interface CharacterData {
 export default function CharacterWrapper() {
   // 调用API部分
   // 获取用户数据
-  const queryClient = useQueryClient();
-  const userQuery = useUserQuery();
-  const roleQuery = useRoleQuery(userQuery);
+  const userQuery = useUserInfo();
+  const roleQuery = useUserRoles(userQuery);
 
   // 动态页面的规划
-  const [characters, setCharacters] = useState<CharacterData[]>([]);
   const [selectedCharacter, setSelectedCharacter] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
   const [editingCharacterId, setEditingCharacterId] = useState<number | null>(null);
 
-  // 传入popWindow,处理删除的弹窗
+  // 删除弹窗状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
 
-  // 切换角色后的保存
+  // 保存修改弹窗状态和加载状态
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // 初始化用户角色信息
+  // 状态暂存待切换的ID
+  const [pendingSelectedId, setPendingSelectedId] = useState<number | null>(null);
+  const [pendingSubmitFn, setPendingSubmitFn] = useState<() => void>(() => { });
+
+  // 使用自定义 Hook 初始化角色数据
+  const { characters, initializeCharacters, updateCharacters } = useCharacterInitialization(roleQuery);
+
+  // 初始化用户角色信息,这里可以直接使用useQuery初始化,但有延迟,还是改回useEffect我们这边就算状态更新也有动态变化
   useEffect(() => {
-    if (roleQuery.data && Array.isArray(roleQuery.data.data)) {
-      const mappedCharacters = roleQuery.data.data.map((role: RoleResponse) => ({
-        id: role.roleId || 0,
-        name: role.roleName || "",
-        age: 25,
-        gender: "未知",
-        profession: "",
-        hometown: "",
-        address: "",
-        currentTime: new Date().toLocaleString(),
-        health: {
-          max: 100,
-          current: 100,
-        },
-        magic: {
-          max: 100,
-          current: 100,
-        },
-        sanity: {
-          max: 100,
-          current: 100,
-        },
-        luck: 50,
-        description: role.description || "无描述",
-        avatar: undefined,
-        currentIndex: 0,
-      }));
-      // 封装 setCharacters 调用，避免直接在 useEffect 中更新状态
-      const updateCharacters = () => {
-        setCharacters(mappedCharacters);
-      };
-
-      // 使用 Promise.resolve 延迟执行状态更新
-      Promise.resolve().then(updateCharacters);
-
-      // 异步加载每个角色的头像
-      mappedCharacters.forEach(async (character: CharacterData) => {
-        try {
-          const res = await tuanchat.avatarController.getRoleAvatars(character.id);
-          if (
-            res.success
-            && Array.isArray(res.data) // 检查是否为数组
-            && res.data.length > 0 // 检查数组是否非空
-            && res.data[0]?.avatarUrl !== undefined // 检查是否有 avatarUrl 属性
-            && res.data[0] !== undefined
-          ) {
-            const avatarUrl = res.data.find((avatar: RoleAvatar) => {
-              return avatar.avatarId === character.currentIndex;
-            })?.avatarUrl || res.data[0]?.avatarUrl;
-            queryClient.setQueryData(["roleAvatar", character.id], avatarUrl);
-            setCharacters(prevChars =>
-              prevChars.map(char =>
-                char.id === character.id ? { ...char, avatar: avatarUrl } : char,
-              ),
-            );
-          }
-          else {
-            console.warn(`角色 ${character.id} 的头像数据无效或为空`);
-          }
-        }
-        catch (error) {
-          console.error(`加载角色 ${character.id} 的头像时出错`, error);
-        }
-      });
-    }
-  }, [roleQuery.data, queryClient]);
+    initializeCharacters();
+  }, [initializeCharacters]);
 
   const { mutate: deleteRole } = useMutation({
     mutationKey: ["deleteRole"],
@@ -145,14 +86,60 @@ export default function CharacterWrapper() {
   });
   // 各种事件的处理
   const handleCreate = (newCharacter: CharacterData) => {
-    setCharacters([...characters, newCharacter]);
+    updateCharacters([...characters, newCharacter]);
     setCreating(false);
     setSelectedCharacter(newCharacter.id);
+  };
+  const handCloseConfirmWindow = () => {
+    setSaveConfirmOpen(false);
+  };
+  // 保存角色的方法
+  const handleSaveCharacter = async () => {
+    setIsSaving(true);
+    try {
+      if (pendingSubmitFn) {
+        pendingSubmitFn(); // 等待保存完成
+      }
+
+      if (pendingSelectedId !== null) {
+        setSelectedCharacter(pendingSelectedId);
+        setPendingSelectedId(null);
+      }
+    }
+    catch (error) {
+      console.error("保存失败:", error);
+    }
+    finally {
+      setSelectedCharacter(pendingSelectedId);
+      setIsSaving(false);
+      setSaveConfirmOpen(false);
+      setEditingCharacterId(null);
+    }
+  };
+
+  // 取消保存的方法
+  const handleCancelSave = () => {
+    if (pendingSelectedId !== null) {
+      setSelectedCharacter(pendingSelectedId);
+    }
+    setEditingCharacterId(null);
+    setSaveConfirmOpen(false);
+  };
+
+  const handleCharacterSelect = (id: number) => {
+    // 如果正在编辑且切换不同角色
+    if (editingCharacterId !== null && id !== editingCharacterId) {
+      setPendingSelectedId(id); // 暂存目标ID
+      setSaveConfirmOpen(true); // 触发保存确认
+    }
+    else {
+      setSelectedCharacter(id); // 直接切换
+    }
   };
 
   // 编辑角色
   const handleUpdate = (updatedCharacter: CharacterData) => {
-    setCharacters(characters.map(c =>
+    updateCharacters(characters.map(c =>
       c.id === updatedCharacter.id ? updatedCharacter : c,
     ));
     setEditingCharacterId(null);
@@ -169,7 +156,7 @@ export default function CharacterWrapper() {
       const roleId = deleteCharacterId;
       if (roleId) {
         deleteRole([roleId]);
-        setCharacters(characters.filter(c => c.id !== deleteCharacterId));
+        updateCharacters(characters.filter(c => c.id !== deleteCharacterId));
         setSelectedCharacter(null);
       }
       else {
@@ -185,32 +172,8 @@ export default function CharacterWrapper() {
     setDeleteCharacterId(null);
   };
 
-  // 保存角色的方法
-  const handleSaveCharacter = () => {
-    // 调用 handleSumbit 更新角色
-    const characterToSave = characters.find(c => c.id === editingCharacterId);
-    if (characterToSave) {
-      handleUpdate(characterToSave);
-      // 这里应该使用handleSubmit,但一旦移植到本文件,可能要大改
-    }
-    // 关闭保存确认弹窗
-    setSaveConfirmOpen(false);
-  };
-
-  // 取消保存的方法
-  const handleCancelSave = () => {
-    setSaveConfirmOpen(false);
-  };
-
-  const handleCharacterSelect = (id: number) => {
-    if (editingCharacterId !== null && editingCharacterId !== id) {
-      setSaveConfirmOpen(true);
-    }
-    setSelectedCharacter(id);
-  };
-
   return (
-    <div className="h-full w-screen bg-[#E6F2F9]">
+    <div className="h-full w-full bg-base-100">
 
       <div className="flex h-full">
         <div className="w-1/4">
@@ -234,6 +197,7 @@ export default function CharacterWrapper() {
                   }}
                   userQuery={userQuery}
                   roleQuery={roleQuery}
+                  exposeHandleSubmit={fn => setPendingSubmitFn(() => fn)}
                 />
               )
             : selectedCharacter
@@ -244,7 +208,7 @@ export default function CharacterWrapper() {
                     onDelete={handleDelete}
                   />
                 )
-            // 未选中或是创建角色时展示欢迎页面
+              // 未选中或是创建角色时展示欢迎页面
               : (
                   <div className="card w-full shadow-xl flex items-center justify-center text-gray-400">
                     <p className="text-lg card-title">
@@ -258,14 +222,14 @@ export default function CharacterWrapper() {
       </div>
       {/* 删除确认对话框 */}
       <PopWindow isOpen={deleteConfirmOpen} onClose={handleCancelDelete}>
-        <div className="p-4">
+        <div className="p-4 bg-base-200">
           <h3 className="text-lg font-bold mb-4">确认删除角色</h3>
           <p className="mb-4">确定要删除这个角色吗？</p>
           <div className="flex justify-end">
             <button className="btn btn-sm btn-outline btn-error mr-2" onClick={handleCancelDelete}>
               取消
             </button>
-            <button className="btn btn-sm bg-[#3A7CA5] text-white hover:bg-[#2A6F97]" onClick={handleConfirmDelete}>
+            <button className="btn btn-sm bg-primary text-white hover:bg-primary-focus" onClick={handleConfirmDelete}>
               确认删除
             </button>
           </div>
@@ -273,18 +237,46 @@ export default function CharacterWrapper() {
       </PopWindow>
 
       {/* 切换选择角色时保存角色 */}
-      <PopWindow isOpen={saveConfirmOpen} onClose={handleCancelSave}>
+      <PopWindow
+        isOpen={saveConfirmOpen}
+        onClose={handCloseConfirmWindow}
+      >
         <div className="p-4">
-          <h3 className="text-lg font-bold mb-4">确认保存角色</h3>
-          <p className="mb-4">确定要保存当前角色吗？</p>
-          <div className="flex justify-end">
-            <button className="btn btn-sm btn-outline btn-error mr-2" onClick={handleCancelSave}>
-              取消
-            </button>
-            <button className="btn btn-sm bg-[#3A7CA5] text-white hover:bg-[#2A6F97]" onClick={() => handleSaveCharacter()}>
-              确认保存
-            </button>
-          </div>
+          {/* 也许后面数据多了会卡住，谁知道呢 */}
+          <h3 className="text-lg font-bold mb-4">
+            {isSaving ? "正在保存..." : "确认保存修改"}
+          </h3>
+
+          {!isSaving && (
+            <>
+              <p className="mb-4 text-gray-600">
+                有未保存的修改，切换角色将自动保存当前修改
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  className="btn btn-sm btn-outline btn-error"
+                  onClick={handleCancelSave}
+                  disabled={isSaving}
+                >
+                  放弃修改
+                </button>
+                <button
+                  className="btn btn-sm bg-[#3A7CA5] text-white hover:bg-[#2A6F97]"
+                  onClick={handleSaveCharacter}
+                  disabled={isSaving}
+                >
+                  确认保存
+                </button>
+              </div>
+            </>
+          )}
+
+          {isSaving && (
+            <div className="flex justify-center items-center py-4">
+              <span className="loading loading-spinner text-primary"></span>
+              <span className="ml-2 text-gray-500">保存中...</span>
+            </div>
+          )}
         </div>
       </PopWindow>
     </div>

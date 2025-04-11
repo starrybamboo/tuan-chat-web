@@ -10,7 +10,7 @@ interface Props {
 export default function PreviewCharacter({ character, onEdit, onDelete }: Props) {
   return (
     <div className="h-full overflow-y-scroll">
-      <div className="h-10 border-b-1 border-base-200 p-2 flex justify-between items-center">
+      <div className="h-10 border-b-1 border-base-300 p-2 flex justify-between items-center">
         <span className="font-semibold">角色详情</span>
         <div>
           <button onClick={onEdit} className="btn btn-sm bg-[#3A7CA5] hover:bg-[#2A6F97] text-white mr-2">
@@ -24,7 +24,7 @@ export default function PreviewCharacter({ character, onEdit, onDelete }: Props)
 
       <div className="p-4">
         {/* 基本信息卡片 */}
-        <div className="card bg-base-100 shadow-md mb-4">
+        <div className="card bg-base-300 shadow-md mb-4">
           <div className="card-body">
             <div className="flex items-center gap-4">
               <div className="w-32 h-32 bg-base-300 rounded-lg overflow-hidden">
@@ -71,7 +71,7 @@ export default function PreviewCharacter({ character, onEdit, onDelete }: Props)
 
         {/* 可视化属性条 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div className="bg-base-100 p-4 rounded-lg shadow">
+          <div className="bg-base-300 p-4 rounded-lg shadow">
             <h3 className="font-bold mb-2">生命值</h3>
             <div className="flex items-center gap-2">
               {/* 状态条 */}
@@ -90,7 +90,7 @@ export default function PreviewCharacter({ character, onEdit, onDelete }: Props)
             </div>
           </div>
 
-          <div className="bg-base-100 p-4 rounded-lg shadow">
+          <div className="bg-base-300 p-4 rounded-lg shadow">
             <h3 className="font-bold mb-2">魔法值</h3>
             <div className="flex items-center gap-2">
               <progress
@@ -107,7 +107,7 @@ export default function PreviewCharacter({ character, onEdit, onDelete }: Props)
             </div>
           </div>
 
-          <div className="bg-base-100 p-4 rounded-lg shadow">
+          <div className="bg-base-300 p-4 rounded-lg shadow">
             <h3 className="font-bold mb-2">理智 (Sanity)</h3>
             <div className="flex items-center gap-2">
               <progress
@@ -124,7 +124,7 @@ export default function PreviewCharacter({ character, onEdit, onDelete }: Props)
             </div>
           </div>
 
-          <div className="bg-base-100 p-4 rounded-lg shadow">
+          <div className="bg-base-300 p-4 rounded-lg shadow">
             <h3 className="font-bold mb-2">幸运</h3>
             <div className="flex items-center gap-2">
               <progress
@@ -142,7 +142,7 @@ export default function PreviewCharacter({ character, onEdit, onDelete }: Props)
         </div>
 
         {/* 角色描述 */}
-        <div className="card bg-base-100 shadow-md">
+        <div className="card bg-base-300 shadow-md">
           <div className="card-body">
             <h3 className="card-title">角色描述</h3>
             <pre className="whitespace-pre-wrap font-sans">{character.description}</pre>

@@ -11,6 +11,7 @@ interface Props {
   initialData?: CharacterData;
   userQuery?: any;
   roleQuery?: any;
+  exposeHandleSubmit?: (fn: () => void) => void;
 }
 
 export default function CreatCharacter({ onSave, onCancel, initialData, userQuery, roleQuery }: Props) {
@@ -63,8 +64,8 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
           roleId: initialData?.id as number,
           roleName: data.name,
           description: data.description,
-        },
-        );
+          avatarId,
+        });
         return updateRes;
       }
     },
@@ -85,7 +86,7 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
           luck,
           description: description || "无描述",
           avatar: avatar || "",
-          currentIndex: 0,
+          currentIndex: avatarId,
         };
         onSave(newCharacter);
       }
@@ -94,30 +95,6 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
       console.error("Mutation failed:", error);
       if (error.response && error.response.data) {
         console.error("Server response:", error.response.data);
-      }
-    },
-  });
-
-  // 头像改变
-  const { mutate: mutateAvatar } = useMutation({
-    mutationKey: ["avatarChange"],
-    mutationFn: async (data: { id: number; avatar: string }) => {
-      if (!data || !data.id || !data.avatar) {
-        console.error("Invalid data for avatar update:", data);
-        return;
-      }
-      const res = await tuanchat.avatarController.updateRoleAvatar({
-        avatarUrl: data.avatar,
-        roleId: data.id,
-        avatarId,
-      });
-      if (res.success) {
-        console.warn("头像设置成功");
-        return res;
-      }
-      else {
-        console.error("头像设置失败");
-        return undefined;
       }
     },
   });
@@ -146,17 +123,23 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
       avatar: avatar || "",
       currentIndex: avatarId,
     };
-
     onSave(newCharacter);
-    const dataToSend = newCharacter;
-    mutate(dataToSend);
-
-    // 如果头像有变化，触发头像更新逻辑
-    mutateAvatar({ id: initialData?.id || Date.now(), avatar });
+    mutate(newCharacter);
   };
 
+  // // 仅在组件挂载时调用回调，暴露 handleSubmit 给父组件使用
+  // useEffect(() => {
+  //   if (exposeHandleSubmit) {
+  //     exposeHandleSubmit(() => new Promise<void>((resolve) => {
+  //       handleSubmit();
+  //       // 模拟 handleSubmit 完成（真实可通过状态或回调改成真正 resolve 位置）
+  //       setTimeout(() => resolve(), 300); // 临时延迟确保保存完
+  //     }));
+  //   }
+  // }, [exposeHandleSubmit, handleSubmit]);
+
   return (
-    <div className="h-full overflow-y-scroll w-full">
+    <div className="h-full overflow-y-scroll w-full bg-base-100">
       <div className="h-10 border-b-1 border-white p-2 flex justify-between items-center">
         {initialData ? "编辑角色" : "创建角色"}
         <div>

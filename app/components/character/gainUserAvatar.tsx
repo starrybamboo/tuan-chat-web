@@ -1,9 +1,7 @@
-/* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
-import type { RoleAvatar, RoleResponse, UserRole } from "api";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { RoleAvatar, UserRole } from "api";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { useRoleQuery, useUserQuery } from "api/queryHooks";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { PopWindow } from "../common/popWindow";
 
 interface Props {
@@ -22,22 +20,17 @@ interface User {
   currentAvatarIndex: number;
 }
 
-// 默认用户数据
-const defaultUser: User = {
-  userRole: {
-    userId: 0,
-    roleId: 0,
-    roleName: "",
-  },
-  roleAvatars: [],
-  currentAvatarIndex: 0,
-};
-
-export default function GainUserAvatar({ initialAvatar, roleId, onAvatarChange, onAvatarIdChange }: Props) {
-  const queryClient = useQueryClient();
-  const userQuery = useUserQuery();
-  const roleQuery = useRoleQuery(userQuery);
-
+export default function GainUserAvatar({ initialAvatar, roleId, onAvatarChange, onAvatarIdChange, userQuery }: Props) {
+  // 默认用户数据
+  const defaultUser: User = {
+    userRole: {
+      userId: userQuery?.data?.userId || 0,
+      roleId,
+      roleName: "",
+    },
+    roleAvatars: [],
+    currentAvatarIndex: 0,
+  };
   const [user, setUser] = useState<User>(defaultUser);
   const [previewSrc, setPreviewSrc] = useState(initialAvatar || "");
 
@@ -59,76 +52,36 @@ export default function GainUserAvatar({ initialAvatar, roleId, onAvatarChange, 
     },
   });
 
-  // 初始化用户角色信息
-  useEffect(() => {
-    if (roleQuery.data && Array.isArray(roleQuery.data.data) && userQuery.data && userQuery.data.data) {
-      const role = roleQuery.data.data.find((r: RoleResponse) => r.roleId === roleId);
-      if (role) {
-        const userRole: UserRole = {
-          userId: userQuery.data?.data?.userId || 0,
-          roleId: role.roleId || 0,
-          roleName: role.roleName || "",
-        };
-
-        setUser(prev => ({
-          ...prev,
-          userRole,
-          roleAvatars: [],
-          currentAvatarIndex: 0,
-        }));
-
-        // 异步加载角色的头像
-        const fetchRoleAvatars = async () => {
-          try {
-            const res = await tuanchat.avatarController.getRoleAvatars(role.roleId as number);
-            if (
-              res.success
-              && Array.isArray(res.data)
-              && res.data.length > 0
-              && res.data[0]?.avatarUrl !== undefined
-            ) {
-              const avatarUrl = res.data[0].avatarUrl as string; // 类型断言
-              queryClient.setQueryData(["roleAvatar", role.roleId], avatarUrl);
-
-              // 更新角色头像
-              setUser(prev => ({
-                ...prev,
-                roleAvatars: [...(res.data || [])],
-              }));
-            }
-            else {
-              console.warn(`角色 ${role.roleId} 的头像数据无效或为空`);
-            }
-          }
-          catch (error) {
-            console.error(`加载角色 ${role.roleId} 的头像时出错`, error);
-          }
-        };
-
-        fetchRoleAvatars();
+  useQuery({
+    queryKey: ["roleAvatar", roleId],
+    queryFn: async () => {
+      const res = await tuanchat.avatarController.getRoleAvatars(roleId);
+      if (res.success && Array.isArray(res.data)) {
+        const roleAvatars = res.data;
+        const currentAvatarIndex = res.data?.length > 0 ? 0 : -1;
+        setUser((prev) => {
+          return {
+            ...prev,
+            roleAvatars,
+            currentAvatarIndex,
+          };
+        });
+        return res.data;
       }
       else {
-        console.warn(`未找到角色ID为 ${roleId} 的角色数据`);
+        console.error("获取角色头像失败");
+        return [];
       }
-    }
-  }, [roleQuery.data, queryClient, userQuery.data, roleId]);
-
-  // 同步外部传入的初始头像
-  useEffect(() => {
-    if (initialAvatar) {
-      setPreviewSrc(initialAvatar);
-    }
-  }, [initialAvatar]);
-
+    },
+  });
   const handleAvatarClick = (avatarUrl: string, index: number) => {
-    setPreviewSrc(avatarUrl);
+    setPreviewSrc(user.roleAvatars[index].spriteUrl || avatarUrl);
     setUser(prev => ({ ...prev, currentAvatarIndex: index }));
     onAvatarChange(avatarUrl); // 同步到父组件
     // 确保 avatarId 存在且为 number 类型
     const avatarId = user.roleAvatars.length > 0 && user.currentAvatarIndex < user.roleAvatars.length
-      ? user.roleAvatars[user.currentAvatarIndex]?.avatarId || 0
+      ? user.roleAvatars[index].avatarId || 0
       : 0;
-
     onAvatarIdChange(avatarId); // 安全传递;
   };
 
