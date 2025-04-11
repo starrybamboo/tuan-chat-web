@@ -2,10 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import type {ChatMessageRequest} from "./models/ChatMessageRequest";
 import type {ChatMessageResponse} from "./models/ChatMessageResponse";
 import {useImmer} from "use-immer";
-import {formatToLocalISO} from "@/utils/dataUtil";
-import {useInfiniteQuery} from "@tanstack/react-query";
-import {tuanchat} from "./instance";
-import type {ChatMessagePageRequest} from "./models/ChatMessagePageRequest";
+import {formatLocalDateTime} from "@/utils/dataUtil";
 
 type WsMessageType =
     | 2 // 心跳
@@ -60,7 +57,7 @@ export function useWebSocket() {
                     const message: WsMessage<ChatMessageResponse> = JSON.parse(event.data)
                     console.log('Received message:', JSON.stringify(message))
                     if(!(message.data?.message.createTime) && message.data != undefined){
-                        message.data.message.createTime = formatToLocalISO(new Date)
+                        message.data.message.createTime = formatLocalDateTime(new Date())
                     }
                     if(message.data!=undefined && message.data){
                         updateGroupMessages(draft => {

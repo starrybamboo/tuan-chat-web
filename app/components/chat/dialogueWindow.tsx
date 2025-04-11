@@ -289,11 +289,13 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
               </div>
             )}
             <div className="card-body overflow-y-auto h-[60vh]" ref={chatFrameRef}>
-              {historyMessages.map((chatMessageResponse, index) => (
-                <div ref={index === 1 ? messageRef : null} key={chatMessageResponse.message.messageID}>
-                  <ChatBubble chatMessageResponse={chatMessageResponse} useChatBubbleStyle={useChatBubbleStyle} />
-                </div>
-              ))}
+              {historyMessages.filter(chatMessageResponse => chatMessageResponse.message.content !== "")
+                .map((chatMessageResponse, index) => ((
+                  <div ref={index === 1 ? messageRef : null} key={chatMessageResponse.message.messageID}>
+                    <ChatBubble chatMessageResponse={chatMessageResponse} useChatBubbleStyle={useChatBubbleStyle} />
+                  </div>
+                )
+                ))}
               {/* {receivedMessages.map(receivedMessage => ( */}
               {/*  <div key={receivedMessage.message.messageID}> */}
               {/*    <ChatBubble chatMessageResponse={receivedMessage} useChatBubbleStyle={useChatBubbleStyle} /> */}

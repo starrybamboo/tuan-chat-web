@@ -108,7 +108,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
 
                 {/* 时间 */}
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {message.createTime?.toLocaleString() ?? ""}
+                  {message.createTime ?? ""}
                 </div>
               </div>
             </div>
