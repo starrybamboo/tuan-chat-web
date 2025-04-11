@@ -2,7 +2,6 @@
 import type { CharacterData } from "./characterWrapper";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { useUpdateRoleAvatar } from "api/queryHooks";
 import { useState } from "react";
 import Head from "./head";
 
@@ -12,6 +11,7 @@ interface Props {
   initialData?: CharacterData;
   userQuery?: any;
   roleQuery?: any;
+  exposeHandleSubmit?: (fn: () => void) => void;
 }
 
 export default function CreatCharacter({ onSave, onCancel, initialData, userQuery, roleQuery }: Props) {
@@ -64,8 +64,8 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
           roleId: initialData?.id as number,
           roleName: data.name,
           description: data.description,
-        },
-        );
+          avatarId,
+        });
         return updateRes;
       }
     },
@@ -86,7 +86,7 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
           luck,
           description: description || "无描述",
           avatar: avatar || "",
-          currentIndex: 0,
+          currentIndex: avatarId,
         };
         onSave(newCharacter);
       }
@@ -98,9 +98,6 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
       }
     },
   });
-
-  // 头像改变
-  const { mutate: mutateAvatar } = useUpdateRoleAvatar(avatarId);
 
   const handleSubmit = () => {
     const cleanDescription = description
@@ -126,14 +123,20 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
       avatar: avatar || "",
       currentIndex: avatarId,
     };
-
     onSave(newCharacter);
-    const dataToSend = newCharacter;
-    mutate(dataToSend);
-
-    // 如果头像有变化，触发头像更新逻辑
-    mutateAvatar({ id: initialData?.id || Date.now(), avatar });
+    mutate(newCharacter);
   };
+
+  // // 仅在组件挂载时调用回调，暴露 handleSubmit 给父组件使用
+  // useEffect(() => {
+  //   if (exposeHandleSubmit) {
+  //     exposeHandleSubmit(() => new Promise<void>((resolve) => {
+  //       handleSubmit();
+  //       // 模拟 handleSubmit 完成（真实可通过状态或回调改成真正 resolve 位置）
+  //       setTimeout(() => resolve(), 300); // 临时延迟确保保存完
+  //     }));
+  //   }
+  // }, [exposeHandleSubmit, handleSubmit]);
 
   return (
     <div className="h-full overflow-y-scroll w-full bg-base-100">

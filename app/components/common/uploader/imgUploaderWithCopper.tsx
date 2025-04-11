@@ -1,5 +1,5 @@
 /**
- *这下面和./imgCopper中很多的代码是从https://www.npmjs.com/package/react-image-cropv 中搞过来的
+ *这下面和./imgCopper中很多的代码是从https://www.npmjs.com/package/react-image-crop中搞过来的
  */
 
 import type { Crop, PixelCrop } from "react-image-crop";
@@ -41,7 +41,7 @@ interface ImgUploaderWithCopperProps {
   setCopperedDownloadUrl: (newUrl: string) => void;
   children: React.ReactNode;
   fileName: string;
-  mutate?: (variables: string) => void;
+  mutate?: (data: any) => void;
 }
 
 export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName, mutate }: ImgUploaderWithCopperProps) {
@@ -124,7 +124,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
       const copperedDownloadUrl = await uploadUtils.upload(copperedImgFile);
       setCopperedDownloadUrl(copperedDownloadUrl);
       if (mutate !== undefined) {
-        mutate(copperedDownloadUrl);
+        mutate({ avatarUrl: copperedDownloadUrl, spriteUrl: downloadUrl });
       }
       setIsOpen(false);
     }

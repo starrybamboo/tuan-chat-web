@@ -75,14 +75,13 @@ export default function GainUserAvatar({ initialAvatar, roleId, onAvatarChange, 
     },
   });
   const handleAvatarClick = (avatarUrl: string, index: number) => {
-    setPreviewSrc(avatarUrl);
+    setPreviewSrc(user.roleAvatars[index].spriteUrl || avatarUrl);
     setUser(prev => ({ ...prev, currentAvatarIndex: index }));
     onAvatarChange(avatarUrl); // 同步到父组件
     // 确保 avatarId 存在且为 number 类型
     const avatarId = user.roleAvatars.length > 0 && user.currentAvatarIndex < user.roleAvatars.length
-      ? user.roleAvatars[user.currentAvatarIndex]?.avatarId || 0
+      ? user.roleAvatars[index].avatarId || 0
       : 0;
-
     onAvatarIdChange(avatarId); // 安全传递;
   };
 

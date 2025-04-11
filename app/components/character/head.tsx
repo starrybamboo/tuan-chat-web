@@ -21,14 +21,14 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
   // 辅助函数生成唯一文件名
   const generateUniqueFileName = (roleId: number): string => {
     const timestamp = Date.now();
-    return `avatar-${roleId}-${timestamp}.png`;
+    return `${userQuery.data.data.userId}-avatar-${roleId}-${timestamp}`;
   };
 
   // 上传头像到服务器
   const { mutate } = useMutation({
     mutationKey: ["uploadAvatar"],
-    mutationFn: async (avatarUrl: string) => {
-      if (!avatarUrl || !roleId) {
+    mutationFn: async ({ avatarUrl, spriteUrl }: { avatarUrl: string; spriteUrl: string }) => {
+      if (!avatarUrl || !roleId || !spriteUrl) {
         console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;
       }
@@ -51,6 +51,7 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
             roleId,
             avatarId,
             avatarUrl,
+            spriteUrl,
           });
 
           if (!uploadRes.success) {
@@ -91,7 +92,9 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
           className="m-auto w-80 h-9 bg-base-200 p-2 mt-3 input input-bordered"
           placeholder="输入标题"
         />
-        <button className="ml-2 btn btn-dash inline-block h-9 rounded-none mt-3">
+        <button
+          className="ml-2 btn btn-dash inline-block h-9 rounded-none mt-3"
+        >
           更新标题
         </button>
       </div>
@@ -114,7 +117,7 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
               }
             }}
             fileName={uniqueFileName}
-            mutate={mutate}
+            mutate={data => mutate(data)}
           >
             <button className="btn btn-dash m-auto block">
               <b className="text-white ml-0">+</b>
