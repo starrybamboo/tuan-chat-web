@@ -16,7 +16,7 @@ export default function CharacterNav({ characters, onCreate, onSelect, selected 
     character.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
   return (
-    <div className="w-full bg-base-100 border-base-300 text-center h-full overflow-y-scroll text-info-content">
+    <div className="w-full bg-base-100 border-base-300 text-center h-full text-info-content">
       {/* 搜索框 */}
       <input
         type="text"
