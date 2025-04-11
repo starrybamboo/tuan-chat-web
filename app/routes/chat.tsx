@@ -11,12 +11,8 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Home() {
   return (
-    <div className="h-screen">
-      <div className="bg-base-200">
-        <div className="flex">
-          <GroupSelect />
-        </div>
-      </div>
+    <div className="h-screen bg-base-200 flex">
+      <GroupSelect />
     </div>
   );
 }

@@ -55,15 +55,16 @@ export default function GroupSelect() {
   return (
     <div className="flex flex-row bg-base-100">
       {/* 一级群组列表 */}
-      <div className="flex flex-col gap-2 p-2 bg-base-200">
+      <div className="menu flex flex-col gap-2 p-3 bg-base-300">
         {groups.map(group => (
           <button
             key={group.roomId}
-            className="btn btn-square"
+            className="tooltip tooltip-right w-10"
+            data-tip={group.name}
             type="button"
             onClick={() => setOpenGroup(group.roomId)}
           >
-            <div className="avatar mask mask-squircle w-16">
+            <div className="avatar mask mask-squircle">
               <img
                 src={group.avatar}
                 alt={group.name}
