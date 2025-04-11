@@ -53,9 +53,9 @@ export default function GroupSelect() {
   }
 
   return (
-    <div className="flex flex-row">
+    <div className="flex flex-row bg-base-100">
       {/* 一级群组列表 */}
-      <div className="flex flex-col gap-2 p-2 bg-base-20">
+      <div className="flex flex-col gap-2 p-2 bg-base-200">
         {groups.map(group => (
           <button
             key={group.roomId}
@@ -82,7 +82,7 @@ export default function GroupSelect() {
         </button>
       </div>
       {/* 二级群组列表 */}
-      <div className="flex flex-col gap-2 p-2 w-[300px] items-start">
+      <div className="flex flex-col gap-2 p-2 w-[300px] bg-base-100">
         {groups.map(group => (
           <React.Fragment key={group.roomId}>
             {openGroup === group.roomId && (
