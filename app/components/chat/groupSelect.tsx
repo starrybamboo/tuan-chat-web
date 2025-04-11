@@ -73,12 +73,15 @@ export default function GroupSelect() {
           </button>
         ))}
         <button
-          className="btn btn-square btn-dash btn-info"
+          className="btn btn-square btn-dash btn-info w-10"
           type="button"
           onClick={() => setIsGroupHandleOpen(true)}
         >
-          <div className="avatar mask mask-squircle w-8 flex justify-center items-center">
-            <span className="text-xl">+</span>
+          <div className="avatar mask mask-squircle flex content-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
           </div>
         </button>
       </div>
