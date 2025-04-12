@@ -9,8 +9,9 @@ export async function editScene(game: string, scene: string, content: string) {
 export async function createPreview(groupId: number) {
   return (
     await terreApis.api.manageGameControllerCreateGame({
+      gameDir: `preview_${groupId}`,
       gameName: `preview_${groupId}`,
-      templateName: "WebGAL_Black",
+      // templateName: "WebGAL_Black",
     })
   ).data;
 }

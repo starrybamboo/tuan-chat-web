@@ -250,8 +250,6 @@ export class Api {
           path: `/api/assets/readAssets/${readDirPath}`,
           method: "GET",
         }),
-      // 保持所有API方法的相同结构...
-      // 这里列出关键方法，其他方法保持相同模式
       manageGameControllerGetGameList: () =>
         this.http.request<getGameListResp[]>({
           path: `/api/manageGame/gameList`,
@@ -268,7 +266,6 @@ export class Api {
           path: `/api/manageGame/openGameDict/${gameName}`,
           method: "GET",
         }),
-      // 文件上传特殊处理
       assetsControllerUpload: (data: FormData, targetDirectory: string) => {
         const formData = new FormData();
         formData.append("targetDirectory", targetDirectory);
@@ -281,7 +278,6 @@ export class Api {
           body: formData,
         });
       },
-      // 其他方法保持相同结构...
     };
     this.templatePreview = {
       templatePreviewControllerGetTemplateAsset: (path: string, templateName: string) =>
