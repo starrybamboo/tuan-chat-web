@@ -278,6 +278,12 @@ export class Api {
           body: formData,
         });
       },
+      manageGameControllerEditTextFile: (data: EditTextFileDto) =>
+        this.http.request<void>({
+          path: `/api/manageGame/editTextFile`,
+          method: "POST",
+          body: data,
+        }),
     };
     this.templatePreview = {
       templatePreviewControllerGetTemplateAsset: (path: string, templateName: string) =>

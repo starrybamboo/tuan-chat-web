@@ -123,7 +123,7 @@ export async function readTextFile(game: string, path: string): Promise<string> 
 export async function checkGameExist(game: string): Promise<boolean> {
   const gameList: GameInfo[] = (await terreApis.api.manageGameControllerGetGameList()).data;
   if (!gameList)
-    return true;
+    return false;
   return gameList.some(item => item.name === game);
 }
 
