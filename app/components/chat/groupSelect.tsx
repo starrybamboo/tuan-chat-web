@@ -73,8 +73,9 @@ export default function GroupSelect() {
           </button>
         ))}
         <button
-          className="btn btn-square btn-dash btn-info w-10"
+          className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10"
           type="button"
+          data-tip="添加群组"
           onClick={() => setIsGroupHandleOpen(true)}
         >
           <div className="avatar mask mask-squircle flex content-center">
