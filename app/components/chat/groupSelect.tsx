@@ -13,8 +13,8 @@ export default function GroupSelect() {
   const { data } = useGetUserGroupsQuery();
   const UserGroups = data?.data ?? [];
   // 分离子群和父群
-  const groups = UserGroups.filter(group => group.parentGroupId === group.roomId);
-  const subGroups = UserGroups;
+  const groups = UserGroups.filter(group => group.parentGroupId === 0);
+  const subGroups = UserGroups.filter(group => group.parentGroupId !== 0);
   // 创建群组
   const createGroupMutation = useCreateGroupMutation();
   // 当前要创建子群的父群ID
@@ -46,6 +46,13 @@ export default function GroupSelect() {
       parentRoomId: parentGroupId,
       userIdList: [userId],
     }, {
+      onSuccess: (data) => {
+        const newSubGroupId = data.data?.roomId;
+        if (newSubGroupId) {
+          setActiveSubGroupId(newSubGroupId);
+        }
+        setIsSubGroupHandleOpen(false);
+      },
       onSettled: () => {
         setIsSubGroupHandleOpen(false);
       },

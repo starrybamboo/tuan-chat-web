@@ -217,8 +217,10 @@ export function useCreateSubgroupMutation(parentRoomId: number) {
     return useMutation({
         mutationFn: (req: SubRoomRequest) => tuanchat.groupController.createSubgroup(req),
         mutationKey: ['createSubgroup'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['getGroupInfo', parentRoomId] });
+        onSuccess: (data) => {
+          queryClient.invalidateQueries({ queryKey: ['getGroupInfo', parentRoomId] });
+          queryClient.invalidateQueries({ queryKey: ['getUserGroups'] });
+          return data;
         }
     });
 }
