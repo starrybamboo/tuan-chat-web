@@ -3,6 +3,7 @@ import type { RouteConfig } from "@react-router/dev/routes";
 import { index, layout, route } from "@react-router/dev/routes";
 
 export default [
+  // index("routes/dashBoard.tsx"),
   layout("routes/dashBoard.tsx", [
     index("routes/chat.tsx"),
     route("feed", "routes/feed.tsx"),
@@ -11,7 +12,7 @@ export default [
     route("profile", "routes/profile.tsx"),
     route("home", "routes/home.tsx"),
     route("module", "routes/module.tsx"),
-    route("chat", "routes/chat.tsx"),
+    // route("chat", "routes/chat.tsx"),
     route("community", "routes/community.tsx"),
   ]),
 ] satisfies RouteConfig;
