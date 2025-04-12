@@ -1,7 +1,4 @@
-import axios from "axios";
-import { saveAs } from "file-saver";
-
-import { terreApis } from "../../services";
+import { terreApis } from "./services";
 
 type IFile = {
   extName: string;
@@ -44,32 +41,33 @@ type GameInfo = {
   path: string;
 };
 
-export async function saveImageFromUrl(
-  url: string,
-  gamename: string,
-  filename: string,
-): Promise<void> {
-  try {
-    // 发送GET请求获取图片
-    const response = await axios({
-      method: "get",
-      url,
-      responseType: "blob", // 重要，需要设置响应类型为blob
-    });
+// export async function saveImageFromUrl(
+//   url: string,
+//   gamename: string,
+//   filename: string,
+// ): Promise<void> {
+//   try {
+//     // 发送GET请求获取图片
+//     const response = await axios({
+//       method: "get",
+//       url,
+//       responseType: "blob", // 重要，需要设置响应类型为blob
+//     });
+//
+//     // 创建一个Blob对象
+//     const blob = new Blob([response.data], { type: "image/png" });
+//
+//     // 使用FileSaver保存图片
+//     saveAs(blob, `@/../../terre2/public/games/${gamename}/game/figure/${filename}`);
+//   }
+//   catch (error) {
+//     console.error("Error saving image:", error);
+//   }
+// }
 
-    // 创建一个Blob对象
-    const blob = new Blob([response.data], { type: "image/png" });
-
-    // 使用FileSaver保存图片
-    saveAs(blob, `@/../../terre2/public/games/${gamename}/game/figure/${filename}`);
-  }
-  catch (error) {
-    console.error("Error saving image:", error);
-  }
-}
-
+// 似乎没有用？
 export async function readDir(path: string) {
-  const res = await terreApis.assetsControllerReadAssets(path);
+  const res = await terreApis.api.assetsControllerReadAssets(path);
   const data = res.data as unknown as object;
   if ("dirInfo" in data && data.dirInfo) {
     const dirInfo = (data.dirInfo as IFile[]).map(item => ({
@@ -93,13 +91,10 @@ export async function uploadImage(image: Blob | string, filepath: string, filena
     blob = image;
   }
   else {
-    const data = (
-      await axios({
-        method: "get",
-        url: image,
-        responseType: "blob",
-      })
-    ).data;
+    const response = await fetch(image);
+    if (!response.ok)
+      throw new Error(`Failed to fetch image: ${response.statusText}`);
+    const data = await response.blob();
     blob = new Blob([data], { type: "image/png" });
   }
   const file = new File([blob], filename);
@@ -107,24 +102,26 @@ export async function uploadImage(image: Blob | string, filepath: string, filena
   formData.append("targetDirectory", filepath);
   formData.append("files", file);
 
-  return (
-    await axios({
-      method: "post",
-      url: "http://localhost:3001/api/assets/upload",
-      data: formData,
-      headers: { "Content-Type": "multipart/form-data" },
-    })
-  ).data;
+  const uploadResponse = await fetch(`${import.meta.env.VITE_TERRE_URL}/api/assets/upload`, {
+    method: "POST",
+    body: formData,
+    // 注意：不要手动设置Content-Type头部，浏览器会自动设置正确的boundary
+  });
+  if (!uploadResponse.ok)
+    throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+  return await uploadResponse.json();
 }
 
 export async function readTextFile(game: string, path: string): Promise<string> {
-  const url = `http://localhost:3001/games/${game}/game/${path}`;
-  const data = (await axios.get(url)).data;
-  return data;
+  const url = `${import.meta.env.VITE_TERRE_URL}/games/${game}/game/${path}`;
+  const response = await fetch(url);
+  if (!response.ok)
+    throw new Error(`Failed to read file: ${response.statusText}`);
+  return await response.text();
 }
 
 export async function checkGameExist(game: string): Promise<boolean> {
-  const gameList: GameInfo[] = (await terreApis.manageGameControllerGetGameList()).data;
+  const gameList: GameInfo[] = (await terreApis.api.manageGameControllerGetGameList()).data;
   return gameList.some(item => item.name === game);
 }
 
