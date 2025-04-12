@@ -10,7 +10,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Home() {
   return (
-    <div className="h-screen">
+    <div className="max-h-[calc(100%-3.5rem)]">
       <CharacterWrapper />
     </div>
   );

@@ -44,3 +44,9 @@ body {
     color-scheme: dark;
   }
 }
+
+body {
+  width: 100vw;
+  max-height: 100vh;
+  overflow: hidden;
+}

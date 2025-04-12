@@ -1,4 +1,6 @@
 import type { Route } from "./+types/home";
+import Topbar from "@/components/topbanner/Topbanner";
+import { Outlet } from "react-router";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -7,10 +9,11 @@ export function meta(_args: Route.MetaArgs) {
   ];
 }
 
-export default function Home() {
+export default function DashBoard() {
   return (
-    <div className="h-screen">
-      <p></p>
+    <div className="h-screen w-screen flex flex-col ">
+      <Topbar></Topbar>
+      <Outlet></Outlet>
     </div>
   );
 }
