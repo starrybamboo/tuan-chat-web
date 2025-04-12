@@ -9,7 +9,7 @@ export function meta(_args: Route.MetaArgs) {
   ];
 }
 
-export default function Home() {
+export default function Profile() {
   return (
     <div className="h-screen">
       <UserDetail userId={10001}></UserDetail>

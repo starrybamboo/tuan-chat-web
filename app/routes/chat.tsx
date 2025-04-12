@@ -9,7 +9,7 @@ export function meta(_args: Route.MetaArgs) {
   ];
 }
 
-export default function Home() {
+export default function Chat() {
   return (
     <div className="h-screen bg-base-200 flex">
       <GroupSelect />
