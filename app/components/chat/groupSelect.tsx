@@ -10,17 +10,17 @@ export default function GroupSelect() {
   // 当前选中的子群ID
   const [activeSubGroupId, setActiveSubGroupId] = useState<number | null>(null);
   // 获取用户群组列表
-  const { data } = useGetUserGroupsQuery();
-  const UserGroups = data?.data ?? [];
+  const userGroupsQuery = useGetUserGroupsQuery();
+  const userGroups = userGroupsQuery.data?.data ?? [];
   // 分离子群和父群
-  const groups = UserGroups.filter(group => group.parentGroupId === 0);
-  const subGroups = UserGroups.filter(group => group.parentGroupId !== 0);
+  const groups = userGroups.filter(group => group.parentGroupId === 0);
+  const subGroups = userGroups.filter(group => group.parentGroupId !== 0);
   // 创建群组
   const createGroupMutation = useCreateGroupMutation();
   // 当前要创建子群的父群ID
   const [currentParentGroupId, setCurrentParentGroupId] = useState<number | null>(null);
   // 创建子群
-  const createSubGroupMutation = useCreateSubgroupMutation(currentParentGroupId || 0);
+  const createSubGroupMutation = useCreateSubgroupMutation(currentParentGroupId || -1);
   // 创建群组弹窗是否打开
   const [isGroupHandleOpen, setIsGroupHandleOpen] = useState(false);
   // 创建子群弹窗是否打开
@@ -98,7 +98,9 @@ export default function GroupSelect() {
         {groups.map(group => (
           <React.Fragment key={group.roomId}>
             {openGroup === group.roomId && (
-              subGroups.filter(subGroup => subGroup.parentGroupId === group.roomId)
+              subGroups
+              // TODO 现在的情况下，被拉进入的群不能被显示，所以我注释掉了
+                // .filter(subGroup => subGroup.parentGroupId === group.roomId)
                 .map(subGroup => (
                   <button
                     key={subGroup.roomId}
@@ -134,7 +136,7 @@ export default function GroupSelect() {
         )}
       </div>
       {/* 对话窗口 */}
-      <DialogueWindow groupId={activeSubGroupId ?? 1} key={activeSubGroupId ?? 1} />
+      <DialogueWindow groupId={activeSubGroupId ?? -1} key={activeSubGroupId ?? -1} />
       {/* 创建群组弹出窗口 */}
       <PopWindow isOpen={isGroupHandleOpen} onClose={() => setIsGroupHandleOpen(false)}>
         <div className="w-full p-4">

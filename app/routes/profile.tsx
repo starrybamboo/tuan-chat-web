@@ -1,7 +1,5 @@
 import type { Route } from "./+types/home";
-
-import { UserDetail } from "@/components/common/userDetail";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import ProfilePage from "@/components/profile/profilePage";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -11,10 +9,9 @@ export function meta(_args: Route.MetaArgs) {
 }
 
 export default function Profile() {
-  const userId = useGlobalContext().userId;
   return (
     <div className="h-screen">
-      <UserDetail userId={userId}></UserDetail>
+      <ProfilePage></ProfilePage>
     </div>
   );
 }
