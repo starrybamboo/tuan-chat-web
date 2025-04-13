@@ -9,6 +9,7 @@ interface Props {
   onSave: (character: CharacterData) => void;
   onCancel: () => void;
   initialData?: CharacterData;
+  onDataChange?: (newData: CharacterData) => void;
   userQuery?: any;
   roleQuery?: any;
   exposeHandleSubmit?: (fn: () => void) => void;
