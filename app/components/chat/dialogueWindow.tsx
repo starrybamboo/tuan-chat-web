@@ -133,6 +133,22 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   }, [getNewMessagesByRoomId, groupId, messagesInfiniteQuery.data?.pages]);
 
   /**
+   * 获取到新消息的时候，如果距底部较近,滚动到底部
+   */
+  useEffect(() => {
+    if (!hasInitialized.current) {
+      return;
+    }
+    if (chatFrameRef.current) {
+      const { scrollTop, clientHeight, scrollHeight } = chatFrameRef.current;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 500;
+      if (isNearBottom) {
+        chatFrameRef.current.scrollTo({ top: scrollHeight, behavior: "instant" });
+      }
+    }
+  }, [historyMessages]);
+
+  /**
    * messageEntry触发时候的effect, 同时让首次渲染时对话框滚动到底部
    */
   useEffect(() => {
