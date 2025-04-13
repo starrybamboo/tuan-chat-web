@@ -3,6 +3,7 @@ import type {ChatMessageRequest} from "./models/ChatMessageRequest";
 import type {ChatMessageResponse} from "./models/ChatMessageResponse";
 import {useImmer} from "use-immer";
 import {formatLocalDateTime} from "@/utils/dataUtil";
+import {useGlobalContext} from "@/components/globalContextProvider";
 
 type WsMessageType =
     | 2 // 心跳
@@ -17,7 +18,7 @@ interface WsMessage<T> {
 const WS_URL = import.meta.env.VITE_API_WS_URL
 // const WS_URL = "ws://39.103.58.31:8090"
 
-const token = "10001"
+const token = useGlobalContext().userId;
 
 export function useWebSocket() {
     const wsRef = useRef<WebSocket | null>(null)
