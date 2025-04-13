@@ -67,7 +67,7 @@ type GameInfo = {
 
 // 似乎没有用？
 export async function readDir(path: string) {
-  const res = await terreApis.api.assetsControllerReadAssets(path);
+  const res = await terreApis.assetsControllerReadAssets(path);
   const data = res.data as unknown as object;
   if ("dirInfo" in data && data.dirInfo) {
     const dirInfo = (data.dirInfo as IFile[]).map(item => ({
@@ -121,7 +121,7 @@ export async function readTextFile(game: string, path: string): Promise<string> 
 }
 
 export async function checkGameExist(game: string): Promise<boolean> {
-  const gameList: GameInfo[] = (await terreApis.api.manageGameControllerGetGameList()).data;
+  const gameList: GameInfo[] = (await terreApis.manageGameControllerGetGameList()).data as unknown as GameInfo[];
   if (!gameList)
     return false;
   return gameList.some(item => item.name === game);

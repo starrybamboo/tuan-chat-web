@@ -1,19 +1,3 @@
-/*
- * ---------------------------------------------------------------
- * ## THIS FILE WAS GENERATED VIA SWAGGER-TYPESCRIPT-API        ##
- * ##                                                           ##
- * ## AUTHOR: acacode                                           ##
- * ## SOURCE: https://github.com/acacode/swagger-typescript-api ##
- * ---------------------------------------------------------------
- */
-
-export type CompletionDto = {
-  /** Editor input value for which the completion is required */
-  editorValue: string;
-  /** Parameters required for completion */
-  params: object;
-};
-
 export type CreateNewFileDto = {
   /** The source path where the directory will be created */
   source: string;
@@ -45,13 +29,6 @@ export type RenameFileDto = {
   newName: string;
 };
 
-export type getGameListResp = {
-  name: string;
-  isDir: boolean;
-  extName: string;
-  path: string;
-};
-
 export type EditTextFileDto = {
   /** The path of textfile */
   path: string;
@@ -59,13 +36,35 @@ export type EditTextFileDto = {
   textFile: string;
 };
 
+export type TemplateConfigDto = {
+  /** The name of the template */
+  "name": string;
+  /** The id of the template */
+  "id": string;
+  /** The webgal version of the template */
+  "webgal-version": string;
+};
+
+export type GameInfoDto = {
+  /** The name of the game */
+  name: string;
+  /** The dir of the game */
+  dir: string;
+  /** The cover of the game */
+  cover: string;
+  /** The template config of the game */
+  template: TemplateConfigDto;
+};
+
 export type CreateGameDto = {
   /** The name of the game to be created */
   gameName: string;
+  /** The dir of the game to be created */
+  gameDir: string;
   /** The name of the derivative to be used */
   derivative?: string;
-  /** The name of the template to be applied */
-  templateName: string;
+  /** The dir of the template to be applied */
+  templateDir?: string;
 };
 
 export type EditFileNameDto = {
@@ -125,16 +124,41 @@ export type RenameDto = {
   newName: string;
 };
 
+export type IconsDto = {
+  /** The icons of the game */
+  platforms: string[];
+};
+
+export type TemplateInfoDto = {
+  /** The name of the template */
+  "name": string;
+  /** The id of the template */
+  "id": string;
+  /** The webgal version of the template */
+  "webgal-version": string;
+  /** The dir of the template */
+  "dir": string;
+};
+
 export type CreateTemplateDto = {
   /** The name of the template to be created */
   templateName: string;
+  /** The dir of the template */
+  templateDir: string;
+};
+
+export type UpdateTemplateConfigDto = {
+  /** The dir of the template */
+  templateDir: string;
+  /** The new config of the template */
+  newTemplateConfig: TemplateConfigDto;
 };
 
 export type ApplyTemplateToGameDto = {
   /** The template name to apply */
-  templateName: string;
+  templateDir: string;
   /** The game name to be applied. */
-  gameName: string;
+  gameDir: string;
 };
 
 export type GetStyleByClassNameDto = {
@@ -227,71 +251,71 @@ type RequestParams = {
 };
 
 export class Api {
-  public api: {
-    [key: string]: (...args: any[]) => Promise<any>;
-  };
-
-  public templatePreview: {
-    [key: string]: (...args: any[]) => Promise<any>;
-  };
-
+  private httpClient: HttpClient;
   constructor(protected http: HttpClient = new HttpClient()) {
-    this.api = {
-      appControllerApiTest: (params: RequestParams = {}) =>
-        this.http.request({ path: `/api/test`, method: "GET", ...params }),
-      lspControllerCompile: (data: CompletionDto) =>
-        this.http.request<void>({
-          path: `/api/lsp/compile`,
-          method: "POST",
-          body: data,
-        }),
-      assetsControllerReadAssets: (readDirPath: string) =>
-        this.http.request<void>({
-          path: `/api/assets/readAssets/${readDirPath}`,
-          method: "GET",
-        }),
-      manageGameControllerGetGameList: () =>
-        this.http.request<getGameListResp[]>({
-          path: `/api/manageGame/gameList`,
-          method: "GET",
-        }),
-      manageGameControllerCreateGame: (data: CreateGameDto) =>
-        this.http.request<void>({
-          path: `/api/manageGame/createGame`,
-          method: "POST",
-          body: data,
-        }),
-      manageGameControllerOpenGameDict: (gameName: string) =>
-        this.http.request<void>({
-          path: `/api/manageGame/openGameDict/${gameName}`,
-          method: "GET",
-        }),
-      assetsControllerUpload: (data: FormData, targetDirectory: string) => {
-        const formData = new FormData();
-        formData.append("targetDirectory", targetDirectory);
-        if (data instanceof File) {
-          formData.append("files", data);
-        }
-        return this.http.request<void>({
-          path: `/api/assets/upload`,
-          method: "POST",
-          body: formData,
-        });
-      },
-      manageGameControllerEditTextFile: (data: EditTextFileDto) =>
-        this.http.request<void>({
-          path: `/api/manageGame/editTextFile`,
-          method: "POST",
-          body: data,
-        }),
-    };
-    this.templatePreview = {
-      templatePreviewControllerGetTemplateAsset: (path: string, templateName: string) =>
-        this.http.request<void>({
-          path: `/template-preview/${templateName}/game/template/${path}`,
-          method: "GET",
-        }),
-    };
+    this.httpClient = http;
+  }
+
+  // 原 api 对象下的方法
+  public appControllerApiTest(params: RequestParams = {}) {
+    return this.httpClient.request({ path: `/api/test`, method: "GET", ...params });
+  }
+
+  public assetsControllerReadAssets(readDirPath: string): any {
+    return this.httpClient.request<void>({
+      path: `/api/assets/readAssets/${readDirPath}`,
+      method: "GET",
+    });
+  }
+
+  public manageGameControllerGetGameList(): any {
+    return this.httpClient.request<GameInfoDto[]>({
+      path: `/api/manageGame/gameList`,
+      method: "GET",
+    });
+  }
+
+  public manageGameControllerOpenGameDict(gameName: string): any {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/openGameDict/${gameName}`,
+      method: "GET",
+    });
+  }
+
+  public assetsControllerUpload(data: FormData, targetDirectory: string): any {
+    const formData = new FormData();
+    formData.append("targetDirectory", targetDirectory);
+    if (data instanceof File) {
+      formData.append("files", data);
+    }
+    return this.httpClient.request<void>({
+      path: `/api/assets/upload`,
+      method: "POST",
+      body: formData,
+    });
+  }
+
+  public manageGameControllerEditTextFile(data: EditTextFileDto): any {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/editTextFile`,
+      method: "POST",
+      body: data,
+    });
+  }
+
+  public templatePreviewControllerGetTemplateAsset(path: string, templateName: string) {
+    return this.httpClient.request<void>({
+      path: `/template-preview/${templateName}/game/template/${path}`,
+      method: "GET",
+    });
+  }
+
+  public manageGameControllerCreateGame(data: CreateGameDto): any {
+    return this.httpClient.request<void>({
+      path: `/api/manageGame/createGame`,
+      method: "POST",
+      body: data,
+    });
   }
   /**
    * @title WebGAL Terre API
