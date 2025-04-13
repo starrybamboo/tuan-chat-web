@@ -1,9 +1,14 @@
-import { TuanChat } from "./TuanChat";
+import {TuanChat} from "./TuanChat";
 
-// 创建OpenAPI实例
-export const tuanchat = new TuanChat({
-  BASE: import.meta.env.VITE_API_BASE_URL,
-  WITH_CREDENTIALS: true,
-  CREDENTIALS: "include",
-  TOKEN: "10001",
-});
+let tuanchat;
+
+if (typeof window !== 'undefined') {
+  tuanchat = new TuanChat({
+    BASE: import.meta.env.VITE_API_BASE_URL,
+    WITH_CREDENTIALS: true,
+    CREDENTIALS: "include",
+    TOKEN: localStorage?.getItem('token') || '', // 添加默认值
+  });
+}
+
+export { tuanchat };
