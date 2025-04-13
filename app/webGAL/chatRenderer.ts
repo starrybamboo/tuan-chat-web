@@ -85,19 +85,22 @@ export class ChatRenderer {
         const { message } = messageResponse;
         const role = this.roleMap.get(message.roleId);
 
-        if (role && role.roleName) {
+        // 以下处理是为了防止被webGal判断为新一段的对话
+        const processedContent = message.content
+          .replace(/\n/g, " ") // 替换换行符为空格
+          .replace(/;/g, "；") // 替换英文分号为中文分号
+          .replace(/:/g, "："); // 替换英文冒号为中文冒号
+
+        if (role && role.roleName && message.content && message.content !== "") {
           await this.renderer.addDialog(
             message.roleId,
             role.roleName,
             message.avatarId || 0,
-            message.content || "",
+            processedContent,
           );
 
           // 每添加一条消息后进行短暂延时，避免消息处理过快
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-        else {
-          console.warn(`Missing role info for roleId: ${message.roleId}`);
+          await new Promise(resolve => setTimeout(resolve, 15));
         }
       }
 
