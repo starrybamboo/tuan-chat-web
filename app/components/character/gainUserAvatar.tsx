@@ -33,6 +33,7 @@ export default function GainUserAvatar({ initialAvatar, roleId, onAvatarChange, 
   };
   const [user, setUser] = useState<User>(defaultUser);
   const [previewSrc, setPreviewSrc] = useState(initialAvatar || "");
+  const [previewText, setPreviewText] = useState(""); // 新增预览文字状态
 
   // 删除弹窗用
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -74,18 +75,21 @@ export default function GainUserAvatar({ initialAvatar, roleId, onAvatarChange, 
       }
     },
   });
-  const handleAvatarClick = (avatarUrl: string, index: number) => {
-    setPreviewSrc(avatarUrl);
-    setUser(prev => ({ ...prev, currentAvatarIndex: index }));
-    onAvatarChange(avatarUrl); // 同步到父组件
-    // 确保 avatarId 存在且为 number 类型
-    const avatarId = user.roleAvatars.length > 0 && user.currentAvatarIndex < user.roleAvatars.length
-      ? user.roleAvatars[user.currentAvatarIndex]?.avatarId || 0
-      : 0;
 
-    onAvatarIdChange(avatarId); // 安全传递;
+  // 点击头像处理 (新增预览文字更新)
+  const handleAvatarClick = (avatarUrl: string, index: number) => {
+    const targetAvatar = user.roleAvatars[index];
+    setPreviewSrc(targetAvatar.spriteUrl || avatarUrl);
+    setPreviewText(targetAvatar.avatarTitle || ""); // 同步更新预览文字
+    setUser(prev => ({ ...prev, currentAvatarIndex: index }));
+
+    // 确保 avatarId 存在且为 number 类型
+    const avatarId = targetAvatar.avatarId || 0;
+    onAvatarChange(avatarUrl); // 同步到父组件
+    onAvatarIdChange(avatarId); // 安全传递
   };
 
+  // 删除操作处理
   const handleDeleteAvatar = (index: number) => {
     setAvatarToDeleteIndex(index);
     setIsDeleteModalOpen(true);
@@ -108,71 +112,116 @@ export default function GainUserAvatar({ initialAvatar, roleId, onAvatarChange, 
   };
 
   return (
-    <div className="w-full relative mt-5">
+    <div className="w-full relative mt-5 flex gap-4">
+      {" "}
       {/* 选择和更新图像 */}
-      <div className="w-6/10 float-left">
-        <div className="mt-5 ml-2">
+      <div className="flex-1">
+        {" "}
+        {/* 原 w-6/10 */}
+        <div className="mt-5 ml-2 space-y-2">
           <p>
-            当前角色id:
+            角色
+            {" "}
+            ID
+            {" "}
+            :
+            {" "}
             {user.userRole.roleId || "未设置"}
           </p>
           <p>
-            当前头像id:
-            {user.roleAvatars.length > 0 && user.currentAvatarIndex < user.roleAvatars.length
-              ? user.roleAvatars[user.currentAvatarIndex].avatarId || "未设置"
-              : "未设置"}
+            头像
+            {" "}
+            ID
+            {" "}
+            :
+            {" "}
+            {
+              user.roleAvatars[user.currentAvatarIndex]?.avatarId || "未设置"
+            }
           </p>
           <p>
-            表情差分数量:
+            表情差分数量
+            {" "}
+            :
+            {" "}
             {user.roleAvatars.length}
           </p>
         </div>
+
+        {/* 头像列表区域 */}
         <ul className="w-full mt-5">
-          {user.roleAvatars.length > 0
-            ? (
-                user.roleAvatars.map((item, index) => (
-                  <li
-                    key={item.roleId}
-                    className="w-1/3 text-center float-left overflow-hidden"
-                    onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
+          <div className="grid grid-cols-3 gap-4 justify-items-center">
+            {user.roleAvatars.map((item, index) => (
+              <li
+                key={item.roleId}
+                className="relative w-32 h-36 flex flex-col items-center rounded-lg transition-colors"
+                onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
+              >
+                {/* 头像卡片容器 */}
+                <div className="relative w-full h-full group">
+                  <img
+                    src={item.avatarUrl}
+                    alt="头像"
+                    className="w-30 h-30 object-contain rounded-lg border"
+                  />
+                  {/* 删除按钮  */}
+                  <button
+                    className="absolute -top-2 -right-2 w-7 h-7 bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteAvatar(index);
+                    }}
                   >
-                    <img src={item.avatarUrl} alt="" className="w-4/5 block m-auto rounded-lg" />
-                    <p className="mt-2">{item.avatarTitle}</p>
-                    <a
-                      href="#"
-                      className="text-red-500 underline"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleDeleteAvatar(index);
-                      }}
-                    >
-                      删除
-                    </a>
-                  </li>
-                ))
-              )
-            : (
-                <p className="text-center mt-5">暂无可用头像</p>
-              )}
+                    ×
+                  </button>
+                </div>
+                {/* 标题截断优化 */}
+                <p className="text-center w-full truncate max-w-full px-1 text-sm mt-1">
+                  {item.avatarTitle}
+                </p>
+              </li>
+            ))}
+          </div>
         </ul>
       </div>
+
       {/* 大图预览 */}
-      <div className="w-4/10 bg-base-200 float-left p-2">
-        <p className="text-center mt-2 mb-2">大图预览</p>
-        <img
-          src={previewSrc || ""}
-          alt=""
-          className="block w-full h-full object-contain"
-          id="correspongdLeftImage"
-        />
+      <div className="flex-1 bg-base-200 p-3 rounded-lg h-full flex flex-col">
+        <p className="text-center font-medium mb-3">大图预览</p>
+
+        {/* 图片预览容器 */}
+        <div className="flex-1 bg-gray-50 rounded border">
+          {/* 未来如果支持默认图片的话，别忘了在这也加一个喵 */}
+          <img
+            src={previewSrc}
+            alt="预览"
+            className="w-full h-full max-h-[400px] object-contain p-2"
+          />
+        </div>
+
+        {/* 描述区域 */}
+        <div className="pt-6 p-3">
+          {previewText
+            ? (
+                <pre className="whitespace-pre-wrap text-center break-words font-sans text-sm leading-relaxed">
+                  {previewText}
+                </pre>
+              )
+            : (
+                <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+                  点击左侧头像查看描述
+                </div>
+              )}
+        </div>
       </div>
 
       {/* 删除确认弹窗 */}
       <PopWindow isOpen={isDeleteModalOpen} onClose={cancelDeleteAvatar}>
-        <div className="flex flex-col items-center">
-          <h3 className="text-lg font-bold mb-4">确认删除头像</h3>
-          <p className="mb-4">确定要删除该头像吗？</p>
-          <div className="flex space-x-4">
+        <div className="flex flex-col items-center p-4">
+          <h3 className="text-lg font-bold mb-3">确认删除头像？</h3>
+          <p className="mb-4 text-gray-600">该操作不可撤销</p>
+          {/* 这个操作是独立于保存的，未来应该搞一个暂存，如果用户点保存，就不删除后台数据 */}
+          <div className="flex gap-3">
             <button
               type="button"
               className="btn btn-secondary"
@@ -185,7 +234,7 @@ export default function GainUserAvatar({ initialAvatar, roleId, onAvatarChange, 
               className="btn btn-primary"
               onClick={confirmDeleteAvatar}
             >
-              确认
+              确认删除
             </button>
           </div>
         </div>

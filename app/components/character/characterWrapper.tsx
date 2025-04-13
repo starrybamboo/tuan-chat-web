@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { useCharacterInitialization, useRoleQuery, useUserQuery } from "api/queryHooks";
+import { useCharacterInitialization, useUserInfo, useUserRoles } from "api/queryHooks";
 import CharacterNav from "app/components/character/characterNav";
 import CreatCharacter from "app/components/character/creatCharacter";
 import PreviewCharacter from "app/components/character/previewCharacter";
@@ -36,8 +36,8 @@ export interface CharacterData {
 
 export default function CharacterWrapper() {
   // 获取用户数据
-  const userQuery = useUserQuery();
-  const roleQuery = useRoleQuery(userQuery);
+  const userQuery = useUserInfo();
+  const roleQuery = useUserRoles(userQuery);
 
   // 动态页面的规划
   const [selectedCharacter, setSelectedCharacter] = useState<number | null>(null);
@@ -50,16 +50,16 @@ export default function CharacterWrapper() {
 
   // 保存修改弹窗状态和加载状态
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSaving] = useState(false);
+  // const [isSaving, setIsSaving] = useState(false);
 
   // 状态暂存待切换的ID
   const [pendingSelectedId, setPendingSelectedId] = useState<number | null>(null);
-  const [pendingSubmitFn, setPendingSubmitFn] = useState<() => void>(() => {});
 
   // 使用自定义 Hook 初始化角色数据
   const { characters, initializeCharacters, updateCharacters } = useCharacterInitialization(roleQuery);
 
-  // 初始化用户角色信息,这里改不了,不然会创建角色时会出问题
+  // 初始化用户角色信息,这里可以直接使用useQuery初始化,但有延迟,还是改回useEffect我们这边就算状态更新也有动态变化
   useEffect(() => {
     initializeCharacters();
   }, [initializeCharacters]);
@@ -87,32 +87,29 @@ export default function CharacterWrapper() {
     setCreating(false);
     setSelectedCharacter(newCharacter.id);
   };
-  const handCloseConfirmWindow = () => {
-    setSaveConfirmOpen(false);
-  };
-  // 保存角色的方法
-  const handleSaveCharacter = async () => {
-    setIsSaving(true);
-    try {
-      if (pendingSubmitFn) {
-        pendingSubmitFn(); // 等待保存完成
-      }
-
-      if (pendingSelectedId !== null) {
-        setSelectedCharacter(pendingSelectedId);
-        setPendingSelectedId(null);
-      }
-    }
-    catch (error) {
-      console.error("保存失败:", error);
-    }
-    finally {
-      setSelectedCharacter(pendingSelectedId);
-      setIsSaving(false);
-      setSaveConfirmOpen(false);
-      setEditingCharacterId(null);
-    }
-  };
+  // // 保存角色的方法，暂时搁置
+  // const handleSaveCharacter = async () => {
+  //   setIsSaving(true);
+  //   try {
+  //     if (pendingSubmitFn) {
+  //       pendingSubmitFn(); // 等待保存完成
+  //     }
+  //
+  //     if (pendingSelectedId !== null) {
+  //       setSelectedCharacter(pendingSelectedId);
+  //       setPendingSelectedId(null);
+  //     }
+  //   }
+  //   catch (error) {
+  //     console.error("保存失败:", error);
+  //   }
+  //   finally {
+  //     setSelectedCharacter(pendingSelectedId);
+  //     setIsSaving(false);
+  //     setSaveConfirmOpen(false);
+  //     setEditingCharacterId(null);
+  //   }
+  // };
 
   // 取消保存的方法
   const handleCancelSave = () => {
@@ -120,6 +117,11 @@ export default function CharacterWrapper() {
       setSelectedCharacter(pendingSelectedId);
     }
     setEditingCharacterId(null);
+    setSaveConfirmOpen(false);
+  };
+
+  // 仅仅是关闭弹窗
+  const handCloseConfirmWindow = () => {
     setSaveConfirmOpen(false);
   };
 
@@ -194,8 +196,6 @@ export default function CharacterWrapper() {
                   }}
                   userQuery={userQuery}
                   roleQuery={roleQuery}
-                  // 如果使用暴露 handleSubmit 方法的方案，则这里也可传入
-                  exposeHandleSubmit={fn => setPendingSubmitFn(() => fn)}
                 />
               )
             : selectedCharacter
@@ -235,6 +235,7 @@ export default function CharacterWrapper() {
       </PopWindow>
 
       {/* 切换选择角色时保存角色 */}
+      {/* 相信后人的智慧 */}
       <PopWindow
         isOpen={saveConfirmOpen}
         onClose={handCloseConfirmWindow}
@@ -242,28 +243,26 @@ export default function CharacterWrapper() {
         <div className="p-4">
           {/* 也许后面数据多了会卡住，谁知道呢 */}
           <h3 className="text-lg font-bold mb-4">
-            {isSaving ? "正在保存..." : "确认保存修改"}
+            {isSaving ? "正在保存..." : "存在未保存的修改"}
           </h3>
 
           {!isSaving && (
             <>
               <p className="mb-4 text-gray-600">
-                有未保存的修改，切换角色将自动保存当前修改
+                当前角色有未保存的修改，切换将丢失更改！
               </p>
               <div className="flex justify-end space-x-3">
                 <button
                   className="btn btn-sm btn-outline btn-error"
                   onClick={handleCancelSave}
-                  disabled={isSaving}
                 >
                   放弃修改
                 </button>
                 <button
-                  className="btn btn-sm bg-[#3A7CA5] text-white hover:bg-[#2A6F97]"
-                  onClick={handleSaveCharacter}
-                  disabled={isSaving}
+                  className="btn btn-sm bg-primary text-white hover:bg-primary-focus"
+                  onClick={handCloseConfirmWindow}
                 >
-                  确认保存
+                  继续编辑
                 </button>
               </div>
             </>

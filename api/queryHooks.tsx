@@ -592,7 +592,7 @@ export function useUpdateMessageMutation(){
    
 
 // 用户查询
-export function useUserQuery() {
+export function useUserInfo() {
   const userQuery = useQuery({
     queryKey: ["userId"],
     queryFn: async (): Promise<ApiResultUserInfoResponse | undefined> => {
@@ -610,7 +610,7 @@ export function useUserQuery() {
 
 
 // 角色查询
-export function useRoleQuery(userQuery: UseQueryResult<ApiResultUserInfoResponse | undefined>) {
+export function useUserRoles(userQuery: UseQueryResult<ApiResultUserInfoResponse | undefined>) {
   const roleQuery = useQuery({
     queryKey: ["userRole", userQuery.data?.data?.userId],
     queryFn: async (): Promise<ApiResultListRoleResponse | undefined> => {
@@ -632,7 +632,7 @@ export function useRoleQuery(userQuery: UseQueryResult<ApiResultUserInfoResponse
 }
 
 // 头像查询
-export function useRoleAvaterQuery(roleId: number) {
+export function useRoleAvaters(roleId: number) {
   const roleAvatarQuery = useQuery({
     queryKey: ["roleAvatar", roleId],
     queryFn: async (): Promise<string | undefined> => {
@@ -664,7 +664,7 @@ export function useRoleAvaterQuery(roleId: number) {
 
 
 // 获取能力
-export function useAbilityQuery(roleId: number) {
+export function useRoleAbility(roleId: number) {
   const abilityQuery = useQuery({
     queryKey: ["ability", roleId],
     queryFn: async (): Promise<ApiResultRoleAbility | undefined> => {
@@ -727,7 +727,7 @@ export const useCharacterInitialization = (roleQuery: any) => {
         luck: 50,
         description: role.description || "无描述",
         avatar: undefined,
-        currentIndex: 0,
+        currentIndex: role.avatarId || 0,
       }));
 
       setCharacters(mappedCharacters);
@@ -735,15 +735,12 @@ export const useCharacterInitialization = (roleQuery: any) => {
       // 异步加载每个角色的头像
       for (const character of mappedCharacters) {
         try {
-          const res = await tuanchat.avatarController.getRoleAvatars(character.id);
+          const res = await tuanchat.avatarController.getRoleAvatar(character.currentIndex);
           if (
             res.success &&
-            Array.isArray(res.data) &&
-            res.data.length > 0 &&
-            res.data[0]?.avatarUrl !== undefined &&
-            res.data[0] !== undefined
+            res.data
           ) {
-            const avatarUrl = res.data.find((avatar: RoleAvatar) => avatar.avatarId === character.currentIndex)?.avatarUrl || res.data[0]?.avatarUrl;
+            const avatarUrl = res.data.avatarUrl;
             queryClient.setQueryData(["roleAvatar", character.id], avatarUrl);
             setCharacters((prevChars: any[]) =>
               prevChars.map(char =>
@@ -787,30 +784,4 @@ export function useDeleteRole() {
       console.error("Mutation failed:", error);
     },
   });
-}
-
-// 改变角色头像
-export function useUpdateRoleAvatar(avatarId: number) {
-  return useMutation({
-      mutationKey: ["avatarChange"],
-      mutationFn: async (data: { id: number; avatar: string }) => {
-        if (!data || !data.id || !data.avatar) {
-          console.error("Invalid data for avatar update:", data);
-          return;
-        }
-        const res = await tuanchat.avatarController.updateRoleAvatar({
-          avatarUrl: data.avatar,
-          roleId: data.id,
-          avatarId,
-        });
-        if (res.success) {
-          console.warn("头像设置成功");
-          return res;
-        }
-        else {
-          console.error("头像设置失败");
-          return undefined;
-        }
-      },
-    });
 }

@@ -2,19 +2,20 @@
 import type { CharacterData } from "./characterWrapper";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import Head from "./head";
 
 interface Props {
   onSave: (character: CharacterData) => void;
   onCancel: () => void;
   initialData?: CharacterData;
+  onDataChange?: (newData: CharacterData) => void;
   userQuery?: any;
   roleQuery?: any;
   exposeHandleSubmit?: (fn: () => void) => void;
 }
 
-export default function CreatCharacter({ onSave, onCancel, initialData, userQuery, roleQuery, exposeHandleSubmit }: Props) {
+export default function CreatCharacter({ onSave, onCancel, initialData, userQuery, roleQuery }: Props) {
   const [name, setName] = useState(initialData?.name || "");
   const [age, setAge] = useState(initialData?.age || 20);
   const [gender, setGender] = useState(initialData?.gender || "未知");
@@ -64,8 +65,8 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
           roleId: initialData?.id as number,
           roleName: data.name,
           description: data.description,
-        },
-        );
+          avatarId,
+        });
         return updateRes;
       }
     },
@@ -86,7 +87,7 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
           luck,
           description: description || "无描述",
           avatar: avatar || "",
-          currentIndex: 0,
+          currentIndex: avatarId,
         };
         onSave(newCharacter);
       }
@@ -95,30 +96,6 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
       console.error("Mutation failed:", error);
       if (error.response && error.response.data) {
         console.error("Server response:", error.response.data);
-      }
-    },
-  });
-
-  // 头像改变
-  const { mutate: mutateAvatar } = useMutation({
-    mutationKey: ["avatarChange"],
-    mutationFn: async (data: { id: number; avatar: string }) => {
-      if (!data || !data.id || !data.avatar) {
-        console.error("Invalid data for avatar update:", data);
-        return;
-      }
-      const res = await tuanchat.avatarController.updateRoleAvatar({
-        avatarUrl: data.avatar,
-        roleId: data.id,
-        avatarId,
-      });
-      if (res.success) {
-        console.warn("头像设置成功");
-        return res;
-      }
-      else {
-        console.error("头像设置失败");
-        return undefined;
       }
     },
   });
@@ -147,24 +124,20 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
       avatar: avatar || "",
       currentIndex: avatarId,
     };
-
     onSave(newCharacter);
     mutate(newCharacter);
-
-    // 如果头像有变化，触发头像更新逻辑
-    mutateAvatar({ id: initialData?.id || Date.now(), avatar });
   };
 
-  // 仅在组件挂载时调用回调，暴露 handleSubmit 给父组件使用
-  useEffect(() => {
-    if (exposeHandleSubmit) {
-      exposeHandleSubmit(() => new Promise<void>((resolve) => {
-        handleSubmit();
-        // 模拟 handleSubmit 完成（真实可通过状态或回调改成真正 resolve 位置）
-        setTimeout(() => resolve(), 300); // 临时延迟确保保存完
-      }));
-    }
-  }, [exposeHandleSubmit, handleSubmit]);
+  // // 仅在组件挂载时调用回调，暴露 handleSubmit 给父组件使用
+  // useEffect(() => {
+  //   if (exposeHandleSubmit) {
+  //     exposeHandleSubmit(() => new Promise<void>((resolve) => {
+  //       handleSubmit();
+  //       // 模拟 handleSubmit 完成（真实可通过状态或回调改成真正 resolve 位置）
+  //       setTimeout(() => resolve(), 300); // 临时延迟确保保存完
+  //     }));
+  //   }
+  // }, [exposeHandleSubmit, handleSubmit]);
 
   return (
     <div className="h-full overflow-y-scroll w-full bg-base-100">
