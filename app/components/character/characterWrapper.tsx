@@ -1,3 +1,4 @@
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useCharacterInitialization, useUserInfo, useUserRoles } from "api/queryHooks";
@@ -36,7 +37,8 @@ export interface CharacterData {
 
 export default function CharacterWrapper() {
   // 获取用户数据
-  const userQuery = useUserInfo();
+  const userId = useGlobalContext().userId;
+  const userQuery = useUserInfo(userId);
   const roleQuery = useUserRoles(userQuery);
 
   // 动态页面的规划
