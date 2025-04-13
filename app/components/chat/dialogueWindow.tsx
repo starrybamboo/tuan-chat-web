@@ -85,7 +85,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
    * websocket
    */
   // websocket封装, 用于发送接受消息
-  const { send, connect, getNewMessagesByRoomId } = useWebSocket((userId)?.toString() ?? "");
+  const { send, connect, getNewMessagesByRoomId } = useWebSocket();
   useEffect(() => {
     connect();
   }, [connect]);
