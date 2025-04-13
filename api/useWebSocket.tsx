@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import {useState, useRef, useCallback, useEffect} from 'react'
 import type {ChatMessageRequest} from "./models/ChatMessageRequest";
 import type {ChatMessageResponse} from "./models/ChatMessageResponse";
 import {useImmer} from "use-immer";
@@ -18,9 +18,10 @@ interface WsMessage<T> {
 const WS_URL = import.meta.env.VITE_API_WS_URL
 // const WS_URL = "ws://39.103.58.31:8090"
 
-const token = useGlobalContext().userId;
 
-export function useWebSocket() {
+
+export function useWebSocket(token: string) {
+    // let token = "-1"
     const wsRef = useRef<WebSocket | null>(null)
     const [isConnected, setIsConnected] = useState(false)
     const reconnectAttempts = useRef(0)

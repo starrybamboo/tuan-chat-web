@@ -60,7 +60,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const inputUserInfo = useGetUserInfoQuery(inputUserId).data?.data;
 
   // 获取用户的所有角色
-  const userRolesQuery = useGetUserRolesQuery(userId ?? 10001);
+  const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
   // 获取当前群聊中的所有角色
   const groupRolesQuery = useGetGroupRoleQuery(groupId);
@@ -85,7 +85,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
    * websocket
    */
   // websocket封装, 用于发送接受消息
-  const { send, connect, getNewMessagesByRoomId } = useWebSocket();
+  const { send, connect, getNewMessagesByRoomId } = useWebSocket((userId)?.toString() ?? "");
   useEffect(() => {
     connect();
   }, [connect]);
