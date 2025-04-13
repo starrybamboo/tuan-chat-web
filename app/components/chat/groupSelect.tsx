@@ -136,7 +136,10 @@ export default function GroupSelect() {
         )}
       </div>
       {/* 对话窗口 */}
-      <DialogueWindow groupId={activeSubGroupId ?? -1} key={activeSubGroupId ?? -1} />
+      {
+        activeSubGroupId
+        && <DialogueWindow groupId={activeSubGroupId} key={activeSubGroupId} />
+      }
       {/* 创建群组弹出窗口 */}
       <PopWindow isOpen={isGroupHandleOpen} onClose={() => setIsGroupHandleOpen(false)}>
         <div className="w-full p-4">
