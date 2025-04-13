@@ -18,6 +18,7 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { commands } from "@/utils/commands";
+import { ChatRenderer } from "@/webGAL/chatRenderer";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { tuanchat } from "api/instance";
@@ -275,6 +276,21 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     });
   }
 
+  const [isRendering, setIsRendering] = useState(false);
+  async function handleRender() {
+    setIsRendering(true);
+    try {
+      const renderer = new ChatRenderer(groupId);
+      await renderer.initializeRenderer();
+    }
+    catch (error) {
+      console.error("Rendering failed:", error);
+    }
+    finally {
+      setIsRendering(false);
+    }
+  }
+
   return (
     <GroupContext value={{ groupId }}>
       <div className="flex flex-row p-6 gap-4 w-full min-w-0">
@@ -375,8 +391,10 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                     </svg>
                   </ImgUploaderWithCopper>
                 </div>
-                <div className="float-right">
-                  <label className="swap w-30 btn right-2">
+
+                <div className="float-right gap-2 flex">
+                  <button className="btn" type="button" onClick={handleRender} disabled={isRendering}>渲染对话</button>
+                  <label className="swap w-30 btn">
                     <input type="checkbox" />
                     <div className="swap-on" onClick={() => setUseChatBubbleStyle(false)}>Use Chat Bubble Style</div>
                     <div className="swap-off" onClick={() => setUseChatBubbleStyle(true)}>Use Chat Box Style</div>
