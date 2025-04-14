@@ -7,7 +7,7 @@ export function meta(_args: Route.MetaArgs) {
   ];
 }
 
-export default function Home() {
+export default function Feed() {
   return (
     <div className="h-screen">
       <p>feed</p>

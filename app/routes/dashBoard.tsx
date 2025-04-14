@@ -1,5 +1,6 @@
 import type { Route } from "./+types/home";
-import CharacterWrapper from "@/components/character/characterWrapper";
+import Topbar from "@/components/topbanner/Topbanner";
+import { Outlet } from "react-router";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -8,10 +9,11 @@ export function meta(_args: Route.MetaArgs) {
   ];
 }
 
-export default function Role() {
+export default function DashBoard() {
   return (
-    <div className="h-screen">
-      <CharacterWrapper />
+    <div>
+      <Topbar></Topbar>
+      <Outlet></Outlet>
     </div>
   );
 }

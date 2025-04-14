@@ -1,7 +1,6 @@
 import type { Route } from "./+types/root";
 import { GlobalContextProvider } from "@/components/globalContextProvider";
 
-import Topbar from "@/components/topbanner/Topbanner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
@@ -51,7 +50,7 @@ export default function App() {
   return (
     <GlobalContextProvider>
       <QueryClientProvider client={queryClient}>
-        <Topbar></Topbar>
+        {/* <Topbar></Topbar> */}
         <Outlet />
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>

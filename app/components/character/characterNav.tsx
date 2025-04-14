@@ -84,6 +84,7 @@ function highlightMatch(text: string, keyword: string) {
     part.toLowerCase() === keyword.toLowerCase()
     // 判断那些需要高亮
       ? (
+    // eslint-disable-next-line react/no-array-index-key
           <span key={i} className="bg-yellow-300 text-black font-bold">
             {part}
           </span>
