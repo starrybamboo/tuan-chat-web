@@ -32,9 +32,8 @@ import {
   useGetUserInfoQuery,
   useGetUserRolesQuery,
 } from "../../../api/queryHooks";
-import { useWebSocket } from "../../../api/useWebSocket";
 
-export function DialogueWindow({ groupId }: { groupId: number }) {
+export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { groupId: number; send: (message: ChatMessageRequest) => void; getNewMessagesByRoomId: (groupId: number) => ChatMessageResponse[] }) {
   const [inputText, setInputText] = useState("");
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(true);
@@ -84,11 +83,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   /**
    * websocket
    */
-  // websocket封装, 用于发送接受消息
-  const { send, connect, getNewMessagesByRoomId } = useWebSocket();
-  useEffect(() => {
-    connect();
-  }, [connect]);
+
   /**
    * 获取历史消息
    */

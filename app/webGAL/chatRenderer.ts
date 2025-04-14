@@ -72,6 +72,41 @@ export class ChatRenderer {
     await Promise.all(uploadPromises);
   }
 
+  private splitContent(content: string, maxLength = 80) {
+    const segments = [];
+    let start = 0;
+
+    const splitChars = /[.,!?;:；：，。、！？\s…—]/;
+
+    while (start < content.length) {
+      const end = start + maxLength;
+
+      // 如果剩余字符不足 maxLength，直接取剩余部分
+      if (end >= content.length) {
+        segments.push(content.slice(start));
+        break;
+      }
+
+      // 反向查找最近的分割符号
+      let splitPoint = -1;
+      for (let i = end; i > start; i--) {
+        if (splitChars.test(content[i])) {
+          splitPoint = i;
+          break;
+        }
+      }
+
+      // 如果没有找到分割点，则强制在 maxLength 处分割
+      if (splitPoint === -1) {
+        splitPoint = end;
+      }
+
+      segments.push(content.slice(start, splitPoint + 1));
+      start = splitPoint + 1;
+    }
+    return segments;
+  }
+
   private async renderMessages(messages: ChatMessageResponse[]): Promise<void> {
     try {
       // 使用 messageID 排序，确保所有消息都有效
@@ -92,13 +127,18 @@ export class ChatRenderer {
           .replace(/:/g, "："); // 替换英文冒号为中文冒号
 
         if (role && role.roleName && message.content && message.content !== "") {
-          await this.renderer.addDialog(
-            message.roleId,
-            role.roleName,
-            message.avatarId || 0,
-            processedContent,
-          );
+          // 每80个字符分割一次
+          const contentSegments = this.splitContent(processedContent);
 
+          // 为每个分割后的段落创建对话
+          for (const segment of contentSegments) {
+            await this.renderer.addDialog(
+              message.roleId,
+              role.roleName,
+              message.avatarId || 0,
+              segment, // 使用分割后的段落
+            );
+          }
           // 每添加一条消息后进行短暂延时，避免消息处理过快
           await new Promise(resolve => setTimeout(resolve, 15));
         }
