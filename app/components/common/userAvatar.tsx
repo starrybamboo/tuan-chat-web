@@ -39,7 +39,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
   };
 
   return (
-    <div className="w-full flex flex-row items-center space-x-2 space-y-2">
+    <>
       <div className="avatar">
         <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""}`}>
           <img
@@ -77,6 +77,6 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
           )
         }
       </div>
-    </div>
+    </>
   );
 }

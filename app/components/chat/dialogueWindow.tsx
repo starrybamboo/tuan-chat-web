@@ -18,6 +18,7 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { commands } from "@/utils/commands";
+import { ChatRenderer } from "@/webGAL/chatRenderer";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { tuanchat } from "api/instance";
@@ -31,9 +32,8 @@ import {
   useGetUserInfoQuery,
   useGetUserRolesQuery,
 } from "../../../api/queryHooks";
-import { useWebSocket } from "../../../api/useWebSocket";
 
-export function DialogueWindow({ groupId }: { groupId: number }) {
+export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { groupId: number; send: (message: ChatMessageRequest) => void; getNewMessagesByRoomId: (groupId: number) => ChatMessageResponse[] }) {
   const [inputText, setInputText] = useState("");
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(true);
@@ -59,7 +59,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const inputUserInfo = useGetUserInfoQuery(inputUserId).data?.data;
 
   // 获取用户的所有角色
-  const userRolesQuery = useGetUserRolesQuery(userId ?? 10001);
+  const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
   // 获取当前群聊中的所有角色
   const groupRolesQuery = useGetGroupRoleQuery(groupId);
@@ -83,12 +83,6 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   /**
    * websocket
    */
-  // websocket封装, 用于发送接受消息
-  const { send, connect, getMessagesByRoomId } = useWebSocket();
-  useEffect(() => {
-    connect();
-  }, [connect]);
-  const receivedMessages = getMessagesByRoomId(groupId);
 
   /**
    * 获取历史消息
@@ -113,10 +107,41 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     refetchOnWindowFocus: false,
   });
 
-  // 合并所有分页消息
+  // 合并所有分页消息 同时更新重复的消息
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    return (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
-  }, [messagesInfiniteQuery.data]);
+    const historyMessages = (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
+    const messageMap = new Map<number, ChatMessageResponse>();
+
+    const receivedMessages = getNewMessagesByRoomId(groupId);
+    // 这是为了更新历史消息(ws发过来的消息有可能是带有相同的messageId的, 代表消息的更新)
+    historyMessages.forEach(msg =>
+      messageMap.set(msg.message.messageID, msg),
+    );
+    receivedMessages.forEach(msg =>
+      messageMap.set(msg.message.messageID, msg),
+    );
+
+    return Array.from(messageMap.values()).sort((a, b) =>
+      new Date(a.message.createTime ?? 0).getTime()
+        - new Date(b.message.createTime ?? 0).getTime(),
+    );
+  }, [getNewMessagesByRoomId, groupId, messagesInfiniteQuery.data?.pages]);
+
+  /**
+   * 获取到新消息的时候，如果距底部较近,滚动到底部
+   */
+  useEffect(() => {
+    if (!hasInitialized.current) {
+      return;
+    }
+    if (chatFrameRef.current) {
+      const { scrollTop, clientHeight, scrollHeight } = chatFrameRef.current;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 500;
+      if (isNearBottom) {
+        chatFrameRef.current.scrollTo({ top: scrollHeight, behavior: "instant" });
+      }
+    }
+  }, [historyMessages]);
 
   /**
    * messageEntry触发时候的effect, 同时让首次渲染时对话框滚动到底部
@@ -134,7 +159,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
         }
       });
     }
-  }, [messageEntry?.isIntersecting, messagesInfiniteQuery.hasNextPage, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage]);
+  }, [messageEntry?.isIntersecting, messagesInfiniteQuery.hasNextPage, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage, messagesInfiniteQuery]);
   /**
    * 第一次获取消息的时候, 滚动到底部
    */
@@ -162,7 +187,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
       // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setCurRoleId(groupRolesThatUserOwn[0]?.roleId ?? -1);
     }
-  }, [groupRolesQuery.data]);
+  }, [groupRolesQuery.data, groupRolesQuery.isFetchedAfterMount, groupRolesThatUserOwn]);
   /**
    * 命令补全部分
    */
@@ -262,6 +287,21 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     });
   }
 
+  const [isRendering, setIsRendering] = useState(false);
+  async function handleRender() {
+    setIsRendering(true);
+    try {
+      const renderer = new ChatRenderer(groupId);
+      await renderer.initializeRenderer();
+    }
+    catch (error) {
+      console.error("Rendering failed:", error);
+    }
+    finally {
+      setIsRendering(false);
+    }
+  }
+
   return (
     <GroupContext value={{ groupId }}>
       <div className="flex flex-row p-6 gap-4 w-full min-w-0">
@@ -276,16 +316,18 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
               </div>
             )}
             <div className="card-body overflow-y-auto h-[60vh]" ref={chatFrameRef}>
-              {historyMessages.map((chatMessageResponse, index) => (
-                <div ref={index === 1 ? messageRef : null} key={chatMessageResponse.message.messageID}>
-                  <ChatBubble chatMessageResponse={chatMessageResponse} useChatBubbleStyle={useChatBubbleStyle} />
-                </div>
-              ))}
-              {receivedMessages.map(receivedMessage => (
-                <div key={receivedMessage.message.messageID}>
-                  <ChatBubble chatMessageResponse={receivedMessage} useChatBubbleStyle={useChatBubbleStyle} />
-                </div>
-              ))}
+              {historyMessages.filter(chatMessageResponse => chatMessageResponse.message.content !== "")
+                .map((chatMessageResponse, index) => ((
+                  <div ref={index === 1 ? messageRef : null} key={chatMessageResponse.message.messageID}>
+                    <ChatBubble chatMessageResponse={chatMessageResponse} useChatBubbleStyle={useChatBubbleStyle} />
+                  </div>
+                )
+                ))}
+              {/* {receivedMessages.map(receivedMessage => ( */}
+              {/*  <div key={receivedMessage.message.messageID}> */}
+              {/*    <ChatBubble chatMessageResponse={receivedMessage} useChatBubbleStyle={useChatBubbleStyle} /> */}
+              {/*  </div> */}
+              {/* ))} */}
             </div>
           </div>
 
@@ -299,7 +341,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                   <div>{userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}</div>
                 </div>
                 {/* 表情差分选择器 */}
-                <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-92 p-2 shadow-sm">
+                <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm">
                   <ExpressionChooser roleId={curRoleId} handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}></ExpressionChooser>
                 </ul>
               </div>
@@ -360,8 +402,10 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                     </svg>
                   </ImgUploaderWithCopper>
                 </div>
-                <div className="float-right">
-                  <label className="swap w-30 btn right-2">
+
+                <div className="float-right gap-2 flex">
+                  <button className="btn" type="button" onClick={handleRender} disabled={isRendering}>渲染对话</button>
+                  <label className="swap w-30 btn">
                     <input type="checkbox" />
                     <div className="swap-on" onClick={() => setUseChatBubbleStyle(false)}>Use Chat Bubble Style</div>
                     <div className="swap-off" onClick={() => setUseChatBubbleStyle(true)}>Use Chat Box Style</div>

@@ -47,7 +47,7 @@ export function RoleDetail({ roleId }: { roleId: number }) {
                     {role?.roleName || `角色 ${roleId}`}
                   </h2>
                   {role?.description && (
-                    <p className="text-base-content/80 text-sm">
+                    <p className="text-base-content/80 text-sm truncate max-w-[100]">
                       {role.description}
                     </p>
                   )}

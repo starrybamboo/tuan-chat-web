@@ -1,8 +1,10 @@
-import { useState, useRef, useCallback } from 'react'
+import {useState, useRef, useCallback, useEffect} from 'react'
 import type {ChatMessageRequest} from "./models/ChatMessageRequest";
 import type {ChatMessageResponse} from "./models/ChatMessageResponse";
 import {useImmer} from "use-immer";
-import {formatToLocalISO} from "@/utils/dataUtil";
+import {formatLocalDateTime} from "@/utils/dataUtil";
+import {useGlobalContext} from "@/components/globalContextProvider";
+import {TuanChat} from "./TuanChat";
 
 type WsMessageType =
     | 2 // 心跳
@@ -17,9 +19,10 @@ interface WsMessage<T> {
 const WS_URL = import.meta.env.VITE_API_WS_URL
 // const WS_URL = "ws://39.103.58.31:8090"
 
-const token = "10001"
 
-export const useWebSocket = () => {
+
+export function useWebSocket() {
+    // let token = "-1"
     const wsRef = useRef<WebSocket | null>(null)
     const [isConnected, setIsConnected] = useState(false)
     const reconnectAttempts = useRef(0)
@@ -27,12 +30,17 @@ export const useWebSocket = () => {
     // 接受消息的存储
     const [groupMessages, updateGroupMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
 
+    let token = ""
+
+    if (typeof window !== 'undefined') {
+       token = localStorage.getItem("token") ?? "-1"
+    }
+
+
     // 配置参数
     const MAX_RECONNECT_ATTEMPTS = 5
     const HEARTBEAT_INTERVAL = 25000
     const RECONNECT_DELAY_BASE = 1
-
-
 
     // 核心连接逻辑
     const connect = useCallback(() => {
@@ -59,7 +67,7 @@ export const useWebSocket = () => {
                     const message: WsMessage<ChatMessageResponse> = JSON.parse(event.data)
                     console.log('Received message:', JSON.stringify(message))
                     if(!(message.data?.message.createTime) && message.data != undefined){
-                        message.data.message.createTime = formatToLocalISO(new Date)
+                        message.data.message.createTime = formatLocalDateTime(new Date())
                     }
                     if(message.data!=undefined && message.data){
                         updateGroupMessages(draft => {
@@ -157,13 +165,13 @@ export const useWebSocket = () => {
     }
 
     //
-    const getMessagesByRoomId = (roomId: number): ChatMessageResponse[] => {
+    const getNewMessagesByRoomId = (roomId: number): ChatMessageResponse[] => {
         return groupMessages[roomId] || []
     }
 
     return {
         isConnected,
-        getMessagesByRoomId,
+        getNewMessagesByRoomId,
         connect,
         send,
     }

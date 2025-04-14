@@ -27,6 +27,43 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
     });
   }
 
+  function handleContentUpdate(content: string) {
+    const newMessage: Message = {
+      ...message,
+      content,
+    };
+    updateMessageMutation.mutate(newMessage);
+  }
+
+  // eslint-disable-next-line react/no-nested-component-definitions
+  function EditableField({ content }: { content: string }) {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editContent, setEditContent] = useState(content);
+    return isEditing
+      ? (
+          <textarea
+            className="whitespace-pre-wrap border-none bg-transparent resize-none textarea w-full"
+            value={editContent}
+            onChange={e => setEditContent(e.target.value)}
+            onKeyPress={e => e.key === "Enter" && handleContentUpdate(editContent)}
+            onBlur={() => {
+              handleContentUpdate(editContent);
+              setIsEditing(false);
+            }}
+
+            autoFocus
+          />
+        )
+      : (
+          <div
+            className="whitespace-pre-wrap"
+            onDoubleClick={() => setIsEditing(true)}
+          >
+            {content}
+          </div>
+        );
+  };
+
   return (
     <div>
       {useChatBubbleStyle
@@ -37,9 +74,10 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
               </div>
 
               <div className={message.messageType !== 0 ? "chat-bubble" : "chat-bubble chat-bubble-neutral"}>
-                <div className="whitespace-pre-wrap">
-                  {message.content}
-                </div>
+                {/* <div className="whitespace-pre-wrap"> */}
+                {/*  {message.content} */}
+                {/* </div> */}
+                <EditableField content={message.content}></EditableField>
               </div>
               <div className="chat-footer">
                 {role?.roleName?.trim() || "Undefined"}
@@ -53,8 +91,8 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
             <div className="flex w-full mb-4" key={message.messageID}>
               {/* 圆角矩形头像 */}
               <div className="flex-shrink-0 mr-3">
-                <div className="w-20 h-20 rounded-md overflow-hidden">
-                  <RoleAvatarComponent avatarId={message.avatarId} width={20} isRounded={false} withTitle={false}></RoleAvatarComponent>
+                <div className="w-20 h-20 rounded-md overflow-hidden" onClick={() => setIsOpen(true)}>
+                  <RoleAvatarComponent avatarId={message.avatarId} width={20} isRounded={false} withTitle={false} stopPopWindow={true}></RoleAvatarComponent>
                 </div>
               </div>
 
@@ -66,13 +104,11 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
                 </div>
 
                 {/* 消息文本（纯文字，无边框） */}
-                <div className="text-base text-gray-700 dark:text-gray-300 mt-1 whitespace-pre-wrap">
-                  {message.content}
-                </div>
+                <EditableField content={message.content}></EditableField>
 
                 {/* 时间 */}
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {message.createTime?.toLocaleString() ?? ""}
+                  {message.createTime ?? ""}
                 </div>
               </div>
             </div>

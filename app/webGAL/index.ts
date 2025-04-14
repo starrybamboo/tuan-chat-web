@@ -2,7 +2,7 @@ import {
   checkGameExist,
   readDir,
   readTextFile,
-  saveImageFromUrl,
+  // saveImageFromUrl,
   uploadImage,
 } from "./fileOperator";
 import { createPreview, editScene } from "./game";
@@ -15,6 +15,6 @@ export {
   readDir,
   readTextFile,
   Renderer,
-  saveImageFromUrl,
+  // saveImageFromUrl,
   uploadImage,
 };
