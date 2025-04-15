@@ -54,4 +54,10 @@ export default antfu(
       "eslint-comments/no-unlimited-disable": "off",
     },
   },
+  {
+    files: ["*.config.ts"],
+    rules: {
+      "unicorn/filename-case": ["off"],
+    },
+  },
 );
