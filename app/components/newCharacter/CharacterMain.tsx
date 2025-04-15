@@ -76,14 +76,67 @@ export default function CharacterMain() {
               )
             : selectedCharacter
               ? (
-                  <CharacterDisplay
-                    name="示例角色名称"
-                    description="这是一个完整的角色描述，可以包含更多详细信息..."
-                  />
+                  <div className="space-y-4">
+                    <CharacterDisplay
+                      name="示例角色名称"
+                      description="这是一个完整的角色描述，可以包含更多详细信息..."
+                    />
+                    <div className="card bg-base-100 shadow-xl">
+                      <div className="card-body">
+                        <div className="flex items-start gap-4">
+                          <div className="avatar">
+                            <div className="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+                              <div className="bg-neutral-content w-full h-full flex items-center justify-center">
+                                <span className="text-neutral">规则</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <h2 className="card-title text-xl mb-2">选择规则</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="form-control w-full">
+                                <label className="label">
+                                  <span className="label-text">规则类型 A</span>
+                                </label>
+                                <select className="select select-bordered w-full">
+                                  <option disabled selected>选择规则</option>
+                                  <option>规则 A1</option>
+                                  <option>规则 A2</option>
+                                  <option>规则 A3</option>
+                                </select>
+                              </div>
+                              <div className="form-control w-full">
+                                <label className="label">
+                                  <span className="label-text">规则类型 B</span>
+                                </label>
+                                <select className="select select-bordered w-full">
+                                  <option disabled selected>选择规则</option>
+                                  <option>规则 B1</option>
+                                  <option>规则 B2</option>
+                                  <option>规则 B3</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )
               : (
                   <div className="flex items-center justify-center h-[calc(100vh-2rem)]">
-                    <p className="text-base-content/70">请选择一个角色或创建新角色</p>
+                    <div
+                      className="card w-96 bg-base-100 shadow-xl hover:shadow-2xl transition-shadow cursor-pointer"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <div className="card-body items-center text-center">
+                        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                          <span className="text-4xl text-primary">+</span>
+                        </div>
+                        <h2 className="card-title">创建新角色</h2>
+                        <p className="text-base-content/70">开始创建您的第一个角色</p>
+                      </div>
+                    </div>
                   </div>
                 )}
         </div>
