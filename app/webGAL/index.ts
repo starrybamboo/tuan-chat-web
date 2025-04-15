@@ -1,3 +1,5 @@
+import { Api, HttpClient } from "@/webGAL/apis";
+
 import {
   checkGameExist,
   readDir,
@@ -18,3 +20,5 @@ export {
   // saveImageFromUrl,
   uploadImage,
 };
+
+export const terreApis = new Api(new HttpClient({ baseURL: "http://localhost:3001" }));

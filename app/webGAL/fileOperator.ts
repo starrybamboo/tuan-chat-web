@@ -1,4 +1,4 @@
-import { terreApis } from "./services";
+import { terreApis } from "@/webGAL/index";
 
 type IFile = {
   extName: string;
