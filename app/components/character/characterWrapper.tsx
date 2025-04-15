@@ -83,6 +83,13 @@ export default function CharacterWrapper() {
         return undefined;
       }
     },
+    onSuccess: () => {
+      // 删除成功后重新初始化角色列表
+      initializeCharacters();
+      setSelectedCharacter(null);
+      // 强制刷新roleQuery
+      roleQuery.refetch();
+    },
     onError: (error) => {
       console.error("Mutation failed:", error);
     },
@@ -160,9 +167,11 @@ export default function CharacterWrapper() {
     if (deleteCharacterId !== null) {
       const roleId = deleteCharacterId;
       if (roleId) {
-        deleteRole([roleId]);
-        updateCharacters(characters.filter(c => c.id !== deleteCharacterId));
+        // 先更新本地状态
+        updateCharacters(characters.filter(c => c.id !== roleId));
         setSelectedCharacter(null);
+        // 然后调用删除API
+        deleteRole([roleId]);
       }
       else {
         console.error("无法获取角色ID");

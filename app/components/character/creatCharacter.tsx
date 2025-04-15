@@ -49,7 +49,7 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
             },
             );
             console.warn(`成功${roleId}`);
-            return updateRes;
+            return { ...updateRes, roleId };
           }
           else {
             console.error(`更新角色信息失败`);
@@ -73,7 +73,7 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
     onSuccess: (data) => {
       if (data?.success) {
         const newCharacter = {
-          id: initialData?.id || Date.now(),
+          id: "roleId" in data ? data.roleId : (initialData?.id || 0),
           name: name.trim() || "未命名角色",
           age,
           gender,
@@ -249,7 +249,7 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
             <div className="space-y-2">
               <div>
                 <label className="block mb-1">最大值</label>
-                {/* type="number"修改会出现“0删不掉的情况”目前懒得改 */}
+                {/* type="number"修改会出现"0删不掉的情况"目前懒得改 */}
                 <input
                   type="number"
                   value={health.max}
