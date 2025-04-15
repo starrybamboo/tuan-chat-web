@@ -1,3 +1,4 @@
+/* eslint-disable react-dom/no-missing-button-type */
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";

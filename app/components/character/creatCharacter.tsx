@@ -153,6 +153,16 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
         </div>
       </div>
 
+      {/* 头像选择 */}
+      <Head
+        onAvatarChange={setAvatar}
+        onAvatarIdChange={setAvatarId}
+        roleId={initialData?.id ? initialData?.id : 0}
+        currentAvatar={initialData?.avatar}
+        userQuery={userQuery}
+        roleQuery={roleQuery}
+      />
+
       <div className="p-4">
         {/* 基本信息1 */}
         {/* 在中等屏幕尺寸显示 4 列 */}
@@ -339,16 +349,6 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
             className="bg-base-200 w-full rounded p-2 h-24 resize-none textarea textarea-bordered"
           />
         </div>
-
-        {/* 头像选择 */}
-        <Head
-          onAvatarChange={setAvatar}
-          onAvatarIdChange={setAvatarId}
-          roleId={initialData?.id ? initialData?.id : 0}
-          currentAvatar={initialData?.avatar}
-          userQuery={userQuery}
-          roleQuery={roleQuery}
-        />
       </div>
     </div>
   );
