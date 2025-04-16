@@ -10,5 +10,4 @@ export interface GroupContextType {
 export const GroupContext = createContext<GroupContextType>({
   groupId: undefined,
   groupMembers: [],
-
 });

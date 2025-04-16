@@ -1,8 +1,13 @@
 import { GroupContext } from "@/components/chat/GroupContext";
 import { PopWindow } from "@/components/common/popWindow";
 import { RoleDetail } from "@/components/common/roleDetail";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { use, useState } from "react";
-import { useDeleteRole1Mutation, useGetRoleAvatarQuery } from "../../../api/queryHooks";
+import {
+  useDeleteRole1Mutation,
+  useGetRoleAvatarQuery,
+  useGetUserRolesQuery,
+} from "../../../api/queryHooks";
 
 const sizeMap = {
   6: "w-6 h-6", // 24px
@@ -21,13 +26,24 @@ const sizeMap = {
 
 export default function RoleAvatarComponent({ avatarId, width, isRounded, withTitle, stopPopWindow = false }: { avatarId: number; width: keyof typeof sizeMap; isRounded: boolean; withTitle: boolean; stopPopWindow?: boolean }) {
   const avatarQuery = useGetRoleAvatarQuery(avatarId);
+  const userId = useGlobalContext().userId ?? -1;
+  const userRole = useGetUserRolesQuery(userId);
 
   // 控制角色详情的popWindow
   const [isOpen, setIsOpen] = useState(false);
   const roleAvatar = avatarQuery.data?.data;
 
   const groupContext = use(GroupContext);
-  const groupId = groupContext?.groupId;
+  const groupId = groupContext?.groupId ?? -1;
+
+  const groupMembers = groupContext.groupMembers ?? [];
+  // 当前登录用户的id
+  const curUserId = useGlobalContext().userId ?? -1;
+
+  // 是否是群主
+  function isManager() {
+    return groupMembers.some(member => member.userId === curUserId && member.memberType === 1);
+  }
 
   const deleteRoleMutation = useDeleteRole1Mutation();
   const handleRemoveRole = async () => {
@@ -63,7 +79,8 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
               <div className="items-center justify-center gap-y-4 flex flex-col w-full overflow-auto">
                 <RoleDetail roleId={roleAvatar?.roleId ?? -1}></RoleDetail>
                 {
-                  (groupContext && groupContext.groupId) && (
+                  // 用户是群主或者当前角色是用户所有才能踢出角色
+                  (isManager() || userRole.data?.data?.find(role => role.roleId === roleAvatar?.roleId)) && (
                     <button type="button" className="btn btn-error" onClick={handleRemoveRole}>
                       踢出角色
                     </button>
