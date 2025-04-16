@@ -18,16 +18,13 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   // 统一处理字段更新
   const handleUpdate = (abilityId: number, type: "ability" | "act", key: string, value: string) => {
     // 当值变化时提交更新
-
     const updateData = (type === "ability")
       ? {
           abilityId,
           ability: { [key]: Number(value) },
-          act: { default: "default" },
         }
       : {
           abilityId,
-          ability: { default: -1 },
           act: { [key]: value },
         };
     updateAbilityMutation.mutate(updateData);
