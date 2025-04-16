@@ -12,6 +12,7 @@ import { ChatBubble } from "@/components/chat/chatBubble";
 import { ExpressionChooser } from "@/components/chat/ExpressionChooser";
 import { GroupContext } from "@/components/chat/GroupContext";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
+import RoleChooser from "@/components/chat/RoleChooser";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
@@ -90,8 +91,9 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
       groupId,
       groupMembers: members,
       curMember,
+      groupRolesThatUserOwn,
     };
-  }, [curMember, groupId, members]);
+  }, [curMember, groupId, groupRolesThatUserOwn, members]);
 
   // Mutations
   const addMemberMutation = useAddMemberMutation();
@@ -339,11 +341,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                   </div>
                 )
                 ))}
-              {/* {receivedMessages.map(receivedMessage => ( */}
-              {/*  <div key={receivedMessage.message.messageID}> */}
-              {/*    <ChatBubble chatMessageResponse={receivedMessage} useChatBubbleStyle={useChatBubbleStyle} /> */}
-              {/*  </div> */}
-              {/* ))} */}
             </div>
           </div>
 
@@ -396,17 +393,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                   <div className="dropdown dropdown-top">
                     <div tabIndex={0} role="button" className="btn m-1">选择角色 ⬆️</div>
                     <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto">
-                      {
-                        // 仅显示角色列表里面有的角色
-                        groupRolesThatUserOwn.map(role => (
-                          <li key={role.roleId} onClick={() => handleRoleChange(role.roleId ?? -1)} className="flex, flex-row">
-                            <div className="w-full">
-                              <RoleAvatarComponent avatarId={role.avatarId ?? 0} width={10} isRounded={false} withTitle={false} stopPopWindow={true}></RoleAvatarComponent>
-                              <div>{role.roleName}</div>
-                            </div>
-                          </li>
-                        ))
-                      }
+                      <RoleChooser handleRoleChange={handleRoleChange}></RoleChooser>
                     </ul>
                   </div>
                   <ImgUploaderWithCopper setCopperedDownloadUrl={setImgDownLoadUrl} setDownloadUrl={() => {}} fileName="test!test!!!!">
