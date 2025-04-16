@@ -175,11 +175,6 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
             {isLoggedIn ? "您已成功登录" : (isLogin ? "登录" : "注册")}
           </h2>
 
-          <AlertMessage
-            errorMessage={errorMessage}
-            successMessage={successMessage}
-          />
-
           {isLoggedIn
             ? (
                 <LoggedInView handleLogout={handleLogout} />
@@ -235,7 +230,13 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
             </>
           )}
         </div>
+
       </div>
+
+      <AlertMessage
+        errorMessage={errorMessage}
+        successMessage={successMessage}
+      />
 
       {/* 背景遮罩 */}
       <div className="modal-backdrop bg-black/50 dark:bg-black/70" onClick={onClose}></div>
