@@ -9,14 +9,14 @@ export type TextToImageRequest = {
     /**
      * 图像风格
      */
-    style?: string;
+    style: string;
     /**
      * 外貌描述
      */
-    appearance?: string;
+    appearance: string;
     /**
      * 情感差分类型
      */
-    emotionType?: string;
+    emotionType: string;
 };
 
