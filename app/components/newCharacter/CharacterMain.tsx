@@ -45,7 +45,6 @@ export default function CharacterMain() {
     onSuccess: () => {
       // 删除成功后重新初始化角色列表
       initializeRoles();
-      setSelectedRoleId(null);
       // 强制刷新roleQuery
       roleQuery.refetch();
     },
@@ -53,10 +52,33 @@ export default function CharacterMain() {
       console.error("Mutation failed:", error);
     },
   });
+
+  // 创建角色接口
+  const { mutateAsync: createRole } = useMutation({
+    mutationKey: ["createRole"],
+    mutationFn: async () => {
+      const res = await tuanchat.roleController.createRole({});
+      if (res.success) {
+        console.warn("角色创建成功");
+        return res.data;
+      }
+      else {
+        console.error("创建角色失败");
+      }
+    },
+    onError: (error) => {
+      console.error("Mutation failed:", error);
+    },
+  });
   // 创建新角色
-  const handleCreate = () => {
+  const handleCreate = async () => {
+    const data = await createRole();
+    if (data === undefined) {
+      console.error("角色创建失败");
+      return;
+    }
     const newRole: Role = {
-      id: 0,
+      id: data,
       name: "",
       description: "",
       avatar: "",

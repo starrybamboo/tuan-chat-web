@@ -29,46 +29,17 @@ export default function CharacterDetail({
   }, [role]);
 
   // 接口部分
-  // 发送post数据部分
-  const { mutate: creatOrUpdateRole } = useMutation({
-    mutationKey: ["creatOrUpdateRole"],
+  // 发送post数据部分,保存数据
+  const { mutate: updateRole } = useMutation({
+    mutationKey: ["UpdateRole"],
     mutationFn: async (data: any) => {
-      if (role.id === 0) {
-        const res = await tuanchat.roleController.createRole({});
-        console.warn(`创建角色信息`);
-        if (res.success) {
-          const roleId = res.data;
-          if (roleId) {
-            const updateRes = await tuanchat.roleController.updateRole({
-              roleId,
-              roleName: data.name,
-              description: data.description,
-            },
-            );
-            console.warn(`成功${roleId}`);
-            return { ...updateRes, roleId };
-          }
-          else {
-            console.error(`更新角色信息失败`);
-            return undefined;
-          }
-        }
-        else {
-          console.error("创建角色失败");
-        }
-      }
-      else {
+      if (role.id !== 0) {
         const updateRes = await tuanchat.roleController.updateRole({
           roleId: role.id,
           roleName: data.name,
           description: data.description,
         });
         return updateRes;
-      }
-    },
-    onSuccess: (data) => {
-      if (data?.success) {
-        onSave(localRole);
       }
     },
     onError: (error: any) => {
@@ -80,7 +51,7 @@ export default function CharacterDetail({
   });
   const handleSave = () => {
     onSave(localRole);
-    creatOrUpdateRole(localRole);
+    updateRole(localRole);
   };
 
   const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
