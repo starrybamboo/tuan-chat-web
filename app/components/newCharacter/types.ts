@@ -17,7 +17,6 @@ export type Role = {
 
 export type NumericalConstraint = {
   [key: string]: number | string;
-  avatarId: number;
 };
 
 export type NumericalConstraints = {

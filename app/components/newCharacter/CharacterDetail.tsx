@@ -1,11 +1,11 @@
 import type { ChangeEvent } from "react";
 import type { GameRule, Role } from "./types";
-import RulesSection from "@/components/newCharacter/RulesSection";
+import RulesSection from "@/components/newCharacter/rules/RulesSection";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useEffect, useState } from "react";
-import NumericalEditor from "./NumericalEditor";
-import PerformanceEditor from "./PerformanceEditor";
+import NumericalEditor from "./rules/NumericalEditor";
+import PerformanceEditor from "./rules/PerformanceEditor";
 import Section from "./Section";
 
 interface CharacterDetailProps {
