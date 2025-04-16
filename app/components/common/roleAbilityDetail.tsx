@@ -1,5 +1,10 @@
+import type { AbilityFieldUpdateRequest } from "../../../api";
 import { useState } from "react";
-import { useGetRoleAbilitiesQuery, useUpdateRoleAbilityMutation } from "../../../api/queryHooks";
+import {
+  useGetRoleAbilitiesQuery,
+  useUpdateKeyFieldMutation,
+  useUpdateRoleAbilityMutation,
+} from "../../../api/queryHooks";
 
 export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   const roleAbilityListQuery = useGetRoleAbilitiesQuery(roleId);
@@ -8,6 +13,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
     abilityId: number;
     key: string;
     type: "ability" | "act";
+    isKeyField: boolean;
   } | null>(null);
   const [editValue, setEditValue] = useState("");
   const [editAddKey, setEditAddKey] = useState("");
@@ -15,55 +21,71 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
 
   // Mutations
   const updateAbilityMutation = useUpdateRoleAbilityMutation();
+  const updateKeyFieldMutation = useUpdateKeyFieldMutation();
   // 统一处理字段更新
-  const handleUpdate = (abilityId: number, type: "ability" | "act", key: string, value: string) => {
-    // 当值变化时提交更新
-    const updateData = (type === "ability")
-      ? {
-          abilityId,
-          ability: { [key]: Number(value) },
-        }
-      : {
-          abilityId,
-          act: { [key]: value },
-        };
-    updateAbilityMutation.mutate(updateData);
+  const handleUpdate = (abilityId: number, type: "ability" | "act", key: string, updateValue: string, isKeyField: boolean) => {
+    if (isKeyField) {
+      const updateData: AbilityFieldUpdateRequest = (type === "ability")
+        ? {
+            abilityId,
+            abilityFields: { [key]: updateValue },
+          }
+        : {
+            abilityId,
+            actFields: { [key]: updateValue },
+          };
+      updateKeyFieldMutation.mutate(updateData);
+    }
+    else {
+      const updateData = (type === "ability")
+        ? {
+            abilityId,
+            ability: { [key]: Number(updateValue) },
+          }
+        : {
+            abilityId,
+            act: { [key]: updateValue },
+          };
+      updateAbilityMutation.mutate(updateData);
+    }
 
     setEditingField(null);
   };
-  const handleDoubleClick = (abilityId: number, type: "ability" | "act", key: string, currentValue: string | number) => {
-    setEditingField({ abilityId, type, key });
-    setEditValue(String(currentValue));
+  const handleDoubleClick = (abilityId: number, type: "ability" | "act", key: string, currentValue: string | number, isKeyField: boolean) => {
+    setEditingField({ abilityId, type, key, isKeyField });
+    setEditValue(isKeyField ? key : String(currentValue));
   };
 
   // 可编辑字段
   const renderEditableField = (
     abilityId: number,
     type: "ability" | "act",
+    isKeyField: boolean, // 编辑字段是不是key
     key: string,
     value: string | number,
   ) => {
     const isEditing = editingField?.abilityId === abilityId
       && editingField?.type === type
+      && editingField?.isKeyField === isKeyField
       && editingField?.key === key;
     return isEditing
       ? (
           <input
-            type={type === "ability" ? "number" : "text"}
+            type={type === "ability" && !isKeyField ? "number" : "text"}
             className="text-xs text-gray-800 cursor-text border min-w-[10px] max-w-[40px]"
             value={editValue}
             onChange={e => setEditValue(e.target.value)}
-            onBlur={() => handleUpdate(abilityId, type, key, editValue)}
-            onKeyPress={e => e.key === "Enter" && handleUpdate(abilityId, type, key, editValue)}
+            onBlur={() => handleUpdate(abilityId, type, key, editValue, isKeyField)}
+            onKeyPress={e => e.key === "Enter" && handleUpdate(abilityId, type, key, editValue, isKeyField)}
             autoFocus
           />
         )
       : (
           <div
-            className="text-xs text-gray-800 cursor-text min-w-[1   0px] max-w-[40px]"
-            onDoubleClick={() => handleDoubleClick(abilityId, type, key, value)}
+            className="text-xs text-gray-800 cursor-text min-w-[10px] max-w-[40px]"
+            onDoubleClick={() => handleDoubleClick(abilityId, type, key, value, isKeyField)}
           >
-            {value}
+            {isKeyField ? key : value}
           </div>
         );
   };
@@ -99,22 +121,15 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
                           className="input"
                           onChange={e => setEditAddValue(e.target.value)}
                         />
-                        <button className="btn-info btn " type="button" onClick={() => handleUpdate(ability.abilityId ?? -1, "ability", editAddKey, editAddValue)}>添加属性</button>
+                        <button className="btn-info btn " type="button" onClick={() => handleUpdate(ability.abilityId ?? -1, "ability", editAddKey, editAddValue, false)}>添加属性</button>
                       </div>
 
                       <div className="grid grid-cols-6 w-max">
                         {Object.entries(ability.ability ?? {}).map(([key, value]) => (
-                          <div
-                            key={key}
-                            className="break-inside-avoid mb-2 ml-1 p-2 border rounded-lg"
-                          >
+                          <div key={key} className="break-inside-avoid mb-2 ml-1 p-2 border rounded-lg">
                             <div className="flex justify-between">
-                              <div
-                                className="text-xs font-medium text-gray-500 truncate"
-                              >
-                                {key}
-                              </div>
-                              {renderEditableField(ability.abilityId ?? -1, "ability", key, value)}
+                              {renderEditableField(ability.abilityId ?? -1, "ability", true, key, value)}
+                              {renderEditableField(ability.abilityId ?? -1, "ability", false, key, value)}
                             </div>
                           </div>
                         ))}
@@ -135,12 +150,8 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
                             className="break-inside-avoid mb-2 ml-1 p-2 border rounded-lg"
                           >
                             <div className="flex justify-between">
-                              <div
-                                className="text-xs font-medium text-gray-500 truncate"
-                              >
-                                {key}
-                              </div>
-                              <div className="text-xs text-gray-800">{value}</div>
+                              {renderEditableField(ability.abilityId ?? -1, "act", true, key, value)}
+                              {renderEditableField(ability.abilityId ?? -1, "act", false, key, value)}
                             </div>
                           </div>
                         ))}

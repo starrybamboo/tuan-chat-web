@@ -29,7 +29,14 @@ import type {AbilitySetRequest} from "./models/AbilitySetRequest";
 import type {AbilityUpdateRequest} from "./models/AbilityUpdateRequest";
 import type { UseQueryResult } from "@tanstack/react-query";
 
-import type {ApiResultListRoleResponse, ApiResultRoleAbility, ApiResultUserInfoResponse, Message, RoleResponse} from "api";
+import type {
+    AbilityFieldUpdateRequest,
+    ApiResultListRoleResponse,
+    ApiResultRoleAbility,
+    ApiResultUserInfoResponse,
+    Message,
+    RoleResponse
+} from "api";
 
 
 // ==================== 角色管理 ====================
@@ -534,6 +541,17 @@ export function useUpdateRoleAbilityMutation() {
     return useMutation({
         mutationFn: (req: AbilityUpdateRequest) => tuanchat.abilityController.updateRoleAbility(req),
         mutationKey: ["updateRoleAbility"],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
+        }
+    })
+}
+
+export function useUpdateKeyFieldMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn:  (req: AbilityFieldUpdateRequest) => tuanchat.abilityController.updateRoleAbilityField(req),
+        mutationKey: ["updateRoleAbilityField"],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
         }
