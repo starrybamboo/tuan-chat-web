@@ -2,14 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type AI_ = {
+export type GroupArchiveRequest = {
     /**
-     * 用户提示词和上下文
+     * 群组 id
      */
-    prompt?: string;
+    roomId: number;
     /**
-     * 规则id
+     * 是否归档 true归档 false取消归档
      */
-    ruleId?: number;
+    archived: boolean;
 };
 

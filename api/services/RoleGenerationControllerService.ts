@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { AI_ } from '../models/AI_';
 import type { ApiResultMapObjectObject } from '../models/ApiResultMapObjectObject';
+import type { RoleGenerationRequest } from '../models/RoleGenerationRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class RoleGenerationControllerService {
@@ -16,7 +16,7 @@ export class RoleGenerationControllerService {
      * @throws ApiError
      */
     public generateBasicInfoByRule(
-        requestBody: AI_,
+        requestBody: RoleGenerationRequest,
     ): CancelablePromise<ApiResultMapObjectObject> {
         return this.httpRequest.request({
             method: 'POST',
@@ -39,7 +39,7 @@ export class RoleGenerationControllerService {
      * @throws ApiError
      */
     public generateAbilityByRule(
-        requestBody: AI_,
+        requestBody: RoleGenerationRequest,
     ): CancelablePromise<ApiResultMapObjectObject> {
         return this.httpRequest.request({
             method: 'POST',

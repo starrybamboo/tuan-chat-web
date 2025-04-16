@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 返回对象
+ * 群组
  */
 export type Group = {
     /**
