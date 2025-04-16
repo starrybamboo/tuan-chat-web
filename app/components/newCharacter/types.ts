@@ -1,16 +1,23 @@
 // types.ts
 export type Role = {
-  id: string;
+  id: number;
   avatar?: string;
   name: string;
   description: string;
   inventory: InventoryItem[];
-  abilities: string[];
+  abilities: AbilityLabel[];
 };
 
 export type InventoryItem = {
-  id: string;
+  id: number;
   name: string;
   quantity: number;
+  description?: string;
+};
+
+export type AbilityLabel = {
+  id: number;
+  name: string;
+  value: number;
   description?: string;
 };

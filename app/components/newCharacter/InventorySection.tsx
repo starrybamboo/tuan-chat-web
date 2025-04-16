@@ -1,5 +1,5 @@
-import type { InventoryItem } from "./types";
 // InventorySection.tsx（背包模块）
+import type { InventoryItem } from "./types";
 import { useState } from "react";
 import Section from "./Section";
 
@@ -19,7 +19,7 @@ export default function InventorySection({
       onChange([
         ...items,
         {
-          id: Date.now().toString(),
+          id: Date.now(),
           name: newItemName,
           quantity: 1,
         },

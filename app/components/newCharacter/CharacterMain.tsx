@@ -5,14 +5,14 @@ import CharacterDetail from "./CharacterDetail";
 
 export default function CharacterMain() {
   const [roles, setRoles] = useState<Role[]>([]);
-  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   // 创建新角色
   const handleCreate = () => {
     const newRole: Role = {
-      id: `temp-${Date.now()}`,
+      id: Date.now(),
       name: "",
       description: "",
       avatar: "",
@@ -25,7 +25,7 @@ export default function CharacterMain() {
   };
 
   // 删除角色
-  const handleDelete = (roleId: string) => {
+  const handleDelete = (roleId: number) => {
     setRoles(prev => prev.filter(role => role.id !== roleId));
     if (selectedRoleId === roleId)
       setSelectedRoleId(null);
@@ -33,17 +33,13 @@ export default function CharacterMain() {
 
   // 保存角色
   const handleSave = (updatedRole: Role) => {
-    const finalId = updatedRole.id.startsWith("temp-")
-      ? Date.now().toString()
-      : updatedRole.id;
-
     setRoles(prev =>
       prev.map(role =>
-        role.id === updatedRole.id ? { ...updatedRole, id: finalId } : role,
+        role.id === updatedRole.id ? updatedRole : role,
       ),
     );
     setIsEditing(false);
-    setSelectedRoleId(finalId);
+    setSelectedRoleId(updatedRole.id);
   };
 
   // 过滤角色列表

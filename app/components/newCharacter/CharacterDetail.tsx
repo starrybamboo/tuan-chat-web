@@ -2,7 +2,7 @@
 import type { ChangeEvent } from "react";
 import type { Role } from "./types";
 import { useEffect, useState } from "react";
-// import AbilitySection from "./AbilitySection";
+import AbilitySection from "./AbilitySection";
 import InventorySection from "./InventorySection";
 import Section from "./Section";
 
@@ -54,6 +54,10 @@ export default function CharacterDetail({
                 {isEditing
                   ? (
                       <>
+                        <p>
+                          角色ID号：
+                          {localRole.id}
+                        </p>
                         <input
                           type="text"
                           value={localRole.name}
@@ -65,13 +69,18 @@ export default function CharacterDetail({
                           value={localRole.description}
                           onChange={e => setLocalRole(prev => ({ ...prev, description: e.target.value }))}
                           placeholder="角色描述"
-                          className="textarea textarea-bordered w-full h-24"
+                          className="textarea textarea-bordered w-full h-24 resize-none"
                         />
+
                       </>
                     )
                   : (
                       <>
                         <h2 className="card-title text-2xl">{localRole.name || "未命名角色"}</h2>
+                        <p>
+                          角色ID号：
+                          {localRole.id}
+                        </p>
                         <p className="text-base-content/70 whitespace-pre-wrap">
                           {localRole.description || "暂无描述"}
                         </p>
@@ -105,11 +114,12 @@ export default function CharacterDetail({
         onChange={inventory => setLocalRole(prev => ({ ...prev, inventory }))}
       />
 
-      {/* <AbilitySection */}
-      {/*  abilities={localRole.abilities} */}
-      {/*  isEditing={isEditing} */}
-      {/*  onChange={abilities => setLocalRole(prev => ({ ...prev, abilities }))} */}
-      {/* /> */}
+      <AbilitySection
+        role={localRole}
+        abilities={localRole.abilities}
+        isEditing={isEditing}
+        onChange={abilities => setLocalRole(prev => ({ ...prev, abilities }))}
+      />
     </div>
   );
 }
