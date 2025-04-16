@@ -766,6 +766,11 @@ export const useRolesInitialization = (roleQuery: any) => {
   return { roles, initializeRoles, setRoles };
 };
 
-//获取规则
-// export const 
 
+//获取规则
+export function useRuleListQuery() {
+  return useQuery({
+    queryKey: ["ruleList"],
+    queryFn: async () => await tuanchat.ruleController.getRuleList(),
+})
+}
