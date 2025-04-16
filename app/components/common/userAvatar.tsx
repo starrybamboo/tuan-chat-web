@@ -43,7 +43,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
 
   // 是否是群主
   function isManager() {
-    return groupId >= 0 && groupMembers.some(member => member.userId === curUserId && member.memberType === 1);
+    return groupContext.curMember?.memberType === 1;
   }
 
   const handleRemoveMember = async () => {

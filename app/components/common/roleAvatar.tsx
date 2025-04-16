@@ -35,14 +35,9 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
 
   const groupContext = use(GroupContext);
   const groupId = groupContext?.groupId ?? -1;
-
-  const groupMembers = groupContext.groupMembers ?? [];
-  // 当前登录用户的id
-  const curUserId = useGlobalContext().userId ?? -1;
-
   // 是否是群主
   function isManager() {
-    return groupMembers.some(member => member.userId === curUserId && member.memberType === 1);
+    return groupContext.curMember?.memberType === 1;
   }
 
   const deleteRoleMutation = useDeleteRole1Mutation();

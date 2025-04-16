@@ -4,6 +4,7 @@ import type {
   ChatMessagePageRequest,
   ChatMessageRequest,
   ChatMessageResponse,
+  GroupMember,
 } from "api";
 
 import { ChatBubble } from "@/components/chat/chatBubble";
@@ -75,15 +76,22 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   const roleAvatars = roleAvatarQuery.data?.data ?? [];
   // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(groupId);
-  const members = membersQuery.data?.data ?? [];
+  const members: GroupMember[] = useMemo(() => {
+    return membersQuery.data?.data ?? [];
+  }, [membersQuery.data?.data]);
+  // 全局登录用户对应的member
+  const curMember = useMemo(() => {
+    return members.find(member => member.userId === userId);
+  }, [members, userId]);
 
   // Context
   const groupContext: GroupContextType = useMemo((): GroupContextType => {
     return {
       groupId,
       groupMembers: members,
+      curMember,
     };
-  }, [groupId, members]);
+  }, [curMember, groupId, members]);
 
   // Mutations
   const addMemberMutation = useAddMemberMutation();
@@ -310,7 +318,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
       setIsRendering(false);
     }
   }
-
   return (
     <GroupContext value={groupContext}>
       <div className="flex flex-row p-6 gap-4 w-full min-w-0">
@@ -440,9 +447,15 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                   群成员-
                   {members.length}
                 </p>
-                <button className="btn btn-dash btn-info" type="button" onClick={() => setIsMemberHandleOpen(true)}>
-                  添加成员
-                </button>
+                {
+                  curMember?.memberType === 1
+                  && (
+                    <button className="btn btn-dash btn-info" type="button" onClick={() => setIsMemberHandleOpen(true)}>
+                      添加成员
+                    </button>
+                  )
+                }
+
               </div>
 
               {members.map(member => (
@@ -463,7 +476,11 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                   角色列表-
                   <span className="text-sm">{groupRoles.length}</span>
                 </p>
-                <button className="btn btn-dash btn-info" type="button" onClick={() => setIsRoleHandleOpen(true)}>添加角色</button>
+                {
+                  (curMember?.memberType ?? -1) in [1, 2] && (
+                    <button className="btn btn-dash btn-info" type="button" onClick={() => setIsRoleHandleOpen(true)}>添加角色</button>
+                  )
+                }
               </div>
               {groupRoles.map(role => (
                 <div key={role.roleId} className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center ">
