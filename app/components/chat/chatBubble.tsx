@@ -2,6 +2,7 @@ import type { ChatMessageResponse, Message } from "api";
 import { ExpressionChooser } from "@/components/chat/ExpressionChooser";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetRoleQuery, useUpdateMessageMutation } from "api/queryHooks";
 import { useState } from "react";
 /**
@@ -16,6 +17,8 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
   const [isOpen, setIsOpen] = useState(false);
 
   const updateMessageMutation = useUpdateMessageMutation();
+
+  const userId = useGlobalContext().userId;
 
   function handleExpressionChange(avatarId: number) {
     const newMessage: Message = {
@@ -35,10 +38,22 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
     updateMessageMutation.mutate(newMessage);
   }
 
+  function handleAvatarClick() {
+    if (userId === message.userId) {
+      setIsOpen(true);
+    }
+  }
+
   // eslint-disable-next-line react/no-nested-component-definitions
   function EditableField({ content }: { content: string }) {
     const [isEditing, setIsEditing] = useState(false);
     const [editContent, setEditContent] = useState(content);
+
+    function handleDoubleClick() {
+      if (userId === message.userId) {
+        setIsEditing(true);
+      }
+    }
     return isEditing
       ? (
           <textarea
@@ -50,14 +65,13 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
               handleContentUpdate(editContent);
               setIsEditing(false);
             }}
-
             autoFocus
           />
         )
       : (
           <div
             className="whitespace-pre-wrap"
-            onDoubleClick={() => setIsEditing(true)}
+            onDoubleClick={handleDoubleClick}
           >
             {content}
           </div>
@@ -69,7 +83,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
       {useChatBubbleStyle
         ? (
             <div className="chat chat-start" key={message.messageID}>
-              <div className="avatar chat-image" onClick={() => setIsOpen(true)}>
+              <div className="avatar chat-image" onClick={handleAvatarClick}>
                 <RoleAvatarComponent avatarId={message.avatarId} width={10} isRounded={true} withTitle={false} stopPopWindow={true}></RoleAvatarComponent>
               </div>
 
@@ -91,7 +105,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
             <div className="flex w-full mb-4" key={message.messageID}>
               {/* 圆角矩形头像 */}
               <div className="flex-shrink-0 mr-3">
-                <div className="w-20 h-20 rounded-md overflow-hidden" onClick={() => setIsOpen(true)}>
+                <div className="w-20 h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
                   <RoleAvatarComponent avatarId={message.avatarId} width={20} isRounded={false} withTitle={false} stopPopWindow={true}></RoleAvatarComponent>
                 </div>
               </div>
