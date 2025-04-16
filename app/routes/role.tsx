@@ -1,5 +1,5 @@
 import type { Route } from "./+types/home";
-import CharacterWrapper from "@/components/character/characterWrapper";
+import CharacterMain from "@/components/newCharacter/CharacterMain";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -11,7 +11,7 @@ export function meta(_args: Route.MetaArgs) {
 export default function Role() {
   return (
     <div className="h-screen">
-      <CharacterWrapper />
+      <CharacterMain />
     </div>
   );
 }
