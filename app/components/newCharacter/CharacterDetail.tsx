@@ -1,12 +1,11 @@
-/* eslint-disable react-dom/no-missing-button-type */
-// CharacterDetail.tsx
 import type { ChangeEvent } from "react";
-import type { Role } from "./types";
+import type { GameRule, Role } from "./types";
+import RulesSection from "@/components/newCharacter/RulesSection";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useEffect, useState } from "react";
-import AbilitySection from "./AbilitySection";
-import InventorySection from "./InventorySection";
+import NumericalEditor from "./NumericalEditor";
+import PerformanceEditor from "./PerformanceEditor";
 import Section from "./Section";
 
 interface CharacterDetailProps {
@@ -14,61 +13,40 @@ interface CharacterDetailProps {
   isEditing: boolean;
   onEdit: () => void;
   onSave: (updatedRole: Role) => void;
+  rules: GameRule[];
 }
 
+/**
+ * 角色详情组件
+ * 负责展示和编辑角色的详细信息，包括基本信息、规则选择、表演字段和数值约束
+ */
 export default function CharacterDetail({
   role,
   isEditing,
   onEdit,
   onSave,
+  rules,
 }: CharacterDetailProps) {
-  const [localRole, setLocalRole] = useState(role);
+  // 确保 role.ruleData 存在
+  const initialRole = {
+    ...role,
+    ruleData: role.ruleData || {},
+  };
 
-  useEffect(() => {
-    setLocalRole(role);
-  }, [role]);
+  const [localRole, setLocalRole] = useState(initialRole);
+  const [currentRule, setCurrentRule] = useState<GameRule | undefined>(undefined);
 
   // 接口部分
-  // 发送post数据部分
-  const { mutate: creatOrUpdateRole } = useMutation({
-    mutationKey: ["creatOrUpdateRole"],
-    mutationFn: async (data: any) => {
-      if (role.id === 0) {
-        const res = await tuanchat.roleController.createRole({});
-        console.warn(`创建角色信息`);
-        if (res.success) {
-          const roleId = res.data;
-          if (roleId) {
-            const updateRes = await tuanchat.roleController.updateRole({
-              roleId,
-              roleName: data.name,
-              description: data.description,
-            },
-            );
-            console.warn(`成功${roleId}`);
-            return { ...updateRes, roleId };
-          }
-          else {
-            console.error(`更新角色信息失败`);
-            return undefined;
-          }
-        }
-        else {
-          console.error("创建角色失败");
-        }
-      }
-      else {
+  const { mutate: updateRole } = useMutation({
+    mutationKey: ["UpdateRole"],
+    mutationFn: async (data: Role) => {
+      if (data.id !== 0) {
         const updateRes = await tuanchat.roleController.updateRole({
-          roleId: role.id,
+          roleId: data.id,
           roleName: data.name,
           description: data.description,
         });
         return updateRes;
-      }
-    },
-    onSuccess: (data) => {
-      if (data?.success) {
-        onSave(localRole);
       }
     },
     onError: (error: any) => {
@@ -78,9 +56,58 @@ export default function CharacterDetail({
       }
     },
   });
+
+  // 初始化：当角色数据或规则列表改变时设置当前规则
+  useEffect(() => {
+    // 确保 role.ruleData 存在
+    const updatedRole = {
+      ...role,
+      ruleData: role.ruleData || {},
+    };
+
+    setLocalRole(updatedRole);
+    if (updatedRole.ruleId) {
+      const foundRule = rules.find(r => r.id === updatedRole.ruleId);
+      if (foundRule) {
+        const ruleData = updatedRole.ruleData[foundRule.id] || {
+          performance: foundRule.performance,
+          numerical: foundRule.numerical,
+        };
+        setCurrentRule({
+          ...foundRule,
+          performance: ruleData.performance,
+          numerical: ruleData.numerical,
+        });
+      }
+    }
+    else if (rules.length > 0) {
+      const defaultRule = rules[0];
+      setLocalRole(prev => ({ ...prev, ruleId: defaultRule.id }));
+      setCurrentRule(defaultRule);
+    }
+  }, [role, rules]);
+
+  // 保存时，将当前规则数据合并到 localRole.ruleData 中
   const handleSave = () => {
-    onSave(localRole);
-    creatOrUpdateRole(localRole);
+    let updatedRole = localRole;
+    if (localRole.ruleId && currentRule) {
+      updatedRole = {
+        ...localRole,
+        ruleData: {
+          ...localRole.ruleData,
+          [localRole.ruleId]: {
+            performance: currentRule.performance,
+            numerical: currentRule.numerical,
+          },
+        },
+      };
+    }
+
+    // 调用API更新角色信息
+    updateRole(updatedRole);
+    // 调用父组件的保存回调
+    onSave(updatedRole);
+    updateRole(localRole);
   };
 
   const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -88,6 +115,41 @@ export default function CharacterDetail({
     if (file) {
       const previewUrl = URL.createObjectURL(file);
       setLocalRole(prev => ({ ...prev, avatar: previewUrl }));
+    }
+  };
+
+  // 处理规则切换
+  const handleRuleChange = (newRuleId: string) => {
+    if (localRole.ruleId && currentRule) {
+      setLocalRole(prev => ({
+        ...prev,
+        ruleData: {
+          ...prev.ruleData,
+          [prev.ruleId]: {
+            performance: currentRule.performance,
+            numerical: currentRule.numerical,
+          },
+        },
+      }));
+    }
+
+    const newRule = rules.find(r => r.id === newRuleId);
+    if (newRule) {
+      const storedData = localRole.ruleData?.[newRuleId] || {
+        performance: newRule.performance,
+        numerical: newRule.numerical,
+      };
+
+      setLocalRole(prev => ({
+        ...prev,
+        ruleId: newRuleId,
+      }));
+
+      setCurrentRule({
+        ...newRule,
+        performance: storedData.performance,
+        numerical: storedData.numerical,
+      });
     }
   };
 
@@ -121,16 +183,18 @@ export default function CharacterDetail({
                         />
                         <textarea
                           value={localRole.description}
-                          onChange={e => setLocalRole(prev => ({ ...prev, description: e.target.value }))}
+                          onChange={e =>
+                            setLocalRole(prev => ({ ...prev, description: e.target.value }))}
                           placeholder="角色描述"
                           className="textarea textarea-bordered w-full h-24 resize-none"
                         />
-
                       </>
                     )
                   : (
                       <>
-                        <h2 className="card-title text-2xl">{localRole.name || "未命名角色"}</h2>
+                        <h2 className="card-title text-2xl">
+                          {localRole.name || "未命名角色"}
+                        </h2>
                         <p>
                           角色ID号：
                           {localRole.id}
@@ -162,50 +226,74 @@ export default function CharacterDetail({
       </div>
 
       {/* 扩展模块 */}
-      <InventorySection
-        items={localRole.inventory}
-        isEditing={isEditing}
-        onChange={inventory => setLocalRole(prev => ({ ...prev, inventory }))}
-      />
+      <div className="space-y-6">
+        <RulesSection
+          rules={rules}
+          currentRuleId={localRole.ruleId || ""}
+          onRuleChange={handleRuleChange}
+        />
 
-      <AbilitySection
-        role={localRole}
-        abilities={localRole.abilities}
-        isEditing={isEditing}
-        onChange={abilities => setLocalRole(prev => ({ ...prev, abilities }))}
-      />
+        {currentRule && (
+          <>
+            <Section title="表演字段配置">
+              <PerformanceEditor
+                fields={currentRule.performance}
+                onChange={performance =>
+                  setCurrentRule(prev => (prev ? { ...prev, performance } : prev))}
+                isEditing={isEditing}
+              />
+            </Section>
+
+            <Section title="数值约束配置">
+              <NumericalEditor
+                constraints={currentRule.numerical}
+                onChange={numerical =>
+                  setCurrentRule(prev => (prev ? { ...prev, numerical } : prev))}
+                isEditing={isEditing}
+              />
+            </Section>
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
-// 头像组件
-function AvatarSection({ avatar, isEditing, onChange }: {
+/**
+ * 头像组件
+ * 用于展示和上传角色头像
+ */
+function AvatarSection({
+  avatar,
+  isEditing,
+  onChange,
+}: {
   avatar?: string;
   isEditing: boolean;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
-    <div className="avatar">
-      <div className="w-24 h-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-        {avatar
-          ? (
-              <img src={avatar} alt="角色头像" className="object-cover" />
-            )
-          : (
-              <div className="bg-neutral-content flex items-center justify-center">
-                <span className="text-neutral">无头像</span>
-              </div>
-            )}
+    <div className="flex flex-col items-center gap-2">
+      <div className="avatar">
+        <div className="w-24 h-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+          {avatar
+            ? (
+                <img src={avatar} alt="角色头像" className="object-cover" />
+              )
+            : (
+                <div className="bg-neutral-content flex items-center justify-center">
+                  <span className="text-neutral">无头像</span>
+                </div>
+              )}
+        </div>
       </div>
       {isEditing && (
-        <div className="mt-2">
-          <input
-            type="file"
-            accept="image/*"
-            className="file-input file-input-xs"
-            onChange={onChange}
-          />
-        </div>
+        <input
+          type="file"
+          accept="image/*"
+          className="file-input file-input-xs w-full max-w-xs"
+          onChange={onChange}
+        />
       )}
     </div>
   );
