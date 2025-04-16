@@ -33,7 +33,7 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
   const [avatarId, setAvatarId] = useState(0);
 
   // 发送post数据部分
-  const { mutate } = useMutation({
+  const { mutate: creatOrUpdateRole } = useMutation({
     mutationKey: ["creatOrUpdateRole"],
     mutationFn: async (data: any) => {
       if (initialData === undefined) {
@@ -125,7 +125,7 @@ export default function CreatCharacter({ onSave, onCancel, initialData, userQuer
       currentIndex: avatarId,
     };
     onSave(newCharacter);
-    mutate(newCharacter);
+    creatOrUpdateRole(newCharacter);
   };
 
   // // 仅在组件挂载时调用回调，暴露 handleSubmit 给父组件使用

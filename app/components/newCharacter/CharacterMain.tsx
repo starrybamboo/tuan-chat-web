@@ -1,35 +1,80 @@
+/* eslint-disable react-dom/no-missing-button-type */
 import type { Role } from "./types";
+import { useMutation } from "@tanstack/react-query";
+import { tuanchat } from "api/instance";
+import { useGetUserRolesQuery, useRolesInitialization } from "api/queryHooks";
 // CharacterMain.tsx（原CharacterNav）
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { PopWindow } from "../common/popWindow";
+import { useGlobalContext } from "../globalContextProvider";
 import CharacterDetail from "./CharacterDetail";
 
 export default function CharacterMain() {
-  const [roles, setRoles] = useState<Role[]>([]);
+  // 获取接口
+  // 获取用户数据
+  const userId = useGlobalContext().userId;
+  const roleQuery = useGetUserRolesQuery(userId ?? -1);
+
+  const { roles, initializeRoles, setRoles } = useRolesInitialization(roleQuery);
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // 删除弹窗状态
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
+
+  useEffect(() => {
+    initializeRoles();
+  }, [initializeRoles]);
+
+  // 删除角色接口
+  const { mutate: deleteRole } = useMutation({
+    mutationKey: ["deleteRole"],
+    mutationFn: async (roleId: number[]) => {
+      const res = await tuanchat.roleController.deleteRole(roleId);
+      if (res.success) {
+        console.warn("角色删除成功");
+        return res;
+      }
+      else {
+        console.error("删除角色失败");
+        return undefined;
+      }
+    },
+    onSuccess: () => {
+      // 删除成功后重新初始化角色列表
+      initializeRoles();
+      setSelectedRoleId(null);
+      // 强制刷新roleQuery
+      roleQuery.refetch();
+    },
+    onError: (error) => {
+      console.error("Mutation failed:", error);
+    },
+  });
   // 创建新角色
   const handleCreate = () => {
     const newRole: Role = {
-      id: Date.now(),
+      id: 0,
       name: "",
       description: "",
       avatar: "",
       inventory: [],
       abilities: [],
+      avatarId: 0,
     };
     setRoles(prev => [...prev, newRole]);
     setSelectedRoleId(newRole.id);
     setIsEditing(true);
   };
 
-  // 删除角色
-  const handleDelete = (roleId: number) => {
-    setRoles(prev => prev.filter(role => role.id !== roleId));
-    if (selectedRoleId === roleId)
-      setSelectedRoleId(null);
-  };
+  // // 删除角色
+  // const handleDelete = (roleId: number) => {
+  //   setRoles(prev => prev.filter(role => role.id !== roleId));
+  //   if (selectedRoleId === roleId)
+  //     setSelectedRoleId(null);
+  // };
 
   // 保存角色
   const handleSave = (updatedRole: Role) => {
@@ -40,6 +85,35 @@ export default function CharacterMain() {
     );
     setIsEditing(false);
     setSelectedRoleId(updatedRole.id);
+  };
+
+  // 删除角色
+  const handleDelete = (id: number) => {
+    setDeleteConfirmOpen(true);
+    setDeleteCharacterId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteCharacterId !== null) {
+      const roleId = deleteCharacterId;
+      if (roleId) {
+        // 先更新本地状态
+        setRoles(roles.filter(c => c.id !== roleId));
+        setSelectedRoleId(null);
+        // 然后调用删除API
+        deleteRole([roleId]);
+      }
+      else {
+        console.error("无法获取角色ID");
+      }
+    }
+    setDeleteConfirmOpen(false);
+    setDeleteCharacterId(null);
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteConfirmOpen(false);
+    setDeleteCharacterId(null);
   };
 
   // 过滤角色列表
@@ -95,7 +169,7 @@ export default function CharacterMain() {
       </div>
 
       {/* 主内容区 */}
-      <div className="drawer-content">
+      <div className="drawer-content  bg-base-100">
         <MobileDrawerToggle />
 
         <div className="p-4">
@@ -113,6 +187,21 @@ export default function CharacterMain() {
               )}
         </div>
       </div>
+      {/* 删除确认对话框 */}
+      <PopWindow isOpen={deleteConfirmOpen} onClose={handleCancelDelete}>
+        <div className="p-4 bg-base-200">
+          <h3 className="text-lg font-bold mb-4">确认删除角色</h3>
+          <p className="mb-4">确定要删除这个角色吗？</p>
+          <div className="flex justify-end">
+            <button className="btn btn-sm btn-outline btn-error mr-2" onClick={handleCancelDelete}>
+              取消
+            </button>
+            <button className="btn btn-sm bg-primary text-white hover:bg-primary-focus" onClick={handleConfirmDelete}>
+              确认删除
+            </button>
+          </div>
+        </div>
+      </PopWindow>
     </div>
   );
 }

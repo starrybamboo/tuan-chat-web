@@ -6,6 +6,7 @@ export type Role = {
   description: string;
   inventory: InventoryItem[];
   abilities: AbilityLabel[];
+  avatarId: number;
 };
 
 export type InventoryItem = {

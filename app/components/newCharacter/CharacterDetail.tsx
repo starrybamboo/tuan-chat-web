@@ -1,6 +1,9 @@
+/* eslint-disable react-dom/no-missing-button-type */
 // CharacterDetail.tsx
 import type { ChangeEvent } from "react";
 import type { Role } from "./types";
+import { useMutation } from "@tanstack/react-query";
+import { tuanchat } from "api/instance";
 import { useEffect, useState } from "react";
 import AbilitySection from "./AbilitySection";
 import InventorySection from "./InventorySection";
@@ -25,8 +28,59 @@ export default function CharacterDetail({
     setLocalRole(role);
   }, [role]);
 
+  // 接口部分
+  // 发送post数据部分
+  const { mutate: creatOrUpdateRole } = useMutation({
+    mutationKey: ["creatOrUpdateRole"],
+    mutationFn: async (data: any) => {
+      if (role.id === 0) {
+        const res = await tuanchat.roleController.createRole({});
+        console.warn(`创建角色信息`);
+        if (res.success) {
+          const roleId = res.data;
+          if (roleId) {
+            const updateRes = await tuanchat.roleController.updateRole({
+              roleId,
+              roleName: data.name,
+              description: data.description,
+            },
+            );
+            console.warn(`成功${roleId}`);
+            return { ...updateRes, roleId };
+          }
+          else {
+            console.error(`更新角色信息失败`);
+            return undefined;
+          }
+        }
+        else {
+          console.error("创建角色失败");
+        }
+      }
+      else {
+        const updateRes = await tuanchat.roleController.updateRole({
+          roleId: role.id,
+          roleName: data.name,
+          description: data.description,
+        });
+        return updateRes;
+      }
+    },
+    onSuccess: (data) => {
+      if (data?.success) {
+        onSave(localRole);
+      }
+    },
+    onError: (error: any) => {
+      console.error("Mutation failed:", error);
+      if (error.response && error.response.data) {
+        console.error("Server response:", error.response.data);
+      }
+    },
+  });
   const handleSave = () => {
     onSave(localRole);
+    creatOrUpdateRole(localRole);
   };
 
   const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
