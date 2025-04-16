@@ -1,3 +1,5 @@
+import type { GroupContextType } from "@/components/chat/GroupContext";
+
 import type {
   ChatMessagePageRequest,
   ChatMessageRequest,
@@ -7,7 +9,6 @@ import type {
 import { ChatBubble } from "@/components/chat/chatBubble";
 
 import { ExpressionChooser } from "@/components/chat/ExpressionChooser";
-
 import { GroupContext } from "@/components/chat/GroupContext";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
@@ -75,6 +76,14 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(groupId);
   const members = membersQuery.data?.data ?? [];
+
+  // Context
+  const groupContext: GroupContextType = useMemo((): GroupContextType => {
+    return {
+      groupId,
+      groupMembers: members,
+    };
+  }, [groupId, members]);
 
   // Mutations
   const addMemberMutation = useAddMemberMutation();
@@ -303,7 +312,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   }
 
   return (
-    <GroupContext value={{ groupId }}>
+    <GroupContext value={groupContext}>
       <div className="flex flex-row p-6 gap-4 w-full min-w-0">
         {/* 聊天区域主体 */}
         <div className="flex-1 min-w-[480px] flex flex-col">

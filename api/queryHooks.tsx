@@ -286,13 +286,13 @@ export function useMoveMessageMutation(roomId: number) {
  * 设置用户为玩家
  * @param roomId 关联的群聊ID（用于缓存刷新）
  */
-export function useSetPlayerMutation(roomId: number) {
+export function useSetPlayerMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: AdminAddRequset) => tuanchat.groupMemberController.setPlayer(req),
         mutationKey: ['setPlayer'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['getMemberList', roomId] });
+        onSuccess: (_,variables) => {
+            queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.roomId] });
         }
     });
 }
@@ -301,13 +301,13 @@ export function useSetPlayerMutation(roomId: number) {
  * 撤销玩家身份
  * @param roomId 关联的群聊ID（用于缓存刷新）
  */
-export function useRevokePlayerMutation(roomId: number) {
+export function useRevokePlayerMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: AdminRevokeRequest) => tuanchat.groupMemberController.revokePlayer(req),
         mutationKey: ['revokePlayer'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['getMemberList', roomId] });
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.roomId] });
         }
     });
 }
@@ -539,6 +539,8 @@ export function useUpdateRoleAbilityMutation() {
         }
     })
 }
+
+
 
 // upload-utils.ts
 
@@ -787,3 +789,4 @@ export function useDeleteRole() {
     },
   });
 }
+
