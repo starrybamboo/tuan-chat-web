@@ -2,12 +2,14 @@ import type { AbilityFieldUpdateRequest } from "../../../api";
 import { useState } from "react";
 import {
   useGetRoleAbilitiesQuery,
+  useSetRoleAbilityMutation,
   useUpdateKeyFieldMutation,
   useUpdateRoleAbilityMutation,
 } from "../../../api/queryHooks";
 
 export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   const roleAbilityListQuery = useGetRoleAbilitiesQuery(roleId);
+  const roleAbilityList = roleAbilityListQuery.data?.data ?? [];
 
   const [editingField, setEditingField] = useState<{
     abilityId: number;
@@ -22,6 +24,17 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   // Mutations
   const updateAbilityMutation = useUpdateRoleAbilityMutation();
   const updateKeyFieldMutation = useUpdateKeyFieldMutation();
+  const setAbilityMutation = useSetRoleAbilityMutation();
+
+  function handleCreatAbility() {
+    setAbilityMutation.mutate({
+      ruleId: 1,
+      roleId,
+      act: {
+        default: "default",
+      },
+    });
+  }
   // 统一处理字段更新
   const handleUpdate = (abilityId: number, type: "ability" | "act", key: string, updateValue: string, isKeyField: boolean) => {
     if (isKeyField) {
@@ -92,7 +105,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
 
   return (
     <div className="flex flex-col gap-2 overflow-auto h-[70vh] w-full">
-      {roleAbilityListQuery.data?.data?.map((ability) => {
+      {roleAbilityList.map((ability) => {
         return (
           <div key={ability.abilityId} className="flex flex-col gap-1">
             <div className="collapse collapse-plus bg-base-100 border-base-300 border w-m">
@@ -164,6 +177,14 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
           </div>
         );
       })}
+      {
+        roleAbilityList.length === 0 && (
+          <div className="flex justify-center items-center flex-col gap-8">
+            <div className="text-gray-500">暂无数据</div>
+            <button className="btn" type="button" onClick={handleCreatAbility}>初始化一个能力组</button>
+          </div>
+        )
+      }
     </div>
   );
 }
