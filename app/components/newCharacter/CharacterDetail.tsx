@@ -107,6 +107,7 @@ export default function CharacterDetail({
     updateRole(updatedRole);
     // 调用父组件的保存回调
     onSave(updatedRole);
+    updateRole(localRole);
   };
 
   const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {

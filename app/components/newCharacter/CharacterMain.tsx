@@ -26,9 +26,6 @@ export default function CharacterMain({
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
-
   // 初始化角色数据
   useEffect(() => {
     initializeRoles();
@@ -57,6 +54,57 @@ export default function CharacterMain({
     },
   });
 
+  // // 创建角色接口
+  // const { mutateAsync: createRole } = useMutation({
+  //   mutationKey: ["createRole"],
+  //   mutationFn: async () => {
+  //     const res = await tuanchat.roleController.createRole({});
+  //     if (res.success) {
+  //       console.warn("角色创建成功");
+  //       return res.data;
+  //     }
+  //     else {
+  //       console.error("创建角色失败");
+  //     }
+  //   },
+  //   onError: (error) => {
+  //     console.error("Mutation failed:", error);
+  //   },
+  // });
+
+  // 删除弹窗状态
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
+
+  useEffect(() => {
+    initializeRoles();
+  }, [initializeRoles]);
+
+  // 删除角色接口
+  // const { mutate: deleteRole } = useMutation({
+  //   mutationKey: ["deleteRole"],
+  //   mutationFn: async (roleId: number[]) => {
+  //     const res = await tuanchat.roleController.deleteRole(roleId);
+  //     if (res.success) {
+  //       console.warn("角色删除成功");
+  //       return res;
+  //     }
+  //     else {
+  //       console.error("删除角色失败");
+  //       return undefined;
+  //     }
+  //   },
+  //   onSuccess: () => {
+  //     // 删除成功后重新初始化角色列表
+  //     initializeRoles();
+  //     // 强制刷新roleQuery
+  //     roleQuery.refetch();
+  //   },
+  //   onError: (error) => {
+  //     console.error("Mutation failed:", error);
+  //   },
+  // });
+
   // 创建角色接口
   const { mutateAsync: createRole } = useMutation({
     mutationKey: ["createRole"],
@@ -74,7 +122,6 @@ export default function CharacterMain({
       console.error("Mutation failed:", error);
     },
   });
-
   // 创建新角色
   const handleCreate = async () => {
     const data = await createRole();
@@ -96,6 +143,13 @@ export default function CharacterMain({
     setSelectedRoleId(newRole.id);
     setIsEditing(true);
   };
+
+  // // 删除角色
+  // const handleDelete = (roleId: number) => {
+  //   setRoles(prev => prev.filter(role => role.id !== roleId));
+  //   if (selectedRoleId === roleId)
+  //     setSelectedRoleId(null);
+  // };
 
   // 保存角色
   const handleSave = (updatedRole: Role) => {
@@ -208,7 +262,6 @@ export default function CharacterMain({
               )}
         </div>
       </div>
-
       {/* 删除确认对话框 */}
       <PopWindow isOpen={deleteConfirmOpen} onClose={handleCancelDelete}>
         <div className="p-4 bg-base-200">
