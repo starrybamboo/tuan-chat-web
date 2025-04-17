@@ -1,8 +1,8 @@
-import type { ChangeEvent } from "react";
 import type { Role } from "./types";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
+import CharacterAvatar from "./CharacterAvatar";
 import ExpansionModule from "./rules/ExpansionModule";
 import Section from "./Section";
 
@@ -25,16 +25,23 @@ export default function CharacterDetail({
   // 初始化角色数据
   const [localRole, setLocalRole] = useState<Role>(role);
 
+  useMemo(() => {
+    setLocalRole(role);
+  }, [role]);
+
   // 接口部分
+  // 发送post数据部分,保存角色数据
   const { mutate: updateRole } = useMutation({
     mutationKey: ["UpdateRole"],
-    mutationFn: async (data: Role) => {
-      if (data.id !== 0) {
-        return tuanchat.roleController.updateRole({
-          roleId: data.id,
+    mutationFn: async (data: any) => {
+      if (role.id !== 0) {
+        const updateRes = await tuanchat.roleController.updateRole({
+          roleId: role.id,
           roleName: data.name,
           description: data.description,
+          avatarId: data.avatarId,
         });
+        return updateRes;
       }
     },
     onError: (error: any) => {
@@ -44,28 +51,14 @@ export default function CharacterDetail({
       }
     },
   });
-
-  // 初始化：当角色数据或规则列表改变时设置当前规则
-  useEffect(() => {
-    const updatedRole = {
-      ...role,
-    };
-    setLocalRole(updatedRole);
-  }, [role]);
-
   const handleSave = () => {
-    // 调用API更新角色信息
-    updateRole(localRole);
-    // 调用父组件的保存回调
     onSave(localRole);
+    updateRole(localRole);
   };
 
-  const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const previewUrl = URL.createObjectURL(file);
-      setLocalRole(prev => ({ ...prev, avatar: previewUrl }));
-    }
+  // 更新url和avatarId,方便更改服务器数据
+  const handleAvatarChange = (previewUrl: string, avatarId: number) => {
+    setLocalRole(prev => ({ ...prev, avatar: previewUrl, avatarId }));
   };
 
   return (
@@ -75,9 +68,9 @@ export default function CharacterDetail({
         <div className="card-body">
           <div className="flex items-start gap-4">
             <AvatarSection
-              avatar={localRole.avatar}
               isEditing={isEditing}
               onChange={handleAvatarChange}
+              roleId={localRole.id}
             />
 
             <div className="flex-1 space-y-4">
@@ -127,12 +120,12 @@ export default function CharacterDetail({
           <div className="card-actions justify-end">
             {isEditing
               ? (
-                  <button onClick={handleSave} className="btn btn-primary">
+                  <button type="submit" onClick={handleSave} className="btn btn-primary">
                     保存
                   </button>
                 )
               : (
-                  <button onClick={onEdit} className="btn btn-ghost">
+                  <button type="button" onClick={onEdit} className="btn btn-ghost">
                     编辑
                   </button>
                 )}
@@ -152,38 +145,18 @@ export default function CharacterDetail({
  * 头像组件
  * 用于展示和上传角色头像
  */
-function AvatarSection({
-  avatar,
-  isEditing,
-  onChange,
-}: {
-  avatar?: string;
+// 头像组件
+function AvatarSection({ isEditing, onChange, roleId }: {
   isEditing: boolean;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onChange: (avatarUrl: string, avatarId: number) => void;
+  roleId?: number;
 }) {
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="avatar">
-        <div className="w-24 h-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-          {avatar
-            ? (
-                <img src={avatar} alt="角色头像" className="object-cover" />
-              )
-            : (
-                <div className="bg-neutral-content flex items-center justify-center">
-                  <span className="text-neutral">无头像</span>
-                </div>
-              )}
-        </div>
-      </div>
+    <>
       {isEditing && (
-        <input
-          type="file"
-          accept="image/*"
-          className="file-input file-input-xs w-full max-w-xs"
-          onChange={onChange}
-        />
+        // 替换input
+        <CharacterAvatar roleId={roleId || 0} onchange={onChange} />
       )}
-    </div>
+    </>
   );
 }

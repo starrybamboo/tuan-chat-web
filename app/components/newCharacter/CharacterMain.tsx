@@ -207,10 +207,10 @@ export default function CharacterMain() {
           <h3 className="text-lg font-bold mb-4">确认删除角色</h3>
           <p className="mb-4">确定要删除这个角色吗？</p>
           <div className="flex justify-end">
-            <button className="btn btn-sm btn-outline btn-error mr-2" onClick={handleCancelDelete}>
+            <button type="button" className="btn btn-sm btn-outline btn-error mr-2" onClick={handleCancelDelete}>
               取消
             </button>
-            <button className="btn btn-sm bg-primary text-white hover:bg-primary-focus" onClick={handleConfirmDelete}>
+            <button type="button" className="btn btn-sm bg-primary text-white hover:bg-primary-focus" onClick={handleConfirmDelete}>
               确认删除
             </button>
           </div>
