@@ -2,26 +2,27 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { SimpleTTSRequest } from '../models/SimpleTTSRequest';
+import type { TTSResponse } from '../models/TTSResponse';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
-export class DiceCommentControllerService {
+export class TtsControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * 测试骰子评论生成
-     * 传入骰子结果，生成相应的评论
-     * @param result 骰子结果
-     * @returns string OK
+     * 语音合成
+     * 使用hobbyistAPI将文本转换为语音，这个是第三方，免费的API，轻点！
+     * @param requestBody
+     * @returns TTSResponse 成功返回语音文件信息
      * @throws ApiError
      */
-    public testDiceComment(
-        result: string,
-    ): CancelablePromise<string> {
+    public textToVoiceHobbyist(
+        requestBody: SimpleTTSRequest,
+    ): CancelablePromise<TTSResponse> {
         return this.httpRequest.request({
-            method: 'GET',
-            url: '/ai/dice/dice-comment',
-            query: {
-                'result': result,
-            },
+            method: 'POST',
+            url: '/ai/tts/hobbyist',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

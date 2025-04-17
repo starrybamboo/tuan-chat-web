@@ -1,4 +1,4 @@
-import { terreApis } from "./services";
+import { terreApis } from "@/webGAL/index";
 
 // TODO: 换个接口
 export async function editScene(game: string, scene: string, content: string) {

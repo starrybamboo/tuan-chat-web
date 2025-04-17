@@ -7,12 +7,36 @@ import type { AdminRevokeRequest } from '../models/AdminRevokeRequest';
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
 import type { ApiResultListGroupMember } from '../models/ApiResultListGroupMember';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
+import type { GroupOwnerTransferRequest } from '../models/GroupOwnerTransferRequest';
 import type { MemberAddRequest } from '../models/MemberAddRequest';
 import type { MemberDeleteRequest } from '../models/MemberDeleteRequest';
+import type { MemberExitRequest } from '../models/MemberExitRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class GroupMemberControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
+    /**
+     * 转让群主(KP)
+     * @param requestBody
+     * @returns ApiResultBoolean OK
+     * @throws ApiError
+     */
+    public transferGroupOwner(
+        requestBody: GroupOwnerTransferRequest,
+    ): CancelablePromise<ApiResultBoolean> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/capi/group/member/transfer',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
     /**
      * 设置用户为玩家
      * @param requestBody
@@ -116,6 +140,28 @@ export class GroupMemberControllerService {
             query: {
                 'roomId': roomId,
             },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 退出群聊
+     * @param requestBody
+     * @returns ApiResultBoolean OK
+     * @throws ApiError
+     */
+    public exitMember(
+        requestBody: MemberExitRequest,
+    ): CancelablePromise<ApiResultBoolean> {
+        return this.httpRequest.request({
+            method: 'DELETE',
+            url: '/capi/group/member/exit',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

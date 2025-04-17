@@ -10,7 +10,7 @@ export default defineConfig({
     reactRouter(),
     tsconfigPaths(),
   ],
-  base: "./",
+  base: "/",
   resolve: {
     alias: [
       {

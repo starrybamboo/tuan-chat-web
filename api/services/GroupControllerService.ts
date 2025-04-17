@@ -2,14 +2,109 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ApiResultBoolean } from '../models/ApiResultBoolean';
 import type { ApiResultGroup } from '../models/ApiResultGroup';
 import type { ApiResultListGroup } from '../models/ApiResultListGroup';
+import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { GroupAddRequest } from '../models/GroupAddRequest';
+import type { GroupArchiveRequest } from '../models/GroupArchiveRequest';
+import type { GroupAvatarUpdateRequest } from '../models/GroupAvatarUpdateRequest';
+import type { GroupDescriptionUpdateRequest } from '../models/GroupDescriptionUpdateRequest';
+import type { GroupDissolveRequest } from '../models/GroupDissolveRequest';
+import type { GroupNameUpdateRequest } from '../models/GroupNameUpdateRequest';
 import type { SubRoomRequest } from '../models/SubRoomRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class GroupControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
+    /**
+     * 更新群名称
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public updateGroupName(
+        requestBody: GroupNameUpdateRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/capi/group/name',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 更新群描述
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public updateGroupDescription(
+        requestBody: GroupDescriptionUpdateRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/capi/group/description',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 更新群头像
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public updateGroupAvatar(
+        requestBody: GroupAvatarUpdateRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/capi/group/avatar',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 更新群组归档状态
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public updateGroupArchiveStatus(
+        requestBody: GroupArchiveRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/capi/group/archive',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
     /**
      * 创建子群
      * @param requestBody
@@ -86,6 +181,28 @@ export class GroupControllerService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/group/list',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 解散群组
+     * @param requestBody
+     * @returns ApiResultBoolean OK
+     * @throws ApiError
+     */
+    public dissolveGroup(
+        requestBody: GroupDissolveRequest,
+    ): CancelablePromise<ApiResultBoolean> {
+        return this.httpRequest.request({
+            method: 'DELETE',
+            url: '/capi/group/dissolve',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
