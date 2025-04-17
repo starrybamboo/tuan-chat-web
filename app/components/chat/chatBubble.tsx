@@ -117,6 +117,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
                 </div>
                 <time className="text-xs opacity-50">
                   {message.createTime ?? ""}
+                  {` ${message.position}`}
                 </time>
               </div>
             </div>

@@ -112,7 +112,7 @@ export class ChatRenderer {
       // 使用 messageID 排序，确保所有消息都有效
       const sortedMessages = messages
         .filter(msg => msg.message && msg.message.messageID != null)
-        .sort((a, b) => Number(a.message.messageID) - Number(b.message.messageID));
+        .sort((a, b) => a.message.position - b.message.position);
 
       console.log(`Processing ${sortedMessages.length} messages`); // 添加日志
 

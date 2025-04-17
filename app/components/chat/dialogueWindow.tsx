@@ -5,6 +5,7 @@ import type {
   ChatMessageRequest,
   ChatMessageResponse,
   GroupMember,
+  MoveMessageRequest,
 } from "api";
 
 import { ChatBubble } from "@/components/chat/chatBubble";
@@ -41,7 +42,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   const [inputText, setInputText] = useState("");
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(true);
-  const PAGE_SIZE = 30; // 每页消息数量
+  const PAGE_SIZE = 21; // 每页消息数量
 
   // 承载聊天记录窗口的ref
   const chatFrameRef = useRef<HTMLDivElement>(null);
@@ -100,10 +101,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   const addMemberMutation = useAddMemberMutation();
   const addRoleMutation = useAddRoleMutation();
   const moveMessageMutation = useMoveMessageMutation();
-
-  /**
-   * websocket
-   */
 
   /**
    * 获取历史消息
@@ -328,6 +325,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   const dragStartIndex = useRef(-1);
   // before代表拖拽到元素上半，after代表拖拽到元素下半
   const dropPositionRef = useRef<"before" | "after">("before");
+  const isDragging = useRef(false);
 
   const handleDragEnd = () => {
     // 重置所有元素的样式
@@ -337,8 +335,8 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   };
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.stopPropagation();
+    isDragging.current = true;
     dragStartIndex.current = index;
-
     // 设置拖动预览图像
     const parent = e.currentTarget.parentElement!;
     const clone = parent.cloneNode(true) as HTMLElement;
@@ -379,6 +377,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   };
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
+    isDragging.current = false;
     e.currentTarget.style.borderTop = "";
     e.currentTarget.style.borderBottom = "";
 
@@ -386,14 +385,15 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
     if (dragStartIndex.current === adjustedIndex)
       return;
     // 边界检查
-    const beforeMessageId = historyMessages[adjustedIndex]?.message.messageID;
-    const afterMessageId = historyMessages[adjustedIndex - 1]?.message.messageID;
+    const beforeMessageId = historyMessages[adjustedIndex]?.message.messageID ?? null;
+    const afterMessageId = historyMessages[adjustedIndex - 1]?.message.messageID ?? null;
 
-    moveMessageMutation.mutate({
+    const moveRequest: MoveMessageRequest = {
       messageId: historyMessages[dragStartIndex.current].message.messageID,
       beforeMessageId,
       afterMessageId,
-    });
+    };
+    moveMessageMutation.mutate(moveRequest);
   };
 
   return (
@@ -409,7 +409,17 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                 加载历史消息中...
               </div>
             )}
-            <div className="card-body overflow-y-auto h-[60vh]" ref={chatFrameRef}>
+            <div
+              className="card-body overflow-y-auto h-[60vh]"
+              ref={chatFrameRef}
+              onWheel={(e) => {
+              // 拖动时允许正常滚动
+                if (isDragging.current) {
+                  e.preventDefault();
+                  chatFrameRef.current!.scrollTop += e.deltaY;
+                }
+              }}
+            >
               {historyMessages.filter(chatMessageResponse => chatMessageResponse.message.content !== "")
                 .map((chatMessageResponse, index) => ((
                   <div
@@ -446,13 +456,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
               {/* 表情差分展示与选择 */}
               <div className="dropdown dropdown-top">
                 <div role="button" tabIndex={0} className="flex justify-center flex-col items-center space-y-2">
-                  <RoleAvatarComponent
-                    avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
-                    width={32}
-                    isRounded={true}
-                    withTitle={false}
-                    stopPopWindow={true}
-                  />
+                  <RoleAvatarComponent avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1} width={32} isRounded={true} withTitle={false} stopPopWindow={true} />
                   <div>{userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}</div>
                 </div>
                 {/* 表情差分选择器 */}
@@ -470,11 +474,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                 {isCommandMode() && getSuggestions().length > 0 && (
                   <div className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden">
                     {getSuggestions().map(cmd => (
-                      <div
-                        key={cmd.name}
-                        onClick={() => selectCommand(cmd.name)}
-                        className="p-2 w-full last:border-0 hover:bg-base-300 transform origin-left hover:scale-110"
-                      >
+                      <div key={cmd.name} onClick={() => selectCommand(cmd.name)} className="p-2 w-full last:border-0 hover:bg-base-300 transform origin-left hover:scale-110">
                         <span className="font-mono text-blue-600 dark:text-blue-400">
                           .
                           {cmd.name}
@@ -548,9 +548,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                     </button>
                   )
                 }
-
               </div>
-
               {members.map(member => (
                 <div key={member.userId} className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center ">
                   {/* 成员列表 */}
@@ -594,13 +592,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
               <div className="" key={role.avatarId}>
                 <div className="flex flex-col items-center">
                   <div onClick={() => handleAddRole(role.roleId ?? -1)} className="">
-                    <RoleAvatarComponent
-                      avatarId={role.avatarId ?? -1}
-                      width={24}
-                      isRounded={false}
-                      withTitle={false}
-                      stopPopWindow={true}
-                    />
+                    <RoleAvatarComponent avatarId={role.avatarId ?? -1} width={24} isRounded={false} withTitle={false} stopPopWindow={true} />
                   </div>
                   <p className="text-center block">{role.roleName}</p>
                 </div>
