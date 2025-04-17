@@ -274,16 +274,13 @@ export function useGetMsgPageQuery(requestBody: ChatMessagePageRequest) {
 
 /**
  * 移动消息位置
- * @param roomId 关联的群聊ID（用于缓存刷新）
  */
-export function useMoveMessageMutation(roomId: number) {
+export function useMoveMessageMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: MoveMessageRequest) => tuanchat.chatController.moveMessage(req),
         mutationKey: ['moveMessage'],
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['getAllMessage', roomId] });
-            queryClient.invalidateQueries({ queryKey: ['getMsgPage'] });
         }
     });
 }
