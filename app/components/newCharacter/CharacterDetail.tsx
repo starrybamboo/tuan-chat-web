@@ -1,5 +1,5 @@
 import type { ChangeEvent } from "react";
-import type { GameRule, Role } from "./types";
+import type { Role } from "./types";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useEffect, useState } from "react";
@@ -11,12 +11,11 @@ interface CharacterDetailProps {
   isEditing: boolean;
   onEdit: () => void;
   onSave: (updatedRole: Role) => void;
-  rules: GameRule[];
+  rules: any[];
 }
 
 /**
  * 角色详情组件
- * 负责展示和编辑角色的详细信息，包括基本信息、规则选择、表演字段和数值约束
  */
 export default function CharacterDetail({
   role,
@@ -25,25 +24,19 @@ export default function CharacterDetail({
   onSave,
   rules,
 }: CharacterDetailProps) {
-  // 确保 role.ruleData 存在
-  const initialRole = {
-    ...role,
-  };
-
-  const [localRole, setLocalRole] = useState(initialRole);
-  const [currentRule, setCurrentRule] = useState<GameRule | undefined>(undefined);
+  // 初始化角色数据
+  const [localRole, setLocalRole] = useState<Role>(role);
 
   // 接口部分
   const { mutate: updateRole } = useMutation({
     mutationKey: ["UpdateRole"],
     mutationFn: async (data: Role) => {
       if (data.id !== 0) {
-        const updateRes = await tuanchat.roleController.updateRole({
+        return tuanchat.roleController.updateRole({
           roleId: data.id,
           roleName: data.name,
           description: data.description,
         });
-        return updateRes;
       }
     },
     onError: (error: any) => {
@@ -56,41 +49,18 @@ export default function CharacterDetail({
 
   // 初始化：当角色数据或规则列表改变时设置当前规则
   useEffect(() => {
-    // 确保 role.ruleData 存在
     const updatedRole = {
       ...role,
     };
-
     setLocalRole(updatedRole);
-    if (updatedRole.ruleId) {
-      const foundRule = rules.find(r => r.id === updatedRole.ruleId);
-      if (foundRule) {
-        setCurrentRule({
-          ...foundRule,
-        });
-      }
-    }
-    else if (rules.length > 0) {
-      const defaultRule = rules[0];
-      setLocalRole(prev => ({ ...prev, ruleId: defaultRule.id }));
-      setCurrentRule(defaultRule);
-    }
-  }, [role, rules]);
+  }, [role]);
 
   // 保存时，将当前规则数据合并到 localRole.ruleData 中
   const handleSave = () => {
-    let updatedRole = localRole;
-    if (localRole.ruleId && currentRule) {
-      updatedRole = {
-        ...localRole,
-      };
-    }
-
     // 调用API更新角色信息
-    updateRole(updatedRole);
-    // 调用父组件的保存回调
-    onSave(updatedRole);
     updateRole(localRole);
+    // 调用父组件的保存回调
+    onSave(localRole);
   };
 
   const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -101,7 +71,6 @@ export default function CharacterDetail({
     }
   };
 
-  // 处理规则切换
   return (
     <div className="space-y-6">
       {/* 基础信息卡片 */}
