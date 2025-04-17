@@ -354,6 +354,9 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = "move";
+    if (!isDragging.current) {
+      return;
+    }
     const target = e.currentTarget;
     const rect = target.getBoundingClientRect();
     const relativeY = e.clientY - rect.top;
@@ -385,8 +388,8 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
     if (dragStartIndex.current === adjustedIndex)
       return;
     // 边界检查
-    const beforeMessageId = historyMessages[adjustedIndex]?.message.messageID ?? null;
-    const afterMessageId = historyMessages[adjustedIndex - 1]?.message.messageID ?? null;
+    const beforeMessageId = historyMessages[adjustedIndex - 1]?.message.messageID ?? null;
+    const afterMessageId = historyMessages[adjustedIndex]?.message.messageID ?? null;
 
     const moveRequest: MoveMessageRequest = {
       messageId: historyMessages[dragStartIndex.current].message.messageID,
