@@ -155,7 +155,7 @@ export class ChatRenderer {
         }
       }
       // 完成后同步渲染
-      this.renderer.asycRender();
+      this.renderer.asyncRender();
     }
     catch (error) {
       console.error("Error rendering messages:", error);

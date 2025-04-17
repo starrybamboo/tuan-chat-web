@@ -343,10 +343,9 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                 ))}
             </div>
           </div>
-
           {/* 输入区域 */}
-          <form className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm">
-            <div className="flex gap-2 relative">
+          <form className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm  ">
+            <div className="flex gap-2 relative max-h-[30vh]">
               {/* 表情差分展示与选择 */}
               <div className="dropdown dropdown-top">
                 <div role="button" tabIndex={0} className="flex justify-center flex-col items-center space-y-2">
@@ -359,7 +358,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                 </ul>
               </div>
 
-              <div className="w-full textarea">
+              <div className="w-full textarea flex-wrap overflow-auto">
                 {/* 命令建议列表 */}
                 {isCommandMode() && getSuggestions().length > 0 && (
                   <div className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden">
@@ -381,7 +380,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                 <img src={imgDownLoadUrl} alt="" />
                 {/* text input */}
                 <textarea
-                  className="textarea w-full h-20 md:h-32 lg:h-40 resize-none border-none focus:outline-none focus:ring-0"
+                  className="textarea w-full h-20 md:h-32 lg:h-40 resize-none border-none focus:outline-none focus:ring-0 "
                   rows={3}
                   placeholder="Enter your message here...(shift+enter to change line)"
                   value={inputText}

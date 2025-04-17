@@ -61,49 +61,49 @@ export async function readDir(path: string) {
   }
 }
 
-export async function uploadImage(image: Blob | string, filepath: string, filename: string) {
-  let blob: Blob;
-  if (image instanceof Blob) {
-    blob = image;
-  }
-  else {
-    const response = await fetch(image);
-    if (!response.ok)
-      throw new Error(`Failed to fetch image: ${response.statusText}`);
-    const data = await response.blob();
-    blob = new Blob([data], { type: "image/png" });
-  }
-  const file = new File([blob], filename);
-  const formData = new FormData();
-  formData.append("targetDirectory", filepath);
-  formData.append("files", file);
+// export async function uploadImage(image: Blob | string, filepath: string, filename: string) {
+//   let blob: Blob;
+//   if (image instanceof Blob) {
+//     blob = image;
+//   }
+//   else {
+//     const response = await fetch(image);
+//     if (!response.ok)
+//       throw new Error(`Failed to fetch image: ${response.statusText}`);
+//     const data = await response.blob();
+//     blob = new Blob([data], { type: "image/png" });
+//   }
+//   const file = new File([blob], filename);
+//   const formData = new FormData();
+//   formData.append("targetDirectory", filepath);
+//   formData.append("files", file);
+//
+//   const uploadResponse = await fetch(`${import.meta.env.VITE_TERRE_URL}/api/assets/upload`, {
+//     method: "POST",
+//     body: formData,
+//     // 注意：不要手动设置Content-Type头部，浏览器会自动设置正确的boundary
+//   });
+//   if (!uploadResponse.ok)
+//     throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+//   return await uploadResponse.json();
+// }
 
-  const uploadResponse = await fetch(`${import.meta.env.VITE_TERRE_URL}/api/assets/upload`, {
-    method: "POST",
-    body: formData,
-    // 注意：不要手动设置Content-Type头部，浏览器会自动设置正确的boundary
-  });
-  if (!uploadResponse.ok)
-    throw new Error(`Upload failed: ${uploadResponse.statusText}`);
-  return await uploadResponse.json();
-}
-
-export async function uploadFile(url: string, path: string): Promise<string> {
+export async function uploadFile(url: string, path: string, fileName?: string | undefined): Promise<string> {
   const response = await fetch(url);
   if (!response.ok)
     throw new Error(`Failed to fetch image: ${response.statusText}`);
   const data = await response.blob();
   const blob = new Blob([data]);
-  const fileName = url.substring(url.lastIndexOf("/") + 1);
-  const file = new File([blob], fileName);
+  // 如果未定义fileName，那就使用url中的fileName
+  const newFileName = fileName || url.substring(url.lastIndexOf("/") + 1);
+  const file = new File([blob], newFileName);
 
   const formData = new FormData();
-  // 将文件添加到FormData
-  formData.append("files", file); // 注意字段名要和后端一致
+  formData.append("files", file);
   formData.append("targetDirectory", path);
 
   await terreApis.uploadFile(formData);
-  return fileName;
+  return newFileName;
 };
 
 export async function readTextFile(game: string, path: string): Promise<string> {
@@ -121,7 +121,7 @@ export async function checkGameExist(game: string): Promise<boolean> {
   return gameList.some(item => item.name === game);
 }
 
-export function getAsycMsg(sceneName: string, lineNumber: number): IDebugMessage {
+export function getAsyncMsg(sceneName: string, lineNumber: number): IDebugMessage {
   return {
     event: "message",
     data: {

@@ -1,7 +1,7 @@
 import type { ChatMessageResponse } from "../../api";
 
 import { tuanchat } from "../../api/instance";
-import { checkGameExist, getAsycMsg, readTextFile, uploadFile, uploadImage } from "./fileOperator";
+import { checkGameExist, getAsyncMsg, readTextFile, uploadFile } from "./fileOperator";
 import { createPreview, editScene } from "./game";
 
 type Game = {
@@ -59,14 +59,14 @@ export class Renderer {
     this.rendererContext.lineNumber += 2;
   }
 
-  public asycRender(): void {
-    const msg = getAsycMsg("start.txt", this.rendererContext.lineNumber);
+  public asyncRender(): void {
+    const msg = getAsyncMsg("start.txt", this.rendererContext.lineNumber);
     this.syncSocket.send(JSON.stringify(msg));
   }
 
   public async uploadSprites(url: string, spritesName: string): Promise<void> {
     const path = `games/${this.game.name}/game/figure/`;
-    return await uploadImage(url, path, `${spritesName}.png`);
+    await uploadFile(url, path, `${spritesName}.png`);
   }
 
   private async addLineToRenderer(line: string): Promise<void> {
@@ -80,21 +80,16 @@ export class Renderer {
     await editScene(this.game.name, "start", this.rendererContext.text);
   }
 
-  private async getVocalUrl(message: ChatMessageResponse): Promise<string | undefined> {
+  // return the file name
+  public async uploadVocal(message: ChatMessageResponse): Promise<string | undefined> {
     const response = await tuanchat.ttsController.textToVoiceHobbyist({
       accessToken: "86737b862a54e0de7b32a4b1ff48cd5f",
       modelName: "鸣潮",
       speakerName: "散华",
       emotion: "中立_neutral",
       text: message.message.content,
-    },
-    );
-    return response?.downloadUrl;
-  };
-
-  // return the file name
-  public async uploadVocal(message: ChatMessageResponse): Promise<string | undefined> {
-    const vocalUrl = await this.getVocalUrl(message);
+    });
+    const vocalUrl = response?.downloadUrl;
     if (vocalUrl) {
       return await uploadFile(vocalUrl, `games/${this.game.name}/game/vocal/`);
     }
