@@ -325,27 +325,29 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   /**
    * 聊天气泡拖拽排序
    */
-  let dragStartIndex = -1;
+  const dragStartIndex = useRef(-1);
+  // before代表拖拽到元素上半，after代表拖拽到元素下半
+  const dropPositionRef = useRef<"before" | "after">("before");
+
   const handleDragEnd = () => {
     // 重置所有元素的样式
     document.querySelectorAll(".group").forEach((el) => {
       (el as HTMLElement).style.opacity = "1";
     });
   };
-  // 修改后的拖拽处理函数
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
-    e.stopPropagation(); // 阻止事件冒泡
-    dragStartIndex = index;
-
-    // 设置拖动视觉效果
-    e.currentTarget.style.opacity = "0.5";
-    e.dataTransfer.effectAllowed = "move";
+    e.stopPropagation();
+    dragStartIndex.current = index;
 
     // 设置拖动预览图像
-    const clone = e.currentTarget.cloneNode(true) as HTMLElement;
+    const parent = e.currentTarget.parentElement!;
+    const clone = parent.cloneNode(true) as HTMLElement;
+
     clone.style.width = `${e.currentTarget.offsetWidth}px`;
     clone.style.position = "fixed";
     clone.style.top = "-9999px";
+    clone.style.width = `${parent.offsetWidth}px`; // 使用父元素实际宽度
+    clone.style.opacity = "0.5";
     document.body.appendChild(clone);
     e.dataTransfer.setDragImage(clone, 0, 0);
     setTimeout(() => document.body.removeChild(clone));
@@ -354,23 +356,43 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = "move";
-    // 添加视觉反馈
     const target = e.currentTarget;
-    target.style.transform = "translateX(10px)";
-    setTimeout(() => {
-      if (target)
-        target.style.transform = "";
-    }, 200);
-  };
+    const rect = target.getBoundingClientRect();
+    const relativeY = e.clientY - rect.top;
 
+    if (relativeY < rect.height / 2) {
+      target.style.borderTop = "2px solid #292D3A";
+      target.style.borderBottom = "";
+      dropPositionRef.current = "before";
+    }
+    else {
+      target.style.borderTop = "";
+      target.style.borderBottom = "2px solid #292D3A";
+      dropPositionRef.current = "after";
+    }
+  };
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.style.borderTop = "";
+    e.currentTarget.style.borderBottom = "";
+  };
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
-    if (dragStartIndex === dragEndIndex)
+    e.currentTarget.style.borderTop = "";
+    e.currentTarget.style.borderBottom = "";
+
+    const adjustedIndex = dropPositionRef.current === "after" ? dragEndIndex + 1 : dragEndIndex;
+    if (dragStartIndex.current === adjustedIndex)
       return;
+    // 边界检查
+    const beforeMessageId = historyMessages[adjustedIndex]?.message.messageID;
+    const afterMessageId = historyMessages[adjustedIndex - 1]?.message.messageID;
+
     moveMessageMutation.mutate({
-      messageId: historyMessages[dragStartIndex].message.messageID,
-      beforeMessageId: historyMessages[dragEndIndex].message.messageID,
-      afterMessageId: historyMessages[dragEndIndex - 1].message.messageID,
+      messageId: historyMessages[dragStartIndex.current].message.messageID,
+      beforeMessageId,
+      afterMessageId,
     });
   };
 
@@ -393,29 +415,20 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                   <div
                     key={chatMessageResponse.message.messageID}
                     ref={index === 1 ? messageRef : null}
-                    draggable
-                    onDragStart={e => handleDragStart(e, index)}
+                    className="relative group  transition-opacity"
                     onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
                     onDrop={e => handleDrop(e, index)}
-                    className="relative group cursor-move transition-opacity"
                     onDragEnd={() => handleDragEnd()}
                   >
-                    <div className="absolute left-0 top-1/2 -translate-x-full -translate-y-1/2
-                      opacity-0 group-hover:opacity-100 transition-opacity
-                      text-gray-400 text-sm flex items-center gap-1 pr-2"
+                    <div
+                      className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
+                      -translate-x-full -translate-y-1/ opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2 cursor-move`}
+                      draggable
+                      onDragStart={e => handleDragStart(e, index)}
                     >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 6h16M4 12h16M4 18h16"
-                        />
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                       </svg>
                     </div>
                     <ChatBubble
@@ -423,7 +436,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                       useChatBubbleStyle={useChatBubbleStyle}
                     />
                   </div>
-
                 )
                 ))}
             </div>
