@@ -116,6 +116,9 @@ export class ChatRenderer {
 
       console.log(`Processing ${sortedMessages.length} messages`); // 添加日志
 
+      // 最多生成几段音频 仅供在tts api不足的情况下进行限制
+      let maxVocal = 2;
+
       for (const messageResponse of sortedMessages) {
         const { message } = messageResponse;
         const role = this.roleMap.get(message.roleId);
@@ -129,7 +132,14 @@ export class ChatRenderer {
         if (role && role.roleName && message.content && message.content !== "") {
           // 每80个字符分割一次
           const contentSegments = this.splitContent(processedContent);
-
+          let vocalFileName: string | undefined;
+          if (maxVocal > 0) {
+            vocalFileName = await this.renderer.uploadVocal(messageResponse);
+            maxVocal--;
+          }
+          else {
+            vocalFileName = undefined;
+          }
           // 为每个分割后的段落创建对话
           for (const segment of contentSegments) {
             await this.renderer.addDialog(
@@ -137,13 +147,13 @@ export class ChatRenderer {
               role.roleName,
               message.avatarId || 0,
               segment, // 使用分割后的段落
+              vocalFileName,
             );
           }
           // 每添加一条消息后进行短暂延时，避免消息处理过快
           await new Promise(resolve => setTimeout(resolve, 15));
         }
       }
-
       // 完成后同步渲染
       this.renderer.asycRender();
     }

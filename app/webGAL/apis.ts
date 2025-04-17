@@ -15,6 +15,7 @@ export type CreateNewFolderDto = {
 export type UploadFilesDto = {
   /** Target directory for the uploaded files */
   targetDirectory: string;
+  files: File;
 };
 
 export type DeleteFileOrDirDto = {
@@ -317,6 +318,14 @@ export class Api {
       body: data,
     });
   }
+
+  public uploadFile(data: any) {
+    return this.httpClient.request<void>({
+      path: `/api/assets/upload`,
+      method: "POST",
+      body: data,
+    });
+  };
   /**
    * @title WebGAL Terre API
    * @version 1.0

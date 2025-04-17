@@ -41,30 +41,6 @@ type GameInfo = {
   path: string;
 };
 
-// export async function saveImageFromUrl(
-//   url: string,
-//   gamename: string,
-//   filename: string,
-// ): Promise<void> {
-//   try {
-//     // 发送GET请求获取图片
-//     const response = await axios({
-//       method: "get",
-//       url,
-//       responseType: "blob", // 重要，需要设置响应类型为blob
-//     });
-//
-//     // 创建一个Blob对象
-//     const blob = new Blob([response.data], { type: "image/png" });
-//
-//     // 使用FileSaver保存图片
-//     saveAs(blob, `@/../../terre2/public/games/${gamename}/game/figure/${filename}`);
-//   }
-//   catch (error) {
-//     console.error("Error saving image:", error);
-//   }
-// }
-
 // 似乎没有用？
 export async function readDir(path: string) {
   const res = await terreApis.assetsControllerReadAssets(path);
@@ -111,6 +87,24 @@ export async function uploadImage(image: Blob | string, filepath: string, filena
     throw new Error(`Upload failed: ${uploadResponse.statusText}`);
   return await uploadResponse.json();
 }
+
+export async function uploadFile(url: string, path: string): Promise<string> {
+  const response = await fetch(url);
+  if (!response.ok)
+    throw new Error(`Failed to fetch image: ${response.statusText}`);
+  const data = await response.blob();
+  const blob = new Blob([data]);
+  const fileName = url.substring(url.lastIndexOf("/") + 1);
+  const file = new File([blob], fileName);
+
+  const formData = new FormData();
+  // 将文件添加到FormData
+  formData.append("files", file); // 注意字段名要和后端一致
+  formData.append("targetDirectory", path);
+
+  await terreApis.uploadFile(formData);
+  return fileName;
+};
 
 export async function readTextFile(game: string, path: string): Promise<string> {
   const url = `${import.meta.env.VITE_TERRE_URL}/games/${game}/game/${path}`;
