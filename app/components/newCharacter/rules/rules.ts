@@ -3,8 +3,8 @@ import type { GameRule } from "../types";
 // COC（克苏鲁的呼唤）规则
 export const cocRule: GameRule = {
   id: "rule-coc",
-  name: "COC",
-  description: "《克苏鲁的呼唤》（Call of Cthulhu，缩写：CoC），他是改编自洛夫克拉夫特作品的一部角色扮演游戏，其名来自作者的同名小说，也是以这本小说命名的第一部游戏，游戏背景即洛夫克拉夫特的克苏鲁神话。它由混沌元素于1981年发行，现已更新至第七版。",
+  name: "COC7",
+  description: "COC，即 Call of Cthulhu（《克苏鲁的呼唤》），他是改编自洛夫克拉夫特作品的一部角色扮演游戏，其名来自作者的同名小说，也是以这本小说命名的第一部游戏，游戏背景即洛夫克拉夫特的克苏鲁神话。它由混沌元素于1981年发行，现已更新至第七版。",
   // 角色基本信息
   performance: {
     性别: "性别",
