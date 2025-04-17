@@ -3,9 +3,7 @@ import type { GameRule, Role } from "./types";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useEffect, useState } from "react";
-import NumericalEditor from "./rules/NumericalEditor";
-import PerformanceEditor from "./rules/PerformanceEditor";
-import RulesSection from "./rules/RulesSection";
+import ExpansionModule from "./rules/ExpansionModule";
 import Section from "./Section";
 
 interface CharacterDetailProps {
@@ -104,22 +102,6 @@ export default function CharacterDetail({
   };
 
   // 处理规则切换
-  const handleRuleChange = (newRuleId: string) => {
-    if (localRole.ruleId && currentRule) {
-      setLocalRole(prev => ({
-        ...prev,
-      }));
-    }
-
-    const newRule = rules.find(r => r.id === newRuleId);
-    if (newRule) {
-      setLocalRole(prev => ({
-        ...prev,
-        ruleId: newRuleId,
-      }));
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* 基础信息卡片 */}
@@ -194,31 +176,7 @@ export default function CharacterDetail({
 
       {/* 扩展模块 */}
       <div className="space-y-6">
-        <RulesSection
-          rules={rules}
-          currentRuleId={localRole.ruleId || ""}
-          onRuleChange={handleRuleChange}
-        />
-
-        {currentRule && (
-          <>
-            <Section title="表演字段配置">
-              <PerformanceEditor
-                fields={currentRule.performance}
-                onChange={performance =>
-                  setCurrentRule(prev => (prev ? { ...prev, performance } : prev))}
-              />
-            </Section>
-
-            <Section title="数值约束配置">
-              <NumericalEditor
-                constraints={currentRule.numerical}
-                onChange={numerical =>
-                  setCurrentRule(prev => (prev ? { ...prev, numerical } : prev))}
-              />
-            </Section>
-          </>
-        )}
+        <ExpansionModule rules={rules} />
       </div>
     </div>
   );

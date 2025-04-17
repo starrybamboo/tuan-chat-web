@@ -10,10 +10,6 @@ interface ExpansionModuleProps {
   onRuleDataChange?: (ruleId: string, performance: any, numerical: any) => void; // 可选回调
 }
 
-/**
- * 扩展模块组件
- * 负责展示规则选择、表演字段和数值约束，完全独立于角色
- */
 export default function ExpansionModule({
   rules,
   onRuleDataChange,
