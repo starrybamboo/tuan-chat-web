@@ -4,7 +4,6 @@ import { useState } from "react";
 interface PerformanceEditorProps {
   fields: { [key: string]: string };
   onChange: (fields: { [key: string]: string }) => void;
-  isEditing: boolean;
 }
 
 /**
@@ -16,7 +15,6 @@ interface PerformanceEditorProps {
 export default function PerformanceEditor({
   fields,
   onChange,
-  isEditing,
 }: PerformanceEditorProps) {
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
@@ -108,11 +106,9 @@ export default function PerformanceEditor({
               value={fields[key] || ""}
               className="input input-bordered input-sm"
               onChange={(e) => {
-                if (isEditing) {
-                  onChange({ ...fields, [key]: e.target.value });
-                }
+                onChange({ ...fields, [key]: e.target.value });
               }}
-              readOnly={!isEditing}
+              // readOnly={!isEditing}
               placeholder="请输入"
             />
           </div>
@@ -130,11 +126,9 @@ export default function PerformanceEditor({
                 value={value}
                 className="textarea textarea-bordered w-full h-24 resize-none"
                 onChange={(e) => {
-                  if (isEditing) {
-                    onChange({ ...fields, [key]: e.target.value });
-                  }
+                  onChange({ ...fields, [key]: e.target.value });
                 }}
-                readOnly={!isEditing}
+                // readOnly={!isEditing}
               />
             </div>
           ))}
@@ -154,11 +148,9 @@ export default function PerformanceEditor({
                 value={value}
                 className="textarea textarea-bordered w-full h-24 resize-none"
                 onChange={(e) => {
-                  if (isEditing) {
-                    onChange({ ...fields, [key]: e.target.value });
-                  }
+                  onChange({ ...fields, [key]: e.target.value });
                 }}
-                readOnly={!isEditing}
+                // readOnly={!isEditing}
               />
             </div>
           ))}
@@ -175,7 +167,7 @@ export default function PerformanceEditor({
               <tr>
                 <th className="w-1/3">物品名称</th>
                 <th>物品描述</th>
-                {isEditing && <th className="w-16">操作</th>}
+                <th className="w-16">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -188,11 +180,9 @@ export default function PerformanceEditor({
                       value={item.name}
                       className="input input-bordered input-sm w-full"
                       onChange={(e) => {
-                        if (isEditing) {
-                          handleUpdateItem(index, e.target.value, item.desc);
-                        }
+                        handleUpdateItem(index, e.target.value, item.desc);
                       }}
-                      readOnly={!isEditing}
+                      // readOnly={!isEditing}
                     />
                   </td>
                   <td>
@@ -201,92 +191,84 @@ export default function PerformanceEditor({
                       value={item.desc}
                       className="input input-bordered input-sm w-full"
                       onChange={(e) => {
-                        if (isEditing) {
-                          handleUpdateItem(index, item.name, e.target.value);
-                        }
+                        handleUpdateItem(index, item.name, e.target.value);
                       }}
-                      readOnly={!isEditing}
-                    />
-                  </td>
-                  {isEditing && (
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn-error btn-xs"
-                        onClick={() => handleRemoveItem(index)}
-                      >
-                        删除
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              ))}
-
-              {isEditing && (
-                <tr>
-                  <td>
-                    <input
-                      type="text"
-                      placeholder="新物品名称"
-                      className="input input-bordered input-sm w-full"
-                      value={newItemName}
-                      onChange={e => setNewItemName(e.target.value)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="text"
-                      placeholder="物品描述"
-                      className="input input-bordered input-sm w-full"
-                      value={newItemDesc}
-                      onChange={e => setNewItemDesc(e.target.value)}
+                      // readOnly={!isEditing}
                     />
                   </td>
                   <td>
                     <button
                       type="button"
-                      className="btn btn-primary btn-xs"
-                      onClick={handleAddItem}
+                      className="btn btn-error btn-xs"
+                      onClick={() => handleRemoveItem(index)}
                     >
-                      添加
+                      删除
                     </button>
                   </td>
                 </tr>
-              )}
+              ))}
+
+              <tr>
+                <td>
+                  <input
+                    type="text"
+                    placeholder="新物品名称"
+                    className="input input-bordered input-sm w-full"
+                    value={newItemName}
+                    onChange={e => setNewItemName(e.target.value)}
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    placeholder="物品描述"
+                    className="input input-bordered input-sm w-full"
+                    value={newItemDesc}
+                    onChange={e => setNewItemDesc(e.target.value)}
+                  />
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-xs"
+                    onClick={handleAddItem}
+                  >
+                    添加
+                  </button>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
       </div>
 
       {/* 添加新字段区域 */}
-      {isEditing && (
-        <div className="border-t border-base-300 pt-4 mt-4">
-          <h3 className="font-bold mb-3">添加新字段</h3>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="字段名称"
-              className="input input-bordered input-sm flex-1"
-              value={newKey}
-              onChange={e => setNewKey(e.target.value)}
-            />
-            <input
-              type="text"
-              placeholder="值"
-              className="input input-bordered input-sm flex-1"
-              value={newValue}
-              onChange={e => setNewValue(e.target.value)}
-            />
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={handleAdd}
-            >
-              添加字段
-            </button>
-          </div>
+      <div className="border-t border-base-300 pt-4 mt-4">
+        <h3 className="font-bold mb-3">添加新字段</h3>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="字段名称"
+            className="input input-bordered input-sm flex-1"
+            value={newKey}
+            onChange={e => setNewKey(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="值"
+            className="input input-bordered input-sm flex-1"
+            value={newValue}
+            onChange={e => setNewValue(e.target.value)}
+          />
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={handleAdd}
+          >
+            添加字段
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

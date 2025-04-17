@@ -1,10 +1,10 @@
 // RulesSection.tsx
-import type { GameRule } from "./types";
+import type { GameRule } from "../types";
 
 interface RulesSectionProps {
   rules: GameRule[];
   currentRuleId: string;
-  onRuleChange: (ruleId: string) => void;
+  onRuleChange: (newRuleId: string) => void;
 }
 
 /**

@@ -7,12 +7,6 @@ export type Role = {
   ruleId: string;
   description: string;
   avatarId: number;
-  ruleData: {
-    [ruleId: string]: {
-      performance: PerformanceFields;
-      numerical: NumericalConstraints;
-    };
-  };
 };
 
 export type NumericalConstraint = {

@@ -1,4 +1,4 @@
-import type { NumericalConstraints } from "@/components/newCharacter/types";
+import type { NumericalConstraints } from "../types";
 import { useState } from "react"; // 需要实现的公式解析器
 // NumericalEditor.tsx
 import FormulaParser from "./FormulaParser";
@@ -6,7 +6,6 @@ import FormulaParser from "./FormulaParser";
 interface NumericalEditorProps {
   constraints: NumericalConstraints;
   onChange: (constraints: NumericalConstraints) => void;
-  isEditing: boolean;
 }
 
 /**
@@ -17,7 +16,6 @@ interface NumericalEditorProps {
 export default function NumericalEditor({
   constraints,
   onChange,
-  isEditing,
 }: NumericalEditorProps) {
   const [newTotal, setNewTotal] = useState("");
   const [newKey, setNewKey] = useState("");
@@ -92,34 +90,29 @@ export default function NumericalEditor({
                       value={typeof value === "string" ? value : value.toString()}
                       className="input input-bordered input-sm flex-1"
                       onChange={(e) => {
-                        if (isEditing) {
-                          const newValue = e.target.value;
-                          onChange({
-                            ...constraints,
-                            [totalKey]: {
-                              ...fields,
-                              [key]: FormulaParser.parse(newValue),
-                            },
-                          });
-                        }
+                        const newValue = e.target.value;
+                        onChange({
+                          ...constraints,
+                          [totalKey]: {
+                            ...fields,
+                            [key]: FormulaParser.parse(newValue),
+                          },
+                        });
                       }}
-                      readOnly={!isEditing}
                     />
-                    {isEditing && (
-                      <button
-                        className="btn btn-error btn-xs"
-                        onClick={() => {
-                          const newFields = { ...fields };
-                          delete newFields[key];
-                          onChange({
-                            ...constraints,
-                            [totalKey]: newFields,
-                          });
-                        }}
-                      >
-                        ✕
-                      </button>
-                    )}
+                    <button
+                      className="btn btn-error btn-xs"
+                      onClick={() => {
+                        const newFields = { ...fields };
+                        delete newFields[key];
+                        onChange({
+                          ...constraints,
+                          [totalKey]: newFields,
+                        });
+                      }}
+                    >
+                      ✕
+                    </button>
                   </div>
                 ))}
               </div>
@@ -140,87 +133,79 @@ export default function NumericalEditor({
                       value={typeof value === "string" ? value : value.toString()}
                       className="input input-bordered input-sm flex-1"
                       onChange={(e) => {
-                        if (isEditing) {
-                          const newValue = e.target.value;
-                          onChange({
-                            ...constraints,
-                            [totalKey]: {
-                              ...fields,
-                              [key]: FormulaParser.parse(newValue),
-                            },
-                          });
-                        }
+                        const newValue = e.target.value;
+                        onChange({
+                          ...constraints,
+                          [totalKey]: {
+                            ...fields,
+                            [key]: FormulaParser.parse(newValue),
+                          },
+                        });
                       }}
-                      readOnly={!isEditing}
                     />
-                    {isEditing && (
-                      <button
-                        type="button"
-                        className="btn btn-error btn-xs"
-                        onClick={() => {
-                          const newFields = { ...fields };
-                          delete newFields[key];
-                          onChange({
-                            ...constraints,
-                            [totalKey]: newFields,
-                          });
-                        }}
-                      >
-                        ✕
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      className="btn btn-error btn-xs"
+                      onClick={() => {
+                        const newFields = { ...fields };
+                        delete newFields[key];
+                        onChange({
+                          ...constraints,
+                          [totalKey]: newFields,
+                        });
+                      }}
+                    >
+                      ✕
+                    </button>
+
                   </div>
                 ))}
               </div>
             </div>
 
-            {isEditing && (
-              <div className="flex gap-2 mt-4">
-                <input
-                  type="text"
-                  placeholder="字段名称"
-                  className="input input-bordered input-sm flex-1"
-                  value={newKey}
-                  onChange={e => setNewKey(e.target.value)}
-                />
-                <input
-                  type="text"
-                  placeholder="值/公式"
-                  className="input input-bordered input-sm flex-1"
-                  value={newValue}
-                  onChange={e => setNewValue(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={() => handleAddField(totalKey)}
-                >
-                  添加字段
-                </button>
-              </div>
-            )}
+            <div className="flex gap-2 mt-4">
+              <input
+                type="text"
+                placeholder="字段名称"
+                className="input input-bordered input-sm flex-1"
+                value={newKey}
+                onChange={e => setNewKey(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="值/公式"
+                className="input input-bordered input-sm flex-1"
+                value={newValue}
+                onChange={e => setNewValue(e.target.value)}
+              />
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => handleAddField(totalKey)}
+              >
+                添加字段
+              </button>
+            </div>
           </div>
         );
       })}
 
-      {isEditing && (
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="输入总约束值（0表示动态）"
-            className="input input-bordered"
-            value={newTotal}
-            onChange={e => setNewTotal(e.target.value)}
-          />
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={handleAddGroup}
-          >
-            新增约束组
-          </button>
-        </div>
-      )}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="输入总约束值（0表示动态）"
+          className="input input-bordered"
+          value={newTotal}
+          onChange={e => setNewTotal(e.target.value)}
+        />
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={handleAddGroup}
+        >
+          新增约束组
+        </button>
+      </div>
     </div>
   );
 }

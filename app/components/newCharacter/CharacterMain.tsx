@@ -135,7 +135,6 @@ export default function CharacterMain({
       ruleId: defaultRuleId,
       description: "",
       avatar: "",
-      ruleData: {},
       avatarId: 0,
     };
 

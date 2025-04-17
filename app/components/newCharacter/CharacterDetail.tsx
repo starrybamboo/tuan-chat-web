@@ -1,11 +1,11 @@
 import type { ChangeEvent } from "react";
 import type { GameRule, Role } from "./types";
-import RulesSection from "@/components/newCharacter/rules/RulesSection";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useEffect, useState } from "react";
 import NumericalEditor from "./rules/NumericalEditor";
 import PerformanceEditor from "./rules/PerformanceEditor";
+import RulesSection from "./rules/RulesSection";
 import Section from "./Section";
 
 interface CharacterDetailProps {
@@ -30,7 +30,6 @@ export default function CharacterDetail({
   // 确保 role.ruleData 存在
   const initialRole = {
     ...role,
-    ruleData: role.ruleData || {},
   };
 
   const [localRole, setLocalRole] = useState(initialRole);
@@ -62,21 +61,14 @@ export default function CharacterDetail({
     // 确保 role.ruleData 存在
     const updatedRole = {
       ...role,
-      ruleData: role.ruleData || {},
     };
 
     setLocalRole(updatedRole);
     if (updatedRole.ruleId) {
       const foundRule = rules.find(r => r.id === updatedRole.ruleId);
       if (foundRule) {
-        const ruleData = updatedRole.ruleData[foundRule.id] || {
-          performance: foundRule.performance,
-          numerical: foundRule.numerical,
-        };
         setCurrentRule({
           ...foundRule,
-          performance: ruleData.performance,
-          numerical: ruleData.numerical,
         });
       }
     }
@@ -93,13 +85,6 @@ export default function CharacterDetail({
     if (localRole.ruleId && currentRule) {
       updatedRole = {
         ...localRole,
-        ruleData: {
-          ...localRole.ruleData,
-          [localRole.ruleId]: {
-            performance: currentRule.performance,
-            numerical: currentRule.numerical,
-          },
-        },
       };
     }
 
@@ -123,33 +108,15 @@ export default function CharacterDetail({
     if (localRole.ruleId && currentRule) {
       setLocalRole(prev => ({
         ...prev,
-        ruleData: {
-          ...prev.ruleData,
-          [prev.ruleId]: {
-            performance: currentRule.performance,
-            numerical: currentRule.numerical,
-          },
-        },
       }));
     }
 
     const newRule = rules.find(r => r.id === newRuleId);
     if (newRule) {
-      const storedData = localRole.ruleData?.[newRuleId] || {
-        performance: newRule.performance,
-        numerical: newRule.numerical,
-      };
-
       setLocalRole(prev => ({
         ...prev,
         ruleId: newRuleId,
       }));
-
-      setCurrentRule({
-        ...newRule,
-        performance: storedData.performance,
-        numerical: storedData.numerical,
-      });
     }
   };
 
@@ -240,7 +207,6 @@ export default function CharacterDetail({
                 fields={currentRule.performance}
                 onChange={performance =>
                   setCurrentRule(prev => (prev ? { ...prev, performance } : prev))}
-                isEditing={isEditing}
               />
             </Section>
 
@@ -249,7 +215,6 @@ export default function CharacterDetail({
                 constraints={currentRule.numerical}
                 onChange={numerical =>
                   setCurrentRule(prev => (prev ? { ...prev, numerical } : prev))}
-                isEditing={isEditing}
               />
             </Section>
           </>

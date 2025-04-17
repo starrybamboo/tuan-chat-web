@@ -16,6 +16,5 @@ export default [
     route("module", "routes/module.tsx"),
     route("chat", "routes/chat.tsx"),
     route("community", "routes/community.tsx"),
-    route("test", "components/newCharacter/CharacterAvatar.tsx"),
   ]),
 ] satisfies RouteConfig;
