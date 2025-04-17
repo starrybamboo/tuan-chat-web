@@ -50,9 +50,11 @@ export default function App() {
   return (
     <GlobalContextProvider>
       <QueryClientProvider client={queryClient}>
-        {/* <Topbar></Topbar> */}
-        <Outlet />
-        <ReactQueryDevtools initialIsOpen={false} />
+        <main>
+          {/* <Topbar></Topbar> */}
+          <Outlet />
+        </main>
+        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
       </QueryClientProvider>
     </GlobalContextProvider>
   );

@@ -11,9 +11,9 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function DashBoard() {
   return (
-    <div>
+    <>
       <Topbar></Topbar>
       <Outlet></Outlet>
-    </div>
+    </>
   );
 }
