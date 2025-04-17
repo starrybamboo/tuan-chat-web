@@ -2,12 +2,12 @@ import type { Route } from "./+types/home";
 
 export function meta(_args: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
+    { title: "tuan-chat" },
     { name: "description", content: "Welcome to React Router!" },
   ];
 }
 
-export default function Home() {
+export default function Community() {
   return (
     <div className="h-screen">
       <p>community</p>

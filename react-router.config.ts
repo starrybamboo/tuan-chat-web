@@ -1,9 +1,10 @@
-/* eslint-disable unicorn/filename-case */
-// eslint会对react-router的路由文件报错，在这个文件内禁用
 import type { Config } from "@react-router/dev/config";
+// 他妈的不要命名成reactRouter！！！！！！！！！！！！！！！！！！！ 会失效
 
 export default {
   // Config options...
   // Server-side render by default, to enable SPA mode set this to `false`
-  ssr: false, // 应用使用SPA模式
+  ssr: false,
+  prerender: ["/", "/chat", "/community", "/create", "/feed", "/module", "/profile", "/role"],
+  // prerender: true,
 } satisfies Config;

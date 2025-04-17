@@ -41,9 +41,10 @@ interface ImgUploaderWithCopperProps {
   setCopperedDownloadUrl: (newUrl: string) => void;
   children: React.ReactNode;
   fileName: string;
+  mutate?: (data: any) => void;
 }
 
-export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName }: ImgUploaderWithCopperProps) {
+export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName, mutate }: ImgUploaderWithCopperProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadUtils = new UploadUtils(2);
   // 控制弹窗的显示与隐藏
@@ -56,6 +57,8 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
 
   const imgFile = useRef<File>(null);
+
+  const [isSubmiting, setIsSubmiting] = useState(false);
 
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
@@ -102,6 +105,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
   }
 
   async function handleSubmit() {
+    setIsSubmiting(true);
     if (!imgFile.current) {
       return;
     }
@@ -122,10 +126,16 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
       const copperedImgFile = await getCopperedImg();
       const copperedDownloadUrl = await uploadUtils.upload(copperedImgFile);
       setCopperedDownloadUrl(copperedDownloadUrl);
-      setIsOpen(false);
+      if (mutate !== undefined) {
+        mutate({ avatarUrl: copperedDownloadUrl, spriteUrl: downloadUrl });
+      }
     }
     catch (error) {
       console.error("上传失败:", error);
+    }
+    finally {
+      setIsSubmiting(false);
+      setIsOpen(false);
     }
   }
 
@@ -224,7 +234,14 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
                   className="w-full h-full"
                 />
               </div>
-              <button className="btn btn-dash" onClick={handleSubmit} type="button">完成</button>
+              {
+                isSubmiting
+                  ? (
+                      <button className="btn loading" disabled={true} type="button"></button>
+                    )
+                  : <button className="btn btn-dash" onClick={handleSubmit} type="button">完成</button>
+              }
+
             </div>
           )}
         </div>

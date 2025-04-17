@@ -1,6 +1,7 @@
 import DialogueWindow from "@/components/chat/dialogueWindow";
 import { useCreateGroupMutation, useCreateSubgroupMutation, useGetUserGroupsQuery, useGetUserInfoQuery } from "api/queryHooks";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useWebSocket } from "../../../api/useWebSocket";
 import { PopWindow } from "../common/popWindow";
 import { UserDetail } from "../common/userDetail";
 
@@ -10,17 +11,17 @@ export default function GroupSelect() {
   // 当前选中的子群ID
   const [activeSubGroupId, setActiveSubGroupId] = useState<number | null>(null);
   // 获取用户群组列表
-  const { data } = useGetUserGroupsQuery();
-  const UserGroups = data?.data ?? [];
+  const userGroupsQuery = useGetUserGroupsQuery();
+  const userGroups = userGroupsQuery.data?.data ?? [];
   // 分离子群和父群
-  const groups = UserGroups.filter(group => group.parentGroupId === group.roomId);
-  const subGroups = UserGroups;
+  const groups = userGroups.filter(group => group.parentGroupId === 0);
+  const subGroups = userGroups.filter(group => group.parentGroupId !== 0);
   // 创建群组
   const createGroupMutation = useCreateGroupMutation();
   // 当前要创建子群的父群ID
   const [currentParentGroupId, setCurrentParentGroupId] = useState<number | null>(null);
   // 创建子群
-  const createSubGroupMutation = useCreateSubgroupMutation(currentParentGroupId || 0);
+  const createSubGroupMutation = useCreateSubgroupMutation(currentParentGroupId || -1);
   // 创建群组弹窗是否打开
   const [isGroupHandleOpen, setIsGroupHandleOpen] = useState(false);
   // 创建子群弹窗是否打开
@@ -28,6 +29,12 @@ export default function GroupSelect() {
   // 处理邀请用户uid
   const [inputUserId, setInputUserId] = useState<number>(-1);
   const inputUserInfo = useGetUserInfoQuery(inputUserId).data?.data;
+
+  // websocket封装, 用于发送接受消息
+  const { send, connect, getNewMessagesByRoomId } = useWebSocket();
+  useEffect(() => {
+    connect();
+  }, [connect]);
 
   // 创建群组
   async function createGroup(userId: number) {
@@ -46,6 +53,13 @@ export default function GroupSelect() {
       parentRoomId: parentGroupId,
       userIdList: [userId],
     }, {
+      onSuccess: (data) => {
+        const newSubGroupId = data.data?.roomId;
+        if (newSubGroupId) {
+          setActiveSubGroupId(newSubGroupId);
+        }
+        setIsSubGroupHandleOpen(false);
+      },
       onSettled: () => {
         setIsSubGroupHandleOpen(false);
       },
@@ -55,15 +69,16 @@ export default function GroupSelect() {
   return (
     <div className="flex flex-row bg-base-100">
       {/* 一级群组列表 */}
-      <div className="flex flex-col gap-2 p-2 bg-base-200">
+      <div className="menu flex flex-col gap-2 p-3 bg-base-300">
         {groups.map(group => (
           <button
             key={group.roomId}
-            className="btn btn-square"
+            className="tooltip tooltip-right w-10"
+            data-tip={group.name}
             type="button"
             onClick={() => setOpenGroup(group.roomId)}
           >
-            <div className="avatar mask mask-squircle w-16">
+            <div className="avatar mask mask-squircle">
               <img
                 src={group.avatar}
                 alt={group.name}
@@ -72,12 +87,16 @@ export default function GroupSelect() {
           </button>
         ))}
         <button
-          className="btn btn-square btn-dash btn-info"
+          className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10"
           type="button"
+          data-tip="添加群组"
           onClick={() => setIsGroupHandleOpen(true)}
         >
-          <div className="avatar mask mask-squircle w-8 flex justify-center items-center">
-            <span className="text-xl">+</span>
+          <div className="avatar mask mask-squircle flex content-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
           </div>
         </button>
       </div>
@@ -86,7 +105,9 @@ export default function GroupSelect() {
         {groups.map(group => (
           <React.Fragment key={group.roomId}>
             {openGroup === group.roomId && (
-              subGroups.filter(subGroup => subGroup.parentGroupId === group.roomId)
+              subGroups
+              // TODO 现在的情况下，被拉进入的群不能被显示，所以我注释掉了
+                // .filter(subGroup => subGroup.parentGroupId === group.roomId)
                 .map(subGroup => (
                   <button
                     key={subGroup.roomId}
@@ -122,7 +143,10 @@ export default function GroupSelect() {
         )}
       </div>
       {/* 对话窗口 */}
-      <DialogueWindow groupId={activeSubGroupId ?? 1} key={activeSubGroupId ?? 1} />
+      {
+        activeSubGroupId
+        && <DialogueWindow groupId={activeSubGroupId} key={activeSubGroupId} send={send} getNewMessagesByRoomId={getNewMessagesByRoomId} />
+      }
       {/* 创建群组弹出窗口 */}
       <PopWindow isOpen={isGroupHandleOpen} onClose={() => setIsGroupHandleOpen(false)}>
         <div className="w-full p-4">

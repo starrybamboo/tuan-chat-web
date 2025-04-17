@@ -57,13 +57,150 @@
     {
       "name": "AvatarController",
       "description": "头像相关接口"
-    },
-    {
-      "name": "角色能力相关接口",
-      "description": "角色能力相关接口"
     }
   ],
   "paths": {
+    "/capi/user/info": {
+      "get": {
+        "tags": [
+          "UserController"
+        ],
+        "summary": "获取用户信息",
+        "operationId": "getUserInfo",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultUserInfoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "UserController"
+        ],
+        "summary": "修改用户信息",
+        "operationId": "updateUserInfo",
+        "parameters": [
+          {
+            "name": "userInfoResponse",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserInfoResponse"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultUserInfoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/rule/update": {
       "put": {
         "tags": [
@@ -495,7 +632,7 @@
           "AbilityController"
         ],
         "summary": "更新能力",
-        "description": "更新指定角色的能力信息，act和ability字段不能为null或者空json",
+        "description": "更新指定角色的能力信息，act和ability字段不能同时为null或者空json",
         "operationId": "updateRoleAbility",
         "requestBody": {
           "content": {
@@ -565,7 +702,7 @@
           "AbilityController"
         ],
         "summary": "创建能力",
-        "description": "创建指定角色在指定规则下的能力信息，返回创建的能力ID，act和ability字段不能为null或者空json",
+        "description": "创建指定角色在指定规则下的能力信息，返回创建的能力ID，act和ability字段不能同时为null或者空json",
         "operationId": "setRoleAbility",
         "requestBody": {
           "content": {
@@ -654,6 +791,220 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/role/ability/field": {
+      "put": {
+        "tags": [
+          "AbilityController"
+        ],
+        "summary": "更新能力字段",
+        "description": "更改能力字段或删除字段",
+        "operationId": "updateRoleAbilityField",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AbilityFieldUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/group/name": {
+      "put": {
+        "tags": [
+          "GroupController"
+        ],
+        "summary": "更新群名称",
+        "operationId": "updateGroupName",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupNameUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/group/member/transfer": {
+      "put": {
+        "tags": [
+          "GroupMemberController"
+        ],
+        "summary": "转让群主(KP)",
+        "operationId": "transferGroupOwner",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupOwnerTransferRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultBoolean"
                 }
               }
             }
@@ -794,6 +1145,219 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultBoolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/group/description": {
+      "put": {
+        "tags": [
+          "GroupController"
+        ],
+        "summary": "更新群描述",
+        "operationId": "updateGroupDescription",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupDescriptionUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/group/avatar": {
+      "put": {
+        "tags": [
+          "GroupController"
+        ],
+        "summary": "更新群头像",
+        "operationId": "updateGroupAvatar",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupAvatarUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/group/archive": {
+      "put": {
+        "tags": [
+          "GroupController"
+        ],
+        "summary": "更新群组归档状态",
+        "operationId": "updateGroupArchiveStatus",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupArchiveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
                 }
               }
             }
@@ -991,16 +1555,16 @@
         "summary": "移动消息位置",
         "description": "根据beforeMessageId和afterMessageId自动判断移动类型：当都为null时返回错误，一个为null时分别对应移动到顶部或底部，都有值时表示移动到两者之间",
         "operationId": "moveMessage",
-        "parameters": [
-          {
-            "name": "request",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/MoveMessageRequest"
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveMessageRequest"
+              }
             }
-          }
-        ],
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -2272,7 +2836,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AI生成请求"
+                "$ref": "#/components/schemas/RoleGenerationRequest"
               }
             }
           },
@@ -2344,7 +2908,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AI生成请求"
+                "$ref": "#/components/schemas/RoleGenerationRequest"
               }
             }
           },
@@ -2357,6 +2921,78 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultMapObjectObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/tts/hobbyist": {
+      "post": {
+        "tags": [
+          "tts-controller"
+        ],
+        "summary": "语音合成",
+        "description": "使用hobbyistAPI将文本转换为语音，这个是第三方，免费的API，轻点！",
+        "operationId": "textToVoiceHobbyist",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimpleTTSRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "成功返回语音文件信息",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TTSResponse"
                 }
               }
             }
@@ -2501,79 +3137,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/user/info": {
-      "get": {
-        "tags": [
-          "UserController"
-        ],
-        "summary": "获取用户信息",
-        "description": "用户登录接口",
-        "operationId": "getUserInfo",
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultUserInfoResponse"
                 }
               }
             }
@@ -3537,7 +4100,7 @@
         }
       }
     },
-    "/api/test/dice-comment": {
+    "/ai/dice/dice-comment": {
       "get": {
         "tags": [
           "DiceCommentController"
@@ -3684,36 +4247,152 @@
           }
         }
       }
+    },
+    "/capi/group/member/exit": {
+      "delete": {
+        "tags": [
+          "GroupMemberController"
+        ],
+        "summary": "退出群聊",
+        "operationId": "exitMember",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberExitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultBoolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/group/dissolve": {
+      "delete": {
+        "tags": [
+          "GroupController"
+        ],
+        "summary": "解散群组",
+        "operationId": "dissolveGroup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupDissolveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultBoolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
-      "ApiResultVoid": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "object",
-            "description": "返回对象"
-          }
-        },
-        "description": "基础返回体"
-      },
       "ApiResult": {
         "required": [
           "success"
@@ -3762,6 +4441,87 @@
           "data": {
             "type": "object",
             "description": "返回对象"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ApiResultVoid": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "object",
+            "description": "返回对象"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "UserInfoResponse": {
+        "required": [
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "用户的uid，全局唯一",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "头像的url"
+          },
+          "activeStatus": {
+            "type": "string",
+            "description": "1 在线 2离线",
+            "format": "byte"
+          },
+          "lastLoginTime": {
+            "type": "string",
+            "description": "最后一次上下线时间",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResultUserInfoResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserInfoResponse"
           }
         },
         "description": "基础返回体"
@@ -3836,9 +4596,7 @@
       },
       "AbilityUpdateRequest": {
         "required": [
-          "ability",
-          "abilityId",
-          "act"
+          "abilityId"
         ],
         "type": "object",
         "properties": {
@@ -3882,8 +4640,66 @@
         },
         "description": "能力更新请求"
       },
-      "AdminAddRequset": {
+      "AbilityFieldUpdateRequest": {
         "required": [
+          "abilityId"
+        ],
+        "type": "object",
+        "properties": {
+          "abilityId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "actFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "新key为null代表删除",
+              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
+            },
+            "description": "新key为null代表删除",
+            "example": {
+              "旧key": "新key",
+              "旧key2": "新key2"
+            }
+          },
+          "abilityFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "新key为null代表删除",
+              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
+            },
+            "description": "新key为null代表删除",
+            "example": {
+              "旧key": "新key",
+              "旧key2": "新key2"
+            }
+          }
+        },
+        "description": "能力字段更新请求"
+      },
+      "GroupNameUpdateRequest": {
+        "required": [
+          "name",
+          "roomId"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "群组 id",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "description": "群组名称"
+          }
+        }
+      },
+      "GroupOwnerTransferRequest": {
+        "required": [
+          "memberType",
           "roomId",
           "uidList"
         ],
@@ -3904,6 +4720,11 @@
               "description": "需要添加管理的列表",
               "format": "int64"
             }
+          },
+          "memberType": {
+            "type": "integer",
+            "description": "转让后原群主的成员类型：1-观战(OB), 2-玩家(PL)",
+            "format": "int32"
           }
         }
       },
@@ -3932,6 +4753,85 @@
           }
         },
         "description": "基础返回体"
+      },
+      "AdminAddRequset": {
+        "required": [
+          "roomId",
+          "uidList"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "房间号",
+            "format": "int64"
+          },
+          "uidList": {
+            "maxItems": 3,
+            "minItems": 1,
+            "type": "array",
+            "description": "需要添加管理的列表",
+            "items": {
+              "type": "integer",
+              "description": "需要添加管理的列表",
+              "format": "int64"
+            }
+          }
+        }
+      },
+      "GroupDescriptionUpdateRequest": {
+        "required": [
+          "description",
+          "roomId"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "群组 id",
+            "format": "int64"
+          },
+          "description": {
+            "type": "string",
+            "description": "群描述"
+          }
+        }
+      },
+      "GroupAvatarUpdateRequest": {
+        "required": [
+          "avatar",
+          "roomId"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "群组 id",
+            "format": "int64"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "群组头像"
+          }
+        }
+      },
+      "GroupArchiveRequest": {
+        "required": [
+          "archived",
+          "roomId"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "群组 id",
+            "format": "int64"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "是否归档 true归档 false取消归档"
+          }
+        }
       },
       "Message": {
         "required": [
@@ -4363,8 +5263,6 @@
       },
       "AbilitySetRequest": {
         "required": [
-          "ability",
-          "act",
           "roleId",
           "ruleId"
         ],
@@ -4567,7 +5465,7 @@
             "format": "int64"
           }
         },
-        "description": "返回对象"
+        "description": "群组"
       },
       "AddRoleRequest": {
         "required": [
@@ -4824,19 +5722,26 @@
         },
         "description": "创建角色头像的请求"
       },
-      "AI生成请求": {
+      "RoleGenerationRequest": {
+        "required": [
+          "prompt",
+          "ruleId"
+        ],
         "type": "object",
         "properties": {
           "prompt": {
             "type": "string",
-            "description": "用户提示词和上下文"
+            "description": "用户提示词和上下文",
+            "example": "一个活泼开朗的女高中生角色"
           },
           "ruleId": {
             "type": "integer",
-            "description": "规则id",
-            "format": "int64"
+            "description": "规则模板ID",
+            "format": "int64",
+            "example": 1
           }
-        }
+        },
+        "description": "AI角色生成请求"
       },
       "ApiResultMapObjectObject": {
         "required": [
@@ -4868,7 +5773,64 @@
         },
         "description": "基础返回体"
       },
+      "SimpleTTSRequest": {
+        "required": [
+          "accessToken",
+          "modelName",
+          "speakerName",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "访问令牌"
+          },
+          "modelName": {
+            "type": "string",
+            "description": "模型名称",
+            "example": "鸣潮"
+          },
+          "speakerName": {
+            "type": "string",
+            "description": "说话人名称",
+            "example": "散华"
+          },
+          "emotion": {
+            "type": "string",
+            "description": "情感类型",
+            "example": "中立_neutral",
+            "default": "中立_neutral"
+          },
+          "text": {
+            "type": "string",
+            "description": "待合成的文本内容",
+            "example": "你好，这是一段测试文本。"
+          }
+        },
+        "description": "鸣潮语音合成API简化请求参数"
+      },
+      "TTSResponse": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "description": "生成的音频文件名",
+            "example": "audio_1234567890.wav"
+          },
+          "downloadUrl": {
+            "type": "string",
+            "description": "音频文件的下载地址"
+          }
+        },
+        "description": "文本转语音响应"
+      },
       "TextToImageRequest": {
+        "required": [
+          "appearance",
+          "emotionType",
+          "style"
+        ],
         "type": "object",
         "properties": {
           "style": {
@@ -4884,81 +5846,40 @@
           "emotionType": {
             "type": "string",
             "description": "情感差分类型",
-            "example": "开朗/满足/沉思/悲伤/调皮/哭泣/愤怒/嫉妒"
+            "example": "开朗"
           }
         },
         "description": "文本生成图像请求"
       },
       "ImageToImageRequest": {
+        "required": [
+          "emotionType",
+          "imageBase64"
+        ],
         "type": "object",
         "properties": {
           "imageBase64": {
             "type": "string",
-            "description": "原始图片的Base64编码"
+            "description": "原始图片的Base64编码",
+            "example": "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
           },
           "emotionType": {
             "type": "string",
             "description": "情感差分类型",
-            "example": "开朗/满足/沉思/悲伤/调皮/哭泣/愤怒/嫉妒等"
+            "example": "开朗",
+            "enum": [
+              "开朗",
+              "满足",
+              "沉思",
+              "悲伤",
+              "调皮",
+              "哭泣",
+              "愤怒",
+              "嫉妒"
+            ]
           }
         },
-        "description": "图像变换请求"
-      },
-      "ApiResultUserInfoResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/UserInfoResponse"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "UserInfoResponse": {
-        "required": [
-          "userId"
-        ],
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "integer",
-            "description": "用户的uid，全局唯一",
-            "format": "int64"
-          },
-          "username": {
-            "type": "string"
-          },
-          "avatar": {
-            "type": "string",
-            "description": "头像的url"
-          },
-          "activeStatus": {
-            "type": "string",
-            "description": "1 在线 2离线",
-            "format": "byte"
-          },
-          "lastLoginTime": {
-            "type": "string",
-            "description": "最后一次上下线时间",
-            "format": "date-time"
-          }
-        },
-        "description": "返回对象"
+        "description": "图像变换请求（还没实现！）"
       },
       "RulePageRequest": {
         "required": [
@@ -5684,6 +6605,19 @@
           }
         }
       },
+      "MemberExitRequest": {
+        "required": [
+          "roomId"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "会话id",
+            "format": "int64"
+          }
+        }
+      },
       "MemberDeleteRequest": {
         "required": [
           "roomId",
@@ -5704,6 +6638,19 @@
               "description": "删除的用户id",
               "format": "int64"
             }
+          }
+        }
+      },
+      "GroupDissolveRequest": {
+        "required": [
+          "roomId"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "要解散的房间号",
+            "format": "int64"
           }
         }
       }

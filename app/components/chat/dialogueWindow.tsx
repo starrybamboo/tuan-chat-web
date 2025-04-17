@@ -1,15 +1,19 @@
+import type { GroupContextType } from "@/components/chat/GroupContext";
+
 import type {
   ChatMessagePageRequest,
   ChatMessageRequest,
   ChatMessageResponse,
+  GroupMember,
+  MoveMessageRequest,
 } from "api";
 
 import { ChatBubble } from "@/components/chat/chatBubble";
 
 import { ExpressionChooser } from "@/components/chat/ExpressionChooser";
-
 import { GroupContext } from "@/components/chat/GroupContext";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
+import RoleChooser from "@/components/chat/RoleChooser";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
@@ -18,6 +22,7 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { commands } from "@/utils/commands";
+import { ChatRenderer } from "@/webGAL/chatRenderer";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { tuanchat } from "api/instance";
@@ -30,10 +35,10 @@ import {
   useGetRoleAvatarsQuery,
   useGetUserInfoQuery,
   useGetUserRolesQuery,
+  useMoveMessageMutation,
 } from "../../../api/queryHooks";
-import { useWebSocket } from "../../../api/useWebSocket";
 
-export function DialogueWindow({ groupId }: { groupId: number }) {
+export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { groupId: number; send: (message: ChatMessageRequest) => void; getNewMessagesByRoomId: (groupId: number) => ChatMessageResponse[] }) {
   const [inputText, setInputText] = useState("");
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(true);
@@ -59,7 +64,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const inputUserInfo = useGetUserInfoQuery(inputUserId).data?.data;
 
   // 获取用户的所有角色
-  const userRolesQuery = useGetUserRolesQuery(userId ?? 10001);
+  const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
   // 获取当前群聊中的所有角色
   const groupRolesQuery = useGetGroupRoleQuery(groupId);
@@ -74,20 +79,29 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const roleAvatars = roleAvatarQuery.data?.data ?? [];
   // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(groupId);
-  const members = membersQuery.data?.data ?? [];
+  const members: GroupMember[] = useMemo(() => {
+    return membersQuery.data?.data ?? [];
+  }, [membersQuery.data?.data]);
+  // 全局登录用户对应的member
+  const curMember = useMemo(() => {
+    return members.find(member => member.userId === userId);
+  }, [members, userId]);
+
+  // Context
+  const groupContext: GroupContextType = useMemo((): GroupContextType => {
+    return {
+      groupId,
+      groupMembers: members,
+      curMember,
+      groupRolesThatUserOwn,
+    };
+  }, [curMember, groupId, groupRolesThatUserOwn, members]);
 
   // Mutations
   const addMemberMutation = useAddMemberMutation();
   const addRoleMutation = useAddRoleMutation();
+  const moveMessageMutation = useMoveMessageMutation();
 
-  /**
-   * websocket
-   */
-  // websocket封装, 用于发送接受消息
-  const { send, connect, getNewMessagesByRoomId } = useWebSocket();
-  useEffect(() => {
-    connect();
-  }, [connect]);
   /**
    * 获取历史消息
    */
@@ -126,10 +140,25 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     );
 
     return Array.from(messageMap.values()).sort((a, b) =>
-      new Date(a.message.createTime ?? 0).getTime()
-        - new Date(b.message.createTime ?? 0).getTime(),
+      a.message.position - b.message.position,
     );
   }, [getNewMessagesByRoomId, groupId, messagesInfiniteQuery.data?.pages]);
+
+  /**
+   * 获取到新消息的时候，如果距底部较近,滚动到底部
+   */
+  useEffect(() => {
+    if (!hasInitialized.current) {
+      return;
+    }
+    if (chatFrameRef.current) {
+      const { scrollTop, clientHeight, scrollHeight } = chatFrameRef.current;
+      const isNearBottom = scrollTop + clientHeight > scrollHeight - 100;
+      if (isNearBottom) {
+        chatFrameRef.current.scrollTo({ top: scrollHeight, behavior: "instant" });
+      }
+    }
+  }, [historyMessages]);
 
   /**
    * messageEntry触发时候的effect, 同时让首次渲染时对话框滚动到底部
@@ -147,7 +176,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
         }
       });
     }
-  }, [messageEntry?.isIntersecting, messagesInfiniteQuery.hasNextPage, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage]);
+  }, [messageEntry?.isIntersecting, messagesInfiniteQuery.hasNextPage, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage, messagesInfiniteQuery]);
   /**
    * 第一次获取消息的时候, 滚动到底部
    */
@@ -175,7 +204,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
       // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setCurRoleId(groupRolesThatUserOwn[0]?.roleId ?? -1);
     }
-  }, [groupRolesQuery.data]);
+  }, [groupRolesQuery.data, groupRolesQuery.isFetchedAfterMount, groupRolesThatUserOwn]);
   /**
    * 命令补全部分
    */
@@ -275,8 +304,102 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     });
   }
 
+  const [isRendering, setIsRendering] = useState(false);
+  async function handleRender() {
+    setIsRendering(true);
+    try {
+      const renderer = new ChatRenderer(groupId);
+      await renderer.initializeRenderer();
+    }
+    catch (error) {
+      console.error("Rendering failed:", error);
+    }
+    finally {
+      setIsRendering(false);
+    }
+  }
+
+  /**
+   * 聊天气泡拖拽排序
+   */
+  // -1 代表未拖动
+  const dragStartIndex = useRef(-1);
+  // before代表拖拽到元素上半，after代表拖拽到元素下半
+  const dropPositionRef = useRef<"before" | "after">("before");
+
+  const handleDragEnd = () => {
+    // 重置所有元素的样式
+    document.querySelectorAll(".group").forEach((el) => {
+      (el as HTMLElement).style.opacity = "1";
+    });
+  };
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e.stopPropagation();
+    dragStartIndex.current = index;
+    // 设置拖动预览图像
+    const parent = e.currentTarget.parentElement!;
+    const clone = parent.cloneNode(true) as HTMLElement;
+
+    clone.style.width = `${e.currentTarget.offsetWidth}px`;
+    clone.style.position = "fixed";
+    clone.style.top = "-9999px";
+    clone.style.width = `${parent.offsetWidth}px`; // 使用父元素实际宽度
+    clone.style.opacity = "0.5";
+    document.body.appendChild(clone);
+    e.dataTransfer.setDragImage(clone, 0, 0);
+    setTimeout(() => document.body.removeChild(clone));
+  };
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    if (dragStartIndex.current === -1) {
+      return;
+    }
+    const target = e.currentTarget;
+    const rect = target.getBoundingClientRect();
+    const relativeY = e.clientY - rect.top;
+
+    if (relativeY < rect.height / 2) {
+      target.style.borderTop = "2px solid #292D3A";
+      target.style.borderBottom = "";
+      dropPositionRef.current = "before";
+    }
+    else {
+      target.style.borderTop = "";
+      target.style.borderBottom = "2px solid #292D3A";
+      dropPositionRef.current = "after";
+    }
+  };
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.style.borderTop = "";
+    e.currentTarget.style.borderBottom = "";
+  };
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
+    e.preventDefault();
+    e.currentTarget.style.borderTop = "";
+    e.currentTarget.style.borderBottom = "";
+
+    const adjustedIndex = dropPositionRef.current === "after" ? dragEndIndex + 1 : dragEndIndex;
+    if (dragStartIndex.current === adjustedIndex)
+      return;
+    // 边界检查
+    const beforeMessageId = historyMessages[adjustedIndex - 1]?.message.messageID ?? null;
+    const afterMessageId = historyMessages[adjustedIndex]?.message.messageID ?? null;
+
+    const moveRequest: MoveMessageRequest = {
+      messageId: historyMessages[dragStartIndex.current].message.messageID,
+      beforeMessageId,
+      afterMessageId,
+    };
+    moveMessageMutation.mutate(moveRequest);
+    dragStartIndex.current = -1;
+  };
+
   return (
-    <GroupContext value={{ groupId }}>
+    <GroupContext value={groupContext}>
       <div className="flex flex-row p-6 gap-4 w-full min-w-0">
         {/* 聊天区域主体 */}
         <div className="flex-1 min-w-[480px] flex flex-col">
@@ -288,25 +411,51 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                 加载历史消息中...
               </div>
             )}
-            <div className="card-body overflow-y-auto h-[60vh]" ref={chatFrameRef}>
-              {historyMessages.filter(chatMessageResponse => chatMessageResponse.message.content !== "")
+            <div
+              className="card-body overflow-y-auto h-[60vh]"
+              ref={chatFrameRef}
+              onWheel={(e) => {
+              // 拖动时允许正常滚动
+                if (dragStartIndex.current !== -1) {
+                  e.preventDefault();
+                  chatFrameRef.current!.scrollTop += e.deltaY;
+                }
+              }}
+            >
+              {historyMessages
+                // .filter(chatMessageResponse => chatMessageResponse.message.content !== "")
                 .map((chatMessageResponse, index) => ((
-                  <div ref={index === 1 ? messageRef : null} key={chatMessageResponse.message.messageID}>
-                    <ChatBubble chatMessageResponse={chatMessageResponse} useChatBubbleStyle={useChatBubbleStyle} />
+                  <div
+                    key={chatMessageResponse.message.messageID}
+                    ref={index === 1 ? messageRef : null}
+                    className="relative group  transition-opacity"
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={e => handleDrop(e, index)}
+                    onDragEnd={() => handleDragEnd()}
+                  >
+                    <div
+                      className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
+                      -translate-x-full -translate-y-1/ opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2 cursor-move`}
+                      draggable
+                      onDragStart={e => handleDragStart(e, index)}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                      </svg>
+                    </div>
+                    <ChatBubble
+                      chatMessageResponse={chatMessageResponse}
+                      useChatBubbleStyle={useChatBubbleStyle}
+                    />
                   </div>
                 )
                 ))}
-              {/* {receivedMessages.map(receivedMessage => ( */}
-              {/*  <div key={receivedMessage.message.messageID}> */}
-              {/*    <ChatBubble chatMessageResponse={receivedMessage} useChatBubbleStyle={useChatBubbleStyle} /> */}
-              {/*  </div> */}
-              {/* ))} */}
             </div>
           </div>
-
           {/* 输入区域 */}
-          <form className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm">
-            <div className="flex gap-2 relative">
+          <form className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm  ">
+            <div className="flex gap-2 relative max-h-[30vh]">
               {/* 表情差分展示与选择 */}
               <div className="dropdown dropdown-top">
                 <div role="button" tabIndex={0} className="flex justify-center flex-col items-center space-y-2">
@@ -315,20 +464,20 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                 </div>
                 {/* 表情差分选择器 */}
                 <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm">
-                  <ExpressionChooser roleId={curRoleId} handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}></ExpressionChooser>
+                  <ExpressionChooser
+                    roleId={curRoleId}
+                    handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}
+                  >
+                  </ExpressionChooser>
                 </ul>
               </div>
 
-              <div className="w-full textarea">
+              <div className="w-full textarea flex-wrap overflow-auto">
                 {/* 命令建议列表 */}
                 {isCommandMode() && getSuggestions().length > 0 && (
                   <div className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden">
                     {getSuggestions().map(cmd => (
-                      <div
-                        key={cmd.name}
-                        onClick={() => selectCommand(cmd.name)}
-                        className="p-2 w-full last:border-0 hover:bg-base-300 transform origin-left hover:scale-110"
-                      >
+                      <div key={cmd.name} onClick={() => selectCommand(cmd.name)} className="p-2 w-full last:border-0 hover:bg-base-300 transform origin-left hover:scale-110">
                         <span className="font-mono text-blue-600 dark:text-blue-400">
                           .
                           {cmd.name}
@@ -341,7 +490,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                 <img src={imgDownLoadUrl} alt="" />
                 {/* text input */}
                 <textarea
-                  className="textarea w-full h-20 md:h-32 lg:h-40 resize-none border-none focus:outline-none focus:ring-0"
+                  className="textarea w-full h-20 md:h-32 lg:h-40 resize-none border-none focus:outline-none focus:ring-0 "
                   rows={3}
                   placeholder="Enter your message here...(shift+enter to change line)"
                   value={inputText}
@@ -353,17 +502,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                   <div className="dropdown dropdown-top">
                     <div tabIndex={0} role="button" className="btn m-1">选择角色 ⬆️</div>
                     <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto">
-                      {
-                        // 仅显示角色列表里面有的角色
-                        groupRolesThatUserOwn.map(role => (
-                          <li key={role.roleId} onClick={() => handleRoleChange(role.roleId ?? -1)} className="flex, flex-row">
-                            <div className="w-full">
-                              <RoleAvatarComponent avatarId={role.avatarId ?? 0} width={10} isRounded={false} withTitle={false} stopPopWindow={true}></RoleAvatarComponent>
-                              <div>{role.roleName}</div>
-                            </div>
-                          </li>
-                        ))
-                      }
+                      <RoleChooser handleRoleChange={handleRoleChange}></RoleChooser>
                     </ul>
                   </div>
                   <ImgUploaderWithCopper setCopperedDownloadUrl={setImgDownLoadUrl} setDownloadUrl={() => {}} fileName="test!test!!!!">
@@ -375,8 +514,10 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                     </svg>
                   </ImgUploaderWithCopper>
                 </div>
-                <div className="float-right">
-                  <label className="swap w-30 btn right-2">
+
+                <div className="float-right gap-2 flex">
+                  <button className="btn" type="button" onClick={handleRender} disabled={isRendering}>渲染对话</button>
+                  <label className="swap w-30 btn">
                     <input type="checkbox" />
                     <div className="swap-on" onClick={() => setUseChatBubbleStyle(false)}>Use Chat Bubble Style</div>
                     <div className="swap-off" onClick={() => setUseChatBubbleStyle(true)}>Use Chat Box Style</div>
@@ -402,11 +543,15 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                   群成员-
                   {members.length}
                 </p>
-                <button className="btn btn-dash btn-info" type="button" onClick={() => setIsMemberHandleOpen(true)}>
-                  添加成员
-                </button>
+                {
+                  curMember?.memberType === 1
+                  && (
+                    <button className="btn btn-dash btn-info" type="button" onClick={() => setIsMemberHandleOpen(true)}>
+                      添加成员
+                    </button>
+                  )
+                }
               </div>
-
               {members.map(member => (
                 <div key={member.userId} className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center ">
                   {/* 成员列表 */}
@@ -425,7 +570,11 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
                   角色列表-
                   <span className="text-sm">{groupRoles.length}</span>
                 </p>
-                <button className="btn btn-dash btn-info" type="button" onClick={() => setIsRoleHandleOpen(true)}>添加角色</button>
+                {
+                  (curMember?.memberType ?? -1) in [1, 2] && (
+                    <button className="btn btn-dash btn-info" type="button" onClick={() => setIsRoleHandleOpen(true)}>添加角色</button>
+                  )
+                }
               </div>
               {groupRoles.map(role => (
                 <div key={role.roleId} className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center ">
@@ -446,13 +595,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
               <div className="" key={role.avatarId}>
                 <div className="flex flex-col items-center">
                   <div onClick={() => handleAddRole(role.roleId ?? -1)} className="">
-                    <RoleAvatarComponent
-                      avatarId={role.avatarId ?? -1}
-                      width={24}
-                      isRounded={false}
-                      withTitle={false}
-                      stopPopWindow={true}
-                    />
+                    <RoleAvatarComponent avatarId={role.avatarId ?? -1} width={24} isRounded={false} withTitle={false} stopPopWindow={true} />
                   </div>
                   <p className="text-center block">{role.roleName}</p>
                 </div>

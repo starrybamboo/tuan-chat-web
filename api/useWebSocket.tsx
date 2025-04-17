@@ -1,8 +1,10 @@
-import { useState, useRef, useCallback } from 'react'
+import {useState, useRef, useCallback, useEffect} from 'react'
 import type {ChatMessageRequest} from "./models/ChatMessageRequest";
 import type {ChatMessageResponse} from "./models/ChatMessageResponse";
 import {useImmer} from "use-immer";
 import {formatLocalDateTime} from "@/utils/dataUtil";
+import {useGlobalContext} from "@/components/globalContextProvider";
+import {TuanChat} from "./TuanChat";
 
 type WsMessageType =
     | 2 // 心跳
@@ -17,15 +19,23 @@ interface WsMessage<T> {
 const WS_URL = import.meta.env.VITE_API_WS_URL
 // const WS_URL = "ws://39.103.58.31:8090"
 
-const token = "10001"
+
 
 export function useWebSocket() {
+    // let token = "-1"
     const wsRef = useRef<WebSocket | null>(null)
     const [isConnected, setIsConnected] = useState(false)
     const reconnectAttempts = useRef(0)
     const heartbeatTimer = useRef<NodeJS.Timeout>(setTimeout(()=>{}))
     // 接受消息的存储
     const [groupMessages, updateGroupMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
+
+    let token = ""
+
+    if (typeof window !== 'undefined') {
+       token = localStorage.getItem("token") ?? "-1"
+    }
+
 
     // 配置参数
     const MAX_RECONNECT_ATTEMPTS = 5

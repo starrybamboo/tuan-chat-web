@@ -1,5 +1,5 @@
 /* eslint-disable react-dom/no-missing-button-type */
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useState } from "react";
 import { ImgUploaderWithCopper } from "../common/uploader/imgUploaderWithCopper";
@@ -16,11 +16,19 @@ interface HeadProps {
 
 export default function Head({ onAvatarChange, onAvatarIdChange, roleId, currentAvatar, userQuery, roleQuery }: HeadProps) {
   const [recordNewAvatar, setRecordNewAvatar] = useState<number | null>(null);
+  const queryClient = useQueryClient();
+
+  // 辅助函数生成唯一文件名
+  const generateUniqueFileName = (roleId: number): string => {
+    const timestamp = Date.now();
+    return `${userQuery.data.data.userId}-avatar-${roleId}-${timestamp}`;
+  };
+
   // 上传头像到服务器
   const { mutate } = useMutation({
     mutationKey: ["uploadAvatar"],
-    mutationFn: async (avatarUrl: string) => {
-      if (!avatarUrl || !roleId) {
+    mutationFn: async ({ avatarUrl, spriteUrl }: { avatarUrl: string; spriteUrl: string }) => {
+      if (!avatarUrl || !roleId || !spriteUrl) {
         console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;
       }
@@ -43,6 +51,7 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
             roleId,
             avatarId,
             avatarUrl,
+            spriteUrl,
           });
 
           if (!uploadRes.success) {
@@ -51,6 +60,7 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
           }
 
           console.warn("头像上传成功");
+          queryClient.invalidateQueries({ queryKey: ["roleAvatar", roleId] });
           return uploadRes;
         }
         else {
@@ -68,6 +78,9 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
     },
   });
 
+  // 生成唯一文件名
+  const uniqueFileName = generateUniqueFileName(roleId);
+
   return (
     <div className="h-155 p-2 w-full">
       <div className="text-center">
@@ -79,7 +92,9 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
           className="m-auto w-80 h-9 bg-base-200 p-2 mt-3 input input-bordered"
           placeholder="输入标题"
         />
-        <button className="ml-2 btn btn-dash inline-block h-9 rounded-none mt-3">
+        <button
+          className="ml-2 btn btn-dash inline-block h-9 rounded-none mt-3"
+        >
           更新标题
         </button>
       </div>
@@ -98,9 +113,11 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
               if (onAvatarChange) {
                 onAvatarChange(newUrl); // 更新用户头像
                 onAvatarIdChange(recordNewAvatar || 0);
-                mutate(newUrl);
+                queryClient.invalidateQueries({ queryKey: ["roleAvatar", roleId] });
               }
             }}
+            fileName={uniqueFileName}
+            mutate={data => mutate(data)}
           >
             <button className="btn btn-dash m-auto block">
               <b className="text-white ml-0">+</b>

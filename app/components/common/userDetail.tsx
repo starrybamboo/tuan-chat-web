@@ -29,7 +29,7 @@ export function UserDetail({ userId }: { userId: number }) {
                   )
                 : (
                     <img
-                      src={user?.avatar || "/default-avatar.png"}
+                      src={user?.avatar || undefined}
                       alt={user?.username}
                       className="mask mask-circle"
                     />

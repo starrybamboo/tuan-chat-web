@@ -17,6 +17,7 @@ import { OssControllerService } from './services/OssControllerService';
 import { RoleControllerService } from './services/RoleControllerService';
 import { RoleGenerationControllerService } from './services/RoleGenerationControllerService';
 import { RuleControllerService } from './services/RuleControllerService';
+import { TtsControllerService } from './services/TtsControllerService';
 import { UserControllerService } from './services/UserControllerService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class TuanChat {
@@ -32,6 +33,7 @@ export class TuanChat {
     public readonly roleController: RoleControllerService;
     public readonly roleGenerationController: RoleGenerationControllerService;
     public readonly ruleController: RuleControllerService;
+    public readonly ttsController: TtsControllerService;
     public readonly userController: UserControllerService;
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
@@ -58,6 +60,7 @@ export class TuanChat {
         this.roleController = new RoleControllerService(this.request);
         this.roleGenerationController = new RoleGenerationControllerService(this.request);
         this.ruleController = new RuleControllerService(this.request);
+        this.ttsController = new TtsControllerService(this.request);
         this.userController = new UserControllerService(this.request);
     }
 }

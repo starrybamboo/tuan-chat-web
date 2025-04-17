@@ -63,19 +63,18 @@ export class ChatControllerService {
     /**
      * 移动消息位置
      * 根据beforeMessageId和afterMessageId自动判断移动类型：当都为null时返回错误，一个为null时分别对应移动到顶部或底部，都有值时表示移动到两者之间
-     * @param request
+     * @param requestBody
      * @returns ApiResultMessage OK
      * @throws ApiError
      */
     public moveMessage(
-        request: MoveMessageRequest,
+        requestBody: MoveMessageRequest,
     ): CancelablePromise<ApiResultMessage> {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/capi/chat/message/move',
-            query: {
-                'request': request,
-            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
