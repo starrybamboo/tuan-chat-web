@@ -3,10 +3,11 @@ import { useState } from "react";
 import Section from "../Section";
 import NumericalEditor from "./NumericalEditor";
 import PerformanceEditor from "./PerformanceEditor";
+import { defaultRules } from "./rules";
 import RulesSection from "./RulesSection";
 
 interface ExpansionModuleProps {
-  rules: GameRule[];
+  rules?: GameRule[];
   onRuleDataChange?: (ruleId: string, performance: any, numerical: any) => void; // 可选回调
 }
 
@@ -15,7 +16,7 @@ interface ExpansionModuleProps {
  * 负责展示规则选择、表演字段和数值约束，完全独立于角色
  */
 export default function ExpansionModule({
-  rules,
+  rules = defaultRules,
   onRuleDataChange,
 }: ExpansionModuleProps) {
   // 管理当前选择的规则和规则数据

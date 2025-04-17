@@ -1,7 +1,4 @@
-// rules.ts
-// 预设游戏规则定义
-
-import type { GameRule } from "./types";
+import type { GameRule } from "../types";
 
 // COC（克苏鲁的呼唤）规则
 export const cocRule: GameRule = {

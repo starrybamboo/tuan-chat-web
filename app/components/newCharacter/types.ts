@@ -4,7 +4,6 @@ export type Role = {
   id: number;
   avatar?: string;
   name: string;
-  ruleId: string;
   description: string;
   avatarId: number;
 };

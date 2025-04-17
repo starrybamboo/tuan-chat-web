@@ -11,7 +11,6 @@ interface CharacterDetailProps {
   isEditing: boolean;
   onEdit: () => void;
   onSave: (updatedRole: Role) => void;
-  rules: any[];
 }
 
 /**
@@ -22,7 +21,6 @@ export default function CharacterDetail({
   isEditing,
   onEdit,
   onSave,
-  rules,
 }: CharacterDetailProps) {
   // 初始化角色数据
   const [localRole, setLocalRole] = useState<Role>(role);
@@ -55,7 +53,6 @@ export default function CharacterDetail({
     setLocalRole(updatedRole);
   }, [role]);
 
-  // 保存时，将当前规则数据合并到 localRole.ruleData 中
   const handleSave = () => {
     // 调用API更新角色信息
     updateRole(localRole);
@@ -145,7 +142,7 @@ export default function CharacterDetail({
 
       {/* 扩展模块 */}
       <div className="space-y-6">
-        <ExpansionModule rules={rules} />
+        <ExpansionModule />
       </div>
     </div>
   );

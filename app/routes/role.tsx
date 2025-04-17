@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 import CharacterMain from "@/components/newCharacter/CharacterMain";
-import { defaultRules } from "@/components/newCharacter/rules";
+import { defaultRules } from "@/components/newCharacter/rules/rules";
 
 export function meta(_args: Route.MetaArgs) {
   return [

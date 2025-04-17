@@ -1,4 +1,4 @@
-import type { GameRule, Role } from "./types";
+import type { Role } from "./types";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useGetUserRolesQuery, useRolesInitialization } from "api/queryHooks";
@@ -6,17 +6,8 @@ import { useEffect, useState } from "react";
 import { PopWindow } from "../common/popWindow";
 import { useGlobalContext } from "../globalContextProvider";
 import CharacterDetail from "./CharacterDetail";
-import { defaultRules } from "./rules";
 
-interface CharacterMainProps {
-  rules?: GameRule[]; // 从外部传入规则列表，可选
-  defaultRuleId?: string; // 默认选中规则，可选
-}
-
-export default function CharacterMain({
-  rules = defaultRules,
-  defaultRuleId = "rule-coc",
-}: CharacterMainProps) {
+export default function CharacterMain() {
   // 获取用户数据
   const userId = useGlobalContext().userId;
   const roleQuery = useGetUserRolesQuery(userId ?? -1);
@@ -54,24 +45,6 @@ export default function CharacterMain({
     },
   });
 
-  // // 创建角色接口
-  // const { mutateAsync: createRole } = useMutation({
-  //   mutationKey: ["createRole"],
-  //   mutationFn: async () => {
-  //     const res = await tuanchat.roleController.createRole({});
-  //     if (res.success) {
-  //       console.warn("角色创建成功");
-  //       return res.data;
-  //     }
-  //     else {
-  //       console.error("创建角色失败");
-  //     }
-  //   },
-  //   onError: (error) => {
-  //     console.error("Mutation failed:", error);
-  //   },
-  // });
-
   // 删除弹窗状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
@@ -79,31 +52,6 @@ export default function CharacterMain({
   useEffect(() => {
     initializeRoles();
   }, [initializeRoles]);
-
-  // 删除角色接口
-  // const { mutate: deleteRole } = useMutation({
-  //   mutationKey: ["deleteRole"],
-  //   mutationFn: async (roleId: number[]) => {
-  //     const res = await tuanchat.roleController.deleteRole(roleId);
-  //     if (res.success) {
-  //       console.warn("角色删除成功");
-  //       return res;
-  //     }
-  //     else {
-  //       console.error("删除角色失败");
-  //       return undefined;
-  //     }
-  //   },
-  //   onSuccess: () => {
-  //     // 删除成功后重新初始化角色列表
-  //     initializeRoles();
-  //     // 强制刷新roleQuery
-  //     roleQuery.refetch();
-  //   },
-  //   onError: (error) => {
-  //     console.error("Mutation failed:", error);
-  //   },
-  // });
 
   // 创建角色接口
   const { mutateAsync: createRole } = useMutation({
@@ -122,6 +70,7 @@ export default function CharacterMain({
       console.error("Mutation failed:", error);
     },
   });
+
   // 创建新角色
   const handleCreate = async () => {
     const data = await createRole();
@@ -132,7 +81,6 @@ export default function CharacterMain({
     const newRole: Role = {
       id: data,
       name: "",
-      ruleId: defaultRuleId,
       description: "",
       avatar: "",
       avatarId: 0,
@@ -142,13 +90,6 @@ export default function CharacterMain({
     setSelectedRoleId(newRole.id);
     setIsEditing(true);
   };
-
-  // // 删除角色
-  // const handleDelete = (roleId: number) => {
-  //   setRoles(prev => prev.filter(role => role.id !== roleId));
-  //   if (selectedRoleId === roleId)
-  //     setSelectedRoleId(null);
-  // };
 
   // 保存角色
   const handleSave = (updatedRole: Role) => {
@@ -253,7 +194,6 @@ export default function CharacterMain({
                   isEditing={isEditing}
                   onEdit={() => setIsEditing(true)}
                   onSave={handleSave}
-                  rules={rules}
                 />
               )
             : (
