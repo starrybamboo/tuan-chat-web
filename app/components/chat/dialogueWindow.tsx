@@ -42,7 +42,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   const [inputText, setInputText] = useState("");
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(true);
-  const PAGE_SIZE = 21; // 每页消息数量
+  const PAGE_SIZE = 30; // 每页消息数量
 
   // 承载聊天记录窗口的ref
   const chatFrameRef = useRef<HTMLDivElement>(null);
@@ -153,7 +153,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
     }
     if (chatFrameRef.current) {
       const { scrollTop, clientHeight, scrollHeight } = chatFrameRef.current;
-      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 500;
+      const isNearBottom = scrollTop + clientHeight > scrollHeight - 100;
       if (isNearBottom) {
         chatFrameRef.current.scrollTo({ top: scrollHeight, behavior: "instant" });
       }
@@ -322,10 +322,10 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   /**
    * 聊天气泡拖拽排序
    */
+  // -1 代表未拖动
   const dragStartIndex = useRef(-1);
   // before代表拖拽到元素上半，after代表拖拽到元素下半
   const dropPositionRef = useRef<"before" | "after">("before");
-  const isDragging = useRef(false);
 
   const handleDragEnd = () => {
     // 重置所有元素的样式
@@ -335,7 +335,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   };
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.stopPropagation();
-    isDragging.current = true;
     dragStartIndex.current = index;
     // 设置拖动预览图像
     const parent = e.currentTarget.parentElement!;
@@ -354,7 +353,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = "move";
-    if (!isDragging.current) {
+    if (dragStartIndex.current === -1) {
       return;
     }
     const target = e.currentTarget;
@@ -380,7 +379,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   };
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
-    isDragging.current = false;
     e.currentTarget.style.borderTop = "";
     e.currentTarget.style.borderBottom = "";
 
@@ -397,6 +395,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
       afterMessageId,
     };
     moveMessageMutation.mutate(moveRequest);
+    dragStartIndex.current = -1;
   };
 
   return (
@@ -417,13 +416,14 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
               ref={chatFrameRef}
               onWheel={(e) => {
               // 拖动时允许正常滚动
-                if (isDragging.current) {
+                if (dragStartIndex.current !== -1) {
                   e.preventDefault();
                   chatFrameRef.current!.scrollTop += e.deltaY;
                 }
               }}
             >
-              {historyMessages.filter(chatMessageResponse => chatMessageResponse.message.content !== "")
+              {historyMessages
+                // .filter(chatMessageResponse => chatMessageResponse.message.content !== "")
                 .map((chatMessageResponse, index) => ((
                   <div
                     key={chatMessageResponse.message.messageID}
