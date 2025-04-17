@@ -18,7 +18,7 @@ const sizeMap = {
   36: "w-36 h-36", // 144px
 } as const;
 
-export default function UserAvatarComponent({ userId, width, isRounded, withName = false, stopPopWindow = false }: { userId: number; width: keyof typeof sizeMap; isRounded: boolean; withName: boolean; stopPopWindow?: boolean }) {
+export default function UserAvatarComponent({ userId, width, isRounded, withName = false, stopPopWindow = false }: { userId: number; width: keyof typeof sizeMap; isRounded: boolean; withName?: boolean; stopPopWindow?: boolean }) {
   const userQuery = useGetUserInfoQuery(userId);
   // 控制用户详情的popWindow
   const [isOpen, setIsOpen] = useState(false);
