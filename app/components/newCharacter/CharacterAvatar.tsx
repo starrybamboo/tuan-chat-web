@@ -98,7 +98,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
                       </span>
                     </div>
                     <img
-                      src={copperedUrl || role.avatar}
+                      src={copperedUrl || role.avatar || "/favicon.ico"}
                       alt="Character Avatar"
                       className="object-cover transform group-hover:scale-110 transition-transform duration-300"
                     />
@@ -110,7 +110,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
               <div className="avatar">
                 <div className="ring-primary ring-offset-base-100 rounded-xl w-48 ring ring-offset-2">
                   <img
-                    src={role.avatar || copperedUrl}
+                    src={role.avatar || copperedUrl || "/favicon.ico"}
                     alt="Character Avatar"
                     className="object-cover"
                   />

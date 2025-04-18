@@ -243,9 +243,7 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
                 <img src={role.avatar} alt={role.name} />
               )
             : (
-                <div className="bg-neutral-content flex items-center justify-center">
-                  <span className="text-neutral text-sm">无</span>
-                </div>
+                <img src="/favicon.ico" alt="default avatar" />
               )}
         </div>
       </div>
