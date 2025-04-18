@@ -206,17 +206,20 @@ export default function CharacterMain() {
 
       {/* 删除确认对话框 */}
       <PopWindow isOpen={deleteConfirmOpen} onClose={handleCancelDelete}>
-        <div className="p-4 bg-base-200">
-          <h3 className="text-lg font-bold mb-4">确认删除角色</h3>
-          <p className="mb-4">确定要删除这个角色吗？</p>
-          <div className="flex justify-end">
-            <button type="button" className="btn btn-sm btn-outline btn-error mr-2" onClick={handleCancelDelete}>
-              取消
-            </button>
-            <button type="button" className="btn btn-sm bg-primary text-white hover:bg-primary-focus" onClick={handleConfirmDelete}>
-              确认删除
-            </button>
+        <div className="card w-96">
+          <div className="card-body items-center text-center">
+            <h2 className="card-title text-2xl font-bold">确认删除角色</h2>
+            <div className="divider"></div>
+            <p className="text-lg opacity-75 mb-8">确定要删除这个角色吗？</p>
           </div>
+        </div>
+        <div className="card-actions justify-center gap-6 mt-8">
+          <button type="button" className="btn btn-outline" onClick={handleCancelDelete}>
+            取消
+          </button>
+          <button type="button" className="btn btn-error" onClick={handleConfirmDelete}>
+            删除
+          </button>
         </div>
       </PopWindow>
     </div>
