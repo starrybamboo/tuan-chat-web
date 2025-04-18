@@ -133,10 +133,8 @@ export default function CharacterDetail({
         </div>
       </div>
 
-      {/* 扩展模块 */}
-      <div className="space-y-6">
-        <ExpansionModule />
-      </div>
+      {/* 扩展模块， */}
+      <ExpansionModule />
     </div>
   );
 }

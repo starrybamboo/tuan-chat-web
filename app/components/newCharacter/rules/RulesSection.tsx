@@ -19,26 +19,32 @@ export default function RulesSection({
 }: RulesSectionProps) {
   return (
     <div className="space-y-4 p-4 bg-base-200 rounded-lg">
-      <div className="flex items-center gap-4">
-        <select
-          className="select select-bordered flex-1"
-          value={currentRuleId}
-          onChange={e => onRuleChange(e.target.value)}
-        >
-          {rules.map(rule => (
-            <option key={rule.id} value={rule.id}>
-              {rule.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* 当前规则描述 */}
-      {rules.length > 0 && (
-        <div className="text-sm opacity-75">
-          {rules.find(r => r.id === currentRuleId)?.description}
+      <div className="flex items-start">
+        {/* 左侧Select */}
+        <div className="flex items-center pr-4 border-r border-gray-500">
+          <label className="flex items-center gap-2">
+            <span className="label">游戏规则</span>
+            <select
+              className="select select-bordered w-full"
+              value={currentRuleId}
+              onChange={e => onRuleChange(e.target.value)}
+            >
+              {rules.map(rule => (
+                <option key={rule.id} value={rule.id}>
+                  {rule.name}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
-      )}
+
+        {/* 右侧:当前规则描述 */}
+        {rules.length > 0 && (
+          <div className="text-sm opacity-75 pl-4 w-4/5">
+            {rules.find(r => r.id === currentRuleId)?.description}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
