@@ -747,10 +747,10 @@ export const useRolesInitialization = (roleQuery: any) => {
         id: role.roleId || 0,
         name: role.roleName || "",
         description: role.description || "无描述",
-        avatar: undefined,
+        avatar: "",
         inventory: [],
         abilities: [],
-        currentIndex: role.avatarId || 0,
+        avatarId: role.avatarId || 0,
       }));
 
       setRoles(mappedRoles);
@@ -758,7 +758,7 @@ export const useRolesInitialization = (roleQuery: any) => {
       // 异步加载每个角色的头像
       for (const Roles of mappedRoles) {
         try {
-          const res = await tuanchat.avatarController.getRoleAvatar(Roles.currentIndex);
+          const res = await tuanchat.avatarController.getRoleAvatar(Roles.avatarId);
           if (
             res.success &&
             res.data
