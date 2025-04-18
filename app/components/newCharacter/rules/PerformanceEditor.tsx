@@ -253,18 +253,18 @@ export default function PerformanceEditor({
       {/* 添加新字段区域 */}
       <div className="border-t border-base-300 pt-4 mt-4">
         <h3 className="font-bold mb-3">添加新字段</h3>
-        <div className="flex gap-2">
+        <div className="flex gap-8 max-w-2xl">
           <input
             type="text"
             placeholder="字段名称"
-            className="input input-bordered input-sm flex-1"
+            className="input input-bordered input-sm w-1/3"
             value={newKey}
             onChange={e => setNewKey(e.target.value)}
           />
           <input
             type="text"
             placeholder="值"
-            className="input input-bordered input-sm flex-1"
+            className="input input-bordered input-sm w-1/2"
             value={newValue}
             onChange={e => setNewValue(e.target.value)}
           />

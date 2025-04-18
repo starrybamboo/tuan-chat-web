@@ -147,18 +147,21 @@ export default function NumericalEditor({
               ))}
             </div>
 
-            <div className="flex gap-2 mt-4">
+            {/* 分隔线 */}
+            <div className="divider"></div>
+
+            <div className="flex gap-8 max-w-2xl">
               <input
                 type="text"
                 placeholder="字段名称"
-                className="input input-bordered input-sm flex-1"
+                className="input input-bordered input-sm w-1/3"
                 value={inputState.key}
                 onChange={e => updateInputState(totalKey, "key", e.target.value)}
               />
               <input
                 type="text"
                 placeholder="值/公式"
-                className="input input-bordered input-sm flex-1"
+                className="input input-bordered input-sm w-1/2"
                 value={inputState.value}
                 onChange={e => updateInputState(totalKey, "value", e.target.value)}
               />
