@@ -18,8 +18,11 @@ export default function NumericalEditor({
   onChange,
 }: NumericalEditorProps) {
   const [newTotal, setNewTotal] = useState("");
-  const [newKey, setNewKey] = useState("");
-  const [newValue, setNewValue] = useState("");
+
+  // 使用Map存储每个约束组的输入状态
+  const [inputStates, setInputStates] = useState<Map<string, { key: string; value: string }>>(
+    new Map(Object.keys(constraints).map(key => [key, { key: "", value: "" }])),
+  );
 
   /**
    * 添加新的约束组
@@ -30,6 +33,14 @@ export default function NumericalEditor({
         ...constraints,
         [newTotal]: {},
       });
+
+      // 为新约束组添加输入状态
+      setInputStates((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(newTotal, { key: "", value: "" });
+        return newMap;
+      });
+
       setNewTotal("");
     }
   };
@@ -38,21 +49,37 @@ export default function NumericalEditor({
    * 在指定的总约束值下添加新字段
    */
   const handleAddField = (totalKey: string) => {
-    if (newKey.trim()) {
-      const value = FormulaParser.isFormula(newValue)
-        ? newValue
-        : Number(newValue) || 0;
+    const state = inputStates.get(totalKey) || { key: "", value: "" };
+    if (state.key.trim()) {
+      const value = FormulaParser.isFormula(state.value)
+        ? state.value
+        : Number(state.value) || 0;
 
       onChange({
         ...constraints,
         [totalKey]: {
           ...constraints[totalKey],
-          [newKey.trim()]: value,
+          [state.key.trim()]: value,
         },
       });
-      setNewKey("");
-      setNewValue("");
+
+      // 清空当前约束组的输入
+      setInputStates((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(totalKey, { key: "", value: "" });
+        return newMap;
+      });
     }
+  };
+
+  // 更新特定约束组的输入状态
+  const updateInputState = (totalKey: string, field: "key" | "value", value: string) => {
+    setInputStates((prev) => {
+      const newMap = new Map(prev);
+      const currentState = prev.get(totalKey) || { key: "", value: "" };
+      newMap.set(totalKey, { ...currentState, [field]: value });
+      return newMap;
+    });
   };
 
   return (
@@ -60,107 +87,59 @@ export default function NumericalEditor({
       {Object.entries(constraints).map(([totalKey, fields]) => {
         // 使用map动态渲染属性
         const entries = Object.entries(fields);
-        // 计算每列应该显示的数量
-        const halfLength = Math.ceil(entries.length / 2);
-        // 分成两列
-        const leftCol = entries.slice(0, halfLength);
-        const rightCol = entries.slice(halfLength);
+
+        // 获取当前约束组的输入状态
+        const inputState = inputStates.get(totalKey) || { key: "", value: "" };
 
         return (
           <div key={totalKey} className="bg-base-200 p-4 rounded-lg">
             <div className="flex justify-between mb-4">
               <h3 className="font-bold">
-                规则名称:
+                规则名称
                 {" "}
                 {totalKey === "0" ? "依赖项" : totalKey}
               </h3>
             </div>
 
-            <div className="flex gap-4">
-              {/* 左侧列 */}
-              <div className="flex-1">
-                {leftCol.map(([key, value]) => (
-                  <div key={key} className="flex items-center gap-1 mb-2">
-                    <span className="font-medium text-sm w-16 truncate">
-                      {key}
-                      :
-                    </span>
-                    <input
-                      type="text"
-                      value={typeof value === "string" ? value : value.toString()}
-                      className="input input-bordered input-sm flex-1"
-                      onChange={(e) => {
-                        const newValue = e.target.value;
-                        onChange({
-                          ...constraints,
-                          [totalKey]: {
-                            ...fields,
-                            [key]: FormulaParser.parse(newValue),
-                          },
-                        });
-                      }}
-                    />
-                    <button
-                      className="btn btn-error btn-xs"
-                      onClick={() => {
-                        const newFields = { ...fields };
-                        delete newFields[key];
-                        onChange({
-                          ...constraints,
-                          [totalKey]: newFields,
-                        });
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* 中间分隔线 */}
-              <div className="border-l border-base-300"></div>
-
-              {/* 右侧列 */}
-              <div className="flex-1">
-                {rightCol.map(([key, value]) => (
-                  <div key={key} className="flex items-center gap-1 mb-2">
-                    <span className="font-medium text-sm w-16 truncate">
-                      {key}
-                      :
-                    </span>
-                    <input
-                      type="text"
-                      value={typeof value === "string" ? value : value.toString()}
-                      className="input input-bordered input-sm flex-1"
-                      onChange={(e) => {
-                        const newValue = e.target.value;
-                        onChange({
-                          ...constraints,
-                          [totalKey]: {
-                            ...fields,
-                            [key]: FormulaParser.parse(newValue),
-                          },
-                        });
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="btn btn-error btn-xs"
-                      onClick={() => {
-                        const newFields = { ...fields };
-                        delete newFields[key];
-                        onChange({
-                          ...constraints,
-                          [totalKey]: newFields,
-                        });
-                      }}
-                    >
-                      ✕
-                    </button>
-
-                  </div>
-                ))}
-              </div>
+            {/* 网格布局 */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+              {entries.map(([key, value]) => (
+                <div key={key} className="flex items-center gap-1 mb-2 group border border-base-300 rounded-2xl">
+                  <button
+                    type="button"
+                    className="btn btn-error btn-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => {
+                      const newFields = { ...fields };
+                      delete newFields[key];
+                      onChange({
+                        ...constraints,
+                        [totalKey]: newFields,
+                      });
+                    }}
+                  >
+                    ✕
+                  </button>
+                  <span className="font-medium text-sm w-1/2 truncate">
+                    {key}
+                  </span>
+                  <input
+                    type="text"
+                    value={typeof value === "string" ? value : value.toString()}
+                    className="input input-bordered input-sm flex-1"
+                    onChange={(e) => {
+                      const newValue = e.target.value;
+                      onChange({
+                        ...constraints,
+                        [totalKey]: {
+                          ...fields,
+                          [key]: FormulaParser.parse(newValue),
+                        },
+                      });
+                    }}
+                  />
+                  {/* 小删除按钮，未来也许可以考虑做一个撤回和继续的按钮 */}
+                </div>
+              ))}
             </div>
 
             <div className="flex gap-2 mt-4">
@@ -168,15 +147,15 @@ export default function NumericalEditor({
                 type="text"
                 placeholder="字段名称"
                 className="input input-bordered input-sm flex-1"
-                value={newKey}
-                onChange={e => setNewKey(e.target.value)}
+                value={inputState.key}
+                onChange={e => updateInputState(totalKey, "key", e.target.value)}
               />
               <input
                 type="text"
                 placeholder="值/公式"
                 className="input input-bordered input-sm flex-1"
-                value={newValue}
-                onChange={e => setNewValue(e.target.value)}
+                value={inputState.value}
+                onChange={e => updateInputState(totalKey, "value", e.target.value)}
               />
               <button
                 type="button"
