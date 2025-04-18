@@ -100,17 +100,17 @@ export default function PerformanceEditor({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {shortFields.map(key => (
           <div key={key} className="flex flex-col">
-            <label className="text-sm font-medium mb-1">{key}</label>
-            <input
-              type="text"
-              value={fields[key] || ""}
-              className="input input-bordered input-sm"
-              onChange={(e) => {
-                onChange({ ...fields, [key]: e.target.value });
-              }}
-              // readOnly={!isEditing}
-              placeholder="请输入"
-            />
+            <label className="input">
+              <span>{key}</span>
+              <input
+                type="text"
+                onChange={(e) => {
+                  onChange({ ...fields, [key]: e.target.value });
+                }}
+                // readOnly={!isEditing}
+                placeholder="请输入"
+              />
+            </label>
           </div>
         ))}
       </div>

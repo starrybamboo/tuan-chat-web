@@ -139,10 +139,10 @@ export default function CharacterMain() {
 
   return (
     <div className="drawer lg:drawer-open">
+      <MobileDrawerToggle />
       <input id="character-drawer" type="checkbox" className="drawer-toggle" />
-
       {/* 侧边栏 */}
-      <div className="drawer-side">
+      <div className="drawer-side z-2">
         <label htmlFor="character-drawer" className="drawer-overlay"></label>
         <div className="menu p-4 w-80 min-h-full bg-base-200">
           {/* 搜索和创建区域 */}
@@ -174,6 +174,9 @@ export default function CharacterMain() {
                 onSelect={() => {
                   setSelectedRoleId(role.id);
                   setIsEditing(false);
+                  const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
+                  if (drawerCheckbox)
+                    drawerCheckbox.checked = false;
                 }}
                 onDelete={() => handleDelete(role.id)}
               />
@@ -184,8 +187,7 @@ export default function CharacterMain() {
 
       {/* 主内容区 */}
       <div className="drawer-content bg-base-100">
-        <MobileDrawerToggle />
-
+        {/* 添加条件渲染，在小屏幕且抽屉打开时隐藏内容 */}
         <div className="p-4">
           {currentRole
             ? (
@@ -201,6 +203,7 @@ export default function CharacterMain() {
               )}
         </div>
       </div>
+
       {/* 删除确认对话框 */}
       <PopWindow isOpen={deleteConfirmOpen} onClose={handleCancelDelete}>
         <div className="p-4 bg-base-200">
@@ -270,7 +273,7 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
 // 子组件：移动端抽屉开关
 function MobileDrawerToggle() {
   return (
-    <div className="lg:hidden p-2">
+    <div className="lg:hidden p-2 bg-base-100">
       <label
         htmlFor="character-drawer"
         className="btn btn-square btn-ghost"
@@ -286,7 +289,7 @@ function MobileDrawerToggle() {
 // 空状态组件
 function EmptyState() {
   return (
-    <div className="text-center p-8 text-base-content/70">
+    <div className="flex flex-col items-center justify-center h-full min-h-[calc(100vh-4rem)] text-base-content/70">
       <div className="text-2xl mb-2">🏰</div>
       <p>请选择或创建角色</p>
     </div>

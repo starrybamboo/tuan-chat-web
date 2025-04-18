@@ -78,8 +78,8 @@ export default function CharacterAvatar({ roleId, onchange }: { roleId: number; 
 
         <RoleAvatarComponent
           avatarId={avatarId}
-          width={24}
-          isRounded={true}
+          width={36}
+          isRounded={false}
           withTitle={false}
           stopPopWindow={true}
         />
@@ -100,18 +100,6 @@ export default function CharacterAvatar({ roleId, onchange }: { roleId: number; 
             >
               {avatarId ? "更新头像" : "上传头像"}
             </button>
-            {avatarId && (
-              <button
-                type="button"
-                className="btn btn-error"
-                onClick={() => {
-                  // TODO: 实现删除头像的逻辑
-                  setAvatarId(0);
-                }}
-              >
-                删除头像
-              </button>
-            )}
           </div>
         </ImgUploaderWithCopper>
       </div>
