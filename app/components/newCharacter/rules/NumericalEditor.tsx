@@ -104,7 +104,27 @@ export default function NumericalEditor({
             {/* 网格布局 */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
               {entries.map(([key, value]) => (
-                <div key={key} className="flex items-center gap-1 mb-2 group border border-base-300 rounded-2xl">
+                <div key={key} className="flex items-center gap-1 mb-2 group">
+                  <label className="input flex items-center gap-2">
+                    <span className="text-sm font-medium">{key}</span>
+                    <div className="w-px h-4 bg-base-content/20"></div>
+                    <input
+                      type="text"
+                      value={typeof value === "string" ? value : value.toString()}
+                      className="grow"
+                      onChange={(e) => {
+                        const newValue = e.target.value;
+                        onChange({
+                          ...constraints,
+                          [totalKey]: {
+                            ...fields,
+                            [key]: FormulaParser.parse(newValue),
+                          },
+                        });
+                      }}
+                    />
+                  </label>
+                  {/* 小删除按钮，未来也许可以考虑做一个撤回和继续的按钮 */}
                   <button
                     type="button"
                     className="btn btn-error btn-xs opacity-0 group-hover:opacity-100 transition-opacity"
@@ -117,27 +137,12 @@ export default function NumericalEditor({
                       });
                     }}
                   >
-                    ✕
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      <line x1="10" y1="11" x2="10" y2="17" />
+                      <line x1="14" y1="11" x2="14" y2="17" />
+                    </svg>
                   </button>
-                  <span className="font-medium text-sm w-1/2 truncate">
-                    {key}
-                  </span>
-                  <input
-                    type="text"
-                    value={typeof value === "string" ? value : value.toString()}
-                    className="input input-bordered input-sm flex-1"
-                    onChange={(e) => {
-                      const newValue = e.target.value;
-                      onChange({
-                        ...constraints,
-                        [totalKey]: {
-                          ...fields,
-                          [key]: FormulaParser.parse(newValue),
-                        },
-                      });
-                    }}
-                  />
-                  {/* 小删除按钮，未来也许可以考虑做一个撤回和继续的按钮 */}
                 </div>
               ))}
             </div>
