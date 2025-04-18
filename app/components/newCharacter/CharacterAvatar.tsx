@@ -78,37 +78,39 @@ export default function CharacterAvatar({ roleId, onchange, avatarDeliverId, isE
 
   return (
     <div className="form-control w-full max-w-xs">
-      <div className="flex flex-col items-start gap-4">
-        <div className="avatar">
-          <div className="w-36 h-36">
-            <img
-              src={copperedUrl || "/default-avatar.png"}
-              alt="Character Avatar"
-              className="object-cover"
-            />
-          </div>
-        </div>
-
-        {isEditing && (
-          <ImgUploaderWithCopper
-            setDownloadUrl={() => {}}
-            setCopperedDownloadUrl={setCopperedUrl}
-            fileName={avatarId ? avatarId.toString() : ""}
-            mutate={(data) => {
-              updateAvatarMutate(data);
-            }}
-          >
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                className="btn btn-primary"
-                onClick={() => { createAvatarMutate(); }}
+      <div className="flex flex-col items-center gap-4">
+        {isEditing
+          ? (
+              <ImgUploaderWithCopper
+                setDownloadUrl={() => {}}
+                setCopperedDownloadUrl={setCopperedUrl}
+                fileName={avatarId ? avatarId.toString() : ""}
+                mutate={(data) => {
+                  updateAvatarMutate(data);
+                }}
               >
-                {avatarId ? "更新头像" : "上传头像"}
-              </button>
-            </div>
-          </ImgUploaderWithCopper>
-        )}
+                <div className="avatar cursor-pointer" onClick={() => { createAvatarMutate(); }}>
+                  <div className="ring-primary ring-offset-base-100 w-48 ring ring-offset-2 hover:ring-opacity-50 transition-all">
+                    <img
+                      src={copperedUrl || "/default-avatar.png"}
+                      alt="Character Avatar"
+                      className="object-cover"
+                    />
+                  </div>
+                </div>
+              </ImgUploaderWithCopper>
+            )
+          : (
+              <div className="avatar">
+                <div className="ring-primary ring-offset-base-100 rounded-xl w-48 ring ring-offset-2">
+                  <img
+                    src={copperedUrl || "/default-avatar.png"}
+                    alt="Character Avatar"
+                    className="object-cover"
+                  />
+                </div>
+              </div>
+            )}
       </div>
     </div>
   );

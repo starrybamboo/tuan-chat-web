@@ -66,7 +66,7 @@ export default function CharacterDetail({
       {/* 基础信息卡片 */}
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <div className="flex items-start gap-4">
+          <div className="flex items-center gap-8">
             <CharacterAvatar
               roleId={localRole.id || 0}
               onchange={handleAvatarChange}
