@@ -1,22 +1,22 @@
+import type { Role } from "./types";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useState } from "react";
 import { ImgUploaderWithCopper } from "../common/uploader/imgUploaderWithCopper";
 
-export default function CharacterAvatar({ roleId, onchange, avatarDeliverId, isEditing }: {
-  roleId: number;
+export default function CharacterAvatar({ role, onchange, isEditing }: {
+  role: Role;
   onchange: (avatarUrl: string, avatarId: number) => void;
-  avatarDeliverId: number;
   isEditing: boolean;
 }) {
   // 传入onchange,方便同步到之前的组件中
-  const [avatarId, setAvatarId] = useState<number>(avatarDeliverId);
+  const [avatarId, setAvatarId] = useState<number>(role.avatarId);
   // const [downloadUrl, setDownloadUrl] = useState<string>("");
   const [copperedUrl, setCopperedUrl] = useState<string>(""); // 修正变量名
 
   async function createAvatar() {
     try {
-      const res = await tuanchat.avatarController.setRoleAvatar({ roleId });
+      const res = await tuanchat.avatarController.setRoleAvatar({ roleId: role.id });
       if (res.success && res.data)
         await setAvatarId(res.data);
       return res.data;
@@ -40,7 +40,7 @@ export default function CharacterAvatar({ roleId, onchange, avatarDeliverId, isE
   }) {
     try {
       const res = await tuanchat.avatarController.updateRoleAvatar({
-        roleId,
+        roleId: role.id,
         avatarId: avatarId || 0,
         avatarUrl,
         spriteUrl,
@@ -92,7 +92,7 @@ export default function CharacterAvatar({ roleId, onchange, avatarDeliverId, isE
                 <div className="avatar cursor-pointer" onClick={() => { createAvatarMutate(); }}>
                   <div className="ring-primary ring-offset-base-100 w-48 ring ring-offset-2 hover:ring-opacity-50 transition-all">
                     <img
-                      src={copperedUrl || "/default-avatar.png"}
+                      src={copperedUrl || role.avatar}
                       alt="Character Avatar"
                       className="object-cover"
                     />
@@ -104,7 +104,7 @@ export default function CharacterAvatar({ roleId, onchange, avatarDeliverId, isE
               <div className="avatar">
                 <div className="ring-primary ring-offset-base-100 rounded-xl w-48 ring ring-offset-2">
                   <img
-                    src={copperedUrl || "/default-avatar.png"}
+                    src={role.avatar || copperedUrl}
                     alt="Character Avatar"
                     className="object-cover"
                   />

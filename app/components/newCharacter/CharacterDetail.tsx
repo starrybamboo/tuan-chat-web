@@ -68,9 +68,8 @@ export default function CharacterDetail({
         <div className="card-body">
           <div className="flex items-center gap-8">
             <CharacterAvatar
-              roleId={localRole.id || 0}
+              role={localRole}
               onchange={handleAvatarChange}
-              avatarDeliverId={localRole.avatarId}
               isEditing={isEditing}
             />
 
