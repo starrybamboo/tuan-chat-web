@@ -70,6 +70,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
     mutationFn: updateAvatar,
     onSuccess: () => {
       onchange(copperedUrl, avatarId);
+      setCopperedUrl("");
     },
     onError: (error) => {
       console.error("更新头像失败:", error);
