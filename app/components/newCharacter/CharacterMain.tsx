@@ -49,10 +49,6 @@ export default function CharacterMain() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
 
-  useEffect(() => {
-    initializeRoles();
-  }, [initializeRoles]);
-
   // 创建角色接口
   const { mutateAsync: createRole } = useMutation({
     mutationKey: ["createRole"],
