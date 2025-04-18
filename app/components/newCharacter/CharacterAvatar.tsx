@@ -4,9 +4,9 @@ import { useState } from "react";
 import RoleAvatarComponent from "../common/roleAvatar";
 import { ImgUploaderWithCopper } from "../common/uploader/imgUploaderWithCopper";
 
-export default function CharacterAvatar({ roleId, onchange }: { roleId: number; onchange: (avatarUrl: string, avatarId: number) => void }) {
+export default function CharacterAvatar({ roleId, onchange, avatarDeliverId }: { roleId: number; onchange: (avatarUrl: string, avatarId: number) => void; avatarDeliverId: number }) {
   // 传入onchange,方便同步到之前的组件中
-  const [avatarId, setAvatarId] = useState<number>(0);
+  const [avatarId, setAvatarId] = useState<number>(avatarDeliverId);
   // const [downloadUrl, setDownloadUrl] = useState<string>("");
   const [copperedUrl, setCopperedUrl] = useState<string>(""); // 修正变量名
 
@@ -14,7 +14,7 @@ export default function CharacterAvatar({ roleId, onchange }: { roleId: number; 
     try {
       const res = await tuanchat.avatarController.setRoleAvatar({ roleId });
       if (res.success && res.data)
-        setAvatarId(res.data);
+        await setAvatarId(res.data);
       return res.data;
     }
     catch (error: any) {

@@ -71,6 +71,7 @@ export default function CharacterDetail({
               isEditing={isEditing}
               onChange={handleAvatarChange}
               roleId={localRole.id}
+              avatarId={localRole.avatarId}
             />
 
             <div className="flex-1 space-y-4">
@@ -144,16 +145,17 @@ export default function CharacterDetail({
  * 用于展示和上传角色头像
  */
 // 头像组件
-function AvatarSection({ isEditing, onChange, roleId }: {
+function AvatarSection({ isEditing, onChange, roleId, avatarId }: {
   isEditing: boolean;
   onChange: (avatarUrl: string, avatarId: number) => void;
   roleId?: number;
+  avatarId: number;
 }) {
   return (
     <>
       {isEditing && (
         // 替换input
-        <CharacterAvatar roleId={roleId || 0} onchange={onChange} />
+        <CharacterAvatar roleId={roleId || 0} onchange={onChange} avatarDeliverId={avatarId} />
       )}
     </>
   );
