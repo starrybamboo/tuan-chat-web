@@ -8,6 +8,7 @@ import {
   useGetUserInfoQuery,
   useRevokePlayerMutation,
   useSetPlayerMutation,
+  useTransferOwnerMutation,
 } from "../../../api/queryHooks";
 
 // 如果是 import 的sizeMap 就不能在className中用了, 于是复制了一份, 够丑的 :(
@@ -40,6 +41,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
   const mutateMember = useDeleteMemberMutation();
   const setPlayerMutation = useSetPlayerMutation();
   const revokePlayerMutation = useRevokePlayerMutation();
+  const transferOwnerMutation = useTransferOwnerMutation();
 
   // 是否是群主
   function isManager() {
@@ -70,6 +72,16 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
     revokePlayerMutation.mutate({
       roomId: groupId,
       uidList: [userId],
+    }, {
+      onSettled: () => setIsOpen(false),
+    });
+  }
+
+  function handTransferGroupOwner() {
+    transferOwnerMutation.mutate({
+      roomId: groupId,
+      uidList: [userId],
+      memberType: 2,
     }, {
       onSettled: () => setIsOpen(false),
     });
@@ -133,6 +145,9 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
                                   </button>
                                 )
                               }
+                              <button type="button" className="btn btn-info" onClick={handTransferGroupOwner}>
+                                转让KP
+                              </button>
                             </div>
                           )
                         )

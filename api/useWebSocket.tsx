@@ -35,16 +35,21 @@ export function useWebSocket() {
     if (typeof window !== 'undefined') {
        token = localStorage.getItem("token") ?? "-1"
     }
-
-
     // 配置参数
-    const MAX_RECONNECT_ATTEMPTS = 5
+    const MAX_RECONNECT_ATTEMPTS = 100
     const HEARTBEAT_INTERVAL = 25000
     const RECONNECT_DELAY_BASE = 1
 
+    let hasAddedFocusListener = false;
     // 核心连接逻辑
     const connect = useCallback(() => {
         if (wsRef.current || !WS_URL) return
+
+        window.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && !isConnected) {
+                connect()
+            }
+        });
 
         try {
             wsRef.current = new WebSocket(`${WS_URL}?token=${token}`)
@@ -136,15 +141,6 @@ export function useWebSocket() {
     const stopHeartbeat = useCallback(() => {
         heartbeatTimer.current && clearInterval(heartbeatTimer.current)
     }, [])
-
-    // // 清理资源
-    // useEffect(() => {
-    //     return () => {
-    //         stopHeartbeat()
-    //         wsRef.current?.close()
-    //     }
-    // }, [stopHeartbeat])
-
 
     function send(request : ChatMessageRequest) {
         if (wsRef.current?.readyState === WebSocket.OPEN) {

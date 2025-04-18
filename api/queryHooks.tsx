@@ -33,7 +33,7 @@ import type {
     AbilityFieldUpdateRequest,
     ApiResultListRoleResponse,
     ApiResultRoleAbility,
-    ApiResultUserInfoResponse,
+    ApiResultUserInfoResponse, GroupOwnerTransferRequest,
     Message,
     RoleResponse
 } from "api";
@@ -310,6 +310,20 @@ export function useRevokePlayerMutation() {
     return useMutation({
         mutationFn: (req: AdminRevokeRequest) => tuanchat.groupMemberController.revokePlayer(req),
         mutationKey: ['revokePlayer'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.roomId] });
+        }
+    });
+}
+
+/**
+ * 转让群主
+ */
+export function useTransferOwnerMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: GroupOwnerTransferRequest) => tuanchat.groupMemberController.transferGroupOwner(req),
+        mutationKey: ['transferGroupOwner'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.roomId] });
         }
