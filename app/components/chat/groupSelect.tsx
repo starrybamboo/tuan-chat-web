@@ -31,10 +31,12 @@ export default function GroupSelect() {
   const inputUserInfo = useGetUserInfoQuery(inputUserId).data?.data;
 
   // websocket封装, 用于发送接受消息
-  const { send, connect, getNewMessagesByRoomId } = useWebSocket();
+  const { send, connect, getNewMessagesByRoomId, isConnected } = useWebSocket();
   useEffect(() => {
-    connect();
-  }, [connect]);
+    if (!isConnected) {
+      connect();
+    }
+  }, []);
 
   // 创建群组
   async function createGroup(userId: number) {
