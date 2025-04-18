@@ -89,12 +89,17 @@ export default function CharacterAvatar({ roleId, onchange, avatarDeliverId, isE
                   updateAvatarMutate(data);
                 }}
               >
-                <div className="avatar cursor-pointer" onClick={() => { createAvatarMutate(); }}>
-                  <div className="ring-primary ring-offset-base-100 w-48 ring ring-offset-2 hover:ring-opacity-50 transition-all">
+                <div className="avatar cursor-pointer group" onClick={() => { createAvatarMutate(); }}>
+                  <div className="ring-primary ring-offset-base-100 w-48 ring ring-offset-2 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center z-10">
+                      <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        点击更换头像
+                      </span>
+                    </div>
                     <img
                       src={copperedUrl || "/default-avatar.png"}
                       alt="Character Avatar"
-                      className="object-cover"
+                      className="object-cover transform group-hover:scale-110 transition-transform duration-300"
                     />
                   </div>
                 </div>
