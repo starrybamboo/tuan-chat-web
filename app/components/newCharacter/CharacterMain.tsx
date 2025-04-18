@@ -235,12 +235,12 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
 }) {
   return (
     <div
-      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group ${
+      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group max-h-20 max-w-[18rem] ${
         isSelected ? "bg-base-100" : "hover:bg-base-100"
       }`}
       onClick={onSelect}
     >
-      <div className="avatar">
+      <div className="avatar shrink-0">
         <div className="w-12 h-12 rounded-full">
           {role.avatar
             ? (
@@ -253,10 +253,12 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
               )}
         </div>
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 overflow-hidden">
         <h3 className="font-medium truncate">{role.name || "新角色"}</h3>
-        <p className="text-sm text-base-content/70 truncate">
-          {role.description || "暂无描述"}
+        <p className="text-xs text-base-content/70 mt-1">
+          {(role.description || "暂无描述").length > 25
+            ? `${(role.description || "暂无描述").slice(0, 25)}...`
+            : role.description || "暂无描述"}
         </p>
       </div>
       <button
