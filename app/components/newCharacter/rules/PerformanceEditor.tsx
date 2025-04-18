@@ -120,17 +120,17 @@ export default function PerformanceEditor({
         {/* 左侧列 */}
         <div className="flex-1 space-y-3">
           {leftLongFields.map(([key, value]) => (
-            <div key={key} className="flex flex-col">
-              <label className="text-sm font-medium mb-1">{key}</label>
+            <fieldset key={key} className="feildset p-4">
+              <legend className="fieldset-legend">{key}</legend>
               <textarea
                 value={value}
-                className="textarea textarea-bordered w-full h-24 resize-none"
+                className="textarea w-full h-24 resize-none"
                 onChange={(e) => {
                   onChange({ ...fields, [key]: e.target.value });
                 }}
                 // readOnly={!isEditing}
               />
-            </div>
+            </fieldset>
           ))}
         </div>
 
@@ -167,7 +167,7 @@ export default function PerformanceEditor({
               <tr>
                 <th className="w-1/3">物品名称</th>
                 <th>物品描述</th>
-                <th className="w-16">操作</th>
+                <th className="w-24">操作</th>
               </tr>
             </thead>
             <tbody>
