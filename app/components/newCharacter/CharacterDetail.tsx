@@ -67,11 +67,11 @@ export default function CharacterDetail({
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
           <div className="flex items-start gap-4">
-            <AvatarSection
+            <CharacterAvatar
+              roleId={localRole.id || 0}
+              onchange={handleAvatarChange}
+              avatarDeliverId={localRole.avatarId}
               isEditing={isEditing}
-              onChange={handleAvatarChange}
-              roleId={localRole.id}
-              avatarId={localRole.avatarId}
             />
 
             <div className="flex-1 space-y-4">
@@ -137,26 +137,5 @@ export default function CharacterDetail({
       {/* 扩展模块， */}
       <ExpansionModule />
     </div>
-  );
-}
-
-/**
- * 头像组件
- * 用于展示和上传角色头像
- */
-// 头像组件
-function AvatarSection({ isEditing, onChange, roleId, avatarId }: {
-  isEditing: boolean;
-  onChange: (avatarUrl: string, avatarId: number) => void;
-  roleId?: number;
-  avatarId: number;
-}) {
-  return (
-    <>
-      {isEditing && (
-        // 替换input
-        <CharacterAvatar roleId={roleId || 0} onchange={onChange} avatarDeliverId={avatarId} />
-      )}
-    </>
   );
 }
