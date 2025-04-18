@@ -95,7 +95,8 @@ export default function PerformanceEditor({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-base-200 rounded-lg p-4">
+      <h3 className="font-bold mb-3">基本信息</h3>
       {/* 短字段区域 - 多列排布 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {shortFields.map(key => (
@@ -162,7 +163,7 @@ export default function PerformanceEditor({
       <div className="border-t border-base-300 pt-4 mt-4">
         <h3 className="font-bold mb-3">携带物品</h3>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto bg-base-200 rounded-lg">
           <table className="table table-zebra table-compact w-full">
             <thead>
               <tr>
