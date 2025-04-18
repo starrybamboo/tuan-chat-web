@@ -1,6 +1,5 @@
 import type { NumericalConstraints } from "../types";
 import { useState } from "react"; // 需要实现的公式解析器
-// NumericalEditor.tsx
 import FormulaParser from "./FormulaParser";
 
 interface NumericalEditorProps {
@@ -85,20 +84,39 @@ export default function NumericalEditor({
   return (
     <div className="space-y-6">
       {Object.entries(constraints).map(([totalKey, fields]) => {
-        // 使用map动态渲染属性
         const entries = Object.entries(fields);
-
-        // 获取当前约束组的输入状态
         const inputState = inputStates.get(totalKey) || { key: "", value: "" };
+
+        const totalPoints = Number(totalKey);
+        // 计算当前字段值的总和
+        const currentSum = Object.values(fields).reduce((sum: number, value) => {
+          const parsed = typeof value === "string"
+            ? FormulaParser.parse(value)
+            : Number(value);
+
+          const numericValue = Number(parsed);
+          return Number.isNaN(numericValue) ? sum : sum + numericValue;
+        }, 0);
+
+        const remainPoints = totalPoints - currentSum;
 
         return (
           <div key={totalKey} className="bg-base-200 p-4 rounded-lg">
-            <div className="flex justify-between mb-4">
+            <div className="flex items-center mb-4">
               <h3 className="font-bold">
-                规则名称
-                {" "}
-                {totalKey === "0" ? "依赖项" : totalKey}
+                {totalKey === "0" ? "动态约束组" : `总点数: ${totalPoints}`}
               </h3>
+              <span
+                className={`font-semibold ${
+                  remainPoints < 0
+                    ? "text-error font-bold pl-8"
+                    : "text-success pl-8"
+                }`}
+              >
+                {remainPoints >= 0
+                  ? `剩余点数: ${remainPoints}`
+                  : `超出点数: ${-remainPoints}`}
+              </span>
             </div>
 
             {/* 网格布局 */}
@@ -137,8 +155,19 @@ export default function NumericalEditor({
                       });
                     }}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path
+                        d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                      />
                       <line x1="10" y1="11" x2="10" y2="17" />
                       <line x1="14" y1="11" x2="14" y2="17" />
                     </svg>

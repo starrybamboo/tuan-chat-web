@@ -1,6 +1,5 @@
 import type { Route } from "./+types/home";
 import CharacterMain from "@/components/newCharacter/CharacterMain";
-import { defaultRules } from "@/components/newCharacter/rules/rules";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -12,10 +11,7 @@ export function meta(_args: Route.MetaArgs) {
 export default function Role() {
   return (
     <div className="h-screen">
-      <CharacterMain
-        rules={defaultRules}
-        defaultRuleId="rule-coc"
-      />
+      <CharacterMain />
     </div>
   );
 }
