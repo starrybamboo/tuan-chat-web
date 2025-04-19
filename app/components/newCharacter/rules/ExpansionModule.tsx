@@ -1,5 +1,6 @@
 import type { GameRule } from "../types";
 import { useState } from "react";
+import { useRuleListQuery } from "../../../../api/queryHooks";
 import Section from "../Section";
 import NumericalEditor from "./NumericalEditor";
 import PerformanceEditor from "./PerformanceEditor";
@@ -26,6 +27,8 @@ export default function ExpansionModule({
   const [currentRule, setCurrentRule] = useState<GameRule | undefined>(() => {
     return rules.length > 0 ? { ...rules[0] } : undefined;
   });
+
+  const { data: ruleList } = useRuleListQuery();
 
   // 处理规则切换
   const handleRuleChange = (newRuleId: number) => {
@@ -68,7 +71,7 @@ export default function ExpansionModule({
   return (
     <div className="space-y-6">
       <RulesSection
-        rules={rules}
+        rules={ruleList || []} // 提供默认空数组
         currentRuleId={selectedRuleId}
         onRuleChange={handleRuleChange}
       />

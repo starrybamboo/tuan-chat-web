@@ -24,6 +24,7 @@ export type GameRule = {
   id: number;
   name: string;
   description: string;
+  // 允许包含任意数量的键值对，fieldName 为 string，value 为 string
   performance: PerformanceFields;
   numerical: NumericalConstraints;
 };

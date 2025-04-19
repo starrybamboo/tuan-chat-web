@@ -784,12 +784,28 @@ export const useRolesInitialization = (roleQuery: any) => {
 };
 
 
+
+import type { GameRule } from '@/components/newCharacter/types';
+
 //获取规则
 export function useRuleListQuery() {
   return useQuery({
     queryKey: ["ruleList"],
-    queryFn: async () => await tuanchat.ruleController.getRuleList(),
-})
+    queryFn: async (): Promise<GameRule[]> => {
+      const res = await tuanchat.ruleController.getRuleList();
+      if (res.success && res.data) {
+        // 将后端数据结构转换为前端需要的 `GameRule` 类型
+        return res.data.map(rule => ({
+          id: rule.ruleId || 0,
+          name: rule.ruleName || "",
+          description: rule.ruleDescription || "",
+          performance: rule.actTemplate || {}, // 表演字段
+          numerical: rule.abilityDefault || {}, // 数值约束
+        }));
+      }
+      throw new Error('获取规则列表失败');
+    }
+  });
 }
    
 // post部分
