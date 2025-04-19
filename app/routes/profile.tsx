@@ -3,7 +3,7 @@ import ProfilePage from "@/components/profile/profilePage";
 
 export function meta(_args: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
+    { title: "tuan-chat" },
     { name: "description", content: "Welcome to React Router!" },
   ];
 }

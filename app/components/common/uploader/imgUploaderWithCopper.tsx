@@ -121,10 +121,10 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
     );
 
     try {
-      const downloadUrl = await uploadUtils.upload(fileWithNewName);
+      const downloadUrl = await uploadUtils.uploadImg(fileWithNewName);
       setDownloadUrl(downloadUrl);
       const copperedImgFile = await getCopperedImg();
-      const copperedDownloadUrl = await uploadUtils.upload(copperedImgFile);
+      const copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, 70, 768);
       setCopperedDownloadUrl(copperedDownloadUrl);
       if (mutate !== undefined) {
         mutate({ avatarUrl: copperedDownloadUrl, spriteUrl: downloadUrl });
@@ -180,6 +180,18 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
       type: "image/png",
       lastModified: Date.now(),
     });
+  }
+
+  async function handleDownload() {
+    const copperedImgFile = await getCopperedImg();
+    const url = URL.createObjectURL(copperedImgFile);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${fileName}-cropped.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -239,7 +251,12 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
                   ? (
                       <button className="btn loading" disabled={true} type="button"></button>
                     )
-                  : <button className="btn btn-dash" onClick={handleSubmit} type="button">完成</button>
+                  : (
+                      <div className="flex flex-row justify-center gap-4">
+                        <button className="btn w-max btn-info" onClick={handleSubmit} type="button">完成</button>
+                        <button className="btn w-max btn-info" onClick={handleDownload} type="button">下载裁切后的图像</button>
+                      </div>
+                    )
               }
 
             </div>

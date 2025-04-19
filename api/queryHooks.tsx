@@ -33,7 +33,7 @@ import type {
     AbilityFieldUpdateRequest,
     ApiResultListRoleResponse,
     ApiResultRoleAbility,
-    ApiResultUserInfoResponse,
+    ApiResultUserInfoResponse, GroupOwnerTransferRequest,
     Message,
     RoleResponse
 } from "api";
@@ -316,6 +316,20 @@ export function useRevokePlayerMutation() {
     });
 }
 
+/**
+ * 转让群主
+ */
+export function useTransferOwnerMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: GroupOwnerTransferRequest) => tuanchat.groupMemberController.transferGroupOwner(req),
+        mutationKey: ['transferGroupOwner'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.roomId] });
+        }
+    });
+}
+
 
 // ==================== 头像系统 ====================
 /**
@@ -557,46 +571,6 @@ export function useUpdateKeyFieldMutation() {
 
 
 
-// upload-utils.ts
-
-// 上传图片
-export class UploadUtils {
-  constructor(private readonly scene: number = 2) {}
-
-  async upload(file: File): Promise<string> {
-    const ossData = await tuanchat.ossController.getUploadUrl({
-      fileName: file.name,
-      scene: this.scene,
-    });
-
-    if (!ossData.data?.uploadUrl) {
-      throw new Error("获取上传地址失败");
-    }
-
-    await this.executeUpload(ossData.data.uploadUrl, file);
-
-    if (!ossData.data.downloadUrl) {
-      throw new Error("获取下载地址失败");
-    }
-    return ossData.data.downloadUrl;
-  }
-
-  private async executeUpload(url: string, file: File): Promise<void> {
-    const response = await fetch(url, {
-      method: "PUT",
-      body: file,
-      headers: {
-        "Content-Type": file.type,
-        "x-oss-acl": "public-read",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`文件传输失败: ${response.status}`);
-    }
-  }
-}
-
 export function useUpdateMessageMutation(){
     const queryClient = useQueryClient();
     return useMutation({
@@ -605,50 +579,6 @@ export function useUpdateMessageMutation(){
     })
 }
 
-
-
-
-   
-
-// // 用户查询
-// export function useUserInfo(userId: number) {
-//   const userQuery = useQuery({
-//     queryKey: ["userId"],
-//     queryFn: async (): Promise<ApiResultUserInfoResponse | undefined> => {
-//       const res = await tuanchat.userController.getUserInfo(userId);
-//       if (res.success === false || res.data === null) {
-//         console.error("用户信息获取失败或数据为空");
-//         return undefined; // 返回 undefined 表示获取失败
-//       }
-//       return res;
-//     },
-//   },
-//   );
-//   return userQuery;
-// }
-//
-//
-// // 角色查询
-// export function useUserRoles(userQuery: UseQueryResult<ApiResultUserInfoResponse | undefined>) {
-//   const roleQuery = useQuery({
-//     queryKey: ["userRole", userQuery.data?.data?.userId],
-//     queryFn: async (): Promise<ApiResultListRoleResponse | undefined> => {
-//       const userId = userQuery.data?.data?.userId;
-//       if (userId === undefined) {
-//         console.error("用户ID不存在，无法获取角色信息");
-//         return undefined;
-//       }
-//       const res = await tuanchat.roleController.getUserRoles(userId);
-//       if (res.success === false || res.data === null) {
-//         console.error("角色信息获取失败或数据为空");
-//         return undefined;
-//       }
-//       return res;
-//     },
-//     enabled: !!userQuery.data?.data?.userId, // 只有当 userId 存在时才启用查询
-//   });
-//   return roleQuery;
-// }
 
 // 头像查询
 export function useRoleAvaters(roleId: number) {

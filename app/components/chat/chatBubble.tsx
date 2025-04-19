@@ -2,6 +2,7 @@ import type { ChatMessageResponse, Message } from "api";
 import { ExpressionChooser } from "@/components/chat/ExpressionChooser";
 import { GroupContext } from "@/components/chat/GroupContext";
 import RoleChooser from "@/components/chat/RoleChooser";
+import BetterImg from "@/components/common/betterImg";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -94,6 +95,13 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
         );
   }
 
+  function renderContent() {
+    if (message.messageType === 2) {
+      return (<BetterImg src={message.extra?.imageMessage?.url} className="max-h-[40vh]" />);
+    }
+    return (<EditableField content={message.content}></EditableField>);
+  }
+
   function handleRoleNameClick() {
     if (userId === message.userId) {
       setIsRoleChooserOpen(true);
@@ -109,7 +117,8 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
                 <RoleAvatarComponent avatarId={message.avatarId} width={10} isRounded={true} withTitle={false} stopPopWindow={true}></RoleAvatarComponent>
               </div>
               <div className={message.messageType !== 0 ? "chat-bubble" : "chat-bubble chat-bubble-neutral"}>
-                <EditableField content={message.content}></EditableField>
+                {/* <EditableField content={message.content}></EditableField> */}
+                {renderContent()}
               </div>
               <div className="chat-footer">
                 <div className={`cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`} onClick={handleRoleNameClick}>
@@ -137,7 +146,8 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
                 <div className={`text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`} onClick={handleRoleNameClick}>
                   {role?.roleName?.trim() || "Undefined"}
                 </div>
-                <EditableField content={message.content}></EditableField>
+                {/* <EditableField content={message.content}></EditableField> */}
+                {renderContent()}
                 {/* 时间 */}
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {message.createTime ?? ""}

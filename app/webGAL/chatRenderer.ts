@@ -117,10 +117,13 @@ export class ChatRenderer {
       console.log(`Processing ${sortedMessages.length} messages`); // 添加日志
 
       // 最多生成几段音频 仅供在tts api不足的情况下进行限制
-      let maxVocal = 2;
+      let maxVocal = 0;
 
       for (const messageResponse of sortedMessages) {
         const { message } = messageResponse;
+        if (message.messageType !== 1) {
+          return;
+        }
         const role = this.roleMap.get(message.roleId);
 
         // 以下处理是为了防止被webGal判断为新一段的对话
@@ -132,16 +135,19 @@ export class ChatRenderer {
         if (role && role.roleName && message.content && message.content !== "") {
           // 每80个字符分割一次
           const contentSegments = this.splitContent(processedContent);
-          let vocalFileName: string | undefined;
-          if (maxVocal > 0) {
-            vocalFileName = await this.renderer.uploadVocal(messageResponse);
-            maxVocal--;
-          }
-          else {
-            vocalFileName = undefined;
-          }
           // 为每个分割后的段落创建对话
           for (const segment of contentSegments) {
+            // 生成语音
+            let vocalFileName: string | undefined;
+            // 不是系统角色，且不是空行，且不是指令，则生成语音
+            if (maxVocal > 0 && message.roleId !== 0 && segment !== "" && !message.content.startsWith(".") && !message.content.startsWith("。")) {
+              // 将聊天内容替换为 segment
+              vocalFileName = await this.renderer.uploadVocal({ ...messageResponse, message: { ...messageResponse.message, content: segment } });
+              maxVocal--;
+            }
+            else {
+              vocalFileName = undefined;
+            }
             await this.renderer.addDialog(
               message.roleId,
               role.roleName,

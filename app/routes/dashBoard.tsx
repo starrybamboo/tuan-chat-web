@@ -4,7 +4,7 @@ import { Outlet } from "react-router";
 
 export function meta(_args: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
+    { title: "tuan-chat" },
     { name: "description", content: "Welcome to React Router!" },
   ];
 }
