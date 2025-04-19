@@ -8,7 +8,7 @@ import RulesSection from "./RulesSection";
 
 interface ExpansionModuleProps {
   rules?: GameRule[];
-  onRuleDataChange?: (ruleId: string, performance: any, numerical: any) => void; // 可选回调
+  onRuleDataChange?: (ruleId: number, performance: any, numerical: any) => void; // 可选回调
 }
 
 /**
@@ -20,15 +20,15 @@ export default function ExpansionModule({
   onRuleDataChange,
 }: ExpansionModuleProps) {
   // 管理当前选择的规则和规则数据
-  const [selectedRuleId, setSelectedRuleId] = useState<string>(
-    rules.length > 0 ? rules[0].id : "",
+  const [selectedRuleId, setSelectedRuleId] = useState<number>(
+    rules.length > 0 ? rules[0].id : 0,
   );
   const [currentRule, setCurrentRule] = useState<GameRule | undefined>(() => {
     return rules.length > 0 ? { ...rules[0] } : undefined;
   });
 
   // 处理规则切换
-  const handleRuleChange = (newRuleId: string) => {
+  const handleRuleChange = (newRuleId: number) => {
     // 触发回调通知当前规则数据更改
     if (onRuleDataChange && selectedRuleId && currentRule) {
       onRuleDataChange(

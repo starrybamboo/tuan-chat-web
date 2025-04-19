@@ -3,8 +3,8 @@ import type { GameRule } from "../types";
 
 interface RulesSectionProps {
   rules: GameRule[];
-  currentRuleId: string;
-  onRuleChange: (newRuleId: string) => void;
+  currentRuleId: number;
+  onRuleChange: (newRuleId: number) => void;
 }
 
 /**
@@ -27,7 +27,7 @@ export default function RulesSection({
             <select
               className="select select-bordered w-full"
               value={currentRuleId}
-              onChange={e => onRuleChange(e.target.value)}
+              onChange={e => onRuleChange(Number(e.target.value))}
             >
               {rules.map(rule => (
                 <option key={rule.id} value={rule.id}>
