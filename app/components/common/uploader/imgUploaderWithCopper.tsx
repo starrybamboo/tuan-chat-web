@@ -182,6 +182,18 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
     });
   }
 
+  async function handleDownload() {
+    const copperedImgFile = await getCopperedImg();
+    const url = URL.createObjectURL(copperedImgFile);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${fileName}-cropped.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div>
       <input
@@ -239,7 +251,12 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
                   ? (
                       <button className="btn loading" disabled={true} type="button"></button>
                     )
-                  : <button className="btn btn-dash" onClick={handleSubmit} type="button">完成</button>
+                  : (
+                      <div className="flex flex-row justify-center gap-4">
+                        <button className="btn w-max btn-info" onClick={handleSubmit} type="button">完成</button>
+                        <button className="btn w-max btn-info" onClick={handleDownload} type="button">下载裁切后的图像</button>
+                      </div>
+                    )
               }
 
             </div>
