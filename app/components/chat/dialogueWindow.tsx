@@ -138,16 +138,12 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
 
     const receivedMessages = getNewMessagesByRoomId(groupId);
     // 这是为了更新历史消息(ws发过来的消息有可能是带有相同的messageId的, 代表消息的更新)
-    historyMessages.forEach(msg =>
-      messageMap.set(msg.message.messageID, msg),
-    );
-    receivedMessages.forEach(msg =>
-      messageMap.set(msg.message.messageID, msg),
-    );
+    historyMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
+    receivedMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
 
-    return Array.from(messageMap.values()).sort((a, b) =>
-      a.message.position - b.message.position,
-    );
+    return Array.from(messageMap.values())
+      .sort((a, b) => a.message.position - b.message.position)
+      .filter(msg => msg.message.messageType !== 0);
   }, [getNewMessagesByRoomId, groupId, messagesInfiniteQuery.data?.pages]);
 
   /**

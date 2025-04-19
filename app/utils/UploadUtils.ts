@@ -1,3 +1,5 @@
+import { compressImage } from "@/utils/imgCompressUtils";
+
 // upload-utils.ts
 import { tuanchat } from "../../api/instance";
 
@@ -5,8 +7,13 @@ export class UploadUtils {
   constructor(private readonly scene: number = 2) {}
 
   async upload(file: File): Promise<string> {
+    let new_file = file;
+    if (file.type.startsWith("image/")) {
+      new_file = await compressImage(file);
+    }
+
     const ossData = await tuanchat.ossController.getUploadUrl({
-      fileName: file.name,
+      fileName: new_file.name,
       scene: this.scene,
     });
 
@@ -14,7 +21,7 @@ export class UploadUtils {
       throw new Error("获取上传地址失败");
     }
 
-    await this.executeUpload(ossData.data.uploadUrl, file);
+    await this.executeUpload(ossData.data.uploadUrl, new_file);
 
     if (!ossData.data.downloadUrl) {
       throw new Error("获取下载地址失败");
