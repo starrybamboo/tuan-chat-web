@@ -121,10 +121,10 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
     );
 
     try {
-      const downloadUrl = await uploadUtils.upload(fileWithNewName);
+      const downloadUrl = await uploadUtils.uploadImg(fileWithNewName);
       setDownloadUrl(downloadUrl);
       const copperedImgFile = await getCopperedImg();
-      const copperedDownloadUrl = await uploadUtils.upload(copperedImgFile);
+      const copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, 70, 768);
       setCopperedDownloadUrl(copperedDownloadUrl);
       if (mutate !== undefined) {
         mutate({ avatarUrl: copperedDownloadUrl, spriteUrl: downloadUrl });

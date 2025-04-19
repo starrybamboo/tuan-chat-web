@@ -241,7 +241,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
 
     if (imgFiles.length > 0) {
       for (let i = 0; i < imgFiles.length; i++) {
-        const imgDownLoadUrl = await uploadUtils.upload(imgFiles[i]);
+        const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
         // 获取到图片的宽高
         const { width, height } = await new Promise<{ width: number; height: number }>((resolve) => {
           const img = new Image();
