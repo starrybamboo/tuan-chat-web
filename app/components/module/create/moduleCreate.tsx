@@ -1,4 +1,6 @@
 import type { SubmitHandler } from "react-hook-form";
+import TInput from "@/components/common/form/input";
+import TTextArea from "@/components/common/form/textarea";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useForm } from "react-hook-form";
 
@@ -86,39 +88,28 @@ function ModuleForm() {
         </div>
         <div className="basis-[70%] bg-base-200 flex flex-col gap-4 p-4 rounded-md">
           <div className="w-full flex gap-6">
-            <fieldset className="fieldset basis-1/2 bg-base-200 border-base-300 rounded-box border p-4">
-              <legend className="fieldset-legend py-0">
-                模组作者
-              </legend>
-              <input
-                className={`input rounded-sm ${errors.authorName && "input-error"}`}
-                {...register(ModuleFormKeys.AUTHOR_NAME, { required: "请输入作者名称", setValueAs: (val: string) => val.trim() })}
-              />
-              <p className="label text-error">
-                {errors.authorName ? errors.authorName.message : "\u00A0"}
-              </p>
-            </fieldset>
-
-            <fieldset className="fieldset basis-1/2 bg-base-200 border-base-300 rounded-box border p-4">
-              <legend className="fieldset-legend py-0">
-                模组名称
-              </legend>
-              <input className={`input rounded-sm ${errors.moduleName && "input-error"}`} {...register(ModuleFormKeys.MODULE_NAME, { required: "请输入模组名称", setValueAs: (val: string) => val.trim() })} />
-              <p className="label text-error">{ errors.moduleName ? errors.moduleName.message : "\u00A0"}</p>
-            </fieldset>
-          </div>
-
-          <fieldset className="fieldset w-full bg-base-200 border-base-300 rounded-box border p-4">
-            <legend className="fieldset-legend py-0">
-              模组描述
-            </legend>
-            <textarea
-              className={`textarea rounded-sm w-full max-h-32 ${errors.description && "textarea-error"}`}
-              {...register(ModuleFormKeys.DESCRIPTION, { required: "请输入模组描述", setValueAs: (val: string) => val.trim() })}
+            <TInput
+              className="basis-1/2"
+              field={ModuleFormKeys.AUTHOR_NAME}
+              register={register}
+              name="模组作者"
+              errors={errors}
             />
-            <p className="label text-error">{ errors.description ? errors.description?.message : "\u00A0"}</p>
-          </fieldset>
-
+            <TInput
+              className="basis-1/2"
+              field={ModuleFormKeys.MODULE_NAME}
+              register={register}
+              name="模组名称"
+              errors={errors}
+            />
+          </div>
+          <TTextArea
+            className="w-full"
+            field={ModuleFormKeys.DESCRIPTION}
+            register={register}
+            name="模组描述"
+            errors={errors}
+          />
           <input type="submit" className="btn btn-success" value="提交" />
         </div>
       </form>
