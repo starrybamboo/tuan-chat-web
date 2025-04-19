@@ -9,7 +9,7 @@ export type Role = {
 };
 
 export type NumericalConstraint = {
-  [key: string]: number | string;
+  [key: string]: string | number;
 };
 
 export type NumericalConstraints = {
@@ -21,7 +21,7 @@ export type PerformanceFields = {
 };
 
 export type GameRule = {
-  id: string;
+  id: number;
   name: string;
   description: string;
   performance: PerformanceFields;
