@@ -642,76 +642,101 @@ export function useRoleAbility(roleId: number) {
   return abilityQuery;
 }
 
+// 根据头像id获取头像
+export function useRoleAvatarQuery(avatarId: number) {
+  const avatarQuery = useQuery({
+    queryKey: ["avatar", avatarId],
+    queryFn: async (): Promise<string | undefined> => {
+      try {
+        const res = await tuanchat.avatarController.getRoleAvatar(avatarId);
+        if (
+          res.success
+          && res.data!==null
+        )
+        return res.data?.avatarUrl;
+      }
+      catch (error) {
+        console.error(`${avatarId} 的头像时出错`, error);
+      }
+    }
+  })
+  return avatarQuery.data;
+}
+
 
 //Warpper界面useEffect的逻辑,去掉了useEffect
-import type { CharacterData } from '@/components/character/characterWrapper';
+import type { Role } from '@/components/newCharacter/types';
 import { useCallback, useState } from 'react';
-export const useCharacterInitialization = (roleQuery: any) => {
+export const useRolesInitialization = (roleQuery: any) => {
   const queryClient = useQueryClient();
-  const [characters, setCharacters] = useState<CharacterData[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
 
-  const initializeCharacters = useCallback(async () => {
+  const initializeRoles = useCallback(async () => {
     if (roleQuery.data && Array.isArray(roleQuery.data.data)) {
-      const mappedCharacters = roleQuery.data.data.map((role: RoleResponse) => ({
+      const mappedRoles = roleQuery.data.data.map((role: RoleResponse) => ({
         id: role.roleId || 0,
         name: role.roleName || "",
-        age: 25,
-        gender: "未知",
-        profession: "",
-        hometown: "",
-        address: "",
-        currentTime: new Date().toLocaleString(),
-        health: {
-          max: 100,
-          current: 100,
-        },
-        magic: {
-          max: 100,
-          current: 100,
-        },
-        sanity: {
-          max: 100,
-          current: 100,
-        },
-        luck: 50,
         description: role.description || "无描述",
-        avatar: undefined,
-        currentIndex: role.avatarId || 0,
+        avatar: "",
+        inventory: [],
+        abilities: [],
+        avatarId: role.avatarId || 0,
       }));
 
-      setCharacters(mappedCharacters);
+      setRoles(mappedRoles);
 
       // 异步加载每个角色的头像
-      for (const character of mappedCharacters) {
+      for (const Roles of mappedRoles) {
         try {
-          const res = await tuanchat.avatarController.getRoleAvatar(character.currentIndex);
+          const res = await tuanchat.avatarController.getRoleAvatar(Roles.avatarId);
           if (
             res.success &&
             res.data
           ) {
             const avatarUrl = res.data.avatarUrl;
-            queryClient.setQueryData(["roleAvatar", character.id], avatarUrl);
-            setCharacters((prevChars: any[]) =>
+            queryClient.setQueryData(["roleAvatar", Roles.id], avatarUrl);
+            setRoles((prevChars: any[]) =>
               prevChars.map(char =>
-                char.id === character.id ? { ...char, avatar: avatarUrl } : char,
+                char.id === Roles.id ? { ...char, avatar: avatarUrl } : char,
               ),
             );
           } else {
-            console.warn(`角色 ${character.id} 的头像数据无效或为空`);
+            console.warn(`角色 ${Roles.id} 的头像数据无效或为空`);
           }
         } catch (error) {
-          console.error(`加载角色 ${character.id} 的头像时出错`, error);
+          console.error(`加载角色 ${Roles.id} 的头像时出错`, error);
         }
       }
     }
   }, [roleQuery.data, queryClient]);
 
-  const updateCharacters = (newCharacters: CharacterData[]) => {
-    setCharacters(newCharacters);
-  };
-
-  return { characters, initializeCharacters, updateCharacters };
+  return { roles, initializeRoles, setRoles };
 };
+
+
+
+import type { GameRule } from '@/components/newCharacter/types';
+
+//获取规则
+export function useRuleListQuery() {
+  return useQuery({
+    queryKey: ["ruleList"],
+    queryFn: async (): Promise<GameRule[]> => {
+      const res = await tuanchat.ruleController.getRuleList();
+      if (res.success && res.data) {
+        // 将后端数据结构转换为前端需要的 `GameRule` 类型
+        return res.data.map(rule => ({
+          id: rule.ruleId || 0,
+          name: rule.ruleName || "",
+          description: rule.ruleDescription || "",
+          performance: rule.actTemplate || {}, // 表演字段
+          numerical: rule.abilityDefault || {}, // 数值约束
+        }));
+      }
+      throw new Error('获取规则列表失败');
+    }
+  });
+}
    
 // post部分
 //删除角色
