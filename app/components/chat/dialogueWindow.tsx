@@ -238,7 +238,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
    */
   const [isSubmitting, setIsSubmitting] = useState(false);
   const handleMessageSubmit = async () => {
-    setIsSubmitting(false);
+    setIsSubmitting(true);
     if (!inputText.trim() && !imgFiles.length) {
       return;
     }
@@ -246,6 +246,17 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
     if (imgFiles.length > 0) {
       for (let i = 0; i < imgFiles.length; i++) {
         const imgDownLoadUrl = await uploadUtils.upload(imgFiles[i]);
+        // 获取到图片的宽高
+        const { width, height } = await new Promise<{ width: number; height: number }>((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            URL.revokeObjectURL(img.src);
+            resolve({ width: img.naturalWidth || 114, height: img.naturalHeight || 114 });
+          };
+          img.onerror = () => resolve({ width: 114, height: 114 }); // 失败时使用默认值
+          img.src = URL.createObjectURL(imgFiles[i]);
+        });
+
         if (imgDownLoadUrl && imgDownLoadUrl !== "") {
           const messageRequest: ChatMessageRequest = {
             content: "",
@@ -257,8 +268,8 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
               size: 0,
               url: imgDownLoadUrl,
               fileName: imgDownLoadUrl.split("/").pop() || `${groupId}-${Date.now()}`,
-              width: 114,
-              height: 114,
+              width,
+              height,
             },
           };
           send(messageRequest);
@@ -287,7 +298,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
         send(messageRequest);
       }
       setInputText("");
-      setIsSubmitting(false);
     }
 
     // 滚动到底部, 设置异步是为了等待新消息接受并渲染好
@@ -296,6 +306,8 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
         chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight, behavior: "smooth" });
       }
     }, 300);
+
+    setIsSubmitting(false);
   };
 
   async function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {

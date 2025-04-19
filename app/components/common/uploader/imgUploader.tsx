@@ -22,13 +22,6 @@ export function ImgUploader({ setImg, children }: ImgUploaderProps) {
       return;
     }
     setImg(file);
-    // try {
-    //   const downloadUrl = await uploadUtils.upload(file);
-    //   setImg(downloadUrl);
-    // }
-    // catch (error) {
-    //   console.error("上传失败:", error);
-    // }
   };
 
   return (

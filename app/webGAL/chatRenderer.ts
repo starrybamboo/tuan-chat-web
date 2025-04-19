@@ -121,6 +121,9 @@ export class ChatRenderer {
 
       for (const messageResponse of sortedMessages) {
         const { message } = messageResponse;
+        if (message.messageType !== 1) {
+          return;
+        }
         const role = this.roleMap.get(message.roleId);
 
         // 以下处理是为了防止被webGal判断为新一段的对话

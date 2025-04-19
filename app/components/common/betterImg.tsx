@@ -7,7 +7,7 @@ function BetterImg({ src, className, onClose }: { src: string | File | undefined
   return (
     <div>
       <div className="relative inline-block group">
-        <img src={imgSrc} className={`${className} hover:scale-105`} alt="img" onClick={() => setIsOpen(true)} />
+        <img src={imgSrc} className={`hover:scale-101 ${className} `} alt="img" onClick={() => setIsOpen(true)} />
         {
           onClose && (
             <button
