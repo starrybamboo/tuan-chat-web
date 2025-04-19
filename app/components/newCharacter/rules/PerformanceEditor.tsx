@@ -21,13 +21,15 @@ export default function PerformanceEditor({
   const [newItemName, setNewItemName] = useState("");
   const [newItemDesc, setNewItemDesc] = useState("");
 
-  // 短字段（如年龄、性别等），多列排布
-  const shortFields = ["性别", "年龄", "外貌", "特质"];
+  // 长字段，记得写入
+  const longFieldKeys = [""];
 
   // 长字段（如背景故事等）
-  const longFields = Object.entries(fields).filter(
-    ([key]) => !shortFields.includes(key) && key !== "携带物品",
-  );
+  const longFields = Object.entries(fields)
+    .filter(([key]) => longFieldKeys.includes(key));
+
+  const shortFields = Object.keys(fields)
+    .filter(key => key !== "携带物品" && !longFieldKeys.includes(key));
 
   // 计算每列应该显示的字段数量
   const longFieldCount = longFields.length;
