@@ -32,14 +32,14 @@ export default function Home() {
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)] bg-base-100 overflow-x-hidden">
-      <div className="mx-auto max-w-[1280px] px-4 py-[10px] flex flex-col justify-center items-center">
+      <div className="mx-auto max-w-[1280px] px-4 py-[10px] flex flex-col gap-8 justify-center items-center">
         <div className="w-full basis-[360px] flex gap-[10px]">
-          <Carousel className="basis-[80%] rounded-md shrink shadow-md" items={data} />
-          <UserCard className="basis-[20%] rounded-md shrink-0 bg-base-200 shadow-md" />
+          <Carousel className="basis-[80%] rounded-md shrink-0 grow shadow-md" items={data} />
+          <UserCard className="basis-[20%] rounded-md shrink-0 grow-0 overflow-hidden bg-base-200 shadow-md" />
         </div>
         <div className="w-full flex flex-wrap gap-10px">
           {
-            [1, 2, 3, 4, 5].map(i => (
+            [1].map(i => (
               <ModuleCardContainer key={i}>
                 <ModuleCard />
               </ModuleCardContainer>

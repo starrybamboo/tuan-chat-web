@@ -14,19 +14,19 @@ function UserCard({ className }: { className?: string }) {
       key: "saved",
       value: "0",
     },
-    {
-      label: "已点赞",
-      value: "0",
-    },
-    {
-      label: "已关注",
-      value: "0",
-    },
+    // {
+    //   label: "已点赞",
+    //   value: "0",
+    // },
+    // {
+    //   label: "已关注",
+    //   value: "0",
+    // },
   ];
 
   return (
-    <div className={`grid grid-cols-2 grid-rows-12 ${className}`}>
-      <div className="col-span-2 row-span-6 flex justify-center items-center">
+    <div className={`flex flex-col ${className}`}>
+      <div className="basis-2/5 flex justify-center items-center">
         {/* {userId
           ? <UserAvatarComponent userId={userId} width={12} isRounded />
           : (
@@ -38,16 +38,17 @@ function UserCard({ className }: { className?: string }) {
           <img className="rounded-full" src={defaultAvatar} />
         </div>
       </div>
-      {cardSections.map(section => (
-        <div className="col-span-1 row-span-3 flex flex-col items-center" key={section.label}>
-          <div className="font-bold h-6 flex justify-center items-center">
-            {section.label}
-          </div>
-          <div className=" h-6 flex justify-center items-center">
-            {section.value}
-          </div>
-        </div>
-      ))}
+      <div className="stats shadow basis-3/5 flex-wrap">
+        {
+          cardSections.map(section => (
+            <div className="stat h-24 hover:bg-neutral-content hover:cursor-pointer" key={section.key}>
+              <div className="stat-title mx-auto text-[1rem] text-primary">{section.label}</div>
+              <div className="stat-value mx-auto text-primary">{section.value}</div>
+              {/* <div className="stat-desc">21% more than last month</div> */}
+            </div>
+          ))
+        }
+      </div>
     </div>
   );
 }
