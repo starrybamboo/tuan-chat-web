@@ -117,7 +117,7 @@ export class ChatRenderer {
       console.log(`Processing ${sortedMessages.length} messages`); // 添加日志
 
       // 最多生成几段音频 仅供在tts api不足的情况下进行限制
-      let maxVocal = 20;
+      let maxVocal = 0;
 
       for (const messageResponse of sortedMessages) {
         const { message } = messageResponse;

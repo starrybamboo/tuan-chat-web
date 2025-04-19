@@ -14,19 +14,22 @@ import { ExpressionChooser } from "@/components/chat/ExpressionChooser";
 import { GroupContext } from "@/components/chat/GroupContext";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
 import RoleChooser from "@/components/chat/RoleChooser";
+import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { commands } from "@/utils/commands";
+import { UploadUtils } from "@/utils/UploadUtils";
 import { ChatRenderer } from "@/webGAL/chatRenderer";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { tuanchat } from "api/instance";
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useImmer } from "use-immer";
 import {
   useAddMemberMutation,
   useAddRoleMutation,
@@ -42,6 +45,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   const [inputText, setInputText] = useState("");
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(true);
+  const uploadUtils = new UploadUtils(2);
   const PAGE_SIZE = 30; // 每页消息数量
 
   // 承载聊天记录窗口的ref
@@ -53,7 +57,9 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
 
   const userId = useGlobalContext().userId;
 
-  const [imgDownLoadUrl, setImgDownLoadUrl] = useState<string | undefined>(undefined);
+  // 聊天框中包含的图片
+  const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
+  // const [imgDownLoadUrl, setImgDownLoadUrl] = useState<string | undefined>(undefined);
   // 角色添加框的打开状态
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useState(false);
   // 成员添加框的打开状态
@@ -230,34 +236,60 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   /**
    *处理与组件的各种交互
    */
-  const handleMessageSubmit = () => {
-    if (!inputText.trim() || !userId) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const handleMessageSubmit = async () => {
+    setIsSubmitting(false);
+    if (!inputText.trim() && !imgFiles.length) {
       return;
     }
 
-    // 构造消息请求对象
-    const messageRequest: ChatMessageRequest = {
-      roomId: groupId,
-      roleId: curRoleId,
-      content: inputText.trim(),
-      avatarId: roleAvatars[curAvatarIndex].avatarId || -1,
-      messageType: 1,
-      body: {},
-    };
-    if (isCommand(inputText)) {
-      const commandResult = commandExecutor(inputText);
-      messageRequest.body = {
-        result: commandResult,
-      };
-      tuanchat.chatController.sendMessageAiResponse(messageRequest);
+    if (imgFiles.length > 0) {
+      for (let i = 0; i < imgFiles.length; i++) {
+        const imgDownLoadUrl = await uploadUtils.upload(imgFiles[i]);
+        if (imgDownLoadUrl && imgDownLoadUrl !== "") {
+          const messageRequest: ChatMessageRequest = {
+            content: "",
+            roomId: groupId,
+            roleId: curRoleId,
+            avatarId: roleAvatars[curAvatarIndex].avatarId || -1,
+            messageType: 2,
+            body: {
+              size: 0,
+              url: imgDownLoadUrl,
+              fileName: imgDownLoadUrl.split("/").pop() || `${groupId}-${Date.now()}`,
+              width: 114,
+              height: 114,
+            },
+          };
+          send(messageRequest);
+        }
+      }
     }
-    else {
-      send(messageRequest);
-    }
-    // 发送消息
+    updateImgFiles([]);
 
-    setInputText("");
-    // console.log("发送消息:", messageRequest);
+    if (inputText.trim() !== "") {
+      const messageRequest: ChatMessageRequest = {
+        roomId: groupId,
+        roleId: curRoleId,
+        content: inputText.trim(),
+        avatarId: roleAvatars[curAvatarIndex].avatarId || -1,
+        messageType: 1,
+        body: {},
+      };
+      if (isCommand(inputText)) {
+        const commandResult = commandExecutor(inputText);
+        messageRequest.body = {
+          result: commandResult,
+        };
+        tuanchat.chatController.sendMessageAiResponse(messageRequest);
+      }
+      else {
+        send(messageRequest);
+      }
+      setInputText("");
+      setIsSubmitting(false);
+    }
+
     // 滚动到底部, 设置异步是为了等待新消息接受并渲染好
     setTimeout(() => {
       if (chatFrameRef.current) {
@@ -265,6 +297,28 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
       }
     }, 300);
   };
+
+  async function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    // 获取剪贴板中的图片
+    const items = e.clipboardData?.items;
+    if (!items)
+      return;
+    // 如果是图片则放到imgFile中;
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        const blob = item.getAsFile();
+        if (!blob)
+          continue;
+        const file = new File([blob], `pasted-image-${Date.now()}`, {
+          type: blob.type,
+        });
+        updateImgFiles((draft) => {
+          draft.push(file);
+        });
+      }
+    }
+  }
 
   const handleAvatarChange = (avatarIndex: number) => {
     setCurAvatarIndex(avatarIndex);
@@ -415,7 +469,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
               className="card-body overflow-y-auto h-[60vh]"
               ref={chatFrameRef}
               onWheel={(e) => {
-              // 拖动时允许正常滚动
+                // 拖动时允许正常滚动
                 if (dragStartIndex.current !== -1) {
                   e.preventDefault();
                   chatFrameRef.current!.scrollTop += e.deltaY;
@@ -423,7 +477,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
               }}
             >
               {historyMessages
-                // .filter(chatMessageResponse => chatMessageResponse.message.content !== "")
+              // .filter(chatMessageResponse => chatMessageResponse.message.content !== "")
                 .map((chatMessageResponse, index) => ((
                   <div
                     key={chatMessageResponse.message.messageID}
@@ -441,7 +495,12 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                       onDragStart={e => handleDragStart(e, index)}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 6h16M4 12h16M4 18h16"
+                        />
                       </svg>
                     </div>
                     <ChatBubble
@@ -459,7 +518,13 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
               {/* 表情差分展示与选择 */}
               <div className="dropdown dropdown-top">
                 <div role="button" tabIndex={0} className="flex justify-center flex-col items-center space-y-2">
-                  <RoleAvatarComponent avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1} width={32} isRounded={true} withTitle={false} stopPopWindow={true} />
+                  <RoleAvatarComponent
+                    avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
+                    width={32}
+                    isRounded={true}
+                    withTitle={false}
+                    stopPopWindow={true}
+                  />
                   <div>{userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}</div>
                 </div>
                 {/* 表情差分选择器 */}
@@ -475,9 +540,15 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
               <div className="w-full textarea flex-wrap overflow-auto">
                 {/* 命令建议列表 */}
                 {isCommandMode() && getSuggestions().length > 0 && (
-                  <div className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden">
+                  <div
+                    className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden"
+                  >
                     {getSuggestions().map(cmd => (
-                      <div key={cmd.name} onClick={() => selectCommand(cmd.name)} className="p-2 w-full last:border-0 hover:bg-base-300 transform origin-left hover:scale-110">
+                      <div
+                        key={cmd.name}
+                        onClick={() => selectCommand(cmd.name)}
+                        className="p-2 w-full last:border-0 hover:bg-base-300 transform origin-left hover:scale-110"
+                      >
                         <span className="font-mono text-blue-600 dark:text-blue-400">
                           .
                           {cmd.name}
@@ -487,7 +558,19 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                     ))}
                   </div>
                 )}
-                <img src={imgDownLoadUrl} alt="" />
+                <div className="flex flex-row gap-x-3">
+                  {
+                    imgFiles.map((file, index) => (
+                      <BetterImg
+                        src={file}
+                        className="h-14 w-max rounded"
+                        onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
+                        key={file.name}
+                      />
+                    ))
+                  }
+                </div>
+
                 {/* text input */}
                 <textarea
                   className="textarea w-full h-20 md:h-32 lg:h-40 resize-none border-none focus:outline-none focus:ring-0 "
@@ -496,6 +579,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                   value={inputText}
                   onChange={e => setInputText(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  onPaste={async e => handlePaste(e)}
                 />
                 <div className="flex items-center float-left">
                   {/* 角色选择器 */}
@@ -505,25 +589,32 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                       <RoleChooser handleRoleChange={handleRoleChange}></RoleChooser>
                     </ul>
                   </div>
-                  <ImgUploaderWithCopper setCopperedDownloadUrl={setImgDownLoadUrl} setDownloadUrl={() => {}} fileName="test!test!!!!">
+                  <ImgUploader setImg={newImg => updateImgFiles((draft) => { draft.push(newImg); })}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-600 hover:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       {/* 图片框 */}
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2-2h4l2 2h4a2 2 0 012 2v10a2 2 0 01-2 2H5z" />
                       {/* 山峰图形 */}
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l-3-3m0 0l3-3m-3 3h6" />
                     </svg>
-                  </ImgUploaderWithCopper>
+                  </ImgUploader>
                 </div>
 
                 <div className="float-right gap-2 flex">
-                  <button className="btn" type="button" onClick={handleRender} disabled={isRendering}>渲染对话</button>
+                  <button className="btn" type="button" onClick={handleRender} disabled={isRendering}>
+                    渲染对话
+                  </button>
                   <label className="swap w-30 btn">
                     <input type="checkbox" />
                     <div className="swap-on" onClick={() => setUseChatBubbleStyle(false)}>Use Chat Bubble Style</div>
                     <div className="swap-off" onClick={() => setUseChatBubbleStyle(true)}>Use Chat Box Style</div>
                   </label>
                   {/* send button */}
-                  <button type="button" className="btn btn-primary " disabled={!inputText.trim()} onClick={handleMessageSubmit}>
+                  <button
+                    type="button"
+                    className="btn btn-primary "
+                    disabled={!(inputText.trim() || imgFiles.length) || isRendering || isSubmitting}
+                    onClick={handleMessageSubmit}
+                  >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
@@ -546,9 +637,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                 {
                   curMember?.memberType === 1
                   && (
-                    <button className="btn btn-dash btn-info" type="button" onClick={() => setIsMemberHandleOpen(true)}>
-                      添加成员
-                    </button>
+                    <button className="btn btn-dash btn-info" type="button" onClick={() => setIsMemberHandleOpen(true)}>添加成员</button>
                   )
                 }
               </div>
@@ -572,7 +661,9 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                 </p>
                 {
                   (curMember?.memberType ?? -1) in [1, 2] && (
-                    <button className="btn btn-dash btn-info" type="button" onClick={() => setIsRoleHandleOpen(true)}>添加角色</button>
+                    <button className="btn btn-dash btn-info" type="button" onClick={() => setIsRoleHandleOpen(true)}>
+                      添加角色
+                    </button>
                   )
                 }
               </div>
@@ -580,7 +671,9 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                 <div key={role.roleId} className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center ">
                   {/* role列表 */}
                   <RoleAvatarComponent avatarId={role.avatarId ?? 0} width={8} isRounded={true} withTitle={false} />
-                  <div className="flex flex-col items-center gap-2 text-sm font-medium"><span>{role.roleName}</span></div>
+                  <div className="flex flex-col items-center gap-2 text-sm font-medium">
+                    <span>{role.roleName}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -607,7 +700,12 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
       <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
         <div className="w-full justify-center">
           <p className="text-lg font-bold text-center w-full mb-4 ">输入要加入的用户的ID</p>
-          <input type="text" placeholder="输入要加入的成员的ID" className="input mb-8" onInput={e => setInputUserId(Number(e.currentTarget.value))} />
+          <input
+            type="text"
+            placeholder="输入要加入的成员的ID"
+            className="input mb-8"
+            onInput={e => setInputUserId(Number(e.currentTarget.value))}
+          />
           {
             (inputUserId > 0 && inputUserInfo)
             && (
