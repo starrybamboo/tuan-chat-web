@@ -15,7 +15,7 @@ interface InputProps<T extends FieldValues> extends Omit<InputHTMLAttributes, "n
 }
 
 function TInput<T extends FieldValues>({
-  className,
+  className = "",
   field,
   name,
   register,

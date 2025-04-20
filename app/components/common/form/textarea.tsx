@@ -15,7 +15,7 @@ interface TextAreaProps<T extends FieldValues> extends Omit<TextAreaHTMLAttribut
 }
 
 function TTextArea<T extends FieldValues>({
-  className,
+  className = "",
   field,
   name,
   register,
@@ -30,7 +30,7 @@ function TTextArea<T extends FieldValues>({
         {name}
       </legend>
       <textarea
-        className={`textarea rounded-sm w-full max-h-32 ${errors[field] && "textarea-error"}`}
+        className={`textarea rounded-sm w-full resize-none max-h-32 ${errors[field] && "textarea-error"}`}
         placeholder={placeholder}
         {...register(field, {
           required: isRequired ? `请输入${name}` : false,

@@ -104,7 +104,7 @@ function ModuleForm() {
             />
           </div>
           <TTextArea
-            className="w-full"
+            className="w-full resize-none"
             field={ModuleFormKeys.DESCRIPTION}
             register={register}
             name="模组描述"
