@@ -1,6 +1,6 @@
 import { Renderer } from "@/webGAL/renderer";
 
-import type { ChatMessageResponse, RoleAvatar, UserRole } from "../../api";
+import type { ChatMessageResponse, Message, RoleAvatar, UserRole } from "../../api";
 
 import { tuanchat } from "../../api/instance";
 
@@ -57,14 +57,20 @@ export class ChatRenderer {
     }
   }
 
+  private getSpriteName(roleId: number | undefined, avatarId: number | undefined): string | undefined {
+    if (!roleId || !avatarId)
+      return undefined;
+    return `role_${roleId}_sprites_${avatarId}`;
+  }
+
   private async uploadAllSprites(): Promise<void> {
     const uploadPromises: Promise<void>[] = [];
 
     this.roleAvatarMap.forEach((avatars, roleId) => {
       avatars.forEach((avatar) => {
         if (avatar.spriteUrl) {
-          const spritesName = `role_${roleId}_sprites_${avatar.avatarId}`;
-          uploadPromises.push(this.renderer.uploadSprites(avatar.spriteUrl, spritesName));
+          const spritesName = this.getSpriteName(roleId, avatar.avatarId);
+          uploadPromises.push(this.renderer.uploadSprites(avatar.spriteUrl, spritesName || ""));
         }
       });
     });
@@ -109,15 +115,19 @@ export class ChatRenderer {
 
   private async renderMessages(messages: ChatMessageResponse[]): Promise<void> {
     try {
-      // 使用 messageID 排序，确保所有消息都有效
+      // 过滤调掉不是文本类型的消息，并排序
       const sortedMessages = messages
         .filter(msg => msg.message && msg.message.messageID != null)
         .sort((a, b) => a.message.position - b.message.position);
 
-      console.log(`Processing ${sortedMessages.length} messages`); // 添加日志
-
       // 最多生成几段音频 仅供在tts api不足的情况下进行限制
       let maxVocal = 0;
+      // 左边显示的立绘对应的message（只用到roleId和avatarId）
+      // const leftMessage: Message | undefined = undefined;
+      // // 同理
+      // const rightMessage: Message | undefined = undefined;
+      let recentMessages: (Message | undefined)[] = [undefined, undefined];
+      let lastSpeakSide: 0 | 1 = 1;
 
       for (const messageResponse of sortedMessages) {
         const { message } = messageResponse;
@@ -133,6 +143,20 @@ export class ChatRenderer {
           .replace(/:/g, "："); // 替换英文冒号为中文冒号
 
         if (role && role.roleName && message.content && message.content !== "") {
+          const curRoleId = message.roleId;
+          if (curRoleId === recentMessages[0]?.roleId) {
+            lastSpeakSide = 0;
+            recentMessages = [message, recentMessages[1]];
+          }
+          else if (curRoleId === recentMessages[1]?.roleId) {
+            lastSpeakSide = 1;
+            recentMessages = [recentMessages[0], message];
+          }
+          else {
+            recentMessages = lastSpeakSide === 0 ? [recentMessages[0], message] : [message, recentMessages[1]];
+            lastSpeakSide = lastSpeakSide === 0 ? 1 : 0;
+          }
+
           // 每80个字符分割一次
           const contentSegments = this.splitContent(processedContent);
           // 为每个分割后的段落创建对话
@@ -149,10 +173,10 @@ export class ChatRenderer {
               vocalFileName = undefined;
             }
             await this.renderer.addDialog(
-              message.roleId,
               role.roleName,
-              message.avatarId || 0,
               segment, // 使用分割后的段落
+              recentMessages[0] ? this.getSpriteName(recentMessages[0].roleId, recentMessages[0].avatarId) : undefined,
+              recentMessages[1] ? this.getSpriteName(recentMessages[1].roleId, recentMessages[1].avatarId) : undefined,
               vocalFileName,
             );
           }
