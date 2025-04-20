@@ -1,4 +1,4 @@
-import type { GroupContextType } from "@/components/chat/GroupContext";
+import type { GroupContextType } from "@/components/chat/groupContext";
 
 import type {
   ChatMessagePageRequest,
@@ -10,10 +10,11 @@ import type {
 
 import { ChatBubble } from "@/components/chat/chatBubble";
 
-import { ExpressionChooser } from "@/components/chat/ExpressionChooser";
-import { GroupContext } from "@/components/chat/GroupContext";
+import { ExpressionChooser } from "@/components/chat/expressionChooser";
+import ForwardWindow from "@/components/chat/forwardWindow";
+import { GroupContext } from "@/components/chat/groupContext";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
-import RoleChooser from "@/components/chat/RoleChooser";
+import RoleChooser from "@/components/chat/roleChooser";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import { PopWindow } from "@/components/common/popWindow";
@@ -64,6 +65,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useState(false);
   // 成员添加框的打开状态
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
+  const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
   // 添加成员输入框内的输入
   const [inputUserId, setInputUserId] = useState<number>(-1);
   // 检验输入的Id是否有效
@@ -119,11 +121,11 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
       return tuanchat.chatController.getMsgPage(pageParam);
     },
     getNextPageParam: (lastPage) => {
-      if (lastPage.data === undefined || lastPage.data.isLast) {
+      if (lastPage.data === undefined || lastPage.data?.isLast) {
         return undefined;
       }
       else {
-        const params: ChatMessagePageRequest = { roomId: groupId, pageSize: PAGE_SIZE, cursor: lastPage.data.cursor };
+        const params: ChatMessagePageRequest = { roomId: groupId, pageSize: PAGE_SIZE, cursor: lastPage.data?.cursor };
         return params;
       }
     },
@@ -376,9 +378,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
     catch (error) {
       console.error("Rendering failed:", error);
     }
-    finally {
-      setIsRendering(false);
-    }
   }
 
   /**
@@ -460,12 +459,77 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
     dragStartIndex.current = -1;
   };
 
+  /**
+   * 消息选择
+   */
+  const [selectedMessageIds, updateSelectedMessageIds] = useState<Set<number>>(new Set());
+  const [isSelecting, setIsSelecting] = useState(false);
+
+  // // 鼠标事件处理函数
+  // const handleMouseDown = (e: React.MouseEvent) => {
+  //   if (e.button !== 0)
+  //     return; // 只处理左键
+  //   const rect = e.currentTarget.getBoundingClientRect();
+  //   setIsSelecting(true);
+  //   setSelectionBox({
+  //     startX: e.clientX - rect.left,
+  //     startY: e.clientY - rect.top,
+  //     endX: e.clientX - rect.left,
+  //     endY: e.clientY - rect.top,
+  //   });
+  // };
+  //
+  // const handleMouseMove = (e: React.MouseEvent) => {
+  //   if (!isSelecting)
+  //     return;
+  //   const rect = e.currentTarget.getBoundingClientRect();
+  //   setSelectionBox(box => box && { ...box, endX: e.clientX - rect.left, endY: e.clientY - rect.top,
+  //   });
+  // };
+  //
+  // const handleMouseUp = () => {
+  //   setIsSelecting(true);
+  //   setSelectionBox(null);
+  // };
+
+  const toggleMessageSelection = (messageId: number) => {
+    updateSelectedMessageIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      }
+      else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
+  };
+
+  function handleForward(forwardGroupId: number) {
+    if (selectedMessageIds.size === 0)
+      return;
+    const forwardMessages = Array.from(selectedMessageIds)
+      .map(id => historyMessages.find(m => m.message.messageID === id))
+      .filter((msg): msg is ChatMessageResponse => msg !== undefined);
+    const forwardMessageRequest: ChatMessageRequest = {
+      roomId: forwardGroupId,
+      roleId: curRoleId,
+      content: "",
+      avatarId: roleAvatars[curAvatarIndex].avatarId || -1,
+      messageType: 5,
+      body: {
+        messageList: forwardMessages,
+      },
+    };
+    send(forwardMessageRequest);
+  }
+
   return (
     <GroupContext value={groupContext}>
       <div className="flex flex-row p-6 gap-4 w-full min-w-0">
         {/* 聊天区域主体 */}
         <div className="flex-1 min-w-[480px] flex flex-col">
-          {/* chat messages area */}
+          {/* 聊天框 */}
           <div className="card bg-base-100 shadow-sm flex-1">
             {/* 加载指示器 */}
             {messagesInfiniteQuery.isFetchingNextPage && (
@@ -476,6 +540,9 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
             <div
               className="card-body overflow-y-auto h-[60vh]"
               ref={chatFrameRef}
+              // onMouseDown={handleMouseDown}
+              // onMouseMove={handleMouseMove}
+              // onMouseUp={handleMouseUp}
               onWheel={(e) => {
                 // 拖动时允许正常滚动
                 if (dragStartIndex.current !== -1) {
@@ -484,40 +551,68 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                 }
               }}
             >
+              {selectedMessageIds.size > 0 && (
+                <div className="sticky top-0 bg-base-300 p-2 shadow-sm z-10 flex justify-between items-center rounded">
+                  <span>
+                    已选择
+                    {selectedMessageIds.size}
+                    {" "}
+                    条消息
+                  </span>
+                  <button
+                    className="btn btn-sm btn-info"
+                    onClick={() => setIsForwardWindowOpen(true)}
+                    type="button"
+                  >
+                    转发
+                  </button>
+                </div>
+              )}
+
               {historyMessages
               // .filter(chatMessageResponse => chatMessageResponse.message.content !== "")
-                .map((chatMessageResponse, index) => ((
-                  <div
-                    key={chatMessageResponse.message.messageID}
-                    ref={index === 1 ? messageRef : null}
-                    className="relative group  transition-opacity"
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={e => handleDrop(e, index)}
-                    onDragEnd={() => handleDragEnd()}
-                  >
+                .map((chatMessageResponse, index) => {
+                  const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageID);
+                  return ((
                     <div
-                      className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
-                      -translate-x-full -translate-y-1/ opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2 cursor-move`}
-                      draggable
-                      onDragStart={e => handleDragStart(e, index)}
+                      key={chatMessageResponse.message.messageID}
+                      ref={index === 1 ? messageRef : null}
+                      className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""}`}
+                      onClick={(e) => {
+                        if (isSelecting || e.ctrlKey) {
+                          if (!isSelecting)
+                            setIsSelecting(true);
+                          toggleMessageSelection(chatMessageResponse.message.messageID);
+                        }
+                      }}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={e => handleDrop(e, index)}
+                      onDragEnd={() => handleDragEnd()}
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 6h16M4 12h16M4 18h16"
-                        />
-                      </svg>
+                      <div
+                        className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
+                      -translate-x-full -translate-y-1/ opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2 cursor-move`}
+                        draggable
+                        onDragStart={e => handleDragStart(e, index)}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 6h16M4 12h16M4 18h16"
+                          />
+                        </svg>
+                      </div>
+                      <ChatBubble
+                        chatMessageResponse={chatMessageResponse}
+                        useChatBubbleStyle={useChatBubbleStyle}
+                      />
                     </div>
-                    <ChatBubble
-                      chatMessageResponse={chatMessageResponse}
-                      useChatBubbleStyle={useChatBubbleStyle}
-                    />
-                  </div>
-                )
-                ))}
+                  )
+                  );
+                })}
             </div>
           </div>
           {/* 输入区域 */}
@@ -726,6 +821,9 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
             )
           }
         </div>
+      </PopWindow>
+      <PopWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
+        <ForwardWindow onClickGroup={groupId => handleForward(groupId)}></ForwardWindow>
       </PopWindow>
     </GroupContext>
   );

@@ -1,4 +1,4 @@
-import { GroupContext } from "@/components/chat/GroupContext";
+import { GroupContext } from "@/components/chat/groupContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { use } from "react";
 

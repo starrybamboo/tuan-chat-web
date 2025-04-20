@@ -1,4 +1,4 @@
-import { GroupContext } from "@/components/chat/GroupContext";
+import { GroupContext } from "@/components/chat/groupContext";
 import { PopWindow } from "@/components/common/popWindow";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";

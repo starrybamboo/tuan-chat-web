@@ -1,7 +1,7 @@
 import type { ChatMessageResponse, Message } from "api";
-import { ExpressionChooser } from "@/components/chat/ExpressionChooser";
-import { GroupContext } from "@/components/chat/GroupContext";
-import RoleChooser from "@/components/chat/RoleChooser";
+import { ExpressionChooser } from "@/components/chat/expressionChooser";
+import { GroupContext } from "@/components/chat/groupContext";
+import RoleChooser from "@/components/chat/roleChooser";
 import BetterImg from "@/components/common/betterImg";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";

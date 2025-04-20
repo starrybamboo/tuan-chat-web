@@ -32,11 +32,10 @@ export function useWebSocket() {
        token = localStorage.getItem("token") ?? "-1"
     }
     // 配置参数
-    const MAX_RECONNECT_ATTEMPTS = 30
+    const MAX_RECONNECT_ATTEMPTS = 12
     const HEARTBEAT_INTERVAL = 25000
-    const RECONNECT_DELAY_BASE = 1
+    const RECONNECT_DELAY_BASE = 10
 
-    let hasAddedFocusListener = false;
     // 核心连接逻辑
     const connect = useCallback(() => {
         if (wsRef.current || !WS_URL) return
@@ -59,7 +58,7 @@ export function useWebSocket() {
             wsRef.current.onclose = (event) => {
                 console.log(`Close code: ${event.code}, Reason: ${event.reason}`)
                 setIsConnected(false)
-                handleReconnect(MAX_RECONNECT_ATTEMPTS)
+                // handleReconnect(MAX_RECONNECT_ATTEMPTS)
             }
 
             wsRef.current.onmessage = (event) => {
@@ -109,11 +108,11 @@ export function useWebSocket() {
         if (remainAttempts === 0 || isConnected) return
         connect()
         const delay = Math.min(
-            RECONNECT_DELAY_BASE * Math.pow(2, MAX_RECONNECT_ATTEMPTS),
+            RECONNECT_DELAY_BASE * Math.pow(2, MAX_RECONNECT_ATTEMPTS - remainAttempts),
             30000
         )
         console.log(`Reconnecting in ${delay}ms...`)
-        setTimeout(() => handleReconnect(remainAttempts - 1), )
+        setTimeout(() => handleReconnect(remainAttempts - 1),delay)
     }, [connect])
 
     // 心跳机制
@@ -132,6 +131,10 @@ export function useWebSocket() {
 
     async function send(request : ChatMessageRequest) {
         if (!isConnected){
+            if (wsRef.current) {
+                wsRef.current.close();
+                wsRef.current = null;
+            }
             handleReconnect(MAX_RECONNECT_ATTEMPTS)
         }
         for (let i = 0; i < 1000; i++){
