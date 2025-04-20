@@ -37,11 +37,18 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
   }
 
   function handleContentUpdate(content: string) {
-    const newMessage: Message = {
-      ...message,
-      content,
-    };
-    updateMessageMutation.mutate(newMessage);
+    if (content.trim() === "") {
+      updateMessageMutation.mutate({
+        ...message,
+        status: 1,
+      });
+    }
+    else {
+      updateMessageMutation.mutate({
+        ...message,
+        content,
+      });
+    }
   }
 
   function handleRoleChange(new_roleId: number) {

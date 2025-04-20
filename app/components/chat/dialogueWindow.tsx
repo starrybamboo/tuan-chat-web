@@ -145,7 +145,8 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
 
     return Array.from(messageMap.values())
       .sort((a, b) => a.message.position - b.message.position)
-      .filter(msg => msg.message.messageType !== 0);
+    // 过滤掉删除的消息和不符合规则的消息
+      .filter(msg => msg.message.messageType !== 0 || msg.message.status === 1);
   }, [getNewMessagesByRoomId, groupId, messagesInfiniteQuery.data?.pages]);
 
   /**
@@ -763,7 +764,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                   <span className="text-sm">{groupRoles.length}</span>
                 </p>
                 {
-                  (curMember?.memberType ?? -1) in [1, 2] && (
+                  (curMember?.memberType === 1 || curMember?.memberType === 2) && (
                     <button className="btn btn-dash btn-info" type="button" onClick={() => setIsRoleHandleOpen(true)}>
                       添加角色
                     </button>
