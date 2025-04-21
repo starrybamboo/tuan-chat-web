@@ -74,6 +74,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
       setIsRoleChooserOpen(true);
     }
   }
+  // console.log("render message");
 
   // eslint-disable-next-line react/no-nested-component-definitions
   function EditableField({ content }: { content: string }) {

@@ -30,7 +30,7 @@ import { ChatRenderer } from "@/webGAL/chatRenderer";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { tuanchat } from "api/instance";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
 import {
   useAddMemberMutation,
@@ -440,7 +440,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
     e.currentTarget.style.borderTop = "";
     e.currentTarget.style.borderBottom = "";
   };
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
+  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
     e.currentTarget.style.borderTop = "";
     e.currentTarget.style.borderBottom = "";
@@ -459,7 +459,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
     };
     moveMessageMutation.mutate(moveRequest);
     dragStartIndex.current = -1;
-  };
+  }, [historyMessages, moveMessageMutation]);
 
   /**
    * 消息选择
@@ -504,8 +504,58 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
     send(forwardMessageRequest);
   }
 
-  // 群组设置(鳩)
+  /**
+   *  群组设置(鳩)
+   */
+
   const [isSettingWindowOpen, setIsSettingWindowOpen] = useState(false);
+  /**
+   * 渲染结果的缓存
+   */
+  const renderMessages = useMemo(() => (historyMessages
+    // .filter(chatMessageResponse => chatMessageResponse.message.content !== "")
+    .map((chatMessageResponse, index) => {
+      const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageID);
+      return ((
+        <div
+          key={chatMessageResponse.message.messageID}
+          ref={index === 1 ? messageRef : null}
+          className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""}`}
+          onClick={(e) => {
+            if (isSelecting || e.ctrlKey) {
+              if (!isSelecting)
+                setIsSelecting(true);
+              toggleMessageSelection(chatMessageResponse.message.messageID);
+            }
+          }}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={e => handleDrop(e, index)}
+          onDragEnd={() => handleDragEnd()}
+        >
+          <div
+            className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
+                      -translate-x-full -translate-y-1/ opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2 cursor-move`}
+            draggable
+            onDragStart={e => handleDragStart(e, index)}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </div>
+          <ChatBubble
+            chatMessageResponse={chatMessageResponse}
+            useChatBubbleStyle={useChatBubbleStyle}
+          />
+        </div>
+      )
+      );
+    })), [historyMessages, isSelecting, messageRef, selectedMessageIds]);
 
   return (
     <GroupContext value={groupContext}>
@@ -545,50 +595,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                   </button>
                 </div>
               )}
-              {historyMessages
-                // .filter(chatMessageResponse => chatMessageResponse.message.content !== "")
-                .map((chatMessageResponse, index) => {
-                  const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageID);
-                  return ((
-                    <div
-                      key={chatMessageResponse.message.messageID}
-                      ref={index === 1 ? messageRef : null}
-                      className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""}`}
-                      onClick={(e) => {
-                        if (isSelecting || e.ctrlKey) {
-                          if (!isSelecting)
-                            setIsSelecting(true);
-                          toggleMessageSelection(chatMessageResponse.message.messageID);
-                        }
-                      }}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={e => handleDrop(e, index)}
-                      onDragEnd={() => handleDragEnd()}
-                    >
-                      <div
-                        className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
-                      -translate-x-full -translate-y-1/ opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2 cursor-move`}
-                        draggable
-                        onDragStart={e => handleDragStart(e, index)}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 6h16M4 12h16M4 18h16"
-                          />
-                        </svg>
-                      </div>
-                      <ChatBubble
-                        chatMessageResponse={chatMessageResponse}
-                        useChatBubbleStyle={useChatBubbleStyle}
-                      />
-                    </div>
-                  )
-                  );
-                })}
+              {renderMessages}
             </div>
           </div>
           {/* 输入区域 */}
