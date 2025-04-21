@@ -527,20 +527,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                 加载历史消息中...
               </div>
             )}
-            <div
-              className="card-body overflow-y-auto h-[60vh]"
-              ref={chatFrameRef}
-              // onMouseDown={handleMouseDown}
-              // onMouseMove={handleMouseMove}
-              // onMouseUp={handleMouseUp}
-              onWheel={(e) => {
-                // 拖动时允许正常滚动
-                if (dragStartIndex.current !== -1) {
-                  e.preventDefault();
-                  chatFrameRef.current!.scrollTop += e.deltaY;
-                }
-              }}
-            >
+            <div className="card-body overflow-y-auto h-[60vh]" ref={chatFrameRef}>
               {selectedMessageIds.size > 0 && (
                 <div className="sticky top-0 bg-base-300 p-2 shadow-sm z-10 flex justify-between items-center rounded">
                   <span>
@@ -558,7 +545,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                   </button>
                 </div>
               )}
-
               {historyMessages
                 // .filter(chatMessageResponse => chatMessageResponse.message.content !== "")
                 .map((chatMessageResponse, index) => {
