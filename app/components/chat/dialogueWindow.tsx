@@ -844,7 +844,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
       </PopWindow>
       {/* 设置窗口 */}
       <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
-        <SettingWindow groupId={groupId}></SettingWindow>
+        <SettingWindow groupId={groupId} onClose={() => setIsSettingWindowOpen(false)}></SettingWindow>
       </PopWindow>
     </GroupContext>
   );

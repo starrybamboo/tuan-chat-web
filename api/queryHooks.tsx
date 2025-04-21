@@ -33,7 +33,7 @@ import type {
     AbilityFieldUpdateRequest,
     ApiResultListRoleResponse,
     ApiResultRoleAbility,
-    ApiResultUserInfoResponse, GroupOwnerTransferRequest,
+    ApiResultUserInfoResponse, GroupDissolveRequest, GroupOwnerTransferRequest,
     Message,
     RoleResponse
 } from "api";
@@ -224,12 +224,26 @@ export function useCreateSubgroupMutation(parentRoomId: number) {
     return useMutation({
         mutationFn: (req: SubRoomRequest) => tuanchat.groupController.createSubgroup(req),
         mutationKey: ['createSubgroup'],
-        onSuccess: (data) => {
+        onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['getGroupInfo', parentRoomId] });
           queryClient.invalidateQueries({ queryKey: ['getUserGroups'] });
-          return data;
         }
     });
+}
+
+/**
+ * 解散群组
+ * @param roomId 群组Id
+ */
+export function useDissolveGroupMutation(roomId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn:(req: GroupDissolveRequest) => tuanchat.groupController.dissolveGroup(req),
+        mutationKey: ['dissolveGroup'],
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['getUserGroups'] });
+        }
+    })
 }
 
 // ==================== 消息系统 ====================
