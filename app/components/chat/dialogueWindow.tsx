@@ -15,6 +15,7 @@ import ForwardWindow from "@/components/chat/forwardWindow";
 import { GroupContext } from "@/components/chat/groupContext";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
 import RoleChooser from "@/components/chat/roleChooser";
+import SettingWindow from "@/components/chat/settingWindow";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import { PopWindow } from "@/components/common/popWindow";
@@ -145,7 +146,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
 
     return Array.from(messageMap.values())
       .sort((a, b) => a.message.position - b.message.position)
-    // 过滤掉删除的消息和不符合规则的消息
+      // 过滤掉删除的消息和不符合规则的消息
       .filter(msg => msg.message.messageType !== 0 || msg.message.status === 1);
   }, [getNewMessagesByRoomId, groupId, messagesInfiniteQuery.data?.pages]);
 
@@ -530,13 +531,23 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
     send(forwardMessageRequest);
   }
 
+  // 群组设置(鳩)
+  const [isSettingWindowOpen, setIsSettingWindowOpen] = useState(false);
+
   return (
     <GroupContext value={groupContext}>
       <div className="flex flex-row p-6 gap-4 w-full min-w-0">
         {/* 聊天区域主体 */}
         <div className="flex-1 min-w-[480px] flex flex-col">
           {/* 聊天框 */}
-          <div className="card bg-base-100 shadow-sm flex-1">
+          <div className="card bg-base-100 shadow-sm flex-1 relative">
+            <button
+              type="button"
+              className="btn btn-ghost absolute top-2 right-2 z-50"
+              onClick={() => { setIsSettingWindowOpen(true); }}
+            >
+              设置
+            </button>
             {/* 加载指示器 */}
             {messagesInfiniteQuery.isFetchingNextPage && (
               <div className="text-center p-2 text-gray-500">
@@ -576,7 +587,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
               )}
 
               {historyMessages
-              // .filter(chatMessageResponse => chatMessageResponse.message.content !== "")
+                // .filter(chatMessageResponse => chatMessageResponse.message.content !== "")
                 .map((chatMessageResponse, index) => {
                   const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageID);
                   return ((
@@ -830,6 +841,10 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
       </PopWindow>
       <PopWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
         <ForwardWindow onClickGroup={groupId => handleForward(groupId)}></ForwardWindow>
+      </PopWindow>
+      {/* 设置窗口 */}
+      <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
+        <SettingWindow groupId={groupId}></SettingWindow>
       </PopWindow>
     </GroupContext>
   );

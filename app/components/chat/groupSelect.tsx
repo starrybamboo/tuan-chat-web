@@ -103,7 +103,7 @@ export default function GroupSelect() {
         </button>
       </div>
       {/* 二级群组列表 */}
-      <div className="flex flex-col gap-2 p-2 w-[300px] bg-base-100">
+      <div className="flex flex-col gap-2 p-2 w-[200px] bg-base-100">
         {groups.map(group => (
           <React.Fragment key={group.roomId}>
             {openGroup === group.roomId && (
@@ -123,7 +123,7 @@ export default function GroupSelect() {
                         alt={subGroup.name}
                       />
                     </div>
-                    <span>{subGroup.name}</span>
+                    <span className="truncate flex-1 text-left">{subGroup.name}</span>
                   </button>
                 ))
             )}
