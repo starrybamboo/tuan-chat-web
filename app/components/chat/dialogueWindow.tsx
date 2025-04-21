@@ -505,6 +505,11 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
       return newSet;
     });
   };
+  useEffect(() => {
+    if (selectedMessageIds.size === 0) {
+      setIsSelecting(false);
+    }
+  }, [selectedMessageIds.size]);
 
   function handleForward(forwardGroupId: number) {
     if (selectedMessageIds.size === 0)
