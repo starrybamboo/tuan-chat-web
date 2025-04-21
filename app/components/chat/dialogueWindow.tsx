@@ -467,33 +467,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   const [selectedMessageIds, updateSelectedMessageIds] = useState<Set<number>>(new Set());
   const [isSelecting, setIsSelecting] = useState(false);
 
-  // // 鼠标事件处理函数
-  // const handleMouseDown = (e: React.MouseEvent) => {
-  //   if (e.button !== 0)
-  //     return; // 只处理左键
-  //   const rect = e.currentTarget.getBoundingClientRect();
-  //   setIsSelecting(true);
-  //   setSelectionBox({
-  //     startX: e.clientX - rect.left,
-  //     startY: e.clientY - rect.top,
-  //     endX: e.clientX - rect.left,
-  //     endY: e.clientY - rect.top,
-  //   });
-  // };
-  //
-  // const handleMouseMove = (e: React.MouseEvent) => {
-  //   if (!isSelecting)
-  //     return;
-  //   const rect = e.currentTarget.getBoundingClientRect();
-  //   setSelectionBox(box => box && { ...box, endX: e.clientX - rect.left, endY: e.clientY - rect.top,
-  //   });
-  // };
-  //
-  // const handleMouseUp = () => {
-  //   setIsSelecting(true);
-  //   setSelectionBox(null);
-  // };
-
   const toggleMessageSelection = (messageId: number) => {
     updateSelectedMessageIds((prev) => {
       const newSet = new Set(prev);

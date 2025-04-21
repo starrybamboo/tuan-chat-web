@@ -62,9 +62,16 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
     });
   }
 
+  const canEdit = userId === message.userId || groupContext.curMember?.userId === message.userId;
+
   function handleAvatarClick() {
-    if (userId === message.userId) {
+    if (canEdit) {
       setIsExpressionChooserOpen(true);
+    }
+  }
+  function handleRoleNameClick() {
+    if (canEdit) {
+      setIsRoleChooserOpen(true);
     }
   }
 
@@ -107,12 +114,6 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
       return (<BetterImg src={message.extra?.imageMessage?.url} className="max-h-[40vh]" />);
     }
     return (<EditableField content={message.content}></EditableField>);
-  }
-
-  function handleRoleNameClick() {
-    if (userId === message.userId) {
-      setIsRoleChooserOpen(true);
-    }
   }
 
   return (
@@ -162,20 +163,27 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
               </div>
             </div>
           )}
-      {/* 表情选择窗口 */}
-      <PopWindow isOpen={isExpressionChooserOpen} onClose={() => setIsExpressionChooserOpen(false)}>
-        <div className="flex flex-col">
-          <div>选择新的表情差分</div>
-          <ExpressionChooser roleId={message.roleId} handleExpressionChange={handleExpressionChange}></ExpressionChooser>
-        </div>
-      </PopWindow>
-      {/* role选择窗口 */}
-      <PopWindow isOpen={isRoleChooserOpen} onClose={() => setIsRoleChooserOpen(false)}>
-        <div className="flex flex-col items-center gap-4">
-          <div>选择新的角色</div>
-          <RoleChooser handleRoleChange={handleRoleChange} className=" menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"></RoleChooser>
-        </div>
-      </PopWindow>
+      {
+        canEdit
+        && (
+          <>
+            {/* 表情选择窗口 */}
+            <PopWindow isOpen={isExpressionChooserOpen} onClose={() => setIsExpressionChooserOpen(false)}>
+              <div className="flex flex-col">
+                <div>选择新的表情差分</div>
+                <ExpressionChooser roleId={message.roleId} handleExpressionChange={handleExpressionChange}></ExpressionChooser>
+              </div>
+            </PopWindow>
+            {/* role选择窗口 */}
+            <PopWindow isOpen={isRoleChooserOpen} onClose={() => setIsRoleChooserOpen(false)}>
+              <div className="flex flex-col items-center gap-4">
+                <div>选择新的角色</div>
+                <RoleChooser handleRoleChange={handleRoleChange} className=" menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"></RoleChooser>
+              </div>
+            </PopWindow>
+          </>
+        )
+      }
     </div>
   );
 }
