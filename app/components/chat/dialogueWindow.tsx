@@ -37,7 +37,13 @@ import {
   useMoveMessageMutation,
 } from "../../../api/queryHooks";
 
-export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { groupId: number; send: (message: ChatMessageRequest) => void; getNewMessagesByRoomId: (groupId: number) => ChatMessageResponse[] }) {
+export function DialogueWindow({ groupId }: { groupId: number }) {
+  const globalContext = useGlobalContext();
+  const userId = globalContext.userId;
+  const webSocketUtils = globalContext.websocketUtils;
+  const send = webSocketUtils.send;
+  const getNewMessagesByRoomId = webSocketUtils.getNewMessagesByRoomId;
+
   const [inputText, setInputText] = useState("");
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(true);
@@ -50,8 +56,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   const [messageRef, messageEntry] = useIntersectionObserver();
   // 目前仅用于让首次渲染时对话框滚动到底部
   const hasInitialized = useRef(false);
-
-  const userId = useGlobalContext().userId;
 
   // 聊天框中包含的图片
   const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
@@ -92,7 +96,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   }, [curMember, groupId, groupRolesThatUserOwn, members]);
 
   // Mutations
-
   const moveMessageMutation = useMoveMessageMutation();
 
   /**
@@ -450,7 +453,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   /**
    *  群组设置(鳩)
    */
-
   const [isSettingWindowOpen, setIsSettingWindowOpen] = useState(false);
   /**
    * 渲染结果的缓存
@@ -505,17 +507,9 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
         <div className="flex-1 min-w-[480px] flex flex-col">
           {/* 聊天框 */}
           <div className="card bg-base-100 shadow-sm flex-1 relative">
-            <button
-              type="button"
-              className="btn btn-ghost absolute top-2 right-2 z-50"
-              onClick={() => { setIsSettingWindowOpen(true); }}
-            >
+            <button type="button" className="btn btn-ghost absolute top-2 right-2 z-50" onClick={() => { setIsSettingWindowOpen(true); }}>
               设置
             </button>
-            {/* 加载指示器 */}
-            {messagesInfiniteQuery.isFetchingNextPage && (
-              <div className="text-center p-2 text-gray-500">加载历史消息中...</div>
-            )}
             <div className="card-body overflow-y-auto h-[60vh]" ref={chatFrameRef}>
               {selectedMessageIds.size > 0 && (
                 <div className="sticky top-0 bg-base-300 p-2 shadow-sm z-10 flex justify-between items-center rounded">

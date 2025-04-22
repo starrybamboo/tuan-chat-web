@@ -1,7 +1,7 @@
 import DialogueWindow from "@/components/chat/dialogueWindow";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { useCreateGroupMutation, useCreateSubgroupMutation, useGetUserGroupsQuery, useGetUserInfoQuery } from "api/queryHooks";
 import React, { useEffect, useState } from "react";
-import { useWebSocket } from "../../../api/useWebSocket";
 import { PopWindow } from "../common/popWindow";
 import { UserDetail } from "../common/userDetail";
 
@@ -31,10 +31,10 @@ export default function GroupSelect() {
   const inputUserInfo = useGetUserInfoQuery(inputUserId).data?.data;
 
   // websocket封装, 用于发送接受消息
-  const { send, connect, getNewMessagesByRoomId, isConnected } = useWebSocket();
+  const websocketUtils = useGlobalContext().websocketUtils;
   useEffect(() => {
-    if (!isConnected) {
-      connect();
+    if (!websocketUtils.isConnected) {
+      websocketUtils.connect();
     }
   }, []);
 
@@ -147,7 +147,7 @@ export default function GroupSelect() {
       {/* 对话窗口 */}
       {
         activeSubGroupId
-        && <DialogueWindow groupId={activeSubGroupId} key={activeSubGroupId} send={send} getNewMessagesByRoomId={getNewMessagesByRoomId} />
+        && <DialogueWindow groupId={activeSubGroupId} />
       }
       {/* 创建群组弹出窗口 */}
       <PopWindow isOpen={isGroupHandleOpen} onClose={() => setIsGroupHandleOpen(false)}>

@@ -1,11 +1,29 @@
-import { createContext, use, useEffect, useState } from "react";
+import type { ChatMessageRequest, ChatMessageResponse } from "api";
+import type { WebsocketUtils } from "../../api/useWebSocket";
+import { createContext, use, useEffect, useMemo, useState } from "react";
+import { useWebSocket } from "../../api/useWebSocket";
 
 interface GlobalContextType {
   userId: number | null;
   setUserId: (userId: number | null) => void;
+  websocketUtils: WebsocketUtils;
 }
+
 const GlobalContext = createContext<GlobalContextType>({
   userId: null,
+  websocketUtils: {
+    connect(): void {
+      console.error("Function not implemented.");
+    },
+    send(_: ChatMessageRequest): void {
+      console.error("Function not implemented.");
+    },
+    getNewMessagesByRoomId(_: number): ChatMessageResponse[] {
+      console.error("Function not implemented.");
+      return [];
+    },
+    isConnected: false,
+  },
   setUserId: () => {},
 });
 // eslint-disable-next-line react-refresh/only-export-components
@@ -18,8 +36,16 @@ export function GlobalContextProvider({ children }: { children: React.ReactNode 
     // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
     setUserId(token ? Number(token) : null);
   }, []);
+  const websocketUtils = useWebSocket();
+  const groupContext: GlobalContextType = useMemo((): GlobalContextType => {
+    return {
+      userId,
+      setUserId,
+      websocketUtils,
+    };
+  }, [userId, websocketUtils]);
   return (
-    <GlobalContext value={{ userId, setUserId }}>
+    <GlobalContext value={groupContext}>
       {children}
     </GlobalContext>
   );

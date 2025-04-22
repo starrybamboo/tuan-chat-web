@@ -16,6 +16,13 @@ interface WsMessage<T> {
     data?: T
 }
 
+export interface WebsocketUtils{
+    connect: () => void
+    send: (request: ChatMessageRequest) => void
+    getNewMessagesByRoomId: (groupId: number) => ChatMessageResponse[]
+    isConnected: boolean
+}
+
 const WS_URL = import.meta.env.VITE_API_WS_URL
 // const WS_URL = "ws://39.103.58.31:8090"
 export function useWebSocket() {
@@ -158,10 +165,11 @@ export function useWebSocket() {
         return groupMessages[roomId] || []
     }
 
-    return {
+    const webSocketUtils:WebsocketUtils = {
         isConnected,
         getNewMessagesByRoomId,
         connect,
         send,
     }
+    return webSocketUtils
 }
