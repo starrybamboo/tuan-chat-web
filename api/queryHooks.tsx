@@ -33,7 +33,7 @@ import type {
     AbilityFieldUpdateRequest,
     ApiResultListRoleResponse,
     ApiResultRoleAbility,
-    ApiResultUserInfoResponse, GroupDissolveRequest, GroupOwnerTransferRequest,
+    ApiResultUserInfoResponse, GroupAvatarUpdateRequest, GroupDissolveRequest, GroupOwnerTransferRequest,
     Message,
     RoleResponse
 } from "api";
@@ -190,6 +190,20 @@ export function useDeleteMemberMutation() {
 }
 
 /**
+ * 更新群头像
+ */
+export function useUpdateGroupAvatar() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: GroupAvatarUpdateRequest) => tuanchat.groupController.updateGroupAvatar(req),
+        mutationKey: ['updateGroupAvatar'],
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['getUserGroups'] });
+        }
+    })
+}
+
+/**
  * 获取群组信息
  * @param groupId 群组ID
  */
@@ -233,9 +247,8 @@ export function useCreateSubgroupMutation(parentRoomId: number) {
 
 /**
  * 解散群组
- * @param roomId 群组Id
  */
-export function useDissolveGroupMutation(roomId: number) {
+export function useDissolveGroupMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn:(req: GroupDissolveRequest) => tuanchat.groupController.dissolveGroup(req),

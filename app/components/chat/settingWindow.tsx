@@ -1,26 +1,27 @@
-import { useDissolveGroupMutation, useGetGroupInfoQuery } from "api/queryHooks";
+import { ImgUploader } from "@/components/common/uploader/imgUploader";
+import { useDissolveGroupMutation, useGetGroupInfoQuery, useUpdateGroupAvatar } from "api/queryHooks";
 
 function SettingWindow({ groupId, onClose }: { groupId: number; onClose: () => void }) {
   // 获取群组数据
   const getGroupInfoQuery = useGetGroupInfoQuery(groupId);
   const group = getGroupInfoQuery.data?.data;
   // 解散群组
-  const dissolveGroupMutation = useDissolveGroupMutation(groupId);
+  const dissolveGroupMutation = useDissolveGroupMutation();
+  // 更新群头像
+  const updateGroupAvatar = useUpdateGroupAvatar();
+
   return (
     <div className="w-full p-4">
       {group && (
         <div>
           <div className="flex justify-center">
-            <button
-              type="button"
-              className="focus:outline-none"
-            >
+            <ImgUploader setImg={newImg => updateGroupAvatar.mutate({ roomId: groupId, avatar: URL.createObjectURL(newImg) })}>
               <img
                 src={group.avatar}
                 alt={group.name}
                 className="w-24 h-24 mx-auto rounded-lg"
               />
-            </button>
+            </ImgUploader>
           </div>
           <h2 className="text-2xl font-bold text-center my-4">{group.name}</h2>
           <p className="text-gray-600 text-center">{group.description}</p>
