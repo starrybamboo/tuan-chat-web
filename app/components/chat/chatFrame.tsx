@@ -15,8 +15,6 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   // const chatFrameRef = useRef<HTMLDivElement>(null);
   // 滚动加载逻辑, 设置为倒数第n条消息的ref, 当这条消息进入用户窗口时, messageEntry.isIntersecting变为true, 之后启动滚动加载
   const [messageRef, messageEntry] = useIntersectionObserver();
-  // 目前仅用于让首次渲染时对话框滚动到底部
-  const hasInitialized = useRef(false);
   const PAGE_SIZE = 30; // 每页消息数量
   const groupContext = use(GroupContext);
   const groupId = groupContext.groupId ?? -1;
@@ -27,10 +25,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const getNewMessagesByRoomId = websocketUtils.getNewMessagesByRoomId;
   const send = websocketUtils.send;
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
-
   // Mutations
   const moveMessageMutation = useMoveMessageMutation();
-
   /**
    * 获取历史消息
    */
@@ -67,61 +63,30 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     return Array.from(messageMap.values())
       .sort((a, b) => a.message.position - b.message.position)
     // 过滤掉删除的消息和不符合规则的消息
-      .filter(msg => msg.message.messageType !== 0 || msg.message.status === 1);
+      .filter(msg => msg.message.messageType !== 0 || msg.message.status === 1)
+      .reverse();
   }, [getNewMessagesByRoomId, groupId, messagesInfiniteQuery.data?.pages]);
+  // console.log(`top: ${chatFrameRef.current?.scrollTop} height: ${chatFrameRef.current?.clientHeight} scrollHeight: ${chatFrameRef.current?.scrollHeight}`);
 
   /**
-   * 获取到新消息的时候，如果距底部较近,滚动到底部
+   * scroll相关
    */
+
   useEffect(() => {
-    if (!hasInitialized.current) {
-      return;
-    }
     if (chatFrameRef.current) {
-      const { scrollTop, clientHeight, scrollHeight } = chatFrameRef.current;
-      const isNearBottom = scrollTop + clientHeight > scrollHeight - 100;
-      if (isNearBottom) {
-        chatFrameRef.current.scrollTo({ top: scrollHeight, behavior: "instant" });
+      if (chatFrameRef.current.scrollTop >= -300) {
+        chatFrameRef.current.scrollTo({ top: 0, behavior: "instant" });
       }
     }
-  }, [historyMessages]);
-
-  /**
-   * messageEntry触发时候的effect, 同时让首次渲染时对话框滚动到底部
-   */
+  }, [chatFrameRef, historyMessages]);
   useEffect(() => {
-    if (!hasInitialized.current) {
-      return;
+    // if (!hasInitializeScroll.current || messagesInfiniteQuery.isFetchingNextPage) {
+    //   return;
+    // }
+    if (messageEntry?.isIntersecting) {
+      messagesInfiniteQuery.fetchNextPage();
     }
-    if (messageEntry?.isIntersecting && messagesInfiniteQuery.hasNextPage && !messagesInfiniteQuery.isFetchingNextPage && chatFrameRef.current) {
-      // 记录之前的滚动位置并在fetch完后移动到该位置, 防止连续多次获取
-      const scrollBottom = chatFrameRef.current.scrollHeight - chatFrameRef.current.scrollTop;
-      messagesInfiniteQuery.fetchNextPage().then(() => {
-        if (chatFrameRef.current) {
-          chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight - scrollBottom, behavior: "instant" });
-        }
-      });
-    }
-  }, [messageEntry?.isIntersecting, messagesInfiniteQuery.hasNextPage, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage, messagesInfiniteQuery]);
-  /**
-   * 第一次获取消息的时候, 滚动到底部
-   */
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    if (!hasInitialized.current && messagesInfiniteQuery.isFetchedAfterMount) {
-      timeoutId = setTimeout(() => {
-        if (chatFrameRef.current) {
-          chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight, behavior: "instant" });
-        }
-        hasInitialized.current = true;
-      }, 200);
-    }
-    return () => { // 清理函数
-      if (timeoutId) {
-        clearTimeout(timeoutId); // 清除定时器
-      }
-    };
-  }, [messagesInfiniteQuery.isFetchedAfterMount]);
+  }, [messageEntry?.isIntersecting, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage, messagesInfiniteQuery, chatFrameRef]);
   /**
    * 聊天气泡拖拽排序
    */
@@ -184,12 +149,12 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     e.currentTarget.style.borderTop = "";
     e.currentTarget.style.borderBottom = "";
 
-    const adjustedIndex = dropPositionRef.current === "after" ? dragEndIndex + 1 : dragEndIndex;
-    if (dragStartIndex.current === adjustedIndex)
-      return;
+    const adjustedIndex = dropPositionRef.current === "after" ? dragEndIndex : dragEndIndex + 1;
+    // if (dragStartIndex.current === adjustedIndex)
+    //   return;
     // 边界检查
-    const beforeMessageId = historyMessages[adjustedIndex - 1]?.message.messageID ?? null;
-    const afterMessageId = historyMessages[adjustedIndex]?.message.messageID ?? null;
+    const beforeMessageId = historyMessages[adjustedIndex]?.message.messageID ?? null;
+    const afterMessageId = historyMessages[adjustedIndex - 1]?.message.messageID ?? null;
 
     const moveRequest: MoveMessageRequest = {
       messageId: historyMessages[dragStartIndex.current].message.messageID,
@@ -198,8 +163,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     };
     moveMessageMutation.mutate(moveRequest);
     dragStartIndex.current = -1;
-  }, [historyMessages, moveMessageMutation]);
-
+  }, [historyMessages]);
   /**
    * 消息选择
    */
@@ -243,7 +207,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       return ((
         <div
           key={chatMessageResponse.message.messageID}
-          ref={index === 1 ? messageRef : null}
+          ref={index === historyMessages.length - 7 ? messageRef : null}
           className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""}`}
           onClick={(e) => {
             if (isSelecting || e.ctrlKey) {
@@ -277,14 +241,14 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         </div>
       )
       );
-    })), [historyMessages, isSelecting, messageRef, selectedMessageIds]);
+    })), [handleDrop, historyMessages, isSelecting, messageRef, selectedMessageIds, useChatBubbleStyle]);
   return (
     <>
-      <div className="card-body overflow-y-auto h-[60vh]" ref={chatFrameRef}>
+      {/* 这里是从下到上渲染的 */}
+      <div className="card-body overflow-y-auto h-[60vh] flex flex-col-reverse" ref={chatFrameRef}>
+        {renderMessages}
         {selectedMessageIds.size > 0 && (
-          <div
-            className="sticky top-0 bg-base-300 p-2 shadow-sm z-10 flex justify-between items-center rounded"
-          >
+          <div className="sticky top-0 bg-base-300 p-2 shadow-sm z-10 flex justify-between items-center rounded">
             <span>{`已选择${selectedMessageIds.size} 条消息`}</span>
             <div className="gap-x-4 flex">
               <button
@@ -304,12 +268,10 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
             </div>
           </div>
         )}
-        {renderMessages}
       </div>
       <PopWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
         <ForwardWindow onClickGroup={groupId => handleForward(groupId)}></ForwardWindow>
       </PopWindow>
     </>
-
   );
 }

@@ -87,10 +87,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
    * 当群聊角色列表更新时, 自动设置为第一个角色
    */
   useEffect(() => {
-    if (groupRolesQuery.isFetchedAfterMount) {
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-      setCurRoleId(groupRolesThatUserOwn[0]?.roleId ?? -1);
-    }
+    setCurRoleId(groupRolesThatUserOwn[0]?.roleId ?? -1);
   }, [groupRolesThatUserOwn]);
 
   /**
@@ -109,7 +106,6 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     if (!inputText.trim() && !imgFiles.length) {
       return;
     }
-
     if (imgFiles.length > 0) {
       for (let i = 0; i < imgFiles.length; i++) {
         const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
@@ -144,7 +140,6 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
       }
     }
     updateImgFiles([]);
-
     if (inputText.trim() !== "") {
       const messageRequest: ChatMessageRequest = {
         roomId: groupId,
@@ -166,11 +161,10 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
       }
       setInputText("");
     }
-
     // 滚动到底部, 设置异步是为了等待新消息接受并渲染好
     setTimeout(() => {
       if (chatFrameRef.current) {
-        chatFrameRef.current.scrollTo({ top: chatFrameRef.current.scrollHeight, behavior: "smooth" });
+        chatFrameRef.current.scrollTo({ top: 0, behavior: "smooth" });
       }
     }, 300);
 
