@@ -8,8 +8,10 @@ import type {
   MoveMessageRequest,
 } from "api";
 
-import { ChatBubble } from "@/components/chat/chatBubble";
+import AddMemberWindow from "@/components/chat/addMemberWindow";
 
+import { AddRoleWindow } from "@/components/chat/addRoleWindow";
+import { ChatBubble } from "@/components/chat/chatBubble";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import ForwardWindow from "@/components/chat/forwardWindow";
 import { GroupContext } from "@/components/chat/groupContext";
@@ -22,7 +24,6 @@ import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import UserAvatarComponent from "@/components/common/userAvatar";
-import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { commands } from "@/utils/commands";
 import { UploadUtils } from "@/utils/UploadUtils";
@@ -38,7 +39,6 @@ import {
   useGetGroupRoleQuery,
   useGetMemberListQuery,
   useGetRoleAvatarsQuery,
-  useGetUserInfoQuery,
   useGetUserRolesQuery,
   useMoveMessageMutation,
 } from "../../../api/queryHooks";
@@ -67,10 +67,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   // 成员添加框的打开状态
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
-  // 添加成员输入框内的输入
-  const [inputUserId, setInputUserId] = useState<number>(-1);
-  // 检验输入的Id是否有效
-  const inputUserInfo = useGetUserInfoQuery(inputUserId).data?.data;
 
   // 获取用户的所有角色
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
@@ -465,7 +461,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
    * 消息选择
    */
   const [selectedMessageIds, updateSelectedMessageIds] = useState<Set<number>>(new Set());
-  const [isSelecting, setIsSelecting] = useState(false);
+  const isSelecting = selectedMessageIds.size > 0;
 
   const toggleMessageSelection = (messageId: number) => {
     updateSelectedMessageIds((prev) => {
@@ -479,11 +475,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
       return newSet;
     });
   };
-  useEffect(() => {
-    if (selectedMessageIds.size === 0) {
-      setIsSelecting(false);
-    }
-  }, [selectedMessageIds.size]);
 
   function handleForward(forwardGroupId: number) {
     if (selectedMessageIds.size === 0)
@@ -523,8 +514,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
           className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""}`}
           onClick={(e) => {
             if (isSelecting || e.ctrlKey) {
-              if (!isSelecting)
-                setIsSelecting(true);
               toggleMessageSelection(chatMessageResponse.message.messageID);
             }
           }}
@@ -573,26 +562,16 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
             </button>
             {/* 加载指示器 */}
             {messagesInfiniteQuery.isFetchingNextPage && (
-              <div className="text-center p-2 text-gray-500">
-                加载历史消息中...
-              </div>
+              <div className="text-center p-2 text-gray-500">加载历史消息中...</div>
             )}
             <div className="card-body overflow-y-auto h-[60vh]" ref={chatFrameRef}>
               {selectedMessageIds.size > 0 && (
                 <div className="sticky top-0 bg-base-300 p-2 shadow-sm z-10 flex justify-between items-center rounded">
-                  <span>
-                    已选择
-                    {selectedMessageIds.size}
-                    {" "}
-                    条消息
-                  </span>
-                  <button
-                    className="btn btn-sm btn-info"
-                    onClick={() => setIsForwardWindowOpen(true)}
-                    type="button"
-                  >
-                    转发
-                  </button>
+                  <span>{`已选择${selectedMessageIds.size} 条消息`}</span>
+                  <div className="gap-x-4 flex">
+                    <button className="btn btn-sm btn" onClick={() => updateSelectedMessageIds(new Set())} type="button">取消</button>
+                    <button className="btn btn-sm btn-info" onClick={() => setIsForwardWindowOpen(true)} type="button">转发</button>
+                  </div>
                 </div>
               )}
               {renderMessages}
@@ -671,7 +650,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                   {/* 角色选择器 */}
                   <div className="dropdown dropdown-top">
                     <div tabIndex={0} role="button" className="btn m-1">选择角色 ⬆️</div>
-                    <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto">
+                    <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto ">
                       <RoleChooser handleRoleChange={handleRoleChange}></RoleChooser>
                     </ul>
                   </div>
@@ -767,43 +746,10 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
         </div>
       </div>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
-        <div className="justify-center w-max">
-          <p className="text-lg font-bold text-center w-full mb-4">选择要加入的角色</p>
-          <div className="grid grid-cols-5 gap-2 justify-items-stretch">
-            {userRoles.map(role => (
-              <div className="" key={role.avatarId}>
-                <div className="flex flex-col items-center">
-                  <div onClick={() => handleAddRole(role.roleId ?? -1)} className="">
-                    <RoleAvatarComponent avatarId={role.avatarId ?? -1} width={24} isRounded={false} withTitle={false} stopPopWindow={true} />
-                  </div>
-                  <p className="text-center block">{role.roleName}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
       </PopWindow>
       <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
-        <div className="w-full justify-center">
-          <p className="text-lg font-bold text-center w-full mb-4 ">输入要加入的用户的ID</p>
-          <input
-            type="text"
-            placeholder="输入要加入的成员的ID"
-            className="input mb-8"
-            onInput={e => setInputUserId(Number(e.currentTarget.value))}
-          />
-          {
-            (inputUserId > 0 && inputUserInfo)
-            && (
-              <div className="w-full items-center flex flex-col gap-y-4">
-                <UserDetail userId={inputUserId}></UserDetail>
-                <button className="btn btn-info" type="button" onClick={() => handleAddMember(Number(inputUserId))}>
-                  确认
-                </button>
-              </div>
-            )
-          }
-        </div>
+        <AddMemberWindow handleAddMember={handleAddMember}></AddMemberWindow>
       </PopWindow>
       <PopWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
         <ForwardWindow onClickGroup={groupId => handleForward(groupId)}></ForwardWindow>
