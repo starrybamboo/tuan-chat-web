@@ -7,6 +7,8 @@ export interface GroupContextType {
   groupMembers: GroupMember[];
   curMember?: GroupMember; // 全局登录用户对应的member
   groupRolesThatUserOwn: UserRole[];
+  curRoleId?: number;
+  curAvatarId?: number;
 }
 
 export const GroupContext = createContext<GroupContextType>({
@@ -14,4 +16,6 @@ export const GroupContext = createContext<GroupContextType>({
   groupMembers: [],
   curMember: undefined,
   groupRolesThatUserOwn: [],
+  curAvatarId: undefined,
+  curRoleId: undefined,
 });
