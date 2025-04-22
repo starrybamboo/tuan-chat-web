@@ -8,15 +8,12 @@ import type {
   MoveMessageRequest,
 } from "api";
 
-import AddMemberWindow from "@/components/chat/addMemberWindow";
-
-import { AddRoleWindow } from "@/components/chat/addRoleWindow";
 import { ChatBubble } from "@/components/chat/chatBubble";
 import CommandPanel from "@/components/chat/commandPanel";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import ForwardWindow from "@/components/chat/forwardWindow";
 import { GroupContext } from "@/components/chat/groupContext";
-import { MemberTypeTag } from "@/components/chat/memberTypeTag";
+import RightSidePanel from "@/components/chat/rightSidePanel";
 import RoleChooser from "@/components/chat/roleChooser";
 import SettingWindow from "@/components/chat/settingWindow";
 import BetterImg from "@/components/common/betterImg";
@@ -24,7 +21,6 @@ import useCommandExecutor, { isCommand } from "@/components/common/commandExecut
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
-import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { ChatRenderer } from "@/webGAL/chatRenderer";
@@ -34,8 +30,6 @@ import { tuanchat } from "api/instance";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
 import {
-  useAddMemberMutation,
-  useAddRoleMutation,
   useGetGroupRoleQuery,
   useGetMemberListQuery,
   useGetRoleAvatarsQuery,
@@ -61,11 +55,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
 
   // 聊天框中包含的图片
   const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
-  // const [imgDownLoadUrl, setImgDownLoadUrl] = useState<string | undefined>(undefined);
-  // 角色添加框的打开状态
-  const [isRoleHandleOpen, setIsRoleHandleOpen] = useState(false);
-  // 成员添加框的打开状态
-  const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
 
   // 获取用户的所有角色
@@ -103,8 +92,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
   }, [curMember, groupId, groupRolesThatUserOwn, members]);
 
   // Mutations
-  const addMemberMutation = useAddMemberMutation();
-  const addRoleMutation = useAddRoleMutation();
+
   const moveMessageMutation = useMoveMessageMutation();
 
   /**
@@ -329,28 +317,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
     setCurRoleId(roleId);
     setCurAvatarIndex(0);
   };
-
-  const handleAddRole = async (roleId: number) => {
-    addRoleMutation.mutate({
-      roomId: groupId,
-      roleIdList: [roleId],
-    }, {
-      onSettled: () => {
-        setIsRoleHandleOpen(false);
-      },
-    });
-  };
-
-  async function handleAddMember(userId: number) {
-    addMemberMutation.mutate({
-      roomId: groupId,
-      userIdList: [userId],
-    }, {
-      onSettled: () => {
-        setIsMemberHandleOpen(false);
-      },
-    });
-  }
 
   const [isRendering, setIsRendering] = useState(false);
   async function handleRender() {
@@ -589,8 +555,8 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
               </div>
 
               <div className="w-full textarea flex-wrap overflow-auto">
-                {/* 命令建议列表 */}
                 <CommandPanel prefix={inputText} handleSelectCommand={handleSelectCommand}></CommandPanel>
+                {/* 图片显示 */}
                 <div className="flex flex-row gap-x-3">
                   {
                     imgFiles.map((file, index) => (
@@ -603,7 +569,6 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
                     ))
                   }
                 </div>
-
                 {/* text input */}
                 <textarea
                   className="textarea w-full h-20 md:h-32 lg:h-40 resize-none border-none focus:outline-none focus:ring-0 "
@@ -658,67 +623,8 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
           </form>
         </div>
         {/* 成员与角色展示框 */}
-        <div className="flex flex-row gap-4 h-full">
-          <div className="flex flex-col gap-2 p-4 bg-base-100 rounded-box shadow-sm items-center w-full space-y-4 max-h-[calc(100vh-6rem)] overflow-y-auto">
-            {/* 群成员列表 */}
-            <div className="space-y-2">
-              <div className="flex flex-row justify-center items-center gap-2">
-                <p className="text-center">
-                  群成员-
-                  {members.length}
-                </p>
-                {
-                  curMember?.memberType === 1
-                  && (
-                    <button className="btn btn-dash btn-info" type="button" onClick={() => setIsMemberHandleOpen(true)}>添加成员</button>
-                  )
-                }
-              </div>
-              {members.map(member => (
-                <div key={member.userId} className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center ">
-                  {/* 成员列表 */}
-                  <UserAvatarComponent userId={member.userId ?? 0} width={8} isRounded={true} withName={true}>
-                  </UserAvatarComponent>
-                  <div className="flex flex-col items-center gap-2 text-sm font-medium">
-                  </div>
-                  <MemberTypeTag memberType={member.memberType}></MemberTypeTag>
-                </div>
-              ))}
-            </div>
-            {/* 角色列表 */}
-            <div className="space-y-2">
-              <div className="flex flex-row justify-center items-center gap-2">
-                <p className="text-center">
-                  角色列表-
-                  <span className="text-sm">{groupRoles.length}</span>
-                </p>
-                {
-                  (curMember?.memberType === 1 || curMember?.memberType === 2) && (
-                    <button className="btn btn-dash btn-info" type="button" onClick={() => setIsRoleHandleOpen(true)}>
-                      添加角色
-                    </button>
-                  )
-                }
-              </div>
-              {groupRoles.map(role => (
-                <div key={role.roleId} className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center ">
-                  {/* role列表 */}
-                  <RoleAvatarComponent avatarId={role.avatarId ?? 0} width={8} isRounded={true} withTitle={false} />
-                  <div className="flex flex-col items-center gap-2 text-sm font-medium">
-                    <span>{role.roleName}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <RightSidePanel></RightSidePanel>
       </div>
-      <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
-        <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
-      </PopWindow>
-      <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
-        <AddMemberWindow handleAddMember={handleAddMember}></AddMemberWindow>
-      </PopWindow>
       <PopWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
         <ForwardWindow onClickGroup={groupId => handleForward(groupId)}></ForwardWindow>
       </PopWindow>
