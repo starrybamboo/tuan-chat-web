@@ -12,6 +12,7 @@ import AddMemberWindow from "@/components/chat/addMemberWindow";
 
 import { AddRoleWindow } from "@/components/chat/addRoleWindow";
 import { ChatBubble } from "@/components/chat/chatBubble";
+import CommandPanel from "@/components/chat/commandPanel";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import ForwardWindow from "@/components/chat/forwardWindow";
 import { GroupContext } from "@/components/chat/groupContext";
@@ -25,7 +26,6 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { commands } from "@/utils/commands";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { ChatRenderer } from "@/webGAL/chatRenderer";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -207,32 +207,18 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
       setCurRoleId(groupRolesThatUserOwn[0]?.roleId ?? -1);
     }
   }, [groupRolesQuery.data, groupRolesQuery.isFetchedAfterMount, groupRolesThatUserOwn]);
+
   /**
-   * 命令补全部分
+   *处理与组件的各种交互
    */
-  const suggestionNumber = 10;
-  const isCommandMode = () => {
-    return inputText.length > 0 && [".", "。"].includes(inputText[0]);
-  };
-  function getSuggestions() {
-    if (!isCommandMode()) {
-      return [];
-    }
-    return commands.filter(command => command.name.startsWith(inputText.slice(1)))
-      .sort((a, b) => b.importance - a.importance)
-      .reverse()
-      .slice(0, suggestionNumber);
-  }
-  const selectCommand = (cmdName: string) => {
+  const handleSelectCommand = (cmdName: string) => {
     // 保持命令前缀格式（保留原输入的 . 或 。）
     const prefixChar = inputText[0];
     setInputText(`${prefixChar}${cmdName} `);
   };
 
-  /**
-   *处理与组件的各种交互
-   */
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleMessageSubmit = async () => {
     setIsSubmitting(true);
     if (!inputText.trim() && !imgFiles.length) {
@@ -604,25 +590,7 @@ export function DialogueWindow({ groupId, send, getNewMessagesByRoomId }: { grou
 
               <div className="w-full textarea flex-wrap overflow-auto">
                 {/* 命令建议列表 */}
-                {isCommandMode() && getSuggestions().length > 0 && (
-                  <div
-                    className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden"
-                  >
-                    {getSuggestions().map(cmd => (
-                      <div
-                        key={cmd.name}
-                        onClick={() => selectCommand(cmd.name)}
-                        className="p-2 w-full last:border-0 hover:bg-base-300 transform origin-left hover:scale-110"
-                      >
-                        <span className="font-mono text-blue-600 dark:text-blue-400">
-                          .
-                          {cmd.name}
-                        </span>
-                        <span className="ml-2 text-sm text-gray-600 dark:text-gray-300">{cmd.description}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <CommandPanel prefix={inputText} handleSelectCommand={handleSelectCommand}></CommandPanel>
                 <div className="flex flex-row gap-x-3">
                   {
                     imgFiles.map((file, index) => (
