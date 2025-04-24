@@ -1,7 +1,7 @@
-import AddMemberWindow from "@/components/chat/addMemberWindow";
-import { AddRoleWindow } from "@/components/chat/addRoleWindow";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
 import { RoomContext } from "@/components/chat/roomContext";
+import AddMemberWindow from "@/components/chat/window/addMemberWindow";
+import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import UserAvatarComponent from "@/components/common/userAvatar";

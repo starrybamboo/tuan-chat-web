@@ -3,7 +3,7 @@ import type { RoomContextType } from "@/components/chat/roomContext";
 import type {
   ChatMessageRequest,
   RoomMember,
-} from "api";
+} from "../../../api";
 
 import ChatFrame from "@/components/chat/chatFrame";
 import CommandPanel from "@/components/chat/commandPanel";
@@ -11,7 +11,7 @@ import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import RightSidePanel from "@/components/chat/rightSidePanel";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
-import SettingWindow from "@/components/chat/settingWindow";
+import SettingWindow from "@/components/chat/window/settingWindow";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import { PopWindow } from "@/components/common/popWindow";
@@ -20,9 +20,9 @@ import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { ChatRenderer } from "@/webGAL/chatRenderer";
-import { tuanchat } from "api/instance";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
+import { tuanchat } from "../../../api/instance";
 import {
   useGetMemberListQuery,
   useGetRoleAvatarsQuery,

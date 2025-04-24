@@ -1,5 +1,5 @@
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
-import { useDissolveRoomMutation, useGetRoomInfoQuery, useUpdateRoomAvatar } from "api/queryHooks";
+import { useDissolveRoomMutation, useGetRoomInfoQuery, useUpdateRoomAvatar } from "../../../../api/queryHooks";
 
 function SettingWindow({ roomId, onClose }: { roomId: number; onClose: () => void }) {
   // 获取群组数据

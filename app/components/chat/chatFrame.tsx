@@ -198,6 +198,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       },
     };
     send(forwardMessageRequest);
+    setIsForwardWindowOpen(false);
+    updateSelectedMessageIds(new Set());
   }
 
   const renderMessages = useMemo(() => (historyMessages
@@ -208,7 +210,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         <div
           key={chatMessageResponse.message.messageID}
           ref={index === historyMessages.length - 7 ? messageRef : null}
-          className={`relative room transition-opacity ${isSelected ? "bg-info-content/40" : ""}`}
+          className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""}`}
           onClick={(e) => {
             if (isSelecting || e.ctrlKey) {
               toggleMessageSelection(chatMessageResponse.message.messageID);
@@ -221,7 +223,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         >
           <div
             className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
-                      -translate-x-full -translate-y-1/ opacity-0 room-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2 cursor-move`}
+                      -translate-x-full -translate-y-1/ opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2 cursor-move`}
             draggable
             onDragStart={e => handleDragStart(e, index)}
           >

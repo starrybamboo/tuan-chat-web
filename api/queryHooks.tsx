@@ -35,7 +35,7 @@ import type {
     ApiResultRoleAbility,
     ApiResultUserInfoResponse, RoomAvatarUpdateRequest, RoomDissolveRequest, RoomOwnerTransferRequest,
     Message,
-    RoleResponse
+    RoleResponse, SpaceOwnerTransferRequest
 } from "api";
 
 
@@ -320,7 +320,7 @@ export function useMoveMessageMutation() {
 export function useSetPlayerMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: AdminAddRequset) => tuanchat.spaceRoleController.setPlayer(req),
+        mutationFn: (req: AdminAddRequset) => tuanchat.spaceMemberController.grantPlayer(req),
         mutationKey: ['setPlayer'],
         onSuccess: (_,variables) => {
             queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.roomId] });
@@ -335,7 +335,7 @@ export function useSetPlayerMutation() {
 export function useRevokePlayerMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: AdminRevokeRequest) => tuanchat.roomMemberController.revokePlayer(req),
+        mutationFn: (req: AdminRevokeRequest) => tuanchat.spaceMemberController.revokePlayer(req),
         mutationKey: ['revokePlayer'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.roomId] });
@@ -349,10 +349,10 @@ export function useRevokePlayerMutation() {
 export function useTransferOwnerMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: RoomOwnerTransferRequest) => tuanchat.roomMemberController.transferRoomOwner(req),
+        mutationFn: (req: SpaceOwnerTransferRequest) => tuanchat.spaceController.transferSpaceOwner(req),
         mutationKey: ['transferRoomOwner'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.roomId] });
+            queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.spaceId] });
         }
     });
 }

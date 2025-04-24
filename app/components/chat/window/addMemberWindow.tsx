@@ -1,6 +1,6 @@
 import { UserDetail } from "@/components/common/userDetail";
 import React, { useState } from "react";
-import { useGetUserInfoQuery } from "../../../api/queryHooks";
+import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 
 export default function AddMemberWindow({ handleAddMember }: { handleAddMember: (userId: number) => void }) {
   // 添加成员输入框内的输入

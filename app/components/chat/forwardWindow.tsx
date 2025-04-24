@@ -13,7 +13,7 @@ function ForwardWindow({ onClickRoom }: { onClickRoom: (roomId: number) => void 
             key={room.roomId}
             className="btn btn-ghost flex justify-start w-full gap-2"
             type="button"
-            onClick={() => onClickRoom(room.roomId)}
+            onClick={() => onClickRoom(room.roomId ?? -1)}
           >
             <div className="avatar mask mask-squircle w-8">
               <img
