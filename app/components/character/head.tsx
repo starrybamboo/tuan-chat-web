@@ -269,7 +269,7 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
                       onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
                     >
                       {/* 头像卡片容器 */}
-                      <div className="relative w-full h-full group">
+                      <div className="relative w-full h-full room">
                         <img
                           src={item.avatarUrl}
                           alt="头像"
@@ -277,7 +277,7 @@ export default function Head({ onAvatarChange, onAvatarIdChange, roleId, current
                         />
                         {/* 删除按钮  */}
                         <button
-                          className="absolute -top-2 -right-2 w-7 h-7 bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800"
+                          className="absolute -top-2 -right-2 w-7 h-7 bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center opacity-0 room-hover:opacity-100 transition-all duration-300 hover:bg-gray-800"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteAvatar(index);

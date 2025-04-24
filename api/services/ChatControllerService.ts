@@ -61,8 +61,31 @@ export class ChatControllerService {
         });
     }
     /**
+     * 删除消息
+     * 只要有更新都走这个接口
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public deleteMessage(
+        requestBody: Message,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'DELETE',
+            url: '/capi/chat/message',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
      * 移动消息位置
-     * 根据beforeMessageId和afterMessageId自动判断移动类型：当都为null时返回错误，一个为null时分别对应移动到顶部或底部，都有值时表示移动到两者之间
+     * 根据beforeMessageId和afterMessageId自动判断移动类型：当都为null时返回错误，beforeMessageId在这条消息之前的id ，就是 beforeMessageId messageId afterMessageId
      * @param requestBody
      * @returns ApiResultMessage OK
      * @throws ApiError
@@ -131,6 +154,7 @@ export class ChatControllerService {
     }
     /**
      * 获取一个群的所有消息
+     * 根据 position 降序排序
      * @param roomId
      * @returns ApiResultListChatMessageResponse OK
      * @throws ApiError

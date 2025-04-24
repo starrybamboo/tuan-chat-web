@@ -16,35 +16,42 @@ interface WsMessage<T> {
     data?: T
 }
 
+export interface WebsocketUtils{
+    connect: () => void
+    send: (request: ChatMessageRequest) => void
+    getNewMessagesByRoomId: (roomId: number) => ChatMessageResponse[]
+    isConnected: boolean
+}
+
 const WS_URL = import.meta.env.VITE_API_WS_URL
 // const WS_URL = "ws://39.103.58.31:8090"
-
-
-
 export function useWebSocket() {
     // let token = "-1"
     const wsRef = useRef<WebSocket | null>(null)
     const [isConnected, setIsConnected] = useState(false)
-    const reconnectAttempts = useRef(0)
     const heartbeatTimer = useRef<NodeJS.Timeout>(setTimeout(()=>{}))
     // 接受消息的存储
-    const [groupMessages, updateGroupMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
+    const [roomMessages, updateRoomMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
 
     let token = ""
 
     if (typeof window !== 'undefined') {
        token = localStorage.getItem("token") ?? "-1"
     }
-
-
     // 配置参数
-    const MAX_RECONNECT_ATTEMPTS = 5
+    const MAX_RECONNECT_ATTEMPTS = 12
     const HEARTBEAT_INTERVAL = 25000
-    const RECONNECT_DELAY_BASE = 1
+    const RECONNECT_DELAY_BASE = 10
 
     // 核心连接逻辑
     const connect = useCallback(() => {
         if (wsRef.current || !WS_URL) return
+
+        window.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && !isConnected) {
+                connect()
+            }
+        });
 
         try {
             wsRef.current = new WebSocket(`${WS_URL}?token=${token}`)
@@ -52,14 +59,13 @@ export function useWebSocket() {
             wsRef.current.onopen = () => {
                 console.log('WebSocket connected')
                 setIsConnected(true)
-                reconnectAttempts.current = 0
                 startHeartbeat()
             }
 
             wsRef.current.onclose = (event) => {
                 console.log(`Close code: ${event.code}, Reason: ${event.reason}`)
                 setIsConnected(false)
-                handleReconnect()
+                // handleReconnect(MAX_RECONNECT_ATTEMPTS)
             }
 
             wsRef.current.onmessage = (event) => {
@@ -70,7 +76,7 @@ export function useWebSocket() {
                         message.data.message.createTime = formatLocalDateTime(new Date())
                     }
                     if(message.data!=undefined && message.data){
-                        updateGroupMessages(draft => {
+                        updateRoomMessages(draft => {
                             const chatMessageResponse = message.data!
                             if (chatMessageResponse.message.roomId in draft) {
                                 // 查找已存在消息的索引
@@ -100,27 +106,20 @@ export function useWebSocket() {
 
         } catch (error) {
             console.error('Connection failed:', error)
-            handleReconnect()
+            handleReconnect(MAX_RECONNECT_ATTEMPTS)
         }
     }, [])
 
     // 重连机制
-    const handleReconnect = useCallback(() => {
-        if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
-            console.error('Max reconnect attempts reached')
-            return
-        }
-
+    const handleReconnect = useCallback((remainAttempts:number) => {
+        if (remainAttempts === 0 || isConnected) return
+        connect()
         const delay = Math.min(
-            RECONNECT_DELAY_BASE * Math.pow(2, reconnectAttempts.current),
+            RECONNECT_DELAY_BASE * Math.pow(2, MAX_RECONNECT_ATTEMPTS - remainAttempts),
             30000
         )
-
-        reconnectAttempts.current++
         console.log(`Reconnecting in ${delay}ms...`)
-
-        const timer = setTimeout(() => connect(), delay)
-        return () => clearTimeout(timer)
+        setTimeout(() => handleReconnect(remainAttempts - 1),delay)
     }, [connect])
 
     // 心跳机制
@@ -137,42 +136,40 @@ export function useWebSocket() {
         heartbeatTimer.current && clearInterval(heartbeatTimer.current)
     }, [])
 
-    // // 清理资源
-    // useEffect(() => {
-    //     return () => {
-    //         stopHeartbeat()
-    //         wsRef.current?.close()
-    //     }
-    // }, [stopHeartbeat])
-
-
-    function send(request : ChatMessageRequest) {
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-            try{
-                const message: WsMessage<ChatMessageRequest> = {
-                    type: 3, // 聊天消息类型
-                    data: request
-                }
-                wsRef.current.send(JSON.stringify(message))
-                console.log('Sent message:', JSON.stringify(message))
-            }catch (e){
-                console.error('Message Serialization Failed:', e)
+    async function send(request : ChatMessageRequest) {
+        if (!isConnected){
+            if (wsRef.current) {
+                wsRef.current.close();
+                wsRef.current = null;
             }
-        } else {
-            console.error('Cannot send message - connection not ready')
-            connect();
+            handleReconnect(MAX_RECONNECT_ATTEMPTS)
+        }
+        for (let i = 0; i < 1000; i++){
+            if (wsRef.current?.readyState === WebSocket.OPEN) break
+            await new Promise(resolve => setTimeout(resolve, 100))
+        }
+        try{
+            const message: WsMessage<ChatMessageRequest> = {
+                type: 3, // 聊天消息类型
+                data: request
+            }
+            wsRef?.current?.send(JSON.stringify(message))
+            console.log('Sent message:', JSON.stringify(message))
+        }catch (e){
+            console.error('Message Serialization Failed:', e)
         }
     }
 
     //
     const getNewMessagesByRoomId = (roomId: number): ChatMessageResponse[] => {
-        return groupMessages[roomId] || []
+        return roomMessages[roomId] || []
     }
 
-    return {
+    const webSocketUtils:WebsocketUtils = {
         isConnected,
         getNewMessagesByRoomId,
         connect,
         send,
     }
+    return webSocketUtils
 }

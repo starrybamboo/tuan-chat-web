@@ -27,7 +27,7 @@ export default function NumericalEditor({
   /**
    * 添加新的约束组
    */
-  const handleAddGroup = () => {
+  const handleAddRoom = () => {
     if (newTotal.match(/^\d+$/)) {
       onChange({
         ...constraints,
@@ -123,7 +123,7 @@ export default function NumericalEditor({
             {/* 网格布局 */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
               {entries.map(([key, value]) => (
-                <div key={key} className="flex items-center gap-1 mb-2 group">
+                <div key={key} className="flex items-center gap-1 mb-2 room">
                   <label className="input flex items-center gap-2">
                     <span className="text-sm font-medium">{key}</span>
                     <div className="w-px h-4 bg-base-content/20"></div>
@@ -223,7 +223,7 @@ export default function NumericalEditor({
         <button
           type="button"
           className="btn btn-secondary"
-          onClick={handleAddGroup}
+          onClick={handleAddRoom}
           disabled={!isEditing || !newTotal}
         >
           新增约束组

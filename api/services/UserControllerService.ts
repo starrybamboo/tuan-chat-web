@@ -69,7 +69,7 @@ export class UserControllerService {
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/user/public/register',
+            url: '/capi/user/register',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -92,7 +92,7 @@ export class UserControllerService {
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/user/public/login',
+            url: '/capi/user/login',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

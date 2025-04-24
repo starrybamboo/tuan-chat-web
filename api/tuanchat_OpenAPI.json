@@ -910,18 +910,18 @@
         }
       }
     },
-    "/capi/group/name": {
+    "/capi/room/name": {
       "put": {
         "tags": [
-          "GroupController"
+          "RoomController"
         ],
         "summary": "更新群名称",
-        "operationId": "updateGroupName",
+        "operationId": "updateRoomName",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GroupNameUpdateRequest"
+                "$ref": "#/components/schemas/RoomNameUpdateRequest"
               }
             }
           },
@@ -981,18 +981,18 @@
         }
       }
     },
-    "/capi/group/member/transfer": {
+    "/capi/room/member/transfer": {
       "put": {
         "tags": [
-          "GroupMemberController"
+          "RoomMemberController"
         ],
         "summary": "转让群主(KP)",
-        "operationId": "transferGroupOwner",
+        "operationId": "transferRoomOwner",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GroupOwnerTransferRequest"
+                "$ref": "#/components/schemas/RoomOwnerTransferRequest"
               }
             }
           },
@@ -1052,10 +1052,10 @@
         }
       }
     },
-    "/capi/group/member/player": {
+    "/capi/room/member/player": {
       "put": {
         "tags": [
-          "GroupMemberController"
+          "RoomMemberController"
         ],
         "summary": "设置用户为玩家",
         "operationId": "setPlayer",
@@ -1124,7 +1124,7 @@
       },
       "delete": {
         "tags": [
-          "GroupMemberController"
+          "RoomMemberController"
         ],
         "summary": "撤销用户玩家的身份",
         "operationId": "revokePlayer",
@@ -1192,18 +1192,18 @@
         }
       }
     },
-    "/capi/group/description": {
+    "/capi/room/description": {
       "put": {
         "tags": [
-          "GroupController"
+          "RoomController"
         ],
         "summary": "更新群描述",
-        "operationId": "updateGroupDescription",
+        "operationId": "updateRoomDescription",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GroupDescriptionUpdateRequest"
+                "$ref": "#/components/schemas/RoomDescriptionUpdateRequest"
               }
             }
           },
@@ -1263,18 +1263,18 @@
         }
       }
     },
-    "/capi/group/avatar": {
+    "/capi/room/avatar": {
       "put": {
         "tags": [
-          "GroupController"
+          "RoomController"
         ],
         "summary": "更新群头像",
-        "operationId": "updateGroupAvatar",
+        "operationId": "updateRoomAvatar",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GroupAvatarUpdateRequest"
+                "$ref": "#/components/schemas/RoomAvatarUpdateRequest"
               }
             }
           },
@@ -1334,18 +1334,18 @@
         }
       }
     },
-    "/capi/group/archive": {
+    "/capi/room/archive": {
       "put": {
         "tags": [
-          "GroupController"
+          "RoomController"
         ],
         "summary": "更新群组归档状态",
-        "operationId": "updateGroupArchiveStatus",
+        "operationId": "updateRoomArchiveStatus",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GroupArchiveRequest"
+                "$ref": "#/components/schemas/RoomArchiveRequest"
               }
             }
           },
@@ -2258,13 +2258,13 @@
         }
       }
     },
-    "/capi/group/subgroup": {
+    "/capi/room/subroom": {
       "post": {
         "tags": [
-          "GroupController"
+          "RoomController"
         ],
         "summary": "创建子群",
-        "operationId": "createSubgroup",
+        "operationId": "createSubroom",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2281,7 +2281,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultGroup"
+                  "$ref": "#/components/schemas/ApiResultRoom"
                 }
               }
             }
@@ -2329,10 +2329,10 @@
         }
       }
     },
-    "/capi/group/role/": {
+    "/capi/room/role/": {
       "post": {
         "tags": [
-          "GroupRoleController"
+          "RoomRoleController"
         ],
         "summary": "增加群聊的角色",
         "operationId": "addRole",
@@ -2401,7 +2401,7 @@
       },
       "delete": {
         "tags": [
-          "GroupRoleController"
+          "RoomRoleController"
         ],
         "summary": "删除群聊的角色",
         "operationId": "deleteRole_1",
@@ -2469,10 +2469,10 @@
         }
       }
     },
-    "/capi/group/member/": {
+    "/capi/room/member/": {
       "post": {
         "tags": [
-          "GroupMemberController"
+          "RoomMemberController"
         ],
         "summary": "新增群成员",
         "operationId": "addMember",
@@ -2541,7 +2541,7 @@
       },
       "delete": {
         "tags": [
-          "GroupMemberController"
+          "RoomMemberController"
         ],
         "summary": "删除群成员",
         "operationId": "deleteMember",
@@ -2609,18 +2609,18 @@
         }
       }
     },
-    "/capi/group/": {
+    "/capi/room/": {
       "post": {
         "tags": [
-          "GroupController"
+          "RoomController"
         ],
         "summary": "创建群组",
-        "operationId": "createGroup",
+        "operationId": "createRoom",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GroupAddRequest"
+                "$ref": "#/components/schemas/RoomAddRequest"
               }
             }
           },
@@ -2632,7 +2632,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultGroup"
+                  "$ref": "#/components/schemas/ApiResultRoom"
                 }
               }
             }
@@ -3679,16 +3679,16 @@
         }
       }
     },
-    "/capi/group/{groupId}": {
+    "/capi/room/{roomId}": {
       "get": {
         "tags": [
-          "GroupController"
+          "RoomController"
         ],
         "summary": "获取群组信息",
-        "operationId": "getGroupInfo",
+        "operationId": "getRoomInfo",
         "parameters": [
           {
-            "name": "groupId",
+            "name": "roomId",
             "in": "path",
             "required": true,
             "schema": {
@@ -3703,7 +3703,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultGroup"
+                  "$ref": "#/components/schemas/ApiResultRoom"
                 }
               }
             }
@@ -3751,13 +3751,13 @@
         }
       }
     },
-    "/capi/group/role/list": {
+    "/capi/room/role/list": {
       "get": {
         "tags": [
-          "GroupRoleController"
+          "RoomRoleController"
         ],
         "summary": "获取群聊的所有角色",
-        "operationId": "groupRole",
+        "operationId": "roomRole",
         "parameters": [
           {
             "name": "roomId",
@@ -3823,10 +3823,10 @@
         }
       }
     },
-    "/capi/group/member/list": {
+    "/capi/room/member/list": {
       "get": {
         "tags": [
-          "GroupMemberController"
+          "RoomMemberController"
         ],
         "summary": "获取群成员列表",
         "operationId": "getMemberList",
@@ -3847,7 +3847,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultListGroupMember"
+                  "$ref": "#/components/schemas/ApiResultListRoomMember"
                 }
               }
             }
@@ -3895,20 +3895,20 @@
         }
       }
     },
-    "/capi/group/list": {
+    "/capi/room/list": {
       "get": {
         "tags": [
-          "GroupController"
+          "RoomController"
         ],
         "summary": "获取当前用户加入的所有群聊",
-        "operationId": "getUserGroups",
+        "operationId": "getUserRooms",
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultListGroup"
+                  "$ref": "#/components/schemas/ApiResultListRoom"
                 }
               }
             }
@@ -4248,10 +4248,10 @@
         }
       }
     },
-    "/capi/group/member/exit": {
+    "/capi/room/member/exit": {
       "delete": {
         "tags": [
-          "GroupMemberController"
+          "RoomMemberController"
         ],
         "summary": "退出群聊",
         "operationId": "exitMember",
@@ -4319,18 +4319,18 @@
         }
       }
     },
-    "/capi/group/dissolve": {
+    "/capi/room/dissolve": {
       "delete": {
         "tags": [
-          "GroupController"
+          "RoomController"
         ],
         "summary": "解散群组",
-        "operationId": "dissolveGroup",
+        "operationId": "dissolveRoom",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GroupDissolveRequest"
+                "$ref": "#/components/schemas/RoomDissolveRequest"
               }
             }
           },
@@ -4679,7 +4679,7 @@
         },
         "description": "能力字段更新请求"
       },
-      "GroupNameUpdateRequest": {
+      "RoomNameUpdateRequest": {
         "required": [
           "name",
           "roomId"
@@ -4697,7 +4697,7 @@
           }
         }
       },
-      "GroupOwnerTransferRequest": {
+      "RoomOwnerTransferRequest": {
         "required": [
           "memberType",
           "roomId",
@@ -4779,7 +4779,7 @@
           }
         }
       },
-      "GroupDescriptionUpdateRequest": {
+      "RoomDescriptionUpdateRequest": {
         "required": [
           "description",
           "roomId"
@@ -4797,7 +4797,7 @@
           }
         }
       },
-      "GroupAvatarUpdateRequest": {
+      "RoomAvatarUpdateRequest": {
         "required": [
           "avatar",
           "roomId"
@@ -4815,7 +4815,7 @@
           }
         }
       },
-      "GroupArchiveRequest": {
+      "RoomArchiveRequest": {
         "required": [
           "archived",
           "roomId"
@@ -5393,7 +5393,7 @@
           }
         }
       },
-      "ApiResultGroup": {
+      "ApiResultRoom": {
         "required": [
           "success"
         ],
@@ -5413,17 +5413,17 @@
             "description": "错误消息"
           },
           "data": {
-            "$ref": "#/components/schemas/Group"
+            "$ref": "#/components/schemas/Room"
           }
         },
         "description": "基础返回体"
       },
-      "Group": {
+      "Room": {
         "required": [
           "avatar",
           "description",
           "name",
-          "parentGroupId",
+          "parentRoomId",
           "roomId",
           "status"
         ],
@@ -5459,7 +5459,7 @@
             "type": "string",
             "format": "date-time"
           },
-          "parentGroupId": {
+          "parentRoomId": {
             "type": "integer",
             "description": "父群聊",
             "format": "int64"
@@ -5513,7 +5513,7 @@
           }
         }
       },
-      "GroupAddRequest": {
+      "RoomAddRequest": {
         "required": [
           "userIdList"
         ],
@@ -6414,7 +6414,7 @@
         },
         "description": "角色实体类"
       },
-      "ApiResultListGroupMember": {
+      "ApiResultListRoomMember": {
         "required": [
           "success"
         ],
@@ -6437,13 +6437,13 @@
             "type": "array",
             "description": "返回对象",
             "items": {
-              "$ref": "#/components/schemas/GroupMember"
+              "$ref": "#/components/schemas/RoomMember"
             }
           }
         },
         "description": "基础返回体"
       },
-      "GroupMember": {
+      "RoomMember": {
         "type": "object",
         "properties": {
           "roomId": {
@@ -6470,7 +6470,7 @@
         },
         "description": "返回对象"
       },
-      "ApiResultListGroup": {
+      "ApiResultListRoom": {
         "required": [
           "success"
         ],
@@ -6493,7 +6493,7 @@
             "type": "array",
             "description": "返回对象",
             "items": {
-              "$ref": "#/components/schemas/Group"
+              "$ref": "#/components/schemas/Room"
             }
           }
         },
@@ -6641,7 +6641,7 @@
           }
         }
       },
-      "GroupDissolveRequest": {
+      "RoomDissolveRequest": {
         "required": [
           "roomId"
         ],
@@ -6685,7 +6685,7 @@
       "enableSearch": true,
       "enableOpenApi": true,
       "enableHomeCustom": false,
-      "enableGroup": true,
+      "enableRoom": true,
       "enableResponseCode": true
     },
     "x-markdownFiles": []
