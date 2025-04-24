@@ -1,4 +1,4 @@
-import { GroupContext } from "@/components/chat/groupContext";
+import { RoomContext } from "@/components/chat/roomContext";
 import { PopWindow } from "@/components/common/popWindow";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -30,11 +30,11 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
   // 控制用户详情的popWindow
   const [isOpen, setIsOpen] = useState(false);
 
-  const groupContext = use(GroupContext);
-  const groupId = groupContext.groupId ?? -1;
-  const groupMembers = groupContext.groupMembers ?? [];
+  const roomContext = use(RoomContext);
+  const roomId = roomContext.roomId ?? -1;
+  const roomMembers = roomContext.roomMembers ?? [];
   // userId()是当前组件显示的用户，member是userId对应的member
-  const member = groupMembers.find(member => member.userId === userId);
+  const member = roomMembers.find(member => member.userId === userId);
   // 当前登录用户的id
   const curUserId = useGlobalContext().userId ?? -1;
 
@@ -45,14 +45,14 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
 
   // 是否是群主
   function isManager() {
-    return groupContext.curMember?.memberType === 1;
+    return roomContext.curMember?.memberType === 1;
   }
 
   const handleRemoveMember = async () => {
-    if (groupId < 0)
+    if (roomId < 0)
       return;
     mutateMember.mutate(
-      { roomId: groupId, userIdList: [userId] },
+      { roomId, userIdList: [userId] },
       {
         onSettled: () => setIsOpen(false), // 最终关闭弹窗
       },
@@ -61,7 +61,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
 
   function handleSetPlayer() {
     setPlayerMutation.mutate({
-      roomId: groupId,
+      roomId,
       uidList: [userId],
     }, {
       onSettled: () => setIsOpen(false),
@@ -70,16 +70,16 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
 
   function handRevokePlayer() {
     revokePlayerMutation.mutate({
-      roomId: groupId,
+      roomId,
       uidList: [userId],
     }, {
       onSettled: () => setIsOpen(false),
     });
   }
 
-  function handTransferGroupOwner() {
+  function handTransferRoomOwner() {
     transferOwnerMutation.mutate({
-      roomId: groupId,
+      roomId,
       uidList: [userId],
       memberType: 2,
     }, {
@@ -115,7 +115,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
               <div className="items-center justify-center gap-y-4 flex flex-col">
                 <UserDetail userId={userId}></UserDetail>
                 {
-                  (groupId >= 0) && (
+                  (roomId >= 0) && (
                     curUserId === userId
                       ? (
                           <div className="gap-4 flex">
@@ -145,7 +145,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
                                   </button>
                                 )
                               }
-                              <button type="button" className="btn btn-info" onClick={handTransferGroupOwner}>
+                              <button type="button" className="btn btn-info" onClick={handTransferRoomOwner}>
                                 转让KP
                               </button>
                             </div>

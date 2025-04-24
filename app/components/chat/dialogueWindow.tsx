@@ -1,16 +1,16 @@
-import type { GroupContextType } from "@/components/chat/groupContext";
+import type { RoomContextType } from "@/components/chat/roomContext";
 
 import type {
   ChatMessageRequest,
-  GroupMember,
+  RoomMember,
 } from "api";
 
 import ChatFrame from "@/components/chat/chatFrame";
 import CommandPanel from "@/components/chat/commandPanel";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
-import { GroupContext } from "@/components/chat/groupContext";
 import RightSidePanel from "@/components/chat/rightSidePanel";
 import RoleChooser from "@/components/chat/roleChooser";
+import { RoomContext } from "@/components/chat/roomContext";
 import SettingWindow from "@/components/chat/settingWindow";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
@@ -24,13 +24,13 @@ import { tuanchat } from "api/instance";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
 import {
-  useGetGroupRoleQuery,
   useGetMemberListQuery,
   useGetRoleAvatarsQuery,
+  useGetRoomRoleQuery,
   useGetUserRolesQuery,
 } from "../../../api/queryHooks";
 
-export function DialogueWindow({ groupId }: { groupId: number }) {
+export function DialogueWindow({ roomId }: { roomId: number }) {
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
   const webSocketUtils = globalContext.websocketUtils;
@@ -51,19 +51,19 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
   // 获取当前群聊中的所有角色
-  const groupRolesQuery = useGetGroupRoleQuery(groupId);
-  const groupRoles = useMemo(() => groupRolesQuery.data?.data ?? [], [groupRolesQuery.data?.data]);
-  const groupRolesThatUserOwn = useMemo(() => {
-    return groupRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
-  }, [groupRoles, userRoles]);
-  const [curRoleId, setCurRoleId] = useState(groupRolesThatUserOwn[0]?.roleId ?? -1);
+  const roomRolesQuery = useGetRoomRoleQuery(roomId);
+  const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
+  const roomRolesThatUserOwn = useMemo(() => {
+    return roomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
+  }, [roomRoles, userRoles]);
+  const [curRoleId, setCurRoleId] = useState(roomRolesThatUserOwn[0]?.roleId ?? -1);
   const commandExecutor = useCommandExecutor(curRoleId);
   // 获取当前用户选择角色的所有头像(表情差分)
   const roleAvatarQuery = useGetRoleAvatarsQuery(curRoleId ?? -1);
   const roleAvatars = useMemo(() => roleAvatarQuery.data?.data ?? [], [roleAvatarQuery.data?.data]);
   // 获取当前群聊的成员列表
-  const membersQuery = useGetMemberListQuery(groupId);
-  const members: GroupMember[] = useMemo(() => {
+  const membersQuery = useGetMemberListQuery(roomId);
+  const members: RoomMember[] = useMemo(() => {
     return membersQuery.data?.data ?? [];
   }, [membersQuery.data?.data]);
   // 全局登录用户对应的member
@@ -72,23 +72,23 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   }, [members, userId]);
 
   // Context
-  const groupContext: GroupContextType = useMemo((): GroupContextType => {
+  const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {
-      groupId,
-      groupMembers: members,
+      roomId,
+      roomMembers: members,
       curMember,
-      groupRolesThatUserOwn,
+      roomRolesThatUserOwn,
       curRoleId,
       curAvatarId: roleAvatars[curAvatarIndex]?.avatarId ?? -1,
     };
-  }, [curAvatarIndex, curMember, curRoleId, groupId, groupRolesThatUserOwn, members, roleAvatars]);
+  }, [curAvatarIndex, curMember, curRoleId, roomId, roomRolesThatUserOwn, members, roleAvatars]);
 
   /**
    * 当群聊角色列表更新时, 自动设置为第一个角色
    */
   useEffect(() => {
-    setCurRoleId(groupRolesThatUserOwn[0]?.roleId ?? -1);
-  }, [groupRolesThatUserOwn]);
+    setCurRoleId(roomRolesThatUserOwn[0]?.roleId ?? -1);
+  }, [roomRolesThatUserOwn]);
 
   /**
    *处理与组件的各种交互
@@ -123,14 +123,14 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
         if (imgDownLoadUrl && imgDownLoadUrl !== "") {
           const messageRequest: ChatMessageRequest = {
             content: "",
-            roomId: groupId,
+            roomId,
             roleId: curRoleId,
             avatarId: roleAvatars[curAvatarIndex].avatarId || -1,
             messageType: 2,
             body: {
               size: 0,
               url: imgDownLoadUrl,
-              fileName: imgDownLoadUrl.split("/").pop() || `${groupId}-${Date.now()}`,
+              fileName: imgDownLoadUrl.split("/").pop() || `${roomId}-${Date.now()}`,
               width,
               height,
             },
@@ -142,7 +142,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
     updateImgFiles([]);
     if (inputText.trim() !== "") {
       const messageRequest: ChatMessageRequest = {
-        roomId: groupId,
+        roomId,
         roleId: curRoleId,
         content: inputText.trim(),
         avatarId: roleAvatars[curAvatarIndex].avatarId || -1,
@@ -213,7 +213,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   async function handleRender() {
     setIsRendering(true);
     try {
-      const renderer = new ChatRenderer(groupId);
+      const renderer = new ChatRenderer(roomId);
       await renderer.initializeRenderer();
     }
     catch (error) {
@@ -227,7 +227,7 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
   const [isSettingWindowOpen, setIsSettingWindowOpen] = useState(false);
 
   return (
-    <GroupContext value={groupContext}>
+    <RoomContext value={roomContext}>
       <div className="flex flex-row p-6 gap-4 w-full min-w-0">
         {/* 聊天区域主体 */}
         <div className="flex-1 min-w-[480px] flex flex-col">
@@ -336,9 +336,9 @@ export function DialogueWindow({ groupId }: { groupId: number }) {
       </div>
       {/* 设置窗口 */}
       <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
-        <SettingWindow groupId={groupId} onClose={() => setIsSettingWindowOpen(false)}></SettingWindow>
+        <SettingWindow roomId={roomId} onClose={() => setIsSettingWindowOpen(false)}></SettingWindow>
       </PopWindow>
-    </GroupContext>
+    </RoomContext>
   );
 }
 

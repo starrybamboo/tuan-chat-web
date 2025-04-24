@@ -37,7 +37,7 @@ export function GlobalContextProvider({ children }: { children: React.ReactNode 
     setUserId(token ? Number(token) : null);
   }, []);
   const websocketUtils = useWebSocket();
-  const groupContext: GlobalContextType = useMemo((): GlobalContextType => {
+  const roomContext: GlobalContextType = useMemo((): GlobalContextType => {
     return {
       userId,
       setUserId,
@@ -45,7 +45,7 @@ export function GlobalContextProvider({ children }: { children: React.ReactNode 
     };
   }, [userId, websocketUtils]);
   return (
-    <GlobalContext value={groupContext}>
+    <GlobalContext value={roomContext}>
       {children}
     </GlobalContext>
   );

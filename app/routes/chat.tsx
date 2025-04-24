@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 
-import GroupSelect from "@/components/chat/groupSelect";
+import RoomSelect from "@/components/chat/roomSelect";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -12,7 +12,7 @@ export function meta(_args: Route.MetaArgs) {
 export default function Chat() {
   return (
     <div className="h-screen bg-base-200 flex">
-      <GroupSelect />
+      <RoomSelect />
     </div>
   );
 }

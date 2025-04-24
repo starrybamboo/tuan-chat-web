@@ -29,7 +29,7 @@ export class ChatRenderer {
       }
 
       // 2. 获取所有角色
-      const rolesResponse = await tuanchat.groupRoleController.groupRole(this.roomId);
+      const rolesResponse = await tuanchat.roomRoleController.roomRole1(this.roomId);
       if (!rolesResponse.success || !rolesResponse.data) {
         throw new Error("Failed to fetch roles");
       }

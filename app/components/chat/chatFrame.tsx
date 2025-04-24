@@ -1,7 +1,7 @@
 import type { ChatMessagePageRequest, ChatMessageRequest, ChatMessageResponse, MoveMessageRequest } from "../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
 import ForwardWindow from "@/components/chat/forwardWindow";
-import { GroupContext } from "@/components/chat/groupContext";
+import { RoomContext } from "@/components/chat/roomContext";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -16,10 +16,10 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   // 滚动加载逻辑, 设置为倒数第n条消息的ref, 当这条消息进入用户窗口时, messageEntry.isIntersecting变为true, 之后启动滚动加载
   const [messageRef, messageEntry] = useIntersectionObserver();
   const PAGE_SIZE = 30; // 每页消息数量
-  const groupContext = use(GroupContext);
-  const groupId = groupContext.groupId ?? -1;
-  const curRoleId = groupContext.curRoleId ?? -1;
-  const curAvatarId = groupContext.curAvatarId ?? -1;
+  const roomContext = use(RoomContext);
+  const roomId = roomContext.roomId ?? -1;
+  const curRoleId = roomContext.curRoleId ?? -1;
+  const curAvatarId = roomContext.curAvatarId ?? -1;
 
   const websocketUtils = useGlobalContext().websocketUtils;
   const getNewMessagesByRoomId = websocketUtils.getNewMessagesByRoomId;
@@ -33,7 +33,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   // 分页获取消息
   // cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
   const messagesInfiniteQuery = useInfiniteQuery({
-    queryKey: ["getMsgPage", groupId],
+    queryKey: ["getMsgPage", roomId],
     queryFn: async ({ pageParam }) => {
       return tuanchat.chatController.getMsgPage(pageParam);
     },
@@ -42,11 +42,11 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         return undefined;
       }
       else {
-        const params: ChatMessagePageRequest = { roomId: groupId, pageSize: PAGE_SIZE, cursor: lastPage.data?.cursor };
+        const params: ChatMessagePageRequest = { roomId, pageSize: PAGE_SIZE, cursor: lastPage.data?.cursor };
         return params;
       }
     },
-    initialPageParam: { roomId: groupId, pageSize: PAGE_SIZE, cursor: null } as unknown as ChatMessagePageRequest,
+    initialPageParam: { roomId, pageSize: PAGE_SIZE, cursor: null } as unknown as ChatMessagePageRequest,
     refetchOnWindowFocus: false,
   });
 
@@ -55,7 +55,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     const historyMessages = (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
     const messageMap = new Map<number, ChatMessageResponse>();
 
-    const receivedMessages = getNewMessagesByRoomId(groupId);
+    const receivedMessages = getNewMessagesByRoomId(roomId);
     // 这是为了更新历史消息(ws发过来的消息有可能是带有相同的messageId的, 代表消息的更新)
     historyMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
     receivedMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
@@ -65,7 +65,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     // 过滤掉删除的消息和不符合规则的消息
       .filter(msg => msg.message.messageType !== 0 || msg.message.status === 1)
       .reverse();
-  }, [getNewMessagesByRoomId, groupId, messagesInfiniteQuery.data?.pages]);
+  }, [getNewMessagesByRoomId, roomId, messagesInfiniteQuery.data?.pages]);
   // console.log(`top: ${chatFrameRef.current?.scrollTop} height: ${chatFrameRef.current?.clientHeight} scrollHeight: ${chatFrameRef.current?.scrollHeight}`);
 
   /**
@@ -96,7 +96,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const dropPositionRef = useRef<"before" | "after">("before");
   const handleDragEnd = () => {
     // 重置所有元素的样式
-    document.querySelectorAll(".group").forEach((el) => {
+    document.querySelectorAll(".room").forEach((el) => {
       (el as HTMLElement).style.opacity = "1";
     });
   };
@@ -183,12 +183,12 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     });
   };
 
-  function handleForward(forwardGroupId: number) {
+  function handleForward(forwardRoomId: number) {
     const forwardMessages = Array.from(selectedMessageIds)
       .map(id => historyMessages.find(m => m.message.messageID === id))
       .filter((msg): msg is ChatMessageResponse => msg !== undefined);
     const forwardMessageRequest: ChatMessageRequest = {
-      roomId: forwardGroupId,
+      roomId: forwardRoomId,
       roleId: curRoleId,
       content: "",
       avatarId: curAvatarId,
@@ -208,7 +208,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         <div
           key={chatMessageResponse.message.messageID}
           ref={index === historyMessages.length - 7 ? messageRef : null}
-          className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""}`}
+          className={`relative room transition-opacity ${isSelected ? "bg-info-content/40" : ""}`}
           onClick={(e) => {
             if (isSelecting || e.ctrlKey) {
               toggleMessageSelection(chatMessageResponse.message.messageID);
@@ -221,7 +221,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         >
           <div
             className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
-                      -translate-x-full -translate-y-1/ opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2 cursor-move`}
+                      -translate-x-full -translate-y-1/ opacity-0 room-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2 cursor-move`}
             draggable
             onDragStart={e => handleDragStart(e, index)}
           >
@@ -270,7 +270,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         )}
       </div>
       <PopWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
-        <ForwardWindow onClickGroup={groupId => handleForward(groupId)}></ForwardWindow>
+        <ForwardWindow onClickRoom={roomId => handleForward(roomId)}></ForwardWindow>
       </PopWindow>
     </>
   );

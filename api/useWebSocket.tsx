@@ -19,7 +19,7 @@ interface WsMessage<T> {
 export interface WebsocketUtils{
     connect: () => void
     send: (request: ChatMessageRequest) => void
-    getNewMessagesByRoomId: (groupId: number) => ChatMessageResponse[]
+    getNewMessagesByRoomId: (roomId: number) => ChatMessageResponse[]
     isConnected: boolean
 }
 
@@ -31,7 +31,7 @@ export function useWebSocket() {
     const [isConnected, setIsConnected] = useState(false)
     const heartbeatTimer = useRef<NodeJS.Timeout>(setTimeout(()=>{}))
     // 接受消息的存储
-    const [groupMessages, updateGroupMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
+    const [roomMessages, updateRoomMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
 
     let token = ""
 
@@ -76,7 +76,7 @@ export function useWebSocket() {
                         message.data.message.createTime = formatLocalDateTime(new Date())
                     }
                     if(message.data!=undefined && message.data){
-                        updateGroupMessages(draft => {
+                        updateRoomMessages(draft => {
                             const chatMessageResponse = message.data!
                             if (chatMessageResponse.message.roomId in draft) {
                                 // 查找已存在消息的索引
@@ -162,7 +162,7 @@ export function useWebSocket() {
 
     //
     const getNewMessagesByRoomId = (roomId: number): ChatMessageResponse[] => {
-        return groupMessages[roomId] || []
+        return roomMessages[roomId] || []
     }
 
     const webSocketUtils:WebsocketUtils = {

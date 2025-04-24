@@ -1,7 +1,7 @@
 import type { ChatMessageResponse, Message } from "api";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
-import { GroupContext } from "@/components/chat/groupContext";
 import RoleChooser from "@/components/chat/roleChooser";
+import { RoomContext } from "@/components/chat/roomContext";
 import BetterImg from "@/components/common/betterImg";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
@@ -54,7 +54,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
 
   const userId = useGlobalContext().userId;
 
-  const groupContext = use(GroupContext);
+  const roomContext = use(RoomContext);
 
   function handleExpressionChange(avatarId: number) {
     const newMessage: Message = {
@@ -85,14 +85,14 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
     const newMessage: Message = {
       ...message,
       roleId: new_roleId,
-      avatarId: groupContext.groupRolesThatUserOwn.find(role => role.roleId === new_roleId)?.avatarId ?? -1,
+      avatarId: roomContext.roomRolesThatUserOwn.find(role => role.roleId === new_roleId)?.avatarId ?? -1,
     };
     updateMessageMutation.mutate(newMessage, {
       onSettled: () => setIsRoleChooserOpen(false),
     });
   }
 
-  const canEdit = userId === message.userId || groupContext.curMember?.userId === message.userId;
+  const canEdit = userId === message.userId || roomContext.curMember?.userId === message.userId;
 
   function handleAvatarClick() {
     if (canEdit) {

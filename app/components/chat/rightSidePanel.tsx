@@ -1,21 +1,21 @@
 import AddMemberWindow from "@/components/chat/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/addRoleWindow";
-import { GroupContext } from "@/components/chat/groupContext";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
+import { RoomContext } from "@/components/chat/roomContext";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import React, { use, useMemo, useState } from "react";
-import { useAddMemberMutation, useAddRoleMutation, useGetGroupRoleQuery } from "../../../api/queryHooks";
+import { useAddMemberMutation, useAddRoleMutation, useGetRoomRoleQuery } from "../../../api/queryHooks";
 
 export default function RightSidePanel() {
-  const groupContext = use(GroupContext);
-  const groupId = groupContext.groupId ?? -1;
-  const members = groupContext.groupMembers;
+  const roomContext = use(RoomContext);
+  const roomId = roomContext.roomId ?? -1;
+  const members = roomContext.roomMembers;
   // 全局登录用户对应的member
-  const curMember = groupContext.curMember;
-  const groupRolesQuery = useGetGroupRoleQuery(groupId);
-  const groupRoles = useMemo(() => groupRolesQuery.data?.data ?? [], [groupRolesQuery.data?.data]);
+  const curMember = roomContext.curMember;
+  const roomRolesQuery = useGetRoomRoleQuery(roomId);
+  const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
 
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useState(false);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
@@ -25,7 +25,7 @@ export default function RightSidePanel() {
 
   const handleAddRole = async (roleId: number) => {
     addRoleMutation.mutate({
-      roomId: groupId,
+      roomId,
       roleIdList: [roleId],
     }, {
       onSettled: () => {
@@ -36,7 +36,7 @@ export default function RightSidePanel() {
 
   async function handleAddMember(userId: number) {
     addMemberMutation.mutate({
-      roomId: groupId,
+      roomId,
       userIdList: [userId],
     }, {
       onSettled: () => {
@@ -86,7 +86,7 @@ export default function RightSidePanel() {
           <div className="flex flex-row justify-center items-center gap-2">
             <p className="text-center">
               角色列表-
-              <span className="text-sm">{groupRoles.length}</span>
+              <span className="text-sm">{roomRoles.length}</span>
             </p>
             {
               (curMember?.memberType === 1 || curMember?.memberType === 2) && (
@@ -100,7 +100,7 @@ export default function RightSidePanel() {
               )
             }
           </div>
-          {groupRoles.map(role => (
+          {roomRoles.map(role => (
             <div
               key={role.roleId}
               className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center "

@@ -231,7 +231,7 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
 }) {
   return (
     <div
-      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group max-h-20 max-w-[18rem] ${
+      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer room max-h-20 max-w-[18rem] ${
         isSelected ? "bg-base-100" : "hover:bg-base-100"
       }`}
       onClick={onSelect}
@@ -257,7 +257,7 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
       </div>
       <button
         type="button"
-        className="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100"
+        className="btn btn-ghost btn-xs opacity-0 room-hover:opacity-100"
         onClick={(e) => {
           e.stopPropagation();
           onDelete();

@@ -1,14 +1,14 @@
-import { GroupContext } from "@/components/chat/groupContext";
+import { RoomContext } from "@/components/chat/roomContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { use } from "react";
 
 export default function RoleChooser({ handleRoleChange, className }: { handleRoleChange: (roleId: number) => void; className?: string }) {
-  const groupContext = use(GroupContext);
+  const roomContext = use(RoomContext);
   return (
     <div className={className}>
       {
         // 仅显示角色列表里面有的角色
-        groupContext.groupRolesThatUserOwn.map(role => (
+        roomContext.roomRolesThatUserOwn.map(role => (
           <li
             key={role.roleId}
             onClick={() => handleRoleChange(role.roleId)}

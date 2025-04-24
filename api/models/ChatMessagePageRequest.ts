@@ -2,15 +2,18 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+/**
+ * 聊天分页请求
+ */
 export type ChatMessagePageRequest = {
     /**
-     * 页面大小
-     */
-    pageSize?: number;
-    /**
-     * 游标（初始为null，后续请求附带上次翻页的游标）
+     * 游标（上次翻页的最后一条记录的标识）
      */
     cursor?: number;
+    /**
+     * 每页大小
+     */
+    pageSize?: number;
     /**
      * 会话id
      */
