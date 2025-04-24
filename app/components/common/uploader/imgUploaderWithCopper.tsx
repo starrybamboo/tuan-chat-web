@@ -36,9 +36,10 @@ function centerAspectCrop(
 }
 
 interface ImgUploaderWithCopperProps {
-  // 一个函数, 如果useState的话就填set函数. 会在返回后将downLoadUrl作为参数传入
-  setDownloadUrl: (newUrl: string) => void;
-  setCopperedDownloadUrl: (newUrl: string) => void;
+  // 如果useState的话就填set函数. 会在返回后将downLoadUrl作为参数传入
+  // 如果没填就不会向oss上传图片
+  setDownloadUrl?: (newUrl: string) => void | undefined;
+  setCopperedDownloadUrl?: (newUrl: string) => void | undefined;
   children: React.ReactNode;
   fileName: string;
   mutate?: (data: any) => void;
@@ -121,11 +122,17 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
     );
 
     try {
-      const downloadUrl = await uploadUtils.uploadImg(fileWithNewName);
-      setDownloadUrl(downloadUrl);
-      const copperedImgFile = await getCopperedImg();
-      const copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, 70, 768);
-      setCopperedDownloadUrl(copperedDownloadUrl);
+      let downloadUrl = "";
+      let copperedDownloadUrl = "";
+      if (setDownloadUrl) {
+        downloadUrl = await uploadUtils.uploadImg(fileWithNewName);
+        setDownloadUrl(downloadUrl);
+      }
+      if (setCopperedDownloadUrl) {
+        const copperedImgFile = await getCopperedImg();
+        copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, 70, 768);
+        setCopperedDownloadUrl(copperedDownloadUrl);
+      }
       if (mutate !== undefined) {
         mutate({ avatarUrl: copperedDownloadUrl, spriteUrl: downloadUrl });
       }

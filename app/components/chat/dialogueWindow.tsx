@@ -233,7 +233,7 @@ export function DialogueWindow({ roomId }: { roomId: number }) {
         <div className="flex-1 min-w-[480px] flex flex-col">
           {/* 聊天框 */}
           <div className="card bg-base-100 shadow-sm flex-1 relative">
-            <button type="button" className="btn btn-ghost absolute top-2 right-2 z-50" onClick={() => { setIsSettingWindowOpen(true); }}>
+            <button type="button" className="btn btn-ghost absolute top-0 right-0 z-50" onClick={() => { setIsSettingWindowOpen(true); }}>
               设置
             </button>
             <ChatFrame useChatBubbleStyle={useChatBubbleStyle} chatFrameRef={chatFrameRef}></ChatFrame>

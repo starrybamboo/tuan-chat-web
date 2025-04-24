@@ -192,11 +192,11 @@ export function useDeleteMemberMutation() {
 /**
  * 更新群头像
  */
-export function useUpdateRoomAvatar() {
+export function useUpdateRoom() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: RoomAvatarUpdateRequest) => tuanchat.roomController.updateRoomAvatar1(req),
-        mutationKey: ['updateRoomAvatar'],
+        mutationFn: (req: RoomAvatarUpdateRequest) => tuanchat.roomController.updateRoom(req),
+        mutationKey: ['updateRoom'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
         }

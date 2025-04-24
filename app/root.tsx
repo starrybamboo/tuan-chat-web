@@ -53,6 +53,8 @@ export default function App() {
         {/* <Topbar></Topbar> */}
         <Outlet />
         <ReactQueryDevtools initialIsOpen={false} />
+        <div id="modal-root"></div>
+        {/* 挂载popWindow的地方 */}
       </QueryClientProvider>
     </GlobalContextProvider>
   );

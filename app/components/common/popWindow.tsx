@@ -1,8 +1,25 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 
-export function PopWindow({ isOpen, children, onClose }: { isOpen: boolean; children: React.ReactNode; onClose: () => void }) {
-  return (
-    <div className={`modal ${isOpen ? "modal-open" : ""}`}>
+export function PopWindow({ isOpen, children, onClose }: {
+  isOpen: boolean;
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const modalRoot = document.getElementById("modal-root");
+
+  useEffect(() => {
+    if (isOpen && modalRef.current) {
+      // 每次打开时将该弹窗移到modal-root的最后面，确保在最上层
+      modalRoot?.appendChild(modalRef.current);
+    }
+  }, [isOpen, modalRoot]);
+  if (!modalRoot)
+    return null;
+
+  return ReactDOM.createPortal(
+    <div className={`modal ${isOpen ? "modal-open" : ""}`} ref={modalRef}>
       <div className="modal-box relative bg-base-100 dark:bg-base-300 w-max max-w-none h-max max-h-none">
         {/* 关闭按钮 */}
         <button
@@ -20,6 +37,7 @@ export function PopWindow({ isOpen, children, onClose }: { isOpen: boolean; chil
 
       {/* 背景遮罩 */}
       <div className="modal-backdrop bg-black/50 dark:bg-black/70" onClick={onClose}></div>
-    </div>
+    </div>,
+    modalRoot,
   );
 }
