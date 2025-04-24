@@ -80,8 +80,9 @@ export function DialogueWindow({ roomId }: { roomId: number }) {
       roomRolesThatUserOwn,
       curRoleId,
       curAvatarId: roleAvatars[curAvatarIndex]?.avatarId ?? -1,
+      useChatBubbleStyle,
     };
-  }, [curAvatarIndex, curMember, curRoleId, roomId, roomRolesThatUserOwn, members, roleAvatars]);
+  }, [curAvatarIndex, curMember, curRoleId, roomId, roomRolesThatUserOwn, members, roleAvatars, useChatBubbleStyle]);
 
   /**
    * 当群聊角色列表更新时, 自动设置为第一个角色

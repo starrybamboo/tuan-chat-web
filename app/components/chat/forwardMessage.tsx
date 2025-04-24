@@ -1,7 +1,8 @@
 import type { ChatMessageResponse, Message } from "api";
 import { ChatBubble } from "@/components/chat/chatBubble";
+import { RoomContext } from "@/components/chat/roomContext";
 import { PopWindow } from "@/components/common/popWindow";
-import { useMemo, useState } from "react";
+import { use, useMemo, useState } from "react";
 import { useGetRoleQuery } from "../../../api/queryHooks";
 
 function PreviewMessage({ message }: { message: Message }) {
@@ -37,6 +38,7 @@ function PreviewMessage({ message }: { message: Message }) {
 export default function ForwardMessage({ messageList }: { messageList: ChatMessageResponse[] }) {
   // 限制预览消息数为3条
   const previewMessages = messageList.slice(0, 3);
+  const useChatBubbleStyle = use(RoomContext).useChatBubbleStyle;
   const renderedPreviewMessages = useMemo(() => {
     return previewMessages.map((item, index) => (
       <div key={`${item.message.messageID}_${index}`} className="bg-base-100 p-3 rounded-box shadow-sm">
@@ -47,9 +49,9 @@ export default function ForwardMessage({ messageList }: { messageList: ChatMessa
 
   const renderedMessages = useMemo(() => {
     return messageList.map(item => (
-      <ChatBubble chatMessageResponse={item} useChatBubbleStyle={true} key={item.message.messageID}></ChatBubble>
+      <ChatBubble chatMessageResponse={item} useChatBubbleStyle={useChatBubbleStyle} key={item.message.messageID}></ChatBubble>
     ));
-  }, []);
+  }, [useChatBubbleStyle]);
 
   const [isOpen, setIsOpen] = useState(false);
 
