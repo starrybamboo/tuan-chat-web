@@ -1,4 +1,5 @@
 import type { Route } from "./+types/home";
+import FeedPage from "@/components/feed/feedPage";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -9,8 +10,8 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Feed() {
   return (
-    <div className="h-screen">
-      <p>feed</p>
+    <div className="h-screen bg-base-100">
+      <FeedPage></FeedPage>
     </div>
   );
 }
