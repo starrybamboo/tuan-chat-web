@@ -236,10 +236,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
               />
             </svg>
           </div>
-          <ChatBubble
-            chatMessageResponse={chatMessageResponse}
-            useChatBubbleStyle={useChatBubbleStyle}
-          />
+          <ChatBubble chatMessageResponse={chatMessageResponse} />
         </div>
       )
       );

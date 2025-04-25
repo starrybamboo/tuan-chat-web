@@ -39,6 +39,7 @@ export default function ForwardMessage({ messageList }: { messageList: ChatMessa
   // 限制预览消息数为3条
   const previewMessages = messageList.slice(0, 3);
   const useChatBubbleStyle = use(RoomContext).useChatBubbleStyle;
+  const [isOpen, setIsOpen] = useState(false);
   const renderedPreviewMessages = useMemo(() => {
     return previewMessages.map((item, index) => (
       <div key={`${item.message.messageID}_${index}`} className="bg-base-100 p-3 rounded-box shadow-sm">
@@ -48,12 +49,13 @@ export default function ForwardMessage({ messageList }: { messageList: ChatMessa
   }, []);
 
   const renderedMessages = useMemo(() => {
+    if (!isOpen) {
+      return <></>;
+    }
     return messageList.map(item => (
-      <ChatBubble chatMessageResponse={item} useChatBubbleStyle={useChatBubbleStyle} key={item.message.messageID}></ChatBubble>
+      <ChatBubble chatMessageResponse={item} key={item.message.messageID}></ChatBubble>
     ));
-  }, [useChatBubbleStyle]);
-
-  const [isOpen, setIsOpen] = useState(false);
+  }, [useChatBubbleStyle, isOpen]);
 
   return (
     <div>

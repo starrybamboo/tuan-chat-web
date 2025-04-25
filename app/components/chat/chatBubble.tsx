@@ -43,7 +43,7 @@ function EditableField({ content, handleContentUpdate, canEdit = true }: { conte
       );
 }
 
-export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMessageResponse: ChatMessageResponse; useChatBubbleStyle: boolean }) {
+export function ChatBubble({ chatMessageResponse }: { chatMessageResponse: ChatMessageResponse }) {
   const message = chatMessageResponse.message;
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId);
 
@@ -56,6 +56,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
   const userId = useGlobalContext().userId;
 
   const roomContext = use(RoomContext);
+  const useChatBubbleStyle = roomContext.useChatBubbleStyle;
 
   function handleExpressionChange(avatarId: number) {
     const newMessage: Message = {
