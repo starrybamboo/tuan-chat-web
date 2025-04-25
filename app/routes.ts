@@ -13,7 +13,7 @@ export default [
     route("create", "routes/create.tsx"),
     route("profile", "routes/profile.tsx"),
     route("module", "routes/module.tsx"),
-    route("chat", "routes/chat.tsx"),
+    route("chat/:spaceId?/:roomId?", "routes/chat.tsx"),
     route("community", "routes/community.tsx"),
   ]),
 ] satisfies RouteConfig;

@@ -9,14 +9,26 @@ import {
   useGetUserSpacesQuery,
 } from "api/queryHooks";
 import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router";
 import { PopWindow } from "../common/popWindow";
 import { UserDetail } from "../common/userDetail";
 
 export default function RoomSelect() {
+  const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
+  const navigate = useNavigate();
+
   // 当前展开房间的空间
-  const [activeSpaceId, setActiveSpaceId] = useState<number | null>(null);
+  const [activeSpaceId, setActiveSpaceId] = useState<number | null>(urlSpaceId ? Number(urlSpaceId) : null);
   // 当前选中的房间ID
-  const [activeRoomId, setActiveRoomId] = useState<number | null>(null);
+  const [activeRoomId, setActiveRoomId] = useState<number | null>(urlRoomId ? Number(urlRoomId) : null);
+  // 同步路由状态
+  useEffect(() => {
+    if (activeSpaceId || activeRoomId) {
+      const path = `/chat/${activeSpaceId || ""}/${activeRoomId || ""}`;
+      navigate(path.replace(/\/+$/, ""), { replace: true });
+    }
+  }, [activeSpaceId, activeRoomId, navigate]);
+
   // 获取用户空间列表
   const userSpacesQuery = useGetUserSpacesQuery();
   const spaces = userSpacesQuery.data?.data ?? [];
