@@ -1,21 +1,28 @@
 import DialogueWindow from "@/components/chat/dialogueWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { useCreateRoomMutation, useCreateSubroomMutation, useGetUserInfoQuery, useGetUserRoomsQuery } from "api/queryHooks";
+import {
+  useCreateRoomMutation,
+  useCreateSubroomMutation,
+  useGetUserInfoQuery,
+  useGetUserRoomsQuery,
+  useGetUserSpacesQuery,
+} from "api/queryHooks";
 import React, { useEffect, useState } from "react";
 import { PopWindow } from "../common/popWindow";
 import { UserDetail } from "../common/userDetail";
 
 export default function RoomSelect() {
   // 当前展开子群的父群
-  const [openRoom, setOpenRoom] = useState<number | null>(null);
+  const [activeSpaceId, setActiveSpaceId] = useState<number | null>(null);
   // 当前选中的子群ID
   const [activeSubRoomId, setActiveSubRoomId] = useState<number | null>(null);
   // 获取用户群组列表
-  const userRoomsQuery = useGetUserRoomsQuery();
-  const userRooms = userRoomsQuery.data?.data ?? [];
-  // 分离子群和父群
-  const rooms = userRooms;
-  const subRooms = userRooms;
+  const userSpacesQuery = useGetUserSpacesQuery();
+  const spaces = userSpacesQuery.data?.data ?? [];
+  // const userRoomsQueries = useGetUserRoomsQueries(spaces);
+  const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
+  const rooms = userRoomQuery.data?.data ?? [];
+
   // 创建群组
   const createRoomMutation = useCreateRoomMutation();
   // 当前要创建子群的父群ID
@@ -72,18 +79,18 @@ export default function RoomSelect() {
     <div className="flex flex-row bg-base-100">
       {/* 一级群组列表 */}
       <div className="menu flex flex-col gap-2 p-3 bg-base-300">
-        {rooms.map(room => (
+        {spaces.map(space => (
           <button
-            key={room.roomId}
+            key={space.spaceId}
             className="tooltip tooltip-right w-10"
-            data-tip={room.name}
+            data-tip={space.name}
             type="button"
-            onClick={() => setOpenRoom(room.roomId)}
+            onClick={() => setActiveSpaceId(space.spaceId ?? -1)}
           >
             <div className="avatar mask mask-squircle">
               <img
-                src={room.avatar}
-                alt={room.name}
+                src={space.avatar}
+                alt={space.name}
               />
             </div>
           </button>
@@ -106,37 +113,35 @@ export default function RoomSelect() {
       <div className="flex flex-col gap-2 p-2 w-[200px] bg-base-100">
         {rooms.map(room => (
           <React.Fragment key={room.roomId}>
-            {openRoom === room.roomId && (
-              subRooms
-              // TODO 现在的情况下，被拉进入的群不能被显示，所以我注释掉了
-                // .filter(subRoom => subRoom.parentRoomId === room.roomId)
-                .map(subRoom => (
+            {activeSpaceId === room.roomId && (
+              rooms
+                .map(room => (
                   <button
-                    key={subRoom.roomId}
+                    key={room.roomId}
                     className="btn btn-ghost flex justify-start w-full gap-2"
                     type="button"
-                    onClick={() => setActiveSubRoomId(subRoom.roomId)}
+                    onClick={() => setActiveSubRoomId(room.roomId ?? -1)}
                   >
                     <div className="avatar mask mask-squircle w-8">
                       <img
-                        src={subRoom.avatar}
-                        alt={subRoom.name}
+                        src={room.avatar}
+                        alt={room.name}
                       />
                     </div>
-                    <span className="truncate flex-1 text-left">{subRoom.name}</span>
+                    <span className="truncate flex-1 text-left">{room.name}</span>
                   </button>
                 ))
             )}
           </React.Fragment>
         ))}
-        {openRoom !== null && (
+        {activeSpaceId !== null && (
           <button
             className="btn btn-dash btn-info flex w-full"
             type="button"
             onClick={() => {
-              if (openRoom) {
+              if (activeSpaceId) {
                 setIsSubRoomHandleOpen(true);
-                setCurrentParentRoomId(openRoom);
+                setCurrentParentRoomId(activeSpaceId);
               }
             }}
           >

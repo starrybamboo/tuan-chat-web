@@ -6,7 +6,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import {useQuery, useMutation, QueryClient, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useMutation, QueryClient, useQueryClient, useQueries} from '@tanstack/react-query';
 import { tuanchat } from './instance';
 import type { AddRoleRequest } from './models/AddRoleRequest';
 import type { AdminAddRequset } from './models/AdminAddRequset';
@@ -35,7 +35,7 @@ import type {
     ApiResultRoleAbility,
     ApiResultUserInfoResponse, RoomAvatarUpdateRequest, RoomDissolveRequest, RoomOwnerTransferRequest,
     Message,
-    RoleResponse, SpaceOwnerTransferRequest, FeedRequest
+    RoleResponse, SpaceOwnerTransferRequest, FeedRequest, Space
 } from "api";
 
 
@@ -495,15 +495,36 @@ export function useGetUserRolesQuery(userId: number) {
     });
 }
 
-// ==================== 其他接口 ====================
+// ==================== 群组相关 ====================
 /**
- * 获取用户加入的所有群组
+ * 获取用户加入的所有space
  */
-export function useGetUserRoomsQuery() {
+export function useGetUserSpacesQuery() {
     return useQuery({
-        queryKey: ['getUserRooms'],
-        queryFn: () => tuanchat.roomController.getUserRooms(),
+        queryKey: ['getUserSpaces'],
+        queryFn: () => tuanchat.spaceController.getUserSpaces(),
         staleTime: 300000 // 5分钟缓存
+    });
+}
+/**
+ * 获取space下用户加入的所有群组
+ */
+export function useGetUserRoomsQuery(spaceId: number) {
+    return useQuery({
+        queryKey: ['getUserRooms',spaceId],
+        queryFn: () => tuanchat.roomController.getUserRooms(spaceId),
+        staleTime: 300000 ,// 5分钟缓存
+        enabled: spaceId!=-1
+    });
+}
+export function useGetUserRoomsQueries(spaces: Space[]){
+    return useQueries({
+        queries: spaces.map(space => ({
+            queryKey: ['getUserRooms', space.spaceId],  // 保持与useGetUserRoomsQuery一致的queryKey格式
+            queryFn: () => tuanchat.roomController.getUserRooms(space.spaceId ?? -1),
+            staleTime: 300000, // 保持一致的5分钟缓存
+            enabled: space.spaceId!=-1
+        })),
     });
 }
 
