@@ -1,4 +1,5 @@
 import DialogueWindow from "@/components/chat/dialogueWindow";
+import SpaceWindow from "@/components/chat/spaceWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   useCreateRoomMutation,
@@ -77,7 +78,7 @@ export default function RoomSelect() {
   }
 
   return (
-    <div className="flex flex-row bg-base-100">
+    <div className="flex flex-row bg-base-100 flex-1">
       {/* 空间列表 */}
       <div className="menu flex flex-col gap-2 p-3 bg-base-300">
         {spaces.map(space => (
@@ -86,7 +87,10 @@ export default function RoomSelect() {
             className="tooltip tooltip-right w-10"
             data-tip={space.name}
             type="button"
-            onClick={() => setActiveSpaceId(space.spaceId ?? -1)}
+            onClick={() => {
+              setActiveSpaceId(space.spaceId ?? -1);
+              setActiveRoomId(null);
+            }}
           >
             <div className="avatar mask mask-squircle">
               <img
@@ -153,7 +157,8 @@ export default function RoomSelect() {
       {/* 对话窗口 */}
       {
         activeRoomId
-        && <DialogueWindow roomId={activeRoomId} />
+          ? <DialogueWindow roomId={activeRoomId} />
+          : <SpaceWindow spaceId={activeSpaceId ?? -1} />
       }
       {/* 创建空间弹出窗口 */}
       <PopWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
