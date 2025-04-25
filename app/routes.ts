@@ -8,7 +8,7 @@ export default [
     // 临时举措
     // index("../app/routes/chat.tsx"),
     index("routes/home.tsx"),
-    route("feed", "routes/feed.tsx"),
+    route("feed/:feedId?", "routes/feed.tsx"),
     route("role", "routes/role.tsx"),
     route("create", "routes/create.tsx"),
     route("profile", "routes/profile.tsx"),

@@ -922,6 +922,16 @@ export function usePublishFeedMutation(){
         }
     })
 }
+export function useGetFeedByIdQuery(feedId: number){
+    return useQuery({
+        queryKey: ["getFeedById", feedId],
+        queryFn: async () => {
+            const res = await tuanchat.feedController.getFeedById(feedId);
+            return res.data;
+        },
+        staleTime: 300 * 1000
+    })
+}
 
 
 
