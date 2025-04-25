@@ -43,7 +43,6 @@ export default function FeedPage() {
         feeds.map((feed, index) => {
           return (
             <div ref={index === feeds.length - 2 ? feedRef : null} key={feed.feedId}>
-              {index}
               <FeedPost feed={feed} />
             </div>
           );

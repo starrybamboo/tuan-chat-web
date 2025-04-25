@@ -3,7 +3,7 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 
 export default function FeedPost({ feed }: { feed: Feed }) {
   return (
-    <div className="card bg-base-200 shadow-xl mb-4 hover:shadow-2xl transition-shadow w-full">
+    <div className="card bg-base-100 border border-base-300 shadow-lg mb-4 hover:shadow-xl transition-shadow w-full">
       <div className="card-body p-4 md:p-6">
         {/* 头部 - 包含头像和标题 */}
         <div className="flex items-start gap-3 mb-4">

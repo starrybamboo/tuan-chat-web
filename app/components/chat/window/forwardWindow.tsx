@@ -1,4 +1,5 @@
-import React from "react";
+import { PopWindow } from "@/components/common/popWindow";
+import React, { useState } from "react";
 import { useGetUserRoomsQuery } from "../../../../api/queryHooks";
 
 function ForwardWindow({ onClickRoom, handlePublishFeed }:
@@ -6,6 +7,23 @@ function ForwardWindow({ onClickRoom, handlePublishFeed }:
 ;handlePublishFeed: () => void; }) {
   const userRoomsQuery = useGetUserRoomsQuery();
   const rooms = userRoomsQuery.data?.data ?? [];
+  const [isOpenPublishFeedWindow, setIsOpenPublishFeedWindow] = useState(false);
+  const [feedData, setFeedData] = useState({
+    title: "",
+    description: "",
+  });
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFeedData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+  const handleSubmit = () => {
+    handlePublishFeed();
+    setIsOpenPublishFeedWindow(false);
+    setFeedData({ title: "", description: "" });
+  };
   return (
     <div className="gap-2 flex flex-col items-center overflow-auto">
       选择要转发的群组：
@@ -27,9 +45,54 @@ function ForwardWindow({ onClickRoom, handlePublishFeed }:
           </button>
         ))
       }
-      <button className="btn" type="button" onClick={() => handlePublishFeed()}>
+      <button className="btn" type="button" onClick={() => setIsOpenPublishFeedWindow(true)}>
         分享到社区
       </button>
+      <PopWindow isOpen={isOpenPublishFeedWindow} onClose={() => setIsOpenPublishFeedWindow(false)}>
+        <div className="p-4 w-full max-w-md">
+          <h3 className="text-lg font-bold mb-4">分享到社区</h3>
+          <div className="form-control w-full mb-4">
+            <label className="label">
+              <span className="label-text">标题</span>
+            </label>
+            <input
+              type="text"
+              name="title"
+              value={feedData.title}
+              onChange={handleInputChange}
+              placeholder="输入标题"
+              className="input input-bordered w-full"
+            />
+          </div>
+          <div className="form-control w-full mb-4">
+            <label className="label">
+              <span className="label-text">描述</span>
+            </label>
+            <textarea
+              name="description"
+              value={feedData.description}
+              onChange={handleInputChange}
+              placeholder="输入描述"
+              className="textarea textarea-bordered w-full h-32"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              className="btn btn-ghost"
+              onClick={() => setIsOpenPublishFeedWindow(false)}
+            >
+              取消
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleSubmit}
+              disabled={!feedData.title}
+            >
+              确认分享
+            </button>
+          </div>
+        </div>
+      </PopWindow>
     </div>
   );
 }
