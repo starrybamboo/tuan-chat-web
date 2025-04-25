@@ -2,19 +2,20 @@ import type {
   ChatMessagePageRequest,
   ChatMessageRequest,
   ChatMessageResponse,
+  FeedRequest,
   Message,
   MoveMessageRequest,
 } from "../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
-import ForwardWindow from "@/components/chat/forwardWindow";
 import { RoomContext } from "@/components/chat/roomContext";
+import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { tuanchat } from "../../../api/instance";
-import { useDeleteMessageMutation, useMoveMessageMutation } from "../../../api/queryHooks";
+import { useDeleteMessageMutation, useMoveMessageMutation, usePublishFeedMutation } from "../../../api/queryHooks";
 
 export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
 { useChatBubbleStyle: boolean; chatFrameRef: React.RefObject<HTMLDivElement> }) {
@@ -34,6 +35,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   // Mutations
   const moveMessageMutation = useMoveMessageMutation();
   const deleteMessageMutation = useDeleteMessageMutation();
+  const publishFeedMutation = usePublishFeedMutation();
   /**
    * 获取历史消息
    */
@@ -208,6 +210,13 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     setIsForwardWindowOpen(false);
     updateSelectedMessageIds(new Set());
   }
+  function handlePublishFeed() {
+    const feedRequest: FeedRequest = {
+      messageId: selectedMessageIds.values().next().value,
+      title: "default",
+    };
+    publishFeedMutation.mutate(feedRequest);
+  }
   /**
    * 右键菜单
    */
@@ -310,7 +319,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         )}
       </div>
       <PopWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
-        <ForwardWindow onClickRoom={roomId => handleForward(roomId)}></ForwardWindow>
+        <ForwardWindow onClickRoom={roomId => handleForward(roomId)} handlePublishFeed={() => handlePublishFeed()}></ForwardWindow>
       </PopWindow>
       {/* 右键菜单 */}
       {contextMenu && (

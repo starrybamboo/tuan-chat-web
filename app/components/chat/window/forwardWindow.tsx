@@ -1,7 +1,9 @@
 import React from "react";
-import { useGetUserRoomsQuery } from "../../../api/queryHooks";
+import { useGetUserRoomsQuery } from "../../../../api/queryHooks";
 
-function ForwardWindow({ onClickRoom }: { onClickRoom: (roomId: number) => void }) {
+function ForwardWindow({ onClickRoom, handlePublishFeed }:
+{ onClickRoom: (roomId: number) => void
+;handlePublishFeed: () => void; }) {
   const userRoomsQuery = useGetUserRoomsQuery();
   const rooms = userRoomsQuery.data?.data ?? [];
   return (
@@ -25,7 +27,9 @@ function ForwardWindow({ onClickRoom }: { onClickRoom: (roomId: number) => void 
           </button>
         ))
       }
-
+      <button className="btn" type="button" onClick={() => handlePublishFeed()}>
+        分享到社区
+      </button>
     </div>
   );
 }

@@ -35,7 +35,7 @@ import type {
     ApiResultRoleAbility,
     ApiResultUserInfoResponse, RoomAvatarUpdateRequest, RoomDissolveRequest, RoomOwnerTransferRequest,
     Message,
-    RoleResponse, SpaceOwnerTransferRequest
+    RoleResponse, SpaceOwnerTransferRequest, FeedRequest
 } from "api";
 
 
@@ -799,4 +799,18 @@ export function useDeleteRole() {
     },
   });
 }
+
+/**
+ * feed
+ */
+export function usePublishFeedMutation(){
+    return useMutation({
+        mutationKey: ["publishFeed"],
+        mutationFn: async (feed: FeedRequest) => {
+            const res = await tuanchat.feedController.publishFeed(feed);
+        }
+    })
+}
+
+
 
