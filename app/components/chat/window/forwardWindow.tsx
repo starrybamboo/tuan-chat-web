@@ -1,12 +1,14 @@
 import { PopWindow } from "@/components/common/popWindow";
 import React, { useState } from "react";
-import { useGetUserRoomsQuery } from "../../../../api/queryHooks";
+import { useGetUserRoomsQueries, useGetUserSpacesQuery } from "../../../../api/queryHooks";
 
 function ForwardWindow({ onClickRoom, handlePublishFeed }:
 { onClickRoom: (roomId: number) => void
 ;handlePublishFeed: () => void; }) {
-  const userRoomsQuery = useGetUserRoomsQuery();
-  const rooms = userRoomsQuery.data?.data ?? [];
+  const userSpacesQuery = useGetUserSpacesQuery();
+  const spaces = userSpacesQuery.data?.data ?? [];
+  const userRoomsQueries = useGetUserRoomsQueries(spaces);
+  const rooms = userRoomsQueries.map(query => query.data?.data ?? []).flat();
   const [isOpenPublishFeedWindow, setIsOpenPublishFeedWindow] = useState(false);
   const [feedData, setFeedData] = useState({
     title: "",

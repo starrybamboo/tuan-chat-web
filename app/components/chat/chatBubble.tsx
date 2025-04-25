@@ -4,44 +4,12 @@ import ForwardMessage from "@/components/chat/forwardMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import BetterImg from "@/components/common/betterImg";
+import { EditableField } from "@/components/common/EditableFiled";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetRoleQuery, useUpdateMessageMutation } from "api/queryHooks";
 import React, { use, useMemo, useState } from "react";
-
-function EditableField({ content, handleContentUpdate, canEdit = true }: { content: string; handleContentUpdate: (content: string) => void; canEdit?: boolean }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(content);
-
-  function handleDoubleClick() {
-    if (canEdit) {
-      setIsEditing(true);
-    }
-  }
-  return isEditing
-    ? (
-        <textarea
-          className="whitespace-pre-wrap border-none bg-transparent resize-none textarea w-full"
-          value={editContent}
-          onChange={e => setEditContent(e.target.value)}
-          onKeyPress={e => e.key === "Enter" && handleContentUpdate(editContent)}
-          onBlur={() => {
-            handleContentUpdate(editContent);
-            setIsEditing(false);
-          }}
-          autoFocus
-        />
-      )
-    : (
-        <div
-          className="whitespace-pre-wrap"
-          onDoubleClick={handleDoubleClick}
-        >
-          {content}
-        </div>
-      );
-}
 
 export function ChatBubble({ chatMessageResponse }: { chatMessageResponse: ChatMessageResponse }) {
   const message = chatMessageResponse.message;
@@ -114,7 +82,7 @@ export function ChatBubble({ chatMessageResponse }: { chatMessageResponse: ChatM
     else if (message.messageType === 5) {
       return <ForwardMessage messageList={message.extra?.forwardMessage?.messageList ?? []}></ForwardMessage>;
     }
-    return (<EditableField content={message.content} handleContentUpdate={handleContentUpdate} canEdit={userId === message.userId}></EditableField>);
+    return (<EditableField content={message.content} handleContentUpdate={handleContentUpdate} className="whitespace-pre-wrap" canEdit={userId === message.userId}></EditableField>);
   }, [message.content, message.extra, message.messageType]);
 
   return (

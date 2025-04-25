@@ -70,7 +70,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     return Array.from(messageMap.values())
       .sort((a, b) => a.message.position - b.message.position)
     // 过滤掉删除的消息和不符合规则的消息
-      .filter(msg => msg.message.status === 0)
+      .filter(msg => msg.message.status !== 1)
       .reverse();
   }, [getNewMessagesByRoomId, roomId, messagesInfiniteQuery.data?.pages]);
   // console.log(`top: ${chatFrameRef.current?.scrollTop} height: ${chatFrameRef.current?.clientHeight} scrollHeight: ${chatFrameRef.current?.scrollHeight}`);

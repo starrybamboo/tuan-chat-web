@@ -1,10 +1,11 @@
 import { RoomContext } from "@/components/chat/roomContext";
+import { EditableField } from "@/components/common/EditableFiled";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { use } from "react";
 import {
   useDissolveRoomMutation,
   useGetRoomInfoQuery,
-  useUpdateRoom,
+  useUpdateRoomMutation,
 } from "../../../../api/queryHooks";
 
 function SettingWindow({ onClose }: { onClose: () => void }) {
@@ -16,16 +17,16 @@ function SettingWindow({ onClose }: { onClose: () => void }) {
   // 解散群组
   const dissolveRoomMutation = useDissolveRoomMutation();
   // 更新群头像
-  const updateRoomAvatar = useUpdateRoom();
+  const updateRoomMutation = useUpdateRoomMutation();
 
   return (
-    <div className="w-full p-4">
+    <div className="w-full p-4 min-w-[40vw]">
       {room && (
         <div className="">
           <div className="flex justify-center">
             <ImgUploaderWithCopper
               setCopperedDownloadUrl={(url) => {
-                updateRoomAvatar.mutate({ roomId, avatar: url });
+                updateRoomMutation.mutate({ roomId, avatar: url });
               }}
               fileName={`roomId-${room.roomId}`}
             >
@@ -45,8 +46,18 @@ function SettingWindow({ onClose }: { onClose: () => void }) {
               </div>
             </ImgUploaderWithCopper>
           </div>
-          <h2 className="text-2xl font-bold text-center my-4">{room.name}</h2>
-          <p className="text-gray-600 text-center">{room.description}</p>
+          <EditableField
+            content={room.name ?? ""}
+            handleContentUpdate={name => updateRoomMutation.mutate({ roomId, name })}
+            className="text-2xl font-bold text-center my-4"
+          >
+          </EditableField>
+          <EditableField
+            content={room.description ?? ""}
+            handleContentUpdate={description => updateRoomMutation.mutate({ roomId, description })}
+            className="text-gray-600 text-center"
+          >
+          </EditableField>
           <div className="flex justify-center mt-16">
             <button
               type="button"
