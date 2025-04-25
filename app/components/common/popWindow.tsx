@@ -25,7 +25,8 @@ export function PopWindow({ isOpen, children, onClose }: {
     return null;
   }
   const modalRoot = document.getElementById("modal-root");
-  if (!modalRoot) {
+
+  if (!modalRoot || !isOpen) {
     return null;
   }
 
