@@ -7,6 +7,16 @@ interface NumericalEditorProps {
   onChange: (constraints: NumericalConstraints) => void;
 }
 
+// 定义输入状态的类型
+interface InputState {
+  key: string;
+  value: string;
+}
+
+interface InputStates {
+  [totalKey: string]: InputState;
+}
+
 /**
  * 数值编辑器组件
  * 负责管理角色数值相关的字段，支持公式计算和约束组
@@ -17,10 +27,14 @@ export default function NumericalEditor({
   onChange,
 }: NumericalEditorProps) {
   const [newTotal, setNewTotal] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
-  // 使用Map存储每个约束组的输入状态
-  const [inputStates, setInputStates] = useState<Map<string, { key: string; value: string }>>(
-    new Map(Object.keys(constraints).map(key => [key, { key: "", value: "" }])),
+  // 使用对象存储每个约束组的输入状态
+  const [inputStates, setInputStates] = useState<InputStates>(
+    Object.keys(constraints).reduce((acc, key) => ({
+      ...acc,
+      [key]: { key: "", value: "" },
+    }), {}),
   );
 
   /**
@@ -34,11 +48,10 @@ export default function NumericalEditor({
       });
 
       // 为新约束组添加输入状态
-      setInputStates((prev) => {
-        const newMap = new Map(prev);
-        newMap.set(newTotal, { key: "", value: "" });
-        return newMap;
-      });
+      setInputStates(prev => ({
+        ...prev,
+        [newTotal]: { key: "", value: "" },
+      }));
 
       setNewTotal("");
     }
@@ -48,7 +61,7 @@ export default function NumericalEditor({
    * 在指定的总约束值下添加新字段
    */
   const handleAddField = (totalKey: string) => {
-    const state = inputStates.get(totalKey) || { key: "", value: "" };
+    const state = inputStates[totalKey] || { key: "", value: "" };
     if (state.key.trim()) {
       const value = FormulaParser.isFormula(state.value)
         ? state.value
@@ -63,29 +76,26 @@ export default function NumericalEditor({
       });
 
       // 清空当前约束组的输入
-      setInputStates((prev) => {
-        const newMap = new Map(prev);
-        newMap.set(totalKey, { key: "", value: "" });
-        return newMap;
-      });
+      setInputStates(prev => ({
+        ...prev,
+        [totalKey]: { key: "", value: "" },
+      }));
     }
   };
 
   // 更新特定约束组的输入状态
   const updateInputState = (totalKey: string, field: "key" | "value", value: string) => {
-    setInputStates((prev) => {
-      const newMap = new Map(prev);
-      const currentState = prev.get(totalKey) || { key: "", value: "" };
-      newMap.set(totalKey, { ...currentState, [field]: value });
-      return newMap;
-    });
+    setInputStates(prev => ({
+      ...prev,
+      [totalKey]: { ...prev[totalKey], [field]: value },
+    }));
   };
 
   return (
     <div className="space-y-6">
       {Object.entries(constraints).map(([totalKey, fields]) => {
         const entries = Object.entries(fields);
-        const inputState = inputStates.get(totalKey) || { key: "", value: "" };
+        const inputState = inputStates[totalKey] || { key: "", value: "" };
 
         const totalPoints = Number(totalKey);
         // 计算当前字段值的总和
@@ -130,6 +140,7 @@ export default function NumericalEditor({
                       type="text"
                       value={typeof value === "string" ? value : value.toString()}
                       className="grow"
+                      disabled={!isEditing}
                       onChange={(e) => {
                         const newValue = e.target.value;
                         onChange({
@@ -145,7 +156,7 @@ export default function NumericalEditor({
                   {/* 小删除按钮，未来也许可以考虑做一个撤回和继续的按钮 */}
                   <button
                     type="button"
-                    className="btn btn-error btn-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    className={`btn btn-error btn-xs opacity-0 group-hover:opacity-${isEditing ? 100 : 0} transition-opacity`}
                     onClick={() => {
                       const newFields = { ...fields };
                       delete newFields[key];
@@ -182,14 +193,16 @@ export default function NumericalEditor({
             <div className="flex gap-8 max-w-2xl">
               <input
                 type="text"
-                placeholder="字段名称"
+                disabled={!isEditing}
+                placeholder={isEditing ? "输入字段名" : "请打开编辑模式"}
                 className="input input-bordered input-sm w-1/3"
                 value={inputState.key}
                 onChange={e => updateInputState(totalKey, "key", e.target.value)}
               />
               <input
                 type="text"
-                placeholder="值/公式"
+                disabled={!isEditing}
+                placeholder={isEditing ? "值/公式" : "请打开编辑模式"}
                 className="input input-bordered input-sm w-1/2"
                 value={inputState.value}
                 onChange={e => updateInputState(totalKey, "value", e.target.value)}
@@ -198,6 +211,7 @@ export default function NumericalEditor({
                 type="button"
                 className="btn btn-primary btn-sm"
                 onClick={() => handleAddField(totalKey)}
+                disabled={!isEditing || !inputState.key || !inputState.value}
               >
                 添加字段
               </button>
@@ -209,7 +223,8 @@ export default function NumericalEditor({
       <div className="flex gap-2">
         <input
           type="text"
-          placeholder="输入总约束值（0表示动态）"
+          disabled={!isEditing}
+          placeholder={isEditing ? "输入总约束值（0表示动态）" : "请打开编辑模式"}
           className="input input-bordered"
           value={newTotal}
           onChange={e => setNewTotal(e.target.value)}
@@ -218,9 +233,23 @@ export default function NumericalEditor({
           type="button"
           className="btn btn-secondary"
           onClick={handleAddGroup}
+          disabled={!isEditing || !newTotal}
         >
           新增约束组
         </button>
+      </div>
+      <div className="card-actions justify-end">
+        {isEditing
+          ? (
+              <button type="submit" onClick={() => setIsEditing(false)} className="btn btn-primary">
+                退出
+              </button>
+            )
+          : (
+              <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent">
+                编辑
+              </button>
+            )}
       </div>
     </div>
   );
