@@ -1,3 +1,4 @@
+import type { UserInfoResponse } from "../../../api";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetUserInfoQuery, useUpdateUserInfoMutation } from "../../../api/queryHooks";
 import { ImgUploaderWithCopper } from "../common/uploader/imgUploaderWithCopper";
@@ -19,7 +20,7 @@ function ProfilePage() {
         <div className="flex flex-col items-center gap-4">
           <ImgUploaderWithCopper
             setCopperedDownloadUrl={(url) => {
-              updateUserInfoMutation.mutate({ userId, avatar: url });
+              updateUserInfoMutation.mutate({ ...user, avatar: url } as UserInfoResponse);
             }}
             fileName={`userId-${user?.userId}`}
           >
@@ -29,13 +30,18 @@ function ProfilePage() {
                 alt={user?.username}
                 className="w-24 h-24 mx-auto rounded-lg transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
               />
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
+              <div
+                className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm"
+              >
                 <span className="font-medium px-2 py-1 rounded">
                   更新头像
                 </span>
               </div>
             </div>
           </ImgUploaderWithCopper>
+          <h2 className="card-title text-2xl">
+            {user?.username || "未知用户"}
+          </h2>
 
           {/* 详细信息 */}
           <div className="divider"></div>
