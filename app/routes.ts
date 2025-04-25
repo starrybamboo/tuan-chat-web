@@ -14,6 +14,7 @@ export default [
     route("profile", "routes/profile.tsx"),
     route("module", "routes/module.tsx"),
     route("module/create", "routes/module_create.tsx"),
+    route("module/detail/:id", "routes/module_detail.tsx"),
     route("chat", "routes/chat.tsx"),
     route("community", "routes/community.tsx"),
   ]),
