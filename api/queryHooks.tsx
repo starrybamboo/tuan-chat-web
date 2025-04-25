@@ -35,7 +35,8 @@ import type {
     ApiResultRoleAbility,
     ApiResultUserInfoResponse, RoomAvatarUpdateRequest, RoomDissolveRequest, RoomOwnerTransferRequest,
     Message,
-    RoleResponse, SpaceOwnerTransferRequest, FeedRequest, Space
+    RoleResponse, SpaceOwnerTransferRequest, FeedRequest, Space,
+    SpaceAddRequest
 } from "api";
 
 
@@ -217,31 +218,34 @@ export function useGetRoomInfoQuery(roomId: number) {
 }
 
 /**
- * 创建群组
+ * 创建空间
  */
-export function useCreateRoomMutation() {
+export function useCreateSpaceMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: RoomAddRequest) => tuanchat.roomController.createRoom1(req),
-        mutationKey: ['createRoom'],
+        mutationFn: (req: SpaceAddRequest) => tuanchat.spaceController.createSpace(req),
+        mutationKey: ['createSpace'],
         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
             queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
         }
     });
 }
 
 /**
- * 创建子群
- * @param parentRoomId 父群ID（用于缓存刷新）
+ * 创建房间
+ * @param spaceId
  */
-export function useCreateSubroomMutation(parentRoomId: number) {
+export function useCreateRoomMutation(spaceId: number) {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: SubRoomRequest) => tuanchat.roomController.createSubroom(req),
-        mutationKey: ['createSubroom'],
+        mutationFn: (req: RoomAddRequest) => tuanchat.spaceController.createRoom(req),
+        mutationKey: ['createRoom'],
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ['getRoomInfo', parentRoomId] });
-          queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
+          queryClient.invalidateQueries({ queryKey: ['getUserRooms',spaceId] });
+        },
+        onError:(error) => {
+          queryClient.invalidateQueries({ queryKey: ['getUserRooms',spaceId] });
         }
     });
 }
