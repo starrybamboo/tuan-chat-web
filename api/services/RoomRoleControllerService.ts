@@ -60,7 +60,7 @@ export class RoomRoleControllerService {
      * @returns ApiResultListUserRole OK
      * @throws ApiError
      */
-    public roomRole1(
+    public roomRole(
         roomId: number,
     ): CancelablePromise<ApiResultListUserRole> {
         return this.httpRequest.request({

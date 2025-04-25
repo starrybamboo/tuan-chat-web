@@ -318,7 +318,7 @@ export function useMoveMessageMutation() {
 export function useDeleteMessageMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: Message) => tuanchat.chatController.deleteMessage(req),
+        mutationFn: (req: number) => tuanchat.chatController.deleteMessage(req),
         mutationKey: ['deleteMessage'],
         onSuccess: () => {
         }
@@ -449,7 +449,7 @@ export function useDeleteRoleAvatarMutation(roleId: number) {
 export function useRoomRoleQuery(roomId: number) {
     return useQuery({
         queryKey: ['roomRole', roomId],
-        queryFn: () => tuanchat.roomRoleController.roomRole1(roomId),
+        queryFn: () => tuanchat.roomRoleController.roomRole(roomId),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -532,7 +532,7 @@ export function refreshRoomInfo(roomId: number) {
 export function useGetRoomRoleQuery(roomId: number) {
     return useQuery({
         queryKey: ["roomRole", roomId],
-        queryFn: () => tuanchat.roomRoleController.roomRole1(roomId),
+        queryFn: () => tuanchat.roomRoleController.roomRole(roomId),
         staleTime: 10000,
     });
 }

@@ -5,13 +5,14 @@
 import type { BaseHttpRequest } from './core/BaseHttpRequest';
 import type { OpenAPIConfig } from './core/OpenAPI';
 import { FetchHttpRequest } from './core/FetchHttpRequest';
-import { Service } from './services/Service';
 import { AbilityControllerService } from './services/AbilityControllerService';
 import { AvatarControllerService } from './services/AvatarControllerService';
 import { ChatControllerService } from './services/ChatControllerService';
+import { CommentControllerService } from './services/CommentControllerService';
 import { DiceCommentControllerService } from './services/DiceCommentControllerService';
 import { FeedControllerService } from './services/FeedControllerService';
 import { ImageGenerationControllerService } from './services/ImageGenerationControllerService';
+import { LikeRecordControllerService } from './services/LikeRecordControllerService';
 import { OssControllerService } from './services/OssControllerService';
 import { RoleControllerService } from './services/RoleControllerService';
 import { RoleGenerationControllerService } from './services/RoleGenerationControllerService';
@@ -26,13 +27,14 @@ import { TtsControllerService } from './services/TtsControllerService';
 import { UserControllerService } from './services/UserControllerService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class TuanChat {
-    public readonly service : Service;
     public readonly abilityController: AbilityControllerService;
     public readonly avatarController: AvatarControllerService;
     public readonly chatController: ChatControllerService;
+    public readonly commentController: CommentControllerService;
     public readonly diceCommentController: DiceCommentControllerService;
     public readonly feedController: FeedControllerService;
     public readonly imageGenerationController: ImageGenerationControllerService;
+    public readonly likeRecordController: LikeRecordControllerService;
     public readonly ossController: OssControllerService;
     public readonly roleController: RoleControllerService;
     public readonly roleGenerationController: RoleGenerationControllerService;
@@ -58,13 +60,14 @@ export class TuanChat {
             HEADERS: config?.HEADERS,
             ENCODE_PATH: config?.ENCODE_PATH,
         });
-        this.service = new Service(this.request);
         this.abilityController = new AbilityControllerService(this.request);
         this.avatarController = new AvatarControllerService(this.request);
         this.chatController = new ChatControllerService(this.request);
+        this.commentController = new CommentControllerService(this.request);
         this.diceCommentController = new DiceCommentControllerService(this.request);
         this.feedController = new FeedControllerService(this.request);
         this.imageGenerationController = new ImageGenerationControllerService(this.request);
+        this.likeRecordController = new LikeRecordControllerService(this.request);
         this.ossController = new OssControllerService(this.request);
         this.roleController = new RoleControllerService(this.request);
         this.roleGenerationController = new RoleGenerationControllerService(this.request);

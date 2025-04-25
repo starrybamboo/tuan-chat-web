@@ -222,11 +222,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
    */
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null);
   function handleDelete() {
-    const message = historyMessages.find(m => m.message.messageID === contextMenu?.messageId)?.message;
-    if (!message) {
-      return;
-    }
-    deleteMessageMutation.mutate(message);
+    deleteMessageMutation.mutate(contextMenu?.messageId ?? -1);
   }
   function handleContextMenu(e: React.MouseEvent) {
     e.preventDefault();
