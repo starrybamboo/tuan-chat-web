@@ -4,7 +4,7 @@ import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { use, useState } from "react";
 import {
-  useDeleteMemberMutation,
+  useDeleteRoomMemberMutation,
   useGetUserInfoQuery,
   useRevokePlayerMutation,
   useSetPlayerMutation,
@@ -38,7 +38,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
   // 当前登录用户的id
   const curUserId = useGlobalContext().userId ?? -1;
 
-  const mutateMember = useDeleteMemberMutation();
+  const mutateMember = useDeleteRoomMemberMutation();
   const setPlayerMutation = useSetPlayerMutation();
   const revokePlayerMutation = useRevokePlayerMutation();
   const transferOwnerMutation = useTransferOwnerMutation();

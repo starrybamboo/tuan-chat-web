@@ -8,9 +8,9 @@ import type {
 import ChatFrame from "@/components/chat/chatFrame";
 import CommandPanel from "@/components/chat/commandPanel";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
-import RightSidePanel from "@/components/chat/rightSidePanel";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
+import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
 import SettingWindow from "@/components/chat/window/settingWindow";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
@@ -30,7 +30,7 @@ import {
   useGetUserRolesQuery,
 } from "../../../api/queryHooks";
 
-export function DialogueWindow({ roomId }: { roomId: number }) {
+export function RoomWindow({ roomId }: { roomId: number }) {
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
   const webSocketUtils = globalContext.websocketUtils;
@@ -333,7 +333,7 @@ export function DialogueWindow({ roomId }: { roomId: number }) {
           </form>
         </div>
         {/* 成员与角色展示框 */}
-        <RightSidePanel></RightSidePanel>
+        <RoomRightSidePanel></RoomRightSidePanel>
       </div>
       {/* 设置窗口 */}
       <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
@@ -343,4 +343,4 @@ export function DialogueWindow({ roomId }: { roomId: number }) {
   );
 }
 
-export default DialogueWindow;
+export default RoomWindow;

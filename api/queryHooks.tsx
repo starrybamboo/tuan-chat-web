@@ -36,7 +36,7 @@ import type {
     ApiResultUserInfoResponse, RoomAvatarUpdateRequest, RoomDissolveRequest, RoomOwnerTransferRequest,
     Message,
     RoleResponse, SpaceOwnerTransferRequest, FeedRequest, Space,
-    SpaceAddRequest
+    SpaceAddRequest, SpaceMemberAddRequest, SpaceMemberDeleteRequest
 } from "api";
 
 
@@ -159,7 +159,7 @@ export function useGetMemberListQuery(roomId: number) {
  * 新增群成员
  */
 // api/queryHooks.ts
-export function useAddMemberMutation() {
+export function useAddRoomMemberMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: MemberAddRequest) => tuanchat.roomMemberController.addMember1(req),
@@ -177,7 +177,7 @@ export function useAddMemberMutation() {
 /**
  * 删除群成员（批量）
  */
-export function useDeleteMemberMutation() {
+export function useDeleteRoomMemberMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: MemberDeleteRequest) => tuanchat.roomMemberController.deleteMember1(req),
@@ -231,6 +231,80 @@ export function useCreateSpaceMutation() {
         }
     });
 }
+
+/**
+ * 获取space成员
+ */
+export function useGetSpaceMembersQuery(spaceId: number) {
+    return useQuery({
+        queryKey: ['getMemberList', spaceId],
+        queryFn: () => tuanchat.spaceMemberController.getMemberList(spaceId),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
+/**
+ * 新增空间成员
+ */
+export function useAddSpaceMemberMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: SpaceMemberAddRequest) => tuanchat.spaceMemberController.addMember(req),
+        mutationKey: ['addMember'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey:  ["getMemberList", variables.spaceId],
+                exact: true
+            });
+        },
+    });
+}
+
+/**
+ * 删除空间成员
+ */
+export function useDeleteSpaceMemberMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: SpaceMemberDeleteRequest) => tuanchat.spaceMemberController.deleteMember(req),
+        mutationKey: ['deleteMember'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey:  ["getMemberList", variables.spaceId],
+                exact: true
+            });
+        },
+    });
+}
+
+/**
+ * 退出空间
+ */
+export function useExitSpaceMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: SpaceMemberDeleteRequest) => tuanchat.spaceMemberController.exitSpace(req),
+        mutationKey: ['exitSpace'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey:  ["getMemberList", variables.spaceId],
+                exact: true
+            });
+        },
+    });
+}
+
+/**
+ * 获取空间中的role
+ */
+export function useGetSpaceRolesQuery(spaceId: number) {
+    return useQuery({
+        queryKey: ['spaceRole', spaceId],
+        queryFn: () => tuanchat.spaceRoleController.spaceRole(spaceId),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
 
 /**
  * 创建房间
@@ -462,11 +536,11 @@ export function useRoomRoleQuery(roomId: number) {
 /**
  * 添加群组角色
  */
-export function useAddRoleMutation() {
+export function useAddRoomRoleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: AddRoleRequest) => tuanchat.roomRoleController.addRole1(req),
-        mutationKey: ['addRole'],
+        mutationKey: ['addRole1'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
         }
@@ -497,6 +571,17 @@ export function useGetUserRolesQuery(userId: number) {
         queryKey: ['getUserRoles', userId],
         queryFn: () => tuanchat.roleController.getUserRoles(userId),
         staleTime: 600000 // 10分钟缓存
+    });
+}
+// ==================== space角色管理 ====================
+export function useAddSpaceRoleMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: AddRoleRequest) => tuanchat.spaceRoleController.addRole(req),
+        mutationKey: ['addRole'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['getSpaceRoles', variables.spaceId] });
+        }
     });
 }
 

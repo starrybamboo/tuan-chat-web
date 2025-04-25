@@ -1,4 +1,4 @@
-import DialogueWindow from "@/components/chat/dialogueWindow";
+import RoomWindow from "@/components/chat/roomWindow";
 import SpaceWindow from "@/components/chat/spaceWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
@@ -157,7 +157,7 @@ export default function RoomSelect() {
       {/* 对话窗口 */}
       {
         activeRoomId
-          ? <DialogueWindow roomId={activeRoomId} />
+          ? <RoomWindow roomId={activeRoomId} />
           : <SpaceWindow spaceId={activeSpaceId ?? -1} />
       }
       {/* 创建空间弹出窗口 */}
