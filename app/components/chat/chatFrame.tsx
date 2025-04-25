@@ -1,4 +1,10 @@
-import type { ChatMessagePageRequest, ChatMessageRequest, ChatMessageResponse, MoveMessageRequest } from "../../../api";
+import type {
+  ChatMessagePageRequest,
+  ChatMessageRequest,
+  ChatMessageResponse,
+  Message,
+  MoveMessageRequest,
+} from "../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
 import ForwardWindow from "@/components/chat/forwardWindow";
 import { RoomContext } from "@/components/chat/roomContext";
@@ -8,7 +14,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { tuanchat } from "../../../api/instance";
-import { useMoveMessageMutation } from "../../../api/queryHooks";
+import { useDeleteMessageMutation, useMoveMessageMutation } from "../../../api/queryHooks";
 
 export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
 { useChatBubbleStyle: boolean; chatFrameRef: React.RefObject<HTMLDivElement> }) {
@@ -27,6 +33,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
   // Mutations
   const moveMessageMutation = useMoveMessageMutation();
+  const deleteMessageMutation = useDeleteMessageMutation();
   /**
    * 获取历史消息
    */
@@ -201,6 +208,39 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     setIsForwardWindowOpen(false);
     updateSelectedMessageIds(new Set());
   }
+  /**
+   * 右键菜单
+   */
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null);
+  function handleDelete() {
+    // TODO
+    const message: Message = {
+      position: 0,
+      roomId: 0,
+      syncId: 0,
+      userId: 0,
+      messageID: contextMenu?.messageId ?? -1,
+      roleId: curRoleId,
+      content: "",
+      avatarId: curAvatarId,
+      messageType: 0,
+      status: 0,
+      createTime: Date.now().toString(),
+      updateTime: Date.now().toString(),
+    };
+    deleteMessageMutation.mutate(message);
+  }
+  function handleContextMenu(e: React.MouseEvent) {
+    e.preventDefault();
+    const target = e.target as HTMLElement;
+    // 向上查找包含data-message-id属性的父元素
+    const messageElement = target.closest("[data-message-id]");
+    setContextMenu({ x: e.clientX, y: e.clientY, messageId: Number(messageElement?.getAttribute("data-message-id")) });
+  }
+  // 关闭右键菜单
+  function closeContextMenu() {
+    setContextMenu(null);
+  }
 
   const renderMessages = useMemo(() => (historyMessages
   // .filter(chatMessageResponse => chatMessageResponse.message.content !== "")
@@ -211,6 +251,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
           key={chatMessageResponse.message.messageID}
           ref={index === historyMessages.length - 7 ? messageRef : null}
           className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""}`}
+          data-message-id={chatMessageResponse.message.messageID}
           onClick={(e) => {
             if (isSelecting || e.ctrlKey) {
               toggleMessageSelection(chatMessageResponse.message.messageID);
@@ -244,7 +285,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   return (
     <>
       {/* 这里是从下到上渲染的 */}
-      <div className="card-body overflow-y-auto h-[60vh] flex flex-col-reverse" ref={chatFrameRef}>
+      <div className="card-body overflow-y-auto h-[60vh] flex flex-col-reverse" ref={chatFrameRef} onContextMenu={handleContextMenu} onClick={closeContextMenu}>
         {renderMessages}
         {selectedMessageIds.size > 0 && (
           <div className="sticky top-0 bg-base-300 p-2 shadow-sm z-10 flex justify-between items-center rounded">
@@ -271,6 +312,38 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       <PopWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
         <ForwardWindow onClickRoom={roomId => handleForward(roomId)}></ForwardWindow>
       </PopWindow>
+      {/* 右键菜单 */}
+      {contextMenu && (
+
+        <div
+          className="fixed bg-base-100 shadow-lg rounded-md z-50"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onClick={e => e.stopPropagation()}
+        >
+          <ul className="menu p-2 w-40">
+            <li>
+              <a onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+                closeContextMenu();
+              }}
+              >
+                删除
+              </a>
+            </li>
+            <li>
+              <a onClick={(e) => {
+                e.preventDefault();
+                toggleMessageSelection(contextMenu.messageId);
+                closeContextMenu();
+              }}
+              >
+                选择
+              </a>
+            </li>
+          </ul>
+        </div>
+      )}
     </>
   );
 }

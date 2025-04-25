@@ -312,6 +312,19 @@ export function useMoveMessageMutation() {
     });
 }
 
+/**
+ * 删除消息
+ */
+export function useDeleteMessageMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: Message) => tuanchat.chatController.deleteMessage(req),
+        mutationKey: ['deleteMessage'],
+        onSuccess: () => {
+        }
+    });
+}
+
 // ==================== 权限管理 ====================
 /**
  * 设置用户为玩家

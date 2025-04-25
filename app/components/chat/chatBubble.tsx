@@ -68,21 +68,6 @@ export function ChatBubble({ chatMessageResponse }: { chatMessageResponse: ChatM
     });
   }
 
-  function handleContentUpdate(content: string) {
-    if (content.trim() === "") {
-      updateMessageMutation.mutate({
-        ...message,
-        status: 1,
-      });
-    }
-    else {
-      updateMessageMutation.mutate({
-        ...message,
-        content,
-      });
-    }
-  }
-
   function handleRoleChange(new_roleId: number) {
     const newMessage: Message = {
       ...message,
@@ -104,6 +89,20 @@ export function ChatBubble({ chatMessageResponse }: { chatMessageResponse: ChatM
   function handleRoleNameClick() {
     if (canEdit) {
       setIsRoleChooserOpen(true);
+    }
+  }
+  function handleContentUpdate(content: string) {
+    if (content.trim() === "") {
+      updateMessageMutation.mutate({
+        ...message,
+        status: 1,
+      });
+    }
+    else {
+      updateMessageMutation.mutate({
+        ...message,
+        content,
+      });
     }
   }
   // console.log("render message");
