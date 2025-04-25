@@ -3,7 +3,6 @@ import type {
   ChatMessageRequest,
   ChatMessageResponse,
   FeedRequest,
-  Message,
   MoveMessageRequest,
 } from "../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
@@ -58,7 +57,6 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     initialPageParam: { roomId, pageSize: PAGE_SIZE, cursor: null } as unknown as ChatMessagePageRequest,
     refetchOnWindowFocus: false,
   });
-
   // 合并所有分页消息 同时更新重复的消息
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     const historyMessages = (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
@@ -72,7 +70,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     return Array.from(messageMap.values())
       .sort((a, b) => a.message.position - b.message.position)
     // 过滤掉删除的消息和不符合规则的消息
-      .filter(msg => msg.message.messageType !== 0 || msg.message.status === 1)
+      .filter(msg => msg.message.status === 0)
       .reverse();
   }, [getNewMessagesByRoomId, roomId, messagesInfiniteQuery.data?.pages]);
   // console.log(`top: ${chatFrameRef.current?.scrollTop} height: ${chatFrameRef.current?.clientHeight} scrollHeight: ${chatFrameRef.current?.scrollHeight}`);
@@ -222,21 +220,10 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
    */
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null);
   function handleDelete() {
-    // TODO
-    const message: Message = {
-      position: 0,
-      roomId: 0,
-      syncId: 0,
-      userId: 0,
-      messageID: contextMenu?.messageId ?? -1,
-      roleId: curRoleId,
-      content: "",
-      avatarId: curAvatarId,
-      messageType: 0,
-      status: 0,
-      createTime: Date.now().toString(),
-      updateTime: Date.now().toString(),
-    };
+    const message = historyMessages.find(m => m.message.messageID === contextMenu?.messageId)?.message;
+    if (!message) {
+      return;
+    }
     deleteMessageMutation.mutate(message);
   }
   function handleContextMenu(e: React.MouseEvent) {
