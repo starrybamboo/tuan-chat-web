@@ -36,7 +36,7 @@ import type {
     ApiResultUserInfoResponse, RoomAvatarUpdateRequest, RoomDissolveRequest, RoomOwnerTransferRequest,
     Message,
     RoleResponse, SpaceOwnerTransferRequest, FeedRequest, Space,
-    SpaceAddRequest, SpaceMemberAddRequest, SpaceMemberDeleteRequest
+    SpaceAddRequest, SpaceMemberAddRequest, SpaceMemberDeleteRequest, UserInfoResponse
 } from "api";
 
 
@@ -138,6 +138,20 @@ export function useGetUserInfoQuery(userId: number) {
         queryKey: ['getUserInfo', userId],
         queryFn: () => tuanchat.userController.getUserInfo(userId),
         staleTime: 600000 // 10分钟缓存
+    });
+}
+
+/**
+ * 修改用户信息
+ */
+export function useUpdateUserInfoMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: UserInfoResponse) => tuanchat.userController.updateUserInfo(req),
+        mutationKey: ['updateUserInfo'],
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['getUserInfo'] });
+        }
     });
 }
 

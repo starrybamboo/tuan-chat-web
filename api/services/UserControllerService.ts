@@ -46,9 +46,7 @@ export class UserControllerService {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/capi/user/info',
-            query: {
-                'userInfoResponse': userInfoResponse,
-            },
+            query: userInfoResponse,
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
