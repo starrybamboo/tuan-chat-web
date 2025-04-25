@@ -4,7 +4,7 @@ import { useGetUserRoomsQueries, useGetUserSpacesQuery } from "../../../../api/q
 
 function ForwardWindow({ onClickRoom, handlePublishFeed }:
 { onClickRoom: (roomId: number) => void
-;handlePublishFeed: () => void; }) {
+;handlePublishFeed: ({ title, description }: { title: string; description: string }) => void; }) {
   const userSpacesQuery = useGetUserSpacesQuery();
   const spaces = userSpacesQuery.data?.data ?? [];
   const userRoomsQueries = useGetUserRoomsQueries(spaces);
@@ -22,7 +22,7 @@ function ForwardWindow({ onClickRoom, handlePublishFeed }:
     }));
   };
   const handleSubmit = () => {
-    handlePublishFeed();
+    handlePublishFeed(feedData);
     setIsOpenPublishFeedWindow(false);
     setFeedData({ title: "", description: "" });
   };

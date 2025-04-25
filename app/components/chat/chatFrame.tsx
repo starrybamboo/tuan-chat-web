@@ -208,15 +208,17 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     setIsForwardWindowOpen(false);
     updateSelectedMessageIds(new Set());
   }
-  function handlePublishFeed() {
+  function handlePublishFeed({ title, description }: { title: string; description: string }) {
     const feedRequest: FeedRequest = {
       messageId: selectedMessageIds.values().next().value,
-      title: "default",
+      title: title || "default",
+      description: description || "default",
     };
     publishFeedMutation.mutate(feedRequest);
     setIsForwardWindowOpen(false);
     updateSelectedMessageIds(new Set());
   }
+
   /**
    * 右键菜单
    */
@@ -304,7 +306,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         )}
       </div>
       <PopWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
-        <ForwardWindow onClickRoom={roomId => handleForward(roomId)} handlePublishFeed={() => handlePublishFeed()}></ForwardWindow>
+        <ForwardWindow onClickRoom={roomId => handleForward(roomId)} handlePublishFeed={handlePublishFeed}></ForwardWindow>
       </PopWindow>
       {/* 右键菜单 */}
       {contextMenu && (
