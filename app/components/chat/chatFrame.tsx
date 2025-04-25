@@ -90,10 +90,10 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     // if (!hasInitializeScroll.current || messagesInfiniteQuery.isFetchingNextPage) {
     //   return;
     // }
-    if (messageEntry?.isIntersecting) {
+    if (messageEntry?.isIntersecting && !messagesInfiniteQuery.isFetchingNextPage) {
       messagesInfiniteQuery.fetchNextPage();
     }
-  }, [messageEntry?.isIntersecting, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage, messagesInfiniteQuery, chatFrameRef]);
+  }, [messageEntry?.isIntersecting, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage, messagesInfiniteQuery]);
   /**
    * 聊天气泡拖拽排序
    */
@@ -214,6 +214,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       title: "default",
     };
     publishFeedMutation.mutate(feedRequest);
+    setIsForwardWindowOpen(false);
+    updateSelectedMessageIds(new Set());
   }
   /**
    * 右键菜单
