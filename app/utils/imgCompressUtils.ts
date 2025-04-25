@@ -35,7 +35,7 @@ export async function compressImage(file: File, quality = 0.7, maxSize = 2560): 
           reject(new Error("图片压缩失败"));
           return;
         }
-        const newName = file.name.replace(/\.[^.]+$/, `${Date.now()}.webp`);
+        const newName = file.name.replace(/(\.[^.]+)?$/, `_${Date.now()}.webp`);
         const compressedFile = new File([blob], newName, {
           type: "image/webp",
         });

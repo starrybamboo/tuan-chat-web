@@ -1,13 +1,17 @@
+import { RoomContext } from "@/components/chat/roomContext";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import { use } from "react";
 import {
   useDissolveRoomMutation,
   useGetRoomInfoQuery,
   useUpdateRoom,
 } from "../../../../api/queryHooks";
 
-function SettingWindow({ roomId, onClose }: { roomId: number; onClose: () => void }) {
+function SettingWindow({ onClose }: { onClose: () => void }) {
+  const roomContext = use(RoomContext);
   // 获取群组数据
-  const getRoomInfoQuery = useGetRoomInfoQuery(roomId);
+  const roomId = roomContext.roomId;
+  const getRoomInfoQuery = useGetRoomInfoQuery(roomId ?? -1);
   const room = getRoomInfoQuery.data?.data;
   // 解散群组
   const dissolveRoomMutation = useDissolveRoomMutation();
@@ -17,13 +21,13 @@ function SettingWindow({ roomId, onClose }: { roomId: number; onClose: () => voi
   return (
     <div className="w-full p-4">
       {room && (
-        <div className="w-[50vw]">
+        <div className="">
           <div className="flex justify-center">
             <ImgUploaderWithCopper
               setCopperedDownloadUrl={(url) => {
                 updateRoomAvatar.mutate({ roomId, avatar: url });
               }}
-              fileName="roomId"
+              fileName={`roomId-${room.roomId}`}
             >
               <div className="relative group overflow-hidden rounded-lg">
                 <img
@@ -43,7 +47,7 @@ function SettingWindow({ roomId, onClose }: { roomId: number; onClose: () => voi
           </div>
           <h2 className="text-2xl font-bold text-center my-4">{room.name}</h2>
           <p className="text-gray-600 text-center">{room.description}</p>
-          <div className="flex justify-end mt-16">
+          <div className="flex justify-center mt-16">
             <button
               type="button"
               className="btn btn-error"

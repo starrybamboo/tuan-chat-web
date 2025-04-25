@@ -59,7 +59,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
 
   const imgFile = useRef<File>(null);
 
-  const [isSubmiting, setIsSubmiting] = useState(false);
+  const [isSubmiting, setisSubmiting] = useState(false);
 
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
@@ -106,7 +106,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
   }
 
   async function handleSubmit() {
-    setIsSubmiting(true);
+    setisSubmiting(true);
     if (!imgFile.current) {
       return;
     }
@@ -141,7 +141,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
       console.error("上传失败:", error);
     }
     finally {
-      setIsSubmiting(false);
+      setisSubmiting(false);
       setIsOpen(false);
     }
   }

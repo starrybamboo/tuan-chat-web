@@ -12,6 +12,7 @@ export class UploadUtils {
     if (file.type.startsWith("image/")) {
       new_file = await compressImage(file, quality, maxSize);
     }
+    console.log(new_file.name);
 
     const ossData = await tuanchat.ossController.getUploadUrl({
       fileName: new_file.name,

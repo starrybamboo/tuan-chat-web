@@ -337,7 +337,7 @@ export function DialogueWindow({ roomId }: { roomId: number }) {
       </div>
       {/* 设置窗口 */}
       <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
-        <SettingWindow roomId={roomId} onClose={() => setIsSettingWindowOpen(false)}></SettingWindow>
+        <SettingWindow onClose={() => setIsSettingWindowOpen(false)}></SettingWindow>
       </PopWindow>
     </RoomContext>
   );

@@ -197,7 +197,8 @@ export function useUpdateRoom() {
     return useMutation({
         mutationFn: (req: RoomAvatarUpdateRequest) => tuanchat.roomController.updateRoom(req),
         mutationKey: ['updateRoom'],
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['getRoomInfo', variables.roomId] });
             queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
         }
     })

@@ -19,7 +19,7 @@ export default function RoomSelect() {
   // 获取用户群组列表
   const userSpacesQuery = useGetUserSpacesQuery();
   const spaces = userSpacesQuery.data?.data ?? [];
-  // const userRoomsQueries = useGetUserRoomsQueries(spaces);
+  // 当前激活的space对应的room列表
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
   const rooms = userRoomQuery.data?.data ?? [];
 
