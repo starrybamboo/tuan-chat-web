@@ -20,7 +20,7 @@ export default function Topbar() {
   }
 
   return (
-    <div className="w-full h-14 flex items-center justify-between px-4 bg-base-300">
+    <div className="w-full h-14 flex items-center justify-between px-4 bg-base-300 shrink-0">
       {/* 左侧 */}
       <div className="flex items-center space-x-6">
 
