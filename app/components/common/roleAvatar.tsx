@@ -24,7 +24,13 @@ const sizeMap = {
   36: "w-36 h-36", // 144px
 } as const;
 
-export default function RoleAvatarComponent({ avatarId, width, isRounded, withTitle, stopPopWindow = false }: { avatarId: number; width: keyof typeof sizeMap; isRounded: boolean; withTitle: boolean; stopPopWindow?: boolean }) {
+export default function RoleAvatarComponent({ avatarId, width, isRounded, withTitle, stopPopWindow = false }: {
+  avatarId: number;
+  width: keyof typeof sizeMap; // 头像的宽度
+  isRounded: boolean; // 是否是圆的
+  withTitle: boolean; // 是否在下方显示标题
+  stopPopWindow?: boolean; // 点击后是否会产生roleDetail弹窗
+}) {
   const avatarQuery = useGetRoleAvatarQuery(avatarId);
   const userId = useGlobalContext().userId ?? -1;
   const userRole = useGetUserRolesQuery(userId);

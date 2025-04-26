@@ -11,7 +11,7 @@ import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
-import SettingWindow from "@/components/chat/window/settingWindow";
+import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import { PopWindow } from "@/components/common/popWindow";
@@ -337,7 +337,7 @@ export function RoomWindow({ roomId }: { roomId: number }) {
       </div>
       {/* 设置窗口 */}
       <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
-        <SettingWindow onClose={() => setIsSettingWindowOpen(false)}></SettingWindow>
+        <RoomSettingWindow onClose={() => setIsSettingWindowOpen(false)}></RoomSettingWindow>
       </PopWindow>
     </RoomContext>
   );

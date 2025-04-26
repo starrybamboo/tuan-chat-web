@@ -44,7 +44,7 @@ import type {
     RoomRoleAddRequest,
     RoomRoleDeleteRequest,
     SpaceRoleAddRequest,
-    RoomMemberAddRequest, RoomMemberDeleteRequest
+    RoomMemberAddRequest, RoomMemberDeleteRequest, SpaceUpdateRequest
 } from "api";
 
 
@@ -194,7 +194,6 @@ export function useAddRoomMemberMutation() {
         },
     });
 }
-// queryClient.invalidateQueries({ queryKey: ["getMemberList", roomId] });
 
 /**
  * 删除群成员（批量）
@@ -213,7 +212,7 @@ export function useDeleteRoomMemberMutation() {
 }
 
 /**
- * 更新群头像
+ * 更新群信息
  */
 export function useUpdateRoomMutation() {
     const queryClient = useQueryClient();
@@ -228,6 +227,21 @@ export function useUpdateRoomMutation() {
 }
 
 /**
+ * 更新space信息
+ */
+export function useUpdateSpaceMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: SpaceUpdateRequest) => tuanchat.spaceController.updateSpace(req),
+        mutationKey: ['updateSpace'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['getSpaceInfo', variables.spaceId] });
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
+        }
+    })
+}
+
+/**
  * 获取群组信息
  * @param roomId 群组ID
  */
@@ -235,6 +249,17 @@ export function useGetRoomInfoQuery(roomId: number) {
     return useQuery({
         queryKey: ['getRoomInfo', roomId],
         queryFn: () => tuanchat.roomController.getRoomInfo(roomId),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
+/**
+ * 获取Space信息
+ */
+export function useGetSpaceInfoQuery(spaceId: number) {
+    return useQuery({
+        queryKey: ['getSpaceInfo', spaceId],
+        queryFn: () => tuanchat.spaceController.getSpaceInfo(spaceId),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -359,6 +384,24 @@ export function useDissolveRoomMutation() {
         }
     })
 }
+
+/**
+ * 解散空间
+ */
+export function useDissolveSpaceMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: number) => tuanchat.spaceController.dissolveSpace(req),
+        mutationKey: ['dissolveSpace'],
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
+        }
+    })
+}
+
+/**
+ *
+ */
 
 // ==================== 消息系统 ====================
 /**

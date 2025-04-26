@@ -28,7 +28,13 @@ const sizeMap = {
   36: "w-36 h-36", // 144px
 } as const;
 
-export default function UserAvatarComponent({ userId, width, isRounded, withName = false, stopPopWindow = false }: { userId: number; width: keyof typeof sizeMap; isRounded: boolean; withName?: boolean; stopPopWindow?: boolean }) {
+export default function UserAvatarComponent({ userId, width, isRounded, withName = false, stopPopWindow = false }: {
+  userId: number;
+  width: keyof typeof sizeMap; // 头像的宽度
+  isRounded: boolean; // 是否是圆的
+  withName?: boolean; // 是否显示名字
+  stopPopWindow?: boolean; // 点击后是否会产生userDetail弹窗
+}) {
   const userQuery = useGetUserInfoQuery(userId);
   // 控制用户详情的popWindow
   const [isOpen, setIsOpen] = useState(false);
