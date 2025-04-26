@@ -7,6 +7,7 @@ import { useParams } from "react-router";
 
 import {
   useDeleteRoomMemberMutation,
+  useDeleteSpaceMemberMutation,
   useGetSpaceMembersQuery,
   useGetUserInfoQuery,
   useRevokePlayerMutation,
@@ -50,7 +51,8 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
   // 当前登录用户的id
   const curUserId = useGlobalContext().userId ?? -1;
 
-  const mutateMember = useDeleteRoomMemberMutation();
+  const mutateRoomMember = useDeleteRoomMemberMutation();
+  const mutateSpaceMember = useDeleteSpaceMemberMutation();
   const setPlayerMutation = useSetPlayerMutation();
   const revokePlayerMutation = useRevokePlayerMutation();
   const transferOwnerMutation = useTransferOwnerMutation();
@@ -62,14 +64,22 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
   }
 
   const handleRemoveMember = async () => {
-    if (roomId < 0)
-      return;
-    mutateMember.mutate(
-      { roomId, userIdList: [userId] },
-      {
-        onSettled: () => setIsOpen(false), // 最终关闭弹窗
-      },
-    );
+    if (roomId > 0) {
+      mutateRoomMember.mutate(
+        { roomId, userIdList: [userId] },
+        {
+          onSettled: () => setIsOpen(false), // 最终关闭弹窗
+        },
+      );
+    }
+    if (spaceId > 0) {
+      mutateSpaceMember.mutate(
+        { spaceId, userIdList: [userId] },
+        {
+          onSettled: () => setIsOpen(false),
+        },
+      );
+    }
   };
 
   function handleSetPlayer() {

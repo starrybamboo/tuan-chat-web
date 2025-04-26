@@ -16,7 +16,6 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
   const room = getRoomInfoQuery.data?.data;
   // 解散群组
   const dissolveRoomMutation = useDissolveRoomMutation();
-  // 更新群头像
   const updateRoomMutation = useUpdateRoomMutation();
 
   return (

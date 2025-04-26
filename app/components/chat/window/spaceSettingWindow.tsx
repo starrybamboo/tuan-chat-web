@@ -14,9 +14,8 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const spaceId = Number(spaceContext.spaceId);
   const getSpaceInfoQuery = useGetSpaceInfoQuery(spaceId ?? -1);
   const space = getSpaceInfoQuery.data?.data;
-  // 解散群组
+  // 解散space
   const dissolveSpaceMutation = useDissolveSpaceMutation();
-  // 更新群头像
   const updateSpaceMutation = useUpdateSpaceMutation();
 
   return (
