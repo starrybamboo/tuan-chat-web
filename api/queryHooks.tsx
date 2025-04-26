@@ -39,7 +39,12 @@ import type {
     SpaceMemberDeleteRequest,
     UserInfoResponse,
     RoomUpdateRequest,
-    PlayerGrantRequest, PlayerRevokeRequest, RoomRoleAddRequest, RoomRoleDeleteRequest, SpaceRoleAddRequest
+    PlayerGrantRequest,
+    PlayerRevokeRequest,
+    RoomRoleAddRequest,
+    RoomRoleDeleteRequest,
+    SpaceRoleAddRequest,
+    RoomMemberAddRequest, RoomMemberDeleteRequest
 } from "api";
 
 
@@ -179,11 +184,11 @@ export function useGetMemberListQuery(roomId: number) {
 export function useAddRoomMemberMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: SpaceMemberAddRequest) => tuanchat.roomMemberController.addMember1(req),
+        mutationFn: (req: RoomMemberAddRequest) => tuanchat.roomMemberController.addMember1(req),
         mutationKey: ['addMember'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
-                queryKey:  ["getMemberList", variables.spaceId],
+                queryKey:  ["getMemberList", variables.roomId],
                 exact: true
             });
         },
@@ -197,11 +202,11 @@ export function useAddRoomMemberMutation() {
 export function useDeleteRoomMemberMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: SpaceMemberDeleteRequest) => tuanchat.roomMemberController.deleteMember1(req),
+        mutationFn: (req: RoomMemberDeleteRequest) => tuanchat.roomMemberController.deleteMember1(req),
         mutationKey: ['deleteMember'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
-                queryKey: ["getMemberList", variables.spaceId],
+                queryKey: ["getMemberList", variables.roomId],
             });
         }
     });
@@ -300,11 +305,11 @@ export function useDeleteSpaceMemberMutation() {
 export function useExitSpaceMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: number) => tuanchat.spaceMemberController.exitSpace(number),
+        mutationFn: (req: number) => tuanchat.spaceMemberController.exitSpace(req),
         mutationKey: ['exitSpace'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
-                queryKey:  ["getMemberList", number],
+                queryKey:  ["getMemberList", variables],
                 exact: true
             });
         },
