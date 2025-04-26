@@ -11,7 +11,7 @@ import {
 function SettingWindow({ onClose }: { onClose: () => void }) {
   const roomContext = use(RoomContext);
   // 获取群组数据
-  const roomId = roomContext.roomId;
+  const roomId = Number(roomContext.roomId);
   const getRoomInfoQuery = useGetRoomInfoQuery(roomId ?? -1);
   const room = getRoomInfoQuery.data?.data;
   // 解散群组
@@ -62,13 +62,13 @@ function SettingWindow({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               className="btn btn-error"
-              onClick={() => dissolveRoomMutation.mutate({ roomId }, {
+              onClick={() => dissolveRoomMutation.mutate(roomId, {
                 onSuccess: () => {
                   onClose();
                 },
               })}
             >
-              解散群组
+              解散房间
             </button>
           </div>
         </div>
