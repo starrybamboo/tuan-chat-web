@@ -15,5 +15,6 @@ export default [
     route("module", "routes/module.tsx"),
     route("chat/:spaceId?/:roomId?", "routes/chat.tsx"),
     route("community", "routes/community.tsx"),
+    route("settings", "routes/settings.tsx"),
   ]),
 ] satisfies RouteConfig;
