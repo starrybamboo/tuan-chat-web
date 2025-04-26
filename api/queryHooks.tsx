@@ -8,20 +8,15 @@
 /* eslint-disable */
 import {useQuery, useMutation, QueryClient, useQueryClient, useQueries} from '@tanstack/react-query';
 import { tuanchat } from './instance';
-import type { AddRoleRequest } from './models/AddRoleRequest';
-import type { AdminAddRequset } from './models/AdminAddRequset';
-import type { AdminRevokeRequest } from './models/AdminRevokeRequest';
+
 import type { ChatMessagePageRequest } from './models/ChatMessagePageRequest';
 import type { ChatMessageRequest } from './models/ChatMessageRequest';
-import type { DeleteRoleRequest } from './models/DeleteRoleRequest';
 import type { RoomAddRequest } from './models/RoomAddRequest';
-import type { MemberAddRequest } from './models/MemberAddRequest';
-import type { MemberDeleteRequest } from './models/MemberDeleteRequest';
+
 import type { MoveMessageRequest } from './models/MoveMessageRequest';
 // import type { RoleAbilityTable } from './models/RoleAbilityTable';
 import type { RoleAvatar } from './models/RoleAvatar';
 import type { RoleAvatarCreateRequest } from './models/RoleAvatarCreateRequest';
-import type { SubRoomRequest } from './models/SubRoomRequest';
 import type { UserLoginRequest } from './models/UserLoginRequest';
 import type { UserRegisterRequest } from './models/UserRegisterRequest';
 import type { UserRole } from './models/UserRole';
@@ -33,10 +28,18 @@ import type {
     AbilityFieldUpdateRequest,
     ApiResultListRoleResponse,
     ApiResultRoleAbility,
-    ApiResultUserInfoResponse, RoomAvatarUpdateRequest, RoomDissolveRequest, RoomOwnerTransferRequest,
+    ApiResultUserInfoResponse,
     Message,
-    RoleResponse, SpaceOwnerTransferRequest, FeedRequest, Space,
-    SpaceAddRequest, SpaceMemberAddRequest, SpaceMemberDeleteRequest, UserInfoResponse
+    RoleResponse,
+    SpaceOwnerTransferRequest,
+    FeedRequest,
+    Space,
+    SpaceAddRequest,
+    SpaceMemberAddRequest,
+    SpaceMemberDeleteRequest,
+    UserInfoResponse,
+    RoomUpdateRequest,
+    PlayerGrantRequest, PlayerRevokeRequest, RoomRoleAddRequest, RoomRoleDeleteRequest, SpaceRoleAddRequest
 } from "api";
 
 
@@ -176,11 +179,11 @@ export function useGetMemberListQuery(roomId: number) {
 export function useAddRoomMemberMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: MemberAddRequest) => tuanchat.roomMemberController.addMember1(req),
+        mutationFn: (req: SpaceMemberAddRequest) => tuanchat.roomMemberController.addMember1(req),
         mutationKey: ['addMember'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
-                queryKey:  ["getMemberList", variables.roomId],
+                queryKey:  ["getMemberList", variables.spaceId],
                 exact: true
             });
         },
@@ -194,11 +197,11 @@ export function useAddRoomMemberMutation() {
 export function useDeleteRoomMemberMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: MemberDeleteRequest) => tuanchat.roomMemberController.deleteMember1(req),
+        mutationFn: (req: SpaceMemberDeleteRequest) => tuanchat.roomMemberController.deleteMember1(req),
         mutationKey: ['deleteMember'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
-                queryKey: ["getMemberList", variables.roomId],
+                queryKey: ["getMemberList", variables.spaceId],
             });
         }
     });
@@ -210,7 +213,7 @@ export function useDeleteRoomMemberMutation() {
 export function useUpdateRoomMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: RoomAvatarUpdateRequest) => tuanchat.roomController.updateRoom(req),
+        mutationFn: (req: RoomUpdateRequest) => tuanchat.roomController.updateRoom(req),
         mutationKey: ['updateRoom'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['getRoomInfo', variables.roomId] });
@@ -297,11 +300,11 @@ export function useDeleteSpaceMemberMutation() {
 export function useExitSpaceMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: SpaceMemberDeleteRequest) => tuanchat.spaceMemberController.exitSpace(req),
+        mutationFn: (req: number) => tuanchat.spaceMemberController.exitSpace(number),
         mutationKey: ['exitSpace'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
-                queryKey:  ["getMemberList", variables.spaceId],
+                queryKey:  ["getMemberList", number],
                 exact: true
             });
         },
@@ -344,7 +347,7 @@ export function useCreateRoomMutation(spaceId: number) {
 export function useDissolveRoomMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn:(req: RoomDissolveRequest) => tuanchat.roomController.dissolveRoom(req),
+        mutationFn:(req: number) => tuanchat.roomController.dissolveRoom(req),
         mutationKey: ['dissolveRoom'],
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
@@ -426,25 +429,24 @@ export function useDeleteMessageMutation() {
 export function useSetPlayerMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: AdminAddRequset) => tuanchat.spaceMemberController.grantPlayer(req),
+        mutationFn: (req: PlayerGrantRequest) => tuanchat.spaceMemberController.grantPlayer(req),
         mutationKey: ['setPlayer'],
         onSuccess: (_,variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.roomId] });
+            queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.spaceId] });
         }
     });
 }
 
 /**
  * 撤销玩家身份
- * @param roomId 关联的群聊ID（用于缓存刷新）
  */
 export function useRevokePlayerMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: AdminRevokeRequest) => tuanchat.spaceMemberController.revokePlayer(req),
+        mutationFn: (req: PlayerRevokeRequest) => tuanchat.spaceMemberController.revokePlayer(req),
         mutationKey: ['revokePlayer'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.roomId] });
+            queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.spaceId] });
         }
     });
 }
@@ -553,7 +555,7 @@ export function useRoomRoleQuery(roomId: number) {
 export function useAddRoomRoleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: AddRoleRequest) => tuanchat.roomRoleController.addRole1(req),
+        mutationFn: (req: RoomRoleAddRequest) => tuanchat.roomRoleController.addRole1(req),
         mutationKey: ['addRole1'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
@@ -567,7 +569,7 @@ export function useAddRoomRoleMutation() {
 export function useDeleteRole1Mutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: DeleteRoleRequest) => tuanchat.roomRoleController.deleteRole1(req),
+        mutationFn: (req: RoomRoleDeleteRequest) => tuanchat.roomRoleController.deleteRole1(req),
         mutationKey: ['deleteRole1'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
@@ -591,7 +593,7 @@ export function useGetUserRolesQuery(userId: number) {
 export function useAddSpaceRoleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: AddRoleRequest) => tuanchat.spaceRoleController.addRole(req),
+        mutationFn: (req: SpaceRoleAddRequest) => tuanchat.spaceRoleController.addRole(req),
         mutationKey: ['addRole'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['getSpaceRoles', variables.spaceId] });
