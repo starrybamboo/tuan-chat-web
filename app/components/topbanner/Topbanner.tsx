@@ -30,6 +30,7 @@ export default function Topbar() {
           src="http://47.119.147.6/tuan/favicon.ico"
           alt="Logo"
           className="h-8 w-8 mr-4"
+          onClick={() => navigate("/")}
         />
 
         <a onClick={() => navigate("/feed")} className="text-base-content hover:text-primary transition-colors">
