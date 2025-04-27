@@ -30,32 +30,23 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [avatarToDeleteIndex, setAvatarToDeleteIndex] = useState<number | null>(null);
 
-  // 点击头像处理 (新增预览文字更新)
-  const handleAvatarClick = (avatarUrl: string, index: number) => {
-    const targetAvatar = roleAvatars[index];
-    setPreviewSrc(targetAvatar.spriteUrl || avatarUrl);
-    setCurrentAvatarIndex(index);
-    setCopperedUrl(roleAvatars[index]?.avatarUrl || "");
-    setAvatarId(roleAvatars[index]?.avatarId || 0);
-  };
-
   // 获取角色所有老头像
   useQuery({
     queryKey: ["roleAvatar", role.id],
     queryFn: async () => {
       const res = await tuanchat.avatarController.getRoleAvatars(role.id);
+      setAvatarId(role.avatarId);
       if (res.success && Array.isArray(res.data)) {
         setRoleAvatars(res.data);
         setCurrentAvatarIndex(res.data?.length > 0 ? 0 : -1);
-        if (avatarId !== 0) {
-          setCopperedUrl(res.data.find(ele => ele.avatarId === avatarId)?.spriteUrl || "");
-          setPreviewSrc(res.data.find(ele => ele.avatarId === avatarId)?.spriteUrl || "");
+        if (role.avatarId !== 0) {
+          setCopperedUrl(res.data.find(ele => ele.avatarId === role.avatarId)?.avatarUrl || "");
+          setPreviewSrc(res.data.find(ele => ele.avatarId === role.avatarId)?.spriteUrl || "");
         }
       }
       return null;
     },
   });
-
   // 上传头像到服务器
   const { mutate } = useMutation({
     mutationKey: ["uploadAvatar"],
@@ -130,6 +121,15 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
       }
     },
   });
+
+  // 点击头像处理 (新增预览文字更新)
+  const handleAvatarClick = (avatarUrl: string, index: number) => {
+    const targetAvatar = roleAvatars[index];
+    setPreviewSrc(targetAvatar.spriteUrl || avatarUrl);
+    setCurrentAvatarIndex(index);
+    setCopperedUrl(roleAvatars[index]?.avatarUrl || "");
+    setAvatarId(roleAvatars[index]?.avatarId || 0);
+  };
 
   // 删除操作处理
   const handleDeleteAvatar = (index: number) => {
