@@ -148,7 +148,8 @@ export function useGetUserInfoQuery(userId: number) {
     return useQuery({
         queryKey: ['getUserInfo', userId],
         queryFn: () => tuanchat.userController.getUserInfo(userId),
-        staleTime: 600000 // 10分钟缓存
+        staleTime: 600000, // 10分钟缓存
+        enabled: userId > 0
     });
 }
 
@@ -1035,7 +1036,7 @@ export function useGetCommentByIdQuery(commentId: number){
 /**
  * comment分页查询
  */
-export function useGetCommentPageInfiniteQuery(targetInfo: LikeRecordRequest, pageSize: number = 10, childLimit:number = 5, maxLevel:number = 3) {
+export function useGetCommentPageInfiniteQuery(targetInfo: LikeRecordRequest, pageSize: number = 10, childLimit:number = 5, maxLevel:number = 99) {
     return useInfiniteQuery({
         queryKey: ["pageComments", targetInfo],
         queryFn: async ({ pageParam }) => {
