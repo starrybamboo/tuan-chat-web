@@ -1,48 +1,17 @@
 import type { ChatMessageResponse, Message } from "api";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
+import ForwardMessage from "@/components/chat/forwardMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import BetterImg from "@/components/common/betterImg";
+import { EditableField } from "@/components/common/EditableFiled";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetRoleQuery, useUpdateMessageMutation } from "api/queryHooks";
-import React, { use, useState } from "react";
+import React, { use, useMemo, useState } from "react";
 
-function EditableField({ content, handleContentUpdate, canEdit = true }: { content: string; handleContentUpdate: (content: string) => void; canEdit?: boolean }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(content);
-
-  function handleDoubleClick() {
-    if (canEdit) {
-      setIsEditing(true);
-    }
-  }
-  return isEditing
-    ? (
-        <textarea
-          className="whitespace-pre-wrap border-none bg-transparent resize-none textarea w-full"
-          value={editContent}
-          onChange={e => setEditContent(e.target.value)}
-          onKeyPress={e => e.key === "Enter" && handleContentUpdate(editContent)}
-          onBlur={() => {
-            handleContentUpdate(editContent);
-            setIsEditing(false);
-          }}
-          autoFocus
-        />
-      )
-    : (
-        <div
-          className="whitespace-pre-wrap"
-          onDoubleClick={handleDoubleClick}
-        >
-          {content}
-        </div>
-      );
-}
-
-export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMessageResponse: ChatMessageResponse; useChatBubbleStyle: boolean }) {
+export function ChatBubble({ chatMessageResponse }: { chatMessageResponse: ChatMessageResponse }) {
   const message = chatMessageResponse.message;
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId);
 
@@ -55,6 +24,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
   const userId = useGlobalContext().userId;
 
   const roomContext = use(RoomContext);
+  const useChatBubbleStyle = roomContext.useChatBubbleStyle;
 
   function handleExpressionChange(avatarId: number) {
     const newMessage: Message = {
@@ -64,21 +34,6 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
     updateMessageMutation.mutate(newMessage, {
       onSettled: () => setIsExpressionChooserOpen(false),
     });
-  }
-
-  function handleContentUpdate(content: string) {
-    if (content.trim() === "") {
-      updateMessageMutation.mutate({
-        ...message,
-        status: 1,
-      });
-    }
-    else {
-      updateMessageMutation.mutate({
-        ...message,
-        content,
-      });
-    }
   }
 
   function handleRoleChange(new_roleId: number) {
@@ -104,14 +59,31 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
       setIsRoleChooserOpen(true);
     }
   }
+  function handleContentUpdate(content: string) {
+    if (content.trim() === "") {
+      updateMessageMutation.mutate({
+        ...message,
+        status: 1,
+      });
+    }
+    else {
+      updateMessageMutation.mutate({
+        ...message,
+        content,
+      });
+    }
+  }
   // console.log("render message");
 
-  function renderContent() {
+  const renderedContent = useMemo(() => {
     if (message.messageType === 2) {
       return (<BetterImg src={message.extra?.imageMessage?.url} className="max-h-[40vh]" />);
     }
-    return (<EditableField content={message.content} handleContentUpdate={handleContentUpdate} canEdit={userId === message.userId}></EditableField>);
-  }
+    else if (message.messageType === 5) {
+      return <ForwardMessage messageList={message.extra?.forwardMessage?.messageList ?? []}></ForwardMessage>;
+    }
+    return (<EditableField content={message.content} handleContentUpdate={handleContentUpdate} className="whitespace-pre-wrap" canEdit={userId === message.userId}></EditableField>);
+  }, [message.content, message.extra, message.messageType]);
 
   return (
     <div>
@@ -122,7 +94,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
                 <RoleAvatarComponent avatarId={message.avatarId} width={10} isRounded={true} withTitle={false} stopPopWindow={true}></RoleAvatarComponent>
               </div>
               <div className={message.messageType !== 0 ? "chat-bubble" : "chat-bubble chat-bubble-neutral"}>
-                {renderContent()}
+                {renderedContent}
               </div>
               <div className="chat-footer">
                 <div className={`cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`} onClick={handleRoleNameClick}>
@@ -150,7 +122,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: { chatMe
                 <div className={`text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`} onClick={handleRoleNameClick}>
                   {role?.roleName?.trim() || "Undefined"}
                 </div>
-                {renderContent()}
+                {renderedContent}
                 {/* 时间 */}
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {message.createTime ?? ""}

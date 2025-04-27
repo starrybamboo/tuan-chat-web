@@ -1,14 +1,20 @@
-import type { ChatMessagePageRequest, ChatMessageRequest, ChatMessageResponse, MoveMessageRequest } from "../../../api";
+import type {
+  ChatMessagePageRequest,
+  ChatMessageRequest,
+  ChatMessageResponse,
+  FeedRequest,
+  MoveMessageRequest,
+} from "../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
-import ForwardWindow from "@/components/chat/forwardWindow";
 import { RoomContext } from "@/components/chat/roomContext";
+import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { tuanchat } from "../../../api/instance";
-import { useMoveMessageMutation } from "../../../api/queryHooks";
+import { useDeleteMessageMutation, useMoveMessageMutation, usePublishFeedMutation } from "../../../api/queryHooks";
 
 export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
 { useChatBubbleStyle: boolean; chatFrameRef: React.RefObject<HTMLDivElement> }) {
@@ -27,6 +33,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
   // Mutations
   const moveMessageMutation = useMoveMessageMutation();
+  const deleteMessageMutation = useDeleteMessageMutation();
+  const publishFeedMutation = usePublishFeedMutation();
   /**
    * 获取历史消息
    */
@@ -49,7 +57,6 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     initialPageParam: { roomId, pageSize: PAGE_SIZE, cursor: null } as unknown as ChatMessagePageRequest,
     refetchOnWindowFocus: false,
   });
-
   // 合并所有分页消息 同时更新重复的消息
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     const historyMessages = (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
@@ -63,7 +70,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     return Array.from(messageMap.values())
       .sort((a, b) => a.message.position - b.message.position)
     // 过滤掉删除的消息和不符合规则的消息
-      .filter(msg => msg.message.messageType !== 0 || msg.message.status === 1)
+      .filter(msg => msg.message.status !== 1)
       .reverse();
   }, [getNewMessagesByRoomId, roomId, messagesInfiniteQuery.data?.pages]);
   // console.log(`top: ${chatFrameRef.current?.scrollTop} height: ${chatFrameRef.current?.clientHeight} scrollHeight: ${chatFrameRef.current?.scrollHeight}`);
@@ -83,10 +90,10 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     // if (!hasInitializeScroll.current || messagesInfiniteQuery.isFetchingNextPage) {
     //   return;
     // }
-    if (messageEntry?.isIntersecting) {
+    if (messageEntry?.isIntersecting && !messagesInfiniteQuery.isFetchingNextPage) {
       messagesInfiniteQuery.fetchNextPage();
     }
-  }, [messageEntry?.isIntersecting, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage, messagesInfiniteQuery, chatFrameRef]);
+  }, [messageEntry?.isIntersecting, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage, messagesInfiniteQuery]);
   /**
    * 聊天气泡拖拽排序
    */
@@ -198,6 +205,37 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       },
     };
     send(forwardMessageRequest);
+    setIsForwardWindowOpen(false);
+    updateSelectedMessageIds(new Set());
+  }
+  function handlePublishFeed({ title, description }: { title: string; description: string }) {
+    const feedRequest: FeedRequest = {
+      messageId: selectedMessageIds.values().next().value,
+      title: title || "default",
+      description: description || "default",
+    };
+    publishFeedMutation.mutate(feedRequest);
+    setIsForwardWindowOpen(false);
+    updateSelectedMessageIds(new Set());
+  }
+
+  /**
+   * 右键菜单
+   */
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null);
+  function handleDelete() {
+    deleteMessageMutation.mutate(contextMenu?.messageId ?? -1);
+  }
+  function handleContextMenu(e: React.MouseEvent) {
+    e.preventDefault();
+    const target = e.target as HTMLElement;
+    // 向上查找包含data-message-id属性的父元素
+    const messageElement = target.closest("[data-message-id]");
+    setContextMenu({ x: e.clientX, y: e.clientY, messageId: Number(messageElement?.getAttribute("data-message-id")) });
+  }
+  // 关闭右键菜单
+  function closeContextMenu() {
+    setContextMenu(null);
   }
 
   const renderMessages = useMemo(() => (historyMessages
@@ -208,7 +246,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         <div
           key={chatMessageResponse.message.messageID}
           ref={index === historyMessages.length - 7 ? messageRef : null}
-          className={`relative room transition-opacity ${isSelected ? "bg-info-content/40" : ""}`}
+          className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""}`}
+          data-message-id={chatMessageResponse.message.messageID}
           onClick={(e) => {
             if (isSelecting || e.ctrlKey) {
               toggleMessageSelection(chatMessageResponse.message.messageID);
@@ -221,7 +260,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         >
           <div
             className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
-                      -translate-x-full -translate-y-1/ opacity-0 room-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2 cursor-move`}
+                      -translate-x-full -translate-y-1/ opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2 cursor-move`}
             draggable
             onDragStart={e => handleDragStart(e, index)}
           >
@@ -234,10 +273,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
               />
             </svg>
           </div>
-          <ChatBubble
-            chatMessageResponse={chatMessageResponse}
-            useChatBubbleStyle={useChatBubbleStyle}
-          />
+          <ChatBubble chatMessageResponse={chatMessageResponse} />
         </div>
       )
       );
@@ -245,7 +281,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   return (
     <>
       {/* 这里是从下到上渲染的 */}
-      <div className="card-body overflow-y-auto h-[60vh] flex flex-col-reverse" ref={chatFrameRef}>
+      <div className="card-body overflow-y-auto h-[60vh] flex flex-col-reverse" ref={chatFrameRef} onContextMenu={handleContextMenu} onClick={closeContextMenu}>
         {renderMessages}
         {selectedMessageIds.size > 0 && (
           <div className="sticky top-0 bg-base-300 p-2 shadow-sm z-10 flex justify-between items-center rounded">
@@ -270,8 +306,40 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         )}
       </div>
       <PopWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
-        <ForwardWindow onClickRoom={roomId => handleForward(roomId)}></ForwardWindow>
+        <ForwardWindow onClickRoom={roomId => handleForward(roomId)} handlePublishFeed={handlePublishFeed}></ForwardWindow>
       </PopWindow>
+      {/* 右键菜单 */}
+      {contextMenu && (
+
+        <div
+          className="fixed bg-base-100 shadow-lg rounded-md z-50"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onClick={e => e.stopPropagation()}
+        >
+          <ul className="menu p-2 w-40">
+            <li>
+              <a onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+                closeContextMenu();
+              }}
+              >
+                删除
+              </a>
+            </li>
+            <li>
+              <a onClick={(e) => {
+                e.preventDefault();
+                toggleMessageSelection(contextMenu.messageId);
+                closeContextMenu();
+              }}
+              >
+                选择
+              </a>
+            </li>
+          </ul>
+        </div>
+      )}
     </>
   );
 }

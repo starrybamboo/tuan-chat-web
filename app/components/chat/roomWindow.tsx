@@ -3,15 +3,15 @@ import type { RoomContextType } from "@/components/chat/roomContext";
 import type {
   ChatMessageRequest,
   RoomMember,
-} from "api";
+} from "../../../api";
 
 import ChatFrame from "@/components/chat/chatFrame";
 import CommandPanel from "@/components/chat/commandPanel";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
-import RightSidePanel from "@/components/chat/rightSidePanel";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
-import SettingWindow from "@/components/chat/settingWindow";
+import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
+import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import { PopWindow } from "@/components/common/popWindow";
@@ -20,9 +20,9 @@ import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { ChatRenderer } from "@/webGAL/chatRenderer";
-import { tuanchat } from "api/instance";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
+import { tuanchat } from "../../../api/instance";
 import {
   useGetMemberListQuery,
   useGetRoleAvatarsQuery,
@@ -30,7 +30,7 @@ import {
   useGetUserRolesQuery,
 } from "../../../api/queryHooks";
 
-export function DialogueWindow({ roomId }: { roomId: number }) {
+export function RoomWindow({ roomId }: { roomId: number }) {
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
   const webSocketUtils = globalContext.websocketUtils;
@@ -80,8 +80,9 @@ export function DialogueWindow({ roomId }: { roomId: number }) {
       roomRolesThatUserOwn,
       curRoleId,
       curAvatarId: roleAvatars[curAvatarIndex]?.avatarId ?? -1,
+      useChatBubbleStyle,
     };
-  }, [curAvatarIndex, curMember, curRoleId, roomId, roomRolesThatUserOwn, members, roleAvatars]);
+  }, [curAvatarIndex, curMember, curRoleId, roomId, roomRolesThatUserOwn, members, roleAvatars, useChatBubbleStyle]);
 
   /**
    * 当群聊角色列表更新时, 自动设置为第一个角色
@@ -233,7 +234,7 @@ export function DialogueWindow({ roomId }: { roomId: number }) {
         <div className="flex-1 min-w-[480px] flex flex-col">
           {/* 聊天框 */}
           <div className="card bg-base-100 shadow-sm flex-1 relative">
-            <button type="button" className="btn btn-ghost absolute top-2 right-2 z-50" onClick={() => { setIsSettingWindowOpen(true); }}>
+            <button type="button" className="btn btn-ghost absolute top-0 right-0 z-50" onClick={() => { setIsSettingWindowOpen(true); }}>
               设置
             </button>
             <ChatFrame useChatBubbleStyle={useChatBubbleStyle} chatFrameRef={chatFrameRef}></ChatFrame>
@@ -332,14 +333,14 @@ export function DialogueWindow({ roomId }: { roomId: number }) {
           </form>
         </div>
         {/* 成员与角色展示框 */}
-        <RightSidePanel></RightSidePanel>
+        <RoomRightSidePanel></RoomRightSidePanel>
       </div>
       {/* 设置窗口 */}
       <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
-        <SettingWindow roomId={roomId} onClose={() => setIsSettingWindowOpen(false)}></SettingWindow>
+        <RoomSettingWindow onClose={() => setIsSettingWindowOpen(false)}></RoomSettingWindow>
       </PopWindow>
     </RoomContext>
   );
 }
 
-export default DialogueWindow;
+export default RoomWindow;

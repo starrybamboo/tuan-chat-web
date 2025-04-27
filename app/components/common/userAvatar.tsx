@@ -3,8 +3,12 @@ import { PopWindow } from "@/components/common/popWindow";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { use, useState } from "react";
+import { useParams } from "react-router";
+
 import {
-  useDeleteMemberMutation,
+  useDeleteRoomMemberMutation,
+  useDeleteSpaceMemberMutation,
+  useGetSpaceMembersQuery,
   useGetUserInfoQuery,
   useRevokePlayerMutation,
   useSetPlayerMutation,
@@ -25,43 +29,62 @@ const sizeMap = {
   36: "w-36 h-36", // 144px
 } as const;
 
-export default function UserAvatarComponent({ userId, width, isRounded, withName = false, stopPopWindow = false }: { userId: number; width: keyof typeof sizeMap; isRounded: boolean; withName: boolean; stopPopWindow?: boolean }) {
+export default function UserAvatarComponent({ userId, width, isRounded, withName = false, stopPopWindow = false }: {
+  userId: number;
+  width: keyof typeof sizeMap; // 头像的宽度
+  isRounded: boolean; // 是否是圆的
+  withName?: boolean; // 是否显示名字
+  stopPopWindow?: boolean; // 点击后是否会产生userDetail弹窗
+}) {
   const userQuery = useGetUserInfoQuery(userId);
   // 控制用户详情的popWindow
   const [isOpen, setIsOpen] = useState(false);
+  const { spaceId: urlSpaceId } = useParams();
+  const spaceId = Number(urlSpaceId);
+  const spaceMembers = useGetSpaceMembersQuery(spaceId).data?.data ?? [];
+  // userId()是当前组件显示的用户，member是userId对应的member
+  const member = spaceMembers.find(member => member.userId === userId);
 
   const roomContext = use(RoomContext);
   const roomId = roomContext.roomId ?? -1;
-  const roomMembers = roomContext.roomMembers ?? [];
-  // userId()是当前组件显示的用户，member是userId对应的member
-  const member = roomMembers.find(member => member.userId === userId);
+
   // 当前登录用户的id
   const curUserId = useGlobalContext().userId ?? -1;
 
-  const mutateMember = useDeleteMemberMutation();
+  const mutateRoomMember = useDeleteRoomMemberMutation();
+  const mutateSpaceMember = useDeleteSpaceMemberMutation();
   const setPlayerMutation = useSetPlayerMutation();
   const revokePlayerMutation = useRevokePlayerMutation();
   const transferOwnerMutation = useTransferOwnerMutation();
 
   // 是否是群主
   function isManager() {
-    return roomContext.curMember?.memberType === 1;
+    const curMember = spaceMembers.find(member => member.userId === curUserId);
+    return (curMember?.memberType ?? -1) === 1;
   }
 
   const handleRemoveMember = async () => {
-    if (roomId < 0)
-      return;
-    mutateMember.mutate(
-      { roomId, userIdList: [userId] },
-      {
-        onSettled: () => setIsOpen(false), // 最终关闭弹窗
-      },
-    );
+    if (roomId > 0) {
+      mutateRoomMember.mutate(
+        { roomId, userIdList: [userId] },
+        {
+          onSettled: () => setIsOpen(false), // 最终关闭弹窗
+        },
+      );
+    }
+    if (spaceId > 0) {
+      mutateSpaceMember.mutate(
+        { spaceId, userIdList: [userId] },
+        {
+          onSettled: () => setIsOpen(false),
+        },
+      );
+    }
   };
 
   function handleSetPlayer() {
     setPlayerMutation.mutate({
-      roomId,
+      spaceId,
       uidList: [userId],
     }, {
       onSettled: () => setIsOpen(false),
@@ -70,7 +93,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
 
   function handRevokePlayer() {
     revokePlayerMutation.mutate({
-      roomId,
+      spaceId,
       uidList: [userId],
     }, {
       onSettled: () => setIsOpen(false),
@@ -79,9 +102,8 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
 
   function handTransferRoomOwner() {
     transferOwnerMutation.mutate({
-      roomId,
-      uidList: [userId],
-      memberType: 2,
+      spaceId,
+      newOwnerId: userId,
     }, {
       onSettled: () => setIsOpen(false),
     });
@@ -115,7 +137,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
               <div className="items-center justify-center gap-y-4 flex flex-col">
                 <UserDetail userId={userId}></UserDetail>
                 {
-                  (roomId >= 0) && (
+                  (spaceId > 0) && (
                     curUserId === userId
                       ? (
                           <div className="gap-4 flex">

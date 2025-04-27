@@ -1,7 +1,7 @@
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import React, { useMemo } from "react";
-import { useGetUserRolesQuery } from "../../../api/queryHooks";
+import { useGetUserRolesQuery } from "../../../../api/queryHooks";
 
 export function AddRoleWindow({ handleAddRole }: { handleAddRole: (roleId: number) => void }) {
   // 获取用户的所有角色

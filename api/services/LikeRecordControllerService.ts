@@ -11,7 +11,7 @@ import type { LikeRecordRequest } from '../models/LikeRecordRequest';
 import type { PageBaseRequest } from '../models/PageBaseRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
-export class Service {
+export class LikeRecordControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
      * 查询是否点赞过

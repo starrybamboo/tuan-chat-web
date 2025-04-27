@@ -8,12 +8,14 @@ export default [
     // 临时举措
     // index("../app/routes/chat.tsx"),
     index("routes/home.tsx"),
-    route("feed", "routes/feed.tsx"),
+    route("feed/:feedId?", "routes/feed.tsx"),
     route("role", "routes/role.tsx"),
     route("create", "routes/create.tsx"),
     route("profile", "routes/profile.tsx"),
-    route("module", "routes/module.tsx"),
-    route("chat", "routes/chat.tsx"),
+    route("chat/:spaceId?/:roomId?", "routes/chat.tsx"),
+    route("module/create", "routes/module_create.tsx"),
+    route("module/detail/:id", "routes/module_detail.tsx"),
     route("community", "routes/community.tsx"),
+    route("settings", "routes/settings.tsx"),
   ]),
 ] satisfies RouteConfig;

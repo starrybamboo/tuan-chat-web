@@ -1,31 +1,35 @@
-import AddMemberWindow from "@/components/chat/addMemberWindow";
-import { AddRoleWindow } from "@/components/chat/addRoleWindow";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
-import { RoomContext } from "@/components/chat/roomContext";
+import { SpaceContext } from "@/components/chat/spaceContext";
+import AddMemberWindow from "@/components/chat/window/addMemberWindow";
+import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import UserAvatarComponent from "@/components/common/userAvatar";
-import React, { use, useMemo, useState } from "react";
-import { useAddMemberMutation, useAddRoleMutation, useGetRoomRoleQuery } from "../../../api/queryHooks";
+import React, { use, useState } from "react";
+import {
+  useAddSpaceMemberMutation,
+  useAddSpaceRoleMutation,
+  useGetSpaceMembersQuery,
+  useGetSpaceRolesQuery,
+} from "../../../api/queryHooks";
 
-export default function RightSidePanel() {
-  const roomContext = use(RoomContext);
-  const roomId = roomContext.roomId ?? -1;
-  const members = roomContext.roomMembers;
-  // 全局登录用户对应的member
-  const curMember = roomContext.curMember;
-  const roomRolesQuery = useGetRoomRoleQuery(roomId);
-  const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
+export default function SpaceRightSidePanel() {
+  const spaceContext = use(SpaceContext);
+  const spaceId = spaceContext.spaceId ?? -1;
+  const spaceMemberQuery = useGetSpaceMembersQuery(spaceId);
+  const spaceMembers = spaceMemberQuery.data?.data ?? [];
+  const spaceRolesQuery = useGetSpaceRolesQuery(spaceId);
+  const spaceRoles = spaceRolesQuery.data?.data ?? [];
 
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useState(false);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
 
-  const addMemberMutation = useAddMemberMutation();
-  const addRoleMutation = useAddRoleMutation();
+  const addMemberMutation = useAddSpaceMemberMutation();
+  const addRoleMutation = useAddSpaceRoleMutation();
 
   const handleAddRole = async (roleId: number) => {
     addRoleMutation.mutate({
-      roomId,
+      spaceId,
       roleIdList: [roleId],
     }, {
       onSettled: () => {
@@ -36,7 +40,7 @@ export default function RightSidePanel() {
 
   async function handleAddMember(userId: number) {
     addMemberMutation.mutate({
-      roomId,
+      spaceId,
       userIdList: [userId],
     }, {
       onSettled: () => {
@@ -51,11 +55,12 @@ export default function RightSidePanel() {
         <div className="space-y-2">
           <div className="flex flex-row justify-center items-center gap-2">
             <p className="text-center">
-              群成员-
-              {members.length}
+              空间成员-
+              {spaceMembers.length}
             </p>
             {
-              curMember?.memberType === 1
+              // TODO
+              spaceMembers.length > 0
               && (
                 <button
                   className="btn btn-dash btn-info"
@@ -67,7 +72,7 @@ export default function RightSidePanel() {
               )
             }
           </div>
-          {members.map(member => (
+          {spaceMembers.map(member => (
             <div
               key={member.userId}
               className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center "
@@ -81,15 +86,15 @@ export default function RightSidePanel() {
             </div>
           ))}
         </div>
-        {/* 角色列表 */}
+        角色列表
         <div className="space-y-2">
           <div className="flex flex-row justify-center items-center gap-2">
             <p className="text-center">
               角色列表-
-              <span className="text-sm">{roomRoles.length}</span>
+              <span className="text-sm">{spaceRoles.length}</span>
             </p>
             {
-              (curMember?.memberType === 1 || curMember?.memberType === 2) && (
+              (1) && (
                 <button
                   className="btn btn-dash btn-info"
                   type="button"
@@ -100,7 +105,7 @@ export default function RightSidePanel() {
               )
             }
           </div>
-          {roomRoles.map(role => (
+          {spaceRoles.map(role => (
             <div
               key={role.roleId}
               className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center "

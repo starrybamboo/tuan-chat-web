@@ -80,14 +80,20 @@ export class RoomControllerService {
         });
     }
     /**
-     * 获取当前用户加入的所有房间
+     * 获取空间下当前用户加入的所有房间
+     * @param spaceId
      * @returns ApiResultListRoom OK
      * @throws ApiError
      */
-    public getUserRooms(): CancelablePromise<ApiResultListRoom> {
+    public getUserRooms(
+        spaceId: number,
+    ): CancelablePromise<ApiResultListRoom> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/room/list',
+            query: {
+                'spaceId': spaceId,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

@@ -9,6 +9,7 @@ export interface RoomContextType {
   roomRolesThatUserOwn: UserRole[];
   curRoleId?: number;
   curAvatarId?: number;
+  useChatBubbleStyle: boolean;
 }
 
 export const RoomContext = createContext<RoomContextType>({
@@ -18,4 +19,5 @@ export const RoomContext = createContext<RoomContextType>({
   roomRolesThatUserOwn: [],
   curAvatarId: undefined,
   curRoleId: undefined,
+  useChatBubbleStyle: false,
 });

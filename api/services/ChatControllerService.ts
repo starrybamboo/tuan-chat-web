@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ApiResultChatMessageResponse } from '../models/ApiResultChatMessageResponse';
 import type { ApiResultCursorPageBaseResponseChatMessageResponse } from '../models/ApiResultCursorPageBaseResponseChatMessageResponse';
 import type { ApiResultListChatMessageResponse } from '../models/ApiResultListChatMessageResponse';
 import type { ApiResultMessage } from '../models/ApiResultMessage';
@@ -14,6 +15,30 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class ChatControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
+    /**
+     * 根据ID获取单条消息
+     * 返回指定ID的消息详情
+     * @param messageId
+     * @returns ApiResultChatMessageResponse OK
+     * @throws ApiError
+     */
+    public getMessageById(
+        messageId: number,
+    ): CancelablePromise<ApiResultChatMessageResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/chat/message',
+            query: {
+                'messageId': messageId,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
     /**
      * 更新消息
      * 只要有更新都走这个接口
@@ -68,7 +93,7 @@ export class ChatControllerService {
      * @throws ApiError
      */
     public deleteMessage(
-        requestBody: Message,
+        requestBody: number,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
