@@ -88,7 +88,7 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
         </button>
 
         {/* 评论按钮 */}
-        <button onClick={() => setShowComments(true)} className="flex flex-col items-center" type="button">
+        <button onClick={() => setShowComments(!showComments)} className="flex flex-col items-center" type="button">
           <div className="w-10 h-10">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -112,19 +112,11 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
 
       {/* 底部评论区 - 弹出式 */}
       {showComments && (
-        <div className="absolute inset-0  z-10">
-          <div
-            className="absolute bottom-0 left-0 right-0 bg-base-100 rounded-t-3xl p-4 max-h-[70vh] flex flex-col"
-          >
+        <div className="absolute inset-0 z-10 shadow-xl">
+          <div className="absolute bottom-0 left-0 right-0 bg-base-100/90 rounded-t-3xl p-4 h-[70vh] flex flex-col">
             {/* 评论区标题和关闭按钮 */}
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-lg">
-                114条评论
-              </h3>
-              <button
-                onClick={() => setShowComments(false)}
-                className="text-gray-400"
-              >
+            <div className="flex justify-end ">
+              <button onClick={() => setShowComments(false)} className="text-gray-400" type="button">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 6L6 18M6 6l12 12" />
                 </svg>
@@ -132,7 +124,7 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
             </div>
 
             {/* 评论列表 */}
-            <div className="flex-1 overflow-y-auto space-y-4">
+            <div className="flex-1 overflow-y-auto space-y-4 h-full">
               <CommentPanel targetInfo={{ targetId: feed.feedId ?? -1, targetType: "1" }} className=""></CommentPanel>
             </div>
           </div>
