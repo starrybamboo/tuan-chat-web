@@ -48,7 +48,7 @@ import {
     type RoomMemberDeleteRequest,
     type SpaceUpdateRequest,
     type LikeRecordRequest,
-    LikeRecordControllerService, type CommentPageRequest
+    LikeRecordControllerService, type CommentPageRequest, type CommentAddRequest
 } from "api";
 
 // ==================== 角色管理 ====================
@@ -1053,6 +1053,21 @@ export function useGetCommentPageInfiniteQuery(targetInfo: LikeRecordRequest, pa
         initialPageParam: { ...targetInfo, pageSize, childLimit,maxLevel, pageNo:1} as CommentPageRequest,
         refetchOnWindowFocus: false,
     });
+}
+
+/**
+ * 发表comment
+ */
+export function useAddCommentMutation(){
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ["addComment"],
+        mutationFn: (req: CommentAddRequest)=> tuanchat.commentController.addComment(req),
+        onSuccess:(_,variables)=>{
+            //TODO 这么做是有问题的
+            queryClient.invalidateQueries({ queryKey: ["pageComments", {targetId: variables.targetId, targetType: variables.targetType}]});
+        }
+    })
 }
 
 

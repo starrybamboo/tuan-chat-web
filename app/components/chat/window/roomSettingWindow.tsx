@@ -1,5 +1,5 @@
 import { RoomContext } from "@/components/chat/roomContext";
-import { EditableField } from "@/components/common/EditableFiled";
+import { EditableField } from "@/components/common/editableFiled";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { use } from "react";
 import { useNavigate } from "react-router";

@@ -94,7 +94,7 @@ export default function FeedPage() {
 
   if (isDetailView) {
     return (
-      <div className="fixed inset-0 bg-base-100 z-50 overflow-hidden" onWheel={e => handleWheel(e)}>
+      <div className="fixed inset-0 bg-base-100 z-50 overflow-hidden">
         {/* 返回按钮 */}
         <button
           className="absolute top-4 left-4 z-50 btn btn-info bg-opacity-30 rounded-full p-2"
@@ -108,9 +108,9 @@ export default function FeedPage() {
         </button>
 
         {/* 详情内容 */}
-        <div className="h-full w-full flex items-center justify-center">
-          <div className="max-w-2xl w-full">
-            <FeedDetail feedId={Number(feedId)}></FeedDetail>
+        <div className="h-full w-full flex items-center justify-center ">
+          <div className="max-w-2xl w-full shadow-2xl">
+            <FeedDetail feedId={Number(feedId)} handleWheel={handleWheel}></FeedDetail>
           </div>
         </div>
       </div>

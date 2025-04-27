@@ -1,10 +1,11 @@
+import type { WheelEvent } from "react";
 import { ChatBubble } from "@/components/chat/chatBubble";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useState } from "react";
 import { useGetFeedByIdQuery, useGetMessageByIdQuery } from "../../../api/queryHooks";
 
-export default function FeedDetail({ feedId }: { feedId: number }) {
+export default function FeedDetail({ feedId, handleWheel }: { feedId: number; handleWheel: (e: WheelEvent<HTMLDivElement>) => void }) {
   const feedQuery = useGetFeedByIdQuery(feedId);
   const feed = feedQuery.data;
   const [liked, setLiked] = useState(false);
@@ -36,7 +37,14 @@ export default function FeedDetail({ feedId }: { feedId: number }) {
   }
 
   return (
-    <div className="relative h-screen bg-base-200/50 overflow-hidden">
+    <div
+      className="relative h-screen bg-base-200/50 overflow-hidden"
+      onWheel={(e) => {
+        if (!showComments) {
+          handleWheel(e);
+        }
+      }}
+    >
       <div className="h-full w-full flex flex-col">
         {/* 内容展示区 */}
         <div className="flex-1 flex justify-center items-center relative">
@@ -126,16 +134,6 @@ export default function FeedDetail({ feedId }: { feedId: number }) {
             {/* 评论列表 */}
             <div className="flex-1 overflow-y-auto space-y-4">
               <CommentPanel targetInfo={{ targetId: feed.feedId ?? -1, targetType: "1" }} className=""></CommentPanel>
-            </div>
-
-            {/* 评论输入框 */}
-            <div className="mt-4 flex items-center bg-gray-800 rounded-full p-2">
-              <input
-                type="text"
-                placeholder="说点什么..."
-                className="flex-1 bg-transparent outline-none px-3 text-sm"
-              />
-              <button className="text-gray-400 px-2">发布</button>
             </div>
           </div>
         </div>
