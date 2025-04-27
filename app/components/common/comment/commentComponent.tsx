@@ -4,7 +4,7 @@ import CommentPreview from "@/components/common/comment/commentPreview";
 import CommentToggle from "@/components/common/comment/CommentToggle";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
-import { useGetCommentByIdQuery, useGetUserInfoQuery } from "api/queryHooks";
+import { useGetCommentByIdQuery } from "api/queryHooks";
 import React, { useMemo, useState } from "react";
 
 export default function CommentComponent({ comment, level = 1 }: { comment: number | CommentVO; level?: number }) {
@@ -12,8 +12,6 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
 
   const getCommentByIdQuery = useGetCommentByIdQuery(typeof comment === "number" ? comment : -1);
   const commentVO = typeof comment === "number" ? getCommentByIdQuery.data : comment;
-  const getUserInfoQuery = useGetUserInfoQuery(commentVO?.userId || -1);
-  const user = getUserInfoQuery.data?.data;
 
   const [isInput, setIsInput] = useState(false);
   const [isFolded, setIsFolded] = useState(false);
@@ -53,18 +51,21 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
   if (isFolded) {
     return (
       <div
-        className="flex flex-row gap-2"
+        className="flex items-center gap-2"
         onClick={(e) => {
           e.stopPropagation();
           setIsFolded(!isFolded);
         }}
       >
-        <CommentToggle
-          isFolded={isFolded}
-          onClick={() => setIsFolded(!isFolded)}
-        />
+        <div className="w-10 h-10 rounded-full flex justify-center items-center">
+          <CommentToggle
+            isFolded={isFolded}
+            onClick={() => setIsFolded(!isFolded)}
+          />
+        </div>
         <CommentPreview commentVO={commentVO}></CommentPreview>
       </div>
+
     );
   }
 
@@ -72,15 +73,8 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
     <div className="text-base-content">
       {/* Comment Header - User Info */}
       <div className="flex items-center gap-2">
-        <div className="avatar">
-          <UserAvatarComponent userId={commentVO?.userId || -1} width={10} isRounded={true} withName={false} />
-        </div>
-        <h3 className="font-semibold text-base-content">
-          {user?.username || "YOU_KNOW_WHO"}
-        </h3>
-        <span className="text-xs text-base-content/70">
-          {new Date(commentVO?.createTime || "").toLocaleString()}
-        </span>
+        <UserAvatarComponent userId={commentVO?.userId || -1} width={10} isRounded={true} withName={false} />
+        <CommentPreview commentVO={commentVO}></CommentPreview>
       </div>
       <div className="flex flex-col lg:flex-row">
         <div className="divider lg:divider-horizontal divider-start hover:divider-neutral hover:font-bold" onClick={() => setIsFolded(!isFolded)}>

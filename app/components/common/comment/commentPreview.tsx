@@ -1,4 +1,5 @@
 import type { CommentVO } from "api";
+import React from "react";
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 
 export default function CommentPreview({ commentVO }: { commentVO: CommentVO }) {
@@ -6,9 +7,11 @@ export default function CommentPreview({ commentVO }: { commentVO: CommentVO }) 
   const user = getUserInfoQuery.data?.data;
   return (
     <div className="flex gap-2 items-center">
-      <span className="font-medium">{user?.username ?? "未知用户"}</span>
-      <span className="text-xs opacity-70">
-        {new Date(commentVO.createTime || "").toLocaleString()}
+      <h3 className="font-semibold text-base-content">
+        {user?.username || "YOU_KNOW_WHO"}
+      </h3>
+      <span className="text-xs text-base-content/70">
+        {new Date(commentVO?.createTime || "").toLocaleString()}
       </span>
     </div>
   );
