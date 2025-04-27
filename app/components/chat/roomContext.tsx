@@ -10,6 +10,7 @@ export interface RoomContextType {
   curRoleId?: number;
   curAvatarId?: number;
   useChatBubbleStyle: boolean;
+  spaceId?: number;
 }
 
 export const RoomContext = createContext<RoomContextType>({
@@ -20,4 +21,5 @@ export const RoomContext = createContext<RoomContextType>({
   curAvatarId: undefined,
   curRoleId: undefined,
   useChatBubbleStyle: false,
+  spaceId: undefined,
 });

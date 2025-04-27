@@ -30,7 +30,7 @@ import {
   useGetUserRolesQuery,
 } from "../../../api/queryHooks";
 
-export function RoomWindow({ roomId }: { roomId: number }) {
+export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
   const webSocketUtils = globalContext.websocketUtils;
@@ -81,8 +81,9 @@ export function RoomWindow({ roomId }: { roomId: number }) {
       curRoleId,
       curAvatarId: roleAvatars[curAvatarIndex]?.avatarId ?? -1,
       useChatBubbleStyle,
+      spaceId,
     };
-  }, [curAvatarIndex, curMember, curRoleId, roomId, roomRolesThatUserOwn, members, roleAvatars, useChatBubbleStyle]);
+  }, [curAvatarIndex, curMember, curRoleId, roomId, roomRolesThatUserOwn, members, roleAvatars, useChatBubbleStyle, spaceId]);
 
   /**
    * 当群聊角色列表更新时, 自动设置为第一个角色

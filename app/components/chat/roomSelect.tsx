@@ -169,7 +169,7 @@ export default function RoomSelect() {
       {/* 对话窗口 */}
       {
         activeRoomId
-          ? <RoomWindow roomId={activeRoomId} />
+          ? <RoomWindow roomId={activeRoomId} spaceId={activeSpaceId ?? -1} />
           : <SpaceWindow spaceId={activeSpaceId ?? -1} />
       }
       {/* 创建空间弹出窗口 */}
