@@ -1,5 +1,8 @@
 import RoomWindow from "@/components/chat/roomWindow";
 import SpaceWindow from "@/components/chat/spaceWindow";
+import { PopWindow } from "@/components/common/popWindow";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   useCreateRoomMutation,
@@ -10,8 +13,6 @@ import {
 } from "api/queryHooks";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { PopWindow } from "../common/popWindow";
-import { UserDetail } from "../common/userDetail";
 
 export default function RoomSelect() {
   const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
@@ -49,6 +50,16 @@ export default function RoomSelect() {
   // 处理邀请用户uid
   const [inputUserId, setInputUserId] = useState<number>(-1);
   const inputUserInfo = useGetUserInfoQuery(inputUserId).data?.data;
+  // 获取当前用户信息
+  const globalContext = useGlobalContext();
+  const getUserInfo = useGetUserInfoQuery(Number(globalContext.userId));
+  const userInfo = getUserInfo.data?.data;
+  // 创建空间的头像
+  const [spaceAvatar, setspaceAvatar] = useState<string>(String(userInfo?.avatar));
+  // 创建空间的名称
+  const [spaceName, setSpaceName] = useState<string>(`${String(userInfo?.username)}的空间`);
+  // 创建空间的描述
+  const [spaceDescribe, setSpaceDescribe] = useState<string>("请输入空间描述");
 
   // websocket封装, 用于发送接受消息
   const websocketUtils = useGlobalContext().websocketUtils;
@@ -62,6 +73,8 @@ export default function RoomSelect() {
   async function createSpace(userId: number) {
     createSpaceMutation.mutate({
       userIdList: [userId],
+      avatar: spaceAvatar,
+      spaceName,
     }, {
       onSettled: () => {
         setIsSpaceHandleOpen(false);
@@ -116,7 +129,14 @@ export default function RoomSelect() {
           className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10"
           type="button"
           data-tip="创建空间"
-          onClick={() => setIsSpaceHandleOpen(true)}
+          onClick={() => {
+            setIsSpaceHandleOpen(true);
+            // 重置表单状态
+            setspaceAvatar(String(userInfo?.avatar));
+            setSpaceName(`${String(userInfo?.username)}的空间`);
+            setSpaceDescribe("请输入空间描述");
+            setInputUserId(-1);
+          }}
         >
           <div className="avatar mask mask-squircle flex content-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -174,20 +194,92 @@ export default function RoomSelect() {
       }
       {/* 创建空间弹出窗口 */}
       <PopWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
-        <div className="w-full p-4">
-          <p className="text-lg font-bold text-center w-full mb-4">输入要加入的用户的ID</p>
-          <input type="text" placeholder="输入要加入的成员的ID" className="input input-bordered w-full mb-8" onInput={e => setInputUserId(Number(e.currentTarget.value))} />
-          {
-            (inputUserId > 0 && inputUserInfo)
-            && (
-              <div className="items-center flex flex-col gap-y-4">
-                <UserDetail userId={inputUserId}></UserDetail>
-                <button className="btn btn-info" type="button" onClick={() => createSpace(Number(inputUserId))}>
-                  确认
+        <div className="w-full p-4 min-w-[40vw] max-h-[80vh] overflow-y-auto">
+          <p className="text-lg font-bold text-center w-full mb-4">创建空间</p>
+
+          {/* 头像上传 */}
+          <div className="flex justify-center mb-6">
+            <ImgUploaderWithCopper
+              setCopperedDownloadUrl={(url) => {
+                setspaceAvatar(url);
+              }}
+              fileName={`new-space-avatar-${Date.now()}`}
+            >
+              <div className="relative group overflow-hidden rounded-lg">
+                <img
+                  src={spaceAvatar}
+                  className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
+                />
+                <div
+                  className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm"
+                >
+                  <span className="font-bold text-black px-2 py-1 rounded leading-normal tracking-normal">
+                    上传头像
+                  </span>
+                </div>
+              </div>
+            </ImgUploaderWithCopper>
+          </div>
+
+          {/* 空间名称 */}
+          <div className="mb-4">
+            <label className="label mb-2">
+              <span className="label-text">空间名称</span>
+            </label>
+            <input
+              type="text"
+              placeholder={spaceName}
+              className="input input-bordered w-full"
+              onChange={(e) => {
+                const inputValue = e.target.value;
+                setSpaceName(inputValue === "" ? `${String(userInfo?.username)}的空间` : inputValue);
+              }}
+            />
+          </div>
+
+          {/* 空间描述 */}
+          <div className="mb-6">
+            <label className="label mb-2">
+              <span className="label-text">空间描述</span>
+            </label>
+            <textarea
+              placeholder={spaceDescribe}
+              className="textarea textarea-bordered w-full h-24"
+              onChange={(e) => {
+                const inputValue = e.target.value;
+                setSpaceDescribe(inputValue === "" ? "请输入空间描述" : inputValue);
+              }}
+            />
+          </div>
+
+          {/* 邀请成员部分 */}
+          <div className="mb-4">
+            <label className="label mb-2">
+              <span className="label-text">邀请成员(输入用户ID)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="输入要加入的成员ID"
+              className="input input-bordered w-full mb-4"
+              onInput={e => setInputUserId(Number(e.currentTarget.value))}
+            />
+          </div>
+
+          {/* 用户信息预览和确认按钮 */}
+          {inputUserId > 0 && inputUserInfo && (
+            <div className="items-center flex flex-col gap-y-4 pb-4">
+              <UserDetail userId={inputUserId} />
+              <div className="sticky bottom-0 w-full bg-base-100 pt-4 pb-4 border-t border-base-200">
+                <button
+                  className="btn btn-primary w-full shadow-lg"
+                  type="button"
+                  onClick={() => createSpace(Number(inputUserId))}
+                >
+                  创建空间
                 </button>
               </div>
-            )
-          }
+            </div>
+          )}
         </div>
       </PopWindow>
       {/* 创建子群弹出窗口(后面如果与上面功能没太多区别就合并) */}
