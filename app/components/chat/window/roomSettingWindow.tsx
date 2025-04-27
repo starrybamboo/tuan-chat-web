@@ -2,6 +2,7 @@ import { RoomContext } from "@/components/chat/roomContext";
 import { EditableField } from "@/components/common/EditableFiled";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { use } from "react";
+import { useNavigate } from "react-router";
 import {
   useDissolveRoomMutation,
   useGetRoomInfoQuery,
@@ -9,6 +10,7 @@ import {
 } from "../../../../api/queryHooks";
 
 function RoomSettingWindow({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
   const roomContext = use(RoomContext);
   // 获取群组数据
   const roomId = Number(roomContext.roomId);
@@ -64,6 +66,7 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
               onClick={() => dissolveRoomMutation.mutate(roomId, {
                 onSuccess: () => {
                   onClose();
+                  navigate(`/chat/${roomContext.spaceId}`);
                 },
               })}
             >
