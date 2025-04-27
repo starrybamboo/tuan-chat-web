@@ -47,7 +47,6 @@ import type {
     RoomMemberAddRequest, RoomMemberDeleteRequest, SpaceUpdateRequest
 } from "api";
 
-
 // ==================== 角色管理 ====================
 /**
  * 根据id获取角色
@@ -286,7 +285,8 @@ export function useGetSpaceMembersQuery(spaceId: number) {
     return useQuery({
         queryKey: ['getMemberList', spaceId],
         queryFn: () => tuanchat.spaceMemberController.getMemberList(spaceId),
-        staleTime: 300000 // 5分钟缓存
+        staleTime: 300000, // 5分钟缓存
+        enabled: spaceId > 0
     });
 }
 
