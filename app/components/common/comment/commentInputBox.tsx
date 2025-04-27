@@ -2,8 +2,9 @@ import { CommentContext } from "@/components/common/comment/commentContext";
 import { use, useState } from "react";
 import { useAddCommentMutation } from "../../../../api/queryHooks";
 
-export default function CommentInputBox({ className, rootCommentId = 0, parentCommentId = 0 }: {
+export default function CommentInputBox({ className, onSubmitFinish, rootCommentId = 0, parentCommentId = 0 }: {
   className?: string;
+  onSubmitFinish?: () => void;
   rootCommentId?: number;
   parentCommentId?: number;
 }) {
@@ -22,6 +23,9 @@ export default function CommentInputBox({ className, rootCommentId = 0, parentCo
       parentCommentId,
     }, {});
     setInputContent("");
+    if (onSubmitFinish) {
+      onSubmitFinish();
+    }
   };
   return (
     <div className={`mt-4 flex items-center bg-base-300 rounded-full p-2 ${className}`}>

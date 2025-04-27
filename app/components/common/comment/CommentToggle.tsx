@@ -5,13 +5,15 @@ export default function CommentToggle({
   onClick,
 }: {
   isFolded: boolean;
-  onClick: () => void;
+  onClick?: () => void;
 }) {
   const [checked, setChecked] = useState(isFolded);
 
   const handleChange = () => {
     setChecked(!checked);
-    onClick();
+    if (onClick) {
+      onClick();
+    }
   };
 
   return (
