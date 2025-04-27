@@ -4,13 +4,13 @@
 /* eslint-disable */
 export type AbilityPageRequest = {
     /**
-     * 页面大小
-     */
-    pageSize?: number;
-    /**
-     * 页面索引（从1开始）
+     * 页码
      */
     pageNo?: number;
+    /**
+     * 每页大小
+     */
+    pageSize?: number;
     roleId: number;
 };
 

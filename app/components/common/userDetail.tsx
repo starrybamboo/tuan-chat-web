@@ -17,7 +17,7 @@ export function UserDetail({ userId }: { userId: number }) {
   }[activeStatus ?? "offline"] || "badge-neutral";
 
   return (
-    <div className="card bg-base-100 shadow-xl min-w-[20vw]">
+    <div className="card bg-base-100 min-w-[20vw]">
       <div className="card-body">
         {/* 头像部分 */}
         <div className="flex flex-col items-center gap-4">

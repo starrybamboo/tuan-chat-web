@@ -51,10 +51,25 @@ export class Renderer {
     });
   }
 
-  public async addDialog(roleId: number, roleName: string, avatarId: number, text: string, vocal?: string | undefined): Promise<void> {
-    // 确保sprites名称与ChatRenderer中的格式匹配
-    const spritesName = `role_${roleId}_sprites_${avatarId}`;
-    await this.addLineToRenderer(`changeFigure:${spritesName}.png -left -next;`);
+  public async addDialog(
+    roleName: string,
+    text: string,
+    leftSpriteName?: string | undefined,
+    rightSpriteName?: string | undefined,
+    vocal?: string | undefined,
+  ): Promise<void> {
+    if (leftSpriteName) {
+      await this.addLineToRenderer(`changeFigure:${leftSpriteName}.png -left -next;`);
+    }
+    else {
+      await this.addLineToRenderer(`changeFigure: -left -next;`);
+    }
+    if (rightSpriteName) {
+      await this.addLineToRenderer(`changeFigure:${rightSpriteName}.png -right -next;`);
+    }
+    else {
+      await this.addLineToRenderer(`changeFigure: -right -next;`);
+    }
     await this.addLineToRenderer(`${roleName}: ${text} ${vocal ? `-${vocal}` : ""}`);
     this.rendererContext.lineNumber += 2;
   }

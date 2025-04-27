@@ -238,17 +238,17 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
       <div className="flex flex-col items-center gap-4">
         {isEditing
           ? (
-              <div className="avatar cursor-pointer group" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
+              <div className="avatar cursor-pointer room" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
                 <div className="ring-primary ring-offset-base-100 w-48 ring ring-offset-2 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center z-10">
-                    <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute inset-0 bg-black/0 room-hover:bg-black/30 transition-all flex items-center justify-center z-10">
+                    <span className="text-white opacity-0 room-hover:opacity-100 transition-opacity">
                       点击更换头像
                     </span>
                   </div>
                   <img
                     src={copperedUrl || role.avatar}
                     alt="Character Avatar"
-                    className="object-cover transform group-hover:scale-110 transition-transform duration-300"
+                    className="object-cover transform room-hover:scale-110 transition-transform duration-300"
                   />
                 </div>
               </div>
@@ -330,7 +330,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
                           onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
                         >
                           {/* 头像卡片容器 */}
-                          <div className="relative w-full h-full group">
+                          <div className="relative w-full h-full room">
                             <img
                               src={item.avatarUrl}
                               alt="头像"
@@ -338,7 +338,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
                             />
                             {/* 删除按钮  */}
                             <button
-                              className="absolute -top-2 -right-2 w-7 h-7 bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800"
+                              className="absolute -top-2 -right-2 w-7 h-7 bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center opacity-0 room-hover:opacity-100 transition-all duration-300 hover:bg-gray-800"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteAvatar(index);
@@ -391,8 +391,6 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
                       setChangeAvatarConfirmOpen(false);
                       onchange(copperedUrl, avatarId);
                       setCopperedUrl("");
-                      setPreviewSrc("");
-                      setPreviewText("");
                     }}
                     className="btn btn-primary"
                   >

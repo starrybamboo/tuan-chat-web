@@ -1,12 +1,14 @@
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { checkAuthStatus } from "@/utils/auth/authapi";
 import { QueryClient, useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router";
 import LoginButton from "../auth/LoginButton";
 import ThemeSwitch from "../themeSwitch";
 
 const queryClient = new QueryClient();
 
 export default function Topbar() {
+  const navigate = useNavigate();
   const { data: authStatus, isLoading } = useQuery({
     queryKey: ["authStatus"],
     queryFn: checkAuthStatus,
@@ -20,7 +22,7 @@ export default function Topbar() {
   }
 
   return (
-    <div className="w-full h-14 flex items-center justify-between px-4 bg-base-300">
+    <div className="w-full h-14 flex items-center justify-between px-4 bg-base-300 shrink-0">
       {/* 左侧 */}
       <div className="flex items-center space-x-6">
 
@@ -28,24 +30,25 @@ export default function Topbar() {
           src="http://47.119.147.6/tuan/favicon.ico"
           alt="Logo"
           className="h-8 w-8 mr-4"
+          onClick={() => navigate("/")}
         />
 
-        <a href="/feed" className="text-base-content hover:text-primary transition-colors">
+        <a onClick={() => navigate("/feed")} className="text-base-content hover:text-primary transition-colors">
           推荐
         </a>
-        <a href="/community" className="text-base-content hover:text-primary transition-colors">
+        <a onClick={() => navigate("/community")} className="text-base-content hover:text-primary transition-colors">
           社区
         </a>
-        <a href="/chat" className="text-base-content hover:text-primary transition-colors">
+        <a onClick={() => navigate("/chat")} className="text-base-content hover:text-primary transition-colors">
           游玩
         </a>
-        <a href="/role" className="text-base-content hover:text-primary transition-colors">
+        <a onClick={() => navigate("/role")} className="text-base-content hover:text-primary transition-colors">
           角色
         </a>
-        <a href="/module" className="text-base-content hover:text-primary transition-colors">
+        <a onClick={() => navigate("/module/create")} className="text-base-content hover:text-primary transition-colors">
           模组
         </a>
-        <a href="/create" className="text-base-content hover:text-primary transition-colors">
+        <a onClick={() => navigate("/create")} className="text-base-content hover:text-primary transition-colors">
           创作
         </a>
       </div>
@@ -71,8 +74,8 @@ export default function Topbar() {
                   </div>
                 </div>
                 <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-                  <li><a href="/profile">个人中心</a></li>
-                  <li><a href="/settings">设置</a></li>
+                  <li><a onClick={() => navigate("/profile")}>个人中心</a></li>
+                  <li><a onClick={() => navigate("/settings")}>设置</a></li>
                   <li>
                     <a onClick={() => {
                       localStorage.removeItem("token");

@@ -1,4 +1,4 @@
-import { GroupContext } from "@/components/chat/GroupContext";
+import { RoomContext } from "@/components/chat/roomContext";
 import { PopWindow } from "@/components/common/popWindow";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -24,7 +24,13 @@ const sizeMap = {
   36: "w-36 h-36", // 144px
 } as const;
 
-export default function RoleAvatarComponent({ avatarId, width, isRounded, withTitle, stopPopWindow = false }: { avatarId: number; width: keyof typeof sizeMap; isRounded: boolean; withTitle: boolean; stopPopWindow?: boolean }) {
+export default function RoleAvatarComponent({ avatarId, width, isRounded, withTitle, stopPopWindow = false }: {
+  avatarId: number;
+  width: keyof typeof sizeMap; // 头像的宽度
+  isRounded: boolean; // 是否是圆的
+  withTitle: boolean; // 是否在下方显示标题
+  stopPopWindow?: boolean; // 点击后是否会产生roleDetail弹窗
+}) {
   const avatarQuery = useGetRoleAvatarQuery(avatarId);
   const userId = useGlobalContext().userId ?? -1;
   const userRole = useGetUserRolesQuery(userId);
@@ -33,19 +39,19 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
   const [isOpen, setIsOpen] = useState(false);
   const roleAvatar = avatarQuery.data?.data;
 
-  const groupContext = use(GroupContext);
-  const groupId = groupContext?.groupId ?? -1;
+  const roomContext = use(RoomContext);
+  const roomId = roomContext?.roomId ?? -1;
   // 是否是群主
   function isManager() {
-    return groupContext.curMember?.memberType === 1;
+    return roomContext.curMember?.memberType === 1;
   }
 
   const deleteRoleMutation = useDeleteRole1Mutation();
   const handleRemoveRole = async () => {
-    if (!groupId || !roleAvatar?.roleId)
+    if (!roomId || !roleAvatar?.roleId)
       return;
     deleteRoleMutation.mutate(
-      { roomId: groupId, roleIdList: [roleAvatar?.roleId] },
+      { roomId, roleIdList: [roleAvatar?.roleId] },
       {
         onSettled: () => setIsOpen(false), // 最终关闭弹窗
       },
@@ -69,7 +75,7 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
       }
       <div className="absolute">
         {
-          (isOpen && !stopPopWindow && groupId) && (
+          (isOpen && !stopPopWindow && roomId) && (
             <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>
               <div className="items-center justify-center gap-y-4 flex flex-col w-full overflow-auto">
                 <RoleDetail roleId={roleAvatar?.roleId ?? -1}></RoleDetail>

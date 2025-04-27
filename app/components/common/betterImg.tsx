@@ -6,13 +6,13 @@ function BetterImg({ src, className, onClose }: { src: string | File | undefined
   const imgSrc = typeof src === "string" || !src ? src : URL.createObjectURL(src);
   return (
     <div>
-      <div className="relative inline-block group">
+      <div className="relative inline-block room">
         <img src={imgSrc} className={`hover:scale-101 ${className} `} alt="img" onClick={() => setIsOpen(true)} />
         {
           onClose && (
             <button
               type="button"
-              className="btn btn-xs btn-circle absolute right-0 top-0 absolute opacity-0 group-hover:opacity-100 scale-50 duration-200 origin-top-right"
+              className="btn btn-xs btn-circle absolute right-0 top-0 absolute opacity-0 room-hover:opacity-100 scale-50 duration-200 origin-top-right"
               onClick={onClose}
             >
               <span className="text-xs">✕</span>
