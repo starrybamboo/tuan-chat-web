@@ -1,7 +1,7 @@
 import type { Feed, FeedPageRequest } from "api";
 import type { WheelEvent } from "react";
 import FeedDetail from "@/components/feed/feedDetail";
-import FeedPost from "@/components/feed/feedPost";
+import FeedPreview from "@/components/feed/feedPreview";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { tuanchat } from "api/instance";
@@ -97,7 +97,7 @@ export default function FeedPage() {
       <div className="fixed inset-0 bg-base-100 z-50 overflow-hidden" onWheel={e => handleWheel(e)}>
         {/* 返回按钮 */}
         <button
-          className="absolute top-4 left-4 z-50 bg-white bg-opacity-30 rounded-full p-2"
+          className="absolute top-4 left-4 z-50 btn btn-info bg-opacity-30 rounded-full p-2"
           onClick={() => navigate("/feed")}
           type="button"
         >
@@ -126,7 +126,7 @@ export default function FeedPage() {
           onClick={() => navigate(`/feed/${feed.feedId}`)}
           className="cursor-pointer"
         >
-          <FeedPost feed={feed} />
+          <FeedPreview feed={feed} />
         </div>
       ))}
     </div>

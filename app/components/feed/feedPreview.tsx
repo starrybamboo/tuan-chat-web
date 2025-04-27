@@ -1,7 +1,7 @@
 import type { Feed } from "../../../api";
 import UserAvatarComponent from "@/components/common/userAvatar";
 
-export default function FeedPost({ feed }: { feed: Feed }) {
+export default function FeedPreview({ feed }: { feed: Feed }) {
   return (
     <div className="card bg-base-100 border border-base-300 shadow-lg mb-4 hover:shadow-xl transition-shadow w-full">
       <div className="card-body p-4 md:p-6">

@@ -36,10 +36,10 @@ export default function FeedDetail({ feedId }: { feedId: number }) {
   }
 
   return (
-    <div className="relative h-screen bg-base-200 overflow-hidden">
+    <div className="relative h-screen bg-base-200/50 overflow-hidden">
       <div className="h-full w-full flex flex-col">
         {/* 内容展示区 */}
-        <div className="flex-1 flex justify-center items-center bg-base-300 relative">
+        <div className="flex-1 flex justify-center items-center relative">
           <div className="text-center">
             {
               messageResponse && <ChatBubble chatMessageResponse={messageResponse} useChatBubbleStyle={false}></ChatBubble>
@@ -104,9 +104,9 @@ export default function FeedDetail({ feedId }: { feedId: number }) {
 
       {/* 底部评论区 - 弹出式 */}
       {showComments && (
-        <div className="absolute inset-0 bg-opacity-50 z-10">
+        <div className="absolute inset-0  z-10">
           <div
-            className="absolute bottom-0 left-0 right-0 bg-base-100/80 rounded-t-3xl p-4 max-h-[70vh] flex flex-col"
+            className="absolute bottom-0 left-0 right-0 bg-base-100 rounded-t-3xl p-4 max-h-[70vh] flex flex-col"
           >
             {/* 评论区标题和关闭按钮 */}
             <div className="flex justify-between items-center mb-4">
