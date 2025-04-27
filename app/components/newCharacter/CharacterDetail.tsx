@@ -125,7 +125,7 @@ export default function CharacterDetail({
                   </button>
                 )
               : (
-                  <button type="button" onClick={onEdit} className="btn btn-ghost">
+                  <button type="button" onClick={onEdit} className="btn btn-accent">
                     编辑
                   </button>
                 )}
