@@ -6,7 +6,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import {useQuery, useMutation, QueryClient, useQueryClient, useQueries} from '@tanstack/react-query';
+import {useQuery, useMutation, QueryClient, useQueryClient, useQueries, useInfiniteQuery} from '@tanstack/react-query';
 import { tuanchat } from './instance';
 
 import type { ChatMessagePageRequest } from './models/ChatMessagePageRequest';
@@ -24,27 +24,31 @@ import type {AbilitySetRequest} from "./models/AbilitySetRequest";
 import type {AbilityUpdateRequest} from "./models/AbilityUpdateRequest";
 import type { UseQueryResult } from "@tanstack/react-query";
 
-import type {
-    AbilityFieldUpdateRequest,
-    ApiResultListRoleResponse,
-    ApiResultRoleAbility,
-    ApiResultUserInfoResponse,
-    Message,
-    RoleResponse,
-    SpaceOwnerTransferRequest,
-    FeedRequest,
-    Space,
-    SpaceAddRequest,
-    SpaceMemberAddRequest,
-    SpaceMemberDeleteRequest,
-    UserInfoResponse,
-    RoomUpdateRequest,
-    PlayerGrantRequest,
-    PlayerRevokeRequest,
-    RoomRoleAddRequest,
-    RoomRoleDeleteRequest,
-    SpaceRoleAddRequest,
-    RoomMemberAddRequest, RoomMemberDeleteRequest, SpaceUpdateRequest
+import {
+    type AbilityFieldUpdateRequest,
+    type ApiResultListRoleResponse,
+    type ApiResultRoleAbility,
+    type ApiResultUserInfoResponse,
+    type Message,
+    type RoleResponse,
+    type SpaceOwnerTransferRequest,
+    type FeedRequest,
+    type Space,
+    type SpaceAddRequest,
+    type SpaceMemberAddRequest,
+    type SpaceMemberDeleteRequest,
+    type UserInfoResponse,
+    type RoomUpdateRequest,
+    type PlayerGrantRequest,
+    type PlayerRevokeRequest,
+    type RoomRoleAddRequest,
+    type RoomRoleDeleteRequest,
+    type SpaceRoleAddRequest,
+    type RoomMemberAddRequest,
+    type RoomMemberDeleteRequest,
+    type SpaceUpdateRequest,
+    type LikeRecordRequest,
+    LikeRecordControllerService, type CommentPageRequest
 } from "api";
 
 // ==================== 角色管理 ====================
@@ -995,6 +999,60 @@ export function useGetFeedByIdQuery(feedId: number){
         },
         staleTime: 300 * 1000
     })
+}
+
+/**
+ * 获取单条message
+ */
+export function useGetMessageByIdQuery(messageId: number){
+    return useQuery({
+        queryKey: ["getMessageById", messageId],
+        queryFn: async () => {
+            const res = await tuanchat.chatController.getMessageById(messageId);
+            return res.data;
+        },
+        staleTime: 300 * 1000,
+        enabled: messageId > 0
+    })
+}
+
+// ================================================comment======================================================================
+/**
+ * 根据id获取评论
+ */
+export function useGetCommentByIdQuery(commentId: number){
+    return useQuery({
+        queryKey: ["getComment", commentId],
+        queryFn: async () => {
+            const res = await tuanchat.commentController.getComment(commentId);
+            return res.data;
+        },
+        staleTime: 300 * 1000,
+        enabled: commentId > 0
+    })
+}
+
+/**
+ * comment分页查询
+ */
+export function useGetCommentPageInfiniteQuery(targetInfo: LikeRecordRequest, pageSize: number = 10, childLimit:number = 5, maxLevel:number = 2) {
+    return useInfiniteQuery({
+        queryKey: ["getMsgPage", targetInfo],
+        queryFn: async ({ pageParam }) => {
+            return tuanchat.commentController.pageComments(pageParam);
+        },
+        getNextPageParam: (lastPage,allPages) => {
+            if (lastPage.data === undefined || lastPage.data.length === 0) {
+                return undefined;
+            }
+            else {
+                const params: CommentPageRequest = { ...targetInfo, pageSize, childLimit,maxLevel, pageNo: allPages.length + 1};
+                return params;
+            }
+        },
+        initialPageParam: { ...targetInfo, pageSize, childLimit,maxLevel, pageNo:1} as CommentPageRequest,
+        refetchOnWindowFocus: false,
+    });
 }
 
 

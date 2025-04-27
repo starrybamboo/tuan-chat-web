@@ -11,7 +11,10 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetRoleQuery, useUpdateMessageMutation } from "api/queryHooks";
 import React, { use, useMemo, useState } from "react";
 
-export function ChatBubble({ chatMessageResponse }: { chatMessageResponse: ChatMessageResponse }) {
+export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
+  chatMessageResponse: ChatMessageResponse;
+  useChatBubbleStyle?: boolean;
+}) {
   const message = chatMessageResponse.message;
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId);
 
@@ -24,7 +27,7 @@ export function ChatBubble({ chatMessageResponse }: { chatMessageResponse: ChatM
   const userId = useGlobalContext().userId;
 
   const roomContext = use(RoomContext);
-  const useChatBubbleStyle = roomContext.useChatBubbleStyle;
+  useChatBubbleStyle = useChatBubbleStyle || roomContext.useChatBubbleStyle;
 
   function handleExpressionChange(avatarId: number) {
     const newMessage: Message = {
