@@ -26,7 +26,7 @@ export default function CharacterMain() {
   const { mutate: deleteRole } = useMutation({
     mutationKey: ["deleteRole"],
     mutationFn: async (roleId: number[]) => {
-      const res = await tuanchat.roleController.deleteRole(roleId);
+      const res = await tuanchat.roleController.deleteRole2(roleId);
       if (res.success) {
         console.warn("角色删除成功");
         return res;
