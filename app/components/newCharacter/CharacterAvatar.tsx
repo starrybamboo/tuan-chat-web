@@ -20,7 +20,6 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
 
   // head组件的迁移
   const [previewSrc, setPreviewSrc] = useState("");
-  const [previewText, setPreviewText] = useState(""); // 新增预览文字状态
 
   const [roleAvatars, setRoleAvatars] = useState<RoleAvatar[]>([]);
   const [currentAvatarIndex, setCurrentAvatarIndex] = useState<number>(0);
@@ -191,6 +190,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
     setAvatarToDeleteIndex(index);
     setIsDeleteModalOpen(true);
   };
+
   const confirmDeleteAvatar = () => {
     if (avatarToDeleteIndex !== null && avatarToDeleteIndex >= 0 && avatarToDeleteIndex < roleAvatars.length) {
       setRoleAvatars(prevRoleAvatars =>
@@ -218,7 +218,6 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
   const handleAvatarClick = (avatarUrl: string, index: number) => {
     const targetAvatar = roleAvatars[index];
     setPreviewSrc(targetAvatar.spriteUrl || avatarUrl);
-    setPreviewText(targetAvatar.avatarTitle || ""); // 同步更新预览文字
     setCurrentAvatarIndex(index);
     setCopperedUrl(roleAvatars[index]?.avatarUrl || "");
     setAvatarId(roleAvatars[index]?.avatarId || 0);
@@ -285,6 +284,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
                   上传新头像
                 </button>
               </ImgUploaderWithCopper>
+
               <div className="w-full relative mt-5 flex gap-4">
                 {" "}
                 {/* 选择和更新图像 */}
@@ -331,7 +331,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
                           onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
                         >
                           {/* 头像卡片容器 */}
-                          <div className="relative w-full h-full room">
+                          <div className="relative w-full h-full group">
                             <img
                               src={item.avatarUrl}
                               alt="头像"
@@ -339,7 +339,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
                             />
                             {/* 删除按钮  */}
                             <button
-                              className="absolute -top-2 -right-2 w-7 h-7 bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center opacity-0 room-hover:opacity-100 transition-all duration-300 hover:bg-gray-800"
+                              className="absolute -top-2 -right-2 w-7 h-7 bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteAvatar(index);
@@ -372,20 +372,6 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
                     />
                   </div>
 
-                  {/* 描述区域 */}
-                  <div className="pt-6 p-3">
-                    {previewText
-                      ? (
-                          <pre className="whitespace-pre-wrap text-center break-words font-sans text-sm leading-relaxed">
-                            {previewText}
-                          </pre>
-                        )
-                      : (
-                          <div className="h-full flex items-center justify-center text-gray-400 text-sm">
-                            点击左侧头像查看描述
-                          </div>
-                        )}
-                  </div>
                   <button
                     type="submit"
                     onClick={() => {
