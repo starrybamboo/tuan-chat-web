@@ -238,17 +238,17 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
       <div className="flex flex-col items-center gap-4">
         {isEditing
           ? (
-              <div className="avatar cursor-pointer room" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
+              <div className="avatar cursor-pointer group" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
                 <div className="ring-primary ring-offset-base-100 w-48 ring ring-offset-2 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-black/0 room-hover:bg-black/30 transition-all flex items-center justify-center z-10">
-                    <span className="text-white opacity-0 room-hover:opacity-100 transition-opacity">
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center z-10">
+                    <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity">
                       点击更换头像
                     </span>
                   </div>
                   <img
                     src={copperedUrl || role.avatar}
                     alt="Character Avatar"
-                    className="object-cover transform room-hover:scale-110 transition-transform duration-300"
+                    className="object-cover transform group-hover:scale-110 transition-transform duration-300"
                   />
                 </div>
               </div>
