@@ -1037,7 +1037,7 @@ export function useGetCommentByIdQuery(commentId: number){
  */
 export function useGetCommentPageInfiniteQuery(targetInfo: LikeRecordRequest, pageSize: number = 10, childLimit:number = 5, maxLevel:number = 2) {
     return useInfiniteQuery({
-        queryKey: ["getMsgPage", targetInfo],
+        queryKey: ["pageComments", targetInfo],
         queryFn: async ({ pageParam }) => {
             return tuanchat.commentController.pageComments(pageParam);
         },
