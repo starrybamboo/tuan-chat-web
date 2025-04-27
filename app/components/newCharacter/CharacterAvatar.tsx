@@ -265,6 +265,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
               </div>
             )}
       </div>
+
       <PopWindow isOpen={changeAvatarConfirmOpen} onClose={handleCancelChangeAvatar}>
         <div className="h-220 p-2 w-400 block">
           <div className="w-full relative mt-5">
