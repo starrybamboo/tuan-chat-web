@@ -16,7 +16,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
   // 传入onchange,方便同步到之前的组件中
   const [avatarId, setAvatarId] = useState<number>(role.avatarId);
   // const [downloadUrl, setDownloadUrl] = useState<string>("");
-  const [copperedUrl, setCopperedUrl] = useState<string>(""); // 修正变量名
+  const [copperedUrl, setCopperedUrl] = useState<string>(role.avatar || ""); // 修正变量名
 
   // head组件的迁移
   const [previewSrc, setPreviewSrc] = useState("");
@@ -30,73 +30,6 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [avatarToDeleteIndex, setAvatarToDeleteIndex] = useState<number | null>(null);
 
-  // async function createAvatar() {
-  //   try {
-  //     const res = await tuanchat.avatarController.setRoleAvatar({ roleId: role.id });
-  //     if (res.success && res.data)
-  //       await setAvatarId(res.data);
-  //     return res.data;
-  //   }
-  //   catch (error: any) {
-  //     const errorMessage
-  //       = error.body?.errMsg
-  //         || error.message
-  //         || "创建头像失败";
-  //     throw new Error(errorMessage);
-  //   }
-  // }
-
-  // // 传入本文件中的avatarId,roleId,以便不修改imgUploaderWithCopper
-  // async function updateAvatar({
-  //   avatarUrl,
-  //   spriteUrl,
-  // }: {
-  //   avatarUrl: string;
-  //   spriteUrl: string;
-  // }) {
-  //   try {
-  //     const res = await tuanchat.avatarController.updateRoleAvatar({
-  //       roleId: role.id,
-  //       avatarId: avatarId || 0,
-  //       avatarUrl,
-  //       spriteUrl,
-  //     });
-
-  //     return res.data;
-  //   }
-  //   catch (error: any) {
-  //     const errorMessage
-  //       = error.body?.errMsg
-  //         || error.message
-  //         || "头像更新失败";
-  //     throw new Error(errorMessage);
-  //   }
-  // }
-
-  // 创建新的头像
-  // const { mutate: createAvatarMutate } = useMutation({
-  //   mutationKey: ["uploadAvatar"],
-  //   mutationFn: createAvatar,
-  //   onError: (error) => {
-  //     console.error("创建头像失败:", error);
-  //   },
-  // });
-
-  // const { mutate: updateAvatarMutate } = useMutation({
-  //   mutationKey: ["updateAvatar"],
-  //   mutationFn: updateAvatar,
-  //   onSuccess: () => {
-  //     onchange(copperedUrl, avatarId);
-  //     queryClient.invalidateQueries({
-  //       queryKey: ["roleAvatar", role.id],
-  //       exact: true, // 确保精确匹配查询键
-  //     });
-  //   },
-  //   onError: (error) => {
-  //     console.error("更新头像失败:", error);
-  //   },
-  // });
-
   // 获取角色所有老头像
   useQuery({
     queryKey: ["roleAvatar", role.id],
@@ -105,6 +38,8 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
       if (res.success && Array.isArray(res.data)) {
         setRoleAvatars(res.data);
         setCurrentAvatarIndex(res.data?.length > 0 ? 0 : -1);
+        setCopperedUrl(res.data.find(ele => ele.avatarId === avatarId)?.avatarUrl || "");
+        setPreviewSrc(res.data.find(ele => ele.avatarId === avatarId)?.spriteUrl || "");
       }
       return null;
     },
@@ -371,13 +306,12 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
                       className="w-full h-full max-h-[400px] object-contain p-2"
                     />
                   </div>
-
                   <button
                     type="submit"
                     onClick={() => {
                       setChangeAvatarConfirmOpen(false);
-                      onchange(copperedUrl, avatarId);
-                      setCopperedUrl("");
+                      if (copperedUrl !== "")
+                        onchange(copperedUrl, avatarId);
                     }}
                     className="btn btn-primary"
                   >
