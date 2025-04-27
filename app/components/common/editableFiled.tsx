@@ -20,7 +20,11 @@ export function EditableField({ content, handleContentUpdate, className, canEdit
           className={`${className} border-none bg-transparent textarea w-full`}
           value={editContent}
           onChange={e => setEditContent(e.target.value)}
-          onKeyPress={e => e.key === "Enter" && handleContentUpdate(editContent)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey) {
+              handleContentUpdate(editContent);
+            }
+          }}
           onBlur={() => {
             handleContentUpdate(editContent);
             setIsEditing(false);
