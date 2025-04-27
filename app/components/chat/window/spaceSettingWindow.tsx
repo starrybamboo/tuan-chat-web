@@ -2,6 +2,7 @@ import { SpaceContext } from "@/components/chat/spaceContext";
 import { EditableField } from "@/components/common/EditableFiled";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { use } from "react";
+import { useNavigate } from "react-router";
 import {
   useDissolveSpaceMutation,
   useGetSpaceInfoQuery,
@@ -9,12 +10,13 @@ import {
 } from "../../../../api/queryHooks";
 
 function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
   const spaceContext = use(SpaceContext);
   // 获取群组数据
   const spaceId = Number(spaceContext.spaceId);
   const getSpaceInfoQuery = useGetSpaceInfoQuery(spaceId ?? -1);
   const space = getSpaceInfoQuery.data?.data;
-  // 解散space
+  // 解散空间
   const dissolveSpaceMutation = useDissolveSpaceMutation();
   const updateSpaceMutation = useUpdateSpaceMutation();
 
@@ -64,10 +66,11 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               onClick={() => dissolveSpaceMutation.mutate(spaceId, {
                 onSuccess: () => {
                   onClose();
+                  navigate("/chat");
                 },
               })}
             >
-              解散房间
+              解散空间
             </button>
           </div>
         </div>
