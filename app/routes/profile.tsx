@@ -10,7 +10,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Profile() {
   return (
-    <div className="h-screen">
+    <div className="h-screen bg-base-200">
       <ProfilePage></ProfilePage>
     </div>
   );

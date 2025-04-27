@@ -59,10 +59,8 @@ export default function useCommandExecutor(roleId: number) {
    */
   function execute(command: string): string {
     const [cmdPart, ...args] = parseCommand(command);
-    const normalizedCmd = cmdPart.toLowerCase();
-
     try {
-      switch (normalizedCmd) {
+      switch (cmdPart) {
         case "r": return handleRoll(args);
         case "set": return handleSet(args);
         case "st": return handleSt(args);
@@ -71,7 +69,7 @@ export default function useCommandExecutor(roleId: number) {
         case "en": return handleEn(args);
         case "ti":
         case "li": return "疯狂症状功能暂未实现";
-        default: return "未知命令";
+        default: return `未知命令 ${cmdPart}`;
       }
     }
     catch (e) {
@@ -84,14 +82,13 @@ export default function useCommandExecutor(roleId: number) {
    * @const
    */
   function parseCommand(input: string): [string, ...string[]] {
-    const trimmed = input.trim();
-    if (!(trimmed.startsWith(".") || trimmed.startsWith("。"))) {
-      throw new Error("命令需要以.或。开头");
-    }
-    // 暂时把后边的所有指令都看成一个整体并去除空格
-    const [cmdPart, ...args] = trimmed.slice(1).split(/\s+/) as [string, ...string[]];
+    const trimmed = input.trim().slice(1);
+    // 匹配所有的英文字符，取第一个为命令
+    const cmdMatch = trimmed.match(/^([A-Z]+)/i);
+    const cmdPart = cmdMatch?.[0] ?? "";
+    const args = trimmed.slice(cmdPart.length).trim().split(/\s+/);
     const wholeArg = args.join("");
-    return [cmdPart, wholeArg];
+    return [cmdPart.toLowerCase(), wholeArg];
   }
 
   function parseDices(input: string): Array<{ sign: number; x: number; y: number }> {
