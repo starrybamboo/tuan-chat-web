@@ -1,6 +1,7 @@
 /**
  * AI根据Service生成的hook, 使用的时候请好好检查.
  * 请不要在function外定义一个queryClient, React 上下文作用域外使用是不行的
+ * 以后这里只放通用的hooks
  */
 /* generated using openapi-typescript-codegen -- do no edit */
 /* istanbul ignore file */
@@ -980,27 +981,6 @@ export function useDeleteRole() {
   });
 }
 
-/**
- * feed
- */
-export function usePublishFeedMutation(){
-    return useMutation({
-        mutationKey: ["publishFeed"],
-        mutationFn: async (feed: FeedRequest) => {
-            const res = await tuanchat.feedController.publishFeed(feed);
-        }
-    })
-}
-export function useGetFeedByIdQuery(feedId: number){
-    return useQuery({
-        queryKey: ["getFeedById", feedId],
-        queryFn: async () => {
-            const res = await tuanchat.feedController.getFeedById(feedId);
-            return res.data;
-        },
-        staleTime: 300 * 1000
-    })
-}
 
 /**
  * 获取单条message
@@ -1018,58 +998,7 @@ export function useGetMessageByIdQuery(messageId: number){
 }
 
 // ================================================comment======================================================================
-/**
- * 根据id获取评论
- */
-export function useGetCommentByIdQuery(commentId: number){
-    return useQuery({
-        queryKey: ["getComment", commentId],
-        queryFn: async () => {
-            const res = await tuanchat.commentController.getComment(commentId);
-            return res.data;
-        },
-        staleTime: 300 * 1000,
-        enabled: commentId > 0
-    })
-}
 
-/**
- * comment分页查询
- */
-export function useGetCommentPageInfiniteQuery(targetInfo: LikeRecordRequest, pageSize: number = 10, childLimit:number = 5, maxLevel:number = 99) {
-    return useInfiniteQuery({
-        queryKey: ["pageComments", targetInfo],
-        queryFn: async ({ pageParam }) => {
-            return tuanchat.commentController.pageComments(pageParam);
-        },
-        getNextPageParam: (lastPage,allPages) => {
-            if (lastPage.data === undefined || lastPage.data.length === 0) {
-                return undefined;
-            }
-            else {
-                const params: CommentPageRequest = { ...targetInfo, pageSize, childLimit,maxLevel, pageNo: allPages.length + 1};
-                return params;
-            }
-        },
-        initialPageParam: { ...targetInfo, pageSize, childLimit,maxLevel, pageNo:1} as CommentPageRequest,
-        refetchOnWindowFocus: false,
-    });
-}
-
-/**
- * 发表comment
- */
-export function useAddCommentMutation(){
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationKey: ["addComment"],
-        mutationFn: (req: CommentAddRequest)=> tuanchat.commentController.addComment(req),
-        onSuccess:(_,variables)=>{
-            //TODO 这么做是有问题的
-            queryClient.invalidateQueries({ queryKey: ["pageComments", {targetId: variables.targetId, targetType: variables.targetType}]});
-        }
-    })
-}
 
 
 

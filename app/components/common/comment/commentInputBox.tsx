@@ -1,6 +1,6 @@
 import { CommentContext } from "@/components/common/comment/commentContext";
 import { use, useState } from "react";
-import { useAddCommentMutation } from "../../../../api/queryHooks";
+import { useAddCommentMutation } from "../../../../api/hooks/commentQueryHooks";
 
 export default function CommentInputBox({ className, onSubmitFinish, rootCommentId = 0, parentCommentId = 0 }: {
   className?: string;

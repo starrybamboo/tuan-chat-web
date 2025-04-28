@@ -13,8 +13,9 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
 import { tuanchat } from "../../../api/instance";
-import { useDeleteMessageMutation, useMoveMessageMutation, usePublishFeedMutation } from "../../../api/queryHooks";
+import { useDeleteMessageMutation, useMoveMessageMutation } from "../../../api/queryHooks";
 
 export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
 { useChatBubbleStyle: boolean; chatFrameRef: React.RefObject<HTMLDivElement> }) {

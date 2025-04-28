@@ -4,7 +4,7 @@ import CommentComponent from "@/components/common/comment/commentComponent";
 import { CommentContext } from "@/components/common/comment/commentContext";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
 import { useMemo } from "react";
-import { useGetCommentPageInfiniteQuery } from "../../../../api/queryHooks";
+import { useGetCommentPageInfiniteQuery } from "../../../../api/hooks/commentQueryHooks";
 
 export default function CommentPanel({ targetInfo, className }: { targetInfo: LikeRecordRequest; className?: string }) {
   const getCommentPageInfiniteQuery = useGetCommentPageInfiniteQuery(targetInfo);

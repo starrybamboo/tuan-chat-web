@@ -4,8 +4,8 @@ import CommentPreview from "@/components/common/comment/commentPreview";
 import CommentToggle from "@/components/common/comment/CommentToggle";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
-import { useGetCommentByIdQuery } from "api/queryHooks";
 import React, { useMemo, useState } from "react";
+import { useGetCommentByIdQuery } from "../../../../api/hooks/commentQueryHooks";
 
 export default function CommentComponent({ comment, level = 1 }: { comment: number | CommentVO; level?: number }) {
   const MAX_LEVEL = 4;
@@ -78,7 +78,9 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
       </div>
       <div className="flex flex-col lg:flex-row">
         <div className="divider lg:divider-horizontal divider-start hover:divider-neutral hover:font-bold" onClick={() => setIsFolded(!isFolded)}>
-          <CommentToggle isFolded={isFolded} />
+          <div className="pt-3">
+            <CommentToggle isFolded={isFolded} />
+          </div>
         </div>
         <div>
           {/* Comment Content */}
