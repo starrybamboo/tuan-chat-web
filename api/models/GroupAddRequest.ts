@@ -5,11 +5,13 @@
 /**
  * 数据列表
  */
-export type RuleResponse = {
-    ruleId?: number;
-    ruleName?: string;
-    ruleDescription?: string;
-    actTemplate?: Record<string, string>;
-    abilityDefault?: Record<string, Record<string, any>>;
+export type GroupAddRequest = {
+    /**
+     * 邀请的uid
+     */
+    userIdList: Array<number>;
+    /**
+     * 数据列表
+     */
 };
 

@@ -810,7 +810,7 @@ export function useRuleListQuery(
             // 确保返回的数据是数组
             const list = res.data.list ?? [];
             
-            return list.map(rule => ({
+            return list.map((rule: RuleResponse) => ({
                 id: rule.ruleId ?? 0,
                 name: rule.ruleName ?? '',
                 description: rule.ruleDescription ?? '',
