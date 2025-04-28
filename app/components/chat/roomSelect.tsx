@@ -5,14 +5,16 @@ import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderW
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
-  useCreateRoomMutation,
-  useCreateSpaceMutation,
   useGetUserInfoQuery,
-  useGetUserRoomsQuery,
-  useGetUserSpacesQuery,
 } from "api/queryHooks";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import {
+  useCreateRoomMutation,
+  useCreateSpaceMutation,
+  useGetUserRoomsQuery,
+  useGetUserSpacesQuery,
+} from "../../../api/hooks/chatQueryHooks";
 
 export default function RoomSelect() {
   const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();

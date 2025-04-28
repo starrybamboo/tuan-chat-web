@@ -33,6 +33,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
       act: {
         default: "default",
       },
+      ability: {},
     });
   }
   // 统一处理字段更新

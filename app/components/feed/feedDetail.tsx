@@ -4,8 +4,8 @@ import CommentPanel from "@/components/common/comment/commentPanel";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useState } from "react";
+import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
 import { useGetFeedByIdQuery } from "../../../api/hooks/FeedQueryHooks";
-import { useGetMessageByIdQuery } from "../../../api/queryHooks";
 
 export default function FeedDetail({ feedId, handleWheel }: { feedId: number; handleWheel: (e: WheelEvent<HTMLDivElement>) => void }) {
   const feedQuery = useGetFeedByIdQuery(feedId);

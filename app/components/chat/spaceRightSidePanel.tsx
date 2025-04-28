@@ -8,9 +8,11 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import React, { use, useState } from "react";
 import {
   useAddSpaceMemberMutation,
-  useAddSpaceRoleMutation,
   useGetSpaceMembersQuery,
   useGetSpaceRolesQuery,
+} from "../../../api/hooks/chatQueryHooks";
+import {
+  useAddSpaceRoleMutation,
 } from "../../../api/queryHooks";
 
 export default function SpaceRightSidePanel() {
