@@ -35,16 +35,18 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
     queryKey: ["roleAvatar", role.id],
     queryFn: async () => {
       const res = await tuanchat.avatarController.getRoleAvatars(role.id);
+      setAvatarId(role.avatarId);
       if (res.success && Array.isArray(res.data)) {
         setRoleAvatars(res.data);
         setCurrentAvatarIndex(res.data?.length > 0 ? 0 : -1);
-        setCopperedUrl(res.data.find(ele => ele.avatarId === avatarId)?.avatarUrl || "");
-        setPreviewSrc(res.data.find(ele => ele.avatarId === avatarId)?.spriteUrl || "");
+        if (role.avatarId !== 0) {
+          setCopperedUrl(res.data.find(ele => ele.avatarId === role.avatarId)?.avatarUrl || "");
+          setPreviewSrc(res.data.find(ele => ele.avatarId === role.avatarId)?.spriteUrl || "");
+        }
       }
       return null;
     },
   });
-
   // 上传头像到服务器
   const { mutate } = useMutation({
     mutationKey: ["uploadAvatar"],
@@ -81,6 +83,9 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
 
           console.warn("头像上传成功");
           queryClient.invalidateQueries({ queryKey: ["roleAvatar", role.id] });
+          setCopperedUrl(avatarUrl);
+          setPreviewSrc(spriteUrl);
+          setAvatarId(avatarId);
           return uploadRes;
         }
         else {
@@ -92,9 +97,6 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
         console.error("头像上传请求失败", error);
         throw error; // 将错误抛给 onError 处理
       }
-    },
-    onSuccess: () => {
-      onchange(copperedUrl, avatarId);
     },
     onError: (error) => {
       console.error("Mutation failed:", error.message || error);
@@ -119,6 +121,15 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
       }
     },
   });
+
+  // 点击头像处理 (新增预览文字更新)
+  const handleAvatarClick = (avatarUrl: string, index: number) => {
+    const targetAvatar = roleAvatars[index];
+    setPreviewSrc(targetAvatar.spriteUrl || avatarUrl);
+    setCurrentAvatarIndex(index);
+    setCopperedUrl(roleAvatars[index]?.avatarUrl || "");
+    setAvatarId(roleAvatars[index]?.avatarId || 0);
+  };
 
   // 删除操作处理
   const handleDeleteAvatar = (index: number) => {
@@ -147,15 +158,6 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
   };
   const handleCancelChangeAvatar = () => {
     setChangeAvatarConfirmOpen(false);
-  };
-
-  // 点击头像处理 (新增预览文字更新)
-  const handleAvatarClick = (avatarUrl: string, index: number) => {
-    const targetAvatar = roleAvatars[index];
-    setPreviewSrc(targetAvatar.spriteUrl || avatarUrl);
-    setCurrentAvatarIndex(index);
-    setCopperedUrl(roleAvatars[index]?.avatarUrl || "");
-    setAvatarId(roleAvatars[index]?.avatarId || 0);
   };
 
   // 辅助函数生成唯一文件名
