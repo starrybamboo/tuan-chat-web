@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 返回对象
+ * 数据列表
  */
 export type RoleResponse = {
     /**
@@ -22,5 +22,13 @@ export type RoleResponse = {
      * 角色头像
      */
     avatarId?: number;
+    /**
+     * tts时使用的模型
+     */
+    modelName?: string;
+    /**
+     * tts时使用的角色名
+     */
+    speakerName?: string;
 };
 
