@@ -19,7 +19,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
   const [copperedUrl, setCopperedUrl] = useState<string>(role.avatar || "/favicon.ico"); // 修正变量名
 
   // head组件的迁移
-  const [previewSrc, setPreviewSrc] = useState("");
+  const [previewSrc, setPreviewSrc] = useState<string | null>("");
   const [roleAvatars, setRoleAvatars] = useState<RoleAvatar[]>([]);
   // 弹窗的打开和关闭
   const [changeAvatarConfirmOpen, setChangeAvatarConfirmOpen] = useState<boolean>(false);
@@ -31,14 +31,13 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
   useQuery({
     queryKey: ["roleAvatar", role.id],
     queryFn: async () => {
-      setRoleAvatars([]);
       const res = await tuanchat.avatarController.getRoleAvatars(role.id);
       setAvatarId(role.avatarId);
+      setRoleAvatars(res.data || []);
       if (res.success && Array.isArray(res.data)) {
         if (role.avatarId !== 0) {
-          setRoleAvatars(res.data);
           setCopperedUrl(res.data.find(ele => ele.avatarId === role.avatarId)?.avatarUrl || "/favicon.ico");
-          setPreviewSrc(res.data.find(ele => ele.avatarId === role.avatarId)?.spriteUrl || "");
+          setPreviewSrc(res.data.find(ele => ele.avatarId === role.avatarId)?.spriteUrl || null);
         }
         else {
           setCopperedUrl("/favicon.ico");
@@ -83,7 +82,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
           }
 
           console.warn("头像上传成功");
-          queryClient.invalidateQueries({ queryKey: ["roleAvatar", role.id] });
+          await queryClient.invalidateQueries({ queryKey: ["roleAvatar", role.id] });
           setCopperedUrl(avatarUrl);
           setPreviewSrc(spriteUrl);
           setAvatarId(avatarId);
@@ -215,7 +214,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
                   {/* 图片预览容器 */}
                   <div className="max-h-[700px] min-h-[300px] bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
                     <img
-                      src={previewSrc}
+                      src={previewSrc || "/favicon.ico"}
                       alt="预览"
                       className="max-w-full max-h-[700px] object-contain p-2"
                     />
