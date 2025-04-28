@@ -16,7 +16,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
   // 传入onchange,方便同步到之前的组件中
   const [avatarId, setAvatarId] = useState<number>(role.avatarId);
   // const [downloadUrl, setDownloadUrl] = useState<string>("");
-  const [copperedUrl, setCopperedUrl] = useState<string>(role.avatar || ""); // 修正变量名
+  const [copperedUrl, setCopperedUrl] = useState<string>(role.avatar || "/favicon.ico"); // 修正变量名
 
   // head组件的迁移
   const [previewSrc, setPreviewSrc] = useState("");
@@ -31,13 +31,18 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
   useQuery({
     queryKey: ["roleAvatar", role.id],
     queryFn: async () => {
+      setRoleAvatars([]);
       const res = await tuanchat.avatarController.getRoleAvatars(role.id);
       setAvatarId(role.avatarId);
       if (res.success && Array.isArray(res.data)) {
-        setRoleAvatars(res.data);
         if (role.avatarId !== 0) {
-          setCopperedUrl(res.data.find(ele => ele.avatarId === role.avatarId)?.avatarUrl || "");
+          setRoleAvatars(res.data);
+          setCopperedUrl(res.data.find(ele => ele.avatarId === role.avatarId)?.avatarUrl || "/favicon.ico");
           setPreviewSrc(res.data.find(ele => ele.avatarId === role.avatarId)?.spriteUrl || "");
+        }
+        else {
+          setCopperedUrl("/favicon.ico");
+          setPreviewSrc("");
         }
       }
       return null;
@@ -188,7 +193,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
               <div className="avatar">
                 <div className="ring-primary ring-offset-base-100 rounded-xl w-48 ring ring-offset-2">
                   <img
-                    src={role.avatar}
+                    src={role.avatar || "/favicon.ico"}
                     alt="Character Avatar"
                     className="object-cover"
                   />
