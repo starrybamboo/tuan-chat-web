@@ -1,13 +1,13 @@
 import { SpaceContext } from "@/components/chat/spaceContext";
-import { EditableField } from "@/components/common/EditableFiled";
+import { EditableField } from "@/components/common/editableFiled";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
-import { use } from "react";
-import { useNavigate } from "react-router";
 import {
   useDissolveSpaceMutation,
   useGetSpaceInfoQuery,
   useUpdateSpaceMutation,
-} from "../../../../api/queryHooks";
+} from "api/hooks/chatQueryHooks";
+import { use } from "react";
+import { useNavigate } from "react-router";
 
 function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();

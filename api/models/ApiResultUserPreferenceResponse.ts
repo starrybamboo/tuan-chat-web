@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { Rule } from './Rule';
+import type { UserPreferenceResponse } from './UserPreferenceResponse';
 /**
  * 基础返回体
  */
-export type ApiResultListRule = {
+export type ApiResultUserPreferenceResponse = {
     /**
      * 成功标识true or false
      */
@@ -19,9 +19,6 @@ export type ApiResultListRule = {
      * 错误消息
      */
     errMsg?: string;
-    /**
-     * 返回对象
-     */
-    data?: Array<Rule>;
+    data?: UserPreferenceResponse;
 };
 

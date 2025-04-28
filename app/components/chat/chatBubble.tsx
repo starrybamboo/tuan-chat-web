@@ -4,14 +4,18 @@ import ForwardMessage from "@/components/chat/forwardMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import BetterImg from "@/components/common/betterImg";
-import { EditableField } from "@/components/common/EditableFiled";
+import { EditableField } from "@/components/common/editableFiled";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { useGetRoleQuery, useUpdateMessageMutation } from "api/queryHooks";
+import { useGetRoleQuery } from "api/queryHooks";
 import React, { use, useMemo, useState } from "react";
+import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
 
-export function ChatBubble({ chatMessageResponse }: { chatMessageResponse: ChatMessageResponse }) {
+export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
+  chatMessageResponse: ChatMessageResponse;
+  useChatBubbleStyle?: boolean;
+}) {
   const message = chatMessageResponse.message;
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId);
 
@@ -24,7 +28,7 @@ export function ChatBubble({ chatMessageResponse }: { chatMessageResponse: ChatM
   const userId = useGlobalContext().userId;
 
   const roomContext = use(RoomContext);
-  const useChatBubbleStyle = roomContext.useChatBubbleStyle;
+  useChatBubbleStyle = useChatBubbleStyle || roomContext.useChatBubbleStyle;
 
   function handleExpressionChange(avatarId: number) {
     const newMessage: Message = {

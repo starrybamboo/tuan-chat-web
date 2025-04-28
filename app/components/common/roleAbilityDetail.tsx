@@ -5,7 +5,7 @@ import {
   useSetRoleAbilityMutation,
   useUpdateKeyFieldMutation,
   useUpdateRoleAbilityMutation,
-} from "../../../api/queryHooks";
+} from "../../../api/hooks/abilityQueryHooks";
 
 export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   const roleAbilityListQuery = useGetRoleAbilitiesQuery(roleId);
@@ -33,6 +33,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
       act: {
         default: "default",
       },
+      ability: {},
     });
   }
   // 统一处理字段更新

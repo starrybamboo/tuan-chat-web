@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { PageBaseRespRule } from './PageBaseRespRule';
+import type { ModuleRoleInfoResponse } from './ModuleRoleInfoResponse';
 /**
  * 基础返回体
  */
-export type ApiResultPageBaseRespRule = {
+export type ApiResultModuleRoleInfoResponse = {
     /**
      * 成功标识true or false
      */
@@ -19,6 +19,6 @@ export type ApiResultPageBaseRespRule = {
      * 错误消息
      */
     errMsg?: string;
-    data?: PageBaseRespRule;
+    data?: ModuleRoleInfoResponse;
 };
 
