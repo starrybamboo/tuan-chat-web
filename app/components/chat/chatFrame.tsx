@@ -234,6 +234,13 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     const messageElement = target.closest("[data-message-id]");
     setContextMenu({ x: e.clientX, y: e.clientY, messageId: Number(messageElement?.getAttribute("data-message-id")) });
   }
+
+  function handleBatchDelete() {
+    for (const messageId of selectedMessageIds) {
+      deleteMessageMutation.mutate(messageId);
+    }
+    updateSelectedMessageIds(new Set());
+  }
   // 关闭右键菜单
   function closeContextMenu() {
     setContextMenu(null);
@@ -279,6 +286,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       )
       );
     })), [handleDrop, historyMessages, isSelecting, messageRef, selectedMessageIds, useChatBubbleStyle]);
+
   return (
     <>
       {/* 这里是从下到上渲染的 */}
@@ -301,6 +309,13 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
                 type="button"
               >
                 转发
+              </button>
+              <button
+                className="btn btn-sm btn-error"
+                onClick={() => handleBatchDelete()}
+                type="button"
+              >
+                删除
               </button>
             </div>
           </div>
