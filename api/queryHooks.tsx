@@ -6,22 +6,17 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import {useQuery, useMutation, QueryClient, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useMutation, QueryClient, useQueryClient, useQueries} from '@tanstack/react-query';
 import { tuanchat } from './instance';
-import type { AddRoleRequest } from './models/AddRoleRequest';
-import type { AdminAddRequset } from './models/AdminAddRequset';
-import type { AdminRevokeRequest } from './models/AdminRevokeRequest';
+
 import type { ChatMessagePageRequest } from './models/ChatMessagePageRequest';
 import type { ChatMessageRequest } from './models/ChatMessageRequest';
-import type { DeleteRoleRequest } from './models/DeleteRoleRequest';
-import type { GroupAddRequest } from './models/GroupAddRequest';
-import type { MemberAddRequest } from './models/MemberAddRequest';
-import type { MemberDeleteRequest } from './models/MemberDeleteRequest';
+import type { RoomAddRequest } from './models/RoomAddRequest';
+
 import type { MoveMessageRequest } from './models/MoveMessageRequest';
 // import type { RoleAbilityTable } from './models/RoleAbilityTable';
 import type { RoleAvatar } from './models/RoleAvatar';
 import type { RoleAvatarCreateRequest } from './models/RoleAvatarCreateRequest';
-import type { SubRoomRequest } from './models/SubRoomRequest';
 import type { UserLoginRequest } from './models/UserLoginRequest';
 import type { UserRegisterRequest } from './models/UserRegisterRequest';
 import type { UserRole } from './models/UserRole';
@@ -37,9 +32,22 @@ import type {
     ApiResultRoleAbility,
     ApiResultUserInfoResponse,
     Message,
-    RoleResponse
+    RoleResponse,
+    SpaceOwnerTransferRequest,
+    FeedRequest,
+    Space,
+    SpaceAddRequest,
+    SpaceMemberAddRequest,
+    SpaceMemberDeleteRequest,
+    UserInfoResponse,
+    RoomUpdateRequest,
+    PlayerGrantRequest,
+    PlayerRevokeRequest,
+    RoomRoleAddRequest,
+    RoomRoleDeleteRequest,
+    SpaceRoleAddRequest,
+    RoomMemberAddRequest, RoomMemberDeleteRequest, SpaceUpdateRequest
 } from "api";
-
 
 // ==================== 角色管理 ====================
 /**
@@ -92,7 +100,7 @@ export function useCreateRoleMutation() {
 export function useDeleteRoleMutation(roleId: number) {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: () => tuanchat.roleController.deleteRole([roleId]),
+        mutationFn: () => tuanchat.roleController.deleteRole2([roleId]),
         mutationKey: ['deleteRole', roleId],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getRole', roleId] });
@@ -142,6 +150,20 @@ export function useGetUserInfoQuery(userId: number) {
     });
 }
 
+/**
+ * 修改用户信息
+ */
+export function useUpdateUserInfoMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: UserInfoResponse) => tuanchat.userController.updateUserInfo(req),
+        mutationKey: ['updateUserInfo'],
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['getUserInfo'] });
+        }
+    });
+}
+
 // ==================== 群组管理 ====================
 /**
  * 获取群成员列表
@@ -151,7 +173,7 @@ export function useGetMemberListQuery(roomId: number) {
 
     return useQuery({
         queryKey: ['getMemberList', roomId],
-        queryFn: () => tuanchat.groupMemberController.getMemberList(roomId),
+        queryFn: () => tuanchat.roomMemberController.getMemberList1(roomId),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -160,10 +182,10 @@ export function useGetMemberListQuery(roomId: number) {
  * 新增群成员
  */
 // api/queryHooks.ts
-export function useAddMemberMutation() {
+export function useAddRoomMemberMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: MemberAddRequest) => tuanchat.groupMemberController.addMember(req),
+        mutationFn: (req: RoomMemberAddRequest) => tuanchat.roomMemberController.addMember1(req),
         mutationKey: ['addMember'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
@@ -173,15 +195,14 @@ export function useAddMemberMutation() {
         },
     });
 }
-// queryClient.invalidateQueries({ queryKey: ["getMemberList", groupId] });
 
 /**
  * 删除群成员（批量）
  */
-export function useDeleteMemberMutation() {
+export function useDeleteRoomMemberMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: MemberDeleteRequest) => tuanchat.groupMemberController.deleteMember(req),
+        mutationFn: (req: RoomMemberDeleteRequest) => tuanchat.roomMemberController.deleteMember1(req),
         mutationKey: ['deleteMember'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({
@@ -192,47 +213,197 @@ export function useDeleteMemberMutation() {
 }
 
 /**
- * 获取群组信息
- * @param groupId 群组ID
+ * 更新群信息
  */
-export function useGetGroupInfoQuery(groupId: number) {
+export function useUpdateRoomMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: RoomUpdateRequest) => tuanchat.roomController.updateRoom(req),
+        mutationKey: ['updateRoom'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['getRoomInfo', variables.roomId] });
+            queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
+        }
+    })
+}
+
+/**
+ * 更新space信息
+ */
+export function useUpdateSpaceMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: SpaceUpdateRequest) => tuanchat.spaceController.updateSpace(req),
+        mutationKey: ['updateSpace'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['getSpaceInfo', variables.spaceId] });
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
+        }
+    })
+}
+
+/**
+ * 获取群组信息
+ * @param roomId 群组ID
+ */
+export function useGetRoomInfoQuery(roomId: number) {
     return useQuery({
-        queryKey: ['getGroupInfo', groupId],
-        queryFn: () => tuanchat.groupController.getGroupInfo(groupId),
+        queryKey: ['getRoomInfo', roomId],
+        queryFn: () => tuanchat.roomController.getRoomInfo(roomId),
         staleTime: 300000 // 5分钟缓存
     });
 }
 
 /**
- * 创建群组
+ * 获取Space信息
  */
-export function useCreateGroupMutation() {
+export function useGetSpaceInfoQuery(spaceId: number) {
+    return useQuery({
+        queryKey: ['getSpaceInfo', spaceId],
+        queryFn: () => tuanchat.spaceController.getSpaceInfo(spaceId),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
+/**
+ * 创建空间
+ */
+export function useCreateSpaceMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: GroupAddRequest) => tuanchat.groupController.createGroup(req),
-        mutationKey: ['createGroup'],
+        mutationFn: (req: SpaceAddRequest) => tuanchat.spaceController.createSpace(req),
+        mutationKey: ['createSpace'],
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['getUserGroups'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
         }
     });
 }
 
 /**
- * 创建子群
- * @param parentRoomId 父群ID（用于缓存刷新）
+ * 获取space成员
  */
-export function useCreateSubgroupMutation(parentRoomId: number) {
+export function useGetSpaceMembersQuery(spaceId: number) {
+    return useQuery({
+        queryKey: ['getMemberList', spaceId],
+        queryFn: () => tuanchat.spaceMemberController.getMemberList(spaceId),
+        staleTime: 300000, // 5分钟缓存
+        enabled: spaceId > 0
+    });
+}
+
+/**
+ * 新增空间成员
+ */
+export function useAddSpaceMemberMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: SubRoomRequest) => tuanchat.groupController.createSubgroup(req),
-        mutationKey: ['createSubgroup'],
-        onSuccess: (data) => {
-          queryClient.invalidateQueries({ queryKey: ['getGroupInfo', parentRoomId] });
-          queryClient.invalidateQueries({ queryKey: ['getUserGroups'] });
-          return data;
+        mutationFn: (req: SpaceMemberAddRequest) => tuanchat.spaceMemberController.addMember(req),
+        mutationKey: ['addMember'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey:  ["getMemberList", variables.spaceId],
+                exact: true
+            });
+        },
+    });
+}
+
+/**
+ * 删除空间成员
+ */
+export function useDeleteSpaceMemberMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: SpaceMemberDeleteRequest) => tuanchat.spaceMemberController.deleteMember(req),
+        mutationKey: ['deleteMember'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey:  ["getMemberList", variables.spaceId],
+                exact: true
+            });
+        },
+    });
+}
+
+/**
+ * 退出空间
+ */
+export function useExitSpaceMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: number) => tuanchat.spaceMemberController.exitSpace(req),
+        mutationKey: ['exitSpace'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey:  ["getMemberList", variables],
+                exact: true
+            });
+        },
+    });
+}
+
+/**
+ * 获取空间中的role
+ */
+export function useGetSpaceRolesQuery(spaceId: number) {
+    return useQuery({
+        queryKey: ['spaceRole', spaceId],
+        queryFn: () => tuanchat.spaceRoleController.spaceRole(spaceId),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
+
+/**
+ * 创建房间
+ * @param spaceId
+ */
+export function useCreateRoomMutation(spaceId: number) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: RoomAddRequest) => tuanchat.spaceController.createRoom(req),
+        mutationKey: ['createRoom'],
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['getUserRooms',spaceId] });
+        },
+        onError:(error) => {
+          queryClient.invalidateQueries({ queryKey: ['getUserRooms',spaceId] });
         }
     });
 }
+
+/**
+ * 解散群组
+ */
+export function useDissolveRoomMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn:(req: number) => tuanchat.roomController.dissolveRoom(req),
+        mutationKey: ['dissolveRoom'],
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
+        }
+    })
+}
+
+/**
+ * 解散空间
+ */
+export function useDissolveSpaceMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: number) => tuanchat.spaceController.dissolveSpace(req),
+        mutationKey: ['dissolveSpace'],
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
+        }
+    })
+}
+
+/**
+ *
+ */
 
 // ==================== 消息系统 ====================
 /**
@@ -287,6 +458,19 @@ export function useMoveMessageMutation() {
     });
 }
 
+/**
+ * 删除消息
+ */
+export function useDeleteMessageMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: number) => tuanchat.chatController.deleteMessage(req),
+        mutationKey: ['deleteMessage'],
+        onSuccess: () => {
+        }
+    });
+}
+
 // ==================== 权限管理 ====================
 /**
  * 设置用户为玩家
@@ -295,25 +479,38 @@ export function useMoveMessageMutation() {
 export function useSetPlayerMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: AdminAddRequset) => tuanchat.groupMemberController.setPlayer(req),
+        mutationFn: (req: PlayerGrantRequest) => tuanchat.spaceMemberController.grantPlayer(req),
         mutationKey: ['setPlayer'],
         onSuccess: (_,variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.roomId] });
+            queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.spaceId] });
         }
     });
 }
 
 /**
  * 撤销玩家身份
- * @param roomId 关联的群聊ID（用于缓存刷新）
  */
 export function useRevokePlayerMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: AdminRevokeRequest) => tuanchat.groupMemberController.revokePlayer(req),
+        mutationFn: (req: PlayerRevokeRequest) => tuanchat.spaceMemberController.revokePlayer(req),
         mutationKey: ['revokePlayer'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.roomId] });
+            queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.spaceId] });
+        }
+    });
+}
+
+/**
+ * 转让群主
+ */
+export function useTransferOwnerMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: SpaceOwnerTransferRequest) => tuanchat.spaceController.transferSpaceOwner(req),
+        mutationKey: ['transferRoomOwner'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['getMemberList', variables.spaceId] });
         }
     });
 }
@@ -394,10 +591,10 @@ export function useDeleteRoleAvatarMutation(roleId: number) {
  * 获取群聊角色列表
  * @param roomId 群聊ID
  */
-export function useGroupRoleQuery(roomId: number) {
+export function useRoomRoleQuery(roomId: number) {
     return useQuery({
-        queryKey: ['groupRole', roomId],
-        queryFn: () => tuanchat.groupRoleController.groupRole(roomId),
+        queryKey: ['roomRole', roomId],
+        queryFn: () => tuanchat.roomRoleController.roomRole(roomId),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -405,13 +602,13 @@ export function useGroupRoleQuery(roomId: number) {
 /**
  * 添加群组角色
  */
-export function useAddRoleMutation() {
+export function useAddRoomRoleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: AddRoleRequest) => tuanchat.groupRoleController.addRole(req),
-        mutationKey: ['addRole'],
+        mutationFn: (req: RoomRoleAddRequest) => tuanchat.roomRoleController.addRole1(req),
+        mutationKey: ['addRole1'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['groupRole', variables.roomId] });
+            queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
         }
     });
 }
@@ -422,10 +619,10 @@ export function useAddRoleMutation() {
 export function useDeleteRole1Mutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: DeleteRoleRequest) => tuanchat.groupRoleController.deleteRole1(req),
+        mutationFn: (req: RoomRoleDeleteRequest) => tuanchat.roomRoleController.deleteRole1(req),
         mutationKey: ['deleteRole1'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['groupRole', variables.roomId] });
+            queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
         }
     });
 }
@@ -442,16 +639,48 @@ export function useGetUserRolesQuery(userId: number) {
         staleTime: 600000 // 10分钟缓存
     });
 }
+// ==================== space角色管理 ====================
+export function useAddSpaceRoleMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: SpaceRoleAddRequest) => tuanchat.spaceRoleController.addRole(req),
+        mutationKey: ['addRole'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['getSpaceRoles', variables.spaceId] });
+        }
+    });
+}
 
-// ==================== 其他接口 ====================
+// ==================== 群组相关 ====================
 /**
- * 获取用户加入的所有群组
+ * 获取用户加入的所有space
  */
-export function useGetUserGroupsQuery() {
+export function useGetUserSpacesQuery() {
     return useQuery({
-        queryKey: ['getUserGroups'],
-        queryFn: () => tuanchat.groupController.getUserGroups(),
+        queryKey: ['getUserSpaces'],
+        queryFn: () => tuanchat.spaceController.getUserSpaces(),
         staleTime: 300000 // 5分钟缓存
+    });
+}
+/**
+ * 获取space下用户加入的所有群组
+ */
+export function useGetUserRoomsQuery(spaceId: number) {
+    return useQuery({
+        queryKey: ['getUserRooms',spaceId],
+        queryFn: () => tuanchat.roomController.getUserRooms(spaceId),
+        staleTime: 300000 ,// 5分钟缓存
+        enabled: spaceId!=-1
+    });
+}
+export function useGetUserRoomsQueries(spaces: Space[]){
+    return useQueries({
+        queries: spaces.map(space => ({
+            queryKey: ['getUserRooms', space.spaceId],  // 保持与useGetUserRoomsQuery一致的queryKey格式
+            queryFn: () => tuanchat.roomController.getUserRooms(space.spaceId ?? -1),
+            staleTime: 300000, // 保持一致的5分钟缓存
+            enabled: space.spaceId!=-1
+        })),
     });
 }
 
@@ -459,28 +688,28 @@ export function useGetUserGroupsQuery() {
 /**
  * 强制刷新用户群组列表
  */
-export function refreshUserGroups() {
+export function refreshUserRooms() {
     const queryClient = useQueryClient();
-    queryClient.invalidateQueries({ queryKey: ['getUserGroups'] });
+    queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
 }
 
 /**
  * 强制刷新群组信息
- * @param groupId 群组ID
+ * @param roomId 群组ID
  */
-export function refreshGroupInfo(groupId: number) {
+export function refreshRoomInfo(roomId: number) {
     const queryClient = useQueryClient();
-    queryClient.invalidateQueries({ queryKey: ['getGroupInfo', groupId] });
+    queryClient.invalidateQueries({ queryKey: ['getRoomInfo', roomId] });
 }
 
 /**
  * 获取群组角色列表
- * @param groupId 群组ID
+ * @param roomId 群组ID
  */
-export function useGetGroupRoleQuery(groupId: number) {
+export function useGetRoomRoleQuery(roomId: number) {
     return useQuery({
-        queryKey: ["groupRole", groupId],
-        queryFn: () => tuanchat.groupRoleController.groupRole(groupId),
+        queryKey: ["roomRole", roomId],
+        queryFn: () => tuanchat.roomRoleController.roomRole(roomId),
         staleTime: 10000,
     });
 }
@@ -567,46 +796,6 @@ export function useUpdateKeyFieldMutation() {
 
 
 
-// upload-utils.ts
-
-// 上传图片
-export class UploadUtils {
-  constructor(private readonly scene: number = 2) {}
-
-  async upload(file: File): Promise<string> {
-    const ossData = await tuanchat.ossController.getUploadUrl({
-      fileName: file.name,
-      scene: this.scene,
-    });
-
-    if (!ossData.data?.uploadUrl) {
-      throw new Error("获取上传地址失败");
-    }
-
-    await this.executeUpload(ossData.data.uploadUrl, file);
-
-    if (!ossData.data.downloadUrl) {
-      throw new Error("获取下载地址失败");
-    }
-    return ossData.data.downloadUrl;
-  }
-
-  private async executeUpload(url: string, file: File): Promise<void> {
-    const response = await fetch(url, {
-      method: "PUT",
-      body: file,
-      headers: {
-        "Content-Type": file.type,
-        "x-oss-acl": "public-read",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`文件传输失败: ${response.status}`);
-    }
-  }
-}
-
 export function useUpdateMessageMutation(){
     const queryClient = useQueryClient();
     return useMutation({
@@ -615,50 +804,6 @@ export function useUpdateMessageMutation(){
     })
 }
 
-
-
-
-   
-
-// // 用户查询
-// export function useUserInfo(userId: number) {
-//   const userQuery = useQuery({
-//     queryKey: ["userId"],
-//     queryFn: async (): Promise<ApiResultUserInfoResponse | undefined> => {
-//       const res = await tuanchat.userController.getUserInfo(userId);
-//       if (res.success === false || res.data === null) {
-//         console.error("用户信息获取失败或数据为空");
-//         return undefined; // 返回 undefined 表示获取失败
-//       }
-//       return res;
-//     },
-//   },
-//   );
-//   return userQuery;
-// }
-//
-//
-// // 角色查询
-// export function useUserRoles(userQuery: UseQueryResult<ApiResultUserInfoResponse | undefined>) {
-//   const roleQuery = useQuery({
-//     queryKey: ["userRole", userQuery.data?.data?.userId],
-//     queryFn: async (): Promise<ApiResultListRoleResponse | undefined> => {
-//       const userId = userQuery.data?.data?.userId;
-//       if (userId === undefined) {
-//         console.error("用户ID不存在，无法获取角色信息");
-//         return undefined;
-//       }
-//       const res = await tuanchat.roleController.getUserRoles(userId);
-//       if (res.success === false || res.data === null) {
-//         console.error("角色信息获取失败或数据为空");
-//         return undefined;
-//       }
-//       return res;
-//     },
-//     enabled: !!userQuery.data?.data?.userId, // 只有当 userId 存在时才启用查询
-//   });
-//   return roleQuery;
-// }
 
 // 头像查询
 export function useRoleAvaters(roleId: number) {
@@ -836,7 +981,7 @@ export function useDeleteRole() {
   return useMutation({
     mutationKey: ["deleteRole"],
     mutationFn: async (roleId: number[]) => {
-      const res = await tuanchat.roleController.deleteRole(roleId);
+      const res = await tuanchat.roleController.deleteRole2(roleId);
       if (res.success) {
         console.warn("角色删除成功");
         return res;
@@ -875,21 +1020,44 @@ export function useGetRoleAbilityByRuleQuery(roleId: number, ruleId: number) {
   });
 }
 
-/**
- * 分页获取角色能力
- * @param roleId 角色ID
- * @param pageNo 页码
- * @param pageSize 每页大小
- */
-export function usePageRoleAbilityQuery(roleId: number, pageNo = 1, pageSize = 10) {
-  return useQuery({
-    queryKey: ["pageRoleAbility", roleId, pageNo, pageSize],
-    queryFn: () => tuanchat.abilityController.pageRoleAbility({
-      roleId,
-      pageNo,
-      pageSize
-    }),
-    staleTime: 10000,
-  });
+// /**
+//  * 分页获取角色能力
+//  * @param roleId 角色ID
+//  * @param pageNo 页码
+//  * @param pageSize 每页大小
+//  */
+// export function usePageRoleAbilityQuery(roleId: number, pageNo = 1, pageSize = 10) {
+//   return useQuery({
+//     queryKey: ["pageRoleAbility", roleId, pageNo, pageSize],
+//     queryFn: () => tuanchat.abilityController.pageRoleAbility({
+//       roleId,
+//       pageNo,
+//       pageSize
+//     }),
+//     staleTime: 10000,
+//   });
+// }
+ 
+//  * feed
+//  */
+export function usePublishFeedMutation(){
+    return useMutation({
+        mutationKey: ["publishFeed"],
+        mutationFn: async (feed: FeedRequest) => {
+            const res = await tuanchat.feedController.publishFeed(feed);
+        }
+    })
 }
+export function useGetFeedByIdQuery(feedId: number){
+    return useQuery({
+        queryKey: ["getFeedById", feedId],
+        queryFn: async () => {
+            const res = await tuanchat.feedController.getFeedById(feedId);
+            return res.data;
+        },
+        staleTime: 300 * 1000
+    })
+}
+
+
 

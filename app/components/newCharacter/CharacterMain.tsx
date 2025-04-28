@@ -26,7 +26,7 @@ export default function CharacterMain() {
   const { mutate: deleteRole } = useMutation({
     mutationKey: ["deleteRole"],
     mutationFn: async (roleId: number[]) => {
-      const res = await tuanchat.roleController.deleteRole(roleId);
+      const res = await tuanchat.roleController.deleteRole2(roleId);
       if (res.success) {
         console.warn("角色删除成功");
         return res;
@@ -138,11 +138,11 @@ export default function CharacterMain() {
       <MobileDrawerToggle />
       <input id="character-drawer" type="checkbox" className="drawer-toggle" />
       {/* 侧边栏 */}
-      <div className="drawer-side z-2">
+      <div className="drawer-side z-10">
         <label htmlFor="character-drawer" className="drawer-overlay"></label>
-        <div className="menu p-4 w-80 min-h-full bg-base-200">
-          {/* 搜索和创建区域 */}
-          <div className="flex gap-2 mb-4">
+        <div className="menu p-4 w-80 min-h-full bg-base-200 flex flex-col">
+          {/* 搜索和创建区域 - 固定在顶部 */}
+          <div className="flex gap-2 mb-4 sticky top-0 bg-base-200 z-10 py-2">
             <input
               type="text"
               placeholder="搜索角色..."
@@ -161,7 +161,7 @@ export default function CharacterMain() {
           </div>
 
           {/* 角色列表 */}
-          <div className="space-y-2 overflow-y-auto">
+          <div className="space-y-2 overflow-y-auto flex-1 h-0 pb-16">
             {filteredRoles.map(role => (
               <RoleListItem
                 key={role.id}

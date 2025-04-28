@@ -31,6 +31,7 @@ export default function ExpansionModule({
   const [selectedRuleId, setSelectedRuleId] = useState<number>(
     rules.length > 0 ? rules[0].id : 0,
   );
+
   const [currentRule, setCurrentRule] = useState<GameRule | undefined>(() => {
     return rules.length > 0 ? { ...rules[0] } : undefined;
   });

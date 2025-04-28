@@ -1,10 +1,10 @@
 import type { Route } from "./+types/home";
 
-import GroupSelect from "@/components/chat/groupSelect";
+import RoomSelect from "@/components/chat/roomSelect";
 
 export function meta(_args: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
+    { title: "tuan-chat" },
     { name: "description", content: "Welcome to React Router!" },
   ];
 }
@@ -12,7 +12,7 @@ export function meta(_args: Route.MetaArgs) {
 export default function Chat() {
   return (
     <div className="h-screen bg-base-200 flex">
-      <GroupSelect />
+      <RoomSelect />
     </div>
   );
 }

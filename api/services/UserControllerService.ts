@@ -46,9 +46,7 @@ export class UserControllerService {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/capi/user/info',
-            query: {
-                'userInfoResponse': userInfoResponse,
-            },
+            query: userInfoResponse,
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -69,7 +67,7 @@ export class UserControllerService {
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/user/public/register',
+            url: '/capi/user/register',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -92,7 +90,7 @@ export class UserControllerService {
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/user/public/login',
+            url: '/capi/user/login',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
