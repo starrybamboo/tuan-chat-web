@@ -204,15 +204,15 @@ export default function CharacterAvatar({ role, onchange }: {
                 {roleAvatars.map((item, index) => (
                   <li
                     key={item.avatarUrl}
-                    className="relative w-32 h-36 flex flex-col items-center rounded-lg transition-colors"
+                    className="relative w-full max-w-[128px] h-36 flex flex-col items-center rounded-lg transition-colors"
                     onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
                   >
                     {/* 头像卡片容器 */}
-                    <div className="relative w-full h-full group">
+                    <div className="relative w-full aspect-square group">
                       <img
                         src={item.avatarUrl}
                         alt="头像"
-                        className="w-30 h-30 object-contain rounded-lg border"
+                        className="w-full h-full object-contain rounded-lg border"
                       />
                       {/* 删除按钮  */}
                       <button
@@ -231,7 +231,7 @@ export default function CharacterAvatar({ role, onchange }: {
                     </p>
                   </li>
                 ))}
-                <li className="relative w-30 h-30 flex flex-col items-center rounded-lg transition-colors">
+                <li className="relative w-full max-w-[128px] aspect-square flex flex-col items-center rounded-lg transition-colors">
                   <ImgUploaderWithCopper
                     setDownloadUrl={() => { }}
                     setCopperedDownloadUrl={setCopperedUrl}
@@ -243,7 +243,7 @@ export default function CharacterAvatar({ role, onchange }: {
                     <button className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="h-30 w-30 text-gray-400"
+                        className="w-full h-full text-gray-400"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
