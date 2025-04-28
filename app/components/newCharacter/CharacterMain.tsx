@@ -138,7 +138,7 @@ export default function CharacterMain() {
       <MobileDrawerToggle />
       <input id="character-drawer" type="checkbox" className="drawer-toggle" />
       {/* 侧边栏 */}
-      <div className="drawer-side z-2">
+      <div className="drawer-side z-10">
         <label htmlFor="character-drawer" className="drawer-overlay"></label>
         <div className="menu p-4 w-80 min-h-full bg-base-200 flex flex-col">
           {/* 搜索和创建区域 - 固定在顶部 */}

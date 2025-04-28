@@ -169,7 +169,7 @@ export default function CharacterAvatar({ role, onchange }: {
       <div className="flex flex-col items-center gap-4">
         <div className="avatar cursor-pointer group" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
           <div className="ring-primary ring-offset-base-100 w-48 ring ring-offset-2 relative overflow-hidden">
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center z-10">
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center z-1">
               <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity">
                 点击更换头像
               </span>
@@ -185,110 +185,100 @@ export default function CharacterAvatar({ role, onchange }: {
       </div>
 
       <PopWindow isOpen={changeAvatarConfirmOpen} onClose={handleCancelChangeAvatar}>
-        <div className="h-200 p-2 w-300 block relative">
-          <div className="w-full relative mt-5">
-            {/* 选择和上传图像 */}
-            <div className="border-t-2 border-white float-left p-2 w-full">
-              <div className="w-full relative mt-5 flex gap-4">
-                {/* 大图预览 */}
-                <div className="flex-1 bg-base-200 p-3 rounded-lg h-full flex flex-col">
-                  <p className="text-center font-medium mb-3">大图预览</p>
-
-                  {/* 图片预览容器 */}
-                  <div className="max-h-[700px] min-h-[300px] bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
-                    <img
-                      src={previewSrc || "/favicon.ico"}
-                      alt="预览"
-                      className="max-w-full max-h-[700px] object-contain p-2"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex-1">
-                  {/* 头像列表区域 */}
-                  <ul className="w-full mt-5">
-                    <div className="grid grid-cols-4 gap-4 justify-items-center">
-                      {roleAvatars.map((item, index) => (
-                        <li
-                          key={item.avatarUrl}
-                          className="relative w-32 h-36 flex flex-col items-center rounded-lg transition-colors"
-                          onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
-                        >
-                          {/* 头像卡片容器 */}
-                          <div className="relative w-full h-full group">
-                            <img
-                              src={item.avatarUrl}
-                              alt="头像"
-                              className="w-30 h-30 object-contain rounded-lg border"
-                            />
-                            {/* 删除按钮  */}
-                            <button
-                              className="absolute -top-2 -right-2 w-7 h-7 bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteAvatar(index);
-                              }}
-                            >
-                              ×
-                            </button>
-                          </div>
-                          {/* 标题截断优化 */}
-                          <p className="text-center w-full truncate max-w-full px-1 text-sm mt-1">
-                            {item.avatarTitle}
-                          </p>
-                        </li>
-                      ))}
-                      <li className="relative w-30 h-30 flex flex-col items-center rounded-lg transition-colors">
-                        <ImgUploaderWithCopper
-                          setDownloadUrl={() => { }}
-                          setCopperedDownloadUrl={setCopperedUrl}
-                          fileName={uniqueFileName}
-                          mutate={(data) => {
-                            mutate(data);
-                          }}
-                        >
-                          <button className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-30 w-30 text-gray-400"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 4v16m8-8H4"
-                              />
-                            </svg>
-                          </button>
-                        </ImgUploaderWithCopper>
-                      </li>
-                    </div>
-                  </ul>
-                </div>
-
-                {/* 删除确认弹窗 */}
-                <PopWindow isOpen={isDeleteModalOpen} onClose={cancelDeleteAvatar}>
-                  <div className="card w-96">
-                    <div className="card-body items-center text-center">
-                      <h2 className="card-title text-2xl font-bold">确认删除角色</h2>
-                      <div className="divider"></div>
-                      <p className="text-lg opacity-75 mb-8">确定要删除这个角色吗？</p>
-                    </div>
-                  </div>
-                  <div className="card-actions justify-center gap-6 mt-8">
-                    <button type="button" className="btn btn-outline" onClick={cancelDeleteAvatar}>
-                      取消
-                    </button>
-                    <button type="button" className="btn btn-error" onClick={confirmDeleteAvatar}>
-                      删除
-                    </button>
-                  </div>
-                </PopWindow>
+        <div className="h-[80vh] p-4 w-[90vw] max-w-[1200px] block relative">
+          <div className="w-full h-full flex gap-4">
+            {/* 大图预览 */}
+            <div className="flex-1 bg-base-200 p-3 rounded-lg">
+              <div className="h-full bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
+                <img
+                  src={previewSrc || "/favicon.ico"}
+                  alt="预览"
+                  className="max-w-full h-full w-full object-contain p-2"
+                />
               </div>
             </div>
+
+            <div className="flex-1">
+              {/* 头像列表区域 */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
+                {roleAvatars.map((item, index) => (
+                  <li
+                    key={item.avatarUrl}
+                    className="relative w-32 h-36 flex flex-col items-center rounded-lg transition-colors"
+                    onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
+                  >
+                    {/* 头像卡片容器 */}
+                    <div className="relative w-full h-full group">
+                      <img
+                        src={item.avatarUrl}
+                        alt="头像"
+                        className="w-30 h-30 object-contain rounded-lg border"
+                      />
+                      {/* 删除按钮  */}
+                      <button
+                        className="absolute -top-2 -right-2 w-7 h-7 bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteAvatar(index);
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    {/* 标题截断优化 */}
+                    <p className="text-center w-full truncate max-w-full px-1 text-sm mt-1">
+                      {item.avatarTitle}
+                    </p>
+                  </li>
+                ))}
+                <li className="relative w-30 h-30 flex flex-col items-center rounded-lg transition-colors">
+                  <ImgUploaderWithCopper
+                    setDownloadUrl={() => { }}
+                    setCopperedDownloadUrl={setCopperedUrl}
+                    fileName={uniqueFileName}
+                    mutate={(data) => {
+                      mutate(data);
+                    }}
+                  >
+                    <button className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-30 w-30 text-gray-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
+                    </button>
+                  </ImgUploaderWithCopper>
+                </li>
+              </div>
+            </div>
+
+            {/* 删除确认弹窗 */}
+            <PopWindow isOpen={isDeleteModalOpen} onClose={cancelDeleteAvatar}>
+              <div className="card w-96">
+                <div className="card-body items-center text-center">
+                  <h2 className="card-title text-2xl font-bold">确认删除角色</h2>
+                  <div className="divider"></div>
+                  <p className="text-lg opacity-75 mb-8">确定要删除这个角色吗？</p>
+                </div>
+              </div>
+              <div className="card-actions justify-center gap-6 mt-8">
+                <button type="button" className="btn btn-outline" onClick={cancelDeleteAvatar}>
+                  取消
+                </button>
+                <button type="button" className="btn btn-error" onClick={confirmDeleteAvatar}>
+                  删除
+                </button>
+              </div>
+            </PopWindow>
           </div>
         </div>
       </PopWindow>

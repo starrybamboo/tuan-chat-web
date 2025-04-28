@@ -54,6 +54,7 @@ export default function CharacterDetail({
       }
     },
   });
+
   const handleSave = () => {
     updateRole(localRole);
   };
