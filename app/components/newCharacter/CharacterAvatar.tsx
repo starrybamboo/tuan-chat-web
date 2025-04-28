@@ -20,10 +20,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
 
   // head组件的迁移
   const [previewSrc, setPreviewSrc] = useState("");
-
   const [roleAvatars, setRoleAvatars] = useState<RoleAvatar[]>([]);
-  const [currentAvatarIndex, setCurrentAvatarIndex] = useState<number>(0);
-
   // 弹窗的打开和关闭
   const [changeAvatarConfirmOpen, setChangeAvatarConfirmOpen] = useState<boolean>(false);
   // 删除弹窗用
@@ -38,7 +35,6 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
       setAvatarId(role.avatarId);
       if (res.success && Array.isArray(res.data)) {
         setRoleAvatars(res.data);
-        setCurrentAvatarIndex(res.data?.length > 0 ? 0 : -1);
         if (role.avatarId !== 0) {
           setCopperedUrl(res.data.find(ele => ele.avatarId === role.avatarId)?.avatarUrl || "");
           setPreviewSrc(res.data.find(ele => ele.avatarId === role.avatarId)?.spriteUrl || "");
@@ -126,7 +122,6 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
   const handleAvatarClick = (avatarUrl: string, index: number) => {
     const targetAvatar = roleAvatars[index];
     setPreviewSrc(targetAvatar.spriteUrl || avatarUrl);
-    setCurrentAvatarIndex(index);
     setCopperedUrl(roleAvatars[index]?.avatarUrl || "");
     setAvatarId(roleAvatars[index]?.avatarId || 0);
   };
@@ -203,64 +198,29 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
       </div>
 
       <PopWindow isOpen={changeAvatarConfirmOpen} onClose={handleCancelChangeAvatar}>
-        <div className="h-220 p-2 w-400 block">
+        <div className="h-200 p-2 w-300 block relative">
           <div className="w-full relative mt-5">
             {/* 选择和上传图像 */}
             <div className="border-t-2 border-white float-left p-2 w-full">
-              <div className="mb-2">选择一个头像 :</div>
-              <ImgUploaderWithCopper
-                setDownloadUrl={() => { }}
-                setCopperedDownloadUrl={setCopperedUrl}
-                fileName={uniqueFileName}
-                mutate={(data) => {
-                  mutate(data);
-                }}
-              >
-                <button className="btn btn-dash m-auto block">
-                  <b className="text-white ml-0">+</b>
-                  上传新头像
-                </button>
-              </ImgUploaderWithCopper>
-
               <div className="w-full relative mt-5 flex gap-4">
-                {" "}
-                {/* 选择和更新图像 */}
-                <div className="flex-1">
-                  {" "}
-                  {/* 原 w-6/10 */}
-                  <div className="mt-5 ml-2 space-y-2">
-                    <p>
-                      角色
-                      {" "}
-                      ID
-                      {" "}
-                      :
-                      {" "}
-                      {role.id || "未设置"}
-                    </p>
-                    <p>
-                      头像
-                      {" "}
-                      ID
-                      {" "}
-                      :
-                      {" "}
-                      {
-                        roleAvatars[currentAvatarIndex]?.avatarId || "未设置"
-                      }
-                    </p>
-                    <p>
-                      表情差分数量
-                      {" "}
-                      :
-                      {" "}
-                      {roleAvatars.length}
-                    </p>
-                  </div>
+                {/* 大图预览 */}
+                <div className="flex-1 bg-base-200 p-3 rounded-lg h-full flex flex-col">
+                  <p className="text-center font-medium mb-3">大图预览</p>
 
+                  {/* 图片预览容器 */}
+                  <div className="max-h-[700px] min-h-[300px] bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
+                    <img
+                      src={previewSrc}
+                      alt="预览"
+                      className="max-w-full max-h-[700px] object-contain p-2"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex-1">
                   {/* 头像列表区域 */}
                   <ul className="w-full mt-5">
-                    <div className="grid grid-cols-3 gap-4 justify-items-center">
+                    <div className="grid grid-cols-4 gap-4 justify-items-center">
                       {roleAvatars.map((item, index) => (
                         <li
                           key={item.avatarUrl}
@@ -291,62 +251,71 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
                           </p>
                         </li>
                       ))}
+                      <li className="relative w-48 h-48 flex flex-col items-center rounded-lg transition-colors">
+                        <ImgUploaderWithCopper
+                          setDownloadUrl={() => { }}
+                          setCopperedDownloadUrl={setCopperedUrl}
+                          fileName={uniqueFileName}
+                          mutate={(data) => {
+                            mutate(data);
+                          }}
+                        >
+                          <button className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-28 w-28 text-gray-400"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 4v16m8-8H4"
+                              />
+                            </svg>
+                          </button>
+                        </ImgUploaderWithCopper>
+                      </li>
                     </div>
                   </ul>
                 </div>
 
-                {/* 大图预览 */}
-                <div className="flex-1 bg-base-200 p-3 rounded-lg h-full flex flex-col">
-                  <p className="text-center font-medium mb-3">大图预览</p>
-
-                  {/* 图片预览容器 */}
-                  <div className="flex-1 bg-gray-50 rounded border">
-                    {/* 未来如果支持默认图片的话，别忘了在这也加一个喵 */}
-                    <img
-                      src={previewSrc}
-                      alt="预览"
-                      className="w-full h-full max-h-[400px] object-contain p-2"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    onClick={() => {
-                      setChangeAvatarConfirmOpen(false);
-                      if (copperedUrl !== "")
-                        onchange(copperedUrl, avatarId);
-                    }}
-                    className="btn btn-primary"
-                  >
-                    确认
-                  </button>
-                </div>
-
                 {/* 删除确认弹窗 */}
                 <PopWindow isOpen={isDeleteModalOpen} onClose={cancelDeleteAvatar}>
-                  <div className="flex flex-col items-center p-4">
-                    <h3 className="text-lg font-bold mb-3">确认删除头像？</h3>
-                    <p className="mb-4 text-gray-600">该操作不可撤销</p>
-                    {/* 这个操作是独立于保存的，未来应该搞一个暂存，如果用户点保存，就不删除后台数据 */}
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={cancelDeleteAvatar}
-                      >
-                        取消
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={confirmDeleteAvatar}
-                      >
-                        确认删除
-                      </button>
+                  <div className="card w-96">
+                    <div className="card-body items-center text-center">
+                      <h2 className="card-title text-2xl font-bold">确认删除角色</h2>
+                      <div className="divider"></div>
+                      <p className="text-lg opacity-75 mb-8">确定要删除这个角色吗？</p>
                     </div>
+                  </div>
+                  <div className="card-actions justify-center gap-6 mt-8">
+                    <button type="button" className="btn btn-outline" onClick={cancelDeleteAvatar}>
+                      取消
+                    </button>
+                    <button type="button" className="btn btn-error" onClick={confirmDeleteAvatar}>
+                      删除
+                    </button>
                   </div>
                 </PopWindow>
               </div>
             </div>
+          </div>
+          {/* 底部按钮区域 */}
+          <div className="absolute bottom-2 right-2">
+            <button
+              type="submit"
+              onClick={() => {
+                setChangeAvatarConfirmOpen(false);
+                if (copperedUrl !== "")
+                  onchange(copperedUrl, avatarId);
+              }}
+              className="btn btn-primary"
+            >
+              确认
+            </button>
           </div>
         </div>
       </PopWindow>
