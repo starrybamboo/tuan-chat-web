@@ -997,28 +997,28 @@ export function useDeleteRole() {
   });
 }
 
-/**
- * 根据角色ID和规则ID获取角色能力
- * @param roleId 角色ID
- * @param ruleId 规则ID
- */
-export function useGetRoleAbilityByRuleQuery(roleId: number, ruleId: number) {
-  return useQuery({
-    queryKey: ["getRoleAbilityByRule", roleId, ruleId],
-    queryFn: async () => {
-      const abilities = await tuanchat.abilityController.listRoleAbility(roleId);
-      if (!abilities.success || !abilities.data) {
-        return null;
-      }
-      const abilityForRule = abilities.data.find((ability) => ability.ruleId === ruleId);
-      if (!abilityForRule) {
-        return null;
-      }
-      return abilityForRule;
-    },
-    staleTime: 10000,
-  });
-}
+// /**
+//  * 根据角色ID和规则ID获取角色能力
+//  * @param roleId 角色ID
+//  * @param ruleId 规则ID
+//  */
+// export function useGetRoleAbilityByRuleQuery(roleId: number, ruleId: number) {
+//   return useQuery({
+//     queryKey: ["getRoleAbilityByRule", roleId, ruleId],
+//     queryFn: async () => {
+//       const abilities = await tuanchat.abilityController.listRoleAbility(roleId);
+//       if (!abilities.success || !abilities.data) {
+//         return null;
+//       }
+//       const abilityForRule = abilities.data.find((ability) => ability.ruleId === ruleId);
+//       if (!abilityForRule) {
+//         return null;
+//       }
+//       return abilityForRule;
+//     },
+//     staleTime: 10000,
+//   });
+// }
 
 // /**
 //  * 分页获取角色能力
