@@ -13,8 +13,6 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
   isEditing: boolean;
 }) {
   const queryClient = useQueryClient();
-  // 传入onchange,方便同步到之前的组件中
-  const [avatarId, setAvatarId] = useState<number>(role.avatarId);
   // const [downloadUrl, setDownloadUrl] = useState<string>("");
   const [copperedUrl, setCopperedUrl] = useState<string>(role.avatar || "/favicon.ico"); // 修正变量名
 
@@ -32,7 +30,6 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
     queryKey: ["roleAvatar", role.id],
     queryFn: async () => {
       const res = await tuanchat.avatarController.getRoleAvatars(role.id);
-      setAvatarId(role.avatarId);
       setRoleAvatars(res.data || []);
       if (res.success && Array.isArray(res.data)) {
         if (role.avatarId !== 0) {
@@ -85,7 +82,6 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
           await queryClient.invalidateQueries({ queryKey: ["roleAvatar", role.id] });
           setCopperedUrl(avatarUrl);
           setPreviewSrc(spriteUrl);
-          setAvatarId(avatarId);
           return uploadRes;
         }
         else {
@@ -127,7 +123,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
     const targetAvatar = roleAvatars[index];
     setPreviewSrc(targetAvatar.spriteUrl || avatarUrl);
     setCopperedUrl(roleAvatars[index]?.avatarUrl || "");
-    setAvatarId(roleAvatars[index]?.avatarId || 0);
+    onchange(avatarUrl, roleAvatars[index]?.avatarId || 0);
   };
 
   // 删除操作处理
@@ -306,20 +302,6 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
                 </PopWindow>
               </div>
             </div>
-          </div>
-          {/* 底部按钮区域 */}
-          <div className="absolute bottom-2 right-2">
-            <button
-              type="submit"
-              onClick={() => {
-                setChangeAvatarConfirmOpen(false);
-                if (copperedUrl !== "")
-                  onchange(copperedUrl, avatarId);
-              }}
-              className="btn btn-primary"
-            >
-              确认
-            </button>
           </div>
         </div>
       </PopWindow>
