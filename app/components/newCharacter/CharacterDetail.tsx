@@ -73,7 +73,7 @@ export default function CharacterDetail({
               isEditing={isEditing}
             />
 
-            <div className="flex-1 space-y-4 min-w-0 overflow-hidden">
+            <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               {/* <Section title="基本信息"> */}
               {isEditing
                 ? (
