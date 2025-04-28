@@ -82,6 +82,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
           await queryClient.invalidateQueries({ queryKey: ["roleAvatar", role.id] });
           setCopperedUrl(avatarUrl);
           setPreviewSrc(spriteUrl);
+          onchange(avatarUrl, avatarId);
           return uploadRes;
         }
         else {
@@ -195,6 +196,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
                 </div>
               </div>
             )}
+
       </div>
 
       <PopWindow isOpen={changeAvatarConfirmOpen} onClose={handleCancelChangeAvatar}>
