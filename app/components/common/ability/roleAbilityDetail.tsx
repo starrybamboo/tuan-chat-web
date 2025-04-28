@@ -180,12 +180,9 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
           </div>
         );
       })}
-
       <div className="flex justify-center items-center flex-col gap-8">
-        <div className="text-gray-500">暂无数据</div>
         <button className="btn" type="button" onClick={handleCreatAbility}>新建一个能力组</button>
       </div>
-
     </div>
   );
 }
