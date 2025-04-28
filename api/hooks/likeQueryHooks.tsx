@@ -10,7 +10,7 @@ import {tuanchat} from "../instance";
  */
 export function useIsLikedQuery(request: LikeRecordRequest) {
     return useQuery({
-        queryKey: ['isLiked', request.toString()],
+        queryKey: ['isLiked', request],
         queryFn: () => tuanchat.likeRecordController.isLiked(request),
         staleTime: 300000, // 5分钟缓存
         enabled: !!request.targetId && !!request.targetType
@@ -26,7 +26,7 @@ export function useLikeMutation() {
         mutationFn: (requestBody: LikeRecordRequest) => tuanchat.likeRecordController.like(requestBody),
         mutationKey: ['like'],
         onSuccess: (_, variables) => {
-            queryClient.setQueryData(['isLiked', variables.toString()], () =>({
+            queryClient.setQueryData(['isLiked', variables], () =>({
                 success: true,
                 data: true
             }));
@@ -44,7 +44,7 @@ export function useUnlikeMutation() {
         mutationFn: (requestBody: LikeRecordRequest) => tuanchat.likeRecordController.unlike(requestBody),
         mutationKey: ['unlike'],
         onSuccess: (_, variables) => {
-            queryClient.setQueryData(['isLiked', variables.toString()], () => ({
+            queryClient.setQueryData(['isLiked', variables], () => ({
                 success: true,
                 data: false
             }));
@@ -59,7 +59,7 @@ export function useUnlikeMutation() {
  */
 export function useGetUserLikedPageQuery(requestBody: PageBaseRequest) {
     return useQuery({
-        queryKey: ['getUserLikedPage', requestBody.toString()],
+        queryKey: ['getUserLikedPage', requestBody],
         queryFn: () => tuanchat.likeRecordController.getUserLikedPage(requestBody),
         staleTime: 300000 // 5分钟缓存
     });
@@ -71,7 +71,7 @@ export function useGetUserLikedPageQuery(requestBody: PageBaseRequest) {
  */
 export function useBatchIsLikedQuery(requestBody: BatchLikeRecordRequest) {
     return useQuery({
-        queryKey: ['batchIsLiked', requestBody.toString()],
+        queryKey: ['batchIsLiked', requestBody],
         queryFn: () => tuanchat.likeRecordController.batchIsLiked(requestBody),
         staleTime: 300000 // 5分钟缓存
     });

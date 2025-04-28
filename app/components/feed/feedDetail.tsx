@@ -69,7 +69,7 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
         </UserAvatarComponent>
 
         {/* 点赞按钮 */}
-        <LikeComponent targetInfo={{ targetId: feed.feedId ?? -1, targetType: "1" }}></LikeComponent>
+        <LikeComponent targetInfo={{ targetId: feed.feedId ?? -1, targetType: "1" }} key={`${feed.feedId}`}></LikeComponent>
 
         {/* 评论按钮 */}
         <button onClick={() => setShowComments(!showComments)} className="flex flex-col items-center" type="button">

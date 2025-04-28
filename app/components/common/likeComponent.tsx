@@ -2,9 +2,13 @@ import type { LikeRecordRequest } from "../../../api";
 import { useIsLikedQuery, useLikeMutation, useUnlikeMutation } from "../../../api/hooks/likeQueryHooks";
 
 export default function LikeComponent({ targetInfo }: { targetInfo: LikeRecordRequest }) {
-  const isLikedQuery = useIsLikedQuery(targetInfo);
+  const isLikedQuery = useIsLikedQuery({
+    targetId: targetInfo.targetId,
+    targetType: targetInfo.targetType,
+  });
+
   const isLiked = isLikedQuery.data?.data;
-  const likeCount = 113;
+  const likeCount = targetInfo.targetId;
 
   const likeMutation = useLikeMutation();
   const unlikeMutation = useUnlikeMutation();
