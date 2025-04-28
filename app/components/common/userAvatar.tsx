@@ -9,10 +9,12 @@ import {
   useDeleteRoomMemberMutation,
   useDeleteSpaceMemberMutation,
   useGetSpaceMembersQuery,
-  useGetUserInfoQuery,
   useRevokePlayerMutation,
   useSetPlayerMutation,
   useTransferOwnerMutation,
+} from "../../../api/hooks/chatQueryHooks";
+import {
+  useGetUserInfoQuery,
 } from "../../../api/queryHooks";
 
 // 如果是 import 的sizeMap 就不能在className中用了, 于是复制了一份, 够丑的 :(

@@ -29,7 +29,7 @@ export class ChatRenderer {
       }
 
       // 2. 获取所有角色
-      const rolesResponse = await tuanchat.roomRoleController.roomRole1(this.roomId);
+      const rolesResponse = await tuanchat.roomRoleController.roomRole(this.roomId);
       if (!rolesResponse.success || !rolesResponse.data) {
         throw new Error("Failed to fetch roles");
       }
@@ -121,7 +121,7 @@ export class ChatRenderer {
         .sort((a, b) => a.message.position - b.message.position);
 
       // 最多生成几段音频 仅供在tts api不足的情况下进行限制
-      let maxVocal = 0;
+      let maxVocal = 1000;
       // let recentMessages: (Message | undefined)[] = [undefined, undefined];
       // let lastSpeakSide: 0 | 1 = 1;
 

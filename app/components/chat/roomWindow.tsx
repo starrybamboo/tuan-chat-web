@@ -22,11 +22,10 @@ import { UploadUtils } from "@/utils/UploadUtils";
 import { ChatRenderer } from "@/webGAL/chatRenderer";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
+import { useGetMemberListQuery, useGetRoomRoleQuery } from "../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../api/instance";
 import {
-  useGetMemberListQuery,
   useGetRoleAvatarsQuery,
-  useGetRoomRoleQuery,
   useGetUserRolesQuery,
 } from "../../../api/queryHooks";
 

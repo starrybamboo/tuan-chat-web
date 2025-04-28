@@ -6,7 +6,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import React, { use, useMemo, useState } from "react";
-import { useAddRoomMemberMutation, useAddRoomRoleMutation, useGetRoomRoleQuery } from "../../../api/queryHooks";
+import { useAddRoomMemberMutation, useAddRoomRoleMutation, useGetRoomRoleQuery } from "../../../api/hooks/chatQueryHooks";
 
 export default function RoomRightSidePanel() {
   const roomContext = use(RoomContext);

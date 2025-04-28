@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
-// type DiceResult = { x: number; y: number; rolls: number[]; total: number };
 import {
   useGetRoleAbilitiesQuery,
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityMutation,
-} from "../../../api/queryHooks";
+} from "../../../api/hooks/abilityQueryHooks";
+// type DiceResult = { x: number; y: number; rolls: number[]; total: number };
 
 // 属性名中英文对照表
 const ABILITY_MAP: { [key: string]: string } = {

@@ -25,7 +25,6 @@ export default function Topbar() {
     <div className="w-full h-14 flex items-center justify-between px-4 bg-base-300 shrink-0">
       {/* 左侧 */}
       <div className="flex items-center space-x-6">
-
         <img
           src="http://47.119.147.6/tuan/favicon.ico"
           alt="Logo"
@@ -45,11 +44,17 @@ export default function Topbar() {
         <a onClick={() => navigate("/role")} className="text-base-content hover:text-primary transition-colors">
           角色
         </a>
-        <a onClick={() => navigate("/module/create")} className="text-base-content hover:text-primary transition-colors">
+        <a
+          onClick={() => navigate("/module/create")}
+          className="text-base-content hover:text-primary transition-colors"
+        >
           模组
         </a>
         <a onClick={() => navigate("/create")} className="text-base-content hover:text-primary transition-colors">
           创作
+        </a>
+        <a onClick={() => navigate("/collection")} className="text-base-content hover:text-primary transition-colors">
+          收藏
         </a>
       </div>
 
@@ -60,13 +65,15 @@ export default function Topbar() {
           ? (
               <div className="dropdown dropdown-end">
                 <div className="flex items-center content-center gap-2">
-                  <UserAvatarComponent
-                    userId={userId || 1}
-                    width={8}
-                    isRounded={true}
-                    withName={true}
-                    stopPopWindow={true}
-                  />
+                  <div onClick={() => navigate("/profile")} className="flex items-center content-center gap-2">
+                    <UserAvatarComponent
+                      userId={userId || 1}
+                      width={8}
+                      isRounded={true}
+                      withName={true}
+                      stopPopWindow={true}
+                    />
+                  </div>
                   <div tabIndex={0} role="button" className="cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="m6 9 6 6 6-6" />
