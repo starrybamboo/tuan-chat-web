@@ -25,6 +25,8 @@ import type { SubRoomRequest } from './models/SubRoomRequest';
 import type { UserLoginRequest } from './models/UserLoginRequest';
 import type { UserRegisterRequest } from './models/UserRegisterRequest';
 import type { UserRole } from './models/UserRole';
+import type { RulePageRequest } from "./models/RulePageRequest.tsx";
+import type { RuleResponse } from "./models/RuleResponse.tsx";
 import type {AbilitySetRequest} from "./models/AbilitySetRequest";
 import type {AbilityUpdateRequest} from "./models/AbilityUpdateRequest";
 import type { UseQueryResult } from "@tanstack/react-query";
@@ -787,27 +789,39 @@ export const useRolesInitialization = (roleQuery: any) => {
 
 import type { GameRule } from '@/components/newCharacter/types';
 
-//获取规则
-export function useRuleListQuery() {
-  return useQuery({
-    queryKey: ["ruleList"],
-    queryFn: async (): Promise<GameRule[]> => {
-      const res = await tuanchat.ruleController.getRuleList();
-      if (res.success && res.data) {
-        // 将后端数据结构转换为前端需要的 `GameRule` 类型
-        return res.data.map(rule => ({
-          id: rule.ruleId || 0,
-          name: rule.ruleName || "",
-          description: rule.ruleDescription || "",
-          performance: rule.actTemplate || {}, // 表演字段
-          numerical: rule.abilityDefault || {}, // 数值约束
-        }));
-      }
-      throw new Error('获取规则列表失败');
-    }
-  });
+export function useRuleListQuery(
+    pageNum = 1,
+    pageSize = 20,
+    keyword = '',
+) {
+    return useQuery<GameRule[], Error>({
+        queryKey: ['ruleList', pageNum, pageSize, keyword],
+        queryFn: async () => {
+            const res = await tuanchat.ruleController.getRulePage({
+                pageNo: pageNum,
+                pageSize,
+                keyword,
+            } as RulePageRequest);
+
+            if (!res.success || !res.data) {
+                throw new Error(res.errMsg || '获取规则列表失败');
+            }
+
+            // 确保返回的数据是数组
+            const list = res.data.list ?? [];
+            
+            return list.map(rule => ({
+                id: rule.ruleId ?? 0,
+                name: rule.ruleName ?? '',
+                description: rule.ruleDescription ?? '',
+                performance: rule.actTemplate ?? {},
+                numerical: rule.abilityDefault ?? {},
+            }));
+        },
+        staleTime: 1000 * 60 * 5, // 5分钟缓存
+    });
 }
-   
+
 // post部分
 //删除角色
 export function useDeleteRole() {
