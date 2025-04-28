@@ -2,10 +2,16 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type DiceResult = {
+/**
+ * 数据列表
+ */
+export type GroupAddRequest = {
     /**
-     * 骰子指令的结果
+     * 邀请的uid
      */
-    result: string;
+    userIdList: Array<number>;
+    /**
+     * 数据列表
+     */
 };
 

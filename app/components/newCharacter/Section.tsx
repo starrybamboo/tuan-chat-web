@@ -1,4 +1,6 @@
 // Section.tsx（通用模块容器）
+import React from "react";
+
 export default function Section({
   title,
   children,

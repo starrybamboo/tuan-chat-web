@@ -2,13 +2,17 @@ import type { GameRule } from "../types";
 import { useState } from "react";
 import { useRuleListQuery } from "../../../../api/queryHooks";
 import Section from "../Section";
+import AbilityModule from "./AbilityModule";
 import NumericalEditor from "./NumericalEditor";
 import PerformanceEditor from "./PerformanceEditor";
 // import { defaultRules } from "./rules";
 import RulesSection from "./RulesSection";
 
 interface ExpansionModuleProps {
+  roleId?: number; // 角色ID
+  isEditing?: boolean; // 是否处于编辑模式
   onRuleDataChange?: (ruleId: number, performance: any, numerical: any) => void; // 可选回调
+  onAbilityChange?: (abilityData: any) => void; // 能力变更回调
 }
 
 /**
@@ -16,7 +20,10 @@ interface ExpansionModuleProps {
  * 负责展示规则选择、表演字段和数值约束，完全独立于角色
  */
 export default function ExpansionModule({
+  roleId,
+  isEditing = false,
   onRuleDataChange,
+  onAbilityChange,
 }: ExpansionModuleProps) {
   const { data: rules = [] } = useRuleListQuery();
 
@@ -76,6 +83,17 @@ export default function ExpansionModule({
 
       {currentRule && (
         <>
+          {roleId && (
+            <AbilityModule
+              roleId={roleId}
+              ruleId={selectedRuleId}
+              isEditing={isEditing}
+              performance={currentRule.performance}
+              numerical={currentRule.numerical}
+              onAbilityChange={onAbilityChange}
+            />
+          )}
+
           <Section title="表演字段配置">
             <PerformanceEditor
               fields={currentRule.performance}

@@ -54,9 +54,24 @@ export default function CharacterDetail({
       }
     },
   });
-
+  // 干净的文本
+  const cleanText = (text: string) => {
+    if (!text)
+      return "";
+    return text
+      .replace(/\r\n/g, "\n") // 替换Windows换行符为Unix换行符
+      .replace(/ {2,}/g, " ") // 压缩多个空格为单个空格
+      .replace(/\n{2,}/g, "\n") // 压缩多个换行为单个换行
+      .replace(/\s+$/g, ""); // 移除末尾空格
+  };
   const handleSave = () => {
-    updateRole(localRole);
+    const cleanedRole = {
+      ...localRole,
+      name: cleanText(localRole.name),
+      description: cleanText(localRole.description),
+    };
+    onSave(cleanedRole);
+    updateRole(cleanedRole);
   };
 
   // 更新url和avatarId,方便更改服务器数据
