@@ -13,6 +13,7 @@ export default function CharacterAvatar({ role, onchange }: {
 }) {
   const queryClient = useQueryClient();
   // const [downloadUrl, setDownloadUrl] = useState<string>("");
+  const [avatarId, setAvatarId] = useState<number>(role.avatarId);
   const [copperedUrl, setCopperedUrl] = useState<string>(role.avatar || "/favicon.ico"); // 修正变量名
 
   // head组件的迁移
@@ -81,7 +82,8 @@ export default function CharacterAvatar({ role, onchange }: {
           await queryClient.invalidateQueries({ queryKey: ["roleAvatar", role.id] });
           setCopperedUrl(avatarUrl);
           setPreviewSrc(spriteUrl);
-          onchange(avatarUrl, avatarId);
+          setAvatarId(avatarId);
+          // onchange(avatarUrl, avatarId);
           return uploadRes;
         }
         else {
@@ -123,7 +125,8 @@ export default function CharacterAvatar({ role, onchange }: {
     const targetAvatar = roleAvatars[index];
     setPreviewSrc(targetAvatar.spriteUrl || avatarUrl);
     setCopperedUrl(roleAvatars[index]?.avatarUrl || "");
-    onchange(avatarUrl, roleAvatars[index]?.avatarId || 0);
+    setAvatarId(roleAvatars[index]?.avatarId || 0);
+    // onchange(avatarUrl, roleAvatars[index]?.avatarId || 0, false);
   };
 
   // 删除操作处理
@@ -171,7 +174,7 @@ export default function CharacterAvatar({ role, onchange }: {
           <div className="rounded-xl ring-primary ring-offset-base-100 w-48 ring ring-offset-2 relative overflow-hidden">
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
             <img
-              src={copperedUrl || role.avatar}
+              src={role.avatar || "./favicon.ico"}
               alt="Character Avatar"
               className="object-cover transform group-hover:scale-105 transition-transform duration-300"
             />
@@ -258,6 +261,18 @@ export default function CharacterAvatar({ role, onchange }: {
                     </button>
                   </ImgUploaderWithCopper>
                 </li>
+              </div>
+              <div className="card-actions justify-end">
+                <button
+                  type="submit"
+                  onClick={() => {
+                    setChangeAvatarConfirmOpen(false);
+                    onchange(copperedUrl, avatarId);
+                  }}
+                  className="btn btn-primary"
+                >
+                  确认更改头像
+                </button>
               </div>
             </div>
 
