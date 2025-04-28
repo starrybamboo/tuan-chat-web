@@ -189,6 +189,7 @@ export default function CharacterAvatar({ role, onchange }: {
           <div className="w-full h-full flex gap-4">
             {/* 大图预览 */}
             <div className="flex-1 bg-base-200 p-3 rounded-lg">
+              <h2 className="text-xl font-bold mb-4">角色立绘</h2>
               <div className="h-full bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
                 <img
                   src={previewSrc || "/favicon.ico"}
@@ -198,8 +199,9 @@ export default function CharacterAvatar({ role, onchange }: {
               </div>
             </div>
 
-            <div className="flex-1">
+            <div className="flex-1 p-3">
               {/* 头像列表区域 */}
+              <h2 className="text-xl font-bold mb-4">选择头像：</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
                 {roleAvatars.map((item, index) => (
                   <li
@@ -208,11 +210,11 @@ export default function CharacterAvatar({ role, onchange }: {
                     onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
                   >
                     {/* 头像卡片容器 */}
-                    <div className="relative w-full aspect-square group">
+                    <div className="relative w-full aspect-square group cursor-pointer">
                       <img
                         src={item.avatarUrl}
                         alt="头像"
-                        className="w-full h-full object-contain rounded-lg border"
+                        className={`w-full h-full object-contain rounded-lg transition-all duration-300 group-hover:scale-105 ${item.avatarUrl === copperedUrl ? "border-2 border-primary" : "border"}`}
                       />
                       {/* 删除按钮  */}
                       <button
@@ -224,6 +226,8 @@ export default function CharacterAvatar({ role, onchange }: {
                       >
                         ×
                       </button>
+                      {/* 添加悬浮遮罩 */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 rounded-lg"></div>
                     </div>
                     {/* 标题截断优化 */}
                     <p className="text-center w-full truncate max-w-full px-1 text-sm mt-1">
@@ -240,10 +244,10 @@ export default function CharacterAvatar({ role, onchange }: {
                       mutate(data);
                     }}
                   >
-                    <button className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer">
+                    <button className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        className="w-full h-full text-gray-400"
+                        className="w-full h-full text-gray-400 transition-transform duration-300 group-hover:scale-105"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
