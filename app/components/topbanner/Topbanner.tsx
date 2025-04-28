@@ -44,11 +44,17 @@ export default function Topbar() {
         <a onClick={() => navigate("/role")} className="text-base-content hover:text-primary transition-colors">
           角色
         </a>
-        <a onClick={() => navigate("/module/create")} className="text-base-content hover:text-primary transition-colors">
+        <a
+          onClick={() => navigate("/module/create")}
+          className="text-base-content hover:text-primary transition-colors"
+        >
           模组
         </a>
         <a onClick={() => navigate("/create")} className="text-base-content hover:text-primary transition-colors">
           创作
+        </a>
+        <a onClick={() => navigate("/collection")} className="text-base-content hover:text-primary transition-colors">
+          收藏
         </a>
       </div>
 

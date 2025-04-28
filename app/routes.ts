@@ -17,5 +17,6 @@ export default [
     route("module/detail/:id?", "routes/module_detail.tsx"),
     route("community", "routes/community.tsx"),
     route("settings", "routes/settings.tsx"),
+    route("collection", "routes/collection.tsx"),
   ]),
 ] satisfies RouteConfig;
