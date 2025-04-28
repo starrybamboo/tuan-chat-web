@@ -25,9 +25,7 @@ export class LikeRecordControllerService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/like',
-            query: {
-                'request': request,
-            },
+            query: request,
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
