@@ -5,7 +5,7 @@ import {
   useSetRoleAbilityMutation,
   useUpdateKeyFieldMutation,
   useUpdateRoleAbilityMutation,
-} from "../../../api/queryHooks";
+} from "../../../api/hooks/abilityQueryHooks";
 
 export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   const roleAbilityListQuery = useGetRoleAbilitiesQuery(roleId);

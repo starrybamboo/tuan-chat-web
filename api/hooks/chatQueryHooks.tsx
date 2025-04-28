@@ -17,6 +17,8 @@ import type {RoomMemberAddRequest} from "../models/RoomMemberAddRequest";
 import type {RoomMemberDeleteRequest} from "../models/RoomMemberDeleteRequest";
 import type {RoomUpdateRequest} from "../models/RoomUpdateRequest";
 import type {SpaceUpdateRequest} from "../models/SpaceUpdateRequest";
+import type {Message} from "../models/Message";
+import type {SpaceRoleAddRequest} from "../models/SpaceRoleAddRequest";
 
 /**
  * 创建空间
@@ -322,6 +324,14 @@ export function useDeleteMessageMutation() {
     });
 }
 
+export function useUpdateMessageMutation(){
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn:  (req: Message) =>tuanchat.chatController.updateMessage(req),
+        mutationKey: ["updateMessage"],
+    })
+}
+
 // ==================== 权限管理 ====================
 /**
  * 设置用户为玩家
@@ -451,6 +461,21 @@ export function useGetRoomRoleQuery(roomId: number) {
         staleTime: 10000,
     });
 }
+
+/**
+ * space角色管理
+ */
+export function useAddSpaceRoleMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: SpaceRoleAddRequest) => tuanchat.spaceRoleController.addRole(req),
+        mutationKey: ['addRole'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({queryKey: ['getSpaceRoles', variables.spaceId]});
+        }
+    });
+}
+
 
 /**
  * 获取单条message

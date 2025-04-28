@@ -8,8 +8,9 @@ import { EditableField } from "@/components/common/editableFiled";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { useGetRoleQuery, useUpdateMessageMutation } from "api/queryHooks";
+import { useGetRoleQuery } from "api/queryHooks";
 import React, { use, useMemo, useState } from "react";
+import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
 
 export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
   chatMessageResponse: ChatMessageResponse;
