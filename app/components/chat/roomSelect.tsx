@@ -112,7 +112,7 @@ export default function RoomSelect() {
         {spaces.map(space => (
           <button
             key={space.spaceId}
-            className="tooltip tooltip-right w-10"
+            className="tooltip tooltip-right w-10 btn btn-square z-10"
             data-tip={space.name}
             type="button"
             onClick={() => {
