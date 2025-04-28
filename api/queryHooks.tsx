@@ -520,6 +520,8 @@ export function useSetRoleAbilityMutation() {
         mutationKey: ["setRoleAbility"],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ["listRoleAbility", variables.roleId] });
+            queryClient.invalidateQueries({ queryKey: ["getRoleAbilityByRule", variables.roleId, variables.ruleId] });
+            queryClient.invalidateQueries({ queryKey: ["pageRoleAbility", variables.roleId] });
         },
     });
 }
@@ -529,10 +531,13 @@ export function useDeleteRoleAbilityMutation() {
     return useMutation({
         mutationFn: (abilityId: number) => tuanchat.abilityController.deleteRoleAbility(abilityId),
         mutationKey: ["deleteRoleAbility"],
-        onSuccess: (_, variables) => {
+        onSuccess: (_, abilityId) => {
             queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
+            queryClient.invalidateQueries({ queryKey: ["getRoleAbility", abilityId] });
+            queryClient.invalidateQueries({ queryKey: ["getRoleAbilityByRule"] });
+            queryClient.invalidateQueries({ queryKey: ["pageRoleAbility"] });
         }
-    })
+    });
 }
 
 export function useUpdateRoleAbilityMutation() {
@@ -542,8 +547,11 @@ export function useUpdateRoleAbilityMutation() {
         mutationKey: ["updateRoleAbility"],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
+            queryClient.invalidateQueries({ queryKey: ["getRoleAbility", variables.abilityId] });
+            queryClient.invalidateQueries({ queryKey: ["getRoleAbilityByRule"] });
+            queryClient.invalidateQueries({ queryKey: ["pageRoleAbility"] });
         }
-    })
+    });
 }
 
 export function useUpdateKeyFieldMutation() {
@@ -841,6 +849,47 @@ export function useDeleteRole() {
     onError: (error) => {
       console.error("Mutation failed:", error);
     },
+  });
+}
+
+/**
+ * 根据角色ID和规则ID获取角色能力
+ * @param roleId 角色ID
+ * @param ruleId 规则ID
+ */
+export function useGetRoleAbilityByRuleQuery(roleId: number, ruleId: number) {
+  return useQuery({
+    queryKey: ["getRoleAbilityByRule", roleId, ruleId],
+    queryFn: async () => {
+      const abilities = await tuanchat.abilityController.listRoleAbility(roleId);
+      if (!abilities.success || !abilities.data) {
+        return null;
+      }
+      const abilityForRule = abilities.data.find((ability) => ability.ruleId === ruleId);
+      if (!abilityForRule) {
+        return null;
+      }
+      return abilityForRule;
+    },
+    staleTime: 10000,
+  });
+}
+
+/**
+ * 分页获取角色能力
+ * @param roleId 角色ID
+ * @param pageNo 页码
+ * @param pageSize 每页大小
+ */
+export function usePageRoleAbilityQuery(roleId: number, pageNo = 1, pageSize = 10) {
+  return useQuery({
+    queryKey: ["pageRoleAbility", roleId, pageNo, pageSize],
+    queryFn: () => tuanchat.abilityController.pageRoleAbility({
+      roleId,
+      pageNo,
+      pageSize
+    }),
+    staleTime: 10000,
   });
 }
 
