@@ -4,7 +4,7 @@ import { tuanchat } from "api/instance";
 import { useMemo, useState } from "react";
 import { RoleAbilityDetail } from "../common/roleAbilityDetail";
 import CharacterAvatar from "./CharacterAvatar";
-import Section from "./Section";
+// import Section from "./Section";
 
 interface CharacterDetailProps {
   role: Role;
@@ -76,46 +76,46 @@ export default function CharacterDetail({
               onchange={handleAvatarChange}
             />
 
-            <div className="flex-1 space-y-4">
-              <Section title="基本信息">
-                {isEditing
-                  ? (
-                      <>
-                        <p>
-                          角色ID号：
-                          {localRole.id}
-                        </p>
-                        <input
-                          type="text"
-                          value={localRole.name}
-                          onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="角色名称"
-                          className="input input-bordered w-full text-lg font-bold"
-                        />
-                        <textarea
-                          value={localRole.description}
-                          onChange={e =>
-                            setLocalRole(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="角色描述"
-                          className="textarea textarea-bordered w-full h-24 resize-none"
-                        />
-                      </>
-                    )
-                  : (
-                      <>
-                        <h2 className="card-title text-2xl">
-                          {localRole.name || "未命名角色"}
-                        </h2>
-                        <p>
-                          角色ID号：
-                          {localRole.id}
-                        </p>
-                        <p className="text-base-content/70 whitespace-pre-wrap">
-                          {localRole.description || "暂无描述"}
-                        </p>
-                      </>
-                    )}
-              </Section>
+            <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
+              {/* <Section title="基本信息"> */}
+              {isEditing
+                ? (
+                    <>
+                      <p>
+                        角色ID号：
+                        {localRole.id}
+                      </p>
+                      <input
+                        type="text"
+                        value={localRole.name}
+                        onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="角色名称"
+                        className="input input-bordered w-full text-lg font-bold"
+                      />
+                      <textarea
+                        value={localRole.description}
+                        onChange={e =>
+                          setLocalRole(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="角色描述"
+                        className="textarea textarea-bordered w-full h-24 resize-none"
+                      />
+                    </>
+                  )
+                : (
+                    <>
+                      <h2 className="card-title text-2xl">
+                        {localRole.name || "未命名角色"}
+                      </h2>
+                      <p>
+                        角色ID号：
+                        {localRole.id}
+                      </p>
+                      <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden">
+                        {localRole.description || "暂无描述"}
+                      </p>
+                    </>
+                  )}
+              {/* </Section> */}
             </div>
           </div>
 
