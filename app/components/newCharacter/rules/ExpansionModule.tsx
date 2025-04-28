@@ -4,11 +4,10 @@ import { useRuleListQuery } from "../../../../api/queryHooks";
 import Section from "../Section";
 import NumericalEditor from "./NumericalEditor";
 import PerformanceEditor from "./PerformanceEditor";
-import { defaultRules } from "./rules";
+// import { defaultRules } from "./rules";
 import RulesSection from "./RulesSection";
 
 interface ExpansionModuleProps {
-  rules?: GameRule[];
   onRuleDataChange?: (ruleId: number, performance: any, numerical: any) => void; // 可选回调
 }
 
@@ -17,9 +16,10 @@ interface ExpansionModuleProps {
  * 负责展示规则选择、表演字段和数值约束，完全独立于角色
  */
 export default function ExpansionModule({
-  rules = defaultRules,
   onRuleDataChange,
 }: ExpansionModuleProps) {
+  const { data: rules = [] } = useRuleListQuery();
+
   // 管理当前选择的规则和规则数据
   const [selectedRuleId, setSelectedRuleId] = useState<number>(
     rules.length > 0 ? rules[0].id : 0,
@@ -27,8 +27,6 @@ export default function ExpansionModule({
   const [currentRule, setCurrentRule] = useState<GameRule | undefined>(() => {
     return rules.length > 0 ? { ...rules[0] } : undefined;
   });
-
-  const { data: ruleList } = useRuleListQuery();
 
   // 处理规则切换
   const handleRuleChange = (newRuleId: number) => {
@@ -71,7 +69,7 @@ export default function ExpansionModule({
   return (
     <div className="space-y-6">
       <RulesSection
-        rules={ruleList || []} // 提供默认空数组
+        rules={rules} // 提供默认空数组
         currentRuleId={selectedRuleId}
         onRuleChange={handleRuleChange}
       />

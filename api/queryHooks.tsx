@@ -103,7 +103,7 @@ export function useCreateRoleMutation() {
 export function useDeleteRoleMutation(roleId: number) {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: () => tuanchat.roleController.deleteRole([roleId]),
+        mutationFn: () => tuanchat.roleController.deleteRole2([roleId]),
         mutationKey: ['deleteRole', roleId],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getRole', roleId] });
@@ -510,7 +510,7 @@ export function useDeleteRole() {
   return useMutation({
     mutationKey: ["deleteRole"],
     mutationFn: async (roleId: number[]) => {
-      const res = await tuanchat.roleController.deleteRole1(roleId);
+      const res = await tuanchat.roleController.deleteRole2(roleId);
       if (res.success) {
         console.warn("角色删除成功");
         return res;
