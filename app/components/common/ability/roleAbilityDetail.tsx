@@ -1,17 +1,17 @@
-import type { AbilityFieldUpdateRequest } from "../../../api";
+import type { AbilityFieldUpdateRequest } from "../../../../api";
 import { useState } from "react";
 import {
   useGetRoleAbilitiesQuery,
   useSetRoleAbilityMutation,
   useUpdateKeyFieldMutation,
   useUpdateRoleAbilityMutation,
-} from "../../../api/hooks/abilityQueryHooks";
-import { useGetRuleDetailQueries } from "../../../api/hooks/ruleQueryHooks";
+} from "../../../../api/hooks/abilityQueryHooks";
+import { useGetRuleDetailQueries } from "../../../../api/hooks/ruleQueryHooks";
 
 export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   const roleAbilityListQuery = useGetRoleAbilitiesQuery(roleId);
   const roleAbilityList = roleAbilityListQuery.data?.data ?? [];
-  const ruleIds = roleAbilityList?.map(ability => ability.abilityId ?? -1) ?? [];
+  const ruleIds = roleAbilityList?.map(ability => ability.ruleId ?? -1) ?? [];
   const ruleQueries = useGetRuleDetailQueries(ruleIds);
   const rules = ruleQueries.map(query => query.data?.data ?? {}) ?? [];
 
@@ -114,8 +114,8 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
             <div className="collapse collapse-plus bg-base-100 border-base-300 border w-m">
               <input type="checkbox" />
               <div className="collapse-title font-semibold">
-                {rules[index].ruleName ?? "未命名规则  "}
-                {`id:${ability.abilityId}`}
+                {rules[index].ruleName ?? "未命名规则"}
+                <span className="text-xs text-gray-500">{` id:${rules[index].ruleId}`}</span>
               </div>
               <div className="collapse-content flex flex-row gap-2 w-full">
                 <div className="flex flex-col gap-1">
@@ -180,14 +180,12 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
           </div>
         );
       })}
-      {
-        roleAbilityList.length === 0 && (
-          <div className="flex justify-center items-center flex-col gap-8">
-            <div className="text-gray-500">暂无数据</div>
-            <button className="btn" type="button" onClick={handleCreatAbility}>初始化一个能力组</button>
-          </div>
-        )
-      }
+
+      <div className="flex justify-center items-center flex-col gap-8">
+        <div className="text-gray-500">暂无数据</div>
+        <button className="btn" type="button" onClick={handleCreatAbility}>新建一个能力组</button>
+      </div>
+
     </div>
   );
 }

@@ -2,7 +2,7 @@ import type { Role } from "./types";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useMemo, useState } from "react";
-import { RoleAbilityDetail } from "../common/roleAbilityDetail";
+import { RoleAbilityDetail } from "../common/ability/roleAbilityDetail";
 import CharacterAvatar from "./CharacterAvatar";
 import Section from "./Section";
 
