@@ -44,6 +44,9 @@ export default function CharacterDetail({
         return updateRes;
       }
     },
+    onSuccess: () => {
+      onSave(localRole);
+    },
     onError: (error: any) => {
       console.error("Mutation failed:", error);
       if (error.response && error.response.data) {
@@ -52,7 +55,6 @@ export default function CharacterDetail({
     },
   });
   const handleSave = () => {
-    onSave(localRole);
     updateRole(localRole);
   };
 
