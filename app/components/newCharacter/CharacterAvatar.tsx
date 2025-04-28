@@ -256,7 +256,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
                           </p>
                         </li>
                       ))}
-                      <li className="relative w-48 h-48 flex flex-col items-center rounded-lg transition-colors">
+                      <li className="relative w-30 h-30 flex flex-col items-center rounded-lg transition-colors">
                         <ImgUploaderWithCopper
                           setDownloadUrl={() => { }}
                           setCopperedDownloadUrl={setCopperedUrl}
@@ -268,7 +268,7 @@ export default function CharacterAvatar({ role, onchange, isEditing }: {
                           <button className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
-                              className="h-28 w-28 text-gray-400"
+                              className="h-30 w-30 text-gray-400"
                               fill="none"
                               viewBox="0 0 24 24"
                               stroke="currentColor"
