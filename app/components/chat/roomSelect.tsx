@@ -151,27 +151,24 @@ export default function RoomSelect() {
       {/* 房间列表 */}
       <div className="flex flex-col gap-2 p-2 w-[200px] bg-base-100">
         {rooms.map(room => (
-          <React.Fragment key={room.roomId}>
-            {activeSpaceId === room.roomId && (
-              rooms
-                .map(room => (
-                  <button
-                    key={room.roomId}
-                    className="btn btn-ghost flex justify-start w-full gap-2"
-                    type="button"
-                    onClick={() => setActiveRoomId(room.roomId ?? -1)}
-                  >
-                    <div className="avatar mask mask-squircle w-8">
-                      <img
-                        src={room.avatar}
-                        alt={room.name}
-                      />
-                    </div>
-                    <span className="truncate flex-1 text-left">{room.name}</span>
-                  </button>
-                ))
+          <div key={room.roomId}>
+            {activeSpaceId === room.spaceId && (
+              <button
+                key={room.roomId}
+                className="btn btn-ghost flex justify-start w-full gap-2"
+                type="button"
+                onClick={() => setActiveRoomId(room.roomId ?? -1)}
+              >
+                <div className="avatar mask mask-squircle w-8">
+                  <img
+                    src={room.avatar}
+                    alt={room.name}
+                  />
+                </div>
+                <span className="truncate flex-1 text-left">{room.name}</span>
+              </button>
             )}
-          </React.Fragment>
+          </div>
         ))}
         {activeSpaceId !== null && (
           <button
