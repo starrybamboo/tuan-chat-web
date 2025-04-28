@@ -6,10 +6,14 @@ import {
   useUpdateKeyFieldMutation,
   useUpdateRoleAbilityMutation,
 } from "../../../api/hooks/abilityQueryHooks";
+import { useGetRuleDetailQueries } from "../../../api/hooks/ruleQueryHooks";
 
 export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   const roleAbilityListQuery = useGetRoleAbilitiesQuery(roleId);
   const roleAbilityList = roleAbilityListQuery.data?.data ?? [];
+  const ruleIds = roleAbilityList?.map(ability => ability.abilityId ?? -1) ?? [];
+  const ruleQueries = useGetRuleDetailQueries(ruleIds);
+  const rules = ruleQueries.map(query => query.data?.data ?? {}) ?? [];
 
   const [editingField, setEditingField] = useState<{
     abilityId: number;
@@ -30,9 +34,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
     setAbilityMutation.mutate({
       ruleId: 1,
       roleId,
-      act: {
-        default: "default",
-      },
+      act: {},
       ability: {},
     });
   }
@@ -106,14 +108,14 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
 
   return (
     <div className="flex flex-col gap-2 overflow-auto h-[70vh] w-full">
-      {roleAbilityList.map((ability) => {
+      {roleAbilityList.map((ability, index) => {
         return (
           <div key={ability.abilityId} className="flex flex-col gap-1">
             <div className="collapse collapse-plus bg-base-100 border-base-300 border w-m">
               <input type="checkbox" />
               <div className="collapse-title font-semibold">
-                ruleId:
-                {ability.ruleId}
+                {rules[index].ruleName ?? "未命名规则  "}
+                {`id:${ability.abilityId}`}
               </div>
               <div className="collapse-content flex flex-row gap-2 w-full">
                 <div className="flex flex-col gap-1">
