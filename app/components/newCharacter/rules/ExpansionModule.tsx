@@ -1,6 +1,6 @@
 import type { GameRule } from "../types";
 import { useEffect, useState } from "react";
-import { useRuleList } from "../../../../api/queryHooks";
+import { useRulePageMutation } from "../../../../api/queryHooks";
 import Section from "../Section";
 import NumericalEditor from "./NumericalEditor";
 import PerformanceEditor from "./PerformanceEditor";
@@ -18,16 +18,26 @@ interface ExpansionModuleProps {
 export default function ExpansionModule({
   onRuleDataChange,
 }: ExpansionModuleProps) {
-  const ruleListMutation = useRuleList({ pageNo: 1, pageSize: 10 });
+  const ruleListMutation = useRulePageMutation();
   const [rules, setRules] = useState<GameRule[]>([]);
 
-  // 使用 useEffect 处理异步数据
+  // 管理当前选择的规则和规则数据
+  const [selectedRuleId, setSelectedRuleId] = useState<number>(
+    rules.length > 0 ? rules[0].id : 0,
+  );
+
+  const [currentRule, setCurrentRule] = useState<GameRule | undefined>(() => {
+    return rules.length > 0 ? { ...rules[0] } : undefined;
+  });
+
   useEffect(() => {
     const fetchRules = async () => {
       try {
-        const result = await ruleListMutation.mutateAsync();
+        const result = await ruleListMutation.mutateAsync({ pageNo: 1, pageSize: 5 });
         if (result && result.length > 0) {
           setRules(result);
+          setSelectedRuleId(result[0].id);
+          setCurrentRule({ ...result[0] });
         }
       }
       catch (error) {
@@ -37,14 +47,6 @@ export default function ExpansionModule({
 
     fetchRules();
   }, []); // 仅在组件挂载时执行一次
-
-  // 管理当前选择的规则和规则数据
-  const [selectedRuleId, setSelectedRuleId] = useState<number>(
-    rules.length > 0 ? rules[0].id : 0,
-  );
-  const [currentRule, setCurrentRule] = useState<GameRule | undefined>(() => {
-    return rules.length > 0 ? { ...rules[0] } : undefined;
-  });
 
   // 处理规则切换
   const handleRuleChange = (newRuleId: number) => {

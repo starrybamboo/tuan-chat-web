@@ -392,10 +392,10 @@ import type { GameRule } from '@/components/newCharacter/types';
 import type { RulePageRequest } from './models/RulePageRequest';
 
 //获取规则
-export function useRuleList(params: RulePageRequest) {
+export function useRulePageMutation() {
   return useMutation({
-    mutationKey: ["ruleList", params],
-    mutationFn: async (): Promise<GameRule[]> => {
+    mutationKey: ["ruleList"],
+    mutationFn: async (params: RulePageRequest): Promise<GameRule[]> => {
       const res = await tuanchat.ruleController.getRulePage(params);
       if (res.success && res.data?.list) {
         // 将后端数据结构转换为前端需要的 `GameRule` 类型
