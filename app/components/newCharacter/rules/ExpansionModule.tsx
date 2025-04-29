@@ -1,6 +1,6 @@
 import type { GameRule } from "../types";
-import { useState } from "react";
-import { useRuleListQuery } from "../../../../api/queryHooks";
+import { useEffect, useState } from "react";
+import { useRuleList } from "../../../../api/queryHooks";
 import Section from "../Section";
 import NumericalEditor from "./NumericalEditor";
 import PerformanceEditor from "./PerformanceEditor";
@@ -18,7 +18,25 @@ interface ExpansionModuleProps {
 export default function ExpansionModule({
   onRuleDataChange,
 }: ExpansionModuleProps) {
-  const { data: rules = [] } = useRuleListQuery();
+  const ruleListMutation = useRuleList({ pageNo: 1, pageSize: 10 });
+  const [rules, setRules] = useState<GameRule[]>([]);
+
+  // 使用 useEffect 处理异步数据
+  useEffect(() => {
+    const fetchRules = async () => {
+      try {
+        const result = await ruleListMutation.mutateAsync();
+        if (result && result.length > 0) {
+          setRules(result);
+        }
+      }
+      catch (error) {
+        console.error("获取规则列表失败:", error);
+      }
+    };
+
+    fetchRules();
+  }, []); // 仅在组件挂载时执行一次
 
   // 管理当前选择的规则和规则数据
   const [selectedRuleId, setSelectedRuleId] = useState<number>(
