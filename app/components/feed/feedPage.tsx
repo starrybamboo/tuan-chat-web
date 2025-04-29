@@ -15,6 +15,8 @@ export default function FeedPage() {
   const navigate = useNavigate();
   const [isDetailView, setIsDetailView] = useState(false);
 
+  // 还剩多少个的时候触发加载
+  const FETCH_ON_REMAIN = 2;
   const feedInfiniteQuery = useInfiniteQuery({
     queryKey: ["pageFeed"],
     queryFn: async ({ pageParam }) => {
@@ -33,17 +35,18 @@ export default function FeedPage() {
     refetchOnWindowFocus: false,
   });
 
-  // 触发feed流加载
-  useEffect(() => {
-    if (feedEntry?.isIntersecting && !feedInfiniteQuery.isFetching) {
-      feedInfiniteQuery.fetchNextPage();
-    }
-  }, [feedEntry?.isIntersecting]);
-
   // 合并所有分页消息
   const feeds: Feed[] = useMemo(() => {
     return (feedInfiniteQuery.data?.pages.flatMap(p => p.data?.list ?? []) ?? []);
   }, [feedInfiniteQuery.data?.pages]);
+  const currentIndex = feeds.findIndex(f => f.feedId === Number(feedId));
+
+  // 触发feed流加载
+  useEffect(() => {
+    if ((feedEntry?.isIntersecting && !feedInfiniteQuery.isFetching) || currentIndex >= feeds.length - FETCH_ON_REMAIN) {
+      feedInfiniteQuery.fetchNextPage();
+    }
+  }, [feedEntry?.isIntersecting, currentIndex]);
 
   // 处理详情视图切换
   useEffect(() => {
@@ -80,7 +83,6 @@ export default function FeedPage() {
       return;
     e.preventDefault();
 
-    const currentIndex = feeds.findIndex(f => f.feedId === Number(feedId));
     if (currentIndex === -1)
       return;
 
@@ -121,7 +123,7 @@ export default function FeedPage() {
     <div className="w-[70vw] mx-auto overflow-y-auto flex flex-col h-[95vh]">
       {feeds.map((feed, index) => (
         <div
-          ref={index === feeds.length - 2 ? feedRef : null}
+          ref={index === feeds.length - FETCH_ON_REMAIN ? feedRef : null}
           key={feed.feedId}
           onClick={() => navigate(`/feed/${feed.feedId}`)}
           className="cursor-pointer"
