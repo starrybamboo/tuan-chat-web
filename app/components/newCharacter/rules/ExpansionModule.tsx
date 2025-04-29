@@ -1,6 +1,6 @@
 import type { GameRule } from "../types";
 import { useEffect, useState } from "react";
-import { useRulePageMutation } from "../../../../api/queryHooks";
+import { useRuleDetailQuery, useRulePageMutation } from "../../../../api/queryHooks";
 import Section from "../Section";
 import NumericalEditor from "./NumericalEditor";
 import PerformanceEditor from "./PerformanceEditor";
@@ -19,16 +19,20 @@ export default function ExpansionModule({
   onRuleDataChange,
 }: ExpansionModuleProps) {
   const ruleListMutation = useRulePageMutation();
-  const [rules, setRules] = useState<GameRule[]>([]);
+  const [rules, setRules] = useState<GameRule[]>([]); // 规则列表
 
   // 管理当前选择的规则和规则数据
   const [selectedRuleId, setSelectedRuleId] = useState<number>(
     rules.length > 0 ? rules[0].id : 0,
   );
 
+  // 规则详情
   const [currentRule, setCurrentRule] = useState<GameRule | undefined>(() => {
     return rules.length > 0 ? { ...rules[0] } : undefined;
   });
+
+  // 规则详情查询
+  const ruleDetailQuery = useRuleDetailQuery(selectedRuleId);
 
   useEffect(() => {
     const fetchRules = async () => {
@@ -47,6 +51,12 @@ export default function ExpansionModule({
 
     fetchRules();
   }, []); // 仅在组件挂载时执行一次
+
+  useEffect(() => {
+    if (ruleDetailQuery.data) {
+      setCurrentRule(ruleDetailQuery.data);
+    }
+  }, [ruleDetailQuery.data]);
 
   // 处理规则切换
   const handleRuleChange = (newRuleId: number) => {
