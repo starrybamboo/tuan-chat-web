@@ -1,4 +1,4 @@
-import {useMutation, useQueries, useQuery, useQueryClient} from "@tanstack/react-query";
+import {useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient} from "@tanstack/react-query";
 import type {RuleCloneRequest} from "../models/RuleCloneRequest";
 import type {RuleCreateRequest} from "../models/RuleCreateRequest";
 import type {RulePageRequest} from "../models/RulePageRequest";
@@ -26,13 +26,37 @@ export function useUpdateRuleMutation() {
 
 /**
  * 分页获取规则列表
+ * 支持通过关键词搜索规则名称或描述
  * @param requestBody 分页请求参数
+ * @param pageSize 每页大小，默认为10
  */
-export function useGetRulePageQuery(requestBody: RulePageRequest) {
-    return useQuery({
-        queryKey: ['getRulePage', requestBody],
-        queryFn: () => tuanchat.ruleController.getRulePage(requestBody),
-        staleTime: 300000 // 5分钟缓存
+export function useGetRulePageInfiniteQuery(
+    requestBody: RulePageRequest,
+    pageSize: number = 10
+) {
+    return useInfiniteQuery({
+        queryKey: ["getRulePage", requestBody],
+        queryFn: async ({ pageParam }) => {
+            const params = { ...requestBody, ...pageParam };
+            return tuanchat.ruleController.getRulePage(params);
+        },
+        getNextPageParam: (lastPage, allPages) => {
+            if (!lastPage.data?.isLast) {
+                return undefined;
+            }
+            return {
+                ...requestBody,
+                pageSize,
+                pageNo: allPages.length + 1,
+            };
+        },
+        initialPageParam: {
+            ...requestBody,
+            pageSize,
+            pageNo: 1,
+        } as RulePageRequest,
+        staleTime: 30000, // 30秒缓存
+        refetchOnWindowFocus: false,
     });
 }
 

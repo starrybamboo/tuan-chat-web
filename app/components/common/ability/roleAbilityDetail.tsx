@@ -1,8 +1,9 @@
 import type { AbilityFieldUpdateRequest } from "../../../../api";
-import { useState } from "react";
+import AddAbilityWindow from "@/components/common/ability/addAbilityWindow";
+import { PopWindow } from "@/components/common/popWindow";
+import React, { useState } from "react";
 import {
   useGetRoleAbilitiesQuery,
-  useSetRoleAbilityMutation,
   useUpdateKeyFieldMutation,
   useUpdateRoleAbilityMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
@@ -28,16 +29,9 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   // Mutations
   const updateAbilityMutation = useUpdateRoleAbilityMutation();
   const updateKeyFieldMutation = useUpdateKeyFieldMutation();
-  const setAbilityMutation = useSetRoleAbilityMutation();
 
-  function handleCreatAbility() {
-    setAbilityMutation.mutate({
-      ruleId: 1,
-      roleId,
-      act: {},
-      ability: {},
-    });
-  }
+  const [isOpenAbilityWindow, setIsOpenAbilityWindow] = useState(false);
+
   // 统一处理字段更新
   const handleUpdate = (abilityId: number, type: "ability" | "act", key: string, updateValue: string, isKeyField: boolean) => {
     if (isKeyField) {
@@ -181,8 +175,11 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
         );
       })}
       <div className="flex justify-center items-center flex-col gap-8">
-        <button className="btn" type="button" onClick={handleCreatAbility}>新建一个能力组</button>
+        <button className="btn" type="button" onClick={() => setIsOpenAbilityWindow(true)}>新建一个能力组</button>
       </div>
+      <PopWindow isOpen={isOpenAbilityWindow} onClose={() => setIsOpenAbilityWindow(false)}>
+        <AddAbilityWindow roleId={roleId} onClose={() => setIsOpenAbilityWindow(false)} />
+      </PopWindow>
     </div>
   );
 }
