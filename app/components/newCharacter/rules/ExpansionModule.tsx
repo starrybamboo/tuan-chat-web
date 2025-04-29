@@ -19,6 +19,7 @@ export default function ExpansionModule({
   onRuleDataChange,
 }: ExpansionModuleProps) {
   const ruleListMutation = useRulePageMutation();
+
   const [rules, setRules] = useState<GameRule[]>([]); // 规则列表
 
   // 管理当前选择的规则和规则数据

@@ -416,7 +416,7 @@ export function useRulePageMutation() {
 export function useRuleDetailQuery(ruleId: number) {
   return useQuery({
     queryKey: ["ruleDetail", ruleId],
-    queryFn: async (): Promise<GameRule> => {
+    queryFn: async () => {
       const res = await tuanchat.ruleController.getRuleDetail(ruleId)
       if (res.success && res.data) {
         // 将后端数据结构转换为前端需要的 `GameRule` 类型
@@ -432,8 +432,32 @@ export function useRuleDetailQuery(ruleId: number) {
     }
   })
 }
-   
-// post部分
+
+// 获取能力,根据角色和规则
+export function useRoleAbilityByRule(roleId:number,ruleId: number){
+  return useQuery({
+    queryKey: ["roleAbilityByRule", roleId, ruleId],
+    queryFn: async () => {
+      const res = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    }
+  })
+}
+
+// 创建能力
+export function useCreateAbilityMutation() {
+  return useMutation({
+    mutationKey: ["createAbility"],
+    mutationFn: async () => {
+      
+    }
+  })
+}
+
+
+
 //删除角色
 export function useDeleteRole() {
   return useMutation({
