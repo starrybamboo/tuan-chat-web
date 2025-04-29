@@ -14,9 +14,5 @@ export type RoleCreateRequest = {
      * 简介
      */
     description?: string;
-    /**
-     * 角色头像
-     */
-    avatarId?: number;
 };
 

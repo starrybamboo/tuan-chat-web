@@ -3,8 +3,8 @@ import { PopWindow } from "@/components/common/popWindow";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { use, useState } from "react";
+import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
 import {
-  useDeleteRole1Mutation,
   useGetRoleAvatarQuery,
   useGetUserRolesQuery,
 } from "../../../api/queryHooks";

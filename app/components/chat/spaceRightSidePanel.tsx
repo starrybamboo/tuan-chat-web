@@ -11,7 +11,7 @@ import {
   useAddSpaceRoleMutation,
   useGetSpaceMembersQuery,
   useGetSpaceRolesQuery,
-} from "../../../api/queryHooks";
+} from "../../../api/hooks/chatQueryHooks";
 
 export default function SpaceRightSidePanel() {
   const spaceContext = use(SpaceContext);

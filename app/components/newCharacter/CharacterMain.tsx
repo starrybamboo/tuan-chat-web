@@ -184,7 +184,7 @@ export default function CharacterMain() {
       {/* 主内容区 */}
       <div className="drawer-content bg-base-100">
         {/* 添加条件渲染，在小屏幕且抽屉打开时隐藏内容 */}
-        <div className="p-4">
+        <div className="p-4 overflow-y-auto h-[calc(100vh-2rem)] scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-base-100">
           {currentRole
             ? (
                 <CharacterDetail

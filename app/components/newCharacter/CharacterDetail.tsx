@@ -2,8 +2,8 @@ import type { Role } from "./types";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useMemo, useState } from "react";
-import ExpansionModule from "../newCharacter/rules/ExpansionModule";
 import CharacterAvatar from "./CharacterAvatar";
+import ExpansionModule from "./rules/ExpansionModule";
 // import Section from "./Section";
 
 interface CharacterDetailProps {

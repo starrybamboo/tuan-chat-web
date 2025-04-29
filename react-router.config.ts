@@ -5,6 +5,6 @@ export default {
   // Config options...
   // Server-side render by default, to enable SPA mode set this to `false`
   ssr: false,
-  prerender: ["/", "/chat", "/community", "/create", "/feed", "/module/create", "/profile", "/role", "module/detail/:id"],
+  prerender: ["/", "/chat", "/community", "/create", "/feed", "/module/create", "/profile", "/role", "module/detail", "/collection"],
   // prerender: true,
 } satisfies Config;

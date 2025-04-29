@@ -1,6 +1,6 @@
 import { PopWindow } from "@/components/common/popWindow";
 import React, { useState } from "react";
-import { useGetUserRoomsQueries, useGetUserSpacesQuery } from "../../../../api/queryHooks";
+import { useGetUserRoomsQueries, useGetUserSpacesQuery } from "../../../../api/hooks/chatQueryHooks";
 
 function ForwardWindow({ onClickRoom, handlePublishFeed }:
 { onClickRoom: (roomId: number) => void

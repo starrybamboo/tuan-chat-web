@@ -36,17 +36,18 @@ export class UserControllerService {
     }
     /**
      * 修改用户信息
-     * @param userInfoResponse
+     * @param requestBody
      * @returns ApiResultUserInfoResponse OK
      * @throws ApiError
      */
     public updateUserInfo(
-        userInfoResponse: UserInfoResponse,
+        requestBody: UserInfoResponse,
     ): CancelablePromise<ApiResultUserInfoResponse> {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/capi/user/info',
-            query: userInfoResponse,
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

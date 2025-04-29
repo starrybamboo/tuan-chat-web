@@ -1,6 +1,6 @@
 import type { GameRule } from "../types";
-import { useState } from "react";
-import { useRuleListQuery } from "../../../../api/queryHooks";
+import { useEffect, useState } from "react";
+import { useRuleDetailQuery, useRulePageMutation } from "../../../../api/queryHooks";
 import Section from "../Section";
 // import AbilityModule from "./AbilityModule";
 import NumericalEditor from "./NumericalEditor";
@@ -25,16 +25,43 @@ export default function ExpansionModule({
   onRuleDataChange,
   // onAbilityChange,
 }: ExpansionModuleProps) {
-  const { data: rules = [] } = useRuleListQuery();
+  const ruleListMutation = useRulePageMutation();
+  const [rules, setRules] = useState<GameRule[]>([]); // 规则列表
 
   // 管理当前选择的规则和规则数据
   const [selectedRuleId, setSelectedRuleId] = useState<number>(
     rules.length > 0 ? rules[0].id : 0,
   );
-
   const [currentRule, setCurrentRule] = useState<GameRule | undefined>(() => {
     return rules.length > 0 ? { ...rules[0] } : undefined;
   });
+
+  // 规则详情查询
+  const ruleDetailQuery = useRuleDetailQuery(selectedRuleId);
+
+  useEffect(() => {
+    const fetchRules = async () => {
+      try {
+        const result = await ruleListMutation.mutateAsync({ pageNo: 1, pageSize: 5 });
+        if (result && result.length > 0) {
+          setRules(result);
+          setSelectedRuleId(result[0].id);
+          setCurrentRule({ ...result[0] });
+        }
+      }
+      catch (error) {
+        console.error("获取规则列表失败:", error);
+      }
+    };
+
+    fetchRules();
+  }, []); // 仅在组件挂载时执行一次
+
+  useEffect(() => {
+    if (ruleDetailQuery.data) {
+      setCurrentRule(ruleDetailQuery.data);
+    }
+  }, [ruleDetailQuery.data]);
 
   // 处理规则切换
   const handleRuleChange = (newRuleId: number) => {

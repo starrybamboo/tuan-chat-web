@@ -17,7 +17,7 @@ export type RolePageQueryRequest = {
     /**
      * 请求用户id
      */
-    userId?: number;
+    userId: number;
     /**
      * 角色名称，支持模糊查询
      */

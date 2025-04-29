@@ -13,8 +13,9 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDeleteMessageMutation, useMoveMessageMutation } from "../../../api/hooks/chatQueryHooks";
+import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
 import { tuanchat } from "../../../api/instance";
-import { useDeleteMessageMutation, useMoveMessageMutation, usePublishFeedMutation } from "../../../api/queryHooks";
 
 export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
 { useChatBubbleStyle: boolean; chatFrameRef: React.RefObject<HTMLDivElement> }) {
@@ -233,6 +234,13 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     const messageElement = target.closest("[data-message-id]");
     setContextMenu({ x: e.clientX, y: e.clientY, messageId: Number(messageElement?.getAttribute("data-message-id")) });
   }
+
+  function handleBatchDelete() {
+    for (const messageId of selectedMessageIds) {
+      deleteMessageMutation.mutate(messageId);
+    }
+    updateSelectedMessageIds(new Set());
+  }
   // 关闭右键菜单
   function closeContextMenu() {
     setContextMenu(null);
@@ -278,6 +286,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       )
       );
     })), [handleDrop, historyMessages, isSelecting, messageRef, selectedMessageIds, useChatBubbleStyle]);
+
   return (
     <>
       {/* 这里是从下到上渲染的 */}
@@ -300,6 +309,13 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
                 type="button"
               >
                 转发
+              </button>
+              <button
+                className="btn btn-sm btn-error"
+                onClick={() => handleBatchDelete()}
+                type="button"
+              >
+                删除
               </button>
             </div>
           </div>

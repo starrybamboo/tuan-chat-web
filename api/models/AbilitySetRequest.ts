@@ -15,12 +15,12 @@ export type AbilitySetRequest = {
      */
     ruleId: number;
     /**
-     * 表演相关字段，不能为空或null，必须为单层
+     * 表演相关字段，不能或null
      */
-    act?: Record<string, Record<string, any>>;
+    act: Record<string, string>;
     /**
-     * 能力字段，不能为空或null，必须为单层
+     * 能力字段，不能为null
      */
-    ability?: Record<string, Record<string, any>>;
+    ability: Record<string, number>;
 };
 
