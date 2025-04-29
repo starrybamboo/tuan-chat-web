@@ -1,10 +1,12 @@
 import type { WheelEvent } from "react";
 import { ChatBubble } from "@/components/chat/chatBubble";
+import CollectionIconButton from "@/components/common/collection/collectionIconButton";
 import CommentPanel from "@/components/common/comment/commentPanel";
-import LikeComponent from "@/components/common/likeComponent";
+import LikeIconButton from "@/components/common/likeIconButton";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
-import { useState } from "react";
+import React, { useState } from "react";
+
 import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
 import { useGetFeedByIdQuery } from "../../../api/hooks/FeedQueryHooks";
 
@@ -69,7 +71,9 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
         </UserAvatarComponent>
 
         {/* 点赞按钮 */}
-        <LikeComponent targetInfo={{ targetId: feed.feedId ?? -1, targetType: "1" }} key={`${feed.feedId}`}></LikeComponent>
+        <LikeIconButton targetInfo={{ targetId: feed.feedId ?? -1, targetType: "1" }}></LikeIconButton>
+        {/* 收藏按钮 */}
+        <CollectionIconButton targetInfo={{ resourceId: feed.feedId ?? -1, resourceType: "1" }} />
 
         {/* 评论按钮 */}
         <button onClick={() => setShowComments(!showComments)} className="flex flex-col items-center" type="button">
