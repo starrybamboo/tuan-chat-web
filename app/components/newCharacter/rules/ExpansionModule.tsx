@@ -28,9 +28,9 @@ export default function ExpansionModule({
   );
 
   // 规则详情
-  const [currentRule, setCurrentRule] = useState<GameRule | undefined>(() => {
-    return rules.length > 0 ? { ...rules[0] } : undefined;
-  });
+  // const [currentRule, setCurrentRule] = useState<GameRule | undefined>(() => {
+  //   return rules.length > 0 ? { ...rules[0] } : undefined;
+  // });
 
   // 规则详情查询
   const ruleDetailQuery = useRuleDetailQuery(selectedRuleId);
@@ -42,7 +42,7 @@ export default function ExpansionModule({
         if (result && result.length > 0) {
           setRules(result);
           setSelectedRuleId(result[0].id);
-          setCurrentRule({ ...result[0] });
+          // setCurrentRule({ ...result[0] });
         }
       }
       catch (error) {
@@ -53,20 +53,20 @@ export default function ExpansionModule({
     fetchRules();
   }, []); // 仅在组件挂载时执行一次
 
-  useEffect(() => {
-    if (ruleDetailQuery.data) {
-      setCurrentRule(ruleDetailQuery.data);
-    }
-  }, [ruleDetailQuery.data]);
+  // useEffect(() => {
+  //   if (ruleDetailQuery.data) {
+  //     setCurrentRule(ruleDetailQuery.data);
+  //   }
+  // }, [ruleDetailQuery.data]);
 
   // 处理规则切换
   const handleRuleChange = (newRuleId: number) => {
     // 触发回调通知当前规则数据更改
-    if (onRuleDataChange && selectedRuleId && currentRule) {
+    if (onRuleDataChange && selectedRuleId && ruleDetailQuery.data) {
       onRuleDataChange(
         selectedRuleId,
-        currentRule.performance,
-        currentRule.numerical,
+        ruleDetailQuery.data.performance,
+        ruleDetailQuery.data.numerical,
       );
     }
 
@@ -74,26 +74,26 @@ export default function ExpansionModule({
     const newRule = rules.find(r => r.id === newRuleId);
     if (newRule) {
       setSelectedRuleId(newRuleId);
-      setCurrentRule({ ...newRule });
+      // setCurrentRule({ ...newRule });
     }
   };
 
   // 更新表演字段
   const handlePerformanceChange = (performance: any) => {
-    setCurrentRule((prev: any) => (prev ? { ...prev, performance } : prev));
+    // setCurrentRule((prev: any) => (prev ? { ...prev, performance } : prev));
 
     // 可选：通知外部规则数据变化
-    if (onRuleDataChange && selectedRuleId && currentRule) {
-      onRuleDataChange(selectedRuleId, performance, currentRule.numerical);
+    if (onRuleDataChange && selectedRuleId && ruleDetailQuery.data) {
+      onRuleDataChange(selectedRuleId, performance, ruleDetailQuery.data.numerical);
     }
   };
 
   // 更新数值约束
   const handleNumericalChange = (numerical: any) => {
-    setCurrentRule((prev: any) => (prev ? { ...prev, numerical } : prev));
+    // setCurrentRule((prev: any) => (prev ? { ...prev, numerical } : prev));
 
-    if (onRuleDataChange && selectedRuleId && currentRule) {
-      onRuleDataChange(selectedRuleId, currentRule.performance, numerical);
+    if (onRuleDataChange && selectedRuleId && ruleDetailQuery.data) {
+      onRuleDataChange(selectedRuleId, ruleDetailQuery.data.performance, numerical);
     }
   };
 
@@ -105,18 +105,18 @@ export default function ExpansionModule({
         onRuleChange={handleRuleChange}
       />
 
-      {currentRule && (
+      {ruleDetailQuery.data && (
         <>
           <Section title="表演字段配置">
             <PerformanceEditor
-              fields={currentRule.performance}
+              fields={ruleDetailQuery.data.performance}
               onChange={handlePerformanceChange}
             />
           </Section>
 
           <Section title="数值约束配置">
             <NumericalEditor
-              constraints={currentRule.numerical}
+              constraints={ruleDetailQuery.data.numerical}
               onChange={handleNumericalChange}
             />
           </Section>
