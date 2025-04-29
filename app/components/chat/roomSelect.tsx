@@ -195,7 +195,7 @@ export default function RoomSelect() {
       }
       {/* 创建空间弹出窗口 */}
       <PopWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
-        <div className="w-full p-4 min-w-[40vw] max-h-[80vh] overflow-y-auto">
+        <div className="w-full pl-4 pr-4 min-w-[40vw] max-h-[80vh] overflow-y-auto">
           <p className="text-lg font-bold text-center w-full mb-4">创建空间</p>
 
           {/* 头像上传 */}
@@ -255,7 +255,7 @@ export default function RoomSelect() {
           {inputUserId > 0 && inputUserInfo && (
             <div className="items-center flex flex-col gap-y-4 pb-4">
               <UserDetail userId={inputUserId} />
-              <div className="sticky bottom-0 w-full bg-base-100 pt-4 pb-4 border-t border-base-200">
+              <div className="sticky bottom-0 w-full bg-base-300 pt-4">
                 <button
                   className="btn btn-primary w-full shadow-lg"
                   type="button"
@@ -268,9 +268,9 @@ export default function RoomSelect() {
           )}
         </div>
       </PopWindow>
-      {/* 创建子群弹出窗口(后面如果与上面功能没太多区别就合并) */}
+      {/* 创建子群弹出窗口 */}
       <PopWindow isOpen={isRoomHandleOpen} onClose={() => setIsRoomHandleOpen(false)}>
-        <div className="w-full p-4 min-w-[40vw] max-h-[80vh] overflow-y-auto">
+        <div className="w-full pl-4 pr-4 min-w-[40vw] max-h-[80vh] overflow-y-auto">
           <p className="text-lg font-bold text-center w-full mb-4">创建房间</p>
           {/* 头像上传 */}
           <div className="flex justify-center mb-6">
@@ -329,7 +329,7 @@ export default function RoomSelect() {
           {inputUserId > 0 && inputUserInfo && (
             <div className="items-center flex flex-col gap-y-4 pb-4">
               <UserDetail userId={inputUserId} />
-              <div className="sticky bottom-0 w-full bg-base-100 pt-4 pb-4 border-t border-base-200">
+              <div className="sticky bottom-0 w-full bg-base-300 pt-4">
                 <button
                   className="btn btn-primary w-full shadow-lg"
                   type="button"
