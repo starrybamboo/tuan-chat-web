@@ -262,18 +262,6 @@ export default function CharacterAvatar({ role, onchange }: {
                   </ImgUploaderWithCopper>
                 </li>
               </div>
-              <div className="card-actions justify-end">
-                <button
-                  type="submit"
-                  onClick={() => {
-                    setChangeAvatarConfirmOpen(false);
-                    onchange(copperedUrl, avatarId);
-                  }}
-                  className="btn btn-primary"
-                >
-                  确认更改头像
-                </button>
-              </div>
             </div>
 
             {/* 删除确认弹窗 */}
@@ -295,6 +283,18 @@ export default function CharacterAvatar({ role, onchange }: {
               </div>
             </PopWindow>
           </div>
+        </div>
+        <div className="card-actions justify-end">
+          <button
+            type="submit"
+            onClick={() => {
+              setChangeAvatarConfirmOpen(false);
+              onchange(copperedUrl, avatarId);
+            }}
+            className="btn btn-primary"
+          >
+            确认更改头像
+          </button>
         </div>
       </PopWindow>
     </div>
