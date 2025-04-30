@@ -1,14 +1,16 @@
 import { RoomContext } from "@/components/chat/roomContext";
-import { EditableField } from "@/components/common/EditableFiled";
+import { EditableField } from "@/components/common/editableFiled";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
-import { use } from "react";
 import {
   useDissolveRoomMutation,
   useGetRoomInfoQuery,
   useUpdateRoomMutation,
-} from "../../../../api/queryHooks";
+} from "api/hooks/chatQueryHooks";
+import { use } from "react";
+import { useNavigate } from "react-router";
 
-function SettingWindow({ onClose }: { onClose: () => void }) {
+function RoomSettingWindow({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
   const roomContext = use(RoomContext);
   // 获取群组数据
   const roomId = Number(roomContext.roomId);
@@ -16,7 +18,6 @@ function SettingWindow({ onClose }: { onClose: () => void }) {
   const room = getRoomInfoQuery.data?.data;
   // 解散群组
   const dissolveRoomMutation = useDissolveRoomMutation();
-  // 更新群头像
   const updateRoomMutation = useUpdateRoomMutation();
 
   return (
@@ -65,6 +66,7 @@ function SettingWindow({ onClose }: { onClose: () => void }) {
               onClick={() => dissolveRoomMutation.mutate(roomId, {
                 onSuccess: () => {
                   onClose();
+                  navigate(`/chat/${roomContext.spaceId}`);
                 },
               })}
             >
@@ -77,4 +79,4 @@ function SettingWindow({ onClose }: { onClose: () => void }) {
   );
 }
 
-export default SettingWindow;
+export default RoomSettingWindow;

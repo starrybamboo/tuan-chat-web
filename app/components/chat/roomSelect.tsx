@@ -1,26 +1,32 @@
 import RoomWindow from "@/components/chat/roomWindow";
 import SpaceWindow from "@/components/chat/spaceWindow";
+import { PopWindow } from "@/components/common/popWindow";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   useCreateRoomMutation,
   useCreateSpaceMutation,
-  useGetUserInfoQuery,
+  useGetSpaceMembersQuery,
   useGetUserRoomsQuery,
   useGetUserSpacesQuery,
+} from "api/hooks/chatQueryHooks";
+import {
+  useGetUserInfoQuery,
 } from "api/queryHooks";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { PopWindow } from "../common/popWindow";
-import { UserDetail } from "../common/userDetail";
+import MemberInviteComponent from "../common/memberInvite";
 
 export default function RoomSelect() {
   const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
   const navigate = useNavigate();
 
-  // 当前展开房间的空间
+  // 当前选中的空间ID
   const [activeSpaceId, setActiveSpaceId] = useState<number | null>(urlSpaceId ? Number(urlSpaceId) : null);
   // 当前选中的房间ID
   const [activeRoomId, setActiveRoomId] = useState<number | null>(urlRoomId ? Number(urlRoomId) : null);
+
   // 同步路由状态
   useEffect(() => {
     if (activeSpaceId || activeRoomId) {
@@ -38,10 +44,8 @@ export default function RoomSelect() {
 
   // 创建空间
   const createSpaceMutation = useCreateSpaceMutation();
-  // 当前要创建房间的空间ID
-  const [currentSpaceId, setCurrentSpaceId] = useState<number | null>(null);
   // 创建房间
-  const createRoomMutation = useCreateRoomMutation(currentSpaceId || -1);
+  const createRoomMutation = useCreateRoomMutation(activeSpaceId || -1);
   // 创建空间弹窗是否打开
   const [isSpaceHandleOpen, setIsSpaceHandleOpen] = useState(false);
   // 创建房间弹窗是否打开
@@ -49,6 +53,25 @@ export default function RoomSelect() {
   // 处理邀请用户uid
   const [inputUserId, setInputUserId] = useState<number>(-1);
   const inputUserInfo = useGetUserInfoQuery(inputUserId).data?.data;
+  // 获取当前用户信息
+  const globalContext = useGlobalContext();
+  const getUserInfo = useGetUserInfoQuery(Number(globalContext.userId));
+  const userInfo = getUserInfo.data?.data;
+  // 创建空间的头像
+  const [spaceAvatar, setspaceAvatar] = useState<string>(String(userInfo?.avatar));
+  // 创建空间的名称
+  const [spaceName, setSpaceName] = useState<string>(`${String(userInfo?.username)}的空间`);
+  // 创建房间的头像
+  const [roomAvatar, setRoomAvatar] = useState<string>(String(spaces.find(space => (space.spaceId === activeSpaceId))?.avatar));
+  // 创建房间的名称
+  const [roomName, setRoomName] = useState<string>(`${String(userInfo?.username)}的房间`);
+
+  // 获取空间玩家列表
+  const getSpaceMembers = useGetSpaceMembersQuery(Number(activeSpaceId));
+  const members = getSpaceMembers.data?.data ?? [];
+  const players = members.filter(member => member.memberType === 2);
+  // 已选择邀请的用户
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
 
   // websocket封装, 用于发送接受消息
   const websocketUtils = useGlobalContext().websocketUtils;
@@ -62,6 +85,8 @@ export default function RoomSelect() {
   async function createSpace(userId: number) {
     createSpaceMutation.mutate({
       userIdList: [userId],
+      avatar: spaceAvatar,
+      spaceName,
     }, {
       onSettled: () => {
         setIsSpaceHandleOpen(false);
@@ -70,21 +95,21 @@ export default function RoomSelect() {
   }
 
   // 创建房间
-  async function createRoom(spaceId: number, userId: number) {
-    setCurrentSpaceId(spaceId);
+  async function createRoom(spaceId: number, userIds: number[]) {
     createRoomMutation.mutate({
       spaceId,
-      userIdList: [userId],
+      avatar: roomAvatar,
+      roomName,
+      userIdList: userIds,
     }, {
-      onSuccess: (data) => {
-        const newRoomId = data.data?.roomId;
-        if (newRoomId) {
-          setActiveRoomId(newRoomId);
+      onSettled: (data) => {
+        if (data && data.data) {
+          const newRoomId = data.data.roomId;
+          if (newRoomId)
+            setActiveRoomId(newRoomId);
         }
         setIsRoomHandleOpen(false);
-      },
-      onSettled: () => {
-        setIsRoomHandleOpen(false);
+        setSelectedUserIds(new Set());
       },
     });
   }
@@ -96,7 +121,7 @@ export default function RoomSelect() {
         {spaces.map(space => (
           <button
             key={space.spaceId}
-            className="tooltip tooltip-right w-10"
+            className="tooltip tooltip-right w-10 btn btn-square z-10"
             data-tip={space.name}
             type="button"
             onClick={() => {
@@ -116,7 +141,13 @@ export default function RoomSelect() {
           className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10"
           type="button"
           data-tip="创建空间"
-          onClick={() => setIsSpaceHandleOpen(true)}
+          onClick={() => {
+            setIsSpaceHandleOpen(true);
+            // 重置表单状态
+            setspaceAvatar(String(userInfo?.avatar));
+            setSpaceName(`${String(userInfo?.username)}的空间`);
+            setInputUserId(-1);
+          }}
         >
           <div className="avatar mask mask-squircle flex content-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -129,27 +160,24 @@ export default function RoomSelect() {
       {/* 房间列表 */}
       <div className="flex flex-col gap-2 p-2 w-[200px] bg-base-100">
         {rooms.map(room => (
-          <React.Fragment key={room.roomId}>
-            {activeSpaceId === room.roomId && (
-              rooms
-                .map(room => (
-                  <button
-                    key={room.roomId}
-                    className="btn btn-ghost flex justify-start w-full gap-2"
-                    type="button"
-                    onClick={() => setActiveRoomId(room.roomId ?? -1)}
-                  >
-                    <div className="avatar mask mask-squircle w-8">
-                      <img
-                        src={room.avatar}
-                        alt={room.name}
-                      />
-                    </div>
-                    <span className="truncate flex-1 text-left">{room.name}</span>
-                  </button>
-                ))
+          <div key={room.roomId}>
+            {activeSpaceId === room.spaceId && (
+              <button
+                key={room.roomId}
+                className="btn btn-ghost flex justify-start w-full gap-2"
+                type="button"
+                onClick={() => setActiveRoomId(room.roomId ?? -1)}
+              >
+                <div className="avatar mask mask-squircle w-8">
+                  <img
+                    src={room.avatar}
+                    alt={room.name}
+                  />
+                </div>
+                <span className="truncate flex-1 text-left">{room.name}</span>
+              </button>
             )}
-          </React.Fragment>
+          </div>
         ))}
         {activeSpaceId !== null && (
           <button
@@ -158,7 +186,9 @@ export default function RoomSelect() {
             onClick={() => {
               if (activeSpaceId) {
                 setIsRoomHandleOpen(true);
-                setCurrentSpaceId(activeSpaceId);
+                setRoomAvatar(String(spaces.find(space => (space.spaceId === activeSpaceId))?.avatar));
+                setRoomName(`${String(userInfo?.username)}的房间`);
+                setInputUserId(-1);
               }
             }}
           >
@@ -169,51 +199,187 @@ export default function RoomSelect() {
       {/* 对话窗口 */}
       {
         activeRoomId
-          ? <RoomWindow roomId={activeRoomId} />
+          ? <RoomWindow roomId={activeRoomId} spaceId={activeSpaceId ?? -1} />
           : <SpaceWindow spaceId={activeSpaceId ?? -1} />
       }
       {/* 创建空间弹出窗口 */}
       <PopWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
-        <div className="w-full p-4">
-          <p className="text-lg font-bold text-center w-full mb-4">输入要加入的用户的ID</p>
-          <input type="text" placeholder="输入要加入的成员的ID" className="input input-bordered w-full mb-8" onInput={e => setInputUserId(Number(e.currentTarget.value))} />
-          {
-            (inputUserId > 0 && inputUserInfo)
-            && (
-              <div className="items-center flex flex-col gap-y-4">
-                <UserDetail userId={inputUserId}></UserDetail>
-                <button className="btn btn-info" type="button" onClick={() => createSpace(Number(inputUserId))}>
-                  确认
+        <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[80vh] overflow-y-auto">
+          <p className="text-lg font-bold text-center w-full mb-4">创建空间</p>
+
+          {/* 头像上传 */}
+          <div className="flex justify-center mb-6">
+            <ImgUploaderWithCopper
+              setCopperedDownloadUrl={(url) => {
+                setspaceAvatar(url);
+              }}
+              fileName={`new-space-avatar-${Date.now()}`}
+            >
+              <div className="relative group overflow-hidden rounded-lg">
+                <img
+                  src={spaceAvatar}
+                  className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
+                />
+                <div
+                  className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm"
+                >
+                  <span className="font-bold text-black px-2 py-1 rounded leading-normal tracking-normal">
+                    上传头像
+                  </span>
+                </div>
+              </div>
+            </ImgUploaderWithCopper>
+          </div>
+
+          {/* 空间名称 */}
+          <div className="mb-4">
+            <label className="label mb-2">
+              <span className="label-text">空间名称</span>
+            </label>
+            <input
+              type="text"
+              placeholder={spaceName}
+              className="input input-bordered w-full"
+              onChange={(e) => {
+                const inputValue = e.target.value;
+                setSpaceName(inputValue === "" ? `${String(userInfo?.username)}的空间` : inputValue);
+              }}
+            />
+          </div>
+
+          {/* 邀请成员部分 */}
+          <div className="mb-4">
+            <label className="label mb-2">
+              <span className="label-text">邀请成员(输入用户ID)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="请输入要加入的成员ID"
+              className="input input-bordered w-full mb-4"
+              onInput={e => setInputUserId(Number(e.currentTarget.value))}
+            />
+          </div>
+
+          {/* 用户信息预览和确认按钮 */}
+          {inputUserId > 0 && inputUserInfo && (
+            <div className="items-center flex flex-col gap-y-4 pb-4">
+              <UserDetail userId={inputUserId} />
+              <div className="sticky bottom-0 w-full bg-base-300 pt-4">
+                <button
+                  className="btn btn-primary w-full shadow-lg"
+                  type="button"
+                  onClick={() => createSpace(Number(inputUserId))}
+                >
+                  创建空间
                 </button>
               </div>
-            )
-          }
+            </div>
+          )}
         </div>
       </PopWindow>
-      {/* 创建子群弹出窗口(后面如果与上面功能没太多区别就合并) */}
+      {/* 创建子群弹出窗口 */}
       <PopWindow isOpen={isRoomHandleOpen} onClose={() => setIsRoomHandleOpen(false)}>
-        <div className="w-full p-4">
-          <p className="text-lg font-bold text-center w-full mb-4">输入要加入的用户的ID</p>
-          <input type="text" placeholder="输入要加入的成员的ID" className="input input-bordered w-full mb-8" onInput={e => setInputUserId(Number(e.currentTarget.value))} />
-          {
-            (inputUserId > 0 && inputUserInfo)
-            && (
-              <div className="items-center flex flex-col gap-y-4">
-                <UserDetail userId={inputUserId}></UserDetail>
-                <button
-                  className="btn btn-info"
-                  type="button"
-                  onClick={() => {
-                    if (currentSpaceId) {
-                      createRoom(currentSpaceId, Number(inputUserId));
-                    }
-                  }}
+        <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[80vh] overflow-y-auto">
+          <p className="text-lg font-bold text-center w-full mb-4">创建房间</p>
+          {/* 头像上传 */}
+          <div className="flex justify-center mb-6">
+            <ImgUploaderWithCopper
+              setCopperedDownloadUrl={(url) => {
+                setRoomAvatar(url);
+              }}
+              fileName={`new-room-avatar-${Date.now()}`}
+            >
+              <div className="relative group overflow-hidden rounded-lg">
+                <img
+                  src={roomAvatar}
+                  className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
+                />
+                <div
+                  className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm"
                 >
-                  确认
-                </button>
+                  <span className="font-bold text-black px-2 py-1 rounded leading-normal tracking-normal">
+                    上传头像
+                  </span>
+                </div>
               </div>
-            )
-          }
+            </ImgUploaderWithCopper>
+          </div>
+
+          {/* 房间名称 */}
+          <div className="mb-4">
+            <label className="label mb-2">
+              <span className="label-text">房间名称</span>
+            </label>
+            <input
+              type="text"
+              placeholder={roomName}
+              className="input input-bordered w-full"
+              onChange={(e) => {
+                const inputValue = e.target.value;
+                setRoomName(inputValue === "" ? `${String(userInfo?.username)}的房间` : inputValue);
+              }}
+            />
+          </div>
+
+          {/* 邀请成员部分 */}
+          <div>
+            <label className="label mb-2">
+              <span className="label-text">邀请成员(输入用户ID)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="请输入要加入的成员ID"
+              className="input input-bordered w-full mb-2"
+              onInput={e => setInputUserId(Number(e.currentTarget.value))}
+            />
+          </div>
+
+          {/* 用户信息预览和确认按钮 */}
+          <div className="flex flex-col gap-y-2 pb-4 overflow-x-auto">
+            {players.map(player => (
+              <div
+                key={player.userId}
+                className="flex gap-x-4 items-center p-2 bg-base-100 rounded-lg w-full"
+              >
+                {/* 成员列表 */}
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={selectedUserIds.has(Number(player.userId))}
+                  onChange={(e) => {
+                    const userId = Number(player.userId);
+                    setSelectedUserIds((prev) => {
+                      const newSet = new Set(prev);
+                      if (e.target.checked) {
+                        newSet.add(userId);
+                      }
+                      else {
+                        newSet.delete(userId);
+                      }
+                      return newSet;
+                    });
+                  }}
+                />
+                <MemberInviteComponent userId={Number(player.userId)} />
+              </div>
+            ))}
+            <div className="sticky bottom-0 w-full bg-base-300 pt-4">
+              <button
+                className="btn btn-primary w-full shadow-lg"
+                type="button"
+                onClick={() => {
+                  // 合并选中的用户和手动输入的用户
+                  const userIds = Array.from(selectedUserIds);
+                  if (inputUserId > 0)
+                    userIds.push(inputUserId);
+
+                  createRoom(Number(activeSpaceId), userIds);
+                }}
+              >
+                创建房间
+              </button>
+            </div>
+          </div>
         </div>
       </PopWindow>
     </div>

@@ -11,7 +11,7 @@ import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
-import SettingWindow from "@/components/chat/window/settingWindow";
+import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import { PopWindow } from "@/components/common/popWindow";
@@ -22,15 +22,14 @@ import { UploadUtils } from "@/utils/UploadUtils";
 import { ChatRenderer } from "@/webGAL/chatRenderer";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
+import { useGetMemberListQuery, useGetRoomRoleQuery } from "../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../api/instance";
 import {
-  useGetMemberListQuery,
   useGetRoleAvatarsQuery,
-  useGetRoomRoleQuery,
   useGetUserRolesQuery,
 } from "../../../api/queryHooks";
 
-export function RoomWindow({ roomId }: { roomId: number }) {
+export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
   const webSocketUtils = globalContext.websocketUtils;
@@ -81,8 +80,9 @@ export function RoomWindow({ roomId }: { roomId: number }) {
       curRoleId,
       curAvatarId: roleAvatars[curAvatarIndex]?.avatarId ?? -1,
       useChatBubbleStyle,
+      spaceId,
     };
-  }, [curAvatarIndex, curMember, curRoleId, roomId, roomRolesThatUserOwn, members, roleAvatars, useChatBubbleStyle]);
+  }, [curAvatarIndex, curMember, curRoleId, roomId, roomRolesThatUserOwn, members, roleAvatars, useChatBubbleStyle, spaceId]);
 
   /**
    * 当群聊角色列表更新时, 自动设置为第一个角色
@@ -337,7 +337,7 @@ export function RoomWindow({ roomId }: { roomId: number }) {
       </div>
       {/* 设置窗口 */}
       <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
-        <SettingWindow onClose={() => setIsSettingWindowOpen(false)}></SettingWindow>
+        <RoomSettingWindow onClose={() => setIsSettingWindowOpen(false)}></RoomSettingWindow>
       </PopWindow>
     </RoomContext>
   );

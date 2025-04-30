@@ -20,14 +20,18 @@ export default function PerformanceEditor({
   const [newValue, setNewValue] = useState("");
   const [newItemName, setNewItemName] = useState("");
   const [newItemDesc, setNewItemDesc] = useState("");
+  // 是否编辑
+  const [isEditing, setIsEditing] = useState(false);
 
-  // 短字段（如年龄、性别等），多列排布
-  const shortFields = ["性别", "年龄", "外貌", "特质"];
+  // 长字段，记得写入
+  const longFieldKeys = [""];
 
   // 长字段（如背景故事等）
-  const longFields = Object.entries(fields).filter(
-    ([key]) => !shortFields.includes(key) && key !== "携带物品",
-  );
+  const longFields = Object.entries(fields)
+    .filter(([key]) => longFieldKeys.includes(key));
+
+  const shortFields = Object.keys(fields)
+    .filter(key => key !== "携带物品" && !longFieldKeys.includes(key));
 
   // 计算每列应该显示的字段数量
   const longFieldCount = longFields.length;
@@ -109,8 +113,8 @@ export default function PerformanceEditor({
                 onChange={(e) => {
                   onChange({ ...fields, [key]: e.target.value });
                 }}
-                // readOnly={!isEditing}
-                placeholder="请输入"
+                readOnly={!isEditing}
+                placeholder={isEditing ? "请输入" : "请打开编辑模式"}
               />
             </label>
           </div>
@@ -130,6 +134,7 @@ export default function PerformanceEditor({
                 onChange={(e) => {
                   onChange({ ...fields, [key]: e.target.value });
                 }}
+                disabled={!isEditing}
                 // readOnly={!isEditing}
               />
             </fieldset>
@@ -152,7 +157,7 @@ export default function PerformanceEditor({
                 onChange={(e) => {
                   onChange({ ...fields, [key]: e.target.value });
                 }}
-                // readOnly={!isEditing}
+                readOnly={!isEditing}
               />
             </div>
           ))}
@@ -184,7 +189,8 @@ export default function PerformanceEditor({
                       onChange={(e) => {
                         handleUpdateItem(index, e.target.value, item.desc);
                       }}
-                      // readOnly={!isEditing}
+                      readOnly={!isEditing}
+                      placeholder={isEditing ? "新物品名称" : "请打开编辑模式"}
                     />
                   </td>
                   <td>
@@ -195,13 +201,15 @@ export default function PerformanceEditor({
                       onChange={(e) => {
                         handleUpdateItem(index, item.name, e.target.value);
                       }}
-                      // readOnly={!isEditing}
+                      readOnly={!isEditing}
+                      placeholder={isEditing ? "物品描述" : "请打开编辑模式"}
                     />
                   </td>
                   <td>
                     <button
                       type="button"
                       className="btn btn-error btn-xs"
+                      disabled={!isEditing}
                       onClick={() => handleRemoveItem(index)}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -218,7 +226,8 @@ export default function PerformanceEditor({
                 <td>
                   <input
                     type="text"
-                    placeholder="新物品名称"
+                    readOnly={!isEditing}
+                    placeholder={isEditing ? "请输入" : "请打开编辑模式"}
                     className="input input-bordered input-sm w-full"
                     value={newItemName}
                     onChange={e => setNewItemName(e.target.value)}
@@ -227,7 +236,8 @@ export default function PerformanceEditor({
                 <td>
                   <input
                     type="text"
-                    placeholder="物品描述"
+                    readOnly={!isEditing}
+                    placeholder={isEditing ? "请输入" : "请打开编辑模式"}
                     className="input input-bordered input-sm w-full"
                     value={newItemDesc}
                     onChange={e => setNewItemDesc(e.target.value)}
@@ -237,6 +247,7 @@ export default function PerformanceEditor({
                   <button
                     type="button"
                     className="btn btn-primary btn-xs"
+                    disabled={!isEditing}
                     onClick={handleAddItem}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -257,14 +268,16 @@ export default function PerformanceEditor({
         <div className="flex gap-8 max-w-2xl">
           <input
             type="text"
-            placeholder="字段名称"
+            readOnly={!isEditing}
+            placeholder={isEditing ? "字段名称" : "请打开编辑模式"}
             className="input input-bordered input-sm w-1/3"
             value={newKey}
             onChange={e => setNewKey(e.target.value)}
           />
           <input
             type="text"
-            placeholder="值"
+            readOnly={!isEditing}
+            placeholder={isEditing ? "值" : "请打开编辑模式"}
             className="input input-bordered input-sm w-1/2"
             value={newValue}
             onChange={e => setNewValue(e.target.value)}
@@ -272,11 +285,32 @@ export default function PerformanceEditor({
           <button
             type="button"
             className="btn btn-primary btn-sm"
+            disabled={!isEditing}
             onClick={handleAdd}
           >
             添加字段
           </button>
         </div>
+      </div>
+      {/* 操作按钮 */}
+      <div className="card-actions justify-end">
+        {isEditing
+          ? (
+              <button
+                type="submit"
+                onClick={() => {
+                  setIsEditing(false);
+                }}
+                className="btn btn-primary"
+              >
+                退出
+              </button>
+            )
+          : (
+              <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent">
+                编辑
+              </button>
+            )}
       </div>
     </div>
   );

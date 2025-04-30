@@ -133,19 +133,18 @@ export class AbilityControllerService {
     /**
      * 分页查询角色能力
      * 根据角色Id分页查询角色能力
-     * @param abilityPageRequest
+     * @param requestBody
      * @returns ApiResultPageBaseRespRoleAbility OK
      * @throws ApiError
      */
     public pageRoleAbility(
-        abilityPageRequest: AbilityPageRequest,
+        requestBody: AbilityPageRequest,
     ): CancelablePromise<ApiResultPageBaseRespRoleAbility> {
         return this.httpRequest.request({
-            method: 'GET',
+            method: 'POST',
             url: '/capi/role/ability/page',
-            query: {
-                'abilityPageRequest': abilityPageRequest,
-            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -167,6 +166,32 @@ export class AbilityControllerService {
             method: 'GET',
             url: '/capi/role/ability/list',
             query: {
+                'roleId': roleId,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 根据角色id和规则id获取能力
+     * @param ruleId
+     * @param roleId
+     * @returns ApiResultRoleAbility OK
+     * @throws ApiError
+     */
+    public getByRuleAndRole(
+        ruleId: number,
+        roleId: number,
+    ): CancelablePromise<ApiResultRoleAbility> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/role/ability/',
+            query: {
+                'ruleId': ruleId,
                 'roleId': roleId,
             },
             errors: {

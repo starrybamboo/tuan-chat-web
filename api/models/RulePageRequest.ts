@@ -15,9 +15,8 @@ export type RulePageRequest = {
      */
     pageSize?: number;
     /**
-     * 搜索关键词（可选）
+     * 搜索关键词（可选）TODO
      */
     keyword?: string;
-    ruleId: number;
 };
 

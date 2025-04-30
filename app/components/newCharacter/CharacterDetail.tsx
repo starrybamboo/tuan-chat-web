@@ -2,8 +2,8 @@ import type { Role } from "./types";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useMemo, useState } from "react";
+import { RoleAbilityDetail } from "../common/ability/roleAbilityDetail";
 import CharacterAvatar from "./CharacterAvatar";
-import ExpansionModule from "./rules/ExpansionModule";
 import Section from "./Section";
 
 interface CharacterDetailProps {
@@ -125,7 +125,7 @@ export default function CharacterDetail({
                   </button>
                 )
               : (
-                  <button type="button" onClick={onEdit} className="btn btn-ghost">
+                  <button type="button" onClick={onEdit} className="btn btn-accent">
                     编辑
                   </button>
                 )}
@@ -133,8 +133,9 @@ export default function CharacterDetail({
         </div>
       </div>
 
+      <RoleAbilityDetail roleId={role.id}></RoleAbilityDetail>
       {/* 扩展模块， */}
-      <ExpansionModule />
+      {/* <ExpansionModule /> */}
     </div>
   );
 }

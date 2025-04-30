@@ -9,7 +9,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Community() {
   return (
-    <div className="h-screen">
+    <div className="h-screen bg-base-200">
       <p>community</p>
     </div>
   );
