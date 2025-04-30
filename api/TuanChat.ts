@@ -121,4 +121,3 @@ export class TuanChat {
         this.userPreference = new UserPreferenceService(this.request);
     }
 }
-

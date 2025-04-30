@@ -1,14 +1,16 @@
 import type { GameRule } from "../types";
-import { useState } from "react";
-import { useRuleListQuery } from "../../../../api/queryHooks";
+import { useEffect, useMemo, useState } from "react";
+import { useAbilityByRuleAndRole } from "../../../../api/hooks/abilityQueryHooks";
+import { useRuleDetailQuery, useRulePageMutation } from "../../../../api/hooks/ruleQueryHooks";
 import Section from "../Section";
 import NumericalEditor from "./NumericalEditor";
 import PerformanceEditor from "./PerformanceEditor";
-// import { defaultRules } from "./rules";
 import RulesSection from "./RulesSection";
 
 interface ExpansionModuleProps {
-  onRuleDataChange?: (ruleId: number, performance: any, numerical: any) => void; // 可选回调
+  isEditing?: boolean;
+  onRuleDataChange?: (ruleId: number, performance: any, numerical: any) => void;
+  roleId: number;
 }
 
 /**
@@ -17,76 +19,132 @@ interface ExpansionModuleProps {
  */
 export default function ExpansionModule({
   onRuleDataChange,
+  roleId,
 }: ExpansionModuleProps) {
-  const { data: rules = [] } = useRuleListQuery();
-
-  // 管理当前选择的规则和规则数据
+  const [rules, setRules] = useState<GameRule[]>([]); // 规则列表
   const [selectedRuleId, setSelectedRuleId] = useState<number>(
     rules.length > 0 ? rules[0].id : 0,
-  );
-  const [currentRule, setCurrentRule] = useState<GameRule | undefined>(() => {
-    return rules.length > 0 ? { ...rules[0] } : undefined;
-  });
+  ); // 当前选中规则ID
+  const [localRuleData, setLocalRuleData] = useState<GameRule | null>(null); // 本地规则数据副本
+
+  const ruleListMutation = useRulePageMutation();
+  const abilityListQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
+  const ruleDetailQuery = useRuleDetailQuery(selectedRuleId || 0);
+
+  // 合并规则数据，优先使用能力列表数据
+  const currentRuleData = useMemo(() => {
+    if (abilityListQuery.data?.id) {
+      return abilityListQuery.data;
+    }
+    return ruleDetailQuery.data;
+  }, [abilityListQuery.data, ruleDetailQuery.data]);
+
+  // 初始化规则列表
+  useEffect(() => {
+    const fetchRules = async () => {
+      try {
+        const result = await ruleListMutation.mutateAsync({ pageNo: 1, pageSize: 5 });
+        if (result && result.length > 0) {
+          setRules(result);
+          const firstRuleId = result[0].id;
+          setSelectedRuleId(firstRuleId);
+        }
+      }
+      catch (error) {
+        console.error("获取规则列表失败:", error);
+      }
+    };
+
+    fetchRules();
+  }, []);
+
+  // 初始化或更新本地规则数据
+  useEffect(() => {
+    if (currentRuleData) {
+      // 显式处理缺失字段，保证类型一致性
+      const safeRuleData: GameRule = {
+        id: currentRuleData.id,
+        name: "", // 或者从 currentRuleData.name 拷贝
+        description: "",
+        performance: currentRuleData.performance || {},
+        numerical: currentRuleData.numerical || {},
+      };
+      setLocalRuleData(safeRuleData);
+    }
+  }, [currentRuleData]);
 
   // 处理规则切换
   const handleRuleChange = (newRuleId: number) => {
-    // 触发回调通知当前规则数据更改
-    if (onRuleDataChange && selectedRuleId && currentRule) {
+    // 通知上层规则数据变更
+    if (onRuleDataChange && localRuleData) {
       onRuleDataChange(
-        selectedRuleId,
-        currentRule.performance,
-        currentRule.numerical,
+        newRuleId,
+        localRuleData.performance,
+        localRuleData.numerical,
       );
     }
 
-    // 查找新规则
-    const newRule = rules.find(r => r.id === newRuleId);
-    if (newRule) {
-      setSelectedRuleId(newRuleId);
-      setCurrentRule({ ...newRule });
-    }
+    setSelectedRuleId(newRuleId);
   };
 
   // 更新表演字段
   const handlePerformanceChange = (performance: any) => {
-    setCurrentRule((prev: any) => (prev ? { ...prev, performance } : prev));
+    if (!localRuleData)
+      return;
 
-    // 可选：通知外部规则数据变化
-    if (onRuleDataChange && selectedRuleId && currentRule) {
-      onRuleDataChange(selectedRuleId, performance, currentRule.numerical);
+    const newRuleData = {
+      ...localRuleData,
+      performance,
+    };
+
+    setLocalRuleData(newRuleData);
+
+    if (onRuleDataChange && selectedRuleId) {
+      onRuleDataChange(selectedRuleId, performance, newRuleData.numerical);
     }
   };
 
   // 更新数值约束
   const handleNumericalChange = (numerical: any) => {
-    setCurrentRule((prev: any) => (prev ? { ...prev, numerical } : prev));
+    if (!localRuleData)
+      return;
 
-    if (onRuleDataChange && selectedRuleId && currentRule) {
-      onRuleDataChange(selectedRuleId, currentRule.performance, numerical);
+    const newRuleData = {
+      ...localRuleData,
+      numerical,
+    };
+
+    setLocalRuleData(newRuleData);
+
+    if (onRuleDataChange && selectedRuleId) {
+      onRuleDataChange(selectedRuleId, newRuleData.performance, numerical);
     }
   };
 
   return (
     <div className="space-y-6">
       <RulesSection
-        rules={rules} // 提供默认空数组
+        rules={rules}
         currentRuleId={selectedRuleId}
         onRuleChange={handleRuleChange}
       />
 
-      {currentRule && (
+      {localRuleData && (
         <>
           <Section title="表演字段配置">
             <PerformanceEditor
-              fields={currentRule.performance}
+              fields={localRuleData.performance}
               onChange={handlePerformanceChange}
+              abilityData={localRuleData.performance}
+              abilityId={abilityListQuery.data?.id ? localRuleData.id : 0}
             />
           </Section>
 
           <Section title="数值约束配置">
             <NumericalEditor
-              constraints={currentRule.numerical}
+              constraints={localRuleData.numerical}
               onChange={handleNumericalChange}
+              abilityId={abilityListQuery.data?.id ? localRuleData.id : 0}
             />
           </Section>
         </>

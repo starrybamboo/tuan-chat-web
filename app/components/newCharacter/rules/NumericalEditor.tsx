@@ -1,10 +1,55 @@
 import type { NumericalConstraints } from "../types";
-import { useState } from "react"; // 需要实现的公式解析器
+import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
+import { useMemo, useState } from "react";
 import FormulaParser from "./FormulaParser";
 
 interface NumericalEditorProps {
   constraints: NumericalConstraints;
   onChange: (constraints: NumericalConstraints) => void;
+  abilityId: number;
+}
+
+// 输入状态类型
+interface InputState {
+  key: string;
+  value: string;
+}
+
+type InputStates = Record<string, InputState>;
+
+// 将嵌套对象转为数组格式，用于渲染
+function convertNestedObjectToArray(obj: Record<string, any>): Record<string, any>[] {
+  return Object.keys(obj).reduce<Record<string, any>[]>((acc, groupKey) => {
+    const groupValue = obj[groupKey];
+
+    if (typeof groupValue === "object" && groupValue !== null) {
+      const item: Record<string, any> = {};
+      item[groupKey] = groupKey;
+
+      for (const subKey in groupValue) {
+        item[subKey] = groupValue[subKey];
+      }
+
+      acc.push(item);
+    }
+
+    return acc;
+  }, []);
+}
+
+// 还原函数：将数组转回单层对象，并去掉一级键字段
+function convertArrayToFlatObjectWithoutGroupKeys(arr: Record<string, any>[]): Record<string, any> {
+  const result: Record<string, any> = {};
+
+  for (const item of arr) {
+    for (const key in item) {
+      if (item[key] === key)
+        continue; // 跳过一级键字段
+      result[key] = item[key];
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -15,13 +60,22 @@ interface NumericalEditorProps {
 export default function NumericalEditor({
   constraints,
   onChange,
+  abilityId,
 }: NumericalEditorProps) {
+  // 接入api
+  const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
   const [newTotal, setNewTotal] = useState("");
   const [isEditing, setIsEditing] = useState(false);
 
-  // 使用Map存储每个约束组的输入状态
-  const [inputStates, setInputStates] = useState<Map<string, { key: string; value: string }>>(
-    new Map(Object.keys(constraints).map(key => [key, { key: "", value: "" }])),
+  // 将 constraints 转换为数组格式用于渲染
+  const constraintGroups = useMemo(() => convertNestedObjectToArray(constraints), [constraints]);
+
+  // 管理每个约束组的输入状态
+  const [inputStates, setInputStates] = useState<InputStates>(
+    Object.keys(constraints).reduce((acc, key) => ({
+      ...acc,
+      [key]: { key: "", value: "" },
+    }), {}),
   );
 
   /**
@@ -34,12 +88,10 @@ export default function NumericalEditor({
         [newTotal]: {},
       });
 
-      // 为新约束组添加输入状态
-      setInputStates((prev) => {
-        const newMap = new Map(prev);
-        newMap.set(newTotal, { key: "", value: "" });
-        return newMap;
-      });
+      setInputStates(prev => ({
+        ...prev,
+        [newTotal]: { key: "", value: "" },
+      }));
 
       setNewTotal("");
     }
@@ -49,7 +101,7 @@ export default function NumericalEditor({
    * 在指定的总约束值下添加新字段
    */
   const handleAddField = (totalKey: string) => {
-    const state = inputStates.get(totalKey) || { key: "", value: "" };
+    const state = inputStates[totalKey] || { key: "", value: "" };
     if (state.key.trim()) {
       const value = FormulaParser.isFormula(state.value)
         ? state.value
@@ -63,38 +115,40 @@ export default function NumericalEditor({
         },
       });
 
-      // 清空当前约束组的输入
-      setInputStates((prev) => {
-        const newMap = new Map(prev);
-        newMap.set(totalKey, { key: "", value: "" });
-        return newMap;
-      });
+      setInputStates(prev => ({
+        ...prev,
+        [totalKey]: { key: "", value: "" },
+      }));
     }
   };
 
-  // 更新特定约束组的输入状态
+  /**
+   * 更新特定约束组的输入状态
+   */
   const updateInputState = (totalKey: string, field: "key" | "value", value: string) => {
-    setInputStates((prev) => {
-      const newMap = new Map(prev);
-      const currentState = prev.get(totalKey) || { key: "", value: "" };
-      newMap.set(totalKey, { ...currentState, [field]: value });
-      return newMap;
-    });
+    setInputStates(prev => ({
+      ...prev,
+      [totalKey]: {
+        ...prev[totalKey],
+        [field]: value,
+      },
+    }));
   };
 
   return (
     <div className="space-y-6">
-      {Object.entries(constraints).map(([totalKey, fields]) => {
+      {constraintGroups.map((group) => {
+        const totalKey = Object.keys(group).find(k => group[k] === k); // 获取一级键
+        if (!totalKey)
+          return null;
+
+        const fields = constraints[totalKey] || {};
         const entries = Object.entries(fields);
-        const inputState = inputStates.get(totalKey) || { key: "", value: "" };
+        const inputState = inputStates[totalKey] || { key: "", value: "" };
 
         const totalPoints = Number(totalKey);
-        // 计算当前字段值的总和
         const currentSum = Object.values(fields).reduce((sum: number, value) => {
-          const parsed = typeof value === "string"
-            ? FormulaParser.parse(value)
-            : Number(value);
-
+          const parsed = typeof value === "string" ? FormulaParser.parse(value) : Number(value);
           const numericValue = Number(parsed);
           return Number.isNaN(numericValue) ? sum : sum + numericValue;
         }, 0);
@@ -108,10 +162,7 @@ export default function NumericalEditor({
                 {totalKey === "0" ? "动态约束组" : `总点数: ${totalPoints}`}
               </h3>
               <span
-                className={`font-semibold ${
-                  remainPoints < 0
-                    ? "text-error font-bold pl-8"
-                    : "text-success pl-8"
+                className={`font-semibold ${remainPoints < 0 ? "text-error font-bold pl-8" : "text-success pl-8"
                 }`}
               >
                 {remainPoints >= 0
@@ -123,8 +174,8 @@ export default function NumericalEditor({
             {/* 网格布局 */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
               {entries.map(([key, value]) => (
-                <div key={key} className="flex items-center gap-1 mb-2 room">
-                  <label className="input flex items-center gap-2">
+                <div key={key} className="flex items-center gap-1 mb-2">
+                  <label className="input flex items-center gap-2 w-full">
                     <span className="text-sm font-medium">{key}</span>
                     <div className="w-px h-4 bg-base-content/20"></div>
                     <input
@@ -144,10 +195,10 @@ export default function NumericalEditor({
                       }}
                     />
                   </label>
-                  {/* 小删除按钮，未来也许可以考虑做一个撤回和继续的按钮 */}
+
                   <button
                     type="button"
-                    className={`btn btn-error btn-xs opacity-0 group-hover:opacity-${isEditing ? 100 : 0} transition-opacity`}
+                    className="btn btn-error btn-xs opacity-0 group-hover:opacity-100 transition-opacity"
                     onClick={() => {
                       const newFields = { ...fields };
                       delete newFields[key];
@@ -167,9 +218,7 @@ export default function NumericalEditor({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     >
-                      <path
-                        d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                      />
+                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                       <line x1="10" y1="11" x2="10" y2="17" />
                       <line x1="14" y1="11" x2="14" y2="17" />
                     </svg>
@@ -229,15 +278,31 @@ export default function NumericalEditor({
           新增约束组
         </button>
       </div>
+
       <div className="card-actions justify-end">
         {isEditing
           ? (
-              <button type="submit" onClick={() => setIsEditing(false)} className="btn btn-primary">
+              <button
+                type="submit"
+                onClick={() => {
+                  setIsEditing(false);
+                  const updatedAbility = {
+                    abilityId,
+                    ability: convertArrayToFlatObjectWithoutGroupKeys(constraintGroups),
+                  };
+                  updateFiledAbility(updatedAbility);
+                }}
+                className="btn btn-primary"
+              >
                 退出
               </button>
             )
           : (
-              <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent">
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="btn btn-accent"
+              >
                 编辑
               </button>
             )}
