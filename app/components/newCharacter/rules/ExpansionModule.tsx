@@ -119,6 +119,7 @@ export default function ExpansionModule({
               fields={currentRuleData.performance}
               onChange={handlePerformanceChange}
               abilityData={currentRuleData.performance}
+              abilityId={abilityListQuery.data?.id ? currentRuleData.id : 0}
             />
           </Section>
 

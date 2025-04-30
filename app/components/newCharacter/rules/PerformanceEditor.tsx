@@ -1,12 +1,12 @@
-// PerformanceEditor.tsx
-import type { RoleAbility } from "api";
+import type { PerformanceFields } from "../types";
 import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useEffect, useState } from "react";
 
 interface PerformanceEditorProps {
   fields: { [key: string]: string };
   onChange: (fields: { [key: string]: string }) => void;
-  abilityData: RoleAbility;
+  abilityData: PerformanceFields;
+  abilityId: number;
 }
 
 /**
@@ -19,10 +19,11 @@ export default function PerformanceEditor({
   fields,
   onChange,
   abilityData,
+  abilityId,
 }: PerformanceEditorProps) {
   // 接入api
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
-  const [localFields, setLocalFields] = useState(abilityData.act || fields);
+  const [localFields, setLocalFields] = useState(abilityData || fields);
 
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
@@ -38,7 +39,7 @@ export default function PerformanceEditor({
   const longFields = Object.entries(fields)
     .filter(([key]) => longFieldKeys.includes(key));
 
-  const shortFields = Object.keys(abilityData.act || fields)
+  const shortFields = Object.keys(abilityData || fields)
     .filter(key => key !== "携带物品" && !longFieldKeys.includes(key));
 
   // 计算每列应该显示的字段数量
@@ -60,8 +61,9 @@ export default function PerformanceEditor({
     : [];
 
   useEffect(() => {
-    setLocalFields(abilityData.act || fields);
+    setLocalFields(abilityData || fields);
   }, [abilityData]);
+
   const handleAdd = () => {
     if (newKey.trim()) {
       onChange({ ...fields, [newKey.trim()]: newValue });
@@ -315,7 +317,7 @@ export default function PerformanceEditor({
                 onClick={() => {
                   setIsEditing(false);
                   const updateData = {
-                    abilityId: abilityData.abilityId || 0,
+                    abilityId: abilityId || 0,
                     act: fields,
                   };
                   updateFiledAbility(updateData);
