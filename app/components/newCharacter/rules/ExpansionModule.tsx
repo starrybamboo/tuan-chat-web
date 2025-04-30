@@ -100,7 +100,7 @@ export default function ExpansionModule({
         onRuleChange={handleRuleChange}
       />
 
-      {currentRuleData && abilityListQuery.data && (
+      {currentRuleData && (
         <>
           <Section title="表演字段配置">
             <PerformanceEditor
@@ -111,7 +111,7 @@ export default function ExpansionModule({
 
           <Section title="数值约束配置">
             <NumericalEditor
-              constraints={abilityListQuery.data.numerical}
+              constraints={currentRuleData.numerical}
               onChange={handleNumericalChange}
             />
           </Section>
