@@ -32,6 +32,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const getNewMessagesByRoomId = websocketUtils.getNewMessagesByRoomId;
   const send = websocketUtils.send;
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
+
   // Mutations
   const moveMessageMutation = useMoveMessageMutation();
   const deleteMessageMutation = useDeleteMessageMutation();
@@ -74,8 +75,6 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       .filter(msg => msg.message.status !== 1)
       .reverse();
   }, [getNewMessagesByRoomId, roomId, messagesInfiniteQuery.data?.pages]);
-  // console.log(`top: ${chatFrameRef.current?.scrollTop} height: ${chatFrameRef.current?.clientHeight} scrollHeight: ${chatFrameRef.current?.scrollHeight}`);
-
   /**
    * scroll相关
    */
@@ -88,9 +87,6 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     }
   }, [chatFrameRef, historyMessages]);
   useEffect(() => {
-    // if (!hasInitializeScroll.current || messagesInfiniteQuery.isFetchingNextPage) {
-    //   return;
-    // }
     if (messageEntry?.isIntersecting && !messagesInfiniteQuery.isFetchingNextPage) {
       messagesInfiniteQuery.fetchNextPage();
     }

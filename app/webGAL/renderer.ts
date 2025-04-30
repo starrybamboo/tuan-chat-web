@@ -1,3 +1,5 @@
+import type { RenderProps } from "@/components/chat/window/renderWindow";
+
 import type { ChatMessageResponse } from "../../api";
 
 import { tuanchat } from "../../api/instance";
@@ -26,14 +28,17 @@ export class Renderer {
     text: "",
   };
 
+  private renderProps: RenderProps;
+
   private syncSocket: WebSocket;
 
-  constructor(roomId: number) {
+  constructor(roomId: number, renderProp: RenderProps) {
     this.roomId = roomId;
     this.game = {
       name: `preview_${roomId}`,
       description: `This is game preview of ${roomId}`,
     };
+    this.renderProps = renderProp;
     this.syncSocket = new WebSocket(import.meta.env.VITE_TERRE_WS);
   }
 
@@ -58,18 +63,19 @@ export class Renderer {
     rightSpriteName?: string | undefined,
     vocal?: string | undefined,
   ): Promise<void> {
+    const spritePos = this.renderProps.spritePosition;
     if (leftSpriteName) {
-      await this.addLineToRenderer(`changeFigure:${leftSpriteName}.png -left -next;`);
+      await this.addLineToRenderer(`changeFigure:${leftSpriteName}.png -${spritePos} -next;`);
     }
     else {
-      await this.addLineToRenderer(`changeFigure: -left -next;`);
+      await this.addLineToRenderer(`changeFigure: -${spritePos} -next;`);
     }
-    if (rightSpriteName) {
-      await this.addLineToRenderer(`changeFigure:${rightSpriteName}.png -right -next;`);
-    }
-    else {
-      await this.addLineToRenderer(`changeFigure: -right -next;`);
-    }
+    // if (rightSpriteName) {
+    //   await this.addLineToRenderer(`changeFigure:${rightSpriteName}.png -right -next;`);
+    // }
+    // else {
+    //   await this.addLineToRenderer(`changeFigure: -right -next;`);
+    // }
     await this.addLineToRenderer(`${roleName}: ${text} ${vocal ? `-${vocal}` : ""}`);
     this.rendererContext.lineNumber += 2;
   }
