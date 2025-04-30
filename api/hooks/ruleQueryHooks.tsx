@@ -7,6 +7,7 @@ import type {ApiResultLong} from "../models/ApiResultLong";
 import type {ApiResultPageBaseRespRuleResponse} from "../models/ApiResultPageBaseRespRuleResponse";
 import type {ApiResultRule} from "../models/ApiResultRule";
 import type {ApiResultVoid} from "../models/ApiResultVoid";
+import type { GameRule } from '@/components/newCharacter/types';
 import {tuanchat} from "../instance";
 
 /**
@@ -124,4 +125,46 @@ export function useDeleteRuleMutation() {
             queryClient.invalidateQueries({ queryKey: ['getRuleDetail'] });
         }
     });
+}
+
+// 获取规则详情角色界面
+export function useRuleDetailQuery(ruleId: number) {
+    return useQuery({
+      queryKey: ["ruleDetail", ruleId],
+      queryFn: async () => {
+        const res = await tuanchat.ruleController.getRuleDetail(ruleId)
+        if (res.success && res.data) {
+          // 将后端数据结构转换为前端需要的 `GameRule` 类型
+          return {
+            id: res.data.ruleId || 0,
+            name: res.data.ruleName || "",
+            description: res.data.ruleDescription || "",
+            performance: res.data.actTemplate || {}, // 表演字段
+            numerical: res.data.abilityDefault || {}, // 数值约束
+          };
+        }
+        throw new Error('获取规则详情失败');
+      }
+    })
+  }
+
+//分页获取规则
+export function useRulePageMutation() {
+  return useMutation({
+    mutationKey: ["ruleList"],
+    mutationFn: async (params: RulePageRequest): Promise<GameRule[]> => {
+      const res = await tuanchat.ruleController.getRulePage(params);
+      if (res.success && res.data?.list) {
+        // 将后端数据结构转换为前端需要的 `GameRule` 类型
+        return res.data.list.map(rule => ({
+          id: rule.ruleId || 0,
+          name: rule.ruleName || "",
+          description: rule.ruleDescription || "",
+          performance: {}, // 表演字段
+          numerical: {}, // 数值约束
+        }));
+      }
+      throw new Error('获取规则列表失败');
+    }
+  });
 }

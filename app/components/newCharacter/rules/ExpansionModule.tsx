@@ -1,6 +1,7 @@
 import type { GameRule } from "../types";
 import { useEffect, useMemo, useState } from "react";
-import { useAbilityByRuleAndRole, useRuleDetailQuery, useRulePageMutation } from "../../../../api/queryHooks";
+import { useAbilityByRuleAndRole } from "../../../../api/hooks/abilityQueryHooks";
+import { useRuleDetailQuery, useRulePageMutation } from "../../../../api/hooks/ruleQueryHooks";
 import Section from "../Section";
 // import AbilityModule from "./AbilityModule";
 import NumericalEditor from "./NumericalEditor";
