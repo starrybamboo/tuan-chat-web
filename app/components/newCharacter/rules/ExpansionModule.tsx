@@ -61,26 +61,6 @@ export default function ExpansionModule({
     fetchRules();
   }, []); // 仅在组件挂载时执行一次
 
-  // 查询所有规则详细
-
-  useEffect(() => {
-    const fetchRules = async () => {
-      try {
-        const result = await ruleListMutation.mutateAsync({ pageNo: 1, pageSize: 5 });
-        if (result && result.length > 0) {
-          setRules(result);
-          setSelectedRuleId(result[0].id);
-          // setCurrentRule({ ...result[0] });
-        }
-      }
-      catch (error) {
-        console.error("获取规则列表失败:", error);
-      }
-    };
-
-    fetchRules();
-  }, []); // 仅在组件挂载时执行一次
-
   // 处理规则切换
   const handleRuleChange = (newRuleId: number) => {
     // 触发回调通知当前规则数据更改
