@@ -1,6 +1,8 @@
 import type { GameRule } from "../types";
+import { useQueryClient } from "@tanstack/react-query";
+import { useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useEffect, useState } from "react";
-import { useRuleDetailQuery, useRulePageMutation } from "../../../../api/queryHooks";
+import { useGetByRuleAndRole, useRuleDetailQuery, useRulePageMutation } from "../../../../api/queryHooks";
 import Section from "../Section";
 // import AbilityModule from "./AbilityModule";
 import NumericalEditor from "./NumericalEditor";
@@ -20,12 +22,15 @@ interface ExpansionModuleProps {
  * 负责展示规则选择、表演字段和数值约束，完全独立于角色
  */
 export default function ExpansionModule({
-  // roleId,
+  roleId,
   // isEditing = false,
   onRuleDataChange,
   // onAbilityChange,
 }: ExpansionModuleProps) {
+  const queryClient = useQueryClient();
+
   const ruleListMutation = useRulePageMutation();
+  const { mutate: setRoleAbility } = useSetRoleAbilityMutation();
   const [rules, setRules] = useState<GameRule[]>([]); // 规则列表
 
   // 管理当前选择的规则和规则数据
@@ -38,6 +43,9 @@ export default function ExpansionModule({
 
   // 规则详情查询
   const ruleDetailQuery = useRuleDetailQuery(selectedRuleId);
+  const abilityData = useGetByRuleAndRole(roleId || 0, selectedRuleId).data?.data;
+
+  // 查询所有规则详细
 
   useEffect(() => {
     const fetchRules = async () => {
@@ -101,42 +109,76 @@ export default function ExpansionModule({
     }
   };
 
+  // 创建能力
+  const handleCreateAbility = (ruleId: number, roleId: number) => {
+    setRoleAbility({
+      ruleId,
+      roleId,
+      act: currentRule?.performance || { default: "default" },
+      ability: {},
+    });
+    queryClient.invalidateQueries({ queryKey: ["ability", roleId] });
+  };
+
   return (
     <div className="space-y-6">
-      <RulesSection
-        rules={rules} // 提供默认空数组
-        currentRuleId={selectedRuleId}
-        onRuleChange={handleRuleChange}
-      />
-
-      {currentRule && (
-        <>
-          {/* {roleId && (
-            <AbilityModule
-              roleId={roleId}
-              ruleId={selectedRuleId}
-              isEditing={isEditing}
-              performance={currentRule.performance}
-              numerical={currentRule.numerical}
-              onAbilityChange={onAbilityChange}
+      {
+        (
+          <>
+            <RulesSection
+              rules={rules}
+              currentRuleId={selectedRuleId}
+              onRuleChange={handleRuleChange}
             />
-          )} */}
 
-          <Section title="表演字段配置">
-            <PerformanceEditor
-              fields={currentRule.performance}
-              onChange={handlePerformanceChange}
-            />
-          </Section>
+            {
+              abilityData
+              && (
+                <>
+                  {currentRule && (
+                    <>
+                      {/* {roleId && (
+                                <AbilityModule
+                                  roleId={roleId}
+                                  ruleId={selectedRuleId}
+                                  isEditing={isEditing}
+                                  performance={currentRule.performance}
+                                  numerical={currentRule.numerical}
+                                  onAbilityChange={onAbilityChange}
+                                />
+                              )} */}
 
-          <Section title="数值约束配置">
-            <NumericalEditor
-              constraints={currentRule.numerical}
-              onChange={handleNumericalChange}
-            />
-          </Section>
-        </>
-      )}
+                      <Section title="表演字段配置">
+                        <PerformanceEditor
+                          fields={currentRule.performance}
+                          onChange={handlePerformanceChange}
+                          abilityData={abilityData}
+                        />
+                      </Section>
+
+                      <Section title="数值约束配置">
+                        <NumericalEditor
+                          constraints={currentRule.numerical}
+                          onChange={handleNumericalChange}
+                        />
+                      </Section>
+                    </>
+                  )}
+                </>
+              )
+            }
+            { !abilityData
+              && (
+                <div className="flex justify-center items-center flex-col gap-8">
+                  <div className="text-gray-500">暂无数据</div>
+                  <button className="btn" type="button" onClick={() => handleCreateAbility(selectedRuleId, roleId || 0)}>
+                    选择上面的规则,根据该规则初始化一个能力组
+                  </button>
+                </div>
+              )}
+          </>
+        )
+      }
     </div>
   );
 }

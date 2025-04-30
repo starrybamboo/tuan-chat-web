@@ -139,7 +139,7 @@ export default function CharacterDetail({
         </div>
       </div>
 
-      <ExpansionModule />
+      <ExpansionModule roleId={role.id} />
     </div>
   );
 }
