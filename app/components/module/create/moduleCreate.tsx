@@ -3,7 +3,7 @@ import TInput from "@/components/common/form/input";
 import TTextArea from "@/components/common/form/textarea";
 import message from "@/components/common/message/message";
 import { useAddModuleMutation } from "api/hooks/moduleQueryHooks";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import RuleSelect from "../common/ruleSelect";
 
 // 合并表单值类型
@@ -43,6 +43,8 @@ function ModuleForm() {
   const {
     register,
     handleSubmit,
+    control,
+    reset,
     setValue,
     formState: { errors },
   } = useForm<ModuleCreateRequest>({
@@ -51,7 +53,7 @@ function ModuleForm() {
       [ModuleFormKeys.AUTHOR_NAME]: "",
       [ModuleFormKeys.DESCRIPTION]: "",
       [ModuleFormKeys.MODULE_NAME]: "",
-      [ModuleFormKeys.RULE_ID]: 0,
+      [ModuleFormKeys.RULE_ID]: undefined,
     },
   });
   const mutation = useAddModuleMutation();
@@ -64,6 +66,7 @@ function ModuleForm() {
       {
         onSuccess: () => {
           message.success("创建模组成功");
+          reset();
         },
       },
     );
@@ -71,22 +74,31 @@ function ModuleForm() {
 
   return (
     <div className="w-full h-full flex gap-4">
-      {/* 左侧规则列表 */}
-      <div className="basis-1/3 bg-base-200 rounded-xl">
-        <div className="p-4">
-          <h2 className="text-lg font-bold mb-4">选择规则</h2>
-          <RuleSelect
-            onRuleSelect={(ruleId) => {
-              // 设置选择的规则 ID
-              setValue(ModuleFormKeys.RULE_ID, ruleId);
-            }}
-          />
-        </div>
-      </div>
 
-      {/* 右侧模组表单 */}
-      <div className="basis-2/3">
-        <form onSubmit={handleSubmit(onSubmit)} className="w-full h-full flex flex-col gap-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="w-full h-full flex gap-4">
+        {/* 左侧规则列表 */}
+        <div className={`basis-1/3 bg-base-200 rounded-xl  ${errors.RuleSelect ? "border-2 border-error" : ""}`}>
+          <div className="p-4">
+            <h2 className="text-lg font-bold mb-4">选择规则</h2>
+            <Controller
+              control={control}
+              name="RuleSelect"
+              rules={{ required: true }}
+              render={({ field: { onChange } }) => (
+                <RuleSelect
+                  className="w-full h-full"
+                  onRuleSelect={(id) => {
+                    setValue(ModuleFormKeys.RULE_ID, id);
+                    onChange(id);
+                  }}
+
+                />
+              )}
+            />
+          </div>
+        </div>
+        {/* 右侧模组表单 */}
+        <div className="basis-2/3 flex flex-col justify-center gap-4">
           <div className="flex gap-4">
             <div className="basis-2/3 flex flex-col gap-4">
               <TInput
@@ -113,15 +125,11 @@ function ModuleForm() {
           <button
             type="submit"
             className="btn btn-primary mt-auto"
-            onClick={(e) => {
-              e.preventDefault();
-              message.success("创建模组成功");
-            }}
           >
             创建模组
           </button>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 }
