@@ -1,9 +1,12 @@
 // PerformanceEditor.tsx
+import type { RoleAbility } from "api";
+import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
 
 interface PerformanceEditorProps {
   fields: { [key: string]: string };
   onChange: (fields: { [key: string]: string }) => void;
+  abilityData: RoleAbility;
 }
 
 /**
@@ -15,7 +18,11 @@ interface PerformanceEditorProps {
 export default function PerformanceEditor({
   fields,
   onChange,
+  abilityData,
 }: PerformanceEditorProps) {
+  // 接入api
+  const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
+
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
   const [newItemName, setNewItemName] = useState("");
@@ -30,7 +37,7 @@ export default function PerformanceEditor({
   const longFields = Object.entries(fields)
     .filter(([key]) => longFieldKeys.includes(key));
 
-  const shortFields = Object.keys(fields)
+  const shortFields = Object.keys(abilityData.act || fields)
     .filter(key => key !== "携带物品" && !longFieldKeys.includes(key));
 
   // 计算每列应该显示的字段数量
@@ -114,7 +121,7 @@ export default function PerformanceEditor({
                   onChange({ ...fields, [key]: e.target.value });
                 }}
                 readOnly={!isEditing}
-                placeholder={isEditing ? "请输入" : "请打开编辑模式"}
+                placeholder={abilityData.act?.[key] || "请输入"}
               />
             </label>
           </div>
@@ -300,6 +307,11 @@ export default function PerformanceEditor({
                 type="submit"
                 onClick={() => {
                   setIsEditing(false);
+                  const updateData = {
+                    abilityId: abilityData.abilityId || 0,
+                    act: fields,
+                  };
+                  updateFiledAbility(updateData);
                 }}
                 className="btn btn-primary"
               >
