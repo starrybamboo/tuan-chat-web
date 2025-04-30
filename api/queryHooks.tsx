@@ -432,8 +432,58 @@ export function useRuleDetailQuery(ruleId: number) {
     }
   })
 }
-   
-// post部分
+
+// 获取规则详情
+export function useRuleDetailQuery(ruleId: number) {
+  return useQuery({
+    queryKey: ["ruleDetail", ruleId],
+    queryFn: async () => {
+      const res = await tuanchat.ruleController.getRuleDetail(ruleId)
+      if (res.success && res.data) {
+        // 将后端数据结构转换为前端需要的 `GameRule` 类型
+        return {
+          id: res.data.ruleId || 0,
+          name: res.data.ruleName || "",
+          description: res.data.ruleDescription || "",
+          performance: res.data.actTemplate || {}, // 表演字段
+          numerical: res.data.abilityDefault || {}, // 数值约束
+        };
+      }
+      throw new Error('获取规则详情失败');
+    }
+  })
+}
+
+// 获取能力,根据角色和规则
+export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
+  return useQuery({
+    queryKey: ["roleAbilityByRule", roleId, ruleId],
+    queryFn: async () => {
+      const res = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
+      if (res.success && res.data) {
+        return {
+          id : res.data.abilityId || 0 ,
+          performance: res.data.act || {}, // 表演字段
+          numerical: {
+            "0": res.data.ability || {} // 将ability包装在"0"键下作为默认约束组，很奇怪，不加这个会报类型错误，怀疑后端搞错了
+          }, // 数值约束
+        }
+      }
+    }
+  })
+}
+
+// 创建能力
+export function useCreateAbilityMutation() {
+  return useMutation({
+    mutationKey: ["createAbility"],
+    mutationFn: async () => {
+
+    }
+  })
+}
+
+
 //删除角色
 export function useDeleteRole() {
   return useMutation({
