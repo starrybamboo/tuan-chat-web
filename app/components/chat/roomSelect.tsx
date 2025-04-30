@@ -7,6 +7,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   useCreateRoomMutation,
   useCreateSpaceMutation,
+  useGetSpaceMembersQuery,
   useGetUserRoomsQuery,
   useGetUserSpacesQuery,
 } from "api/hooks/chatQueryHooks";
@@ -15,6 +16,7 @@ import {
 } from "api/queryHooks";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import MemberInviteComponent from "../common/memberInvite";
 
 export default function RoomSelect() {
   const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
@@ -24,6 +26,7 @@ export default function RoomSelect() {
   const [activeSpaceId, setActiveSpaceId] = useState<number | null>(urlSpaceId ? Number(urlSpaceId) : null);
   // 当前选中的房间ID
   const [activeRoomId, setActiveRoomId] = useState<number | null>(urlRoomId ? Number(urlRoomId) : null);
+
   // 同步路由状态
   useEffect(() => {
     if (activeSpaceId || activeRoomId) {
@@ -63,6 +66,13 @@ export default function RoomSelect() {
   // 创建房间的名称
   const [roomName, setRoomName] = useState<string>(`${String(userInfo?.username)}的房间`);
 
+  // 获取空间玩家列表
+  const getSpaceMembers = useGetSpaceMembersQuery(Number(activeSpaceId));
+  const members = getSpaceMembers.data?.data ?? [];
+  const players = members.filter(member => member.memberType === 2);
+  // 已选择邀请的用户
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
+
   // websocket封装, 用于发送接受消息
   const websocketUtils = useGlobalContext().websocketUtils;
   useEffect(() => {
@@ -85,22 +95,21 @@ export default function RoomSelect() {
   }
 
   // 创建房间
-  async function createRoom(spaceId: number, userId: number) {
+  async function createRoom(spaceId: number, userIds: number[]) {
     createRoomMutation.mutate({
       spaceId,
       avatar: roomAvatar,
       roomName,
-      userIdList: [userId],
+      userIdList: userIds,
     }, {
-      onSuccess: (data) => {
-        const newRoomId = data.data?.roomId;
-        if (newRoomId) {
-          setActiveRoomId(newRoomId);
+      onSettled: (data) => {
+        if (data && data.data) {
+          const newRoomId = data.data.roomId;
+          if (newRoomId)
+            setActiveRoomId(newRoomId);
         }
         setIsRoomHandleOpen(false);
-      },
-      onSettled: () => {
-        setIsRoomHandleOpen(false);
+        setSelectedUserIds(new Set());
       },
     });
   }
@@ -195,7 +204,7 @@ export default function RoomSelect() {
       }
       {/* 创建空间弹出窗口 */}
       <PopWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
-        <div className="w-full p-4 min-w-[40vw] max-h-[80vh] overflow-y-auto">
+        <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[80vh] overflow-y-auto">
           <p className="text-lg font-bold text-center w-full mb-4">创建空间</p>
 
           {/* 头像上传 */}
@@ -255,7 +264,7 @@ export default function RoomSelect() {
           {inputUserId > 0 && inputUserInfo && (
             <div className="items-center flex flex-col gap-y-4 pb-4">
               <UserDetail userId={inputUserId} />
-              <div className="sticky bottom-0 w-full bg-base-100 pt-4 pb-4 border-t border-base-200">
+              <div className="sticky bottom-0 w-full bg-base-300 pt-4">
                 <button
                   className="btn btn-primary w-full shadow-lg"
                   type="button"
@@ -268,9 +277,9 @@ export default function RoomSelect() {
           )}
         </div>
       </PopWindow>
-      {/* 创建子群弹出窗口(后面如果与上面功能没太多区别就合并) */}
+      {/* 创建子群弹出窗口 */}
       <PopWindow isOpen={isRoomHandleOpen} onClose={() => setIsRoomHandleOpen(false)}>
-        <div className="w-full p-4 min-w-[40vw] max-h-[80vh] overflow-y-auto">
+        <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[80vh] overflow-y-auto">
           <p className="text-lg font-bold text-center w-full mb-4">创建房间</p>
           {/* 头像上传 */}
           <div className="flex justify-center mb-6">
@@ -313,33 +322,64 @@ export default function RoomSelect() {
           </div>
 
           {/* 邀请成员部分 */}
-          <div className="mb-4">
+          <div>
             <label className="label mb-2">
               <span className="label-text">邀请成员(输入用户ID)</span>
             </label>
             <input
               type="text"
               placeholder="请输入要加入的成员ID"
-              className="input input-bordered w-full mb-4"
+              className="input input-bordered w-full mb-2"
               onInput={e => setInputUserId(Number(e.currentTarget.value))}
             />
           </div>
 
           {/* 用户信息预览和确认按钮 */}
-          {inputUserId > 0 && inputUserInfo && (
-            <div className="items-center flex flex-col gap-y-4 pb-4">
-              <UserDetail userId={inputUserId} />
-              <div className="sticky bottom-0 w-full bg-base-100 pt-4 pb-4 border-t border-base-200">
-                <button
-                  className="btn btn-primary w-full shadow-lg"
-                  type="button"
-                  onClick={() => createRoom(Number(activeSpaceId), Number(inputUserId))}
-                >
-                  创建房间
-                </button>
+          <div className="flex flex-col gap-y-2 pb-4 overflow-x-auto">
+            {players.map(player => (
+              <div
+                key={player.userId}
+                className="flex gap-x-4 items-center p-2 bg-base-100 rounded-lg w-full"
+              >
+                {/* 成员列表 */}
+                <input
+                  type="checkbox"
+                  className="checkbox"
+                  checked={selectedUserIds.has(Number(player.userId))}
+                  onChange={(e) => {
+                    const userId = Number(player.userId);
+                    setSelectedUserIds((prev) => {
+                      const newSet = new Set(prev);
+                      if (e.target.checked) {
+                        newSet.add(userId);
+                      }
+                      else {
+                        newSet.delete(userId);
+                      }
+                      return newSet;
+                    });
+                  }}
+                />
+                <MemberInviteComponent userId={Number(player.userId)} />
               </div>
+            ))}
+            <div className="sticky bottom-0 w-full bg-base-300 pt-4">
+              <button
+                className="btn btn-primary w-full shadow-lg"
+                type="button"
+                onClick={() => {
+                  // 合并选中的用户和手动输入的用户
+                  const userIds = Array.from(selectedUserIds);
+                  if (inputUserId > 0)
+                    userIds.push(inputUserId);
+
+                  createRoom(Number(activeSpaceId), userIds);
+                }}
+              >
+                创建房间
+              </button>
             </div>
-          )}
+          </div>
         </div>
       </PopWindow>
     </div>

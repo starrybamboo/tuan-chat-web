@@ -139,7 +139,9 @@ export default function CharacterDetail({
         </div>
       </div>
 
-      <ExpansionModule />
+      <ExpansionModule
+        roleId={localRole.id}
+      />
     </div>
   );
 }

@@ -1,25 +1,21 @@
 import type { WheelEvent } from "react";
 import { ChatBubble } from "@/components/chat/chatBubble";
+import CollectionIconButton from "@/components/common/collection/collectionIconButton";
 import CommentPanel from "@/components/common/comment/commentPanel";
+import LikeIconButton from "@/components/common/likeIconButton";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
-import { useState } from "react";
+import React, { useState } from "react";
+
 import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
 import { useGetFeedByIdQuery } from "../../../api/hooks/FeedQueryHooks";
 
 export default function FeedDetail({ feedId, handleWheel }: { feedId: number; handleWheel: (e: WheelEvent<HTMLDivElement>) => void }) {
   const feedQuery = useGetFeedByIdQuery(feedId);
   const feed = feedQuery.data;
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(1243);
   const [showComments, setShowComments] = useState(false);
   const getMessageQuery = useGetMessageByIdQuery(feed?.messageId ?? -1);
   const messageResponse = getMessageQuery.data;
-
-  const toggleLike = () => {
-    setLiked(!liked);
-    setLikeCount(liked ? likeCount - 1 : likeCount + 1);
-  };
 
   if (feedQuery.isLoading) {
     return <div className="flex justify-center items-center h-screen">加载中...</div>;
@@ -75,19 +71,9 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
         </UserAvatarComponent>
 
         {/* 点赞按钮 */}
-        <button onClick={toggleLike} className="flex flex-col items-center" type="button">
-          <div className="relative w-10 h-10">
-            <div className={`absolute inset-0 ${liked ? "text-red-500" : ""}`}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path
-                  d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-                  fill={liked ? "currentColor" : "none"}
-                />
-              </svg>
-            </div>
-          </div>
-          <span className="text-xs mt-1">{likeCount}</span>
-        </button>
+        <LikeIconButton targetInfo={{ targetId: feed.feedId ?? -1, targetType: "1" }}></LikeIconButton>
+        {/* 收藏按钮 */}
+        <CollectionIconButton targetInfo={{ resourceId: feed.feedId ?? -1, resourceType: "1" }} />
 
         {/* 评论按钮 */}
         <button onClick={() => setShowComments(!showComments)} className="flex flex-col items-center" type="button">

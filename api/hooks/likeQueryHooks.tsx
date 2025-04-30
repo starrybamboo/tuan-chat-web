@@ -26,8 +26,10 @@ export function useLikeMutation() {
         mutationFn: (requestBody: LikeRecordRequest) => tuanchat.likeRecordController.like(requestBody),
         mutationKey: ['like'],
         onSuccess: (_, variables) => {
-            // 使相关查询失效
-            queryClient.invalidateQueries({queryKey: ['isLiked', variables]});
+            queryClient.setQueryData(['isLiked', variables], () =>({
+                success: true,
+                data: true
+            }));
             queryClient.invalidateQueries({queryKey: ['batchIsLiked']});
         }
     });
@@ -42,8 +44,10 @@ export function useUnlikeMutation() {
         mutationFn: (requestBody: LikeRecordRequest) => tuanchat.likeRecordController.unlike(requestBody),
         mutationKey: ['unlike'],
         onSuccess: (_, variables) => {
-            // 使相关查询失效
-            queryClient.invalidateQueries({queryKey: ['isLiked', variables]});
+            queryClient.setQueryData(['isLiked', variables], () => ({
+                success: true,
+                data: false
+            }));
             queryClient.invalidateQueries({queryKey: ['batchIsLiked']});
         }
     });
