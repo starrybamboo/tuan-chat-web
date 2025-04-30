@@ -1,8 +1,6 @@
 import type { GameRule } from "../types";
-import { useQueryClient } from "@tanstack/react-query";
-import { useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
-import { useEffect, useState } from "react";
-import { useGetByRuleAndRole, useRuleDetailQuery, useRulePageMutation } from "../../../../api/queryHooks";
+import { useEffect, useMemo, useState } from "react";
+import { useAbilityByRuleAndRole, useRuleDetailQuery, useRulePageMutation } from "../../../../api/queryHooks";
 import Section from "../Section";
 // import AbilityModule from "./AbilityModule";
 import NumericalEditor from "./NumericalEditor";
@@ -11,10 +9,9 @@ import PerformanceEditor from "./PerformanceEditor";
 import RulesSection from "./RulesSection";
 
 interface ExpansionModuleProps {
-  roleId?: number; // 角色ID
   isEditing?: boolean; // 是否处于编辑模式
   onRuleDataChange?: (ruleId: number, performance: any, numerical: any) => void; // 可选回调
-  onAbilityChange?: (abilityData: any) => void; // 能力变更回调
+  roleId: number;
 }
 
 /**
@@ -22,30 +19,29 @@ interface ExpansionModuleProps {
  * 负责展示规则选择、表演字段和数值约束，完全独立于角色
  */
 export default function ExpansionModule({
-  roleId,
   // isEditing = false,
   onRuleDataChange,
-  // onAbilityChange,
+  roleId,
 }: ExpansionModuleProps) {
-  const queryClient = useQueryClient();
-
-  const ruleListMutation = useRulePageMutation();
-  const { mutate: setRoleAbility } = useSetRoleAbilityMutation();
   const [rules, setRules] = useState<GameRule[]>([]); // 规则列表
 
   // 管理当前选择的规则和规则数据
   const [selectedRuleId, setSelectedRuleId] = useState<number>(
     rules.length > 0 ? rules[0].id : 0,
   );
-  const [currentRule, setCurrentRule] = useState<GameRule | undefined>(() => {
-    return rules.length > 0 ? { ...rules[0] } : undefined;
-  });
-
+  const ruleListMutation = useRulePageMutation();
+  // 能力列表
+  const abilityListQuery = useAbilityByRuleAndRole(selectedRuleId, roleId);
   // 规则详情查询
   const ruleDetailQuery = useRuleDetailQuery(selectedRuleId);
-  const abilityData = useGetByRuleAndRole(roleId || 0, selectedRuleId).data?.data;
 
-  // 查询所有规则详细
+  // 合并规则数据，优先使用能力列表数据
+  const currentRuleData = useMemo(() => {
+    if (abilityListQuery.data?.id) {
+      return abilityListQuery.data;
+    }
+    return ruleDetailQuery.data;
+  }, [abilityListQuery.data, ruleDetailQuery.data]);
 
   useEffect(() => {
     const fetchRules = async () => {
@@ -54,7 +50,7 @@ export default function ExpansionModule({
         if (result && result.length > 0) {
           setRules(result);
           setSelectedRuleId(result[0].id);
-          setCurrentRule({ ...result[0] });
+          // setCurrentRule({ ...result[0] });
         }
       }
       catch (error) {
@@ -65,20 +61,34 @@ export default function ExpansionModule({
     fetchRules();
   }, []); // 仅在组件挂载时执行一次
 
+  // 查询所有规则详细
+
   useEffect(() => {
-    if (ruleDetailQuery.data) {
-      setCurrentRule(ruleDetailQuery.data);
-    }
-  }, [ruleDetailQuery.data]);
+    const fetchRules = async () => {
+      try {
+        const result = await ruleListMutation.mutateAsync({ pageNo: 1, pageSize: 5 });
+        if (result && result.length > 0) {
+          setRules(result);
+          setSelectedRuleId(result[0].id);
+          // setCurrentRule({ ...result[0] });
+        }
+      }
+      catch (error) {
+        console.error("获取规则列表失败:", error);
+      }
+    };
+
+    fetchRules();
+  }, []); // 仅在组件挂载时执行一次
 
   // 处理规则切换
   const handleRuleChange = (newRuleId: number) => {
     // 触发回调通知当前规则数据更改
-    if (onRuleDataChange && selectedRuleId && currentRule) {
+    if (onRuleDataChange && selectedRuleId && currentRuleData) {
       onRuleDataChange(
         selectedRuleId,
-        currentRule.performance,
-        currentRule.numerical,
+        currentRuleData.performance,
+        currentRuleData.numerical,
       );
     }
 
@@ -86,99 +96,60 @@ export default function ExpansionModule({
     const newRule = rules.find(r => r.id === newRuleId);
     if (newRule) {
       setSelectedRuleId(newRuleId);
-      setCurrentRule({ ...newRule });
     }
   };
 
   // 更新表演字段
   const handlePerformanceChange = (performance: any) => {
-    setCurrentRule((prev: any) => (prev ? { ...prev, performance } : prev));
-
-    // 可选：通知外部规则数据变化
-    if (onRuleDataChange && selectedRuleId && currentRule) {
-      onRuleDataChange(selectedRuleId, performance, currentRule.numerical);
+    if (onRuleDataChange && selectedRuleId && currentRuleData) {
+      onRuleDataChange(selectedRuleId, performance, currentRuleData.numerical);
     }
   };
 
   // 更新数值约束
   const handleNumericalChange = (numerical: any) => {
-    setCurrentRule((prev: any) => (prev ? { ...prev, numerical } : prev));
-
-    if (onRuleDataChange && selectedRuleId && currentRule) {
-      onRuleDataChange(selectedRuleId, currentRule.performance, numerical);
+    if (onRuleDataChange && selectedRuleId && currentRuleData) {
+      onRuleDataChange(selectedRuleId, currentRuleData.performance, numerical);
     }
   };
 
   // 创建能力
-  const handleCreateAbility = (ruleId: number, roleId: number) => {
-    setRoleAbility({
-      ruleId,
-      roleId,
-      act: currentRule?.performance || { default: "default" },
-      ability: {},
-    });
-    queryClient.invalidateQueries({ queryKey: ["ability", roleId] });
-  };
+  // const handleCreateAbility = (ruleId: number, roleId: number) => {
+  //   setRoleAbility({
+  //     ruleId,
+  //     roleId,
+  //     act: currentRule?.performance || { default: "default" },
+  //     ability: {},
+  //   });
+  //   queryClient.invalidateQueries({ queryKey: ["ability", roleId] });
+  // };
 
   return (
     <div className="space-y-6">
-      {
-        (
-          <>
-            <RulesSection
-              rules={rules}
-              currentRuleId={selectedRuleId}
-              onRuleChange={handleRuleChange}
+      <RulesSection
+        rules={rules} // 提供默认空数组
+        currentRuleId={selectedRuleId}
+        onRuleChange={handleRuleChange}
+      />
+
+      {currentRuleData && (
+        <>
+          <Section title="表演字段配置">
+            <PerformanceEditor
+              fields={currentRuleData.performance}
+              onChange={handlePerformanceChange}
+              abilityData={currentRuleData.performance}
             />
+          </Section>
 
-            {
-              abilityData
-              && (
-                <>
-                  {currentRule && (
-                    <>
-                      {/* {roleId && (
-                                <AbilityModule
-                                  roleId={roleId}
-                                  ruleId={selectedRuleId}
-                                  isEditing={isEditing}
-                                  performance={currentRule.performance}
-                                  numerical={currentRule.numerical}
-                                  onAbilityChange={onAbilityChange}
-                                />
-                              )} */}
-
-                      <Section title="表演字段配置">
-                        <PerformanceEditor
-                          fields={currentRule.performance}
-                          onChange={handlePerformanceChange}
-                          abilityData={abilityData}
-                        />
-                      </Section>
-
-                      <Section title="数值约束配置">
-                        <NumericalEditor
-                          constraints={currentRule.numerical}
-                          onChange={handleNumericalChange}
-                        />
-                      </Section>
-                    </>
-                  )}
-                </>
-              )
-            }
-            { !abilityData
-              && (
-                <div className="flex justify-center items-center flex-col gap-8">
-                  <div className="text-gray-500">暂无数据</div>
-                  <button className="btn" type="button" onClick={() => handleCreateAbility(selectedRuleId, roleId || 0)}>
-                    选择上面的规则,根据该规则初始化一个能力组
-                  </button>
-                </div>
-              )}
-          </>
-        )
-      }
+          <Section title="数值约束配置">
+            <NumericalEditor
+              constraints={currentRuleData.numerical}
+              onChange={handleNumericalChange}
+            />
+          </Section>
+        </>
+      )}
     </div>
   );
 }

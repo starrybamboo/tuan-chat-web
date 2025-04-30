@@ -416,7 +416,7 @@ export function useRulePageMutation() {
 export function useRuleDetailQuery(ruleId: number) {
   return useQuery({
     queryKey: ["ruleDetail", ruleId],
-    queryFn: async (): Promise<GameRule> => {
+    queryFn: async () => {
       const res = await tuanchat.ruleController.getRuleDetail(ruleId)
       if (res.success && res.data) {
         // 将后端数据结构转换为前端需要的 `GameRule` 类型
@@ -433,22 +433,42 @@ export function useRuleDetailQuery(ruleId: number) {
   })
 }
 
-//根据规则和角色获取能力
-export function useGetByRuleAndRole(roleId: number, ruleId: number) {
-  return useQuery({
-    queryKey: ["roleAbility", roleId, ruleId],
-    queryFn: async (): Promise<ApiResultRoleAbility> => {
-      const res = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
-      if (res.success && res.data) {
-        return res;
-      }
-      throw new Error('获取角色能力失败');
-    }
-  }) 
-}
 
 
 // post部分
+
+// 获取能力,根据角色和规则
+export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
+  return useQuery({
+    queryKey: ["roleAbilityByRule", roleId, ruleId],
+    queryFn: async () => {
+      const res = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
+      if (res.success && res.data) {
+        return {
+          id : res.data.abilityId || 0 ,
+          performance: res.data.act || {}, // 表演字段
+          numerical: {
+            "0": res.data.ability || {} // 将ability包装在"0"键下作为默认约束组，很奇怪，不加这个会报类型错误，怀疑后端搞错了
+          }, // 数值约束
+        }
+      }
+      return null;
+    }
+  })
+}
+
+// 创建能力
+export function useCreateAbilityMutation() {
+  return useMutation({
+    mutationKey: ["createAbility"],
+    mutationFn: async () => {
+      
+    }
+  })
+}
+
+
+
 //删除角色
 export function useDeleteRole() {
   return useMutation({
