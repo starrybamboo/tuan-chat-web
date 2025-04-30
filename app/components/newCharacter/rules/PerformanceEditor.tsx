@@ -1,7 +1,7 @@
 // PerformanceEditor.tsx
 import type { RoleAbility } from "api";
 import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface PerformanceEditorProps {
   fields: { [key: string]: string };
@@ -22,6 +22,7 @@ export default function PerformanceEditor({
 }: PerformanceEditorProps) {
   // 接入api
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
+  const [localFields, setLocalFields] = useState(abilityData.act || fields);
 
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
@@ -58,6 +59,9 @@ export default function PerformanceEditor({
       })
     : [];
 
+  useEffect(() => {
+    setLocalFields(abilityData.act || fields);
+  }, [abilityData]);
   const handleAdd = () => {
     if (newKey.trim()) {
       onChange({ ...fields, [newKey.trim()]: newValue });
@@ -118,10 +122,13 @@ export default function PerformanceEditor({
               <input
                 type="text"
                 onChange={(e) => {
-                  onChange({ ...fields, [key]: e.target.value });
+                  const newFields = { ...localFields, [key]: e.target.value };
+                  onChange(newFields);
+                  setLocalFields(newFields);
                 }}
                 readOnly={!isEditing}
-                placeholder={abilityData.act?.[key] || "请输入"}
+
+                value={localFields[key] || ""}
               />
             </label>
           </div>
