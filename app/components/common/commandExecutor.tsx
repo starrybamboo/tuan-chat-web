@@ -59,6 +59,7 @@ export default function useCommandExecutor(roleId: number) {
    */
   function execute(command: string): string {
     const [cmdPart, ...args] = parseCommand(command);
+
     try {
       switch (cmdPart) {
         case "r": return handleRoll(args);
@@ -67,7 +68,7 @@ export default function useCommandExecutor(roleId: number) {
         case "rc": return handleRc(args);
         case "sc": return handleSc(args);
         case "en": return handleEn(args);
-        case "ti":
+        case "ri": return handleRi(args);
         case "li": return "疯狂症状功能暂未实现";
         default: return `未知命令 ${cmdPart}`;
       }
@@ -87,8 +88,7 @@ export default function useCommandExecutor(roleId: number) {
     const cmdMatch = trimmed.match(/^([A-Z]+)/i);
     const cmdPart = cmdMatch?.[0] ?? "";
     const args = trimmed.slice(cmdPart.length).trim().split(/\s+/);
-    const wholeArg = args.join("");
-    return [cmdPart.toLowerCase(), wholeArg];
+    return [cmdPart.toLowerCase(), ...args];
   }
 
   function parseDices(input: string): Array<{ sign: number; x: number; y: number }> {
@@ -153,10 +153,8 @@ export default function useCommandExecutor(roleId: number) {
 
     return { x, y };
   }
-
-  /** 可以处理多个骰子相加 */
   function handleRoll(args: string[]): string {
-    const input = args[0] || "";
+    const input = args.join("");
     try {
       const diceSegments = parseDices(input);
       const segmentResults = [];
@@ -317,6 +315,13 @@ export default function useCommandExecutor(roleId: number) {
     }
 
     return `${attr}检定：D100=${roll}/${value} ${result}`;
+  }
+
+  /**
+   *先攻
+   */
+  function handleRi(args: string[]) {
+    return args.join(" ");
   }
 
   /**
