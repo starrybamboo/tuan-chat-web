@@ -1,4 +1,4 @@
-import { RoleAbilityDetail } from "@/components/common/roleAbilityDetail";
+import { RoleAbilityDetail } from "@/components/common/ability/roleAbilityDetail";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../api/queryHooks";
 
 export function RoleDetail({ roleId }: { roleId: number }) {

@@ -1,15 +1,20 @@
-import type { AbilityFieldUpdateRequest } from "../../../api";
-import { useState } from "react";
+import type { AbilityFieldUpdateRequest } from "../../../../api";
+import AddAbilityWindow from "@/components/common/ability/addAbilityWindow";
+import { PopWindow } from "@/components/common/popWindow";
+import React, { useState } from "react";
 import {
   useGetRoleAbilitiesQuery,
-  useSetRoleAbilityMutation,
   useUpdateKeyFieldMutation,
   useUpdateRoleAbilityMutation,
-} from "../../../api/hooks/abilityQueryHooks";
+} from "../../../../api/hooks/abilityQueryHooks";
+import { useGetRuleDetailQueries } from "../../../../api/hooks/ruleQueryHooks";
 
 export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   const roleAbilityListQuery = useGetRoleAbilitiesQuery(roleId);
   const roleAbilityList = roleAbilityListQuery.data?.data ?? [];
+  const ruleIds = roleAbilityList?.map(ability => ability.ruleId ?? -1) ?? [];
+  const ruleQueries = useGetRuleDetailQueries(ruleIds);
+  const rules = ruleQueries.map(query => query.data?.data ?? {}) ?? [];
 
   const [editingField, setEditingField] = useState<{
     abilityId: number;
@@ -24,18 +29,9 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   // Mutations
   const updateAbilityMutation = useUpdateRoleAbilityMutation();
   const updateKeyFieldMutation = useUpdateKeyFieldMutation();
-  const setAbilityMutation = useSetRoleAbilityMutation();
 
-  function handleCreatAbility() {
-    setAbilityMutation.mutate({
-      ruleId: 1,
-      roleId,
-      act: {
-        default: "default",
-      },
-      ability: {},
-    });
-  }
+  const [isOpenAbilityWindow, setIsOpenAbilityWindow] = useState(false);
+
   // 统一处理字段更新
   const handleUpdate = (abilityId: number, type: "ability" | "act", key: string, updateValue: string, isKeyField: boolean) => {
     if (isKeyField) {
@@ -106,14 +102,14 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
 
   return (
     <div className="flex flex-col gap-2 overflow-auto h-[70vh] w-full">
-      {roleAbilityList.map((ability) => {
+      {roleAbilityList.map((ability, index) => {
         return (
           <div key={ability.abilityId} className="flex flex-col gap-1">
             <div className="collapse collapse-plus bg-base-100 border-base-300 border w-m">
               <input type="checkbox" />
               <div className="collapse-title font-semibold">
-                ruleId:
-                {ability.ruleId}
+                {rules[index].ruleName ?? "未命名规则"}
+                <span className="text-xs text-gray-500">{` id:${rules[index].ruleId}`}</span>
               </div>
               <div className="collapse-content flex flex-row gap-2 w-full">
                 <div className="flex flex-col gap-1">
@@ -178,14 +174,12 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
           </div>
         );
       })}
-      {
-        roleAbilityList.length === 0 && (
-          <div className="flex justify-center items-center flex-col gap-8">
-            <div className="text-gray-500">暂无数据</div>
-            <button className="btn" type="button" onClick={handleCreatAbility}>初始化一个能力组</button>
-          </div>
-        )
-      }
+      <div className="flex justify-center items-center flex-col gap-8">
+        <button className="btn" type="button" onClick={() => setIsOpenAbilityWindow(true)}>新建一个能力组</button>
+      </div>
+      <PopWindow isOpen={isOpenAbilityWindow} onClose={() => setIsOpenAbilityWindow(false)}>
+        <AddAbilityWindow roleId={roleId} onClose={() => setIsOpenAbilityWindow(false)} />
+      </PopWindow>
     </div>
   );
 }

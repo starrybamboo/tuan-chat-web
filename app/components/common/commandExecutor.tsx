@@ -254,14 +254,14 @@ export default function useCommandExecutor(roleId: number) {
       updateAbilityMutation.mutate({
         abilityId: abilityIds[0] ?? -1,
         ability,
-        act: { default: "default" },
+        act: {},
       });
     }
     else {
       setAbilityMutation.mutate({
         roleId,
         ruleId: 1,
-        act: { default: "default" },
+        act: {},
         ability,
       });
     }

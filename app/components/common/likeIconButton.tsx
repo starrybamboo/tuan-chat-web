@@ -1,7 +1,10 @@
+/**
+ * 喜欢的图标
+ */
 import type { LikeRecordRequest } from "../../../api";
 import { useIsLikedQuery, useLikeMutation, useUnlikeMutation } from "../../../api/hooks/likeQueryHooks";
 
-export default function LikeComponent({ targetInfo }: { targetInfo: LikeRecordRequest }) {
+export default function LikeIconButton({ targetInfo }: { targetInfo: LikeRecordRequest }) {
   const isLikedQuery = useIsLikedQuery({
     targetId: targetInfo.targetId,
     targetType: targetInfo.targetType,
