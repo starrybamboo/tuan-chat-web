@@ -1,10 +1,12 @@
 import type { NumericalConstraints } from "../types";
+import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useMemo, useState } from "react";
 import FormulaParser from "./FormulaParser";
 
 interface NumericalEditorProps {
   constraints: NumericalConstraints;
   onChange: (constraints: NumericalConstraints) => void;
+  abilityId: number;
 }
 
 // 输入状态类型
@@ -36,7 +38,7 @@ function convertNestedObjectToArray(obj: Record<string, any>): Record<string, an
 }
 
 // 还原函数：将数组转回单层对象，并去掉一级键字段
-export function convertArrayToFlatObjectWithoutGroupKeys(arr: Record<string, any>[]): Record<string, any> {
+function convertArrayToFlatObjectWithoutGroupKeys(arr: Record<string, any>[]): Record<string, any> {
   const result: Record<string, any> = {};
 
   for (const item of arr) {
@@ -58,7 +60,10 @@ export function convertArrayToFlatObjectWithoutGroupKeys(arr: Record<string, any
 export default function NumericalEditor({
   constraints,
   onChange,
+  abilityId,
 }: NumericalEditorProps) {
+  // 接入api
+  const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
   const [newTotal, setNewTotal] = useState("");
   const [isEditing, setIsEditing] = useState(false);
 
@@ -279,7 +284,14 @@ export default function NumericalEditor({
           ? (
               <button
                 type="submit"
-                onClick={() => setIsEditing(false)}
+                onClick={() => {
+                  setIsEditing(false);
+                  const updatedAbility = {
+                    abilityId,
+                    ability: convertArrayToFlatObjectWithoutGroupKeys(constraintGroups),
+                  };
+                  updateFiledAbility(updatedAbility);
+                }}
                 className="btn btn-primary"
               >
                 退出

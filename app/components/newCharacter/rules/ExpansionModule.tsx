@@ -143,6 +143,7 @@ export default function ExpansionModule({
             <NumericalEditor
               constraints={localRuleData.numerical}
               onChange={handleNumericalChange}
+              abilityId={abilityListQuery.data?.id ? localRuleData.id : 0}
             />
           </Section>
         </>
