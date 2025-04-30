@@ -32,7 +32,7 @@ export default function ExpansionModule({
   );
   const ruleListMutation = useRulePageMutation();
   // 能力列表
-  const abilityListQuery = useAbilityByRuleAndRole(selectedRuleId, roleId);
+  const abilityListQuery = useAbilityByRuleAndRole(roleId, selectedRuleId);
   // 规则详情查询
   const ruleDetailQuery = useRuleDetailQuery(selectedRuleId);
 
@@ -121,6 +121,8 @@ export default function ExpansionModule({
               onChange={handlePerformanceChange}
               abilityData={currentRuleData.performance}
               abilityId={abilityListQuery.data?.id ? currentRuleData.id : 0}
+              roleId={roleId}
+              ruleId={ruleDetailQuery.data?.id ? currentRuleData.id : 0}
             />
           </Section>
 
