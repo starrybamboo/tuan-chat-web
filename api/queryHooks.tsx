@@ -443,6 +443,7 @@ export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
     queryKey: ["roleAbilityByRule", roleId, ruleId],
     queryFn: async () => {
       const res = await tuanchat.abilityController.getByRuleAndRole(ruleId, roleId);
+      console.log(res.data);
       if (res.success && res.data) {
         return {
           id : res.data.abilityId || 0 ,
@@ -456,18 +457,6 @@ export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
     }
   })
 }
-
-// 创建能力
-export function useCreateAbilityMutation() {
-  return useMutation({
-    mutationKey: ["createAbility"],
-    mutationFn: async () => {
-      
-    }
-  })
-}
-
-
 
 //删除角色
 export function useDeleteRole() {
