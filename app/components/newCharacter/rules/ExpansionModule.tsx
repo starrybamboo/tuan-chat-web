@@ -1,6 +1,6 @@
 import type { GameRule } from "../types";
 import { useEffect, useMemo, useState } from "react";
-import { useRuleDetailQuery, useRulePageMutation } from "../../../../api/queryHooks";
+import { useAbilityByRuleAndRole, useRuleDetailQuery, useRulePageMutation } from "../../../../api/queryHooks";
 import Section from "../Section";
 // import AbilityModule from "./AbilityModule";
 import NumericalEditor from "./NumericalEditor";
@@ -9,7 +9,7 @@ import PerformanceEditor from "./PerformanceEditor";
 import RulesSection from "./RulesSection";
 
 interface ExpansionModuleProps {
-  roleId?: number; // 角色ID
+  roleId: number; // 角色ID
   isEditing?: boolean; // 是否处于编辑模式
   onRuleDataChange?: (ruleId: number, performance: any, numerical: any) => void; // 可选回调
   onAbilityChange?: (abilityData: any) => void; // 能力变更回调
@@ -102,7 +102,7 @@ export default function ExpansionModule({
         onRuleChange={handleRuleChange}
       />
 
-      {currentRuleData && abilityListQuery.data && (
+      {currentRuleData && (
         <>
           {/* {roleId && (
             <AbilityModule
@@ -124,7 +124,7 @@ export default function ExpansionModule({
 
           <Section title="数值约束配置">
             <NumericalEditor
-              constraints={abilityListQuery.data.numerical}
+              constraints={currentRuleData.numerical}
               onChange={handleNumericalChange}
             />
           </Section>
