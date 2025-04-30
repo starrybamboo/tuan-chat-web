@@ -12,6 +12,7 @@ import {
   ScrollRestoration,
 } from "react-router";
 import "./app.css";
+import "./animation.css";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },

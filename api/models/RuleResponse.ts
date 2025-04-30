@@ -6,8 +6,8 @@
  * 数据列表
  */
 export type RuleResponse = {
-    ruleId?: number;
-    ruleName?: string;
-    ruleDescription?: string;
+    ruleId: number;
+    ruleName: string;
+    ruleDescription: string;
 };
 

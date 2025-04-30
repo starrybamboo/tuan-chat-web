@@ -1,10 +1,16 @@
 import type { SubmitHandler } from "react-hook-form";
 import TInput from "@/components/common/form/input";
 import TTextArea from "@/components/common/form/textarea";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import message from "@/components/common/message/message";
+import { useAddModuleMutation } from "api/hooks/moduleQueryHooks";
 import { useForm } from "react-hook-form";
+import RuleSelect from "../common/ruleSelect";
 
-interface ModuleFormValues {
+// 合并表单值类型
+/**
+ * ModuleCreateRequest，新建模组请求
+ */
+export interface ModuleCreateRequest {
   /**
    * 模组作者名字
    */
@@ -21,98 +27,101 @@ interface ModuleFormValues {
    * 所用的规则id
    */
   ruleId: number;
-  /**
-   * 模组的图标
-   */
-  image: string;
-  /**
-   * 其他属性
-   */
   [property: string]: any;
 }
 
+// 更新枚举以包含规则字段
 enum ModuleFormKeys {
   AUTHOR_NAME = "authorName",
   DESCRIPTION = "description",
   MODULE_NAME = "moduleName",
   RULE_ID = "ruleId",
-  IMAGE = "image",
 }
 
 function ModuleForm() {
+  // react-hook-form 的表单 object
   const {
     register,
-    setValue,
-    watch,
     handleSubmit,
+    setValue,
     formState: { errors },
-  } = useForm<ModuleFormValues>({
-    mode: "onBlur", // 在失去焦点时验证表单
+  } = useForm<ModuleCreateRequest>({
+    mode: "onBlur",
     defaultValues: {
       [ModuleFormKeys.AUTHOR_NAME]: "",
       [ModuleFormKeys.DESCRIPTION]: "",
       [ModuleFormKeys.MODULE_NAME]: "",
       [ModuleFormKeys.RULE_ID]: 0,
-      [ModuleFormKeys.IMAGE]: "",
     },
   });
-  const onSubmit: SubmitHandler<ModuleFormValues> = (data) => {
-    console.warn("提交的数据:", JSON.stringify(data));
+  const mutation = useAddModuleMutation();
+
+  const onSubmit: SubmitHandler<ModuleCreateRequest> = (data) => {
+    mutation.mutate(
+      {
+        ...data,
+      },
+      {
+        onSuccess: () => {
+          message.success("创建模组成功");
+        },
+      },
+    );
   };
-  const imageUrl = watch(ModuleFormKeys.IMAGE);
 
   return (
-    <div className="w-full rounded-md">
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="w-full h-min flex gap-[20px]"
-      >
-        <div className="basis-[30%] bg-neutral-500 hover:bg-neutral-400 hover:rounded-none rounded-md overflow-hidden transition-all aspect-square">
-          <ImgUploaderWithCopper
-            setDownloadUrl={() => {}}
-            setCopperedDownloadUrl={(url) => {
-              setValue(ModuleFormKeys.IMAGE, url);
+    <div className="w-full h-full flex gap-4">
+      {/* 左侧规则列表 */}
+      <div className="basis-1/3 bg-base-200 rounded-xl">
+        <div className="p-4">
+          <h2 className="text-lg font-bold mb-4">选择规则</h2>
+          <RuleSelect
+            onRuleSelect={(ruleId) => {
+              // 设置选择的规则 ID
+              setValue(ModuleFormKeys.RULE_ID, ruleId);
             }}
-            fileName={new Date().getTime().toString()}
-          >
-            {
-              imageUrl
-                ? (
-                    <img src={imageUrl} alt="模组图标" className="w-full object-cover"></img>
-                  )
-                : (
-                    <div className="w-full h-full flex items-center justify-center textarea-xl">请选择一张图片</div>
-                  )
-            }
-          </ImgUploaderWithCopper>
+          />
         </div>
-        <div className="basis-[70%] bg-base-200 flex flex-col gap-4 p-4 rounded-md">
-          <div className="w-full flex gap-6">
-            <TInput
-              className="basis-1/2"
-              field={ModuleFormKeys.AUTHOR_NAME}
-              register={register}
-              name="模组作者"
-              errors={errors}
-            />
-            <TInput
-              className="basis-1/2"
-              field={ModuleFormKeys.MODULE_NAME}
-              register={register}
-              name="模组名称"
-              errors={errors}
-            />
+      </div>
+
+      {/* 右侧模组表单 */}
+      <div className="basis-2/3">
+        <form onSubmit={handleSubmit(onSubmit)} className="w-full h-full flex flex-col gap-4">
+          <div className="flex gap-4">
+            <div className="basis-2/3 flex flex-col gap-4">
+              <TInput
+                field={ModuleFormKeys.AUTHOR_NAME}
+                register={register}
+                name="模组作者"
+                errors={errors}
+              />
+              <TInput
+                field={ModuleFormKeys.MODULE_NAME}
+                register={register}
+                name="模组名称"
+                errors={errors}
+              />
+            </div>
           </div>
           <TTextArea
-            className="w-full resize-none"
+            className="w-full"
             field={ModuleFormKeys.DESCRIPTION}
             register={register}
             name="模组描述"
             errors={errors}
           />
-          <input type="submit" className="btn btn-success" value="提交" />
-        </div>
-      </form>
+          <button
+            type="submit"
+            className="btn btn-primary mt-auto"
+            onClick={(e) => {
+              e.preventDefault();
+              message.success("创建模组成功");
+            }}
+          >
+            创建模组
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { Route } from "./+types/home";
+import type { Route } from "../+types/home";
 import Carousel from "@/components/module/carousel";
 import ModuleCard from "@/components/module/moduleCard";
 import UserCard from "@/components/module/userCard";
