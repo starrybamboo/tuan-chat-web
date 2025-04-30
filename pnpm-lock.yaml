@@ -35,6 +35,9 @@ importers:
       react:
         specifier: ^19.0.0
         version: 19.0.0
+      react-d3-tree:
+        specifier: ^3.6.6
+        version: 3.6.6(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       react-dom:
         specifier: ^19.0.0
         version: 19.0.0(react@19.0.0)

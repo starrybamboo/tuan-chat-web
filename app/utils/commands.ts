@@ -27,24 +27,29 @@ export const commands: command[] = [
   },
   {
     name: "sc",
-    importance: 5,
+    importance: 2,
     description: "理智检定（例：.sc 1/1d6 成功扣1，失败扣1d6；支持多阶段.sc 0/1d3+1/1d10）",
   },
   {
-    name: "en",
-    importance: 3,
-    description: "技能成长（例：.en 急救 进行成长检定，成功后增加1d10点技能值",
+    name: "ri",
+    importance: 4,
+    description: "投掷先攻（例：.ri([加值])([角色名])或.ri([表达式])([角色名])",
   },
-  {
-    name: "ti",
-    importance: 2,
-    description: "临时疯狂症状（例：.ti 骰1d10获取临时疯狂症状，持续轮数=当前san值/10）",
-  },
-  {
-    name: "li",
-    importance: 2,
-    description: "总结疯狂症状（例：.li 骰1d10获取总结疯狂症状，效果持续至恢复理智）",
-  },
+  // {
+  //   name: "en",
+  //   importance: 3,
+  //   description: "技能成长（例：.en 急救 进行成长检定，成功后增加1d10点技能值",
+  // },
+  // {
+  //   name: "ti",
+  //   importance: 2,
+  //   description: "临时疯狂症状（例：.ti 骰1d10获取临时疯狂症状，持续轮数=当前san值/10）",
+  // },
+  // {
+  //   name: "li",
+  //   importance: 2,
+  //   description: "总结疯狂症状（例：.li 骰1d10获取总结疯狂症状，效果持续至恢复理智）",
+  // },
   {
     name: "help",
     importance: 4,
