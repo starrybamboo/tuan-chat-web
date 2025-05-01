@@ -18,6 +18,18 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import MemberInviteComponent from "../common/memberInvite";
 
+interface SpaceRule {
+  id: number;
+  name: string;
+};
+
+const SPACE_RULES: SpaceRule[] = [
+  { id: 1, name: "coc7th" },
+  { id: 2, name: "OC专用规则" },
+  { id: 3, name: "最终物语(FU)" },
+  { id: 4, name: "dnd5e" },
+];
+
 export default function RoomSelect() {
   const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
   const navigate = useNavigate();
@@ -73,6 +85,9 @@ export default function RoomSelect() {
   // 已选择邀请的用户
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
 
+  // 当前选择的空间规则
+  const [selectedRule, setSelectedRule] = useState<SpaceRule>(SPACE_RULES[0]);
+
   // websocket封装, 用于发送接受消息
   const websocketUtils = useGlobalContext().websocketUtils;
   useEffect(() => {
@@ -87,6 +102,7 @@ export default function RoomSelect() {
       userIdList: [userId],
       avatar: spaceAvatar,
       spaceName,
+      ruleId: selectedRule.id,
     }, {
       onSettled: () => {
         setIsSpaceHandleOpen(false);
@@ -205,7 +221,7 @@ export default function RoomSelect() {
       }
       {/* 创建空间弹出窗口 */}
       <PopWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
-        <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[80vh] overflow-y-auto">
+        <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[80vh] overflow-y-scroll">
           <p className="text-lg font-bold text-center w-full mb-4">创建空间</p>
 
           {/* 头像上传 */}
@@ -248,6 +264,39 @@ export default function RoomSelect() {
             />
           </div>
 
+          {/* 规则选择 */}
+          <div className="mb-4">
+            <label className="label mb-2">
+              <span className="label-text">空间规则</span>
+            </label>
+            <div className="dropdown w-full">
+              <label tabIndex={0} className="btn btn-outline w-full justify-start">
+                {selectedRule.name}
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </label>
+              <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full">
+                {SPACE_RULES.map(rule => (
+                  <li key={rule.id}>
+                    <button
+                      type="button"
+                      className="w-full text-left"
+                      onClick={() => {
+                        setSelectedRule(rule);
+                        if (document.activeElement instanceof HTMLElement) {
+                          document.activeElement.blur();
+                        }
+                      }}
+                    >
+                      {rule.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
           {/* 邀请成员部分 */}
           <div className="mb-4">
             <label className="label mb-2">
@@ -281,7 +330,7 @@ export default function RoomSelect() {
       {/* 创建房间弹出窗口 */}
       <PopWindow isOpen={isRoomHandleOpen} onClose={() => setIsRoomHandleOpen(false)}>
         <div>
-          <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[60vh] overflow-y-auto">
+          <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[60vh] overflow-y-scroll">
             <p className="text-lg font-bold text-center w-full mb-4">创建房间</p>
             {/* 头像上传 */}
             <div className="flex justify-center mb-6">
