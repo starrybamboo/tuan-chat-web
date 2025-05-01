@@ -254,7 +254,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                 </ul>
               </div>
 
-              <div className="w-full textarea flex-wrap overflow-auto">
+              <div className="w-full textarea flex-wrap">
                 <CommandPanel prefix={inputText} handleSelectCommand={handleSelectCommand}></CommandPanel>
                 {/* 图片显示 */}
                 <div className="flex flex-row gap-x-3">
