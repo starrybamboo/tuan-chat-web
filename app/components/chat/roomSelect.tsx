@@ -189,6 +189,7 @@ export default function RoomSelect() {
                 setRoomAvatar(String(spaces.find(space => (space.spaceId === activeSpaceId))?.avatar));
                 setRoomName(`${String(userInfo?.username)}的房间`);
                 setInputUserId(-1);
+                setSelectedUserIds(new Set());
               }
             }}
           >
@@ -277,108 +278,114 @@ export default function RoomSelect() {
           )}
         </div>
       </PopWindow>
-      {/* 创建子群弹出窗口 */}
+      {/* 创建房间弹出窗口 */}
       <PopWindow isOpen={isRoomHandleOpen} onClose={() => setIsRoomHandleOpen(false)}>
-        <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[80vh] overflow-y-auto">
-          <p className="text-lg font-bold text-center w-full mb-4">创建房间</p>
-          {/* 头像上传 */}
-          <div className="flex justify-center mb-6">
-            <ImgUploaderWithCopper
-              setCopperedDownloadUrl={(url) => {
-                setRoomAvatar(url);
-              }}
-              fileName={`new-room-avatar-${Date.now()}`}
-            >
-              <div className="relative group overflow-hidden rounded-lg">
-                <img
-                  src={roomAvatar}
-                  className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
-                />
-                <div
-                  className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm"
-                >
-                  <span className="font-bold text-black px-2 py-1 rounded leading-normal tracking-normal">
-                    上传头像
-                  </span>
-                </div>
-              </div>
-            </ImgUploaderWithCopper>
-          </div>
-
-          {/* 房间名称 */}
-          <div className="mb-4">
-            <label className="label mb-2">
-              <span className="label-text">房间名称</span>
-            </label>
-            <input
-              type="text"
-              placeholder={roomName}
-              className="input input-bordered w-full"
-              onChange={(e) => {
-                const inputValue = e.target.value;
-                setRoomName(inputValue === "" ? `${String(userInfo?.username)}的房间` : inputValue);
-              }}
-            />
-          </div>
-
-          {/* 邀请成员部分 */}
-          <div>
-            <label className="label mb-2">
-              <span className="label-text">邀请成员(输入用户ID)</span>
-            </label>
-            <input
-              type="text"
-              placeholder="请输入要加入的成员ID"
-              className="input input-bordered w-full mb-2"
-              onInput={e => setInputUserId(Number(e.currentTarget.value))}
-            />
-          </div>
-
-          {/* 用户信息预览和确认按钮 */}
-          <div className="flex flex-col gap-y-2 pb-4 overflow-x-auto">
-            {players.map(player => (
-              <div
-                key={player.userId}
-                className="flex gap-x-4 items-center p-2 bg-base-100 rounded-lg w-full"
-              >
-                {/* 成员列表 */}
-                <input
-                  type="checkbox"
-                  className="checkbox"
-                  checked={selectedUserIds.has(Number(player.userId))}
-                  onChange={(e) => {
-                    const userId = Number(player.userId);
-                    setSelectedUserIds((prev) => {
-                      const newSet = new Set(prev);
-                      if (e.target.checked) {
-                        newSet.add(userId);
-                      }
-                      else {
-                        newSet.delete(userId);
-                      }
-                      return newSet;
-                    });
-                  }}
-                />
-                <MemberInviteComponent userId={Number(player.userId)} />
-              </div>
-            ))}
-            <div className="sticky bottom-0 w-full bg-base-300 pt-4">
-              <button
-                className="btn btn-primary w-full shadow-lg"
-                type="button"
-                onClick={() => {
-                  // 合并选中的用户和手动输入的用户
-                  const userIds = Array.from(selectedUserIds);
-                  if (inputUserId > 0)
-                    userIds.push(inputUserId);
-
-                  createRoom(Number(activeSpaceId), userIds);
+        <div>
+          <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[60vh] overflow-y-auto">
+            <p className="text-lg font-bold text-center w-full mb-4">创建房间</p>
+            {/* 头像上传 */}
+            <div className="flex justify-center mb-6">
+              <ImgUploaderWithCopper
+                setCopperedDownloadUrl={(url) => {
+                  setRoomAvatar(url);
                 }}
+                fileName={`new-room-avatar-${Date.now()}`}
               >
-                创建房间
-              </button>
+                <div className="relative group overflow-hidden rounded-lg">
+                  <img
+                    src={roomAvatar}
+                    className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
+                  />
+                  <div
+                    className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm"
+                  >
+                    <span className="font-bold text-black px-2 py-1 rounded leading-normal tracking-normal">
+                      上传头像
+                    </span>
+                  </div>
+                </div>
+              </ImgUploaderWithCopper>
             </div>
+
+            {/* 房间名称 */}
+            <div className="mb-4">
+              <label className="label mb-2">
+                <span className="label-text">房间名称</span>
+              </label>
+              <input
+                type="text"
+                placeholder={roomName}
+                className="input input-bordered w-full"
+                onChange={(e) => {
+                  const inputValue = e.target.value;
+                  setRoomName(inputValue === "" ? `${String(userInfo?.username)}的房间` : inputValue);
+                }}
+              />
+            </div>
+
+            {/* 邀请成员部分 */}
+            <div>
+              <label className="label mb-2">
+                <span className="label-text">搜索玩家Id</span>
+              </label>
+              <input
+                type="text"
+                placeholder="请输入要加入的玩家ID"
+                className="input input-bordered w-full mb-2"
+                onInput={e => setInputUserId(Number(e.currentTarget.value))}
+              />
+            </div>
+
+            {/* 用户信息预览和确认按钮 */}
+            <div className="flex flex-col gap-y-2 pb-4">
+              {(() => {
+                if (players.length === 0) {
+                  return (
+                    <div className="text-center py-4 text-gray-500">
+                      当前空间内没有玩家哦
+                    </div>
+                  );
+                }
+
+                const matchedPlayer = inputUserId > 0
+                  ? players.find(player => player.userId === inputUserId)
+                  : null;
+                const playersToShow = matchedPlayer ? [matchedPlayer] : players;
+
+                return playersToShow.map(player => (
+                  <div key={player.userId} className="flex gap-x-4 items-center p-2 bg-base-100 rounded-lg w-full">
+                    <input
+                      type="checkbox"
+                      className="checkbox"
+                      checked={selectedUserIds.has(player.userId ?? -1)}
+                      onChange={(e) => {
+                        const newSet = new Set(selectedUserIds);
+                        e.target.checked
+                          ? newSet.add(player.userId ?? -1)
+                          : newSet.delete(player.userId ?? -1);
+                        setSelectedUserIds(newSet);
+                      }}
+                    />
+                    <MemberInviteComponent userId={player.userId ?? -1} />
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+          <div className="bottom-0 w-full bg-base-300 pt-4">
+            <button
+              type="button"
+              className="btn btn-primary w-full shadow-lg"
+              onClick={() => {
+                const userIds = [
+                  ...selectedUserIds,
+                  ...(inputUserId > 0 ? [inputUserId] : []),
+                ];
+                createRoom(Number(activeSpaceId), userIds);
+              }}
+            >
+              创建房间
+            </button>
           </div>
         </div>
       </PopWindow>
