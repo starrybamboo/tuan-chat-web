@@ -1,9 +1,12 @@
+import type { Initiative } from "@/components/chat/initiativeList";
 import { useEffect, useRef } from "react";
 import {
   useGetRoleAbilitiesQuery,
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityMutation,
 } from "../../../api/hooks/abilityQueryHooks";
+import { useGetRoomExtraQuery, useSetRoomExtraMutation } from "../../../api/hooks/chatQueryHooks";
+import { useGetRoleQuery } from "../../../api/queryHooks";
 // type DiceResult = { x: number; y: number; rolls: number[]; total: number };
 
 // 属性名中英文对照表
@@ -28,7 +31,9 @@ export function isCommand(command: string) {
   return (trimmed.startsWith(".") || trimmed.startsWith("。"));
 }
 
-export default function useCommandExecutor(roleId: number) {
+export default function useCommandExecutor(roleId: number, roomId: number = -1) {
+  const role = useGetRoleQuery(roleId).data?.data;
+
   const defaultDice = useRef(100);
 
   const abilityQuery = useGetRoleAbilitiesQuery(roleId);
@@ -36,6 +41,16 @@ export default function useCommandExecutor(roleId: number) {
 
   const updateAbilityMutation = useUpdateRoleAbilityMutation();
   const setAbilityMutation = useSetRoleAbilityMutation();
+
+  const initiativeInfoQuery = useGetRoomExtraQuery({ roomId, key: "initiativeList" });
+  const roomExtraInfoMutation = useSetRoomExtraMutation();
+  let initiativeList: Initiative[] = [];
+  try {
+    initiativeList = JSON.parse(initiativeInfoQuery.data?.data || "[]") as Initiative[];
+  }
+  finally {
+    initiativeList = initiativeList.sort((a, b) => b.value - a.value);
+  }
 
   useEffect(() => {
     try {
@@ -62,7 +77,7 @@ export default function useCommandExecutor(roleId: number) {
 
     try {
       switch (cmdPart) {
-        case "r": return handleRoll(args);
+        case "r": return handleRoll(args).result;
         case "set": return handleSet(args);
         case "st": return handleSt(args);
         case "rc": return handleRc(args);
@@ -87,7 +102,7 @@ export default function useCommandExecutor(roleId: number) {
     // 匹配所有的英文字符，取第一个为命令
     const cmdMatch = trimmed.match(/^([A-Z]+)/i);
     const cmdPart = cmdMatch?.[0] ?? "";
-    const args = trimmed.slice(cmdPart.length).trim().split(/\s+/);
+    const args = trimmed.slice(cmdPart.length).trim().split(/\s+/).filter(arg => arg !== "");
     return [cmdPart.toLowerCase(), ...args];
   }
 
@@ -153,7 +168,7 @@ export default function useCommandExecutor(roleId: number) {
 
     return { x, y };
   }
-  function handleRoll(args: string[]): string {
+  function handleRoll(args: string[]) {
     const input = args.join("");
     try {
       const diceSegments = parseDices(input);
@@ -196,10 +211,10 @@ export default function useCommandExecutor(roleId: number) {
           );
         }
       }
-      return `掷骰结果：${expressionParts.join("")}=${total}   (${diceNotationParts.join("")})`;
+      return { result: `掷骰结果：${expressionParts.join("")}=${total}   (${diceNotationParts.join("")})`, total };
     }
     catch (error) {
-      return `错误：${error ?? "未知错误"}`;
+      return { result: `错误：${error ?? "未知错误"}`, total: undefined };
     }
   }
 
@@ -318,10 +333,65 @@ export default function useCommandExecutor(roleId: number) {
   }
 
   /**
-   *先攻
+   *先攻 args[0] 如果不能被解析成骰子表达式，则视为角色名；args[1]在args[0]为角色名的时候可以作为骰子表达式
    */
-  function handleRi(args: string[]) {
-    return args.join(" ");
+  function handleRi(args: string[]): string {
+    let initiative: number | undefined;
+    let name: string | undefined;
+    try {
+      if (args.length !== 0) {
+        initiative = handleRiExpression(args[0]);
+        if (!initiative) {
+          name = args[0];
+        }
+        if (args.length > 1) {
+          initiative = handleRiExpression(args[1]);
+        }
+      }
+    }
+    catch (e) {
+      return e?.toString() ?? "不合规的表达式";
+    }
+    if (!initiative) {
+      initiative = rollDice(20);
+    }
+    if (!name) {
+      name = role?.roleName;
+    }
+    if (initiative && name) {
+      roomExtraInfoMutation.mutate({
+        key: "initiativeList",
+        roomId,
+        value: JSON.stringify(
+          [...initiativeList.filter(i => i.name !== name), { name, value: initiative }]
+            .sort((a, b) => b.value - a.value),
+        ),
+      });
+    }
+    else {
+      return "不合规的表达式";
+    }
+    return `${name}的先攻更新为${initiative}`;
+  }
+  // 解析Ri命令下的特殊骰子表达式
+  function handleRiExpression(arg: string) {
+    if (arg.startsWith("+")) {
+      const rollResult = handleRoll([arg.slice(1)]);
+      if (!rollResult.total) {
+        return undefined;
+      }
+      return rollDice(20) + rollResult.total;
+    }
+    else if (arg.startsWith("-")) {
+      const rollResult = handleRoll([arg.slice(1)]);
+      if (!rollResult.total) {
+        return undefined;
+      }
+      return rollDice(20) - rollResult.total;
+    }
+    else {
+      return handleRoll([arg]).total;
+    }
   }
 
   /**

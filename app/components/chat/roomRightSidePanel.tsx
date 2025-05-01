@@ -1,5 +1,5 @@
+import InitiativeList from "@/components/chat/initiativeList";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
-import OrderList from "@/components/chat/orderList";
 import { RoomContext } from "@/components/chat/roomContext";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
@@ -49,7 +49,7 @@ export default function RoomRightSidePanel() {
     <div className="flex flex-row gap-4 h-full">
       <div className="flex flex-col gap-2 p-4 bg-base-100 rounded-box shadow-sm items-center w-full space-y-4 max-h-[calc(100vh-6rem)] overflow-y-auto">
         {/* 先攻表 */}
-        <OrderList></OrderList>
+        <InitiativeList></InitiativeList>
         {/* 群成员列表 */}
         <div className="space-y-2">
           <div className="flex flex-row justify-center items-center gap-2">

@@ -56,7 +56,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     return roomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
   }, [roomRoles, userRoles]);
   const [curRoleId, setCurRoleId] = useState(roomRolesThatUserOwn[0]?.roleId ?? -1);
-  const commandExecutor = useCommandExecutor(curRoleId);
+  const commandExecutor = useCommandExecutor(curRoleId, roomId);
   // 获取当前用户选择角色的所有头像(表情差分)
   const roleAvatarQuery = useGetRoleAvatarsQuery(curRoleId ?? -1);
   const roleAvatars = useMemo(() => roleAvatarQuery.data?.data ?? [], [roleAvatarQuery.data?.data]);

@@ -19,6 +19,9 @@ import type {RoomUpdateRequest} from "../models/RoomUpdateRequest";
 import type {SpaceUpdateRequest} from "../models/SpaceUpdateRequest";
 import type {Message} from "../models/Message";
 import type {SpaceRoleAddRequest} from "../models/SpaceRoleAddRequest";
+import type {RoomExtraRequest} from "../models/RoomExtraRequest";
+import type {RoomExtraSetRequest} from "../models/RoomExtraSetRequest";
+import type {FightRoomAddRequest} from "../models/FightRoomAddRequest";
 
 /**
  * 创建空间
@@ -485,5 +488,60 @@ export function useGetMessageByIdQuery(messageId: number){
     })
 }
 
+/**
+ * 获取房间其他信息
+ * @param request 请求参数
+ */
+export function useGetRoomExtraQuery(request: RoomExtraRequest) {
+    return useQuery({
+        queryKey: ['getRoomExtra', request],
+        queryFn: () => tuanchat.roomController.getRoomExtra(request),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+/**
+ * 设置房间其他信息
+ */
+export function useSetRoomExtraMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: RoomExtraSetRequest) => tuanchat.roomController.setRoomExtra(req),
+        mutationKey: ['setRoomExtra'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: ['getRoomExtra', { roomId: variables.roomId }]
+            });
+        }
+    });
+}
+/**
+ * 删除房间其他信息
+ */
+export function useDeleteRoomExtraMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: RoomExtraRequest) => tuanchat.roomController.deleteRoomExtra(req),
+        mutationKey: ['deleteRoomExtra'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: ['getRoomExtra', variables]
+            });
+        }
+    });
+}
 
-//==============================extraInfo==============================
+/**
+ * 创建战斗轮房间
+ */
+export function useCreateFightRoomMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: FightRoomAddRequest) => tuanchat.roomController.createRoom1(req),
+        mutationKey: ['createFightRoom'],
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: ['getUserRooms']
+            });
+        }
+    });
+}

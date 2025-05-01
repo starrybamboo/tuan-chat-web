@@ -1,21 +1,35 @@
-import { useState } from "react";
+import { RoomContext } from "@/components/chat/roomContext";
+import { use, useState } from "react";
+import { useGetRoomExtraQuery, useSetRoomExtraMutation } from "../../../api/hooks/chatQueryHooks";
 
-export const mockOrders = [
-  { name: "优先级 A", value: 100 },
-  { name: "优先级 B", value: 75 },
-  { name: "优先级 C", value: 50 },
-  { name: "优先级 D", value: 25 },
-];
+export interface Initiative {
+  name: string;
+  value: number;
+}
 
-export default function OrderList({ orders = mockOrders }: { orders?: { name: string; value: number }[] }) {
-  const [list, setList] = useState([...orders].sort((a, b) => b.value - a.value));
+export default function InitiativeList() {
+  const roomContext = use(RoomContext);
+  const roomId = roomContext.roomId ?? -1;
+  const initiativeInfoQuery = useGetRoomExtraQuery({ roomId, key: "initiativeList" });
+  const initiativeInfoMutation = useSetRoomExtraMutation();
+  let list: Initiative[] = [];
+  try {
+    list = JSON.parse(initiativeInfoQuery.data?.data || "[]") as Initiative[];
+  }
+  finally {
+    list = list.sort((a, b) => b.value - a.value);
+  }
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
   const [newItem, setNewItem] = useState({ name: "", value: "" });
 
   // 删除项
   const handleDelete = (index: number) => {
-    setList(list.filter((_, i) => i !== index));
+    initiativeInfoMutation.mutate({
+      roomId,
+      key: "initiativeList",
+      value: JSON.stringify(list.filter((_, i) => i !== index)),
+    });
   };
 
   // 开始编辑数值
@@ -30,7 +44,11 @@ export default function OrderList({ orders = mockOrders }: { orders?: { name: st
     if (!Number.isNaN(newValue)) {
       const newList = [...list];
       newList[index].value = newValue;
-      setList(newList.sort((a, b) => b.value - a.value));
+      initiativeInfoMutation.mutate({
+        roomId,
+        key: "initiativeList",
+        value: JSON.stringify(newList.sort((a, b) => b.value - a.value)),
+      });
     }
     setEditingIndex(null);
   };
@@ -38,10 +56,14 @@ export default function OrderList({ orders = mockOrders }: { orders?: { name: st
   // 添加新项
   const handleAdd = () => {
     if (newItem.name && !Number.isNaN(Number(newItem.value))) {
-      setList([
-        ...list,
-        { name: newItem.name, value: Number(newItem.value) },
-      ].sort((a, b) => b.value - a.value));
+      initiativeInfoMutation.mutate({
+        roomId,
+        key: "initiativeList",
+        value: JSON.stringify([
+          ...list,
+          { name: newItem.name, value: Number(newItem.value) },
+        ].sort((a, b) => b.value - a.value)),
+      });
       setNewItem({ name: "", value: "" });
     }
   };
