@@ -1,6 +1,6 @@
 import type { NumericalConstraints } from "../types";
 import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import FormulaParser from "./FormulaParser";
 
 interface NumericalEditorProps {
@@ -68,16 +68,40 @@ export default function NumericalEditor({
   const [isEditing, setIsEditing] = useState(false);
 
   // 将 constraints 转换为数组格式用于渲染
-  const constraintGroups = useMemo(() => convertNestedObjectToArray(constraints), [constraints]);
-
-  // 管理每个约束组的输入状态
-  const [inputStates, setInputStates] = useState<InputStates>(
-    Object.keys(constraints).reduce((acc, key) => ({
-      ...acc,
-      [key]: { key: "", value: "" },
-    }), {}),
+  const constraintGroups = useMemo(
+    () => convertNestedObjectToArray(constraints),
+    [JSON.stringify(constraints)], // 深度监听
   );
 
+  // 管理每个约束组的输入状态
+  const [inputStates, setInputStates] = useState<InputStates>(() =>
+    Object.keys(constraints).reduce((acc, key) => {
+      acc[key] = { key: "", value: "" };
+      return acc;
+    }, {} as InputStates),
+  );
+
+  // 当 constraints 改变时同步更新 inputStates
+  useEffect(() => {
+    setInputStates((prevState) => {
+      const newKeys = Object.keys(constraints);
+      const prevKeys = Object.keys(prevState);
+
+      if (
+        newKeys.length === prevKeys.length
+        && newKeys.every(k => prevKeys.includes(k))
+      ) {
+        return prevState; // keys 一致，不更新
+      }
+
+      const newState = {} as InputStates;
+      newKeys.forEach((key) => {
+        newState[key] = prevState[key] || { key: "", value: "" };
+      });
+
+      return newState;
+    });
+  }, [JSON.stringify(constraints)]);
   /**
    * 添加新的约束组
    */
@@ -288,7 +312,7 @@ export default function NumericalEditor({
                   setIsEditing(false);
                   const updatedAbility = {
                     abilityId,
-                    ability: convertArrayToFlatObjectWithoutGroupKeys(constraintGroups),
+                    ability: convertArrayToFlatObjectWithoutGroupKeys(constraintGroups.slice(1, 3)),
                   };
                   updateFiledAbility(updatedAbility);
                 }}
