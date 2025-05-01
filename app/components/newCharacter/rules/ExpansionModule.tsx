@@ -1,9 +1,10 @@
 import type { GameRule } from "../types";
 import { useEffect, useMemo, useState } from "react";
-import { useAbilityByRuleAndRole } from "../../../../api/hooks/abilityQueryHooks";
+import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "../../../../api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery, useRulePageMutation } from "../../../../api/hooks/ruleQueryHooks";
 import Section from "../Section";
 import NumericalEditor from "./NumericalEditor";
+import { flattenConstraints } from "./ObjectExpansion";
 import PerformanceEditor from "./PerformanceEditor";
 import RulesSection from "./RulesSection";
 
@@ -11,6 +12,57 @@ interface ExpansionModuleProps {
   isEditing?: boolean;
   onRuleDataChange?: (ruleId: number, performance: any, numerical: any) => void;
   roleId: number;
+}
+
+// 用于拆解二级对象,方便下面覆盖
+function wrapIntoNested(keyPath: string[], valueObject: Record<string, any>): Record<string, any> {
+  const result: any = {};
+  let current = result;
+
+  for (let i = 0; i < keyPath.length - 1; i++) {
+    const key = keyPath[i];
+    current[key] = {};
+    current = current[key];
+  }
+
+  const lastKey = keyPath[keyPath.length - 1];
+  current[lastKey] = valueObject;
+
+  return result;
+}
+
+// 实施覆盖，一级对象覆盖二级对象
+function deepOverrideTargetWithSource(
+  target: Record<string, any>,
+  source: Record<string, any>,
+): Record<string, any> {
+  const result: Record<string, any> = {};
+
+  for (const key in target) {
+    if (
+      typeof source?.[key] === "object"
+      && source?.[key] !== null
+      && !Array.isArray(source?.[key])
+      && typeof target?.[key] === "object"
+      && target?.[key] !== null
+      && !Array.isArray(target?.[key])
+    ) {
+      // 嵌套对象，递归处理
+      result[key] = deepOverrideTargetWithSource(target[key], source?.[key]);
+    }
+    else {
+      // 只有 source 存在这个字段时才更新
+      if (source && Object.prototype.hasOwnProperty.call(source, key)) {
+        result[key] = source[key];
+      }
+      else {
+        // 否则保留 target 原值
+        result[key] = target[key];
+      }
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -30,11 +82,20 @@ export default function ExpansionModule({
   const ruleListMutation = useRulePageMutation();
   const abilityListQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
   const ruleDetailQuery = useRuleDetailQuery(selectedRuleId || 0);
+  const setRoleAbilityMutation = useSetRoleAbilityMutation();
 
   // 合并规则数据，优先使用能力列表数据
   const currentRuleData = useMemo(() => {
     if (abilityListQuery.data?.id) {
       return abilityListQuery.data;
+    }
+    else if (ruleDetailQuery.data) {
+      setRoleAbilityMutation.mutate({
+        ruleId: ruleDetailQuery.data?.id || 0,
+        roleId,
+        act: ruleDetailQuery.data?.performance || {},
+        ability: flattenConstraints(ruleDetailQuery.data?.numerical || {}) || {},
+      });
     }
     return ruleDetailQuery.data;
   }, [abilityListQuery.data, ruleDetailQuery.data]);
@@ -61,14 +122,37 @@ export default function ExpansionModule({
   // 初始化或更新本地规则数据
   useEffect(() => {
     if (currentRuleData) {
+      const ruleDetailNumerical = ruleDetailQuery.data?.numerical ?? {};
+      const abilityNumerical = abilityListQuery.data?.numerical ?? {};
+
+      // 动态遍历 ruleDetail.numerical 的一级键名
+      const mergedNumerical = {} as Record<string, any>;
+
+      for (const key in ruleDetailNumerical) {
+        const base = ruleDetailNumerical[key];
+
+        // 只处理对象类型字段
+        if (typeof base === "object" && base !== null && !Array.isArray(base)) {
+          // 把 ability.numerical 包装成嵌套结构：{ [key]: abilityNumerical }
+          const wrappedOverride = wrapIntoNested([key], abilityNumerical);
+
+          // 深度覆盖合并
+          mergedNumerical[key] = deepOverrideTargetWithSource(
+            base,
+            wrappedOverride[key],
+          );
+        }
+      }
+
       // 显式处理缺失字段，保证类型一致性
       const safeRuleData: GameRule = {
         id: currentRuleData.id,
-        name: "", // 或者从 currentRuleData.name 拷贝
+        name: "",
         description: "",
         performance: currentRuleData.performance || {},
-        numerical: currentRuleData.numerical || {},
+        numerical: mergedNumerical,
       };
+
       setLocalRuleData(safeRuleData);
     }
   }, [currentRuleData]);
@@ -142,7 +226,7 @@ export default function ExpansionModule({
 
           <Section title="数值约束配置">
             <NumericalEditor
-              constraints={localRuleData.numerical}
+              constraints={{ ...localRuleData.numerical }}
               onChange={handleNumericalChange}
               abilityId={abilityListQuery.data?.id ? localRuleData.id : 0}
             />

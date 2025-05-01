@@ -1,7 +1,8 @@
 import type { NumericalConstraints } from "../types";
 import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import FormulaParser from "./FormulaParser";
+import { flattenConstraints } from "./ObjectExpansion";
 
 interface NumericalEditorProps {
   constraints: NumericalConstraints;
@@ -17,41 +18,6 @@ interface InputState {
 
 type InputStates = Record<string, InputState>;
 
-// 将嵌套对象转为数组格式，用于渲染
-function convertNestedObjectToArray(obj: Record<string, any>): Record<string, any>[] {
-  return Object.keys(obj).reduce<Record<string, any>[]>((acc, groupKey) => {
-    const groupValue = obj[groupKey];
-
-    if (typeof groupValue === "object" && groupValue !== null) {
-      const item: Record<string, any> = {};
-      item[groupKey] = groupKey;
-
-      for (const subKey in groupValue) {
-        item[subKey] = groupValue[subKey];
-      }
-
-      acc.push(item);
-    }
-
-    return acc;
-  }, []);
-}
-
-// 还原函数：将数组转回单层对象，并去掉一级键字段
-function convertArrayToFlatObjectWithoutGroupKeys(arr: Record<string, any>[]): Record<string, any> {
-  const result: Record<string, any> = {};
-
-  for (const item of arr) {
-    for (const key in item) {
-      if (item[key] === key)
-        continue; // 跳过一级键字段
-      result[key] = item[key];
-    }
-  }
-
-  return result;
-}
-
 /**
  * 数值编辑器组件
  * 负责管理角色数值相关的字段，支持公式计算和约束组
@@ -62,21 +28,48 @@ export default function NumericalEditor({
   onChange,
   abilityId,
 }: NumericalEditorProps) {
-  // 接入api
+  // 接入API
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
   const [newTotal, setNewTotal] = useState("");
   const [isEditing, setIsEditing] = useState(false);
 
   // 将 constraints 转换为数组格式用于渲染
-  const constraintGroups = useMemo(() => convertNestedObjectToArray(constraints), [constraints]);
+  const constraintGroups = useMemo(() => {
+    return Object.entries(constraints).map(([totalKey, fields]) => ({
+      totalKey,
+      fields,
+    }));
+  }, [constraints]);
 
   // 管理每个约束组的输入状态
-  const [inputStates, setInputStates] = useState<InputStates>(
-    Object.keys(constraints).reduce((acc, key) => ({
-      ...acc,
-      [key]: { key: "", value: "" },
-    }), {}),
+  const [inputStates, setInputStates] = useState<InputStates>(() =>
+    Object.keys(constraints).reduce((acc, key) => {
+      acc[key] = { key: "", value: "" };
+      return acc;
+    }, {} as InputStates),
   );
+
+  // 当 constraints 改变时同步更新 inputStates
+  useEffect(() => {
+    setInputStates((prevState) => {
+      const newKeys = Object.keys(constraints);
+      const prevKeys = Object.keys(prevState);
+
+      if (
+        newKeys.length === prevKeys.length
+        && newKeys.every(k => prevKeys.includes(k))
+      ) {
+        return prevState; // keys 一致，不更新
+      }
+
+      const newState = {} as InputStates;
+      newKeys.forEach((key) => {
+        newState[key] = prevState[key] || { key: "", value: "" };
+      });
+
+      return newState;
+    });
+  }, [constraints]);
 
   /**
    * 添加新的约束组
@@ -125,7 +118,11 @@ export default function NumericalEditor({
   /**
    * 更新特定约束组的输入状态
    */
-  const updateInputState = (totalKey: string, field: "key" | "value", value: string) => {
+  const updateInputState = (
+    totalKey: string,
+    field: "key" | "value",
+    value: string,
+  ) => {
     setInputStates(prev => ({
       ...prev,
       [totalKey]: {
@@ -137,12 +134,10 @@ export default function NumericalEditor({
 
   return (
     <div className="space-y-6">
-      {constraintGroups.map((group) => {
-        const totalKey = Object.keys(group).find(k => group[k] === k); // 获取一级键
+      {constraintGroups.map(({ totalKey, fields }) => {
         if (!totalKey)
           return null;
 
-        const fields = constraints[totalKey] || {};
         const entries = Object.entries(fields);
         const inputState = inputStates[totalKey] || { key: "", value: "" };
 
@@ -288,7 +283,7 @@ export default function NumericalEditor({
                   setIsEditing(false);
                   const updatedAbility = {
                     abilityId,
-                    ability: convertArrayToFlatObjectWithoutGroupKeys(constraintGroups),
+                    ability: flattenConstraints(constraints),
                   };
                   updateFiledAbility(updatedAbility);
                 }}
@@ -298,11 +293,7 @@ export default function NumericalEditor({
               </button>
             )
           : (
-              <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                className="btn btn-accent"
-              >
+              <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent">
                 编辑
               </button>
             )}
