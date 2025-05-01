@@ -13,6 +13,41 @@ interface ExpansionModuleProps {
   roleId: number;
 }
 
+// function deepMergeOverride(
+//   target: Record<string, any>,
+//   ...sources: Record<string, any>[]
+// ): Record<string, any> {
+//   if (!sources.length)
+//     return { ...target };
+
+//   const source = sources[0];
+
+//   let result = { ...target };
+
+//   if (typeof source === "object" && source !== null) {
+//     Object.keys(source).forEach((key) => {
+//       const value = source[key];
+
+//       if (
+//         typeof value === "object"
+//         && value !== null
+//         && !Array.isArray(value)
+//       ) {
+//         // 如果 target 对应 key 不是对象，则初始化为空对象
+//         result[key] = deepMergeOverride(
+//           result[key] && typeof result[key] === "object" ? result[key] : {},
+//           value,
+//         );
+//       }
+//       else {
+//         result[key] = value;
+//       }
+//     });
+//   }
+
+//   return deepMergeOverride(result, ...sources.slice(1));
+// }
+
 /**
  * 扩展模块组件
  * 负责展示规则选择、表演字段和数值约束，完全独立于角色
@@ -60,6 +95,11 @@ export default function ExpansionModule({
 
   // 初始化或更新本地规则数据
   useEffect(() => {
+    // const result = deepMergeOverride(
+    //   {},
+    //   currentRuleData?.numerical ?? {},
+    //   abilityListQuery.data?.numerical ?? {},
+    // );
     if (currentRuleData) {
       // 显式处理缺失字段，保证类型一致性
       const safeRuleData: GameRule = {
@@ -67,7 +107,7 @@ export default function ExpansionModule({
         name: "", // 或者从 currentRuleData.name 拷贝
         description: "",
         performance: currentRuleData.performance || {},
-        numerical: currentRuleData.numerical || {},
+        numerical: ruleDetailQuery.data?.numerical || {},
       };
       setLocalRuleData(safeRuleData);
     }
