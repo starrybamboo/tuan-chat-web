@@ -60,8 +60,10 @@ export function useAddSpaceMemberMutation() {
         mutationFn: (req: SpaceMemberAddRequest) => tuanchat.spaceMemberController.addMember(req),
         mutationKey: ['addMember'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getRoomMemberList',variables.spaceId]})
-            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList']});
+            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables] });
+            queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
         },
     });
 }
@@ -75,7 +77,7 @@ export function useDeleteSpaceMemberMutation() {
         mutationFn: (req: SpaceMemberDeleteRequest) => tuanchat.spaceMemberController.deleteMember(req),
         mutationKey: ['deleteMember'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables] });
+            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList'] });
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
             queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
             queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
@@ -196,7 +198,7 @@ export function useExitSpaceMutation() {
         mutationFn: (req: number) => tuanchat.spaceMemberController.exitSpace(req),
         mutationKey: ['exitSpace'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables] });
+            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList'] });
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
             queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
             queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });

@@ -321,7 +321,6 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       </PopWindow>
       {/* 右键菜单 */}
       {contextMenu && (
-
         <div
           className="fixed bg-base-100 shadow-lg rounded-md z-50"
           style={{ top: contextMenu.y, left: contextMenu.x }}
