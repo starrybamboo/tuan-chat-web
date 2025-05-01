@@ -22,6 +22,7 @@ import type {SpaceRoleAddRequest} from "../models/SpaceRoleAddRequest";
 import type {RoomExtraRequest} from "../models/RoomExtraRequest";
 import type {RoomExtraSetRequest} from "../models/RoomExtraSetRequest";
 import type {FightRoomAddRequest} from "../models/FightRoomAddRequest";
+import type {Initiative} from "@/components/chat/initiativeList";
 
 /**
  * 创建空间
@@ -514,6 +515,41 @@ export function useSetRoomExtraMutation() {
         }
     });
 }
+
+/**
+ * 获取房间的先攻表
+ */
+export function useGetRoomInitiativeListQuery(roomId: number){
+    return useQuery({
+        queryFn: async () => {
+            const response = await tuanchat.roomController.getRoomExtra({roomId,key:"initiativeList"})
+            let list: Initiative[] = [];
+            try {
+                list = JSON.parse(response.data || "[]") as Initiative[];
+            }
+            finally {
+                list = list.sort((a, b) => b.value - a.value);
+            }
+            return list
+        },
+        queryKey: ['getRoomInitiativeList', roomId],
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
+export function useRoomInitiativeListMutation(roomId: number){
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (newValue: string) => tuanchat.roomController.setRoomExtra({ roomId, key: "initiativeList", value: newValue}),
+        mutationKey: ['setRoomInitiativeList'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: ['getRoomInitiativeList', roomId]
+            });
+        }
+    });
+}
+
 /**
  * 删除房间其他信息
  */

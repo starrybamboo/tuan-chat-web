@@ -1,11 +1,13 @@
-import type { Initiative } from "@/components/chat/initiativeList";
 import { useEffect, useRef } from "react";
 import {
   useGetRoleAbilitiesQuery,
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityMutation,
 } from "../../../api/hooks/abilityQueryHooks";
-import { useGetRoomExtraQuery, useSetRoomExtraMutation } from "../../../api/hooks/chatQueryHooks";
+import {
+  useGetRoomInitiativeListQuery,
+  useRoomInitiativeListMutation,
+} from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../api/queryHooks";
 // type DiceResult = { x: number; y: number; rolls: number[]; total: number };
 
@@ -42,15 +44,8 @@ export default function useCommandExecutor(roleId: number, roomId: number = -1) 
   const updateAbilityMutation = useUpdateRoleAbilityMutation();
   const setAbilityMutation = useSetRoleAbilityMutation();
 
-  const initiativeInfoQuery = useGetRoomExtraQuery({ roomId, key: "initiativeList" });
-  const roomExtraInfoMutation = useSetRoomExtraMutation();
-  let initiativeList: Initiative[] = [];
-  try {
-    initiativeList = JSON.parse(initiativeInfoQuery.data?.data || "[]") as Initiative[];
-  }
-  finally {
-    initiativeList = initiativeList.sort((a, b) => b.value - a.value);
-  }
+  const initiativeListMutation = useRoomInitiativeListMutation(roomId);
+  const initiativeList = useGetRoomInitiativeListQuery(roomId).data ?? [];
 
   useEffect(() => {
     try {
@@ -345,7 +340,7 @@ export default function useCommandExecutor(roleId: number, roomId: number = -1) 
           name = args[0];
         }
         if (args.length > 1) {
-          initiative = handleRiExpression(args[1]);
+          name = args[1];
         }
       }
     }
@@ -359,14 +354,12 @@ export default function useCommandExecutor(roleId: number, roomId: number = -1) 
       name = role?.roleName;
     }
     if (initiative && name) {
-      roomExtraInfoMutation.mutate({
-        key: "initiativeList",
-        roomId,
-        value: JSON.stringify(
+      initiativeListMutation.mutate(
+        JSON.stringify(
           [...initiativeList.filter(i => i.name !== name), { name, value: initiative }]
             .sort((a, b) => b.value - a.value),
         ),
-      });
+      );
     }
     else {
       return "不合规的表达式";

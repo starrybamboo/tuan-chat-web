@@ -1,6 +1,9 @@
 import { RoomContext } from "@/components/chat/roomContext";
 import { use, useState } from "react";
-import { useGetRoomExtraQuery, useSetRoomExtraMutation } from "../../../api/hooks/chatQueryHooks";
+import {
+  useGetRoomInitiativeListQuery,
+  useRoomInitiativeListMutation,
+} from "../../../api/hooks/chatQueryHooks";
 
 export interface Initiative {
   name: string;
@@ -10,26 +13,15 @@ export interface Initiative {
 export default function InitiativeList() {
   const roomContext = use(RoomContext);
   const roomId = roomContext.roomId ?? -1;
-  const initiativeInfoQuery = useGetRoomExtraQuery({ roomId, key: "initiativeList" });
-  const initiativeInfoMutation = useSetRoomExtraMutation();
-  let list: Initiative[] = [];
-  try {
-    list = JSON.parse(initiativeInfoQuery.data?.data || "[]") as Initiative[];
-  }
-  finally {
-    list = list.sort((a, b) => b.value - a.value);
-  }
+  const initiativeListMutation = useRoomInitiativeListMutation(roomId);
+  const list = useGetRoomInitiativeListQuery(roomId).data ?? [];
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
   const [newItem, setNewItem] = useState({ name: "", value: "" });
 
   // 删除项
   const handleDelete = (index: number) => {
-    initiativeInfoMutation.mutate({
-      roomId,
-      key: "initiativeList",
-      value: JSON.stringify(list.filter((_, i) => i !== index)),
-    });
+    initiativeListMutation.mutate(JSON.stringify(list.filter((_, i) => i !== index)));
   };
 
   // 开始编辑数值
@@ -44,11 +36,7 @@ export default function InitiativeList() {
     if (!Number.isNaN(newValue)) {
       const newList = [...list];
       newList[index].value = newValue;
-      initiativeInfoMutation.mutate({
-        roomId,
-        key: "initiativeList",
-        value: JSON.stringify(newList.sort((a, b) => b.value - a.value)),
-      });
+      initiativeListMutation.mutate(JSON.stringify(newList.sort((a, b) => b.value - a.value)));
     }
     setEditingIndex(null);
   };
@@ -56,14 +44,10 @@ export default function InitiativeList() {
   // 添加新项
   const handleAdd = () => {
     if (newItem.name && !Number.isNaN(Number(newItem.value))) {
-      initiativeInfoMutation.mutate({
-        roomId,
-        key: "initiativeList",
-        value: JSON.stringify([
-          ...list,
-          { name: newItem.name, value: Number(newItem.value) },
-        ].sort((a, b) => b.value - a.value)),
-      });
+      initiativeListMutation.mutate(JSON.stringify([
+        ...list.filter(i => i.name !== newItem.name),
+        { name: newItem.name, value: Number(newItem.value) },
+      ].sort((a, b) => b.value - a.value)));
       setNewItem({ name: "", value: "" });
     }
   };
