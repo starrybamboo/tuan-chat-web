@@ -152,6 +152,25 @@ export default function NumericalEditor({
       },
     }));
   };
+
+  // 负数与非法输入修正（包括小数的情况）
+  const correctValues = (constraints: NumericalConstraints): NumericalConstraints => {
+    const corrected = { ...constraints };
+    Object.keys(corrected).forEach((totalKey) => {
+      const fields = corrected[totalKey];
+      Object.keys(fields).forEach((fieldKey) => {
+        const value = fields[fieldKey];
+        if (FormulaParser.isFormula(value))
+          return;
+        const num = Number(value);
+        if (Number.isNaN(num) || num < 0 || !Number.isInteger(num)) {
+          fields[fieldKey] = 0;
+        }
+      });
+    });
+    return corrected;
+  };
+
   const handleExitEditing = () => {
     setIsEditing(false);
 
@@ -179,10 +198,12 @@ export default function NumericalEditor({
       });
     });
 
-    // 更新数据
+    // 修正负数和非法输入
+    const correctedConstraints = correctValues(updatedConstraints);
+    // 更新后端数据
     const updatedAbility = {
       abilityId,
-      ability: flattenConstraints(updatedConstraints),
+      ability: flattenConstraints(correctedConstraints),
     };
     updateFiledAbility(updatedAbility);
   };
