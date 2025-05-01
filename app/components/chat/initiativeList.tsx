@@ -53,75 +53,78 @@ export default function InitiativeList() {
   };
 
   return (
-    <div className="space-y-3 w-full p-4 ">
-      {/* 列表展示 - 宽度自适应 */}
-      <span className="text-center">先攻指令</span>
-      <div className="flex gap-2 w-full">
-        <input
-          type="text"
-          placeholder="角色名"
-          value={newItem.name}
-          onChange={e => setNewItem({ ...newItem, name: e.target.value })}
-          className="w-24 flex border rounded px-3 py-2"
-        />
-        <input
-          type="number"
-          placeholder="数值或表达式"
-          value={newItem.value}
-          onChange={e => setNewItem({ ...newItem, value: e.target.value })}
-          className="w-24 border rounded px-3 py-2 "
-        />
-        <button
-          onClick={handleAdd}
-          className="px-4 btn btn-info"
-          disabled={!newItem.name || Number.isNaN(Number(newItem.value))}
-        >
-          添加
-        </button>
-      </div>
+    <div className="flex flex-col gap-4 w-full">
+      {/* 先攻指令列表 */}
+      <div className="space-y-2 w-full">
 
-      <ul className="divide-y divide-gray-200 border rounded-lg overflow-hidden w-full">
-        {list.map((item, index) => (
-          <li
-            key={index}
-            className="p-3 hover:bg-gray-50 flex justify-between items-center group w-full"
+        {/* 添加新项的表单 */}
+        <div className="flex gap-2 w-full justify-center">
+          <input
+            type="text"
+            placeholder="角色名"
+            value={newItem.name}
+            onChange={e => setNewItem({ ...newItem, name: e.target.value })}
+            className="input input-bordered w-24"
+          />
+          <input
+            type="number"
+            placeholder="数值"
+            value={newItem.value}
+            onChange={e => setNewItem({ ...newItem, value: e.target.value })}
+            className="input input-bordered w-24"
+          />
+          <button
+            onClick={handleAdd}
+            className="btn btn-info"
+            disabled={!newItem.name || Number.isNaN(Number(newItem.value))}
           >
-            <span className="font-medium truncate max-w-[60%]">{item.name}</span>
+            添加
+          </button>
+        </div>
 
-            <div className="flex items-center">
-              {editingIndex === index
-                ? (
-                    <input
-                      type="number"
-                      value={editValue}
-                      onChange={e => setEditValue(e.target.value)}
-                      onBlur={() => handleEditSave(index)}
-                      onKeyDown={e => e.key === "Enter" && handleEditSave(index)}
-                      className="w-20 border rounded px-2 py-1 text-right"
-                      autoFocus
-                    />
-                  )
-                : (
-                    <span
-                      onDoubleClick={() => handleEditStart(index, item.value)}
-                      className="cursor-text select-none px-2 min-w-[40px] text-right"
-                    >
-                      {item.value}
-                    </span>
-                  )}
+        {/* 列表项 */}
+        <div className="space-y-2 w-full ">
+          {list.map((item, index) => (
+            <div
+              key={index}
+              className="flex gap-3 p-3 rounded-lg items-center justify-between hover:bg-base-200 transition-colors group"
+            >
+              <span className="font-medium truncate">{item.name}</span>
 
-              <button
-                onClick={() => handleDelete(index)}
-                className="ml-2 w-6 h-6 flex items-center justify-center text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 rounded-full"
-                title="删除"
-              >
-                ×
-              </button>
+              <div className="flex items-center gap-2">
+                {editingIndex === index
+                  ? (
+                      <input
+                        type="number"
+                        value={editValue}
+                        onChange={e => setEditValue(e.target.value)}
+                        onBlur={() => handleEditSave(index)}
+                        onKeyDown={e => e.key === "Enter" && handleEditSave(index)}
+                        className="input input-bordered w-20 text-right"
+                        autoFocus
+                      />
+                    )
+                  : (
+                      <span
+                        onDoubleClick={() => handleEditStart(index, item.value)}
+                        className="cursor-text select-none px-2 min-w-[40px] text-right"
+                      >
+                        {item.value}
+                      </span>
+                    )}
+
+                <button
+                  onClick={() => handleDelete(index)}
+                  className="btn btn-circle btn-ghost btn-sm text-error opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="删除"
+                >
+                  ×
+                </button>
+              </div>
             </div>
-          </li>
-        ))}
-      </ul>
+          ))}
+        </div>
+      </div>
     </div>
-
   );
 }
