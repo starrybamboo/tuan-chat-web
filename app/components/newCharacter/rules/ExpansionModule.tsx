@@ -13,40 +13,56 @@ interface ExpansionModuleProps {
   roleId: number;
 }
 
-// function deepMergeOverride(
-//   target: Record<string, any>,
-//   ...sources: Record<string, any>[]
-// ): Record<string, any> {
-//   if (!sources.length)
-//     return { ...target };
+// 用于拆解二级对象,方便下面覆盖
+function wrapIntoNested(keyPath: string[], valueObject: Record<string, any>): Record<string, any> {
+  const result: any = {};
+  let current = result;
 
-//   const source = sources[0];
+  for (let i = 0; i < keyPath.length - 1; i++) {
+    const key = keyPath[i];
+    current[key] = {};
+    current = current[key];
+  }
 
-//   let result = { ...target };
+  const lastKey = keyPath[keyPath.length - 1];
+  current[lastKey] = valueObject;
 
-//   if (typeof source === "object" && source !== null) {
-//     Object.keys(source).forEach((key) => {
-//       const value = source[key];
+  return result;
+}
 
-//       if (
-//         typeof value === "object"
-//         && value !== null
-//         && !Array.isArray(value)
-//       ) {
-//         // 如果 target 对应 key 不是对象，则初始化为空对象
-//         result[key] = deepMergeOverride(
-//           result[key] && typeof result[key] === "object" ? result[key] : {},
-//           value,
-//         );
-//       }
-//       else {
-//         result[key] = value;
-//       }
-//     });
-//   }
+// 实施覆盖，一级对象覆盖二级对象
+function deepOverrideTargetWithSource(
+  target: Record<string, any>,
+  source: Record<string, any>,
+): Record<string, any> {
+  const result: Record<string, any> = {};
 
-//   return deepMergeOverride(result, ...sources.slice(1));
-// }
+  for (const key in target) {
+    if (
+      typeof source?.[key] === "object"
+      && source?.[key] !== null
+      && !Array.isArray(source?.[key])
+      && typeof target?.[key] === "object"
+      && target?.[key] !== null
+      && !Array.isArray(target?.[key])
+    ) {
+      // 嵌套对象，递归处理
+      result[key] = deepOverrideTargetWithSource(target[key], source?.[key]);
+    }
+    else {
+      // 只有 source 存在这个字段时才更新
+      if (source && Object.prototype.hasOwnProperty.call(source, key)) {
+        result[key] = source[key];
+      }
+      else {
+        // 否则保留 target 原值
+        result[key] = target[key];
+      }
+    }
+  }
+
+  return result;
+}
 
 /**
  * 扩展模块组件
@@ -95,20 +111,51 @@ export default function ExpansionModule({
 
   // 初始化或更新本地规则数据
   useEffect(() => {
-    // const result = deepMergeOverride(
-    //   {},
-    //   currentRuleData?.numerical ?? {},
-    //   abilityListQuery.data?.numerical ?? {},
-    // );
     if (currentRuleData) {
+      const ruleDetailNumerical = ruleDetailQuery.data?.numerical ?? {};
+      const abilityNumerical = abilityListQuery.data?.numerical ?? {};
+
+      // 如果没有 ruleDetail.numerical，直接使用 ability.numerical
+      if (!Object.keys(ruleDetailNumerical).length) {
+        const safeRuleData: GameRule = {
+          id: currentRuleData.id,
+          name: "",
+          description: "",
+          performance: currentRuleData.performance || {},
+          numerical: ruleDetailNumerical,
+        };
+        setLocalRuleData(safeRuleData);
+        return;
+      }
+
+      // 动态遍历 ruleDetail.numerical 的一级键名
+      const mergedNumerical = {} as Record<string, any>;
+
+      for (const key in ruleDetailNumerical) {
+        const base = ruleDetailNumerical[key];
+
+        // 只处理对象类型字段
+        if (typeof base === "object" && base !== null && !Array.isArray(base)) {
+          // 把 ability.numerical 包装成嵌套结构：{ [key]: abilityNumerical }
+          const wrappedOverride = wrapIntoNested([key], abilityNumerical);
+
+          // 深度覆盖合并
+          mergedNumerical[key] = deepOverrideTargetWithSource(
+            base,
+            wrappedOverride[key],
+          );
+        }
+      }
+
       // 显式处理缺失字段，保证类型一致性
       const safeRuleData: GameRule = {
         id: currentRuleData.id,
-        name: "", // 或者从 currentRuleData.name 拷贝
+        name: "",
         description: "",
         performance: currentRuleData.performance || {},
-        numerical: ruleDetailQuery.data?.numerical || {},
+        numerical: mergedNumerical,
       };
+
       setLocalRuleData(safeRuleData);
     }
   }, [currentRuleData]);
@@ -182,7 +229,7 @@ export default function ExpansionModule({
 
           <Section title="数值约束配置">
             <NumericalEditor
-              constraints={localRuleData.numerical}
+              constraints={{ ...localRuleData.numerical }}
               onChange={handleNumericalChange}
               abilityId={abilityListQuery.data?.id ? localRuleData.id : 0}
             />
