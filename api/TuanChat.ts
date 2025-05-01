@@ -13,6 +13,9 @@ import { CollectionListControllerService } from './services/CollectionListContro
 import { CollectionListItemControllerService } from './services/CollectionListItemControllerService';
 import { CollectionTagControllerService } from './services/CollectionTagControllerService';
 import { CommentControllerService } from './services/CommentControllerService';
+import { CommunityService } from './services/CommunityService';
+import { CommunityMemberService } from './services/CommunityMemberService';
+import { CommunityPostService } from './services/CommunityPostService';
 import { CounterService } from './services/CounterService';
 import { DiceCommentControllerService } from './services/DiceCommentControllerService';
 import { FeedControllerService } from './services/FeedControllerService';
@@ -38,6 +41,7 @@ import { SpaceMemberControllerService } from './services/SpaceMemberControllerSe
 import { SpaceRoleControllerService } from './services/SpaceRoleControllerService';
 import { TtsControllerService } from './services/TtsControllerService';
 import { UserControllerService } from './services/UserControllerService';
+import { UserFollowControllerService } from './services/UserFollowControllerService';
 import { UserPreferenceService } from './services/UserPreferenceService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class TuanChat {
@@ -49,6 +53,9 @@ export class TuanChat {
     public readonly collectionListItemController: CollectionListItemControllerService;
     public readonly collectionTagController: CollectionTagControllerService;
     public readonly commentController: CommentControllerService;
+    public readonly community: CommunityService;
+    public readonly communityMember: CommunityMemberService;
+    public readonly communityPost: CommunityPostService;
     public readonly counter: CounterService;
     public readonly diceCommentController: DiceCommentControllerService;
     public readonly feedController: FeedControllerService;
@@ -74,6 +81,7 @@ export class TuanChat {
     public readonly spaceRoleController: SpaceRoleControllerService;
     public readonly ttsController: TtsControllerService;
     public readonly userController: UserControllerService;
+    public readonly userFollowController: UserFollowControllerService;
     public readonly userPreference: UserPreferenceService;
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
@@ -96,6 +104,9 @@ export class TuanChat {
         this.collectionListItemController = new CollectionListItemControllerService(this.request);
         this.collectionTagController = new CollectionTagControllerService(this.request);
         this.commentController = new CommentControllerService(this.request);
+        this.community = new CommunityService(this.request);
+        this.communityMember = new CommunityMemberService(this.request);
+        this.communityPost = new CommunityPostService(this.request);
         this.counter = new CounterService(this.request);
         this.diceCommentController = new DiceCommentControllerService(this.request);
         this.feedController = new FeedControllerService(this.request);
@@ -121,6 +132,7 @@ export class TuanChat {
         this.spaceRoleController = new SpaceRoleControllerService(this.request);
         this.ttsController = new TtsControllerService(this.request);
         this.userController = new UserControllerService(this.request);
+        this.userFollowController = new UserFollowControllerService(this.request);
         this.userPreference = new UserPreferenceService(this.request);
     }
 }
