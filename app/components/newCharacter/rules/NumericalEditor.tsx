@@ -172,28 +172,39 @@ export default function NumericalEditor({
 
     // 首先收集所有约束组的数据作为上下文
     const allContext: Record<string, number> = {};
-    Object.keys(updatedConstraints).forEach((totalKey) => {
-      const fields = updatedConstraints[totalKey];
-      Object.keys(fields).forEach((fieldKey) => {
-        const value = fields[fieldKey];
-        if (typeof value === "object" && "formula" in value) {
-          // 对于公式，使用其显示值
-          allContext[`${totalKey}.${fieldKey}`] = value.displayValue;
-          return;
-        }
-        // 对于非公式值，直接转换为数字
-        const num = Number(value);
-        allContext[`${totalKey}.${fieldKey}`] = Number.isNaN(num) ? 0 : num;
-      });
+
+    // 处理静态字段（非0的约束组）
+    const staticFields = Object.entries(updatedConstraints)
+      .filter(([key]) => key !== "0")
+      .reduce((acc, [_, fields]) => ({ ...acc, ...fields }), {});
+
+    // 添加静态字段到上下文
+    Object.entries(staticFields).forEach(([key, value]) => {
+      if (typeof value === "string" && value.startsWith("=")) {
+        // 跳过公式字段
+        return;
+      }
+      const num = Number(value);
+      allContext[key] = Number.isNaN(num) ? 0 : num;
+    });
+
+    // 添加动态字段到上下文
+    const dynamicFields = updatedConstraints["0"] || {};
+    Object.entries(dynamicFields).forEach(([key, value]) => {
+      if (typeof value === "string" && value.startsWith("=")) {
+        // 跳过公式字段
+        return;
+      }
+      const num = Number(value);
+      allContext[key] = Number.isNaN(num) ? 0 : num;
     });
 
     // 然后计算所有公式的值（仅用于显示）
     Object.keys(updatedConstraints).forEach((totalKey) => {
       const fields = updatedConstraints[totalKey];
-      // 内层循环处理每个 totalKey
       Object.keys(fields).forEach((fieldKey) => {
         const value = fields[fieldKey];
-        if (typeof value === "string" && FormulaParser.isFormula(value)) {
+        if (typeof value === "string" && value.startsWith("=")) {
           // 计算并更新显示值，但保持原始公式
           const evaluatedValue = FormulaParser.evaluate(value, allContext);
           fields[fieldKey] = {
@@ -212,6 +223,70 @@ export default function NumericalEditor({
       ability: flattenConstraints(correctedConstraints),
     };
     updateFiledAbility(updatedAbility);
+  };
+
+  // 处理字段值更新
+  const handleFieldUpdate = (totalKey: string, fieldKey: string, newValue: string) => {
+    const fields = constraints[totalKey];
+    const currentValue = fields[fieldKey];
+
+    // 如果是公式字段，需要重新计算
+    if (typeof currentValue === "object" && "formula" in currentValue) {
+      // 收集所有上下文
+      const context: Record<string, number> = {};
+
+      // 处理静态字段（非0的约束组）
+      const staticFields = Object.entries(constraints)
+        .filter(([key]) => key !== "0")
+        .reduce((acc, [_, fields]) => ({ ...acc, ...fields }), {});
+
+      // 添加静态字段到上下文
+      Object.entries(staticFields).forEach(([key, value]) => {
+        if (typeof value === "string" && value.startsWith("=")) {
+          // 跳过公式字段
+          return;
+        }
+        const num = Number(value);
+        context[key] = Number.isNaN(num) ? 0 : num;
+      });
+
+      // 添加动态字段到上下文
+      const dynamicFields = constraints["0"] || {};
+      Object.entries(dynamicFields).forEach(([key, value]) => {
+        if (key === fieldKey)
+          return; // 跳过当前字段
+        if (typeof value === "string" && value.startsWith("=")) {
+          // 跳过公式字段
+          return;
+        }
+        const num = Number(value);
+        context[key] = Number.isNaN(num) ? 0 : num;
+      });
+
+      // 计算新值
+      const evaluatedValue = FormulaParser.evaluate(currentValue.formula, context);
+
+      onChange({
+        ...constraints,
+        [totalKey]: {
+          ...fields,
+          [fieldKey]: {
+            formula: currentValue.formula,
+            displayValue: evaluatedValue,
+          },
+        },
+      });
+    }
+    else {
+      // 非公式字段直接更新
+      onChange({
+        ...constraints,
+        [totalKey]: {
+          ...fields,
+          [fieldKey]: newValue,
+        },
+      });
+    }
   };
 
   return (
@@ -254,57 +329,55 @@ export default function NumericalEditor({
             {/* 网格布局 */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
               {entries.map(([key, value]) => (
-                <div key={key} className="flex items-center gap-1 mb-2">
-                  <label className="input flex items-center gap-2 w-full">
-                    <span className="text-sm font-medium">{key}</span>
-                    <div className="w-px h-4 bg-base-content/20"></div>
-                    <input
-                      type="text"
-                      value={typeof value === "object" && "displayValue" in value
-                        ? value.displayValue.toString()
-                        : typeof value === "string" ? value : value.toString()}
-                      className="grow"
-                      disabled={!isEditing}
-                      onChange={(e) => {
-                        const newValue = e.target.value;
+                <div key={key} className="flex flex-col gap-1 mb-2">
+                  <div className="flex items-center gap-1">
+                    <label className="input flex items-center gap-2 w-full">
+                      <span className="text-sm font-medium">{key}</span>
+                      <div className="w-px h-4 bg-base-content/20"></div>
+                      <input
+                        type="text"
+                        value={typeof value === "object" && "displayValue" in value
+                          ? value.displayValue.toString()
+                          : typeof value === "string" ? value : value.toString()}
+                        className="grow"
+                        disabled={!isEditing}
+                        onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      className="btn btn-error btn-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => {
+                        const newFields = { ...fields };
+                        delete newFields[key];
                         onChange({
                           ...constraints,
-                          [totalKey]: {
-                            ...fields,
-                            [key]: newValue,
-                          },
+                          [totalKey]: newFields,
                         });
                       }}
-                    />
-                  </label>
-
-                  <button
-                    type="button"
-                    className="btn btn-error btn-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => {
-                      const newFields = { ...fields };
-                      delete newFields[key];
-                      onChange({
-                        ...constraints,
-                        [totalKey]: newFields,
-                      });
-                    }}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
                     >
-                      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      <line x1="10" y1="11" x2="10" y2="17" />
-                      <line x1="14" y1="11" x2="14" y2="17" />
-                    </svg>
-                  </button>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
+                    </button>
+                  </div>
+                  {typeof value === "object" && "formula" in value && (
+                    <div className="text-xs text-gray-500 pl-2">
+                      {value.formula}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
