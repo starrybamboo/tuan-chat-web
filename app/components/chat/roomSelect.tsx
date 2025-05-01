@@ -1,5 +1,6 @@
 import RoomWindow from "@/components/chat/roomWindow";
 import SpaceWindow from "@/components/chat/spaceWindow";
+import MemberInviteComponent from "@/components/common/memberInvite";
 import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { UserDetail } from "@/components/common/userDetail";
@@ -11,24 +12,12 @@ import {
   useGetUserRoomsQuery,
   useGetUserSpacesQuery,
 } from "api/hooks/chatQueryHooks";
+import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
 import {
   useGetUserInfoQuery,
 } from "api/queryHooks";
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import MemberInviteComponent from "../common/memberInvite";
-
-interface SpaceRule {
-  id: number;
-  name: string;
-};
-
-const SPACE_RULES: SpaceRule[] = [
-  { id: 1, name: "coc7th" },
-  { id: 2, name: "OC专用规则" },
-  { id: 3, name: "最终物语(FU)" },
-  { id: 4, name: "dnd5e" },
-];
 
 export default function RoomSelect() {
   const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
@@ -85,8 +74,11 @@ export default function RoomSelect() {
   // 已选择邀请的用户
   const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
 
-  // 当前选择的空间规则
-  const [selectedRule, setSelectedRule] = useState<SpaceRule>(SPACE_RULES[0]);
+  // 当前选择的空间规则Id
+  const [selectedRuleId, setSelectedRuleId] = useState<number>(1);
+  // 获取规则
+  const getRulesQuery = useGetRulePageInfiniteQuery({}, 100);
+  const rules = getRulesQuery.data?.pages.flatMap(page => page.data?.list ?? []) ?? [];
 
   // websocket封装, 用于发送接受消息
   const websocketUtils = useGlobalContext().websocketUtils;
@@ -102,7 +94,7 @@ export default function RoomSelect() {
       userIdList: [userId],
       avatar: spaceAvatar,
       spaceName,
-      ruleId: selectedRule.id,
+      ruleId: selectedRuleId,
     }, {
       onSettled: () => {
         setIsSpaceHandleOpen(false);
@@ -163,6 +155,7 @@ export default function RoomSelect() {
             setspaceAvatar(String(userInfo?.avatar));
             setSpaceName(`${String(userInfo?.username)}的空间`);
             setInputUserId(-1);
+            setSelectedRuleId(1);
           }}
         >
           <div className="avatar mask mask-squircle flex content-center">
@@ -271,25 +264,25 @@ export default function RoomSelect() {
             </label>
             <div className="dropdown w-full">
               <label tabIndex={0} className="btn btn-outline w-full justify-start">
-                {selectedRule.name}
+                {rules.find(rule => rule.ruleId === selectedRuleId)?.ruleName ?? "未找到规则"}
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                 </svg>
               </label>
               <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full">
-                {SPACE_RULES.map(rule => (
-                  <li key={rule.id}>
+                {rules.map(rule => (
+                  <li key={rule.ruleId}>
                     <button
                       type="button"
                       className="w-full text-left"
                       onClick={() => {
-                        setSelectedRule(rule);
+                        setSelectedRuleId(Number(rule.ruleId));
                         if (document.activeElement instanceof HTMLElement) {
                           document.activeElement.blur();
                         }
                       }}
                     >
-                      {rule.name}
+                      {rule.ruleName}
                     </button>
                   </li>
                 ))}
