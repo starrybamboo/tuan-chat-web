@@ -57,150 +57,13 @@
     {
       "name": "AvatarController",
       "description": "头像相关接口"
+    },
+    {
+      "name": "角色能力相关接口",
+      "description": "角色能力相关接口"
     }
   ],
   "paths": {
-    "/capi/user/info": {
-      "get": {
-        "tags": [
-          "UserController"
-        ],
-        "summary": "获取用户信息",
-        "operationId": "getUserInfo",
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultUserInfoResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "UserController"
-        ],
-        "summary": "修改用户信息",
-        "operationId": "updateUserInfo",
-        "parameters": [
-          {
-            "name": "userInfoResponse",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/UserInfoResponse"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultUserInfoResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/capi/rule/update": {
       "put": {
         "tags": [
@@ -632,7 +495,7 @@
           "AbilityController"
         ],
         "summary": "更新能力",
-        "description": "更新指定角色的能力信息，act和ability字段不能同时为null或者空json",
+        "description": "更新指定角色的能力信息，act和ability字段不能为null或者空json",
         "operationId": "updateRoleAbility",
         "requestBody": {
           "content": {
@@ -702,7 +565,7 @@
           "AbilityController"
         ],
         "summary": "创建能力",
-        "description": "创建指定角色在指定规则下的能力信息，返回创建的能力ID，act和ability字段不能同时为null或者空json",
+        "description": "创建指定角色在指定规则下的能力信息，返回创建的能力ID，act和ability字段不能为null或者空json",
         "operationId": "setRoleAbility",
         "requestBody": {
           "content": {
@@ -838,224 +701,10 @@
         }
       }
     },
-    "/capi/role/ability/field": {
+    "/capi/group/member/player": {
       "put": {
         "tags": [
-          "AbilityController"
-        ],
-        "summary": "更新能力字段",
-        "description": "更改能力字段或删除字段",
-        "operationId": "updateRoleAbilityField",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AbilityFieldUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/room/name": {
-      "put": {
-        "tags": [
-          "RoomController"
-        ],
-        "summary": "更新群名称",
-        "operationId": "updateRoomName",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RoomNameUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/room/member/transfer": {
-      "put": {
-        "tags": [
-          "RoomMemberController"
-        ],
-        "summary": "转让群主(KP)",
-        "operationId": "transferRoomOwner",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RoomOwnerTransferRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultBoolean"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/room/member/player": {
-      "put": {
-        "tags": [
-          "RoomMemberController"
+          "GroupMemberController"
         ],
         "summary": "设置用户为玩家",
         "operationId": "setPlayer",
@@ -1124,7 +773,7 @@
       },
       "delete": {
         "tags": [
-          "RoomMemberController"
+          "GroupMemberController"
         ],
         "summary": "撤销用户玩家的身份",
         "operationId": "revokePlayer",
@@ -1145,219 +794,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultBoolean"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/room/description": {
-      "put": {
-        "tags": [
-          "RoomController"
-        ],
-        "summary": "更新群描述",
-        "operationId": "updateRoomDescription",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RoomDescriptionUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/room/avatar": {
-      "put": {
-        "tags": [
-          "RoomController"
-        ],
-        "summary": "更新群头像",
-        "operationId": "updateRoomAvatar",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RoomAvatarUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/room/archive": {
-      "put": {
-        "tags": [
-          "RoomController"
-        ],
-        "summary": "更新群组归档状态",
-        "operationId": "updateRoomArchiveStatus",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RoomArchiveRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
                 }
               }
             }
@@ -1555,16 +991,16 @@
         "summary": "移动消息位置",
         "description": "根据beforeMessageId和afterMessageId自动判断移动类型：当都为null时返回错误，一个为null时分别对应移动到顶部或底部，都有值时表示移动到两者之间",
         "operationId": "moveMessage",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MoveMessageRequest"
-              }
+        "parameters": [
+          {
+            "name": "request",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/MoveMessageRequest"
             }
-          },
-          "required": true
-        },
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -2258,13 +1694,13 @@
         }
       }
     },
-    "/capi/room/subroom": {
+    "/capi/group/subgroup": {
       "post": {
         "tags": [
-          "RoomController"
+          "GroupController"
         ],
         "summary": "创建子群",
-        "operationId": "createSubroom",
+        "operationId": "createSubgroup",
         "requestBody": {
           "content": {
             "application/json": {
@@ -2281,7 +1717,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultRoom"
+                  "$ref": "#/components/schemas/ApiResultGroup"
                 }
               }
             }
@@ -2329,10 +1765,10 @@
         }
       }
     },
-    "/capi/room/role/": {
+    "/capi/group/role/": {
       "post": {
         "tags": [
-          "RoomRoleController"
+          "GroupRoleController"
         ],
         "summary": "增加群聊的角色",
         "operationId": "addRole",
@@ -2401,7 +1837,7 @@
       },
       "delete": {
         "tags": [
-          "RoomRoleController"
+          "GroupRoleController"
         ],
         "summary": "删除群聊的角色",
         "operationId": "deleteRole_1",
@@ -2469,10 +1905,10 @@
         }
       }
     },
-    "/capi/room/member/": {
+    "/capi/group/member/": {
       "post": {
         "tags": [
-          "RoomMemberController"
+          "GroupMemberController"
         ],
         "summary": "新增群成员",
         "operationId": "addMember",
@@ -2541,7 +1977,7 @@
       },
       "delete": {
         "tags": [
-          "RoomMemberController"
+          "GroupMemberController"
         ],
         "summary": "删除群成员",
         "operationId": "deleteMember",
@@ -2609,18 +2045,18 @@
         }
       }
     },
-    "/capi/room/": {
+    "/capi/group/": {
       "post": {
         "tags": [
-          "RoomController"
+          "GroupController"
         ],
         "summary": "创建群组",
-        "operationId": "createRoom",
+        "operationId": "createGroup",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RoomAddRequest"
+                "$ref": "#/components/schemas/GroupAddRequest"
               }
             }
           },
@@ -2632,7 +2068,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultRoom"
+                  "$ref": "#/components/schemas/ApiResultGroup"
                 }
               }
             }
@@ -2836,7 +2272,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RoleGenerationRequest"
+                "$ref": "#/components/schemas/AI生成请求"
               }
             }
           },
@@ -2908,7 +2344,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RoleGenerationRequest"
+                "$ref": "#/components/schemas/AI生成请求"
               }
             }
           },
@@ -2921,78 +2357,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultMapObjectObject"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/ai/tts/hobbyist": {
-      "post": {
-        "tags": [
-          "tts-controller"
-        ],
-        "summary": "语音合成",
-        "description": "使用hobbyistAPI将文本转换为语音，这个是第三方，免费的API，轻点！",
-        "operationId": "textToVoiceHobbyist",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SimpleTTSRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "成功返回语音文件信息",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TTSResponse"
                 }
               }
             }
@@ -3137,6 +2501,79 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/user/info": {
+      "get": {
+        "tags": [
+          "UserController"
+        ],
+        "summary": "获取用户信息",
+        "description": "用户登录接口",
+        "operationId": "getUserInfo",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultUserInfoResponse"
                 }
               }
             }
@@ -3679,16 +3116,16 @@
         }
       }
     },
-    "/capi/room/{roomId}": {
+    "/capi/group/{groupId}": {
       "get": {
         "tags": [
-          "RoomController"
+          "GroupController"
         ],
         "summary": "获取群组信息",
-        "operationId": "getRoomInfo",
+        "operationId": "getGroupInfo",
         "parameters": [
           {
-            "name": "roomId",
+            "name": "groupId",
             "in": "path",
             "required": true,
             "schema": {
@@ -3703,7 +3140,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultRoom"
+                  "$ref": "#/components/schemas/ApiResultGroup"
                 }
               }
             }
@@ -3751,13 +3188,13 @@
         }
       }
     },
-    "/capi/room/role/list": {
+    "/capi/group/role/list": {
       "get": {
         "tags": [
-          "RoomRoleController"
+          "GroupRoleController"
         ],
         "summary": "获取群聊的所有角色",
-        "operationId": "roomRole",
+        "operationId": "groupRole",
         "parameters": [
           {
             "name": "roomId",
@@ -3823,10 +3260,10 @@
         }
       }
     },
-    "/capi/room/member/list": {
+    "/capi/group/member/list": {
       "get": {
         "tags": [
-          "RoomMemberController"
+          "GroupMemberController"
         ],
         "summary": "获取群成员列表",
         "operationId": "getMemberList",
@@ -3847,7 +3284,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultListRoomMember"
+                  "$ref": "#/components/schemas/ApiResultListGroupMember"
                 }
               }
             }
@@ -3895,20 +3332,20 @@
         }
       }
     },
-    "/capi/room/list": {
+    "/capi/group/list": {
       "get": {
         "tags": [
-          "RoomController"
+          "GroupController"
         ],
         "summary": "获取当前用户加入的所有群聊",
-        "operationId": "getUserRooms",
+        "operationId": "getUserGroups",
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultListRoom"
+                  "$ref": "#/components/schemas/ApiResultListGroup"
                 }
               }
             }
@@ -4100,7 +3537,7 @@
         }
       }
     },
-    "/ai/dice/dice-comment": {
+    "/api/test/dice-comment": {
       "get": {
         "tags": [
           "DiceCommentController"
@@ -4247,152 +3684,36 @@
           }
         }
       }
-    },
-    "/capi/room/member/exit": {
-      "delete": {
-        "tags": [
-          "RoomMemberController"
-        ],
-        "summary": "退出群聊",
-        "operationId": "exitMember",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MemberExitRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultBoolean"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/room/dissolve": {
-      "delete": {
-        "tags": [
-          "RoomController"
-        ],
-        "summary": "解散群组",
-        "operationId": "dissolveRoom",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RoomDissolveRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultBoolean"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
     "schemas": {
+      "ApiResultVoid": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "object",
+            "description": "返回对象"
+          }
+        },
+        "description": "基础返回体"
+      },
       "ApiResult": {
         "required": [
           "success"
@@ -4441,87 +3762,6 @@
           "data": {
             "type": "object",
             "description": "返回对象"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "ApiResultVoid": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "object",
-            "description": "返回对象"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "UserInfoResponse": {
-        "required": [
-          "userId"
-        ],
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "integer",
-            "description": "用户的uid，全局唯一",
-            "format": "int64"
-          },
-          "username": {
-            "type": "string"
-          },
-          "avatar": {
-            "type": "string",
-            "description": "头像的url"
-          },
-          "activeStatus": {
-            "type": "string",
-            "description": "1 在线 2离线",
-            "format": "byte"
-          },
-          "lastLoginTime": {
-            "type": "string",
-            "description": "最后一次上下线时间",
-            "format": "date-time"
-          }
-        }
-      },
-      "ApiResultUserInfoResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/UserInfoResponse"
           }
         },
         "description": "基础返回体"
@@ -4596,7 +3836,9 @@
       },
       "AbilityUpdateRequest": {
         "required": [
-          "abilityId"
+          "ability",
+          "abilityId",
+          "act"
         ],
         "type": "object",
         "properties": {
@@ -4640,66 +3882,8 @@
         },
         "description": "能力更新请求"
       },
-      "AbilityFieldUpdateRequest": {
+      "AdminAddRequset": {
         "required": [
-          "abilityId"
-        ],
-        "type": "object",
-        "properties": {
-          "abilityId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "actFields": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "新key为null代表删除",
-              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
-            },
-            "description": "新key为null代表删除",
-            "example": {
-              "旧key": "新key",
-              "旧key2": "新key2"
-            }
-          },
-          "abilityFields": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "新key为null代表删除",
-              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
-            },
-            "description": "新key为null代表删除",
-            "example": {
-              "旧key": "新key",
-              "旧key2": "新key2"
-            }
-          }
-        },
-        "description": "能力字段更新请求"
-      },
-      "RoomNameUpdateRequest": {
-        "required": [
-          "name",
-          "roomId"
-        ],
-        "type": "object",
-        "properties": {
-          "roomId": {
-            "type": "integer",
-            "description": "群组 id",
-            "format": "int64"
-          },
-          "name": {
-            "type": "string",
-            "description": "群组名称"
-          }
-        }
-      },
-      "RoomOwnerTransferRequest": {
-        "required": [
-          "memberType",
           "roomId",
           "uidList"
         ],
@@ -4720,11 +3904,6 @@
               "description": "需要添加管理的列表",
               "format": "int64"
             }
-          },
-          "memberType": {
-            "type": "integer",
-            "description": "转让后原群主的成员类型：1-观战(OB), 2-玩家(PL)",
-            "format": "int32"
           }
         }
       },
@@ -4753,85 +3932,6 @@
           }
         },
         "description": "基础返回体"
-      },
-      "AdminAddRequset": {
-        "required": [
-          "roomId",
-          "uidList"
-        ],
-        "type": "object",
-        "properties": {
-          "roomId": {
-            "type": "integer",
-            "description": "房间号",
-            "format": "int64"
-          },
-          "uidList": {
-            "maxItems": 3,
-            "minItems": 1,
-            "type": "array",
-            "description": "需要添加管理的列表",
-            "items": {
-              "type": "integer",
-              "description": "需要添加管理的列表",
-              "format": "int64"
-            }
-          }
-        }
-      },
-      "RoomDescriptionUpdateRequest": {
-        "required": [
-          "description",
-          "roomId"
-        ],
-        "type": "object",
-        "properties": {
-          "roomId": {
-            "type": "integer",
-            "description": "群组 id",
-            "format": "int64"
-          },
-          "description": {
-            "type": "string",
-            "description": "群描述"
-          }
-        }
-      },
-      "RoomAvatarUpdateRequest": {
-        "required": [
-          "avatar",
-          "roomId"
-        ],
-        "type": "object",
-        "properties": {
-          "roomId": {
-            "type": "integer",
-            "description": "群组 id",
-            "format": "int64"
-          },
-          "avatar": {
-            "type": "string",
-            "description": "群组头像"
-          }
-        }
-      },
-      "RoomArchiveRequest": {
-        "required": [
-          "archived",
-          "roomId"
-        ],
-        "type": "object",
-        "properties": {
-          "roomId": {
-            "type": "integer",
-            "description": "群组 id",
-            "format": "int64"
-          },
-          "archived": {
-            "type": "boolean",
-            "description": "是否归档 true归档 false取消归档"
-          }
-        }
       },
       "Message": {
         "required": [
@@ -5263,6 +4363,8 @@
       },
       "AbilitySetRequest": {
         "required": [
+          "ability",
+          "act",
           "roleId",
           "ruleId"
         ],
@@ -5393,7 +4495,7 @@
           }
         }
       },
-      "ApiResultRoom": {
+      "ApiResultGroup": {
         "required": [
           "success"
         ],
@@ -5413,17 +4515,17 @@
             "description": "错误消息"
           },
           "data": {
-            "$ref": "#/components/schemas/Room"
+            "$ref": "#/components/schemas/Group"
           }
         },
         "description": "基础返回体"
       },
-      "Room": {
+      "Group": {
         "required": [
           "avatar",
           "description",
           "name",
-          "parentRoomId",
+          "parentGroupId",
           "roomId",
           "status"
         ],
@@ -5459,13 +4561,13 @@
             "type": "string",
             "format": "date-time"
           },
-          "parentRoomId": {
+          "parentGroupId": {
             "type": "integer",
             "description": "父群聊",
             "format": "int64"
           }
         },
-        "description": "群组"
+        "description": "返回对象"
       },
       "AddRoleRequest": {
         "required": [
@@ -5513,7 +4615,7 @@
           }
         }
       },
-      "RoomAddRequest": {
+      "GroupAddRequest": {
         "required": [
           "userIdList"
         ],
@@ -5722,26 +4824,19 @@
         },
         "description": "创建角色头像的请求"
       },
-      "RoleGenerationRequest": {
-        "required": [
-          "prompt",
-          "ruleId"
-        ],
+      "AI生成请求": {
         "type": "object",
         "properties": {
           "prompt": {
             "type": "string",
-            "description": "用户提示词和上下文",
-            "example": "一个活泼开朗的女高中生角色"
+            "description": "用户提示词和上下文"
           },
           "ruleId": {
             "type": "integer",
-            "description": "规则模板ID",
-            "format": "int64",
-            "example": 1
+            "description": "规则id",
+            "format": "int64"
           }
-        },
-        "description": "AI角色生成请求"
+        }
       },
       "ApiResultMapObjectObject": {
         "required": [
@@ -5773,64 +4868,7 @@
         },
         "description": "基础返回体"
       },
-      "SimpleTTSRequest": {
-        "required": [
-          "accessToken",
-          "modelName",
-          "speakerName",
-          "text"
-        ],
-        "type": "object",
-        "properties": {
-          "accessToken": {
-            "type": "string",
-            "description": "访问令牌"
-          },
-          "modelName": {
-            "type": "string",
-            "description": "模型名称",
-            "example": "鸣潮"
-          },
-          "speakerName": {
-            "type": "string",
-            "description": "说话人名称",
-            "example": "散华"
-          },
-          "emotion": {
-            "type": "string",
-            "description": "情感类型",
-            "example": "中立_neutral",
-            "default": "中立_neutral"
-          },
-          "text": {
-            "type": "string",
-            "description": "待合成的文本内容",
-            "example": "你好，这是一段测试文本。"
-          }
-        },
-        "description": "鸣潮语音合成API简化请求参数"
-      },
-      "TTSResponse": {
-        "type": "object",
-        "properties": {
-          "fileName": {
-            "type": "string",
-            "description": "生成的音频文件名",
-            "example": "audio_1234567890.wav"
-          },
-          "downloadUrl": {
-            "type": "string",
-            "description": "音频文件的下载地址"
-          }
-        },
-        "description": "文本转语音响应"
-      },
       "TextToImageRequest": {
-        "required": [
-          "appearance",
-          "emotionType",
-          "style"
-        ],
         "type": "object",
         "properties": {
           "style": {
@@ -5846,40 +4884,81 @@
           "emotionType": {
             "type": "string",
             "description": "情感差分类型",
-            "example": "开朗"
+            "example": "开朗/满足/沉思/悲伤/调皮/哭泣/愤怒/嫉妒"
           }
         },
         "description": "文本生成图像请求"
       },
       "ImageToImageRequest": {
-        "required": [
-          "emotionType",
-          "imageBase64"
-        ],
         "type": "object",
         "properties": {
           "imageBase64": {
             "type": "string",
-            "description": "原始图片的Base64编码",
-            "example": "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
+            "description": "原始图片的Base64编码"
           },
           "emotionType": {
             "type": "string",
             "description": "情感差分类型",
-            "example": "开朗",
-            "enum": [
-              "开朗",
-              "满足",
-              "沉思",
-              "悲伤",
-              "调皮",
-              "哭泣",
-              "愤怒",
-              "嫉妒"
-            ]
+            "example": "开朗/满足/沉思/悲伤/调皮/哭泣/愤怒/嫉妒等"
           }
         },
-        "description": "图像变换请求（还没实现！）"
+        "description": "图像变换请求"
+      },
+      "ApiResultUserInfoResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserInfoResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "UserInfoResponse": {
+        "required": [
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "用户的uid，全局唯一",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "头像的url"
+          },
+          "activeStatus": {
+            "type": "string",
+            "description": "1 在线 2离线",
+            "format": "byte"
+          },
+          "lastLoginTime": {
+            "type": "string",
+            "description": "最后一次上下线时间",
+            "format": "date-time"
+          }
+        },
+        "description": "返回对象"
       },
       "RulePageRequest": {
         "required": [
@@ -6414,7 +5493,7 @@
         },
         "description": "角色实体类"
       },
-      "ApiResultListRoomMember": {
+      "ApiResultListGroupMember": {
         "required": [
           "success"
         ],
@@ -6437,13 +5516,13 @@
             "type": "array",
             "description": "返回对象",
             "items": {
-              "$ref": "#/components/schemas/RoomMember"
+              "$ref": "#/components/schemas/GroupMember"
             }
           }
         },
         "description": "基础返回体"
       },
-      "RoomMember": {
+      "GroupMember": {
         "type": "object",
         "properties": {
           "roomId": {
@@ -6470,7 +5549,7 @@
         },
         "description": "返回对象"
       },
-      "ApiResultListRoom": {
+      "ApiResultListGroup": {
         "required": [
           "success"
         ],
@@ -6493,7 +5572,7 @@
             "type": "array",
             "description": "返回对象",
             "items": {
-              "$ref": "#/components/schemas/Room"
+              "$ref": "#/components/schemas/Group"
             }
           }
         },
@@ -6605,19 +5684,6 @@
           }
         }
       },
-      "MemberExitRequest": {
-        "required": [
-          "roomId"
-        ],
-        "type": "object",
-        "properties": {
-          "roomId": {
-            "type": "integer",
-            "description": "会话id",
-            "format": "int64"
-          }
-        }
-      },
       "MemberDeleteRequest": {
         "required": [
           "roomId",
@@ -6638,19 +5704,6 @@
               "description": "删除的用户id",
               "format": "int64"
             }
-          }
-        }
-      },
-      "RoomDissolveRequest": {
-        "required": [
-          "roomId"
-        ],
-        "type": "object",
-        "properties": {
-          "roomId": {
-            "type": "integer",
-            "description": "要解散的房间号",
-            "format": "int64"
           }
         }
       }
@@ -6685,7 +5738,7 @@
       "enableSearch": true,
       "enableOpenApi": true,
       "enableHomeCustom": false,
-      "enableRoom": true,
+      "enableGroup": true,
       "enableResponseCode": true
     },
     "x-markdownFiles": []

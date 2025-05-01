@@ -1,9 +1,12 @@
-// PerformanceEditor.tsx
-import { useState } from "react";
+import type { PerformanceFields } from "../types";
+import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
+import { useEffect, useState } from "react";
 
 interface PerformanceEditorProps {
   fields: { [key: string]: string };
   onChange: (fields: { [key: string]: string }) => void;
+  abilityData: PerformanceFields;
+  abilityId: number;
 }
 
 /**
@@ -15,7 +18,13 @@ interface PerformanceEditorProps {
 export default function PerformanceEditor({
   fields,
   onChange,
+  abilityData,
+  abilityId,
 }: PerformanceEditorProps) {
+  // 接入api
+  const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
+  const [localFields, setLocalFields] = useState(abilityData || fields);
+
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
   const [newItemName, setNewItemName] = useState("");
@@ -30,7 +39,7 @@ export default function PerformanceEditor({
   const longFields = Object.entries(fields)
     .filter(([key]) => longFieldKeys.includes(key));
 
-  const shortFields = Object.keys(fields)
+  const shortFields = Object.keys(abilityData || fields)
     .filter(key => key !== "携带物品" && !longFieldKeys.includes(key));
 
   // 计算每列应该显示的字段数量
@@ -50,6 +59,10 @@ export default function PerformanceEditor({
         return { name, desc };
       })
     : [];
+
+  useEffect(() => {
+    setLocalFields(abilityData || fields);
+  }, [abilityData]);
 
   const handleAdd = () => {
     if (newKey.trim()) {
@@ -111,10 +124,13 @@ export default function PerformanceEditor({
               <input
                 type="text"
                 onChange={(e) => {
-                  onChange({ ...fields, [key]: e.target.value });
+                  const newFields = { ...localFields, [key]: e.target.value };
+                  onChange(newFields);
+                  setLocalFields(newFields);
                 }}
                 readOnly={!isEditing}
-                placeholder={isEditing ? "请输入" : "请打开编辑模式"}
+
+                value={localFields[key] || ""}
               />
             </label>
           </div>
@@ -300,6 +316,11 @@ export default function PerformanceEditor({
                 type="submit"
                 onClick={() => {
                   setIsEditing(false);
+                  const updateData = {
+                    abilityId,
+                    act: fields,
+                  };
+                  updateFiledAbility(updateData);
                 }}
                 className="btn btn-primary"
               >

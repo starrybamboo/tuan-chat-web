@@ -1,5 +1,5 @@
 import type { Route } from "./+types/home";
-import CollectionPage from "@/components/collection/collectionPage";
+import CollectionPage from "@/components/common/collection/collectionPage";
 
 export function meta(_args: Route.MetaArgs) {
   return [
