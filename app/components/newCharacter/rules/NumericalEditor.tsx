@@ -1,11 +1,23 @@
-import type { NumericalConstraints } from "../types";
 import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import FormulaParser from "./FormulaParser";
 
+// 定义公式值的类型
+interface FormulaValue {
+  formula: string;
+  displayValue: number;
+}
+
+// 扩展 NumericalConstraints 类型
+interface ExtendedNumericalConstraints {
+  [key: string]: {
+    [key: string]: string | number | FormulaValue;
+  };
+}
+
 interface NumericalEditorProps {
-  constraints: NumericalConstraints;
-  onChange: (constraints: NumericalConstraints) => void;
+  constraints: ExtendedNumericalConstraints;
+  onChange: (constraints: ExtendedNumericalConstraints) => void;
   abilityId: number;
 }
 
@@ -154,15 +166,17 @@ export default function NumericalEditor({
   };
 
   // 负数与非法输入修正（包括小数的情况）
-  const correctValues = (constraints: NumericalConstraints): NumericalConstraints => {
+  const correctValues = (constraints: ExtendedNumericalConstraints): ExtendedNumericalConstraints => {
     const corrected = { ...constraints };
     Object.keys(corrected).forEach((totalKey) => {
       const fields = corrected[totalKey];
       Object.keys(fields).forEach((fieldKey) => {
         const value = fields[fieldKey];
-        if (FormulaParser.isFormula(value))
-          return;
+        if (typeof value === "object" && "formula" in value) {
+          return; // 跳过公式值
+        }
         const num = Number(value);
+        // 只允许整数，不允许小数
         if (Number.isNaN(num) || num < 0 || !Number.isInteger(num)) {
           fields[fieldKey] = 0;
         }
@@ -176,24 +190,37 @@ export default function NumericalEditor({
 
     // 计算所有公式并更新值
     const updatedConstraints = { ...constraints };
-    // 外层循环处理 constraints 的顶级键
+
+    // 首先收集所有约束组的数据作为上下文
+    const allContext: Record<string, number> = {};
+    Object.keys(updatedConstraints).forEach((totalKey) => {
+      const fields = updatedConstraints[totalKey];
+      Object.keys(fields).forEach((fieldKey) => {
+        const value = fields[fieldKey];
+        if (typeof value === "object" && "formula" in value) {
+          // 对于公式，使用其显示值
+          allContext[`${totalKey}.${fieldKey}`] = value.displayValue;
+          return;
+        }
+        // 对于非公式值，直接转换为数字
+        const num = Number(value);
+        allContext[`${totalKey}.${fieldKey}`] = Number.isNaN(num) ? 0 : num;
+      });
+    });
+
+    // 然后计算所有公式的值（仅用于显示）
     Object.keys(updatedConstraints).forEach((totalKey) => {
       const fields = updatedConstraints[totalKey];
       // 内层循环处理每个 totalKey
       Object.keys(fields).forEach((fieldKey) => {
         const value = fields[fieldKey];
         if (typeof value === "string" && FormulaParser.isFormula(value)) {
-          // 获取当前约束组中的所有字段作为上下文
-          const context = Object.entries(fields).reduce((acc, [key, val]) => {
-            if (key !== fieldKey) { // 排除当前字段，避免循环引用
-              const parsedValue = typeof val === "string" ? FormulaParser.parse(val) : val;
-              acc[key] = typeof parsedValue === "number" ? parsedValue : 0;
-            }
-            return acc;
-          }, {} as Record<string, number>);
-
-          // 计算并更新值
-          fields[fieldKey] = FormulaParser.evaluate(value, context);
+          // 计算并更新显示值，但保持原始公式
+          const evaluatedValue = FormulaParser.evaluate(value, allContext);
+          fields[fieldKey] = {
+            formula: value,
+            displayValue: evaluatedValue,
+          };
         }
       });
     });
@@ -219,6 +246,9 @@ export default function NumericalEditor({
 
         const totalPoints = Number(totalKey);
         const currentSum = Object.values(fields).reduce((sum: number, value) => {
+          if (typeof value === "object" && "displayValue" in value) {
+            return sum + (Number.isNaN(value.displayValue) ? 0 : value.displayValue);
+          }
           const parsed = typeof value === "string" ? FormulaParser.parse(value) : Number(value);
           const numericValue = Number(parsed);
           return Number.isNaN(numericValue) ? sum : sum + numericValue;
@@ -251,16 +281,18 @@ export default function NumericalEditor({
                     <div className="w-px h-4 bg-base-content/20"></div>
                     <input
                       type="text"
-                      value={typeof value === "string" ? value : value.toString()}
+                      value={typeof value === "object" && "displayValue" in value
+                        ? value.displayValue.toString()
+                        : typeof value === "string" ? value : value.toString()}
                       className="grow"
-                      disabled={!isEditing} // 动态约束组不允许用户编辑
+                      disabled={!isEditing}
                       onChange={(e) => {
                         const newValue = e.target.value;
                         onChange({
                           ...constraints,
                           [totalKey]: {
                             ...fields,
-                            [key]: FormulaParser.parse(newValue),
+                            [key]: newValue,
                           },
                         });
                       }}
