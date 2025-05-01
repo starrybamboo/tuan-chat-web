@@ -1,9 +1,10 @@
 import type { GameRule } from "../types";
 import { useEffect, useMemo, useState } from "react";
-import { useAbilityByRuleAndRole } from "../../../../api/hooks/abilityQueryHooks";
+import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "../../../../api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery, useRulePageMutation } from "../../../../api/hooks/ruleQueryHooks";
 import Section from "../Section";
 import NumericalEditor from "./NumericalEditor";
+import { flattenConstraints } from "./ObjectExpansion";
 import PerformanceEditor from "./PerformanceEditor";
 import RulesSection from "./RulesSection";
 
@@ -81,11 +82,20 @@ export default function ExpansionModule({
   const ruleListMutation = useRulePageMutation();
   const abilityListQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
   const ruleDetailQuery = useRuleDetailQuery(selectedRuleId || 0);
+  const setRoleAbilityMutation = useSetRoleAbilityMutation();
 
   // 合并规则数据，优先使用能力列表数据
   const currentRuleData = useMemo(() => {
     if (abilityListQuery.data?.id) {
       return abilityListQuery.data;
+    }
+    else if (ruleDetailQuery.data) {
+      setRoleAbilityMutation.mutate({
+        ruleId: ruleDetailQuery.data?.id || 0,
+        roleId,
+        act: ruleDetailQuery.data?.performance || {},
+        ability: flattenConstraints(ruleDetailQuery.data?.numerical || {}) || {},
+      });
     }
     return ruleDetailQuery.data;
   }, [abilityListQuery.data, ruleDetailQuery.data]);
@@ -114,19 +124,6 @@ export default function ExpansionModule({
     if (currentRuleData) {
       const ruleDetailNumerical = ruleDetailQuery.data?.numerical ?? {};
       const abilityNumerical = abilityListQuery.data?.numerical ?? {};
-
-      // 如果没有 ruleDetail.numerical，直接使用 ability.numerical
-      if (!Object.keys(ruleDetailNumerical).length) {
-        const safeRuleData: GameRule = {
-          id: currentRuleData.id,
-          name: "",
-          description: "",
-          performance: currentRuleData.performance || {},
-          numerical: ruleDetailNumerical,
-        };
-        setLocalRuleData(safeRuleData);
-        return;
-      }
 
       // 动态遍历 ruleDetail.numerical 的一级键名
       const mergedNumerical = {} as Record<string, any>;
