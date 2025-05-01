@@ -2,10 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type DiceResult = {
+export type LeaderTransferRequest = {
     /**
-     * 骰子指令的结果
+     * 空间id
      */
-    result: string;
+    spaceId: number;
+    /**
+     * 被转让的用户id
+     */
+    newLeaderId: number;
 };
 

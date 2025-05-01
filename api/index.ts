@@ -45,7 +45,9 @@ export type { ApiResultListSpaceMember } from './models/ApiResultListSpaceMember
 export type { ApiResultListString } from './models/ApiResultListString';
 export type { ApiResultListUserRole } from './models/ApiResultListUserRole';
 export type { ApiResultLong } from './models/ApiResultLong';
+export type { ApiResultMapLongInteger } from './models/ApiResultMapLongInteger';
 export type { ApiResultMapObjectObject } from './models/ApiResultMapObjectObject';
+export type { ApiResultMapStringInteger } from './models/ApiResultMapStringInteger';
 export type { ApiResultMessage } from './models/ApiResultMessage';
 export type { ApiResultModule } from './models/ApiResultModule';
 export type { ApiResultModuleRoleInfoResponse } from './models/ApiResultModuleRoleInfoResponse';
@@ -97,6 +99,7 @@ export type { CollectionTagDeleteRequest } from './models/CollectionTagDeleteReq
 export type { CommentAddRequest } from './models/CommentAddRequest';
 export type { CommentPageRequest } from './models/CommentPageRequest';
 export type { CommentVO } from './models/CommentVO';
+export type { CounterOperationDTO } from './models/CounterOperationDTO';
 export type { CursorPageBaseResponseChatMessageResponse } from './models/CursorPageBaseResponseChatMessageResponse';
 export type { CursorPageBaseResponseFeed } from './models/CursorPageBaseResponseFeed';
 export type { DiceResult } from './models/DiceResult';
@@ -112,6 +115,7 @@ export type { ItemPageRequest } from './models/ItemPageRequest';
 export type { ItemResponse } from './models/ItemResponse';
 export type { ItemsGetRequest } from './models/ItemsGetRequest';
 export type { ItemUpdateRequest } from './models/ItemUpdateRequest';
+export type { LeaderTransferRequest } from './models/LeaderTransferRequest';
 export type { LikeRecord } from './models/LikeRecord';
 export type { LikeRecordRequest } from './models/LikeRecordRequest';
 export type { LikeStatusResp } from './models/LikeStatusResp';
@@ -211,6 +215,7 @@ export { CollectionListControllerService } from './services/CollectionListContro
 export { CollectionListItemControllerService } from './services/CollectionListItemControllerService';
 export { CollectionTagControllerService } from './services/CollectionTagControllerService';
 export { CommentControllerService } from './services/CommentControllerService';
+export { CounterService } from './services/CounterService';
 export { DiceCommentControllerService } from './services/DiceCommentControllerService';
 export { FeedControllerService } from './services/FeedControllerService';
 export { ImageGenerationControllerService } from './services/ImageGenerationControllerService';

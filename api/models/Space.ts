@@ -15,13 +15,17 @@ export type Space = {
      */
     name?: string;
     /**
-     * 房间聊头像
+     * 空间头像
      */
     avatar?: string;
     /**
      * 空间描述
      */
     description?: string;
+    /**
+     * 空间规则
+     */
+    ruleId?: number;
     /**
      * 空间所有者id
      */

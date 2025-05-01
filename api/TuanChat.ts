@@ -13,6 +13,7 @@ import { CollectionListControllerService } from './services/CollectionListContro
 import { CollectionListItemControllerService } from './services/CollectionListItemControllerService';
 import { CollectionTagControllerService } from './services/CollectionTagControllerService';
 import { CommentControllerService } from './services/CommentControllerService';
+import { CounterService } from './services/CounterService';
 import { DiceCommentControllerService } from './services/DiceCommentControllerService';
 import { FeedControllerService } from './services/FeedControllerService';
 import { ImageGenerationControllerService } from './services/ImageGenerationControllerService';
@@ -48,6 +49,7 @@ export class TuanChat {
     public readonly collectionListItemController: CollectionListItemControllerService;
     public readonly collectionTagController: CollectionTagControllerService;
     public readonly commentController: CommentControllerService;
+    public readonly counter: CounterService;
     public readonly diceCommentController: DiceCommentControllerService;
     public readonly feedController: FeedControllerService;
     public readonly imageGenerationController: ImageGenerationControllerService;
@@ -94,6 +96,7 @@ export class TuanChat {
         this.collectionListItemController = new CollectionListItemControllerService(this.request);
         this.collectionTagController = new CollectionTagControllerService(this.request);
         this.commentController = new CommentControllerService(this.request);
+        this.counter = new CounterService(this.request);
         this.diceCommentController = new DiceCommentControllerService(this.request);
         this.feedController = new FeedControllerService(this.request);
         this.imageGenerationController = new ImageGenerationControllerService(this.request);
@@ -121,3 +124,4 @@ export class TuanChat {
         this.userPreference = new UserPreferenceService(this.request);
     }
 }
+

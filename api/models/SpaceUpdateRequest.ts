@@ -22,5 +22,9 @@ export type SpaceUpdateRequest = {
      * 空间描述
      */
     description?: string;
+    /**
+     * 空间规则
+     */
+    ruleId?: number;
 };
 
