@@ -152,6 +152,40 @@ export default function NumericalEditor({
       },
     }));
   };
+  const handleExitEditing = () => {
+    setIsEditing(false);
+
+    // 计算所有公式并更新值
+    const updatedConstraints = { ...constraints };
+    // 外层循环处理 constraints 的顶级键
+    Object.keys(updatedConstraints).forEach((totalKey) => {
+      const fields = updatedConstraints[totalKey];
+      // 内层循环处理每个 totalKey
+      Object.keys(fields).forEach((fieldKey) => {
+        const value = fields[fieldKey];
+        if (typeof value === "string" && FormulaParser.isFormula(value)) {
+          // 获取当前约束组中的所有字段作为上下文
+          const context = Object.entries(fields).reduce((acc, [key, val]) => {
+            if (key !== fieldKey) { // 排除当前字段，避免循环引用
+              const parsedValue = typeof val === "string" ? FormulaParser.parse(val) : val;
+              acc[key] = typeof parsedValue === "number" ? parsedValue : 0;
+            }
+            return acc;
+          }, {} as Record<string, number>);
+
+          // 计算并更新值
+          fields[fieldKey] = FormulaParser.evaluate(value, context);
+        }
+      });
+    });
+
+    // 更新数据
+    const updatedAbility = {
+      abilityId,
+      ability: flattenConstraints(updatedConstraints),
+    };
+    updateFiledAbility(updatedAbility);
+  };
 
   return (
     <div className="space-y-6">
@@ -198,7 +232,7 @@ export default function NumericalEditor({
                       type="text"
                       value={typeof value === "string" ? value : value.toString()}
                       className="grow"
-                      disabled={!isEditing}
+                      disabled={!isEditing} // 动态约束组不允许用户编辑
                       onChange={(e) => {
                         const newValue = e.target.value;
                         onChange({
@@ -300,14 +334,7 @@ export default function NumericalEditor({
           ? (
               <button
                 type="submit"
-                onClick={() => {
-                  setIsEditing(false);
-                  const updatedAbility = {
-                    abilityId,
-                    ability: flattenConstraints(constraints),
-                  };
-                  updateFiledAbility(updatedAbility);
-                }}
+                onClick={handleExitEditing}
                 className="btn btn-primary"
               >
                 退出
