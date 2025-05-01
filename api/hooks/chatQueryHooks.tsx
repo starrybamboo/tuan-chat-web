@@ -175,7 +175,8 @@ export function useGetSpaceInfoQuery(spaceId: number) {
     return useQuery({
         queryKey: ['getSpaceInfo', spaceId],
         queryFn: () => tuanchat.spaceController.getSpaceInfo(spaceId),
-        staleTime: 300000 // 5分钟缓存
+        staleTime: 300000, // 5分钟缓存
+        enabled: spaceId>=0
     });
 }
 

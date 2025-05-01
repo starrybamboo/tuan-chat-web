@@ -78,7 +78,6 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   /**
    * scroll相关
    */
-
   useEffect(() => {
     if (chatFrameRef.current) {
       if (chatFrameRef.current.scrollTop >= -300) {
