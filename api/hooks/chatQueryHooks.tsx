@@ -75,8 +75,10 @@ export function useDeleteSpaceMemberMutation() {
         mutationFn: (req: SpaceMemberDeleteRequest) => tuanchat.spaceMemberController.deleteMember(req),
         mutationKey: ['deleteMember'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getRoomMemberList',variables.spaceId]})
-            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList']});
+            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables] });
+            queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
         },
     });
 }
@@ -105,8 +107,10 @@ export function useAddRoomMemberMutation() {
         mutationFn: (req: RoomMemberAddRequest) => tuanchat.roomMemberController.addMember1(req),
         mutationKey: ['addMember'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getRoomMemberList']})
-            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList']});
+            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables] });
+            queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
         },
     });
 }
@@ -120,8 +124,10 @@ export function useDeleteRoomMemberMutation() {
         mutationFn: (req: RoomMemberDeleteRequest) => tuanchat.roomMemberController.deleteMember1(req),
         mutationKey: ['deleteMember'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getRoomMemberList']})
-            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList']});
+            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables] });
+            queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
         }
     });
 }
@@ -192,6 +198,8 @@ export function useExitSpaceMutation() {
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables] });
             queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
         },
     });
 }

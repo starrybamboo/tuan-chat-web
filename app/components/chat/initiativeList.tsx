@@ -68,7 +68,7 @@ export default function InitiativeList() {
           />
           <input
             type="number"
-            placeholder="数值"
+            placeholder="先攻"
             value={newItem.value}
             onChange={e => setNewItem({ ...newItem, value: e.target.value })}
             className="input input-bordered w-24"

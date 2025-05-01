@@ -11,7 +11,7 @@ import {tuanchat} from "../instance";
 export function useIsLikedQuery(request: LikeRecordRequest) {
     return useQuery({
         queryKey: ['isLiked', request],
-        queryFn: () => tuanchat.likeRecordController.isLiked(request),
+        queryFn: () => tuanchat.likeRecordController.isLiked(request.targetId,request.targetType),
         staleTime: 300000, // 5分钟缓存
         enabled: !!request.targetId && !!request.targetType
     });
