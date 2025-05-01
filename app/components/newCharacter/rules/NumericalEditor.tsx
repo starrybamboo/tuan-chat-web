@@ -40,52 +40,159 @@ export default function NumericalEditor({
   onChange,
   abilityId,
 }: NumericalEditorProps) {
-  // 接入API
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
   const [newTotal, setNewTotal] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [localConstraints, setLocalConstraints] = useState(constraints);
+
+  // 负数与非法输入修正（包括小数的情况）
+  const correctValues = (constraints: ExtendedNumericalConstraints): ExtendedNumericalConstraints => {
+    const corrected = { ...constraints };
+    Object.keys(corrected).forEach((totalKey) => {
+      const fields = corrected[totalKey];
+      Object.keys(fields).forEach((fieldKey) => {
+        const value = fields[fieldKey];
+        if (typeof value === "object" && "formula" in value) {
+          return; // 跳过公式值
+        }
+        const num = Number(value);
+        // 只允许整数，不允许小数
+        if (Number.isNaN(num) || num < 0 || !Number.isInteger(num)) {
+          fields[fieldKey] = 0;
+        }
+      });
+    });
+    return corrected;
+  };
+
+  // 当外部 constraints 改变时更新本地状态
+  useEffect(() => {
+    setLocalConstraints(constraints);
+  }, [constraints]);
 
   // 将 constraints 转换为数组格式用于渲染
   const constraintGroups = useMemo(() => {
-    return Object.entries(constraints).map(([totalKey, fields]) => ({
+    return Object.entries(localConstraints).map(([totalKey, fields]) => ({
       totalKey,
       fields,
     }));
-  }, [constraints]);
+  }, [localConstraints]);
 
   // 管理每个约束组的输入状态
   const [inputStates, setInputStates] = useState<InputStates>(() =>
-    Object.keys(constraints).reduce((acc, key) => {
+    Object.keys(localConstraints).reduce((acc, key) => {
       acc[key] = { key: "", value: "" };
       return acc;
     }, {} as InputStates),
   );
 
-  // 当 constraints 改变时同步更新 inputStates
-  useEffect(() => {
-    setInputStates((prevState) => {
-      const newKeys = Object.keys(constraints);
-      const prevKeys = Object.keys(prevState);
+  // 获取所有上下文数据
+  const getAllContext = (constraints: ExtendedNumericalConstraints): Record<string, number> => {
+    const context: Record<string, number> = {};
 
-      if (
-        newKeys.length === prevKeys.length
-        && newKeys.every(k => prevKeys.includes(k))
-      ) {
-        return prevState; // keys 一致，不更新
+    // 处理静态字段（非0的约束组）
+    const staticFields = Object.entries(constraints)
+      .filter(([key]) => key !== "0")
+      .reduce((acc, [_, fields]) => ({ ...acc, ...fields }), {});
+
+    // 添加静态字段到上下文
+    Object.entries(staticFields).forEach(([key, value]) => {
+      if (typeof value === "string" && value.startsWith("=")) {
+        return;
       }
-
-      const newState = {} as InputStates;
-      newKeys.forEach((key) => {
-        newState[key] = prevState[key] || { key: "", value: "" };
-      });
-
-      return newState;
+      if (typeof value === "object" && value !== null && "displayValue" in value) {
+        const formulaValue = value as FormulaValue;
+        context[key] = formulaValue.displayValue;
+        return;
+      }
+      const num = Number(value);
+      context[key] = Number.isNaN(num) ? 0 : num;
     });
-  }, [constraints]);
 
-  /**
-   * 添加新的约束组
-   */
+    // 添加动态字段到上下文
+    const dynamicFields = constraints["0"] || {};
+    Object.entries(dynamicFields).forEach(([key, value]) => {
+      if (typeof value === "string" && value.startsWith("=")) {
+        return;
+      }
+      if (typeof value === "object" && value !== null && "displayValue" in value) {
+        const formulaValue = value as FormulaValue;
+        context[key] = formulaValue.displayValue;
+        return;
+      }
+      const num = Number(value);
+      context[key] = Number.isNaN(num) ? 0 : num;
+    });
+
+    return context;
+  };
+
+  // 计算所有公式的值
+  const calculateFormulas = (constraints: ExtendedNumericalConstraints, context: Record<string, number>) => {
+    const updatedConstraints = { ...constraints };
+    Object.keys(updatedConstraints).forEach((totalKey) => {
+      const fields = updatedConstraints[totalKey];
+      Object.keys(fields).forEach((fieldKey) => {
+        const value = fields[fieldKey];
+        if (typeof value === "string" && value.startsWith("=")) {
+          const evaluatedValue = FormulaParser.evaluate(value, context);
+          fields[fieldKey] = {
+            formula: value,
+            displayValue: evaluatedValue,
+          };
+        }
+      });
+    });
+    return updatedConstraints;
+  };
+
+  const handleExitEditing = () => {
+    setIsEditing(false);
+
+    // 获取扁平化的约束数据
+    const flattenedConstraints = flattenConstraints(localConstraints);
+
+    // 计算所有公式并更新值
+    const allContext = getAllContext(localConstraints);
+    const updatedConstraints = calculateFormulas(localConstraints, allContext);
+
+    // 修正负数和非法输入
+    const correctedConstraints = correctValues(updatedConstraints);
+
+    // 更新前端状态
+    setLocalConstraints(correctedConstraints);
+    onChange(correctedConstraints);
+
+    // 更新后端数据
+    const updatedAbility = {
+      abilityId,
+      ability: flattenedConstraints,
+    };
+    updateFiledAbility(updatedAbility);
+  };
+
+  // 处理字段值更新
+  const handleFieldUpdate = (totalKey: string, fieldKey: string, newValue: string) => {
+    const fields = localConstraints[totalKey];
+    const currentValue = fields[fieldKey];
+
+    // 如果是公式字段，不允许修改
+    if (typeof currentValue === "object" && "formula" in currentValue) {
+      return;
+    }
+
+    // 非公式字段直接更新
+    const updatedConstraints = {
+      ...localConstraints,
+      [totalKey]: {
+        ...fields,
+        [fieldKey]: newValue,
+      },
+    };
+
+    setLocalConstraints(updatedConstraints);
+  };
+
   const handleAddRoom = () => {
     if (newTotal.match(/^\d+$/)) {
       onChange({
@@ -142,151 +249,6 @@ export default function NumericalEditor({
         [field]: value,
       },
     }));
-  };
-
-  // 负数与非法输入修正（包括小数的情况）
-  const correctValues = (constraints: ExtendedNumericalConstraints): ExtendedNumericalConstraints => {
-    const corrected = { ...constraints };
-    Object.keys(corrected).forEach((totalKey) => {
-      const fields = corrected[totalKey];
-      Object.keys(fields).forEach((fieldKey) => {
-        const value = fields[fieldKey];
-        if (typeof value === "object" && "formula" in value) {
-          return; // 跳过公式值
-        }
-        const num = Number(value);
-        // 只允许整数，不允许小数
-        if (Number.isNaN(num) || num < 0 || !Number.isInteger(num)) {
-          fields[fieldKey] = 0;
-        }
-      });
-    });
-    return corrected;
-  };
-
-  const handleExitEditing = () => {
-    setIsEditing(false);
-
-    // 计算所有公式并更新值
-    const updatedConstraints = { ...constraints };
-
-    // 首先收集所有约束组的数据作为上下文
-    const allContext: Record<string, number> = {};
-
-    // 处理静态字段（非0的约束组）
-    const staticFields = Object.entries(updatedConstraints)
-      .filter(([key]) => key !== "0")
-      .reduce((acc, [_, fields]) => ({ ...acc, ...fields }), {});
-
-    // 添加静态字段到上下文
-    Object.entries(staticFields).forEach(([key, value]) => {
-      if (typeof value === "string" && value.startsWith("=")) {
-        // 跳过公式字段
-        return;
-      }
-      const num = Number(value);
-      allContext[key] = Number.isNaN(num) ? 0 : num;
-    });
-
-    // 添加动态字段到上下文
-    const dynamicFields = updatedConstraints["0"] || {};
-    Object.entries(dynamicFields).forEach(([key, value]) => {
-      if (typeof value === "string" && value.startsWith("=")) {
-        // 跳过公式字段
-        return;
-      }
-      const num = Number(value);
-      allContext[key] = Number.isNaN(num) ? 0 : num;
-    });
-
-    // 然后计算所有公式的值（仅用于显示）
-    Object.keys(updatedConstraints).forEach((totalKey) => {
-      const fields = updatedConstraints[totalKey];
-      Object.keys(fields).forEach((fieldKey) => {
-        const value = fields[fieldKey];
-        if (typeof value === "string" && value.startsWith("=")) {
-          // 计算并更新显示值，但保持原始公式
-          const evaluatedValue = FormulaParser.evaluate(value, allContext);
-          fields[fieldKey] = {
-            formula: value,
-            displayValue: evaluatedValue,
-          };
-        }
-      });
-    });
-
-    // 修正负数和非法输入
-    const correctedConstraints = correctValues(updatedConstraints);
-    // 更新后端数据
-    const updatedAbility = {
-      abilityId,
-      ability: flattenConstraints(correctedConstraints),
-    };
-    updateFiledAbility(updatedAbility);
-  };
-
-  // 处理字段值更新
-  const handleFieldUpdate = (totalKey: string, fieldKey: string, newValue: string) => {
-    const fields = constraints[totalKey];
-    const currentValue = fields[fieldKey];
-
-    // 如果是公式字段，需要重新计算
-    if (typeof currentValue === "object" && "formula" in currentValue) {
-      // 收集所有上下文
-      const context: Record<string, number> = {};
-
-      // 处理静态字段（非0的约束组）
-      const staticFields = Object.entries(constraints)
-        .filter(([key]) => key !== "0")
-        .reduce((acc, [_, fields]) => ({ ...acc, ...fields }), {});
-
-      // 添加静态字段到上下文
-      Object.entries(staticFields).forEach(([key, value]) => {
-        if (typeof value === "string" && value.startsWith("=")) {
-          // 跳过公式字段
-          return;
-        }
-        const num = Number(value);
-        context[key] = Number.isNaN(num) ? 0 : num;
-      });
-
-      // 添加动态字段到上下文
-      const dynamicFields = constraints["0"] || {};
-      Object.entries(dynamicFields).forEach(([key, value]) => {
-        if (key === fieldKey)
-          return; // 跳过当前字段
-        if (typeof value === "string" && value.startsWith("=")) {
-          // 跳过公式字段
-          return;
-        }
-        const num = Number(value);
-        context[key] = Number.isNaN(num) ? 0 : num;
-      });
-
-      // 计算新值
-      const evaluatedValue = FormulaParser.evaluate(currentValue.formula, context);
-
-      onChange({
-        ...constraints,
-        [totalKey]: {
-          ...fields,
-          [fieldKey]: {
-            formula: currentValue.formula,
-            displayValue: evaluatedValue,
-          },
-        },
-      });
-    }
-    else {
-      // 非公式字段直接更新
-      onChange({
-        ...constraints,
-        [totalKey]: {
-          ...fields,
-          [fieldKey]: newValue,
-        },
-      });
-    }
   };
 
   return (
