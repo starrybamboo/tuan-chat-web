@@ -1,5 +1,5 @@
 import type { PerformanceFields } from "../types";
-import { useSetRoleAbilityMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
+import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useEffect, useState } from "react";
 
 interface PerformanceEditorProps {
@@ -7,8 +7,6 @@ interface PerformanceEditorProps {
   onChange: (fields: { [key: string]: string }) => void;
   abilityData: PerformanceFields;
   abilityId: number;
-  roleId: number;
-  ruleId: number;
 }
 
 /**
@@ -22,12 +20,9 @@ export default function PerformanceEditor({
   onChange,
   abilityData,
   abilityId,
-  roleId,
-  ruleId,
 }: PerformanceEditorProps) {
   // 接入api
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
-  const { mutate: setAbilityMutation } = useSetRoleAbilityMutation();
   const [localFields, setLocalFields] = useState(abilityData || fields);
 
   const [newKey, setNewKey] = useState("");
@@ -325,15 +320,6 @@ export default function PerformanceEditor({
                     abilityId: abilityId || 0,
                     act: fields,
                   };
-                  if (abilityId === 0) {
-                    setAbilityMutation({
-                      roleId,
-                      ruleId,
-                      act: fields,
-                      ability: {},
-                    });
-                    setIsEditing(false);
-                  }
                   updateFiledAbility(updateData);
                 }}
                 className="btn btn-primary"

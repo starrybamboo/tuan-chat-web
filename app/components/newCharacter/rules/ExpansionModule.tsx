@@ -1,4 +1,5 @@
 import type { GameRule } from "../types";
+// import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useAbilityByRuleAndRole } from "../../../../api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery, useRulePageMutation } from "../../../../api/hooks/ruleQueryHooks";
@@ -35,6 +36,8 @@ export default function ExpansionModule({
   const abilityListQuery = useAbilityByRuleAndRole(roleId, selectedRuleId);
   // 规则详情查询
   const ruleDetailQuery = useRuleDetailQuery(selectedRuleId);
+  // 创建能力mutate
+  // const { mutate: setRoleAbility } = useSetRoleAbilityMutation();
 
   // 合并规则数据，优先使用能力列表数据
   const currentRuleData = useMemo(() => {
@@ -42,6 +45,12 @@ export default function ExpansionModule({
       return abilityListQuery.data;
     }
     return ruleDetailQuery.data;
+    // setRoleAbility({
+    //   ruleDetailQuery.data?.id,
+    //   roleId,
+    //   ruleDetailQuery.data?.performance || {},
+    //   ruleDetailQuery.data?.numerical || {},
+    // });
   }, [abilityListQuery.data, ruleDetailQuery.data]);
 
   useEffect(() => {
@@ -102,6 +111,7 @@ export default function ExpansionModule({
   //     act: currentRule?.performance || { default: "default" },
   //     ability: {},
   //   });
+
   //   queryClient.invalidateQueries({ queryKey: ["ability", roleId] });
   // };
 
@@ -121,8 +131,6 @@ export default function ExpansionModule({
               onChange={handlePerformanceChange}
               abilityData={currentRuleData.performance}
               abilityId={abilityListQuery.data?.id ? currentRuleData.id : 0}
-              roleId={roleId}
-              ruleId={ruleDetailQuery.data?.id ? currentRuleData.id : 0}
             />
           </Section>
 
