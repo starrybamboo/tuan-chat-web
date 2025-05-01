@@ -25,7 +25,7 @@ export default class FormulaParser {
   }
 
   /**
-   * 计算公式结果（待实现）
+   * 计算公式结果
    * @param formula 公式字符串
    * @param context 计算上下文，包含变量值
    * @returns 计算结果
@@ -34,16 +34,37 @@ export default class FormulaParser {
     formula: string | number,
     context: Record<string, number>,
   ): number {
-    if (typeof formula === "number")
+    if (typeof formula === "number") {
       return formula;
+    }
+    // 检测是否为公式计算
+    if (!formula.startsWith("=")) {
+      return Number(formula) || 0;
+    }
 
     try {
+      // 移除等号并清理空格
       const expr = formula.replace(/=/g, "").trim();
+
+      // 替换变量为实际值
+      const replacedExpr = expr.replace(
+        /[a-z\u4E00-\u9FA5]+/gi, // 拿到中文字符段（这可能存在问题！）
+        (match) => {
+          const value = context[match];
+          return value !== undefined ? value.toString() : "0";
+        },
+      );
+
+      // 使用 Function 构造函数安全地计算表达式
       // eslint-disable-next-line no-new-func
-      const fn = new Function(...Object.keys(context), `return ${expr}`);
-      return fn(...Object.values(context));
+      const fn = new Function(`return ${replacedExpr}`);
+      const result = fn();
+
+      // 确保返回数字
+      return Number(result) || 0;
     }
-    catch {
+    catch (error) {
+      console.error("公式计算出现错误:", error);
       return 0;
     }
   }
