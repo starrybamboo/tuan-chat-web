@@ -105,12 +105,12 @@ export default function CharacterDetail({
   };
 
   return (
-    <div className={`space-y-6 pb-20 transition-all duration-300 ease-in-out ${
+    <div className={`space-y-6 pb-20   ease-in-out ${
       isTransitioning ? "opacity-50" : ""
     }`}
     >
       {/* 基础信息卡片 */}
-      <div className={`card bg-base-100 shadow-xl transition-all duration-300 ease-in-out ${
+      <div className={`card bg-base-100 shadow-xl   ease-in-out ${
         isEditing ? "ring-2 ring-primary" : ""
       }`}
       >
@@ -188,7 +188,7 @@ export default function CharacterDetail({
                   <button
                     type="submit"
                     onClick={handleSave}
-                    className={`btn btn-primary transition-all duration-300 ease-in-out ${
+                    className={`btn btn-primary   ease-in-out ${
                       isTransitioning ? "scale-95" : ""
                     }`}
                     disabled={isTransitioning}
@@ -199,7 +199,7 @@ export default function CharacterDetail({
                         )
                       : (
                           <span className="flex items-center gap-1">
-                            <svg className="w-4 h-4 transition-transform duration-300" viewBox="0 0 24 24" fill="none">
+                            <svg className="w-4 h-4 transition-transform " viewBox="0 0 24 24" fill="none">
                               <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                             </svg>
                             保存
@@ -211,10 +211,10 @@ export default function CharacterDetail({
                   <button
                     type="button"
                     onClick={onEdit}
-                    className="btn btn-accent transition-all duration-300 ease-in-out"
+                    className="btn btn-accent   ease-in-out"
                   >
                     <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4 transition-transform duration-300" viewBox="0 0 24 24" fill="none">
+                      <svg className="w-4 h-4 transition-transform " viewBox="0 0 24 24" fill="none">
                         <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
                         <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
                       </svg>
