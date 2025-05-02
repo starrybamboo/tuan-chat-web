@@ -16,22 +16,9 @@ export function useGetRoleAbilitiesQuery(roleId: number) {
 }
 
 /**
- * 更新能力
- * 更新指定角色的能力信息，act和ability字段不能为null或者空json
- */
-export function useGetRoleAbilityQuery(abilityId: number){
-    return useQuery({
-        queryKey: ["getRoleAbility", abilityId],
-        queryFn: () => tuanchat.abilityController.getRoleAbility(abilityId),
-        staleTime: 10000,
-    });
-}
-
-/**
  * 创建能力
- * 创建指定角色在指定规则下的能力信息，返回创建的能力ID，act和ability字段不能为null或者空json
+ * 创建指定角色在指定规则下的能力信息，返回创建的能力ID
  */
-
 export function useSetRoleAbilityMutation() {
     const queryClient = useQueryClient();
     return useMutation({
@@ -39,6 +26,7 @@ export function useSetRoleAbilityMutation() {
         mutationKey: ["setRoleAbility"],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ["listRoleAbility", variables.roleId] });
+            queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
         },
     });
 }
@@ -50,6 +38,7 @@ export function useDeleteRoleAbilityMutation() {
         mutationKey: ["deleteRoleAbility"],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
+            queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
         }
     })
 }
@@ -61,6 +50,7 @@ export function useUpdateRoleAbilityMutation() {
         mutationKey: ["updateRoleAbility"],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
+            queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
         }
     })
 }
@@ -72,6 +62,7 @@ export function useUpdateKeyFieldMutation() {
         mutationKey: ["updateRoleAbilityField"],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
+            queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
         }
     })
 }
