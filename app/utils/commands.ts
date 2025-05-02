@@ -56,3 +56,21 @@ export const commands: command[] = [
     description: "显示所有指令帮助（支持.help sc 查看特定指令详细说明）",
   },
 ];
+
+export const webgalCommands: command[] = [
+  {
+    name: "help",
+    importance: 4,
+    description: "显示所有指令帮助（支持.help sc 查看特定指令详细说明）",
+  },
+  {
+    name: "set",
+    importance: 4,
+    description: "设置默认骰（例：.set d10 设置默认骰为10面，使用.rd时自动调用）",
+  },
+  {
+    name: "st",
+    importance: 5,
+    description: "属性设置（例：.st 幸运 65 将幸运属性设为65，",
+  },
+];
