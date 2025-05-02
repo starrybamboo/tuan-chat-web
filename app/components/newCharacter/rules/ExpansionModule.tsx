@@ -1,5 +1,4 @@
 import type { GameRule } from "../types";
-// import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "../../../../api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery, useRulePageMutation } from "../../../../api/hooks/ruleQueryHooks";
@@ -99,12 +98,6 @@ export default function ExpansionModule({
       });
     }
     return ruleDetailQuery.data;
-    // setRoleAbility({
-    //   ruleDetailQuery.data?.id,
-    //   roleId,
-    //   ruleDetailQuery.data?.performance || {},
-    //   ruleDetailQuery.data?.numerical || {},
-    // });
   }, [abilityListQuery.data, ruleDetailQuery.data]);
 
   // 初始化规则列表

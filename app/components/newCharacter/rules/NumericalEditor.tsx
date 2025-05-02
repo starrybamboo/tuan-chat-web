@@ -289,7 +289,7 @@ export default function NumericalEditor({
                 }}
                 className="btn btn-primary"
               >
-                退出
+                保存
               </button>
             )
           : (
