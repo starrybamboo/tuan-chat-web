@@ -25,6 +25,7 @@ export default function ExpansionModule({
   // 状态
   const [selectedRuleId, setSelectedRuleId] = useState<number>(1);
   const [localRuleData, setLocalRuleData] = useState<GameRule | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // API Hooks
   const abilityQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
@@ -48,8 +49,6 @@ export default function ExpansionModule({
       ability: flattenConstraints(ruleDetailQuery.data?.numerical || {}) || {},
     });
   }
-
-  // ... existing code ...
 
   // 构建本地规则副本（合并数值）
   useEffect(() => {
@@ -84,18 +83,13 @@ export default function ExpansionModule({
     }
   }, [currentRuleData, abilityQuery.data?.numerical, ruleDetailQuery.data, abilityQuery.isLoading, ruleDetailQuery.isLoading]);
 
-  // ruleId 选择变化
-  const handleRuleChange = (newRuleId: number) => {
-    // 通知上层规则数据变更
-    if (onRuleDataChange && localRuleData) {
-      onRuleDataChange(
-        newRuleId,
-        localRuleData.performance,
-        localRuleData.numerical,
-      );
-    }
-
-    setSelectedRuleId(newRuleId);
+  // 处理规则切换
+  const handleRuleChange = (ruleId: number) => {
+    setIsTransitioning(true);
+    setSelectedRuleId(ruleId);
+    setTimeout(() => {
+      setIsTransitioning(false);
+    }, 300);
   };
 
   // 更新表演字段
@@ -117,7 +111,14 @@ export default function ExpansionModule({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* 加载遮罩 */}
+      {isTransitioning && (
+        <div className="absolute inset-0 bg-base-200/50 flex items-center justify-center z-10">
+          <span className="loading loading-spinner loading-lg"></span>
+        </div>
+      )}
+
       {/* 规则选择区域 */}
       <RulesSection
         currentRuleId={selectedRuleId}
