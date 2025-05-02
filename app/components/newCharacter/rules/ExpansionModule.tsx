@@ -23,7 +23,7 @@ export default function ExpansionModule({
   roleId,
 }: ExpansionModuleProps) {
   // 状态
-  const [selectedRuleId, setSelectedRuleId] = useState<number>(0);
+  const [selectedRuleId, setSelectedRuleId] = useState<number>(1);
   const [localRuleData, setLocalRuleData] = useState<GameRule | null>(null);
 
   // API Hooks
@@ -128,7 +128,7 @@ export default function ExpansionModule({
         <>
           <Section title="表演字段配置">
             <PerformanceEditor
-              fields={localRuleData.performance}
+              fields={{ ...localRuleData.performance }}
               onChange={handlePerformanceChange}
               abilityData={localRuleData.performance}
               abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
