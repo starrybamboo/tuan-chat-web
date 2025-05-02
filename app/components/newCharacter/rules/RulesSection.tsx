@@ -141,20 +141,44 @@ export default function RulesSection({
               disabled={pageNum === 1}
               className="join-item btn btn-ghost px-4 py-2 disabled:opacity-50"
             >
-              «
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
             </button>
-            <button className="join-item btn btn-ghost px-4 py-2 font-normal">
+
+            <div className="join-item btn btn-ghost px-4 py-2 font-normal w-24 text-center pointer-events-none">
               第
               {" "}
               {pageNum}
               {" "}
               页
-            </button>
+            </div>
+
             <button
               onClick={() => setPageNum(p => p + 1)}
               className="join-item btn btn-ghost px-4 py-2 disabled:opacity-50"
             >
-              »
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <path d="M9 6l6 6-6 6" />
+              </svg>
             </button>
           </div>
         </div>

@@ -257,13 +257,24 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
       </div>
       <button
         type="button"
-        className="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100"
+        className="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100 hover:bg-base-300 rounded-full p-1"
         onClick={(e) => {
           e.stopPropagation();
           onDelete();
         }}
       >
-        ✕
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="hover:stroke-error" // 悬停时变红色
+        >
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
       </button>
     </div>
   );
@@ -277,7 +288,12 @@ function MobileDrawerToggle() {
         htmlFor="character-drawer"
         className="btn btn-square btn-ghost"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block w-6 h-6 stroke-current">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          className="inline-block w-6 h-6 stroke-current"
+        >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
         </svg>
       </label>
