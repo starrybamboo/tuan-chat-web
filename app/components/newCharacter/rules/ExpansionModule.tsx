@@ -74,8 +74,8 @@ export default function ExpansionModule({
       const ruleDetailNumerical = ruleDetailQuery.data?.numerical ?? {};
       const abilityNumerical = abilityListQuery.data?.numerical ?? {};
 
-      // 动态遍历 ruleDetail.numerical 的一级键名
-      const mergedNumerical = {} as Record<string, any>;
+      // 对象的拆解与合并
+      const mergedNumerical = {} as Record<string, any>;// 动态遍历 ruleDetail.numerical 的一级键名
 
       for (const key in ruleDetailNumerical) {
         const base = ruleDetailNumerical[key];
@@ -173,7 +173,7 @@ export default function ExpansionModule({
             />
           </Section>
 
-          <Section title="数值约束配置">
+          <Section title="数值约束配置" className="mb-12">
             <NumericalEditor
               constraints={{ ...localRuleData.numerical }}
               onChange={handleNumericalChange}
