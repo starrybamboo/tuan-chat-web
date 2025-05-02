@@ -213,29 +213,32 @@ export default function ExpansionModule({
                   setPageSize(Number(e.target.value));
                   setPageNum(1);
                 }}
-                className="select select-bordered"
+                className="select select-bordered w-full sm:w-auto"
               >
                 <option value={10}>10条/页</option>
                 <option value={20}>20条/页</option>
                 <option value={50}>50条/页</option>
               </select>
             </div>
-            <div className="join">
+
+            <div className="join bg-base-200 rounded-lg shadow-sm">
               <button
                 onClick={() => setPageNum(p => Math.max(p - 1, 1))}
                 disabled={pageNum === 1}
-                className="btn"
+                className="join-item btn btn-ghost px-4 py-2 disabled:opacity-50"
               >
                 «
               </button>
-              <button className="btn">
+              <button className="join-item btn btn-ghost px-4 py-2 font-normal">
                 第
+                {" "}
                 {pageNum}
+                {" "}
                 页
               </button>
               <button
                 onClick={() => setPageNum(p => p + 1)}
-                className="btn"
+                className="join-item btn btn-ghost px-4 py-2 disabled:opacity-50"
               >
                 »
               </button>
