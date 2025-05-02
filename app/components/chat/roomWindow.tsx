@@ -64,6 +64,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   // 获取当前用户选择角色的所有头像(表情差分)
   const roleAvatarQuery = useGetRoleAvatarsQuery(curRoleId ?? -1);
   const roleAvatars = useMemo(() => roleAvatarQuery.data?.data ?? [], [roleAvatarQuery.data?.data]);
+  const curAvatarId = roleAvatars[curAvatarIndex]?.avatarId || -1;
   // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(roomId);
   const members: RoomMember[] = useMemo(() => {
@@ -132,7 +133,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             content: "",
             roomId,
             roleId: curRoleId,
-            avatarId: roleAvatars[curAvatarIndex].avatarId || -1,
+            avatarId: curAvatarId,
             messageType: 2,
             body: {
               size: 0,
@@ -277,7 +278,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                 <textarea
                   className="textarea w-full h-20 md:h-32 lg:h-40 resize-none border-none focus:outline-none focus:ring-0 "
                   rows={3}
-                  placeholder="Enter your message here...(shift+enter to change line)"
+                  placeholder={curRoleId <= 0
+                    ? "请先在群聊里拉入你的角色，之后才能发送消息。"
+                    : (curAvatarId <= 0 ? "请给你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)")}
                   value={inputText}
                   onChange={e => setInputText(e.target.value)}
                   onKeyDown={handleKeyDown}
