@@ -11,7 +11,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Chat() {
   return (
-    <div className="h-screen bg-base-200 flex">
+    <div className="h-screen bg-base-200 flex overflow-auto">
       <RoomSelect />
     </div>
   );

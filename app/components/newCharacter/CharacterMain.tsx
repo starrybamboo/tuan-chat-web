@@ -138,11 +138,11 @@ export default function CharacterMain() {
       <MobileDrawerToggle />
       <input id="character-drawer" type="checkbox" className="drawer-toggle" />
       {/* 侧边栏 */}
-      <div className="drawer-side z-2">
+      <div className="drawer-side z-10">
         <label htmlFor="character-drawer" className="drawer-overlay"></label>
-        <div className="menu p-4 w-80 min-h-full bg-base-200">
-          {/* 搜索和创建区域 */}
-          <div className="flex gap-2 mb-4">
+        <div className="menu p-4 w-80 min-h-full bg-base-200 flex flex-col">
+          {/* 搜索和创建区域 - 固定在顶部 */}
+          <div className="flex gap-2 mb-4 sticky top-0 bg-base-200 z-10 py-2">
             <input
               type="text"
               placeholder="搜索角色..."
@@ -161,7 +161,7 @@ export default function CharacterMain() {
           </div>
 
           {/* 角色列表 */}
-          <div className="space-y-2 overflow-y-auto">
+          <div className="space-y-2 overflow-y-auto flex-1 h-0 pb-16">
             {filteredRoles.map(role => (
               <RoleListItem
                 key={role.id}
@@ -184,7 +184,7 @@ export default function CharacterMain() {
       {/* 主内容区 */}
       <div className="drawer-content bg-base-100">
         {/* 添加条件渲染，在小屏幕且抽屉打开时隐藏内容 */}
-        <div className="p-4">
+        <div className="p-4 overflow-y-auto h-[calc(100vh-2rem)] scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-base-100">
           {currentRole
             ? (
                 <CharacterDetail

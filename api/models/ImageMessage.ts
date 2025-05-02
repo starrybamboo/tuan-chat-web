@@ -15,13 +15,6 @@ export type ImageMessage = {
      * 文件名（带后缀）
      */
     fileName: string;
-    /**
-     * 宽度（像素）
-     */
-    width: number;
-    /**
-     * 高度（像素）
-     */
-    height: number;
+    background?: boolean;
 };
 

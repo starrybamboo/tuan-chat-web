@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
 import type { ApiResultCollection } from '../models/ApiResultCollection';
+import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultPageBaseRespCollection } from '../models/ApiResultPageBaseRespCollection';
 import type { Collection } from '../models/Collection';
 import type { CollectionAddRequest } from '../models/CollectionAddRequest';
@@ -151,12 +152,12 @@ export class CollectionControllerService {
     /**
      * 检查用户是否已收藏资源
      * @param requestBody
-     * @returns ApiResultBoolean OK
+     * @returns ApiResultLong OK
      * @throws ApiError
      */
     public checkUserCollection(
         requestBody: CollectionCheckRequest,
-    ): CancelablePromise<ApiResultBoolean> {
+    ): CancelablePromise<ApiResultLong> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/collection/check',

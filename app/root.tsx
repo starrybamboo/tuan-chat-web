@@ -3,6 +3,7 @@ import { GlobalContextProvider } from "@/components/globalContextProvider";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { Toaster } from "react-hot-toast";
 import {
   isRouteErrorResponse,
   Links,
@@ -54,8 +55,9 @@ export default function App() {
         {/* <Topbar></Topbar> */}
         <Outlet />
         <ReactQueryDevtools initialIsOpen={false} />
-        <div id="modal-root"></div>
         {/* 挂载popWindow的地方 */}
+        <div id="modal-root"></div>
+        <Toaster />
       </QueryClientProvider>
     </GlobalContextProvider>
   );

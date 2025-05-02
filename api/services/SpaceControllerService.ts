@@ -61,7 +61,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 更新空间信息(名称、头像、描述)
+     * 更新空间信息(名称、头像、描述、规则)
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError

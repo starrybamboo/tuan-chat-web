@@ -4,7 +4,7 @@ export type command = {
   description: string;
 };
 
-export const commands: command[] = [
+export const diceCommands: command[] = [
   {
     name: "r",
     importance: 5,
@@ -54,5 +54,18 @@ export const commands: command[] = [
     name: "help",
     importance: 4,
     description: "显示所有指令帮助（支持.help sc 查看特定指令详细说明）",
+  },
+];
+
+export const webgalCommands: command[] = [
+  {
+    name: "changeBg:none -next",
+    importance: 5,
+    description: "取消背景（无停顿）",
+  },
+  {
+    name: "changeBg:none",
+    importance: 5,
+    description: "取消背景",
   },
 ];

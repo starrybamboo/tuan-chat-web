@@ -9,7 +9,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Home() {
   return (
-    <div className="h-screen bg-base-200">
+    <div className="h-screen bg-base-200 overflow-auto">
       <p>欢迎来到团聚共创</p>
     </div>
   );

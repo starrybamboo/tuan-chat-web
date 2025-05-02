@@ -13,7 +13,11 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useDeleteMessageMutation, useMoveMessageMutation } from "../../../api/hooks/chatQueryHooks";
+import {
+  useDeleteMessageMutation,
+  useMoveMessageMutation,
+  useUpdateMessageMutation,
+} from "../../../api/hooks/chatQueryHooks";
 import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
 import { tuanchat } from "../../../api/instance";
 
@@ -37,6 +41,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const moveMessageMutation = useMoveMessageMutation();
   const deleteMessageMutation = useDeleteMessageMutation();
   const publishFeedMutation = usePublishFeedMutation();
+  const updateMessageMutation = useUpdateMessageMutation();
   /**
    * 获取历史消息
    */
@@ -78,7 +83,6 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   /**
    * scroll相关
    */
-
   useEffect(() => {
     if (chatFrameRef.current) {
       if (chatFrameRef.current.scrollTop >= -300) {
@@ -205,6 +209,15 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     setIsForwardWindowOpen(false);
     updateSelectedMessageIds(new Set());
   }
+  function toggleBackground(messageId: number) {
+    const message = historyMessages.find(m => m.message.messageID === messageId)?.message;
+    if (!message || !message.extra?.imageMessage)
+      return;
+    updateMessageMutation.mutate({
+      ...message,
+      extra: { imageMessage: { background: !message.extra.imageMessage.background, size: message?.extra?.imageMessage.size ?? 0, fileName: message.extra.imageMessage.fileName, url: message.extra.imageMessage.url } },
+    });
+  }
   function handlePublishFeed({ title, description }: { title: string; description: string }) {
     const feedRequest: FeedRequest = {
       messageId: selectedMessageIds.values().next().value,
@@ -322,7 +335,6 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       </PopWindow>
       {/* 右键菜单 */}
       {contextMenu && (
-
         <div
           className="fixed bg-base-100 shadow-lg rounded-md z-50"
           style={{ top: contextMenu.y, left: contextMenu.x }}
@@ -349,6 +361,27 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
                 选择
               </a>
             </li>
+            {(() => {
+              const message = historyMessages.find(message => message.message.messageID === contextMenu.messageId);
+              if (!message || message.message.messageType !== 2) {
+                return null;
+              }
+              return (
+                <li>
+                  <a
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleBackground(contextMenu.messageId);
+                      closeContextMenu();
+                    }}
+                  >
+                    {
+                      message?.message.extra?.imageMessage?.background ? "取消设置为背景" : "设为背景"
+                    }
+                  </a>
+                </li>
+              );
+            })()}
           </ul>
         </div>
       )}

@@ -15,17 +15,22 @@ export class LikeRecordControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
      * 查询是否点赞过
-     * @param request
+     * @param targetId
+     * @param targetType
      * @returns ApiResultBoolean OK
      * @throws ApiError
      */
     public isLiked(
-        request: LikeRecordRequest,
+        targetId: number,
+        targetType: string,
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/like',
-            query: request,
+            query: {
+                'targetId': targetId,
+                'targetType': targetType,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

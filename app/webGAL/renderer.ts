@@ -77,7 +77,6 @@ export class Renderer {
     //   await this.addLineToRenderer(`changeFigure: -right -next;`);
     // }
     await this.addLineToRenderer(`${roleName}: ${text} ${vocal ? `-${vocal}` : ""}`);
-    this.rendererContext.lineNumber += 2;
   }
 
   public asyncRender(): void {
@@ -90,13 +89,21 @@ export class Renderer {
     await uploadFile(url, path, `${spritesName}.png`);
   }
 
-  private async addLineToRenderer(line: string): Promise<void> {
+  // 上传背景图片，直接使用url当作fileName
+  public async uploadBackground(url: string): Promise<string> {
+    const path = `games/${this.game.name}/game/background/`;
+    return await uploadFile(url, path);
+  }
+
+  public async addLineToRenderer(line: string): Promise<void> {
     if (!line.trim())
       return; // 跳过空消息
 
     this.rendererContext.text = this.rendererContext.text
       ? `${this.rendererContext.text}\n${line}`
       : line;
+
+    this.rendererContext.lineNumber += 1;
 
     await editScene(this.game.name, "start", this.rendererContext.text);
   }

@@ -2,9 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResultBoolean } from '../models/ApiResultBoolean';
 import type { ApiResultListSpaceMember } from '../models/ApiResultListSpaceMember';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
+import type { LeaderTransferRequest } from '../models/LeaderTransferRequest';
 import type { PlayerGrantRequest } from '../models/PlayerGrantRequest';
 import type { PlayerRevokeRequest } from '../models/PlayerRevokeRequest';
 import type { SpaceMemberAddRequest } from '../models/SpaceMemberAddRequest';
@@ -16,12 +16,12 @@ export class SpaceMemberControllerService {
     /**
      * 设置用户为玩家
      * @param requestBody
-     * @returns ApiResultBoolean OK
+     * @returns ApiResultVoid OK
      * @throws ApiError
      */
     public grantPlayer(
         requestBody: PlayerGrantRequest,
-    ): CancelablePromise<ApiResultBoolean> {
+    ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/capi/space/member/player',
@@ -38,15 +38,37 @@ export class SpaceMemberControllerService {
     /**
      * 撤销用户玩家的身份
      * @param requestBody
-     * @returns ApiResultBoolean OK
+     * @returns ApiResultVoid OK
      * @throws ApiError
      */
     public revokePlayer(
         requestBody: PlayerRevokeRequest,
-    ): CancelablePromise<ApiResultBoolean> {
+    ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
             url: '/capi/space/member/player',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 把转让裁判其他成员
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public transferLeader(
+        requestBody: LeaderTransferRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/capi/space/member/leader',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -127,12 +149,12 @@ export class SpaceMemberControllerService {
     /**
      * 退出空间
      * @param spaceId
-     * @returns ApiResultBoolean OK
+     * @returns ApiResultVoid OK
      * @throws ApiError
      */
     public exitSpace(
         spaceId: number,
-    ): CancelablePromise<ApiResultBoolean> {
+    ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
             method: 'DELETE',
             url: '/capi/space/member/exit',

@@ -11,6 +11,10 @@ export type Room = {
      */
     roomId?: number;
     /**
+     * 父房间id
+     */
+    parentRoomId?: number;
+    /**
      * 房间类型 1游戏房间 2全员房间
      */
     roomType?: number;
@@ -34,6 +38,10 @@ export type Room = {
      * 房间所属空间id
      */
     spaceId?: number;
+    /**
+     * 其他信息
+     */
+    extra?: string;
     createTime?: string;
     updateTime?: string;
 };

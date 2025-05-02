@@ -1,5 +1,5 @@
+import InitiativeList from "@/components/chat/initiativeList";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
-import OrderList from "@/components/chat/orderList";
 import { RoomContext } from "@/components/chat/roomContext";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
@@ -7,6 +7,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import React, { use, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { useAddRoomMemberMutation, useAddRoomRoleMutation, useGetRoomRoleQuery } from "../../../api/hooks/chatQueryHooks";
 
 export default function RoomRightSidePanel() {
@@ -31,6 +32,7 @@ export default function RoomRightSidePanel() {
     }, {
       onSettled: () => {
         setIsRoleHandleOpen(false);
+        toast("添加角色成功");
       },
     });
   };
@@ -42,14 +44,19 @@ export default function RoomRightSidePanel() {
     }, {
       onSettled: () => {
         setIsMemberHandleOpen(false);
+        toast("添加成员成功");
       },
     });
   }
   return (
     <div className="flex flex-row gap-4 h-full">
-      <div className="flex flex-col gap-2 p-4 bg-base-100 rounded-box shadow-sm items-center w-full space-y-4 max-h-[calc(100vh-6rem)] overflow-y-auto">
+      <div
+        className="flex flex-col gap-2 p-4 bg-base-100 rounded-box shadow-sm items-center w-full space-y-4 max-h-[calc(100vh-6rem)] overflow-y-auto"
+      >
         {/* 先攻表 */}
-        <OrderList></OrderList>
+        <div className="divider">先攻表</div>
+        <InitiativeList></InitiativeList>
+        <div className="divider">成员与角色</div>
         {/* 群成员列表 */}
         <div className="space-y-2">
           <div className="flex flex-row justify-center items-center gap-2">
