@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ApiResultCursorPageBaseResponseFeed } from '../models/ApiResultCursorPageBaseResponseFeed';
 import type { ApiResultFeed } from '../models/ApiResultFeed';
+import type { ApiResultMapStringInteger } from '../models/ApiResultMapStringInteger';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { FeedPageRequest } from '../models/FeedPageRequest';
 import type { FeedRequest } from '../models/FeedRequest';
@@ -116,6 +117,30 @@ export class FeedControllerService {
             url: '/capi/feed/page',
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 获取Feed统计信息
+     * 获取指定Feed的点赞数、评论数和收藏数
+     * @param feedId
+     * @returns ApiResultMapStringInteger OK
+     * @throws ApiError
+     */
+    public getFeedStats(
+        feedId: number,
+    ): CancelablePromise<ApiResultMapStringInteger> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/feed/stats',
+            query: {
+                'feedId': feedId,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

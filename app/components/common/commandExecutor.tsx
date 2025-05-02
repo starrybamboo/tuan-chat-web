@@ -4,6 +4,11 @@ import {
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityMutation,
 } from "../../../api/hooks/abilityQueryHooks";
+import {
+  useGetRoomInitiativeListQuery,
+  useRoomInitiativeListMutation,
+} from "../../../api/hooks/chatQueryHooks";
+import { useGetRoleQuery } from "../../../api/queryHooks";
 // type DiceResult = { x: number; y: number; rolls: number[]; total: number };
 
 // 属性名中英文对照表
@@ -28,14 +33,25 @@ export function isCommand(command: string) {
   return (trimmed.startsWith(".") || trimmed.startsWith("。"));
 }
 
-export default function useCommandExecutor(roleId: number) {
+export default function useCommandExecutor(roleId: number, ruleId: number) {
+  // const { spaceId: urlSpaceId } = useParams();
+  // const spaceId = Number(urlSpaceId);
+  // const space = useGetSpaceInfoQuery(spaceId).data?.data;
+
+  const role = useGetRoleQuery(roleId).data?.data;
+
   const defaultDice = useRef(100);
 
   const abilityQuery = useGetRoleAbilitiesQuery(roleId);
-  const abilityIds = abilityQuery.data?.data?.map(a => a.abilityId) ?? [];
+  const abilityList = abilityQuery.data?.data ?? [];
+  // 当前规则下激活的能力
+  const curAbility = abilityList.find(a => a.ruleId === ruleId);
 
   const updateAbilityMutation = useUpdateRoleAbilityMutation();
   const setAbilityMutation = useSetRoleAbilityMutation();
+
+  const initiativeListMutation = useRoomInitiativeListMutation(ruleId);
+  const initiativeList = useGetRoomInitiativeListQuery(ruleId).data ?? [];
 
   useEffect(() => {
     try {
@@ -45,13 +61,6 @@ export default function useCommandExecutor(roleId: number) {
       console.error(e);
     }
   }, []);
-  // 合并所有的ability
-  const attributes = abilityQuery.data?.data?.reduce((acc, cur) => {
-    if (cur?.ability) {
-      return { ...acc, ...cur.ability };
-    }
-    return acc;
-  }, {} as Record<string, number>) ?? {};
 
   /**
    * 返回这个函数
@@ -59,16 +68,14 @@ export default function useCommandExecutor(roleId: number) {
    */
   function execute(command: string): string {
     const [cmdPart, ...args] = parseCommand(command);
+
     try {
       switch (cmdPart) {
-        case "r": return handleRoll(args);
+        case "r": return handleRoll(args).result;
         case "set": return handleSet(args);
         case "st": return handleSt(args);
         case "rc": return handleRc(args);
-        case "sc": return handleSc(args);
-        case "en": return handleEn(args);
-        case "ti":
-        case "li": return "疯狂症状功能暂未实现";
+        case "ri": return handleRi(args);
         default: return `未知命令 ${cmdPart}`;
       }
     }
@@ -86,9 +93,8 @@ export default function useCommandExecutor(roleId: number) {
     // 匹配所有的英文字符，取第一个为命令
     const cmdMatch = trimmed.match(/^([A-Z]+)/i);
     const cmdPart = cmdMatch?.[0] ?? "";
-    const args = trimmed.slice(cmdPart.length).trim().split(/\s+/);
-    const wholeArg = args.join("");
-    return [cmdPart.toLowerCase(), wholeArg];
+    const args = trimmed.slice(cmdPart.length).trim().split(/\s+/).filter(arg => arg !== "");
+    return [cmdPart.toLowerCase(), ...args];
   }
 
   function parseDices(input: string): Array<{ sign: number; x: number; y: number }> {
@@ -118,7 +124,6 @@ export default function useCommandExecutor(roleId: number) {
     }
     return parsedSegments;
   }
-
   /** 解析一个骰子 */
   function parseSingleDice(input: string): { x: number; y: number } {
     // 处理默认骰子情况
@@ -153,10 +158,8 @@ export default function useCommandExecutor(roleId: number) {
 
     return { x, y };
   }
-
-  /** 可以处理多个骰子相加 */
-  function handleRoll(args: string[]): string {
-    const input = args[0] || "";
+  function handleRoll(args: string[]) {
+    const input = args.join("");
     try {
       const diceSegments = parseDices(input);
       const segmentResults = [];
@@ -198,10 +201,10 @@ export default function useCommandExecutor(roleId: number) {
           );
         }
       }
-      return `掷骰结果：${expressionParts.join("")}=${total}   (${diceNotationParts.join("")})`;
+      return { result: `掷骰结果：${expressionParts.join("")}=${total}   (${diceNotationParts.join("")})`, total };
     }
     catch (error) {
-      return `错误：${error ?? "未知错误"}`;
+      return { result: `错误：${error ?? "未知错误"}`, total: undefined };
     }
   }
 
@@ -228,7 +231,7 @@ export default function useCommandExecutor(roleId: number) {
    * @const
    */
   function handleSt(args: string[]): string {
-    const input = args[0];
+    const input = args.join("");
     const ability: { [key: string]: number } = {};
     // 使用正则匹配所有属性+数值的组合
     const matches = input.matchAll(/(\D+)(\d+)/g);
@@ -250,9 +253,9 @@ export default function useCommandExecutor(roleId: number) {
     }
 
     // 如果已存在能力就更新, 不然创建.
-    if (abilityIds.length !== 0) {
+    if (curAbility) {
       updateAbilityMutation.mutate({
-        abilityId: abilityIds[0] ?? -1,
+        abilityId: curAbility.abilityId ?? -1,
         ability,
         act: {},
       });
@@ -260,7 +263,7 @@ export default function useCommandExecutor(roleId: number) {
     else {
       setAbilityMutation.mutate({
         roleId,
-        ruleId: 1,
+        ruleId,
         act: {},
         ability,
       });
@@ -276,8 +279,10 @@ export default function useCommandExecutor(roleId: number) {
     const [attr] = args;
     if (!attr)
       throw new Error("缺少技能名称");
+    if (!curAbility?.ability)
+      throw new Error(`未设置 ${attr} 属性值`);
 
-    const value = attributes[attr];
+    const value = curAbility?.ability[attr];
     if (value === undefined)
       throw new Error(`未设置 ${attr} 属性值`);
 
@@ -320,85 +325,63 @@ export default function useCommandExecutor(roleId: number) {
   }
 
   /**
-   * SAN检定
-   * @param args
-   * @const
+   *先攻 args[0] 如果不能被解析成骰子表达式，则视为角色名；args[1]在args[0]为角色名的时候可以作为骰子表达式
    */
-  // TODO
-  function handleSc(args: string[]): string {
-    const [expr] = args;
-    if (!expr)
-      throw new Error("缺少SAN检定表达式");
-
-    // 手动解析 1/2d5 格式
-    const slashIndex = expr.indexOf("/");
-    if (slashIndex === -1)
-      throw new Error("无效的SAN检定格式");
-
-    const successValStr = expr.slice(0, slashIndex);
-    const failureExpr = expr.slice(slashIndex + 1);
-
-    const successVal = Number.parseInt(successValStr);
-    if (Number.isNaN(successVal))
-      throw new Error("无效的成功扣除值");
-
-    const san = attributes.san;
-    if (san === undefined)
-      throw new Error("未设置SAN值");
-
-    const roll = rollDice(100);
-    const loss = calculateSanLoss(roll, san, successVal, failureExpr);
-
-    attributes.san = Math.max(san - loss, 0);
-    return `SAN检定：${roll}/${san}，${roll <= san ? "成功" : "失败"}，SAN减少${loss}，剩余${attributes.san}`;
+  function handleRi(args: string[]): string {
+    let initiative: number | undefined;
+    let name: string | undefined;
+    try {
+      if (args.length !== 0) {
+        initiative = handleRiExpression(args[0]);
+        if (!initiative) {
+          name = args[0];
+        }
+        if (args.length > 1) {
+          name = args[1];
+        }
+      }
+    }
+    catch (e) {
+      return e?.toString() ?? "不合规的表达式";
+    }
+    if (!initiative) {
+      initiative = rollDice(20);
+    }
+    if (!name) {
+      name = role?.roleName;
+    }
+    if (initiative && name) {
+      initiativeListMutation.mutate(
+        JSON.stringify(
+          [...initiativeList.filter(i => i.name !== name), { name, value: initiative }]
+            .sort((a, b) => b.value - a.value),
+        ),
+      );
+    }
+    else {
+      return "不合规的表达式";
+    }
+    return `${name}的先攻更新为${initiative}`;
   }
-
-  /** 计算SAN值扣除 */
-  // TODO
-  function calculateSanLoss(roll: number, san: number, successVal: number, failureExpr: string): number {
-    if (roll <= san) {
-      return successVal;
+  // 解析Ri命令下的特殊骰子表达式
+  function handleRiExpression(arg: string) {
+    if (arg.startsWith("+")) {
+      const rollResult = handleRoll([arg.slice(1)]);
+      if (!rollResult.total) {
+        return undefined;
+      }
+      return rollDice(20) + rollResult.total;
     }
-
-    // 解析失败骰子表达式（如 2d5）
-    const dIndex = failureExpr.indexOf("d");
-    if (dIndex === -1)
-      throw new Error("无效的失败骰子表达式");
-
-    const xStr = failureExpr.slice(0, dIndex);
-    const yStr = failureExpr.slice(dIndex + 1);
-
-    const x = xStr ? Number.parseInt(xStr) : 1;
-    const y = Number.parseInt(yStr);
-
-    if (Number.isNaN(x) || x < 1 || Number.isNaN(y) || y < 1) {
-      throw new Error("无效的失败骰子表达式");
+    else if (arg.startsWith("-")) {
+      const rollResult = handleRoll([arg.slice(1)]);
+      if (!rollResult.total) {
+        return undefined;
+      }
+      return rollDice(20) - rollResult.total;
     }
-
-    return Array.from({ length: x }, () => rollDice(y))
-      .reduce((sum, val) => sum + val, 0);
-  }
-
-  /**
-   * 能力成长检定
-   */
-  // TODO
-  function handleEn(args: string[]): string {
-    const [attr] = args;
-    if (!attr)
-      throw new Error("缺少技能名称");
-
-    const value = attributes[attr];
-    if (value === undefined)
-      throw new Error(`未设置 ${attr} 属性值`);
-
-    const roll = rollDice(100);
-    if (roll > value) {
-      const gain = rollDice(10);
-      attributes[attr] += gain;
-      return `${attr}成长检定：${roll}/${value} 成功，增加${gain}，当前值${attributes[attr]}`;
+    else {
+      return handleRoll([arg]).total;
     }
-    return `${attr}成长检定：${roll}/${value} 失败`;
   }
 
   function rollDice(sides: number): number {

@@ -15,5 +15,9 @@ export type SpaceAddRequest = {
      * 空间头像
      */
     avatar?: string;
+    /**
+     * 空间规则
+     */
+    ruleId: number;
 };
 

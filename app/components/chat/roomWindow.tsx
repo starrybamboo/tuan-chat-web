@@ -11,6 +11,7 @@ import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
+import RenderWindow from "@/components/chat/window/renderWindow";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
@@ -19,10 +20,9 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { UploadUtils } from "@/utils/UploadUtils";
-import { ChatRenderer } from "@/webGAL/chatRenderer";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
-import { useGetMemberListQuery, useGetRoomRoleQuery } from "../../../api/hooks/chatQueryHooks";
+import { useGetMemberListQuery, useGetRoomRoleQuery, useGetSpaceInfoQuery } from "../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../api/instance";
 import {
   useGetRoleAvatarsQuery,
@@ -30,6 +30,10 @@ import {
 } from "../../../api/queryHooks";
 
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
+  // const { spaceId: urlSpaceId } = useParams();
+  // const spaceId = Number(urlSpaceId);
+  const space = useGetSpaceInfoQuery(spaceId).data?.data;
+
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
   const webSocketUtils = globalContext.websocketUtils;
@@ -56,7 +60,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     return roomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
   }, [roomRoles, userRoles]);
   const [curRoleId, setCurRoleId] = useState(roomRolesThatUserOwn[0]?.roleId ?? -1);
-  const commandExecutor = useCommandExecutor(curRoleId);
+  const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1);
   // 获取当前用户选择角色的所有头像(表情差分)
   const roleAvatarQuery = useGetRoleAvatarsQuery(curRoleId ?? -1);
   const roleAvatars = useMemo(() => roleAvatarQuery.data?.data ?? [], [roleAvatarQuery.data?.data]);
@@ -69,6 +73,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const curMember = useMemo(() => {
     return members.find(member => member.userId === userId);
   }, [members, userId]);
+
+  const [isRenderWindowOpen, setIsRenderWindowOpen] = useState(false);
 
   // Context
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
@@ -210,18 +216,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     setCurAvatarIndex(0);
   };
 
-  const [isRendering, setIsRendering] = useState(false);
-  async function handleRender() {
-    setIsRendering(true);
-    try {
-      const renderer = new ChatRenderer(roomId);
-      await renderer.initializeRenderer();
-    }
-    catch (error) {
-      console.error("Rendering failed:", error);
-    }
-  }
-
   /**
    *  群组设置(鳩)
    */
@@ -264,7 +258,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                 </ul>
               </div>
 
-              <div className="w-full textarea flex-wrap overflow-auto">
+              <div className="w-full textarea flex-wrap">
                 <CommandPanel prefix={inputText} handleSelectCommand={handleSelectCommand}></CommandPanel>
                 {/* 图片显示 */}
                 <div className="flex flex-row gap-x-3">
@@ -308,7 +302,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                 </div>
 
                 <div className="float-right gap-2 flex">
-                  <button className="btn" type="button" onClick={handleRender} disabled={isRendering}>
+                  <button className="btn" type="button" onClick={() => setIsRenderWindowOpen(true)} disabled={isRenderWindowOpen}>
                     渲染对话
                   </button>
                   <label className="swap w-30 btn">
@@ -320,7 +314,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   <button
                     type="button"
                     className="btn btn-primary "
-                    disabled={!(inputText.trim() || imgFiles.length) || isRendering || isSubmitting}
+                    disabled={!(inputText.trim() || imgFiles.length) || isRenderWindowOpen || isSubmitting}
                     onClick={handleMessageSubmit}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -338,6 +332,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       {/* 设置窗口 */}
       <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
         <RoomSettingWindow onClose={() => setIsSettingWindowOpen(false)}></RoomSettingWindow>
+      </PopWindow>
+      {/* 渲染设置窗口 */}
+      <PopWindow isOpen={isRenderWindowOpen} onClose={() => setIsRenderWindowOpen(false)}>
+        <RenderWindow></RenderWindow>
       </PopWindow>
     </RoomContext>
   );

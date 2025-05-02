@@ -1,3 +1,5 @@
+import type { RenderProps } from "@/components/chat/window/renderWindow";
+
 import { Renderer } from "@/webGAL/renderer";
 
 import type { ChatMessageResponse, RoleAvatar, UserRole } from "../../api";
@@ -5,14 +7,18 @@ import type { ChatMessageResponse, RoleAvatar, UserRole } from "../../api";
 import { tuanchat } from "../../api/instance";
 
 export class ChatRenderer {
+  private MAX_VOCAL: number = 1000;
+
   private roomId: number;
   private renderer: Renderer;
   private roleAvatarMap: Map<number, RoleAvatar[]> = new Map();
   private roleMap: Map<number, UserRole> = new Map();
+  private renderProps: RenderProps;
 
-  constructor(roomId: number) {
+  constructor(roomId: number, renderProp: RenderProps) {
     this.roomId = roomId;
-    this.renderer = new Renderer(roomId);
+    this.renderProps = renderProp;
+    this.renderer = new Renderer(roomId, renderProp);
   }
 
   public async initializeRenderer(): Promise<void> {
@@ -121,7 +127,7 @@ export class ChatRenderer {
         .sort((a, b) => a.message.position - b.message.position);
 
       // 最多生成几段音频 仅供在tts api不足的情况下进行限制
-      let maxVocal = 1000;
+      let maxVocal = this.renderProps.useVocal ? this.MAX_VOCAL : 0;
       // let recentMessages: (Message | undefined)[] = [undefined, undefined];
       // let lastSpeakSide: 0 | 1 = 1;
 

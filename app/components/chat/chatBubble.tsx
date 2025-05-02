@@ -51,7 +51,9 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     });
   }
 
-  const canEdit = userId === message.userId || roomContext.curMember?.userId === message.userId;
+  const canEdit = userId === message.userId
+    || roomContext.curMember?.userId === message.userId
+    || roomContext.curMember?.memberType === 1;
 
   function handleAvatarClick() {
     if (canEdit) {
@@ -86,7 +88,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     else if (message.messageType === 5) {
       return <ForwardMessage messageList={message.extra?.forwardMessage?.messageList ?? []}></ForwardMessage>;
     }
-    return (<EditableField content={message.content} handleContentUpdate={handleContentUpdate} className="whitespace-pre-wrap" canEdit={userId === message.userId}></EditableField>);
+    return (<EditableField content={message.content} handleContentUpdate={handleContentUpdate} className="whitespace-pre-wrap" canEdit={canEdit}></EditableField>);
   }, [message.content, message.extra, message.messageType]);
 
   return (
