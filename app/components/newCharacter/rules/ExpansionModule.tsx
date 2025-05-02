@@ -36,19 +36,20 @@ export default function ExpansionModule({
     if (abilityQuery.data?.id) {
       return abilityQuery.data;
     }
-    else if (ruleDetailQuery.data && !abilityQuery.data) {
-      // 只在第一次数据加载完成时触发
-      if (!abilityQuery.isLoading && !abilityQuery.isFetched) {
-        setRoleAbilityMutation.mutate({
-          ruleId: ruleDetailQuery.data?.id || 0,
-          roleId,
-          act: ruleDetailQuery.data?.performance || {},
-          ability: flattenConstraints(ruleDetailQuery.data?.numerical || {}) || {},
-        });
-      }
-    }
     return ruleDetailQuery.data;
-  }, [abilityQuery.data, ruleDetailQuery.data, abilityQuery.isLoading, abilityQuery.isFetched]);
+  }, [abilityQuery.data, ruleDetailQuery.data]);
+
+  // 初始化能力数据
+  if (ruleDetailQuery.data && !abilityQuery.data && !abilityQuery.isLoading && !abilityQuery.isFetched) {
+    setRoleAbilityMutation.mutate({
+      ruleId: ruleDetailQuery.data?.id || 0,
+      roleId,
+      act: ruleDetailQuery.data?.performance || {},
+      ability: flattenConstraints(ruleDetailQuery.data?.numerical || {}) || {},
+    });
+  }
+
+  // ... existing code ...
 
   // 构建本地规则副本（合并数值）
   useEffect(() => {
