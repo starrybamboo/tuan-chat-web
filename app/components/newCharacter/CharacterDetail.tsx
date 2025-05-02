@@ -69,7 +69,7 @@ export default function CharacterDetail({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       {/* 基础信息卡片 */}
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">

@@ -282,9 +282,11 @@ export default function NumericalEditor({
                 className={`font-semibold ${remainPoints < 0 ? "text-error font-bold pl-8" : "text-success pl-8"
                 }`}
               >
-                {remainPoints >= 0
-                  ? `剩余点数: ${remainPoints}`
-                  : `超出点数: ${-remainPoints}`}
+                {totalKey !== "0"
+                  ? remainPoints >= 0
+                    ? `剩余点数: ${remainPoints}`
+                    : `超出点数: ${-remainPoints}`
+                  : null}
               </span>
             </div>
 
@@ -344,7 +346,7 @@ export default function NumericalEditor({
               ))}
             </div>
 
-            {/* 分隔线 */}
+            {/* 分隔线，隔开创建新属性和已创建的约束组 */}
             <div className="divider"></div>
 
             <div className="flex gap-8 max-w-2xl">
@@ -381,7 +383,7 @@ export default function NumericalEditor({
         <input
           type="text"
           disabled={!isEditing}
-          placeholder={isEditing ? "输入总约束值（0表示动态）" : "请打开编辑模式"}
+          placeholder={isEditing ? "输入总约束值（0表示动态约束）" : "请打开编辑模式"}
           className="input input-bordered"
           value={newTotal}
           onChange={e => setNewTotal(e.target.value)}
