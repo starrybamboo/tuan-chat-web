@@ -37,15 +37,18 @@ export default function ExpansionModule({
       return abilityQuery.data;
     }
     else if (ruleDetailQuery.data && !abilityQuery.data) {
-      setRoleAbilityMutation.mutate({
-        ruleId: ruleDetailQuery.data.id,
-        roleId,
-        act: ruleDetailQuery.data.performance || {},
-        ability: flattenConstraints(ruleDetailQuery.data.numerical || {}) || {},
-      });
+      // 添加查询状态检查
+      if (!abilityQuery.isLoading) {
+        setRoleAbilityMutation.mutate({
+          ruleId: ruleDetailQuery.data?.id || 0,
+          roleId,
+          act: ruleDetailQuery.data?.performance || {},
+          ability: flattenConstraints(ruleDetailQuery.data?.numerical || {}) || {},
+        });
+      }
     }
     return ruleDetailQuery.data;
-  }, [abilityQuery.data, ruleDetailQuery.data]);
+  }, [abilityQuery.data, ruleDetailQuery.data, abilityQuery.isLoading]);
 
   // 构建本地规则副本（合并数值）
   useEffect(() => {
