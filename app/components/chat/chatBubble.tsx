@@ -83,7 +83,12 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
 
   const renderedContent = useMemo(() => {
     if (message.messageType === 2) {
-      return (<BetterImg src={message.extra?.imageMessage?.url} className="max-h-[40vh]" />);
+      return (
+        <div>
+          <BetterImg src={message.extra?.imageMessage?.url} className="max-h-[40vh]" />
+          {message.extra?.imageMessage?.background && <div className="text-xs text-gray-500 dark:text-gray-400">已设置为背景</div>}
+        </div>
+      );
     }
     else if (message.messageType === 5) {
       return <ForwardMessage messageList={message.extra?.forwardMessage?.messageList ?? []}></ForwardMessage>;
