@@ -12,8 +12,7 @@ interface PerformanceEditorProps {
 /**
  * 表演字段编辑器组件
  * 负责管理角色的表演相关字段，如性别、年龄、背景故事等
- * 包含短字段、长字段和携带物品三种不同的展示方式
- * 我找不到其他解决方法说实话，这些是AI大人提供的思路
+ * 展示方式被划分为了 短字段、长字段和携带物品 三种不同的展示方式
  */
 export default function PerformanceEditor({
   fields,
@@ -31,6 +30,8 @@ export default function PerformanceEditor({
   const [newItemDesc, setNewItemDesc] = useState("");
   // 是否编辑
   const [isEditing, setIsEditing] = useState(false);
+  // 编辑状态过渡
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // 长字段，记得写入
   const longFieldKeys = [""];
@@ -63,6 +64,32 @@ export default function PerformanceEditor({
   useEffect(() => {
     setLocalFields(abilityData || fields);
   }, [abilityData]);
+
+  // 处理编辑模式切换
+  const handleEditToggle = () => {
+    if (!isEditing) {
+      setIsEditing(true);
+    }
+    else {
+      setIsTransitioning(true);
+      // 保存更改
+      const updateData = {
+        abilityId,
+        act: fields,
+      };
+      updateFiledAbility(updateData, {
+        onSuccess: () => {
+          setTimeout(() => {
+            setIsEditing(false);
+            setIsTransitioning(false);
+          }, 300);
+        },
+        onError: () => {
+          setIsTransitioning(false);
+        },
+      });
+    }
+  };
 
   const handleAdd = () => {
     if (newKey.trim()) {
@@ -112,14 +139,51 @@ export default function PerformanceEditor({
   };
 
   return (
-    <div className="space-y-6 bg-base-200 rounded-lg p-4">
-      <h3 className="font-bold mb-3">基本信息</h3>
+    <div className={`space-y-6 bg-base-200 rounded-lg p-4 transition-all duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""
+    } ${isEditing ? "ring-2 ring-primary" : ""
+    }`}
+    >
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="font-bold">基本信息</h3>
+        <button
+          type="button"
+          onClick={handleEditToggle}
+          className={`btn btn-sm transition-all duration-300 ease-in-out ${isEditing ? "btn-primary" : "btn-accent"
+          } ${isTransitioning ? "scale-95" : ""
+          }`}
+          disabled={isTransitioning}
+        >
+          {isTransitioning
+            ? (
+                <span className="loading loading-spinner loading-xs"></span>
+              )
+            : isEditing
+              ? (
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4 transition-transform duration-300" viewBox="0 0 24 24" fill="none">
+                      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                    保存
+                  </span>
+                )
+              : (
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4 transition-transform duration-300" viewBox="0 0 24 24" fill="none">
+                      <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                      <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                    </svg>
+                    编辑
+                  </span>
+                )}
+        </button>
+      </div>
+
       {/* 短字段区域 - 多列排布 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {shortFields.map(key => (
-          <div key={key} className="flex flex-col">
-            <label className="input">
-              <span>{key}</span>
+          <div key={key} className="group">
+            <label className="input flex items-center gap-2 w-full">
+              <span className="text-sm font-medium">{key}</span>
               <div className="w-px h-4 bg-base-content/20"></div>
               <input
                 type="text"
@@ -128,9 +192,10 @@ export default function PerformanceEditor({
                   onChange(newFields);
                   setLocalFields(newFields);
                 }}
-                readOnly={!isEditing}
-
+                disabled={!isEditing}
                 value={localFields[key] || ""}
+                className="grow"
+                placeholder={isEditing ? "请输入" : "请打开编辑模式"}
               />
             </label>
           </div>
@@ -142,7 +207,7 @@ export default function PerformanceEditor({
         {/* 左侧列 */}
         <div className="flex-1 space-y-3">
           {leftLongFields.map(([key, value]) => (
-            <fieldset key={key} className="feildset p-4">
+            <fieldset key={key} className="group feildset p-4">
               <legend className="fieldset-legend">{key}</legend>
               <textarea
                 value={value}
@@ -151,7 +216,7 @@ export default function PerformanceEditor({
                   onChange({ ...fields, [key]: e.target.value });
                 }}
                 disabled={!isEditing}
-                // readOnly={!isEditing}
+                placeholder={isEditing ? "请输入" : "请打开编辑模式"}
               />
             </fieldset>
           ))}
@@ -165,7 +230,7 @@ export default function PerformanceEditor({
         {/* 右侧列 */}
         <div className="flex-1 space-y-3">
           {rightLongFields.map(([key, value]) => (
-            <div key={key} className="flex flex-col">
+            <div key={key} className="group flex flex-col">
               <label className="text-sm font-medium mb-1">{key}</label>
               <textarea
                 value={value}
@@ -173,7 +238,8 @@ export default function PerformanceEditor({
                 onChange={(e) => {
                   onChange({ ...fields, [key]: e.target.value });
                 }}
-                readOnly={!isEditing}
+                disabled={!isEditing}
+                placeholder={isEditing ? "请输入" : "请打开编辑模式"}
               />
             </div>
           ))}
@@ -196,7 +262,7 @@ export default function PerformanceEditor({
             <tbody>
               {items.map((item, index) => (
                 // eslint-disable-next-line react/no-array-index-key
-                <tr key={index}>
+                <tr key={index} className="group">
                   <td>
                     <input
                       type="text"
@@ -205,7 +271,7 @@ export default function PerformanceEditor({
                       onChange={(e) => {
                         handleUpdateItem(index, e.target.value, item.desc);
                       }}
-                      readOnly={!isEditing}
+                      disabled={!isEditing}
                       placeholder={isEditing ? "新物品名称" : "请打开编辑模式"}
                     />
                   </td>
@@ -217,19 +283,30 @@ export default function PerformanceEditor({
                       onChange={(e) => {
                         handleUpdateItem(index, item.name, e.target.value);
                       }}
-                      readOnly={!isEditing}
+                      disabled={!isEditing}
                       placeholder={isEditing ? "物品描述" : "请打开编辑模式"}
                     />
                   </td>
                   <td>
                     <button
                       type="button"
-                      className="btn btn-error btn-xs"
+                      className="btn btn-error btn-xs group-hover:opacity-100 transition-opacity"
                       disabled={!isEditing}
                       onClick={() => handleRemoveItem(index)}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path
+                          d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                        />
                         <line x1="10" y1="11" x2="10" y2="17" />
                         <line x1="14" y1="11" x2="14" y2="17" />
                       </svg>
@@ -238,11 +315,11 @@ export default function PerformanceEditor({
                 </tr>
               ))}
 
-              <tr>
+              <tr className="group">
                 <td>
                   <input
                     type="text"
-                    readOnly={!isEditing}
+                    disabled={!isEditing}
                     placeholder={isEditing ? "请输入" : "请打开编辑模式"}
                     className="input input-bordered input-sm w-full"
                     value={newItemName}
@@ -252,7 +329,7 @@ export default function PerformanceEditor({
                 <td>
                   <input
                     type="text"
-                    readOnly={!isEditing}
+                    disabled={!isEditing}
                     placeholder={isEditing ? "请输入" : "请打开编辑模式"}
                     className="input input-bordered input-sm w-full"
                     value={newItemDesc}
@@ -266,7 +343,16 @@ export default function PerformanceEditor({
                     disabled={!isEditing}
                     onClick={handleAddItem}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <line x1="12" y1="5" x2="12" y2="19" />
                       <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
@@ -284,7 +370,7 @@ export default function PerformanceEditor({
         <div className="flex gap-8 max-w-2xl">
           <input
             type="text"
-            readOnly={!isEditing}
+            disabled={!isEditing}
             placeholder={isEditing ? "字段名称" : "请打开编辑模式"}
             className="input input-bordered input-sm w-1/3"
             value={newKey}
@@ -292,7 +378,7 @@ export default function PerformanceEditor({
           />
           <input
             type="text"
-            readOnly={!isEditing}
+            disabled={!isEditing}
             placeholder={isEditing ? "值" : "请打开编辑模式"}
             className="input input-bordered input-sm w-1/2"
             value={newValue}
@@ -307,31 +393,6 @@ export default function PerformanceEditor({
             添加字段
           </button>
         </div>
-      </div>
-      {/* 操作按钮 */}
-      <div className="card-actions justify-end">
-        {isEditing
-          ? (
-              <button
-                type="submit"
-                onClick={() => {
-                  setIsEditing(false);
-                  const updateData = {
-                    abilityId,
-                    act: fields,
-                  };
-                  updateFiledAbility(updateData);
-                }}
-                className="btn btn-primary"
-              >
-                保存
-              </button>
-            )
-          : (
-              <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent">
-                编辑
-              </button>
-            )}
       </div>
     </div>
   );
