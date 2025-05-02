@@ -10,7 +10,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Feed() {
   return (
-    <div className="h-screen bg-base-200">
+    <div className="h-screen bg-base-200 overflow-auto">
       <FeedPage></FeedPage>
     </div>
   );
