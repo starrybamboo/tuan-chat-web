@@ -105,12 +105,12 @@ export default function CharacterDetail({
   };
 
   return (
-    <div className={`space-y-6 pb-20 ${
+    <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${
       isTransitioning ? "opacity-50" : ""
     }`}
     >
       {/* 基础信息卡片 */}
-      <div className={`card bg-base-100 shadow-xl transition-opacity duration-300 ease-in-out ${
+      <div className={`card bg-base-100 shadow-xl ${
         isEditing ? "ring-2 ring-primary" : ""
       }`}
       >
@@ -214,7 +214,7 @@ export default function CharacterDetail({
                     className="btn btn-accent"
                   >
                     <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4 transition-transform duration-300" viewBox="0 0 24 24" fill="none">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                         <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
                         <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
                       </svg>
