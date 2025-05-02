@@ -87,9 +87,8 @@ export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
           return {
             id : res.data.abilityId || 0 ,
             performance: res.data.act || {}, // 表演字段
-            numerical: {
-              "0": res.data.ability || {} // 将ability包装在"0"键下作为默认约束组，很奇怪，不加这个会报类型错误，怀疑后端搞错了
-            }, // 数值约束
+            numerical: res.data.ability || {} // 将ability包装在"0"键下作为默认约束组，很奇怪，不加这个会报类型错误，怀疑后端搞错了
+            , // 数值约束
           }
         }
         return null;

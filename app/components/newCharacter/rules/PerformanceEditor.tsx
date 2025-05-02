@@ -317,7 +317,7 @@ export default function PerformanceEditor({
                 onClick={() => {
                   setIsEditing(false);
                   const updateData = {
-                    abilityId: abilityId || 0,
+                    abilityId,
                     act: fields,
                   };
                   updateFiledAbility(updateData);
