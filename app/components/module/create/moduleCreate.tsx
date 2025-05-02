@@ -79,7 +79,6 @@ function ModuleForm() {
         {/* 左侧规则列表 */}
         <div className={`basis-1/3 bg-base-200 rounded-xl  ${errors.RuleSelect ? "border-2 border-error" : ""}`}>
           <div className="p-4">
-            <h2 className="text-lg font-bold mb-4">选择规则</h2>
             <Controller
               control={control}
               name="RuleSelect"

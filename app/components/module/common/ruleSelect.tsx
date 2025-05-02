@@ -1,6 +1,6 @@
 import ScrollList from "@/components/common/list/scrollList";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // 定义渲染组件
 const RuleListItem: React.FC<{ item: ModifiedRuleItem }> = ({ item }) => (
@@ -28,48 +28,69 @@ function RuleSelect({ className, onRuleSelect }: { className?: string; onRuleSel
   const [pageNo, _setPageNo] = useState(1);
   const [_pageCount, _setPageCount] = useState(0);
   const [_total, _setTotal] = useState(0);
-  const [keyword, _setKeyword] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState("");
   const [selectRuleId, setSelectRuleId] = useState<number | string | null>(null);
+  const [cachedRuleData, setCachedRuleData] = useState<ModifiedRuleItem[]>([]);
 
   const { data, isLoading, isSuccess } = useGetRulePageInfiniteQuery({
     pageNo,
     pageSize,
-    keyword,
+    keyword: searchKeyword,
   });
 
-  // 将 ruleItems 转换为 ScrollList 接受的形式
-  let ruleItemData: ModifiedRuleItem[] = [];
-  if (!isLoading && isSuccess) {
-    const items: RuleItem[] = data.pages[0].data?.list || [];
-    ruleItemData = items.map(i => ({
-      id: i.ruleId,
-      ruleName: i.ruleName,
-      ruleDescription: i.ruleDescription,
-    })) as ModifiedRuleItem[];
+  function handleKeywordChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setKeyword(e.target.value);
+    if (e.target.value === "") {
+      setSearchKeyword("");
+    }
   }
-  else {
-    ruleItemData = [];
-  }
+
+  // 监听数据变化并更新缓存
+  useEffect(() => {
+    if (!isLoading && isSuccess && data) {
+      const items: RuleItem[] = data.pages[0].data?.list || [];
+      const newRuleData = items.map(i => ({
+        id: i.ruleId,
+        ruleName: i.ruleName,
+        ruleDescription: i.ruleDescription,
+      })) as ModifiedRuleItem[];
+      setCachedRuleData(newRuleData);
+    }
+  }, [data, isLoading, isSuccess]);
 
   return (
     <div
-      className={`rounded-xl bg-base-200 flex ${className || ""}`}
+      className={`rounded-xl bg-base-200 flex flex-col ${className || ""}`}
     >
-      {
-        isLoading
-          ? undefined
-          : (
-              <ScrollList<ModifiedRuleItem>
-                items={ruleItemData}
-                RenderItem={RuleListItem}
-                selectedId={selectRuleId}
-                onSelect={(id) => {
-                  setSelectRuleId(id);
-                  onRuleSelect?.(id as number);
-                }}
-              />
-            )
-      }
+      <div className="flex h-[40px] mb-4">
+        <h2 className="text-lg font-bold h-full flex items-center">选择规则</h2>
+        <label className="input basis-2/3 ml-auto">
+          <input
+            type="search"
+            className="grow"
+            placeholder="Search"
+            value={keyword}
+            onChange={handleKeywordChange}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                setSearchKeyword(keyword);
+              }
+            }}
+          />
+          <kbd className="kbd kbd-sm">⏎</kbd>
+        </label>
+      </div>
+      <ScrollList<ModifiedRuleItem>
+        items={cachedRuleData}
+        RenderItem={RuleListItem}
+        selectedId={selectRuleId}
+        onSelect={(id) => {
+          setSelectRuleId(id);
+          onRuleSelect?.(id as number);
+        }}
+      />
     </div>
   );
 }
