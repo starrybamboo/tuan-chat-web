@@ -156,7 +156,19 @@ export default function CharacterMain() {
               onClick={handleCreate}
               title="创建新角色"
             >
-              <span className="text-xl">+</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor" // 使用当前文字颜色
+                strokeWidth="3" // 线条粗细
+                strokeLinecap="round" // 线条端点样式
+                strokeLinejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
             </button>
           </div>
 

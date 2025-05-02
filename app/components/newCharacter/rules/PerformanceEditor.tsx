@@ -139,7 +139,7 @@ export default function PerformanceEditor({
   };
 
   return (
-    <div className={`space-y-6 bg-base-200 rounded-lg p-4 transition-all duration-300 ease-in-out ${
+    <div className={`space-y-6 bg-base-200 rounded-lg p-4 transition-opacity duration-300 ${
       isTransitioning ? "opacity-50" : ""
     } ${
       isEditing ? "ring-2 ring-primary" : ""
@@ -150,7 +150,7 @@ export default function PerformanceEditor({
         <button
           type="button"
           onClick={handleEditToggle}
-          className={`btn btn-sm transition-all duration-300 ease-in-out ${
+          className={`btn btn-sm ${
             isEditing ? "btn-primary" : "btn-accent"
           } ${
             isTransitioning ? "scale-95" : ""
@@ -164,7 +164,7 @@ export default function PerformanceEditor({
             : isEditing
               ? (
                   <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4 transition-transform duration-300" viewBox="0 0 24 24" fill="none">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                       <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                     </svg>
                     保存
@@ -172,7 +172,7 @@ export default function PerformanceEditor({
                 )
               : (
                   <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4 transition-transform duration-300" viewBox="0 0 24 24" fill="none">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                       <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
                       <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
                     </svg>
