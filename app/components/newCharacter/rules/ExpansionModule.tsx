@@ -116,6 +116,21 @@ export default function ExpansionModule({
     onRuleDataChange?.(selectedRuleId, updated.performance, numerical);
   };
 
+  // 判断是否正在处理数据
+  const isProcessing = useMemo(() => {
+    return (
+      abilityQuery.isLoading
+      || ruleDetailQuery.isLoading
+      // 当有currentRuleData但还没有对应的localRuleData时，说明正在处理数据
+      || (currentRuleData?.id !== localRuleData?.id)
+    );
+  }, [
+    abilityQuery.isLoading,
+    ruleDetailQuery.isLoading,
+    currentRuleData?.id,
+    localRuleData?.id,
+  ]);
+
   return (
     <div className="space-y-6">
       {/* 规则选择区域 */}
@@ -125,30 +140,36 @@ export default function ExpansionModule({
       />
 
       {/* 规则详情区域 */}
-      {localRuleData && (
-        <>
-          <Section title="表演字段配置">
-            <PerformanceEditor
-              fields={{
-                ...(localRuleData.performance ?? ruleDetailQuery.data?.performance ?? {}),
-              }}
-              onChange={handlePerformanceChange}
-              abilityData={localRuleData.performance}
-              abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
-            />
-          </Section>
+      {isProcessing
+        ? (
+            <div className="flex justify-center items-center min-h-[200px]">
+              <span className="loading loading-spinner loading-lg"></span>
+            </div>
+          )
+        : localRuleData && (
+          <>
+            <Section title="表演字段配置">
+              <PerformanceEditor
+                fields={{
+                  ...(localRuleData.performance ?? ruleDetailQuery.data?.performance ?? {}),
+                }}
+                onChange={handlePerformanceChange}
+                abilityData={localRuleData.performance}
+                abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
+              />
+            </Section>
 
-          <Section title="数值约束配置" className="mb-12">
-            <NumericalEditor
-              constraints={{
-                ...(localRuleData.numerical ?? ruleDetailQuery.data?.numerical ?? {}),
-              }}
-              onChange={handleNumericalChange}
-              abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
-            />
-          </Section>
-        </>
-      )}
+            <Section title="数值约束配置" className="mb-12">
+              <NumericalEditor
+                constraints={{
+                  ...(localRuleData.numerical ?? ruleDetailQuery.data?.numerical ?? {}),
+                }}
+                onChange={handleNumericalChange}
+                abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
+              />
+            </Section>
+          </>
+        )}
     </div>
   );
 }
