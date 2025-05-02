@@ -63,7 +63,7 @@ export default function PerformanceEditor({
 
   useEffect(() => {
     setLocalFields(abilityData || fields);
-  }, [abilityData]);
+  }, [abilityData, fields]);
 
   // 处理编辑模式切换
   const handleEditToggle = () => {
