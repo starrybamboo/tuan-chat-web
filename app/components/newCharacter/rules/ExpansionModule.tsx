@@ -81,7 +81,7 @@ export default function ExpansionModule({
       };
       setLocalRuleData(safeData);
     }
-  }, [currentRuleData]);
+  }, [currentRuleData, abilityQuery.isLoading, ruleDetailQuery.isLoading]);
 
   // ruleId 选择变化
   const handleRuleChange = (newRuleId: number) => {
