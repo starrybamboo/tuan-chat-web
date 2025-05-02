@@ -43,6 +43,7 @@ export default function NumericalEditor({
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
   const [newTotal, setNewTotal] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [localConstraints, setLocalConstraints] = useState(constraints);
 
   // 负数与非法输入修正（包括小数的情况）
@@ -147,8 +148,7 @@ export default function NumericalEditor({
   };
 
   const handleExitEditing = () => {
-    setIsEditing(false);
-
+    setIsTransitioning(true);
     // 获取扁平化的约束数据
     const flattenedConstraints = flattenConstraints(localConstraints);
 
@@ -168,7 +168,17 @@ export default function NumericalEditor({
       abilityId,
       ability: flattenedConstraints,
     };
-    updateFiledAbility(updatedAbility);
+    updateFiledAbility(updatedAbility, {
+      onSuccess: () => {
+        setTimeout(() => {
+          setIsEditing(false);
+          setIsTransitioning(false);
+        }, 300);
+      },
+      onError: () => {
+        setIsTransitioning(false);
+      },
+    });
   };
 
   // 处理字段值更新
@@ -252,7 +262,49 @@ export default function NumericalEditor({
   };
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 bg-base-200 rounded-lg p-4 transition-all duration-300 ease-in-out ${
+      isTransitioning ? "opacity-50" : ""
+    } ${
+      isEditing ? "ring-2 ring-primary" : ""
+    }`}
+    >
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="font-bold">数值约束</h3>
+        <button
+          type="button"
+          onClick={isEditing ? handleExitEditing : () => setIsEditing(true)}
+          className={`btn btn-sm transition-all duration-300 ease-in-out ${
+            isEditing ? "btn-primary" : "btn-accent"
+          } ${
+            isTransitioning ? "scale-95" : ""
+          }`}
+          disabled={isTransitioning}
+        >
+          {isTransitioning
+            ? (
+                <span className="loading loading-spinner loading-xs"></span>
+              )
+            : isEditing
+              ? (
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4 transition-transform duration-300" viewBox="0 0 24 24" fill="none">
+                      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    </svg>
+                    保存
+                  </span>
+                )
+              : (
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4 transition-transform duration-300" viewBox="0 0 24 24" fill="none">
+                      <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                      <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                    </svg>
+                    编辑
+                  </span>
+                )}
+        </button>
+      </div>
+
       {constraintGroups.map(({ totalKey, fields }) => {
         if (!totalKey)
           return null;
@@ -273,13 +325,19 @@ export default function NumericalEditor({
         const remainPoints = totalPoints - currentSum;
 
         return (
-          <div key={totalKey} className="bg-base-200 p-4 rounded-lg">
+          <div
+            key={totalKey}
+            className={`bg-base-200 p-4 rounded-lg ${
+              isEditing ? "bg-base-100" : ""
+            }`}
+          >
             <div className="flex items-center mb-4">
               <h3 className="font-bold">
                 {totalKey === "0" ? "动态约束组" : `总点数: ${totalPoints}`}
               </h3>
               <span
-                className={`font-semibold ${remainPoints < 0 ? "text-error font-bold pl-8" : "text-success pl-8"
+                className={`font-semibold ${
+                  remainPoints < 0 ? "text-error font-bold pl-8" : "text-success pl-8"
                 }`}
               >
                 {totalKey !== "0"
@@ -295,7 +353,10 @@ export default function NumericalEditor({
               {entries.map(([key, value]) => (
                 <div key={key} className="flex flex-col gap-1 mb-2">
                   <div className="flex items-center gap-1">
-                    <label className="input flex items-center gap-2 w-full">
+                    <label className={`input flex items-center gap-2 w-full ${
+                      isEditing ? "bg-base-100" : ""
+                    }`}
+                    >
                       <span className="text-sm font-medium">{key}</span>
                       <div className="w-px h-4 bg-base-content/20"></div>
                       <input
@@ -396,24 +457,6 @@ export default function NumericalEditor({
         >
           新增约束组
         </button>
-      </div>
-
-      <div className="card-actions justify-end">
-        {isEditing
-          ? (
-              <button
-                type="submit"
-                onClick={handleExitEditing}
-                className="btn btn-primary"
-              >
-                退出
-              </button>
-            )
-          : (
-              <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent">
-                编辑
-              </button>
-            )}
       </div>
     </div>
   );
