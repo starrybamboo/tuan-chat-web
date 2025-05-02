@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { useParams } from "react-router";
 import {
   useGetRoleAbilitiesQuery,
   useSetRoleAbilityMutation,
@@ -7,7 +6,6 @@ import {
 } from "../../../api/hooks/abilityQueryHooks";
 import {
   useGetRoomInitiativeListQuery,
-  useGetSpaceInfoQuery,
   useRoomInitiativeListMutation,
 } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../api/queryHooks";
@@ -35,11 +33,11 @@ export function isCommand(command: string) {
   return (trimmed.startsWith(".") || trimmed.startsWith("。"));
 }
 
-export default function useCommandExecutor(roleId: number, roomId: number = -1) {
-  const { spaceId: urlSpaceId } = useParams();
-  const spaceId = Number(urlSpaceId);
-  const space = useGetSpaceInfoQuery(spaceId).data?.data;
-  const ruleId = space?.spaceId ?? -1;
+export default function useCommandExecutor(roleId: number, ruleId: number) {
+  // const { spaceId: urlSpaceId } = useParams();
+  // const spaceId = Number(urlSpaceId);
+  // const space = useGetSpaceInfoQuery(spaceId).data?.data;
+
   const role = useGetRoleQuery(roleId).data?.data;
 
   const defaultDice = useRef(100);
@@ -52,8 +50,8 @@ export default function useCommandExecutor(roleId: number, roomId: number = -1) 
   const updateAbilityMutation = useUpdateRoleAbilityMutation();
   const setAbilityMutation = useSetRoleAbilityMutation();
 
-  const initiativeListMutation = useRoomInitiativeListMutation(roomId);
-  const initiativeList = useGetRoomInitiativeListQuery(roomId).data ?? [];
+  const initiativeListMutation = useRoomInitiativeListMutation(ruleId);
+  const initiativeList = useGetRoomInitiativeListQuery(ruleId).data ?? [];
 
   useEffect(() => {
     try {

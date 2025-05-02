@@ -22,7 +22,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
-import { useGetMemberListQuery, useGetRoomRoleQuery } from "../../../api/hooks/chatQueryHooks";
+import { useGetMemberListQuery, useGetRoomRoleQuery, useGetSpaceInfoQuery } from "../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../api/instance";
 import {
   useGetRoleAvatarsQuery,
@@ -30,6 +30,10 @@ import {
 } from "../../../api/queryHooks";
 
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
+  // const { spaceId: urlSpaceId } = useParams();
+  // const spaceId = Number(urlSpaceId);
+  const space = useGetSpaceInfoQuery(spaceId).data?.data;
+
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
   const webSocketUtils = globalContext.websocketUtils;
@@ -56,7 +60,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     return roomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
   }, [roomRoles, userRoles]);
   const [curRoleId, setCurRoleId] = useState(roomRolesThatUserOwn[0]?.roleId ?? -1);
-  const commandExecutor = useCommandExecutor(curRoleId, roomId);
+  const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1);
   // 获取当前用户选择角色的所有头像(表情差分)
   const roleAvatarQuery = useGetRoleAvatarsQuery(curRoleId ?? -1);
   const roleAvatars = useMemo(() => roleAvatarQuery.data?.data ?? [], [roleAvatarQuery.data?.data]);
