@@ -128,7 +128,9 @@ export default function ExpansionModule({
         <>
           <Section title="表演字段配置">
             <PerformanceEditor
-              fields={localRuleData.performance}
+              fields={{
+                ...(localRuleData.performance ?? ruleDetailQuery.data?.performance ?? {}),
+              }}
               onChange={handlePerformanceChange}
               abilityData={localRuleData.performance}
               abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
@@ -137,7 +139,9 @@ export default function ExpansionModule({
 
           <Section title="数值约束配置" className="mb-12">
             <NumericalEditor
-              constraints={{ ...localRuleData.numerical }}
+              constraints={{
+                ...(localRuleData.numerical ?? ruleDetailQuery.data?.numerical ?? {}),
+              }}
               onChange={handleNumericalChange}
               abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
             />

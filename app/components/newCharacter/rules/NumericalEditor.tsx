@@ -202,7 +202,6 @@ export default function NumericalEditor({
 
     setLocalConstraints(updatedConstraints);
   };
-
   const handleAddRoom = () => {
     if (newTotal.match(/^\d+$/)) {
       onChange({

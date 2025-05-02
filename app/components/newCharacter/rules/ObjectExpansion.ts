@@ -44,27 +44,30 @@ export function deepOverrideTargetWithSource(
 ): Record<string, any> {
   const result: Record<string, any> = {};
 
-  for (const key in target) {
-    if (
-      typeof source?.[key] === "object"
-      && source?.[key] !== null
-      && !Array.isArray(source?.[key])
-      && typeof target?.[key] === "object"
-      && target?.[key] !== null
-      && !Array.isArray(target?.[key])
-    ) {
-      // 嵌套对象，递归处理
-      result[key] = deepOverrideTargetWithSource(target[key], source?.[key]);
+  for (const [key, targetVal] of Object.entries(target)) {
+    const sourceVal = source?.[key];
+
+    // 处理循环引用（可选）
+    if (sourceVal === result)
+      continue;
+
+    // 判断是否需要递归合并对象
+    const canRecurse
+      = sourceVal
+        && typeof sourceVal === "object"
+        && !Array.isArray(sourceVal)
+        && targetVal
+        && typeof targetVal === "object"
+        && !Array.isArray(targetVal);
+
+    if (canRecurse) {
+      result[key] = deepOverrideTargetWithSource(targetVal, sourceVal);
+    }
+    else if (source && Object.prototype.hasOwnProperty.call(source, key)) {
+      result[key] = sourceVal;
     }
     else {
-      // 只有 source 存在这个字段时才更新
-      if (source && Object.prototype.hasOwnProperty.call(source, key)) {
-        result[key] = source[key];
-      }
-      else {
-        // 否则保留 target 原值
-        result[key] = target[key];
-      }
+      result[key] = targetVal;
     }
   }
 
