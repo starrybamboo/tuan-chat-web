@@ -30,15 +30,11 @@ export default function RulesSection({
   // API Hooks
   const rulePageMutation = useRulePageMutation();
 
-  // 规则分页获取
+  // 初始化规则分页获取
   useEffect(() => {
     const fetchRules = async () => {
       try {
-        const result = await rulePageMutation.mutateAsync({
-          pageNo: pageNum,
-          pageSize,
-          keyword,
-        });
+        const result = await rulePageMutation.mutateAsync({ pageNo: 1, pageSize: 10, keyword: "" });
         if (result && result.length > 0) {
           setRules(result);
           setFilteredRules(result);
@@ -52,8 +48,9 @@ export default function RulesSection({
         console.error("规则加载失败:", err);
       }
     };
+
     fetchRules();
-  }, [pageNum, pageSize, keyword]);
+  }, []);
 
   // 处理搜索输入
   const handleSearchInput = (value: string) => {
@@ -126,6 +123,11 @@ export default function RulesSection({
               onChange={(e) => {
                 setPageSize(Number(e.target.value));
                 setPageNum(1);
+                rulePageMutation.mutate({
+                  pageNo: pageNum,
+                  pageSize,
+                  keyword,
+                });
               }}
               className="select select-bordered w-full sm:w-auto"
             >
@@ -137,7 +139,15 @@ export default function RulesSection({
 
           <div className="join bg-base-200 rounded-lg shadow-sm">
             <button
-              onClick={() => setPageNum(p => Math.max(p - 1, 1))}
+              type="button"
+              onClick={() => {
+                setPageNum(p => Math.max(p - 1, 1));
+                rulePageMutation.mutate({
+                  pageNo: pageNum - 1,
+                  pageSize,
+                  keyword,
+                });
+              }}
               disabled={pageNum === 1}
               className="join-item btn btn-ghost px-4 py-2 disabled:opacity-50"
             >
@@ -164,7 +174,15 @@ export default function RulesSection({
             </div>
 
             <button
-              onClick={() => setPageNum(p => p + 1)}
+              type="button"
+              onClick={() => {
+                setPageNum(p => p + 1);
+                rulePageMutation.mutate({
+                  pageNo: pageNum,
+                  pageSize,
+                  keyword,
+                });
+              }}
               className="join-item btn btn-ghost px-4 py-2 disabled:opacity-50"
             >
               <svg
