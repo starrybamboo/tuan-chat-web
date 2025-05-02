@@ -37,8 +37,8 @@ export default function ExpansionModule({
       return abilityQuery.data;
     }
     else if (ruleDetailQuery.data && !abilityQuery.data) {
-      // 添加查询状态检查
-      if (!abilityQuery.isLoading) {
+      // 只在第一次数据加载完成时触发
+      if (!abilityQuery.isLoading && !abilityQuery.isFetched) {
         setRoleAbilityMutation.mutate({
           ruleId: ruleDetailQuery.data?.id || 0,
           roleId,
@@ -48,7 +48,7 @@ export default function ExpansionModule({
       }
     }
     return ruleDetailQuery.data;
-  }, [abilityQuery.data, ruleDetailQuery.data, abilityQuery.isLoading]);
+  }, [abilityQuery.data, ruleDetailQuery.data, abilityQuery.isLoading, abilityQuery.isFetched]);
 
   // 构建本地规则副本（合并数值）
   useEffect(() => {
