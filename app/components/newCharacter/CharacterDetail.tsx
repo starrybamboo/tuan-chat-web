@@ -1,7 +1,7 @@
 import type { Role } from "./types";
 import { useMutation } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import CharacterAvatar from "./CharacterAvatar";
 import ExpansionModule from "./rules/ExpansionModule";
 // import Section from "./Section";
@@ -29,8 +29,11 @@ export default function CharacterDetail({
   const [charCount, setCharCount] = useState(role.description?.length || 0);
   // 描述的最大储存量
   const MAX_DESCRIPTION_LENGTH = 140;
-  useMemo(() => {
+
+  // 当角色变化时，更新本地状态和字数统计
+  useEffect(() => {
     setLocalRole(role);
+    setCharCount(role.description?.length || 0);
   }, [role]);
 
   // 接口部分
