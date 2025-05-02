@@ -199,14 +199,43 @@ export default function PerformanceEditor({
                 disabled={!isEditing}
                 value={localFields[key] || ""}
                 className="grow"
-                placeholder={isEditing ? "请输入" : "请打开编辑模式"}
               />
             </label>
           </div>
         ))}
       </div>
 
-      {/* 长字段区域 */}
+      {/* 添加新字段区域 */}
+      <div className="border-t border-base-300 pt-4 mt-4">
+        <div className="flex gap-8 max-w-2xl">
+          <input
+            type="text"
+            disabled={!isEditing}
+            placeholder={isEditing ? "字段名称" : "请打开编辑模式"}
+            className="input input-bordered input-sm w-1/3"
+            value={newKey}
+            onChange={e => setNewKey(e.target.value)}
+          />
+          <input
+            type="text"
+            disabled={!isEditing}
+            placeholder={isEditing ? "值" : "请打开编辑模式"}
+            className="input input-bordered input-sm w-1/2"
+            value={newValue}
+            onChange={e => setNewValue(e.target.value)}
+          />
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            disabled={!isEditing}
+            onClick={handleAdd}
+          >
+            添加字段
+          </button>
+        </div>
+      </div>
+
+      {/* 长字段区域，目前没用上，而且左右分割对长字段不适用 */}
       <div className="flex gap-4">
         {/* 左侧列 */}
         <div className="flex-1 space-y-3">
@@ -254,19 +283,17 @@ export default function PerformanceEditor({
       <div className="border-t border-base-300 pt-4 mt-4">
         <h3 className="font-bold mb-3">携带物品</h3>
 
-        <div className="overflow-x-auto bg-base-200 rounded-lg">
+        <div className="bg-base-200 rounded-lg">
           <table className="table table-zebra table-compact w-full">
             <thead>
               <tr>
-                <th className="w-1/3">物品名称</th>
-                <th>物品描述</th>
-                <th className="w-24">操作</th>
+                <th className="w-1/4">物品名称</th>
+                <th className="w-3/4">物品描述</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item, index) => (
-                // eslint-disable-next-line react/no-array-index-key
-                <tr key={index} className="group">
+                <tr key={index} className="group border-hidden">
                   <td>
                     <input
                       type="text"
@@ -294,7 +321,7 @@ export default function PerformanceEditor({
                   <td>
                     <button
                       type="button"
-                      className="btn btn-error btn-xs group-hover:opacity-100 transition-opacity"
+                      className="btn btn-error btn-xs"
                       disabled={!isEditing}
                       onClick={() => handleRemoveItem(index)}
                     >
@@ -344,7 +371,7 @@ export default function PerformanceEditor({
                   <button
                     type="button"
                     className="btn btn-primary btn-xs"
-                    disabled={!isEditing}
+                    disabled={!isEditing || !newItemName || !newItemDesc}
                     onClick={handleAddItem}
                   >
                     <svg
@@ -365,37 +392,6 @@ export default function PerformanceEditor({
               </tr>
             </tbody>
           </table>
-        </div>
-      </div>
-
-      {/* 添加新字段区域 */}
-      <div className="border-t border-base-300 pt-4 mt-4">
-        <h3 className="font-bold mb-3">添加新字段</h3>
-        <div className="flex gap-8 max-w-2xl">
-          <input
-            type="text"
-            disabled={!isEditing}
-            placeholder={isEditing ? "字段名称" : "请打开编辑模式"}
-            className="input input-bordered input-sm w-1/3"
-            value={newKey}
-            onChange={e => setNewKey(e.target.value)}
-          />
-          <input
-            type="text"
-            disabled={!isEditing}
-            placeholder={isEditing ? "值" : "请打开编辑模式"}
-            className="input input-bordered input-sm w-1/2"
-            value={newValue}
-            onChange={e => setNewValue(e.target.value)}
-          />
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            disabled={!isEditing}
-            onClick={handleAdd}
-          >
-            添加字段
-          </button>
         </div>
       </div>
     </div>
