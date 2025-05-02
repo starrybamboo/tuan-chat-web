@@ -6,7 +6,7 @@ import Section from "../Section";
 import NumericalEditor from "./NumericalEditor";
 import { flattenConstraints } from "./ObjectExpansion";
 import PerformanceEditor from "./PerformanceEditor";
-import RulesSection from "./RulesSection";
+// import RulesSection from "./RulesSection";
 
 interface ExpansionModuleProps {
   isEditing?: boolean;
@@ -58,7 +58,7 @@ function deepOverrideTargetWithSource(
 
 /**
  * 扩展模块组件
- * 负责展示规则选择、表演字段和数值约束，完全独立于角色
+ * 负责展示规则选择、表演字段和数值约束
  */
 export default function ExpansionModule({
   onRuleDataChange,
@@ -66,7 +66,7 @@ export default function ExpansionModule({
 }: ExpansionModuleProps) {
   // 分页和搜索状态
   const [pageNum, setPageNum] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(10);
   const [keyword, setKeyword] = useState("");
 
   // 状态
@@ -194,57 +194,77 @@ export default function ExpansionModule({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center space-x-2">
-          <input
-            type="text"
-            placeholder="搜索规则..."
-            value={keyword}
-            onChange={e => handleSearch(e.target.value)}
-            className="px-3 py-2 border rounded-md"
-          />
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
-              setPageNum(1);
-            }}
-            className="px-3 py-2 border rounded-md"
-          >
-            <option value={10}>10条/页</option>
-            <option value={20}>20条/页</option>
-            <option value={50}>50条/页</option>
-          </select>
-        </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setPageNum(p => Math.max(p - 1, 1))}
-            disabled={pageNum === 1}
-            className="px-3 py-2 border rounded-md disabled:opacity-50"
-          >
-            上一页
-          </button>
-          <span className="px-3 py-2">
-            第
-            {pageNum}
-            {" "}
-            页
-          </span>
-          <button
-            onClick={() => setPageNum(p => p + 1)}
-            className="px-3 py-2 border rounded-md"
-          >
-            下一页
-          </button>
+      {/* 规则选择区域 */}
+      <div className="bg-base-200 rounded-lg p-4">
+        <div className="flex flex-col gap-4">
+          {/* 搜索和分页控制 */}
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="搜索规则..."
+                value={keyword}
+                onChange={e => handleSearch(e.target.value)}
+                className="input input-bordered w-64"
+              />
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPageNum(1);
+                }}
+                className="select select-bordered"
+              >
+                <option value={10}>10条/页</option>
+                <option value={20}>20条/页</option>
+                <option value={50}>50条/页</option>
+              </select>
+            </div>
+            <div className="join">
+              <button
+                onClick={() => setPageNum(p => Math.max(p - 1, 1))}
+                disabled={pageNum === 1}
+                className="btn"
+              >
+                «
+              </button>
+              <button className="btn">
+                第
+                {pageNum}
+                页
+              </button>
+              <button
+                onClick={() => setPageNum(p => p + 1)}
+                className="btn"
+              >
+                »
+              </button>
+            </div>
+          </div>
+
+          {/* 规则列表 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {rules.map(rule => (
+              <div
+                key={rule.id}
+                className={`card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${
+                  selectedRuleId === rule.id ? "ring-2 ring-primary" : ""
+                }`}
+                onClick={() => handleRuleChange(rule.id)}
+              >
+                <div className="card-body p-4">
+                  <h3 className="card-title text-sm">{rule.name}</h3>
+                  <p className="text-xs text-gray-500 line-clamp-2">
+                    {rule.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <RulesSection
-        rules={rules}
-        currentRuleId={selectedRuleId}
-        onRuleChange={handleRuleChange}
-      />
-
+      {/* 规则详情区域 */}
       {localRuleData && (
         <>
           <Section title="表演字段配置">
