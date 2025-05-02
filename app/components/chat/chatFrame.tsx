@@ -376,7 +376,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
                     }}
                   >
                     {
-                      message?.message.extra?.imageMessage?.background ? "取消背景" : "设为背景"
+                      message?.message.extra?.imageMessage?.background ? "取消设置为背景" : "设为背景"
                     }
                   </a>
                 </li>
