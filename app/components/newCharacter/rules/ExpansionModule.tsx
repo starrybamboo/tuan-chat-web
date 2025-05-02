@@ -1,7 +1,7 @@
 import type { GameRule } from "../types";
+import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
+import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
-import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "../../../../api/hooks/abilityQueryHooks";
-import { useRuleDetailQuery, useRulePageMutation } from "../../../../api/hooks/ruleQueryHooks";
 import Section from "../Section";
 import NumericalEditor from "./NumericalEditor";
 import { deepOverrideTargetWithSource, flattenConstraints, wrapIntoNested } from "./ObjectExpansion";
@@ -16,71 +16,46 @@ interface ExpansionModuleProps {
 
 /**
  * 扩展模块组件
- * 负责展示规则选择、表演字段和数值约束，完全独立于角色
+ * 负责展示规则选择、表演字段和数值约束
  */
 export default function ExpansionModule({
   onRuleDataChange,
   roleId,
 }: ExpansionModuleProps) {
-  const [rules, setRules] = useState<GameRule[]>([]); // 规则列表
-  const [selectedRuleId, setSelectedRuleId] = useState<number>(
-    rules.length > 0 ? rules[0].id : 0,
-  ); // 当前选中规则ID
-  const [localRuleData, setLocalRuleData] = useState<GameRule | null>(null); // 本地规则数据副本
+  // 状态
+  const [selectedRuleId, setSelectedRuleId] = useState<number>(0);
+  const [localRuleData, setLocalRuleData] = useState<GameRule | null>(null);
 
-  const ruleListMutation = useRulePageMutation();
-  const abilityListQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
+  // API Hooks
+  const abilityQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
   const ruleDetailQuery = useRuleDetailQuery(selectedRuleId || 0);
   const setRoleAbilityMutation = useSetRoleAbilityMutation();
 
-  // 合并规则数据，优先使用能力列表数据
+  // 规则详情合并逻辑
   const currentRuleData = useMemo(() => {
-    if (abilityListQuery.data?.id) {
-      return abilityListQuery.data;
+    if (abilityQuery.data?.id) {
+      return abilityQuery.data;
     }
-    else if (ruleDetailQuery.data) {
+    else if (ruleDetailQuery.data && !abilityQuery.data) {
       setRoleAbilityMutation.mutate({
-        ruleId: ruleDetailQuery.data?.id || 0,
+        ruleId: ruleDetailQuery.data.id,
         roleId,
-        act: ruleDetailQuery.data?.performance || {},
-        ability: flattenConstraints(ruleDetailQuery.data?.numerical || {}) || {},
+        act: ruleDetailQuery.data.performance || {},
+        ability: flattenConstraints(ruleDetailQuery.data.numerical || {}) || {},
       });
     }
     return ruleDetailQuery.data;
-  }, [abilityListQuery.data, ruleDetailQuery.data]);
+  }, [abilityQuery.data, ruleDetailQuery.data]);
 
-  // 初始化规则列表
+  // 构建本地规则副本（合并数值）
   useEffect(() => {
-    const fetchRules = async () => {
-      try {
-        const result = await ruleListMutation.mutateAsync({ pageNo: 1, pageSize: 5 });
-        if (result && result.length > 0) {
-          setRules(result);
-          const firstRuleId = result[0].id;
-          setSelectedRuleId(firstRuleId);
-        }
-      }
-      catch (error) {
-        console.error("获取规则列表失败:", error);
-      }
-    };
+    if (currentRuleData && ruleDetailQuery.data) {
+      const detailNumerical = ruleDetailQuery.data?.numerical ?? {};
+      const abilityNumerical = abilityQuery.data?.numerical ?? {};
+      const mergedNumerical: Record<string, any> = {};
 
-    fetchRules();
-  }, []);
-
-  // 初始化或更新本地规则数据
-  useEffect(() => {
-    if (currentRuleData) {
-      const ruleDetailNumerical = ruleDetailQuery.data?.numerical ?? {};
-      const abilityNumerical = abilityListQuery.data?.numerical ?? {};
-
-      // 对象的拆解与合并
-      const mergedNumerical = {} as Record<string, any>;// 动态遍历 ruleDetail.numerical 的一级键名
-
-      for (const key in ruleDetailNumerical) {
-        const base = ruleDetailNumerical[key];
-
-        // 只处理对象类型字段
+      for (const key in detailNumerical) {
+        const base = detailNumerical[key];
         if (typeof base === "object" && base !== null && !Array.isArray(base)) {
           // 把 ability.numerical 包装成嵌套结构：{ [key]: abilityNumerical }
           const wrappedOverride = wrapIntoNested([key], abilityNumerical);
@@ -94,19 +69,18 @@ export default function ExpansionModule({
       }
 
       // 显式处理缺失字段，保证类型一致性
-      const safeRuleData: GameRule = {
+      const safeData: GameRule = {
         id: currentRuleData.id,
         name: "",
         description: "",
         performance: currentRuleData.performance || {},
         numerical: mergedNumerical,
       };
-
-      setLocalRuleData(safeRuleData);
+      setLocalRuleData(safeData);
     }
   }, [currentRuleData]);
 
-  // 处理规则切换
+  // ruleId 选择变化
   const handleRuleChange = (newRuleId: number) => {
     // 通知上层规则数据变更
     if (onRuleDataChange && localRuleData) {
@@ -124,44 +98,29 @@ export default function ExpansionModule({
   const handlePerformanceChange = (performance: any) => {
     if (!localRuleData)
       return;
-
-    const newRuleData = {
-      ...localRuleData,
-      performance,
-    };
-
-    setLocalRuleData(newRuleData);
-
-    if (onRuleDataChange && selectedRuleId) {
-      onRuleDataChange(selectedRuleId, performance, newRuleData.numerical);
-    }
+    const updated = { ...localRuleData, performance };
+    setLocalRuleData(updated);
+    onRuleDataChange?.(selectedRuleId, performance, updated.numerical);
   };
 
   // 更新数值约束
   const handleNumericalChange = (numerical: any) => {
     if (!localRuleData)
       return;
-
-    const newRuleData = {
-      ...localRuleData,
-      numerical,
-    };
-
-    setLocalRuleData(newRuleData);
-
-    if (onRuleDataChange && selectedRuleId) {
-      onRuleDataChange(selectedRuleId, newRuleData.performance, numerical);
-    }
+    const updated = { ...localRuleData, numerical };
+    setLocalRuleData(updated);
+    onRuleDataChange?.(selectedRuleId, updated.performance, numerical);
   };
 
   return (
     <div className="space-y-6">
+      {/* 规则选择区域 */}
       <RulesSection
-        rules={rules}
         currentRuleId={selectedRuleId}
         onRuleChange={handleRuleChange}
       />
 
+      {/* 规则详情区域 */}
       {localRuleData && (
         <>
           <Section title="表演字段配置">
@@ -169,7 +128,7 @@ export default function ExpansionModule({
               fields={localRuleData.performance}
               onChange={handlePerformanceChange}
               abilityData={localRuleData.performance}
-              abilityId={abilityListQuery.data?.id ? localRuleData.id : 0}
+              abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
             />
           </Section>
 
@@ -177,7 +136,7 @@ export default function ExpansionModule({
             <NumericalEditor
               constraints={{ ...localRuleData.numerical }}
               onChange={handleNumericalChange}
-              abilityId={abilityListQuery.data?.id ? localRuleData.id : 0}
+              abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
             />
           </Section>
         </>
