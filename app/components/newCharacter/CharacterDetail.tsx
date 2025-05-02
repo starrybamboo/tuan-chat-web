@@ -25,6 +25,10 @@ export default function CharacterDetail({
   // 初始化角色数据
   const [localRole, setLocalRole] = useState<Role>(role);
 
+  // 字数统计状态
+  const [charCount, setCharCount] = useState(role.description?.length || 0);
+  // 描述的最大储存量
+  const MAX_DESCRIPTION_LENGTH = 140;
   useMemo(() => {
     setLocalRole(role);
   }, [role]);
@@ -97,11 +101,28 @@ export default function CharacterDetail({
                       />
                       <textarea
                         value={localRole.description}
-                        onChange={e =>
-                          setLocalRole(prev => ({ ...prev, description: e.target.value }))}
+                        onChange={(e) => {
+                          setLocalRole(prev => ({ ...prev, description: e.target.value }));
+                          setCharCount(e.target.value.length);
+                        }}
                         placeholder="角色描述"
                         className="textarea textarea-bordered w-full h-24 resize-none"
                       />
+                      <div className="text-right mt-1">
+                        <span className={`text-sm font-bold ${
+                          charCount > MAX_DESCRIPTION_LENGTH
+                            ? "text-error"
+                            : "text-base-content/70"
+                        }`}
+                        >
+                          {charCount}
+                          /
+                          {MAX_DESCRIPTION_LENGTH}
+                          {charCount > MAX_DESCRIPTION_LENGTH && (
+                            <span className="ml-2">(已超出描述字数上限)</span>
+                          )}
+                        </span>
+                      </div>
                     </>
                   )
                 : (

@@ -257,7 +257,7 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
       </div>
       <button
         type="button"
-        className="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100 hover:bg-base-300 rounded-full p-1"
+        className="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100 hover:bg-base-300 rounded-full p-1 hover:[&>svg]:stroke-error"
         onClick={(e) => {
           e.stopPropagation();
           onDelete();
@@ -271,7 +271,6 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
-          className="hover:stroke-error" // 悬停时变红色
         >
           <path d="M18 6L6 18M6 6l12 12" />
         </svg>
