@@ -1,7 +1,7 @@
 import type { GameRule } from "../types";
+import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
+import { useRuleDetailQuery, useRulePageMutation } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
-import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "../../../../api/hooks/abilityQueryHooks";
-import { useRuleDetailQuery, useRulePageMutation } from "../../../../api/hooks/ruleQueryHooks";
 import Section from "../Section";
 import NumericalEditor from "./NumericalEditor";
 import { flattenConstraints } from "./ObjectExpansion";
@@ -14,8 +14,8 @@ interface ExpansionModuleProps {
   roleId: number;
 }
 
-// 用于拆解二级对象,方便下面覆盖
-function wrapIntoNested(keyPath: string[], valueObject: Record<string, any>): Record<string, any> {
+// 嵌套结构转换
+function wrapIntoNested(keyPath: string[], valueObject: Record<string, any>) {
   const result: any = {};
   let current = result;
 
@@ -24,18 +24,15 @@ function wrapIntoNested(keyPath: string[], valueObject: Record<string, any>): Re
     current[key] = {};
     current = current[key];
   }
-
-  const lastKey = keyPath[keyPath.length - 1];
-  current[lastKey] = valueObject;
-
+  current[keyPath[keyPath.length - 1]] = valueObject;
   return result;
 }
 
-// 实施覆盖，一级对象覆盖二级对象
+// 合并能力和规则数值
 function deepOverrideTargetWithSource(
   target: Record<string, any>,
   source: Record<string, any>,
-): Record<string, any> {
+) {
   const result: Record<string, any> = {};
 
   for (const key in target) {
@@ -51,17 +48,11 @@ function deepOverrideTargetWithSource(
       result[key] = deepOverrideTargetWithSource(target[key], source?.[key]);
     }
     else {
-      // 只有 source 存在这个字段时才更新
-      if (source && Object.prototype.hasOwnProperty.call(source, key)) {
-        result[key] = source[key];
-      }
-      else {
-        // 否则保留 target 原值
-        result[key] = target[key];
-      }
+      result[key] = Object.prototype.hasOwnProperty.call(source, key)
+        ? source[key]
+        : target[key];
     }
   }
-
   return result;
 }
 
@@ -73,65 +64,73 @@ export default function ExpansionModule({
   onRuleDataChange,
   roleId,
 }: ExpansionModuleProps) {
-  const [rules, setRules] = useState<GameRule[]>([]); // 规则列表
-  const [selectedRuleId, setSelectedRuleId] = useState<number>(
-    rules.length > 0 ? rules[0].id : 0,
-  ); // 当前选中规则ID
-  const [localRuleData, setLocalRuleData] = useState<GameRule | null>(null); // 本地规则数据副本
+  // 分页和搜索状态
+  const [pageNum, setPageNum] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [keyword, setKeyword] = useState("");
 
-  const ruleListMutation = useRulePageMutation();
-  const abilityListQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
+  // 状态
+  const [rules, setRules] = useState<GameRule[]>([]);
+  const [selectedRuleId, setSelectedRuleId] = useState<number>(0);
+  const [localRuleData, setLocalRuleData] = useState<GameRule | null>(null);
+
+  // API Hooks
+  const rulePageMutation = useRulePageMutation();
+  const abilityQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
   const ruleDetailQuery = useRuleDetailQuery(selectedRuleId || 0);
   const setRoleAbilityMutation = useSetRoleAbilityMutation();
 
-  // 合并规则数据，优先使用能力列表数据
-  const currentRuleData = useMemo(() => {
-    if (abilityListQuery.data?.id) {
-      return abilityListQuery.data;
-    }
-    else if (ruleDetailQuery.data) {
-      setRoleAbilityMutation.mutate({
-        ruleId: ruleDetailQuery.data?.id || 0,
-        roleId,
-        act: ruleDetailQuery.data?.performance || {},
-        ability: flattenConstraints(ruleDetailQuery.data?.numerical || {}) || {},
-      });
-    }
-    return ruleDetailQuery.data;
-  }, [abilityListQuery.data, ruleDetailQuery.data]);
-
-  // 初始化规则列表
+  // 规则分页获取
   useEffect(() => {
     const fetchRules = async () => {
       try {
-        const result = await ruleListMutation.mutateAsync({ pageNo: 1, pageSize: 5 });
+        const result = await rulePageMutation.mutateAsync({
+          pageNo: pageNum,
+          pageSize,
+          keyword,
+        });
         if (result && result.length > 0) {
           setRules(result);
-          const firstRuleId = result[0].id;
-          setSelectedRuleId(firstRuleId);
+          // 如果未选择规则，默认选第一个
+          if (!selectedRuleId) {
+            setSelectedRuleId(result[0].id);
+          }
         }
       }
-      catch (error) {
-        console.error("获取规则列表失败:", error);
+      catch (err) {
+        console.error("规则加载失败:", err);
       }
     };
-
     fetchRules();
-  }, []);
+  }, [pageNum, pageSize, keyword]);
 
-  // 初始化或更新本地规则数据
+  // 规则详情合并逻辑
+  const currentRuleData = useMemo(() => {
+    if (abilityQuery.data?.id) {
+      return abilityQuery.data;
+    }
+    else if (ruleDetailQuery.data) {
+      // 自动补全能力数据
+      setRoleAbilityMutation.mutate({
+        ruleId: ruleDetailQuery.data.id,
+        roleId,
+        act: ruleDetailQuery.data.performance || {},
+        ability: flattenConstraints(ruleDetailQuery.data.numerical || {}) || {},
+      });
+      return ruleDetailQuery.data;
+    }
+    return null;
+  }, [abilityQuery.data, ruleDetailQuery.data]);
+
+  // 构建本地规则副本（合并数值）
   useEffect(() => {
-    if (currentRuleData) {
-      const ruleDetailNumerical = ruleDetailQuery.data?.numerical ?? {};
-      const abilityNumerical = abilityListQuery.data?.numerical ?? {};
+    if (currentRuleData && ruleDetailQuery.data) {
+      const detailNumerical = ruleDetailQuery.data?.numerical ?? {};
+      const abilityNumerical = abilityQuery.data?.numerical ?? {};
+      const mergedNumerical: Record<string, any> = {};
 
-      // 动态遍历 ruleDetail.numerical 的一级键名
-      const mergedNumerical = {} as Record<string, any>;
-
-      for (const key in ruleDetailNumerical) {
-        const base = ruleDetailNumerical[key];
-
-        // 只处理对象类型字段
+      for (const key in detailNumerical) {
+        const base = detailNumerical[key];
         if (typeof base === "object" && base !== null && !Array.isArray(base)) {
           // 把 ability.numerical 包装成嵌套结构：{ [key]: abilityNumerical }
           const wrappedOverride = wrapIntoNested([key], abilityNumerical);
@@ -145,19 +144,18 @@ export default function ExpansionModule({
       }
 
       // 显式处理缺失字段，保证类型一致性
-      const safeRuleData: GameRule = {
+      const safeData: GameRule = {
         id: currentRuleData.id,
         name: "",
         description: "",
         performance: currentRuleData.performance || {},
         numerical: mergedNumerical,
       };
-
-      setLocalRuleData(safeRuleData);
+      setLocalRuleData(safeData);
     }
   }, [currentRuleData]);
 
-  // 处理规则切换
+  // ruleId 选择变化
   const handleRuleChange = (newRuleId: number) => {
     // 通知上层规则数据变更
     if (onRuleDataChange && localRuleData) {
@@ -175,38 +173,72 @@ export default function ExpansionModule({
   const handlePerformanceChange = (performance: any) => {
     if (!localRuleData)
       return;
-
-    const newRuleData = {
-      ...localRuleData,
-      performance,
-    };
-
-    setLocalRuleData(newRuleData);
-
-    if (onRuleDataChange && selectedRuleId) {
-      onRuleDataChange(selectedRuleId, performance, newRuleData.numerical);
-    }
+    const updated = { ...localRuleData, performance };
+    setLocalRuleData(updated);
+    onRuleDataChange?.(selectedRuleId, performance, updated.numerical);
   };
 
   // 更新数值约束
   const handleNumericalChange = (numerical: any) => {
     if (!localRuleData)
       return;
+    const updated = { ...localRuleData, numerical };
+    setLocalRuleData(updated);
+    onRuleDataChange?.(selectedRuleId, updated.performance, numerical);
+  };
 
-    const newRuleData = {
-      ...localRuleData,
-      numerical,
-    };
-
-    setLocalRuleData(newRuleData);
-
-    if (onRuleDataChange && selectedRuleId) {
-      onRuleDataChange(selectedRuleId, newRuleData.performance, numerical);
-    }
+  const handleSearch = (newKeyword: string) => {
+    setKeyword(newKeyword);
+    setPageNum(1);
   };
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center space-x-2">
+          <input
+            type="text"
+            placeholder="搜索规则..."
+            value={keyword}
+            onChange={e => handleSearch(e.target.value)}
+            className="px-3 py-2 border rounded-md"
+          />
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPageNum(1);
+            }}
+            className="px-3 py-2 border rounded-md"
+          >
+            <option value={10}>10条/页</option>
+            <option value={20}>20条/页</option>
+            <option value={50}>50条/页</option>
+          </select>
+        </div>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setPageNum(p => Math.max(p - 1, 1))}
+            disabled={pageNum === 1}
+            className="px-3 py-2 border rounded-md disabled:opacity-50"
+          >
+            上一页
+          </button>
+          <span className="px-3 py-2">
+            第
+            {pageNum}
+            {" "}
+            页
+          </span>
+          <button
+            onClick={() => setPageNum(p => p + 1)}
+            className="px-3 py-2 border rounded-md"
+          >
+            下一页
+          </button>
+        </div>
+      </div>
+
       <RulesSection
         rules={rules}
         currentRuleId={selectedRuleId}
@@ -220,7 +252,7 @@ export default function ExpansionModule({
               fields={localRuleData.performance}
               onChange={handlePerformanceChange}
               abilityData={localRuleData.performance}
-              abilityId={abilityListQuery.data?.id ? localRuleData.id : 0}
+              abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
             />
           </Section>
 
@@ -228,7 +260,7 @@ export default function ExpansionModule({
             <NumericalEditor
               constraints={{ ...localRuleData.numerical }}
               onChange={handleNumericalChange}
-              abilityId={abilityListQuery.data?.id ? localRuleData.id : 0}
+              abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
             />
           </Section>
         </>
