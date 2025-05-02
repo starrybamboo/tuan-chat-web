@@ -33,7 +33,7 @@ export default function RulesSection({
   useEffect(() => {
     const fetchRules = async () => {
       try {
-        const result = await rulePageMutation.mutateAsync({ pageNo: 1, pageSize: 10, keyword: "" });
+        const result = await rulePageMutation.mutateAsync({ pageNo: 1, pageSize: 10 });
         if (result && result.length > 0) {
           setRules(result);
           // 如果未选择规则，默认选第一个

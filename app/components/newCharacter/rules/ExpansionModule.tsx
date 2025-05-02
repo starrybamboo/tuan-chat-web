@@ -23,7 +23,7 @@ export default function ExpansionModule({
   roleId,
 }: ExpansionModuleProps) {
   // 状态
-  const [selectedRuleId, setSelectedRuleId] = useState<number>(0);
+  const [selectedRuleId, setSelectedRuleId] = useState<number>(1);
   const [localRuleData, setLocalRuleData] = useState<GameRule | null>(null);
 
   // API Hooks
