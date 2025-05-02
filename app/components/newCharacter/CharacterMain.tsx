@@ -11,7 +11,7 @@ export default function CharacterMain() {
   // 获取用户数据
   const userId = useGlobalContext().userId;
   const roleQuery = useGetUserRolesQuery(userId ?? -1);
-  const { roles, initializeRoles, setRoles } = useRolesInitialization(roleQuery);
+  const { roles, initializeRoles, setRoles, isLoading } = useRolesInitialization(roleQuery);
 
   // 状态管理
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
@@ -162,21 +162,29 @@ export default function CharacterMain() {
 
           {/* 角色列表 */}
           <div className="space-y-2 overflow-y-auto flex-1 h-0 pb-16">
-            {filteredRoles.map(role => (
-              <RoleListItem
-                key={role.id}
-                role={role}
-                isSelected={selectedRoleId === role.id}
-                onSelect={() => {
-                  setSelectedRoleId(role.id);
-                  setIsEditing(false);
-                  const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
-                  if (drawerCheckbox)
-                    drawerCheckbox.checked = false;
-                }}
-                onDelete={() => handleDelete(role.id)}
-              />
-            ))}
+            {isLoading
+              ? (
+                  <div className="flex justify-center items-center h-full">
+                    <span className="loading loading-spinner loading-lg"></span>
+                  </div>
+                )
+              : (
+                  filteredRoles.map(role => (
+                    <RoleListItem
+                      key={role.id}
+                      role={role}
+                      isSelected={selectedRoleId === role.id}
+                      onSelect={() => {
+                        setSelectedRoleId(role.id);
+                        setIsEditing(false);
+                        const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
+                        if (drawerCheckbox)
+                          drawerCheckbox.checked = false;
+                      }}
+                      onDelete={() => handleDelete(role.id)}
+                    />
+                  ))
+                )}
           </div>
         </div>
       </div>

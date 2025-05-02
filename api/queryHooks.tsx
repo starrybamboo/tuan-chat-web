@@ -82,19 +82,6 @@ export function useUpdateRoleMutation(onSuccess?: () => void) {
   });
 }
 
-/**
- * 创建新角色 需要更改
- */
-export function useCreateRoleMutation() {
-  const queryClient = useQueryClient();
-  // return useMutation({
-  //     mutationFn: () => tuanchat.roleController.createRole(),
-  //     mutationKey: ['createRole'],
-  //     onSuccess: () => {
-  //         queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
-  //     }
-  // });
-}
 
 /**
  * 删除角色（单个角色）
@@ -343,47 +330,53 @@ import { useCallback, useState } from 'react';
 export const useRolesInitialization = (roleQuery: any) => {
   const queryClient = useQueryClient();
   const [roles, setRoles] = useState<Role[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const initializeRoles = useCallback(async () => {
-    if (roleQuery.data && Array.isArray(roleQuery.data.data)) {
-      const mappedRoles = roleQuery.data.data.map((role: RoleResponse) => ({
-        id: role.roleId || 0,
-        name: role.roleName || "",
-        description: role.description || "无描述",
-        avatar: "",
-        inventory: [],
-        abilities: [],
-        avatarId: role.avatarId || 0,
-      }));
+    setIsLoading(true);
+    try {
+      if (roleQuery?.data && Array.isArray(roleQuery.data.data)) {
+        const mappedRoles = roleQuery.data.data.map((role: RoleResponse) => ({
+          id: role.roleId || 0,
+          name: role.roleName || "",
+          description: role.description || "无描述",
+          avatar: "",
+          inventory: [],
+          abilities: [],
+          avatarId: role.avatarId || 0,
+        }));
 
-      setRoles(mappedRoles);
+        setRoles(mappedRoles);
 
-      // 异步加载每个角色的头像
-      for (const Roles of mappedRoles) {
-        try {
-          const res = await tuanchat.avatarController.getRoleAvatar(Roles.avatarId);
-          if (
-            res.success &&
-            res.data
-          ) {
-            const avatarUrl = res.data.avatarUrl;
-            queryClient.setQueryData(["roleAvatar", Roles.id], avatarUrl);
-            setRoles((prevChars: any[]) =>
-              prevChars.map(char =>
-                char.id === Roles.id ? { ...char, avatar: avatarUrl } : char,
-              ),
-            );
-          } else {
-            console.warn(`角色 ${Roles.id} 的头像数据无效或为空`);
+        // 异步加载每个角色的头像
+        for (const Roles of mappedRoles) {
+          try {
+            const res = await tuanchat.avatarController.getRoleAvatar(Roles.avatarId);
+            if (
+              res.success &&
+              res.data
+            ) {
+              const avatarUrl = res.data.avatarUrl;
+              queryClient.setQueryData(["roleAvatar", Roles.id], avatarUrl);
+              setRoles((prevChars: any[]) =>
+                prevChars.map(char =>
+                  char.id === Roles.id ? { ...char, avatar: avatarUrl } : char,
+                ),
+              );
+            } else {
+              console.warn(`角色 ${Roles.id} 的头像数据无效或为空`);
+            }
+          } catch (error) {
+            console.error(`加载角色 ${Roles.id} 的头像时出错`, error);
           }
-        } catch (error) {
-          console.error(`加载角色 ${Roles.id} 的头像时出错`, error);
         }
       }
+    } finally {
+      setIsLoading(false);
     }
-  }, [roleQuery.data, queryClient]);
+  }, [roleQuery?.data, queryClient]);
 
-  return { roles, initializeRoles, setRoles };
+  return { roles, initializeRoles, setRoles, isLoading };
 };
 
 
