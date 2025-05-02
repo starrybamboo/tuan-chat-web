@@ -351,7 +351,7 @@ export default function NumericalEditor({
             <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
               {entries.map(([key, value]) => (
                 <div key={key} className="flex flex-col gap-1 mb-2">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 group ">
                     <label className={`input flex items-center gap-2 w-full ${
                       isEditing ? "bg-base-100" : ""
                     }`}
@@ -372,6 +372,7 @@ export default function NumericalEditor({
                     <button
                       type="button"
                       className="btn btn-error btn-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                      disabled={!isEditing}
                       onClick={() => {
                         const newFields = { ...fields };
                         delete newFields[key];
