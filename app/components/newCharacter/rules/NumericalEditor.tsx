@@ -22,14 +22,6 @@ interface NumericalEditorProps {
   abilityId: number;
 }
 
-// 输入状态类型
-interface InputState {
-  key: string;
-  value: string;
-}
-
-type InputStates = Record<string, InputState>;
-
 /**
  * 数值编辑器组件
  * 负责管理角色数值相关的字段，支持公式计算和约束组
@@ -41,7 +33,6 @@ export default function NumericalEditor({
   abilityId,
 }: NumericalEditorProps) {
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
-  const [newTotal, setNewTotal] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [localConstraints, setLocalConstraints] = useState(constraints);
@@ -79,14 +70,6 @@ export default function NumericalEditor({
     }));
   }, [localConstraints]);
 
-  // 管理每个约束组的输入状态
-  const [inputStates, setInputStates] = useState<InputStates>(() =>
-    Object.keys(localConstraints).reduce((acc, key) => {
-      acc[key] = { key: "", value: "" };
-      return acc;
-    }, {} as InputStates),
-  );
-
   // 获取所有上下文数据
   const getAllContext = (constraints: ExtendedNumericalConstraints): Record<string, number> => {
     const context: Record<string, number> = {};
@@ -98,21 +81,6 @@ export default function NumericalEditor({
 
     // 添加静态字段到上下文
     Object.entries(staticFields).forEach(([key, value]) => {
-      if (typeof value === "string" && value.startsWith("=")) {
-        return;
-      }
-      if (typeof value === "object" && value !== null && "displayValue" in value) {
-        const formulaValue = value as FormulaValue;
-        context[key] = formulaValue.displayValue;
-        return;
-      }
-      const num = Number(value);
-      context[key] = Number.isNaN(num) ? 0 : num;
-    });
-
-    // 添加动态字段到上下文
-    const dynamicFields = constraints["0"] || {};
-    Object.entries(dynamicFields).forEach(([key, value]) => {
       if (typeof value === "string" && value.startsWith("=")) {
         return;
       }
@@ -202,64 +170,6 @@ export default function NumericalEditor({
 
     setLocalConstraints(updatedConstraints);
   };
-  const handleAddRoom = () => {
-    if (newTotal.match(/^\d+$/)) {
-      onChange({
-        ...constraints,
-        [newTotal]: {},
-      });
-
-      setInputStates(prev => ({
-        ...prev,
-        [newTotal]: { key: "", value: "" },
-      }));
-
-      setNewTotal("");
-    }
-  };
-
-  /**
-   * 在指定的总约束值下添加新字段
-   */
-  const handleAddField = (totalKey: string) => {
-    const state = inputStates[totalKey] || { key: "", value: "" };
-    if (state.key.trim()) {
-      const value = FormulaParser.isFormula(state.value)
-        ? state.value
-        : Number(state.value) || 0;
-
-      onChange({
-        ...constraints,
-        [totalKey]: {
-          ...constraints[totalKey],
-          [state.key.trim()]: value,
-        },
-      });
-
-      setInputStates(prev => ({
-        ...prev,
-        [totalKey]: { key: "", value: "" },
-      }));
-    }
-  };
-
-  /**
-   * 更新特定约束组的输入状态
-   */
-  const updateInputState = (
-    totalKey: string,
-    field: "key" | "value",
-    value: string,
-  ) => {
-    setInputStates(prev => ({
-      ...prev,
-      [totalKey]: {
-        ...prev[totalKey],
-        [field]: value,
-      },
-    }));
-  };
-
   return (
     <div className={`space-y-6 bg-base-200 rounded-lg p-4 duration-300 transition-opacity ${
       isTransitioning ? "opacity-50" : ""
@@ -309,7 +219,6 @@ export default function NumericalEditor({
           return null;
 
         const entries = Object.entries(fields);
-        const inputState = inputStates[totalKey] || { key: "", value: "" };
 
         const totalPoints = Number(totalKey);
         const currentSum = Object.values(fields).reduce((sum: number, value) => {
@@ -368,35 +277,6 @@ export default function NumericalEditor({
                         onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
                       />
                     </label>
-
-                    <button
-                      type="button"
-                      className="btn btn-error btn-xs opacity-0 group-hover:opacity-100"
-                      disabled={!isEditing}
-                      onClick={() => {
-                        const newFields = { ...fields };
-                        delete newFields[key];
-                        onChange({
-                          ...constraints,
-                          [totalKey]: newFields,
-                        });
-                      }}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        <line x1="10" y1="11" x2="10" y2="17" />
-                        <line x1="14" y1="11" x2="14" y2="17" />
-                      </svg>
-                    </button>
                   </div>
                   {typeof value === "object" && "formula" in value && (
                     <div className="text-xs text-gray-500 pl-2">
@@ -406,58 +286,9 @@ export default function NumericalEditor({
                 </div>
               ))}
             </div>
-
-            {/* 分隔线，隔开创建新属性和已创建的约束组 */}
-            <div className="divider"></div>
-
-            <div className="flex gap-8 max-w-2xl">
-              <input
-                type="text"
-                disabled={!isEditing}
-                placeholder={isEditing ? "输入字段名" : "请打开编辑模式"}
-                className="input input-bordered input-sm w-1/3"
-                value={inputState.key}
-                onChange={e => updateInputState(totalKey, "key", e.target.value)}
-              />
-              <input
-                type="text"
-                disabled={!isEditing}
-                placeholder={isEditing ? "值/公式" : "请打开编辑模式"}
-                className="input input-bordered input-sm w-1/2"
-                value={inputState.value}
-                onChange={e => updateInputState(totalKey, "value", e.target.value)}
-              />
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={() => handleAddField(totalKey)}
-                disabled={!isEditing || !inputState.key || !inputState.value}
-              >
-                添加字段
-              </button>
-            </div>
           </div>
         );
       })}
-
-      <div className="flex gap-2">
-        <input
-          type="text"
-          disabled={!isEditing}
-          placeholder={isEditing ? "输入总约束值（0表示动态约束）" : "请打开编辑模式"}
-          className="input input-bordered"
-          value={newTotal}
-          onChange={e => setNewTotal(e.target.value)}
-        />
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={handleAddRoom}
-          disabled={!isEditing || !newTotal}
-        >
-          新增约束组
-        </button>
-      </div>
     </div>
   );
 }
