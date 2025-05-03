@@ -96,7 +96,7 @@ export default function RoomSelect() {
       spaceName,
       ruleId: selectedRuleId,
     }, {
-      onSettled: () => {
+      onSuccess: () => {
         setIsSpaceHandleOpen(false);
       },
     });

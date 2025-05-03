@@ -230,9 +230,6 @@ export function useCreateRoomMutation(spaceId: number) {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getUserRooms',spaceId] });
         },
-        onError:(error) => {
-            queryClient.invalidateQueries({ queryKey: ['getUserRooms',spaceId] });
-        }
     });
 }
 
