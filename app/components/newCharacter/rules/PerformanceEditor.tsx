@@ -1,6 +1,6 @@
 import type { PerformanceFields } from "../types";
 import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface PerformanceEditorProps {
   fields: { [key: string]: string };
@@ -22,8 +22,6 @@ export default function PerformanceEditor({
 }: PerformanceEditorProps) {
   // 接入api
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
-  const [localFields, setLocalFields] = useState(abilityData || fields);
-
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
   // const [newItemName, setNewItemName] = useState("");
@@ -37,19 +35,19 @@ export default function PerformanceEditor({
   const longFieldKeys = [""];
 
   // 长字段（如背景故事等）
-  const longFields = Object.entries(fields)
-    .filter(([key]) => longFieldKeys.includes(key));
+  // const longFields = Object.entries(fields)
+  //   .filter(([key]) => longFieldKeys.includes(key));
 
   const shortFields = Object.keys(abilityData || fields)
     .filter(key => key !== "携带物品" && !longFieldKeys.includes(key));
 
   // 计算每列应该显示的字段数量
-  const longFieldCount = longFields.length;
-  const leftColumnCount = Math.ceil(longFieldCount / 2);
+  // const longFieldCount = longFields.length;
+  // const leftColumnCount = Math.ceil(longFieldCount / 2);
 
   // 分割长字段为左右两列
-  const leftLongFields = longFields.slice(0, leftColumnCount);
-  const rightLongFields = longFields.slice(leftColumnCount);
+  // const leftLongFields = longFields.slice(0, leftColumnCount);
+  // const rightLongFields = longFields.slice(leftColumnCount);
 
   // // 物品相关字段处理 - 提取携带物品信息
   // const itemsString = fields["携带物品"] || "";
@@ -60,10 +58,6 @@ export default function PerformanceEditor({
   //       return { name, desc };
   //     })
   //   : [];
-
-  useEffect(() => {
-    setLocalFields(abilityData || fields);
-  }, [abilityData, fields]);
 
   // 处理编辑模式切换
   const handleEditToggle = () => {
@@ -91,7 +85,16 @@ export default function PerformanceEditor({
     }
   };
 
-  const handleAdd = () => {
+  const handleDeleteField = (key: string) => {
+    if (!isEditing)
+      return;
+
+    const newFields = { ...fields };
+    delete newFields[key];
+    onChange(newFields);
+  };
+
+  const handleAddField = () => {
     if (newKey.trim()) {
       onChange({ ...fields, [newKey.trim()]: newValue });
       setNewKey("");
@@ -183,24 +186,44 @@ export default function PerformanceEditor({
       </div>
 
       {/* 短字段区域 - 多列排布 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {shortFields.map(key => (
-          <div key={key} className="group">
-            <label className="input flex items-center gap-2 w-full">
+          <div key={key} className="group flex items-center gap-1">
+            <label className="input input-group flex-grow">
               <span className="text-sm font-medium">{key}</span>
-              <div className="w-px h-4 bg-base-content/20"></div>
+              <div className="w-px h-4 bg-base-content/25"></div>
               <input
                 type="text"
                 onChange={(e) => {
-                  const newFields = { ...localFields, [key]: e.target.value };
+                  const newFields = { ...fields, [key]: e.target.value };
                   onChange(newFields);
-                  setLocalFields(newFields);
                 }}
                 disabled={!isEditing}
-                value={localFields[key] || ""}
+                value={fields[key] || ""}
                 className="grow"
               />
             </label>
+            <button
+              type="button"
+              className="btn btn-error btn-xs opacity-0 duration-300 transition-opacity group-hover:opacity-100"
+              disabled={!isEditing}
+              onClick={() => handleDeleteField(key)}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <line x1="10" y1="11" x2="10" y2="17" />
+                <line x1="14" y1="11" x2="14" y2="17" />
+              </svg>
+            </button>
           </div>
         ))}
       </div>
@@ -227,8 +250,8 @@ export default function PerformanceEditor({
           <button
             type="button"
             className="btn btn-primary btn-sm"
-            disabled={!isEditing || !newKey.trim() || !newValue.trim()}
-            onClick={handleAdd}
+            disabled={!isEditing}
+            onClick={handleAddField}
           >
             添加字段
           </button>
@@ -236,8 +259,8 @@ export default function PerformanceEditor({
       </div>
 
       {/* 长字段区域，目前没用上，而且左右分割对长字段不适用 */}
-      <div className="flex gap-4">
-        {/* 左侧列 */}
+      {/* <div className="flex gap-4">
+         左侧列
         <div className="flex-1 space-y-3">
           {leftLongFields.map(([key, value]) => (
             <fieldset key={key} className="group feildset p-4">
@@ -254,13 +277,11 @@ export default function PerformanceEditor({
             </fieldset>
           ))}
         </div>
-
-        {/* 分隔线 */}
+         分隔线
         {rightLongFields.length > 0 && (
           <div className="border-r border-base-300"></div>
         )}
-
-        {/* 右侧列 */}
+         右侧列
         <div className="flex-1 space-y-3">
           {rightLongFields.map(([key, value]) => (
             <div key={key} className="group flex flex-col">
@@ -277,7 +298,7 @@ export default function PerformanceEditor({
             </div>
           ))}
         </div>
-      </div>
+      </div> */ }
 
       {/* 物品区域 - 特殊布局 */}
       {/* <div className="border-t border-base-300 pt-4 mt-4">
