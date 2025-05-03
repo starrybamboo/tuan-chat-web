@@ -119,12 +119,6 @@ export default function ExpansionModule({
         currentRuleId={selectedRuleId}
         onRuleChange={handleRuleChange}
       />
-      <GenerateByAI
-        ruleId={selectedRuleId}
-        localRuleData={localRuleData}
-        onLocalRuleDataChange={setLocalRuleData}
-        type={0}
-      />
       {/* 规则详情区域 */}
       {isLoading
         ? (
@@ -135,12 +129,6 @@ export default function ExpansionModule({
         : localRuleData && (
           <>
             <Section title="表演字段配置">
-              <GenerateByAI
-                ruleId={selectedRuleId}
-                localRuleData={localRuleData}
-                onLocalRuleDataChange={setLocalRuleData}
-                type={1}
-              />
               <PerformanceEditor
                 fields={{
                   ...(localRuleData.performance ?? ruleDetailQuery.data?.performance ?? {}),
@@ -149,15 +137,15 @@ export default function ExpansionModule({
                 abilityData={localRuleData.performance}
                 abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
               />
-            </Section>
-
-            <Section title="数值约束配置" className="mb-12">
               <GenerateByAI
                 ruleId={selectedRuleId}
                 localRuleData={localRuleData}
                 onLocalRuleDataChange={setLocalRuleData}
-                type={2}
+                type={1}
               />
+            </Section>
+
+            <Section title="数值约束配置" className="mb-12">
               <NumericalEditor
                 constraints={{
                   ...(localRuleData.numerical ?? ruleDetailQuery.data?.numerical ?? {}),
@@ -165,7 +153,19 @@ export default function ExpansionModule({
                 onChange={handleNumericalChange}
                 abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
               />
+              <GenerateByAI
+                ruleId={selectedRuleId}
+                localRuleData={localRuleData}
+                onLocalRuleDataChange={setLocalRuleData}
+                type={2}
+              />
             </Section>
+            {/* <GenerateByAI
+              ruleId={selectedRuleId}
+              localRuleData={localRuleData}
+              onLocalRuleDataChange={setLocalRuleData}
+              type={0}
+            /> */}
           </>
         )}
     </div>

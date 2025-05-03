@@ -102,20 +102,12 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
   };
 
   return (
-    <div className="flex justify-between">
-      <textarea
-        name="车所有"
-        className="bg-base-200 rounded-lg p-4 w-8/10 overflow-auto resize-none"
-        placeholder={`不会车卡,让AI来帮你,输入描述,一键生成${type === 0 ? "角色描述和能力" : type === 1 ? "角色描述" : "能力"}`}
-        value={description}
-        onChange={e => setDescription(e.target.value)}
-      >
-      </textarea>
+    <div className="flex justify-end mr-20">
       <button
         type="button"
         onClick={handleGenerate}
-        className={`btn btn-accent w-1/10 mt-3 mr-15 ${isTransitioning ? "scale-95" : ""}`}
-        disabled={isTransitioning}
+        className={`btn btn-accent mt-2 mr-20 ${isTransitioning ? "scale-95" : ""}`}
+        disabled={isTransitioning || description === ""}
       >
         {isTransitioning
           ? (<span className="loading loading-spinner loading-xs"></span>)
@@ -125,10 +117,18 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
                   <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
                   <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
                 </svg>
-                车卡
+                AI车卡
               </span>
             )}
       </button>
+      <textarea
+        name="车所有"
+        className="bg-base-200 rounded-lg p-4 w-8/10 overflow-auto resize-none"
+        placeholder={`不会车卡,让AI来帮你,输入描述,一键生成${type === 0 ? "角色描述和能力" : type === 1 ? "角色描述" : "能力"}`}
+        value={description}
+        onChange={e => setDescription(e.target.value)}
+      >
+      </textarea>
     </div>
   );
 }
