@@ -1,5 +1,5 @@
 import type { PerformanceFields } from "../types";
-import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
+import { useUpdateKeyFieldMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
 
 interface PerformanceEditorProps {
@@ -22,6 +22,7 @@ export default function PerformanceEditor({
 }: PerformanceEditorProps) {
   // 接入api
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
+  const { mutate: updateKeyField } = useUpdateKeyFieldMutation();
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
   // const [newItemName, setNewItemName] = useState("");
@@ -86,12 +87,17 @@ export default function PerformanceEditor({
   };
 
   const handleDeleteField = (key: string) => {
-    if (!isEditing)
-      return;
-
-    const newFields = { ...fields };
-    delete newFields[key];
-    onChange(newFields);
+    updateKeyField(
+      {
+        abilityId,
+        actFields: {
+          [key]: "",
+        },
+        abilityFields: {},
+      },
+    );
+    delete fields[key];
+    onChange(fields);
   };
 
   const handleAddField = () => {
