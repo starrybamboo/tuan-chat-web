@@ -112,6 +112,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   };
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.stopPropagation();
+    e.dataTransfer.effectAllowed = "move";
     dragStartIndex.current = index;
     // 设置拖动预览图像
     const parent = e.currentTarget.parentElement!;
@@ -128,7 +129,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   };
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.stopPropagation();
+    // e.stopPropagation();
     e.dataTransfer.dropEffect = "move";
     if (dragStartIndex.current === -1) {
       return;
@@ -137,27 +138,32 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     const rect = target.getBoundingClientRect();
     const relativeY = e.clientY - rect.top;
 
+    // 移除之前可能存在的指示线
+    target.querySelectorAll(".drag-indicator").forEach(el => el.remove());
+    // 创建新的指示线
+    const indicator = document.createElement("div");
+    indicator.className = "drag-indicator absolute left-0 right-0 h-0.5 bg-info";
+    indicator.style.zIndex = "50";
+
     if (relativeY < rect.height / 2) {
-      target.style.borderTop = "2px solid #292D3A";
-      target.style.borderBottom = "";
+      indicator.style.top = "0";
       dropPositionRef.current = "before";
     }
     else {
-      target.style.borderTop = "";
-      target.style.borderBottom = "2px solid #292D3A";
+      indicator.style.bottom = "0";
       dropPositionRef.current = "after";
     }
+
+    target.appendChild(indicator);
   };
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.stopPropagation();
-    e.currentTarget.style.borderTop = "";
-    e.currentTarget.style.borderBottom = "";
+    // e.stopPropagation();
+    e.currentTarget.querySelectorAll(".drag-indicator").forEach(el => el.remove());
   };
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
-    e.currentTarget.style.borderTop = "";
-    e.currentTarget.style.borderBottom = "";
+    e.currentTarget.querySelectorAll(".drag-indicator").forEach(el => el.remove());
 
     const adjustedIndex = dropPositionRef.current === "after" ? dragEndIndex : dragEndIndex + 1;
     // if (dragStartIndex.current === adjustedIndex)
@@ -174,6 +180,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     moveMessageMutation.mutate(moveRequest);
     dragStartIndex.current = -1;
   }, [historyMessages]);
+
   /**
    * 消息选择
    */
@@ -265,7 +272,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         <div
           key={chatMessageResponse.message.messageID}
           ref={index === historyMessages.length - 7 ? messageRef : (index === historyMessages.length - 1 ? topMessageRef : null)}
-          className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""}`}
+          className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} -my-[5px]`}
           data-message-id={chatMessageResponse.message.messageID}
           onClick={(e) => {
             if (isSelecting || e.ctrlKey) {
@@ -279,7 +286,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         >
           <div
             className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
-                      -translate-x-full -translate-y-1/ opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2 cursor-move`}
+                      -translate-x-full -translate-y-1/ opacity-0 group-hover:opacity-100 transition-opacity flex items-center pr-2 cursor-move`}
             draggable
             onDragStart={e => handleDragStart(e, index)}
           >
@@ -301,7 +308,12 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   return (
     <>
       {/* 这里是从下到上渲染的 */}
-      <div className="card-body overflow-y-auto h-[60vh] flex flex-col-reverse" ref={chatFrameRef} onContextMenu={handleContextMenu} onClick={closeContextMenu}>
+      <div
+        className="card-body overflow-y-auto h-[60vh] flex flex-col-reverse"
+        ref={chatFrameRef}
+        onContextMenu={handleContextMenu}
+        onClick={closeContextMenu}
+      >
         {renderMessages}
         {selectedMessageIds.size > 0 && (
           <div className="sticky top-0 bg-base-300 p-2 shadow-sm z-10 flex justify-between items-center rounded">
