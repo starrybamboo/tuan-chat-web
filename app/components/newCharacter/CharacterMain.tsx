@@ -36,10 +36,6 @@ export default function CharacterMain() {
         return undefined;
       }
     },
-    onSuccess: () => {
-      initializeRoles();
-      roleQuery.refetch();
-    },
     onError: (error) => {
       console.error("Mutation failed:", error);
     },
