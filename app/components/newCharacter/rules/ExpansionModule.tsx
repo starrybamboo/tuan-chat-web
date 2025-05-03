@@ -25,7 +25,6 @@ export default function ExpansionModule({
   // 状态
   const [selectedRuleId, setSelectedRuleId] = useState<number>(1);
   const [localRuleData, setLocalRuleData] = useState<GameRule | null>(null);
-  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // API Hooks
   const abilityQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
@@ -83,13 +82,15 @@ export default function ExpansionModule({
     }
   }, [currentRuleData, abilityQuery.data?.numerical, ruleDetailQuery.data, abilityQuery.isLoading, ruleDetailQuery.isLoading]);
 
-  // 处理规则切换
-  const handleRuleChange = (ruleId: number) => {
-    setIsTransitioning(true);
-    setSelectedRuleId(ruleId);
-    setTimeout(() => {
-      setIsTransitioning(false);
-    }, 300);
+  // 添加loading状态控制
+  const [isLoading, setIsLoading] = useState(false);
+
+  // ruleId 选择变化
+  const handleRuleChange = (newRuleId: number) => {
+    // 设置loading状态
+    setIsLoading(true);
+    setTimeout(() => setIsLoading(false), 300);
+    setSelectedRuleId(newRuleId);
   };
 
   // 更新表演字段
@@ -111,14 +112,7 @@ export default function ExpansionModule({
   };
 
   return (
-    <div className="space-y-6 relative">
-      {/* 加载遮罩 */}
-      {isTransitioning && (
-        <div className="absolute inset-0 bg-base-200/50 flex items-center justify-center z-10">
-          <span className="loading loading-spinner loading-lg"></span>
-        </div>
-      )}
-
+    <div className="space-y-6">
       {/* 规则选择区域 */}
       <RulesSection
         currentRuleId={selectedRuleId}
@@ -126,30 +120,36 @@ export default function ExpansionModule({
       />
 
       {/* 规则详情区域 */}
-      {localRuleData && (
-        <>
-          <Section title="表演字段配置">
-            <PerformanceEditor
-              fields={{
-                ...(localRuleData.performance ?? ruleDetailQuery.data?.performance ?? {}),
-              }}
-              onChange={handlePerformanceChange}
-              abilityData={localRuleData.performance}
-              abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
-            />
-          </Section>
+      {isLoading
+        ? (
+            <div className="flex justify-center items-center min-h-[200px]">
+              <span className="loading loading-spinner loading-lg"></span>
+            </div>
+          )
+        : localRuleData && (
+          <>
+            <Section title="表演字段配置">
+              <PerformanceEditor
+                fields={{
+                  ...(localRuleData.performance ?? ruleDetailQuery.data?.performance ?? {}),
+                }}
+                onChange={handlePerformanceChange}
+                abilityData={localRuleData.performance}
+                abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
+              />
+            </Section>
 
-          <Section title="数值约束配置" className="mb-12">
-            <NumericalEditor
-              constraints={{
-                ...(localRuleData.numerical ?? ruleDetailQuery.data?.numerical ?? {}),
-              }}
-              onChange={handleNumericalChange}
-              abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
-            />
-          </Section>
-        </>
-      )}
+            <Section title="数值约束配置" className="mb-12">
+              <NumericalEditor
+                constraints={{
+                  ...(localRuleData.numerical ?? ruleDetailQuery.data?.numerical ?? {}),
+                }}
+                onChange={handleNumericalChange}
+                abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
+              />
+            </Section>
+          </>
+        )}
     </div>
   );
 }
