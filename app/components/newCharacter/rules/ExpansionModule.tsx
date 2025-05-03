@@ -49,8 +49,6 @@ export default function ExpansionModule({
     });
   }
 
-  // ... existing code ...
-
   // 构建本地规则副本（合并数值）
   useEffect(() => {
     if (currentRuleData && ruleDetailQuery.data) {
@@ -84,8 +82,15 @@ export default function ExpansionModule({
     }
   }, [currentRuleData, abilityQuery.data?.numerical, ruleDetailQuery.data, abilityQuery.isLoading, ruleDetailQuery.isLoading]);
 
+  // 添加loading状态控制
+  const [isLoading, setIsLoading] = useState(false);
+
   // ruleId 选择变化
   const handleRuleChange = (newRuleId: number) => {
+    // 设置loading状态
+    setIsLoading(true);
+    setTimeout(() => setIsLoading(false), 300);
+
     // 通知上层规则数据变更
     if (onRuleDataChange && localRuleData) {
       onRuleDataChange(
@@ -116,20 +121,20 @@ export default function ExpansionModule({
     onRuleDataChange?.(selectedRuleId, updated.performance, numerical);
   };
 
-  // 判断是否正在处理数据
-  const isProcessing = useMemo(() => {
-    return (
-      abilityQuery.isLoading
-      || ruleDetailQuery.isLoading
-      // 当有currentRuleData但还没有对应的localRuleData时，说明正在处理数据
-      || (currentRuleData?.id !== localRuleData?.id)
-    );
-  }, [
-    abilityQuery.isLoading,
-    ruleDetailQuery.isLoading,
-    currentRuleData?.id,
-    localRuleData?.id,
-  ]);
+  // // 判断是否正在处理数据
+  // const isProcessing = useMemo(() => {
+  //   return (
+  //     abilityQuery.isLoading
+  //     || ruleDetailQuery.isLoading
+  //     // 当有currentRuleData但还没有对应的localRuleData时，说明正在处理数据
+  //     || (currentRuleData?.id !== localRuleData?.id)
+  //   );
+  // }, [
+  //   abilityQuery.isLoading,
+  //   ruleDetailQuery.isLoading,
+  //   currentRuleData?.id,
+  //   localRuleData?.id,
+  // ]);
 
   return (
     <div className="space-y-6">
@@ -140,7 +145,7 @@ export default function ExpansionModule({
       />
 
       {/* 规则详情区域 */}
-      {isProcessing
+      {isLoading
         ? (
             <div className="flex justify-center items-center min-h-[200px]">
               <span className="loading loading-spinner loading-lg"></span>
