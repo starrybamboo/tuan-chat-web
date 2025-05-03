@@ -75,7 +75,8 @@ export function useWebSocket() {
                     const message: WsMessage<ChatMessageResponse> = JSON.parse(event.data)
                     console.log('Received message:', JSON.stringify(message))
                     switch (message.type){
-                        case 3: {
+                        case 3:
+                        case 4:{
                             message.data && handleChatMessage(message.data);
                             break;
                         }
