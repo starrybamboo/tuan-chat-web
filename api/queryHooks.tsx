@@ -401,38 +401,3 @@ export function useDeleteRole() {
     },
   });
 }
-
-//AI 根据规则生成角色基本信息
-export function useGeneratePerformInfoByRule() {
-  return useMutation({
-    mutationKey: ["generatePerformInfo"],
-    mutationFn: async (params: { prompt: string; ruleId: number }) => {
-      const res = await tuanchat.roleGenerationController.generateBasicInfoByRule(params);
-      if (res.success) {
-        return res.data;
-      } else {
-        throw new Error("生成角色信息失败");
-      }
-    },
-    onError: (error) => {
-      console.error("生成角色信息失败:", error);
-    }
-  });
-}
-
-export function useGetAbilityInfoByRule() {
-  return useMutation({
-    mutationKey: ["generateAbilityInfo"],
-    mutationFn: async (params: { prompt: string; ruleId: number }) => {
-      const res = await tuanchat.roleGenerationController.generateBasicInfoByRule(params);
-      if (res.success) {
-        return res.data;
-      } else {
-        throw new Error("生成角色信息失败");
-      }
-    },
-    onError: (error) => {
-      console.error("生成角色信息失败:", error);
-    }
-  });
-}
