@@ -160,11 +160,15 @@ export default function RulesSection({
               onClick={() => {
                 setPageNum(p => p + 1);
                 rulePageMutation.mutate({
-                  pageNo: pageNum,
+                  pageNo: pageNum + 1,
                   pageSize,
                   keyword,
                 });
               }}
+              disabled={
+                // 如果返回的数据少于 pageSize，说明没有下一页
+                (rulePageMutation.data?.length || 0) < pageSize
+              }
               className="join-item btn btn-ghost px-4 py-2 disabled:opacity-50"
             >
               <svg
