@@ -1,4 +1,4 @@
-import {useState, useRef, useCallback, useEffect} from 'react'
+import {useState, useRef, useCallback, useEffect, use} from 'react'
 import type {ChatMessageRequest} from "./models/ChatMessageRequest";
 import type {ChatMessageResponse} from "./models/ChatMessageResponse";
 import {useImmer} from "use-immer";
@@ -7,13 +7,13 @@ import {useGlobalContext} from "@/components/globalContextProvider";
 import {TuanChat} from "./TuanChat";
 import {useQueryClient} from "@tanstack/react-query";
 
-type WsMessageType =
-    | 2 // 心跳
-    | 3 // 聊天消息
-    | 4 // 聊天消息同步
+// type WsMessageType =
+//     | 2 // 心跳
+//     | 3 // 聊天消息
+//     | 4 // 聊天消息同步
 
 interface WsMessage<T> {
-    type: WsMessageType
+    type: number
     data?: T
 }
 
@@ -74,33 +74,30 @@ export function useWebSocket() {
                 try {
                     const message: WsMessage<ChatMessageResponse> = JSON.parse(event.data)
                     console.log('Received message:', JSON.stringify(message))
-                    if(!(message.data?.message.createTime) && message.data != undefined){
-                        message.data.message.createTime = formatLocalDateTime(new Date())
-                    }
-                    if(message.data!=undefined && message.data){
-                        updateRoomMessages(draft => {
-                            const chatMessageResponse = message.data!
-                            if (chatMessageResponse.message.roomId in draft) {
-                                // 查找已存在消息的索引
-                                const existingIndex = draft[chatMessageResponse.message.roomId].findIndex(
-                                    (msg) => msg.message.messageID === chatMessageResponse.message.messageID
-                                );
-                                if (existingIndex !== -1) {
-                                    // 更新已存在的消息
-                                    draft[chatMessageResponse.message.roomId][existingIndex] = chatMessageResponse;
-                                } else {
-                                    draft[chatMessageResponse.message.roomId].push(chatMessageResponse);
-                                }
-                            } else {
-                                draft[chatMessageResponse.message.roomId] = [chatMessageResponse];
-                            }
-                        })
+                    switch (message.type){
+                        case 3: {
+                            message.data && handleChatMessage(message.data);
+                            break;
+                        }
+                        case 11:{
+                            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList'] });
+                            queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
+                            break;
+                        }
+                        case 12:{
+                            queryClient.invalidateQueries({ queryKey: ['spaceRole'] });
+                            queryClient.invalidateQueries({ queryKey: ['roomRole'] });
+                            break;
+                        }
+                        case 14:{
+                            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
+                            queryClient.invalidateQueries({ queryKey: ['getUserRooms'] });
+                        }
                     }
                 } catch (error) {
                     console.error('Message parsing failed:', error)
                 }
             }
-
             wsRef.current.onerror = (error) => {
                 console.error('WebSocket error:', error)
                 wsRef.current?.close()
@@ -111,6 +108,29 @@ export function useWebSocket() {
             handleReconnect(MAX_RECONNECT_ATTEMPTS)
         }
     }, [])
+
+    const handleChatMessage = (chatMessageResponse: ChatMessageResponse) => {
+        if(!(chatMessageResponse?.message.createTime) && chatMessageResponse != undefined){
+            chatMessageResponse.message.createTime = formatLocalDateTime(new Date())
+        }
+        if(chatMessageResponse!=undefined && chatMessageResponse){
+            updateRoomMessages(draft => {
+                if (chatMessageResponse.message.roomId in draft) {
+                    // 查找已存在消息的索引
+                    const existingIndex = draft[chatMessageResponse.message.roomId].findIndex(
+                        (msg) => msg.message.messageID === chatMessageResponse.message.messageID
+                    );
+                    if (existingIndex !== -1) {
+                        // 更新已存在的消息
+                        draft[chatMessageResponse.message.roomId][existingIndex] = chatMessageResponse;
+                    } else {
+                        draft[chatMessageResponse.message.roomId].push(chatMessageResponse);
+                    }
+                } else {
+                    draft[chatMessageResponse.message.roomId] = [chatMessageResponse];
+                }
+            })
+        }}
 
     // 重连机制
     const handleReconnect = useCallback((remainAttempts:number) => {
