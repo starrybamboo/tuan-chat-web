@@ -101,19 +101,20 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
    * 聊天气泡拖拽排序
    */
   // -1 代表未拖动
-  const dragStartIndex = useRef(-1);
+  const dragStartMessageIdRef = useRef(-1);
   // before代表拖拽到元素上半，after代表拖拽到元素下半
   const dropPositionRef = useRef<"before" | "after">("before");
-  const handleDragEnd = () => {
-    // 重置所有元素的样式
-    document.querySelectorAll(".room").forEach((el) => {
-      (el as HTMLElement).style.opacity = "1";
-    });
-  };
+  const indicatorRef = useRef<HTMLDivElement | null>(null);
+  // const handleDragEnd = () => {
+  //   // 重置所有元素的样式
+  //   document.querySelectorAll(".room").forEach((el) => {
+  //     (el as HTMLElement).style.opacity = "1";
+  //   });
+  // };
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.stopPropagation();
     e.dataTransfer.effectAllowed = "move";
-    dragStartIndex.current = index;
+    dragStartMessageIdRef.current = historyMessages[index].message.messageID;
     // 设置拖动预览图像
     const parent = e.currentTarget.parentElement!;
     const clone = parent.cloneNode(true) as HTMLElement;
@@ -131,7 +132,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     e.preventDefault();
     // e.stopPropagation();
     e.dataTransfer.dropEffect = "move";
-    if (dragStartIndex.current === -1) {
+    if (dragStartMessageIdRef.current === -1) {
       return;
     }
     const target = e.currentTarget;
@@ -139,7 +140,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     const relativeY = e.clientY - rect.top;
 
     // 移除之前可能存在的指示线
-    target.querySelectorAll(".drag-indicator").forEach(el => el.remove());
+    // target.querySelectorAll(".drag-indicator").forEach(el => el.remove());
     // 创建新的指示线
     const indicator = document.createElement("div");
     indicator.className = "drag-indicator absolute left-0 right-0 h-0.5 bg-info";
@@ -153,32 +154,35 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       indicator.style.bottom = "0";
       dropPositionRef.current = "after";
     }
-
+    indicatorRef.current?.remove();
     target.appendChild(indicator);
+    indicatorRef.current = indicator;
   };
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     // e.stopPropagation();
-    e.currentTarget.querySelectorAll(".drag-indicator").forEach(el => el.remove());
+    // e.currentTarget.querySelectorAll(".drag-indicator").forEach(el => el.remove());
+    indicatorRef.current?.remove();
   };
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
-    e.currentTarget.querySelectorAll(".drag-indicator").forEach(el => el.remove());
+    // e.currentTarget.querySelectorAll(".drag-indicator").forEach(el => el.remove());
+    indicatorRef.current?.remove();
 
     const adjustedIndex = dropPositionRef.current === "after" ? dragEndIndex : dragEndIndex + 1;
-    // if (dragStartIndex.current === adjustedIndex)
+    // if (dragStartMessageIdRef.current === adjustedIndex)
     //   return;
     // 边界检查
     const beforeMessageId = historyMessages[adjustedIndex]?.message.messageID ?? null;
     const afterMessageId = historyMessages[adjustedIndex - 1]?.message.messageID ?? null;
 
     const moveRequest: MoveMessageRequest = {
-      messageId: historyMessages[dragStartIndex.current].message.messageID,
+      messageId: dragStartMessageIdRef.current,
       beforeMessageId,
       afterMessageId,
     };
     moveMessageMutation.mutate(moveRequest);
-    dragStartIndex.current = -1;
+    dragStartMessageIdRef.current = -1;
   }, [historyMessages]);
 
   /**
@@ -282,7 +286,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={e => handleDrop(e, index)}
-          onDragEnd={() => handleDragEnd()}
+          // onDragEnd={() => handleDragEnd()}
         >
           <div
             className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
