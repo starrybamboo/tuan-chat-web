@@ -41,14 +41,16 @@ export default function ExpansionModule({
   }, [abilityQuery.data, ruleDetailQuery.data]);
 
   // 初始化能力数据
-  if (ruleDetailQuery.data && !abilityQuery.data && !abilityQuery.isLoading && !abilityQuery.isFetched) {
-    setRoleAbilityMutation.mutate({
-      ruleId: ruleDetailQuery.data?.id || 0,
-      roleId,
-      act: ruleDetailQuery.data?.performance || {},
-      ability: flattenConstraints(ruleDetailQuery.data?.numerical || {}) || {},
-    });
-  }
+  useEffect(() => {
+    if (ruleDetailQuery.data && !abilityQuery.data && !abilityQuery.isLoading) {
+      setRoleAbilityMutation.mutate({
+        ruleId: ruleDetailQuery.data?.id || 0,
+        roleId,
+        act: ruleDetailQuery.data?.performance || {},
+        ability: flattenConstraints(ruleDetailQuery.data?.numerical || {}),
+      });
+    }
+  }, [ruleDetailQuery.data, abilityQuery.data, abilityQuery.isLoading, roleId]);
 
   // 构建本地规则副本（合并数值）
   useEffect(() => {
