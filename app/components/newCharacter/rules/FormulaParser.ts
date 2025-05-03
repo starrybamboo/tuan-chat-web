@@ -12,6 +12,12 @@ export class FormulaParser {
     "/": (a: number, b: number) => a / b,
     "%": (a: number, b: number) => a % b,
     "^": (a: number, b: number) => a ** b,
+    ">": (a: number, b: number) => a > b ? 1 : 0,
+    "<": (a: number, b: number) => a < b ? 1 : 0,
+    ">=": (a: number, b: number) => a >= b ? 1 : 0,
+    "<=": (a: number, b: number) => a <= b ? 1 : 0,
+    "==": (a: number, b: number) => a === b ? 1 : 0,
+    "!=": (a: number, b: number) => a !== b ? 1 : 0,
   };
 
   private static functions: Record<string, (args: number[]) => number> = {
@@ -25,11 +31,22 @@ export class FormulaParser {
     sqrt: (args: number[]) => Math.sqrt(args[0]),
     pow: (args: number[]) => args[0] ** args[1],
     avg: (args: number[]) => args.reduce((a, b) => a + b, 0) / args.length,
-    // if: (args: number[]) => args[0] ? args[1] : args[2], 别急，这玩意还需要点时间
+    if: (args: number[]) => {
+      if (args.length !== 3) {
+        throw new Error("蠢猪~ if函数需要3个参数~ if(条件,真值,假值), 这都不知道，真是猪头程序员♡");
+      }
+      return args[0] ? args[1] : args[2];
+    },
   };
 
   // 运算优先级
   private static precedence: Record<string, number> = {
+    ">": 0,
+    "<": 0,
+    ">=": 0,
+    "<=": 0,
+    "==": 0,
+    "!=": 0,
     "+": 1,
     "-": 1,
     "*": 2,
@@ -37,6 +54,10 @@ export class FormulaParser {
     "%": 2,
     "^": 3,
   };
+
+  private static isComparisonOperator(token: string): boolean {
+    return [">", "<", ">=", "<=", "==", "!="].includes(token);
+  }
 
   private static isOperator(token: string): boolean {
     return token in this.operators;
@@ -81,7 +102,7 @@ export class FormulaParser {
     // 匹配数字、运算符、函数名、变量名和括号
     const tokens: string[] = [];
     // 分别匹配函数名 中文变量名 数字 分隔符 运算符
-    const regex = /([a-z_]+)|([\u4E00-\u9FA5]+)|(\d+(?:\.\d+)?)|(,)|([+\-*/%^()])/gi;
+    const regex = /([a-z_]+)|([\u4E00-\u9FA5]+)|(\d+(?:\.\d+)?)|(,)|(>=|<=|==|!=|>|<)|([+\-*/%^()])/gi;
 
     let match;
     // eslint-disable-next-line no-cond-assign
@@ -107,7 +128,7 @@ export class FormulaParser {
     while (tokens.length > 0) {
       const token = tokens[0];
 
-      // 才不想加入括号呢...但...但是是为了实现更高级的东西，只能忍一下了♡
+      // BYD我好好的一个无括号的运算被搞成了这个B样子，真是颜面尽失
       if (token === "(") {
         parenDepth++;
         subTokens.push(tokens.shift()!);
@@ -153,11 +174,10 @@ export class FormulaParser {
       else if (token === ")") {
         break;
       }
-      else if (this.isOperator(token)) {
-        while (
-          operators.length > 0
-          && this.getOperatorPrecedence(operators[operators.length - 1]) >= this.getOperatorPrecedence(token)
-        ) {
+      else if (this.isOperator(token) || this.isComparisonOperator(token)) {
+        while (operators.length > 0
+          && this.getOperatorPrecedence(operators[operators.length - 1])
+          >= this.getOperatorPrecedence(token)) {
           output.push(operators.pop()!);
         }
         operators.push(token);
