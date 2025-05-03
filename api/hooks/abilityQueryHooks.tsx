@@ -86,3 +86,30 @@ export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
       }
     })
   }
+
+// ai车卡生成表演
+export function useGenerateBasicInfoByRuleMutation() {
+    return useMutation({
+        mutationKey: ["getAiCar"],
+        mutationFn: async ({ prompt, ruleId }: { prompt: string; ruleId: number }) => {
+            const res = await tuanchat.roleGenerationController.generateBasicInfoByRule({
+                ruleId,prompt
+            });
+            return res;
+        }
+    })
+}
+
+
+//ai车卡生成能力
+export function useGenerateAbilityByRuleMutation() {
+    return useMutation({
+        mutationKey: ["getAiCarAbility"],
+        mutationFn: async ({ prompt, ruleId }: { prompt: string; ruleId: number }) => {
+            const res = await tuanchat.roleGenerationController.generateAbilityByRule({
+                ruleId,prompt
+            });
+            return res;
+        }
+    })
+}
