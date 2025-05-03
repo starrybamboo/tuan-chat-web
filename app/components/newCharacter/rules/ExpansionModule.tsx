@@ -218,6 +218,10 @@ function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataChange, type }: Ge
             handleSuccess(data, true);
             setIsTransitioning(false);
           },
+          onError: () => {
+            setIsTransitioning(false);
+            console.error("生成失败");
+          },
         },
       );
       generateAbilityByRule(
@@ -226,6 +230,10 @@ function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataChange, type }: Ge
           onSuccess: (data) => {
             handleSuccess(data, true);
             setIsTransitioning(false);
+          },
+          onError: () => {
+            setIsTransitioning(false);
+            console.error("生成失败");
           },
         },
       );
@@ -238,6 +246,10 @@ function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataChange, type }: Ge
             handleSuccess(data, true);
             setIsTransitioning(false);
           },
+          onError: () => {
+            setIsTransitioning(false);
+            console.error("生成失败");
+          },
         },
       );
     }
@@ -248,6 +260,10 @@ function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataChange, type }: Ge
           onSuccess: (data) => {
             handleSuccess(data, true);
             setIsTransitioning(false);
+          },
+          onError: () => {
+            setIsTransitioning(false);
+            console.error("生成失败");
           },
         },
       );
