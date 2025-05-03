@@ -90,16 +90,6 @@ export default function ExpansionModule({
     // 设置loading状态
     setIsLoading(true);
     setTimeout(() => setIsLoading(false), 300);
-
-    // 通知上层规则数据变更
-    if (onRuleDataChange && localRuleData) {
-      onRuleDataChange(
-        newRuleId,
-        localRuleData.performance,
-        localRuleData.numerical,
-      );
-    }
-
     setSelectedRuleId(newRuleId);
   };
 
