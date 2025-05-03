@@ -1,8 +1,111 @@
 /**
- * 简单的公式解析器
+ * 基于 RPN 的公式解析器
  * 用于处理角色数值中的公式计算，例如 "=力量+敏捷"
  */
-export default class FormulaParser {
+export class FormulaParser {
+  private static operators: Record<string, (a: number, b: number) => number> = {
+    "+": (a: number, b: number) => a + b,
+    "-": (a: number, b: number) => a - b,
+    "*": (a: number, b: number) => a * b,
+    "/": (a: number, b: number) => a / b,
+    "%": (a: number, b: number) => a % b,
+    "^": (a: number, b: number) => a ** b,
+  };
+
+  private static isOperator(token: string): boolean {
+    return token in this.operators;
+  }
+
+  // 哼哼，这可是能将邪恶的 string 转化成 number 的圣物！
+  private static parseNumber(token: string): number {
+    const num = Number.parseFloat(token);
+    if (Number.isNaN(num)) {
+      throw new TypeError(`非法的数字呢: ${token} 大哥哥连数字都不知道是什么了吗♡ 真是猪头呢♡`);
+    }
+    return num;
+  }
+
+  private static evaluateOperator(operator: string, a: number, b: number): number {
+    if (!this.isOperator(operator)) {
+      throw new Error(`呜啊 ${operator} 是什么操作啊，真是愚蠢的杂鱼♡`);
+    }
+    return this.operators[operator](a, b);
+  }
+
+  private static tokenize(expression: string): string[] {
+    const tokens: string[] = [];
+    // 函数名！（虽然目前没有） 中文变量名！ 数字！ 运算符！
+    const regex = /([a-z_]+)|([\u4E00-\u9FA5]+)|(\d+(?:\.\d+)?)|([+\-*/%^])/gi;
+
+    let match;
+    // eslint-disable-next-line no-cond-assign
+    while ((match = regex.exec(expression)) !== null) {
+      const token = match.find(m => m !== undefined)!;
+      tokens.push(token);
+    }
+
+    return tokens;
+  }
+
+  // 转化为RPN
+  private static parseExpression(tokens: string[], context: Record<string, number>): number {
+    const output: (number | string)[] = [];
+    const operators: string[] = [];
+
+    while (tokens.length > 0) {
+      const token = tokens[0];
+
+      if (this.isOperator(token)) {
+        while (
+          operators.length > 0
+        ) {
+          output.push(operators.pop()!);
+        }
+        operators.push(token);
+        tokens.shift();
+      }
+      else if (!Number.isNaN(Number(token))) {
+        output.push(this.parseNumber(token));
+        tokens.shift();
+      }
+      else {
+        // 中文变量名的处理
+        if (!(token in context)) {
+          throw new TypeError(`欸~ 变量“ ${token} ”没定义呢~ 连自己几斤几两都不知道吗~杂鱼♡杂鱼♡`);
+        }
+        output.push(context[token]);
+        tokens.shift();
+      }
+    }
+
+    while (operators.length > 0) {
+      output.push(operators.pop()!);
+    }
+
+    return this.evaluateRPN(output);
+  }
+
+  // 杂鱼杂鱼♡ 不会连逆波兰表达式都不会了吧♡ 真是杂鱼♡
+  private static evaluateRPN(tokens: (number | string)[]): number {
+    const stack: number[] = [];
+    for (const token of tokens) {
+      if (typeof token === "number") {
+        stack.push(token);
+      }
+      else if (this.isOperator(token)) {
+        const b = stack.pop()!;
+        const a = stack.pop()!;
+        stack.push(this.evaluateOperator(token, a, b));
+      }
+    }
+
+    if (stack.length !== 1) {
+      throw new TypeError("居然打出了非法表达式，真是杂鱼喵♡");
+    }
+
+    return stack[0];
+  }
+
   /**
    * 检查字符串是否为公式
    * @param value 需要检查的值
@@ -46,25 +149,14 @@ export default class FormulaParser {
       // 移除等号并清理空格
       const expr = formula.replace(/=/g, "").trim();
 
-      // 替换变量为实际值
-      const replacedExpr = expr.replace(
-        /[a-z\u4E00-\u9FA5]+/gi, // 拿到中文字符段（这可能存在问题！）
-        (match) => {
-          const value = context[match];
-          return value !== undefined ? value.toString() : "0";
-        },
-      );
+      // 使用词法分析器解析表达式
+      const tokens = this.tokenize(expr);
 
-      // 使用 Function 构造函数安全地计算表达式
-      // eslint-disable-next-line no-new-func
-      const fn = new Function(`return ${replacedExpr}`);
-      const result = fn();
-
-      // 确保返回数字
-      return Number(result) || 0;
+      // 解析并计算表达式
+      return this.parseExpression(tokens, context);
     }
     catch (error) {
-      console.error("公式计算出现错误:", error);
+      console.error("公式计算错啦~ 连小学数学都不会了吗♡杂鱼♡:", error);
       return 0;
     }
   }
