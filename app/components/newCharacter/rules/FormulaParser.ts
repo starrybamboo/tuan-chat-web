@@ -1,6 +1,8 @@
 /**
  * 基于 RPN 的公式解析器
  * 用于处理角色数值中的公式计算，例如 "=力量+敏捷"
+ * 还支持一大堆乱七八糟的函数，不分大小写！还可以嵌套喵
+ * 中文括号会直接被忽略，未来再更新吧
  */
 export class FormulaParser {
   private static operators: Record<string, (a: number, b: number) => number> = {
@@ -12,11 +14,44 @@ export class FormulaParser {
     "^": (a: number, b: number) => a ** b,
   };
 
+  private static functions: Record<string, (args: number[]) => number> = {
+    max: (args: number[]) => Math.max(...args),
+    min: (args: number[]) => Math.min(...args),
+    abs: (args: number[]) => Math.abs(args[0]),
+    // 向上取整，向下取整和四舍五入（貌似用不上？）
+    ceil: (args: number[]) => Math.ceil(args[0]),
+    floor: (args: number[]) => Math.floor(args[0]),
+    round: (args: number[]) => Math.round(args[0]),
+    sqrt: (args: number[]) => Math.sqrt(args[0]),
+    pow: (args: number[]) => args[0] ** args[1],
+    avg: (args: number[]) => args.reduce((a, b) => a + b, 0) / args.length,
+    // if: (args: number[]) => args[0] ? args[1] : args[2], 别急，这玩意还需要点时间
+  };
+
+  // 运算优先级
+  private static precedence: Record<string, number> = {
+    "+": 1,
+    "-": 1,
+    "*": 2,
+    "/": 2,
+    "%": 2,
+    "^": 3,
+  };
+
   private static isOperator(token: string): boolean {
     return token in this.operators;
   }
 
   // 哼哼，这可是能将邪恶的 string 转化成 number 的圣物！
+  private static isFunction(token: string): boolean {
+    const lowerToken = token.toLowerCase();
+    return lowerToken in this.functions;
+  }
+
+  private static getOperatorPrecedence(operator: string): number {
+    return this.precedence[operator] || 0;
+  }
+
   private static parseNumber(token: string): number {
     const num = Number.parseFloat(token);
     if (Number.isNaN(num)) {
@@ -25,21 +60,33 @@ export class FormulaParser {
     return num;
   }
 
+  private static parseFunction(token: string, args: number[]): number {
+    if (!this.isFunction(token)) {
+      throw new TypeError(`Unknown function: ${token}`);
+    }
+    return this.functions[token](args);
+  }
+
   private static evaluateOperator(operator: string, a: number, b: number): number {
     if (!this.isOperator(operator)) {
-      throw new Error(`呜啊 ${operator} 是什么操作啊，真是愚蠢的杂鱼♡`);
+      throw new Error(`呜啊 ${operator} 算什么运算符啊，真是愚蠢的杂鱼♡`);
     }
     return this.operators[operator](a, b);
   }
 
   private static tokenize(expression: string): string[] {
+    // 移除所有空白字符
+    expression = expression.replace(/\s+/g, "");
+
+    // 匹配数字、运算符、函数名、变量名和括号
     const tokens: string[] = [];
-    // 函数名！（虽然目前没有） 中文变量名！ 数字！ 运算符！
-    const regex = /([a-z_]+)|([\u4E00-\u9FA5]+)|(\d+(?:\.\d+)?)|([+\-*/%^])/gi;
+    // 分别匹配函数名 中文变量名 数字 分隔符 运算符
+    const regex = /([a-z_]+)|([\u4E00-\u9FA5]+)|(\d+(?:\.\d+)?)|(,)|([+\-*/%^()])/gi;
 
     let match;
     // eslint-disable-next-line no-cond-assign
     while ((match = regex.exec(expression)) !== null) {
+      // 只添加非空匹配
       const token = match.find(m => m !== undefined)!;
       tokens.push(token);
     }
@@ -47,7 +94,51 @@ export class FormulaParser {
     return tokens;
   }
 
-  // 转化为RPN
+  private static parseFunctionCall(tokens: string[], context: Record<string, number>): number {
+    const functionName = tokens.shift()!.toLowerCase();
+    if (tokens.shift() !== "(") {
+      throw new TypeError("函数计算居然连 '(' 都没有? 真是个粗心的杂鱼♡");
+    }
+
+    const args: number[] = [];
+    let subTokens: string[] = [];
+    let parenDepth = 0;
+
+    while (tokens.length > 0) {
+      const token = tokens[0];
+
+      // 才不想加入括号呢...但...但是是为了实现更高级的东西，只能忍一下了♡
+      if (token === "(") {
+        parenDepth++;
+        subTokens.push(tokens.shift()!);
+      }
+      else if (token === ")") {
+        if (parenDepth > 0) {
+          parenDepth--;
+          subTokens.push(tokens.shift()!);
+        }
+        else {
+          // 最外层右括号，到此为止了
+          if (subTokens.length > 0) {
+            args.push(this.parseExpression(subTokens, context));
+          }
+          tokens.shift(); // 移除右括号
+          break;
+        }
+      }
+      else if (token === "," && parenDepth === 0) {
+        args.push(this.parseExpression(subTokens, context));
+        subTokens = [];
+        tokens.shift(); // 移除逗号
+      }
+      else {
+        subTokens.push(tokens.shift()!);
+      }
+    }
+
+    return this.parseFunction(functionName, args);
+  }
+
   private static parseExpression(tokens: string[], context: Record<string, number>): number {
     const output: (number | string)[] = [];
     const operators: string[] = [];
@@ -55,14 +146,25 @@ export class FormulaParser {
     while (tokens.length > 0) {
       const token = tokens[0];
 
-      if (this.isOperator(token)) {
+      if (token === "(") {
+        tokens.shift();
+        output.push(this.parseExpression(tokens, context));
+      }
+      else if (token === ")") {
+        break;
+      }
+      else if (this.isOperator(token)) {
         while (
           operators.length > 0
+          && this.getOperatorPrecedence(operators[operators.length - 1]) >= this.getOperatorPrecedence(token)
         ) {
           output.push(operators.pop()!);
         }
         operators.push(token);
         tokens.shift();
+      }
+      else if (this.isFunction(token)) {
+        output.push(this.parseFunctionCall(tokens, context));
       }
       else if (!Number.isNaN(Number(token))) {
         output.push(this.parseNumber(token));
@@ -85,7 +187,7 @@ export class FormulaParser {
     return this.evaluateRPN(output);
   }
 
-  // 杂鱼杂鱼♡ 不会连逆波兰表达式都不会了吧♡ 真是杂鱼♡
+  // 开始计算 PRN 表达式
   private static evaluateRPN(tokens: (number | string)[]): number {
     const stack: number[] = [];
     for (const token of tokens) {
@@ -107,15 +209,6 @@ export class FormulaParser {
   }
 
   /**
-   * 检查字符串是否为公式
-   * @param value 需要检查的值
-   * @returns 是否为公式
-   */
-  static isFormula(value: unknown): boolean {
-    return typeof value === "string" && value.startsWith("=");
-  }
-
-  /**
    * 解析输入值，如果是公式则保持原样，否则尝试转换为数字
    * @param formula 需要解析的值
    * @returns 解析后的值（字符串或数字）
@@ -128,7 +221,7 @@ export class FormulaParser {
   }
 
   /**
-   * 计算公式结果
+   * 计算主函数
    * @param formula 公式字符串
    * @param context 计算上下文，包含变量值
    * @returns 计算结果
@@ -148,10 +241,8 @@ export class FormulaParser {
     try {
       // 移除等号并清理空格
       const expr = formula.replace(/=/g, "").trim();
-
       // 使用词法分析器解析表达式
       const tokens = this.tokenize(expr);
-
       // 解析并计算表达式
       return this.parseExpression(tokens, context);
     }
