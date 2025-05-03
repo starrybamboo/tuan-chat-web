@@ -3,6 +3,7 @@
  * 用于处理角色数值中的公式计算，例如 "=力量+敏捷"
  * 还支持一大堆乱七八糟的函数，不分大小写！还可以嵌套喵
  * 中文括号会直接被忽略，未来再更新吧
+ * 彻底更新完毕就会规范化报错信息和注释，先让我玩会（
  */
 export class FormulaParser {
   private static operators: Record<string, (a: number, b: number) => number> = {
@@ -250,6 +251,18 @@ export class FormulaParser {
     formula: string | number,
     context: Record<string, number>,
   ): number {
+    // 需要检查 context 是否为纯对象且所有值为 number
+    if (typeof context !== "object" || context === null || Array.isArray(context)) {
+      throw new TypeError("上下文必须是键值对对象");
+    }
+
+    // 检查 context 所有值是否为 number
+    for (const key in context) {
+      if (typeof context[key] !== "number" || Number.isNaN(context[key])) {
+        throw new TypeError(`上下文变量 "${key}" 必须是有效数字`);
+      }
+    }
+
     if (typeof formula === "number") {
       return formula;
     }
