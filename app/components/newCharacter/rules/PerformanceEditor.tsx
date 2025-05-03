@@ -1,6 +1,6 @@
 import type { PerformanceFields } from "../types";
 import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface PerformanceEditorProps {
   fields: { [key: string]: string };
@@ -22,8 +22,6 @@ export default function PerformanceEditor({
 }: PerformanceEditorProps) {
   // 接入api
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
-  const [localFields, setLocalFields] = useState(abilityData || fields);
-
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
   const [newItemName, setNewItemName] = useState("");
@@ -61,10 +59,6 @@ export default function PerformanceEditor({
       })
     : [];
 
-  useEffect(() => {
-    setLocalFields(abilityData || fields);
-  }, [abilityData, fields]);
-
   // 处理编辑模式切换
   const handleEditToggle = () => {
     if (!isEditing) {
@@ -91,7 +85,16 @@ export default function PerformanceEditor({
     }
   };
 
-  const handleAdd = () => {
+  const handleDeleteField = (key: string) => {
+    if (!isEditing)
+      return;
+
+    const newFields = { ...fields };
+    delete newFields[key];
+    onChange(newFields);
+  };
+
+  const handleAddField = () => {
     if (newKey.trim()) {
       onChange({ ...fields, [newKey.trim()]: newValue });
       setNewKey("");
@@ -192,12 +195,11 @@ export default function PerformanceEditor({
               <input
                 type="text"
                 onChange={(e) => {
-                  const newFields = { ...localFields, [key]: e.target.value };
+                  const newFields = { ...fields, [key]: e.target.value };
                   onChange(newFields);
-                  setLocalFields(newFields);
                 }}
                 disabled={!isEditing}
-                value={localFields[key] || ""}
+                value={fields[key] || ""}
                 className="grow"
               />
             </label>
@@ -205,12 +207,7 @@ export default function PerformanceEditor({
               type="button"
               className="btn btn-error btn-xs opacity-0 duration-300 transition-opacity group-hover:opacity-100"
               disabled={!isEditing}
-              onClick={() => {
-                const newFields = { ...localFields };
-                delete newFields[key];
-                setLocalFields(newFields);
-                onChange(newFields);
-              }}
+              onClick={() => handleDeleteField(key)}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -254,7 +251,7 @@ export default function PerformanceEditor({
             type="button"
             className="btn btn-primary btn-sm"
             disabled={!isEditing}
-            onClick={handleAdd}
+            onClick={handleAddField}
           >
             添加字段
           </button>
