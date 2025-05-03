@@ -227,7 +227,7 @@ export default function PerformanceEditor({
           <button
             type="button"
             className="btn btn-primary btn-sm"
-            disabled={!isEditing}
+            disabled={!isEditing || !newKey.trim() || !newValue.trim()}
             onClick={handleAdd}
           >
             添加字段
