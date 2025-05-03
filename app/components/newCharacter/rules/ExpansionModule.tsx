@@ -3,6 +3,7 @@ import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "api/hooks/ab
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import Section from "../Section";
+import GenerateByAI from "./GenerateByAI";
 import NumericalEditor from "./NumericalEditor";
 import { deepOverrideTargetWithSource, flattenConstraints, wrapIntoNested } from "./ObjectExpansion";
 import PerformanceEditor from "./PerformanceEditor";
@@ -40,14 +41,16 @@ export default function ExpansionModule({
   }, [abilityQuery.data, ruleDetailQuery.data]);
 
   // 初始化能力数据
-  if (ruleDetailQuery.data && !abilityQuery.data && !abilityQuery.isLoading && !abilityQuery.isFetched) {
-    setRoleAbilityMutation.mutate({
-      ruleId: ruleDetailQuery.data?.id || 0,
-      roleId,
-      act: ruleDetailQuery.data?.performance || {},
-      ability: flattenConstraints(ruleDetailQuery.data?.numerical || {}) || {},
-    });
-  }
+  useEffect(() => {
+    if (ruleDetailQuery.data && !abilityQuery.data && !abilityQuery.isLoading) {
+      setRoleAbilityMutation.mutate({
+        ruleId: ruleDetailQuery.data?.id || 0,
+        roleId,
+        act: ruleDetailQuery.data?.performance || {},
+        ability: flattenConstraints(ruleDetailQuery.data?.numerical || {}),
+      });
+    }
+  }, [ruleDetailQuery.data, abilityQuery.data, abilityQuery.isLoading, roleId]);
 
   // 构建本地规则副本（合并数值）
   useEffect(() => {
@@ -118,7 +121,6 @@ export default function ExpansionModule({
         currentRuleId={selectedRuleId}
         onRuleChange={handleRuleChange}
       />
-
       {/* 规则详情区域 */}
       {isLoading
         ? (
@@ -137,6 +139,12 @@ export default function ExpansionModule({
                 abilityData={localRuleData.performance}
                 abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
               />
+              <GenerateByAI
+                ruleId={selectedRuleId}
+                localRuleData={localRuleData}
+                onLocalRuleDataChange={setLocalRuleData}
+                type={1}
+              />
             </Section>
 
             <Section title="数值约束配置" className="mb-12">
@@ -147,7 +155,19 @@ export default function ExpansionModule({
                 onChange={handleNumericalChange}
                 abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
               />
+              <GenerateByAI
+                ruleId={selectedRuleId}
+                localRuleData={localRuleData}
+                onLocalRuleDataChange={setLocalRuleData}
+                type={2}
+              />
             </Section>
+            {/* <GenerateByAI
+              ruleId={selectedRuleId}
+              localRuleData={localRuleData}
+              onLocalRuleDataChange={setLocalRuleData}
+              type={0}
+            /> */}
           </>
         )}
     </div>

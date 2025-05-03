@@ -1,5 +1,5 @@
 import type { PerformanceFields } from "../types";
-import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
+import { useUpdateKeyFieldMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
 
 interface PerformanceEditorProps {
@@ -22,10 +22,11 @@ export default function PerformanceEditor({
 }: PerformanceEditorProps) {
   // 接入api
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
+  const { mutate: updateKeyField } = useUpdateKeyFieldMutation();
   const [newKey, setNewKey] = useState("");
   const [newValue, setNewValue] = useState("");
-  const [newItemName, setNewItemName] = useState("");
-  const [newItemDesc, setNewItemDesc] = useState("");
+  // const [newItemName, setNewItemName] = useState("");
+  // const [newItemDesc, setNewItemDesc] = useState("");
   // 是否编辑
   const [isEditing, setIsEditing] = useState(false);
   // 编辑状态过渡
@@ -49,15 +50,15 @@ export default function PerformanceEditor({
   // const leftLongFields = longFields.slice(0, leftColumnCount);
   // const rightLongFields = longFields.slice(leftColumnCount);
 
-  // 物品相关字段处理 - 提取携带物品信息
-  const itemsString = fields["携带物品"] || "";
-  const items = itemsString
-    // 格式：物品名称1:描述1|物品名称2:描述2|...
-    ? itemsString.split("|").map((item) => {
-        const [name, desc = ""] = item.split(":");
-        return { name, desc };
-      })
-    : [];
+  // // 物品相关字段处理 - 提取携带物品信息
+  // const itemsString = fields["携带物品"] || "";
+  // const items = itemsString
+  //   // 格式：物品名称1:描述1|物品名称2:描述2|...
+  //   ? itemsString.split("|").map((item) => {
+  //       const [name, desc = ""] = item.split(":");
+  //       return { name, desc };
+  //     })
+  //   : [];
 
   // 处理编辑模式切换
   const handleEditToggle = () => {
@@ -86,12 +87,17 @@ export default function PerformanceEditor({
   };
 
   const handleDeleteField = (key: string) => {
-    if (!isEditing)
-      return;
-
-    const newFields = { ...fields };
-    delete newFields[key];
-    onChange(newFields);
+    updateKeyField(
+      {
+        abilityId,
+        actFields: {
+          [key]: "",
+        },
+        abilityFields: {},
+      },
+    );
+    delete fields[key];
+    onChange(fields);
   };
 
   const handleAddField = () => {
@@ -102,44 +108,44 @@ export default function PerformanceEditor({
     }
   };
 
-  const handleAddItem = () => {
-    if (newItemName.trim()) {
-      const newItems = [
-        ...items,
-        { name: newItemName.trim(), desc: newItemDesc },
-      ];
+  // const handleAddItem = () => {
+  //   if (newItemName.trim()) {
+  //     const newItems = [
+  //       ...items,
+  //       { name: newItemName.trim(), desc: newItemDesc },
+  //     ];
 
-      const newItemsString = newItems
-        .map(item => `${item.name}:${item.desc}`)
-        .join("|");
+  //     const newItemsString = newItems
+  //       .map(item => `${item.name}:${item.desc}`)
+  //       .join("|");
 
-      onChange({ ...fields, 携带物品: newItemsString });
-      setNewItemName("");
-      setNewItemDesc("");
-    }
-  };
+  //     onChange({ ...fields, 携带物品: newItemsString });
+  //     setNewItemName("");
+  //     setNewItemDesc("");
+  //   }
+  // };
 
-  const handleRemoveItem = (index: number) => {
-    const newItems = [...items];
-    newItems.splice(index, 1);
+  // const handleRemoveItem = (index: number) => {
+  //   const newItems = [...items];
+  //   newItems.splice(index, 1);
 
-    const newItemsString = newItems
-      .map(item => `${item.name}:${item.desc}`)
-      .join("|");
+  //   const newItemsString = newItems
+  //     .map(item => `${item.name}:${item.desc}`)
+  //     .join("|");
 
-    onChange({ ...fields, 携带物品: newItemsString });
-  };
+  //   onChange({ ...fields, 携带物品: newItemsString });
+  // };
 
-  const handleUpdateItem = (index: number, name: string, desc: string) => {
-    const newItems = [...items];
-    newItems[index] = { name, desc };
+  // const handleUpdateItem = (index: number, name: string, desc: string) => {
+  //   const newItems = [...items];
+  //   newItems[index] = { name, desc };
 
-    const newItemsString = newItems
-      .map(item => `${item.name}:${item.desc}`)
-      .join("|");
+  //   const newItemsString = newItems
+  //     .map(item => `${item.name}:${item.desc}`)
+  //     .join("|");
 
-    onChange({ ...fields, 携带物品: newItemsString });
-  };
+  //   onChange({ ...fields, 携带物品: newItemsString });
+  // };
 
   return (
     <div className={`space-y-6 bg-base-200 rounded-lg p-4 transition-opacity duration-300 ${
@@ -301,7 +307,7 @@ export default function PerformanceEditor({
       </div> */ }
 
       {/* 物品区域 - 特殊布局 */}
-      <div className="border-t border-base-300 pt-4 mt-4">
+      {/* <div className="border-t border-base-300 pt-4 mt-4">
         <h3 className="font-bold mb-3">携带物品</h3>
 
         <div className="bg-base-200 rounded-lg">
@@ -414,7 +420,7 @@ export default function PerformanceEditor({
             </tbody>
           </table>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }

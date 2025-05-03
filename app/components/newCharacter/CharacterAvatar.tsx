@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useState } from "react";
 import { PopWindow } from "../common/popWindow";
-import { ImgUploaderWithCopper } from "../common/uploader/imgUploaderWithCopper";
+import { CharacterCopper } from "./CharacterCopper";
 
 export default function CharacterAvatar({ role, onchange }: {
   role: Role;
@@ -235,7 +235,7 @@ export default function CharacterAvatar({ role, onchange }: {
                   </li>
                 ))}
                 <li className="relative w-full max-w-[128px] aspect-square flex flex-col items-center rounded-lg transition-colors">
-                  <ImgUploaderWithCopper
+                  <CharacterCopper
                     setDownloadUrl={() => { }}
                     setCopperedDownloadUrl={setCopperedUrl}
                     fileName={uniqueFileName}
@@ -259,7 +259,7 @@ export default function CharacterAvatar({ role, onchange }: {
                         />
                       </svg>
                     </button>
-                  </ImgUploaderWithCopper>
+                  </CharacterCopper>
                 </li>
               </div>
             </div>
