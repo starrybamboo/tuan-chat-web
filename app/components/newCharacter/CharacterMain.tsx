@@ -251,8 +251,7 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
 }) {
   return (
     <div
-      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group max-h-20 max-w-[18rem] ${
-        isSelected ? "bg-base-100" : "hover:bg-base-100"
+      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group max-h-20 max-w-[18rem] ${isSelected ? "bg-base-100" : "hover:bg-base-100"
       }`}
       onClick={onSelect}
     >
