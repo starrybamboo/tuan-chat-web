@@ -5,6 +5,7 @@ import {useImmer} from "use-immer";
 import {formatLocalDateTime} from "@/utils/dataUtil";
 import {useGlobalContext} from "@/components/globalContextProvider";
 import {TuanChat} from "./TuanChat";
+import {useQueryClient} from "@tanstack/react-query";
 
 type WsMessageType =
     | 2 // 心跳
@@ -32,6 +33,7 @@ export function useWebSocket() {
     const heartbeatTimer = useRef<NodeJS.Timeout>(setTimeout(()=>{}))
     // 接受消息的存储
     const [roomMessages, updateRoomMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
+    const queryClient = useQueryClient();
 
     let token = ""
 

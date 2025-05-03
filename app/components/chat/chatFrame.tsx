@@ -26,6 +26,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   // const chatFrameRef = useRef<HTMLDivElement>(null);
   // 滚动加载逻辑, 设置为倒数第n条消息的ref, 当这条消息进入用户窗口时, messageEntry.isIntersecting变为true, 之后启动滚动加载
   const [messageRef, messageEntry] = useIntersectionObserver();
+  // 在顶部也设置一个，保险
+  const [topMessageRef, topMessageEntry] = useIntersectionObserver();
   const PAGE_SIZE = 30; // 每页消息数量
   const roomContext = use(RoomContext);
   const roomId = roomContext.roomId ?? -1;
@@ -85,16 +87,16 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
    */
   useEffect(() => {
     if (chatFrameRef.current) {
-      if (chatFrameRef.current.scrollTop >= -300) {
+      if (chatFrameRef.current.scrollTop >= -80) {
         chatFrameRef.current.scrollTo({ top: 0, behavior: "instant" });
       }
     }
   }, [chatFrameRef, historyMessages]);
   useEffect(() => {
-    if (messageEntry?.isIntersecting && !messagesInfiniteQuery.isFetchingNextPage) {
+    if ((messageEntry?.isIntersecting || topMessageEntry?.isIntersecting) && !messagesInfiniteQuery.isFetchingNextPage) {
       messagesInfiniteQuery.fetchNextPage();
     }
-  }, [messageEntry?.isIntersecting, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage, messagesInfiniteQuery]);
+  }, [messageEntry?.isIntersecting, topMessageEntry?.isIntersecting, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage, messagesInfiniteQuery]);
   /**
    * 聊天气泡拖拽排序
    */
@@ -262,7 +264,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       return ((
         <div
           key={chatMessageResponse.message.messageID}
-          ref={index === historyMessages.length - 7 ? messageRef : null}
+          ref={index === historyMessages.length - 7 ? messageRef : (index === historyMessages.length - 1 ? topMessageRef : null)}
           className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""}`}
           data-message-id={chatMessageResponse.message.messageID}
           onClick={(e) => {

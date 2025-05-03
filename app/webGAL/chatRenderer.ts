@@ -7,7 +7,7 @@ import type { ChatMessageResponse, RoleAvatar, UserRole } from "../../api";
 import { tuanchat } from "../../api/instance";
 
 export class ChatRenderer {
-  private MAX_VOCAL: number = 1000;
+  private MAX_VOCAL: number = 5;
 
   private roomId: number;
   private renderer: Renderer;
@@ -123,7 +123,7 @@ export class ChatRenderer {
     try {
       // 过滤调掉不是文本类型的消息，并排序
       const sortedMessages = messages
-        .filter(msg => msg.message && msg.message.messageID != null)
+        .filter(msg => msg.message)
         .sort((a, b) => a.message.position - b.message.position);
 
       // 最多生成几段音频 仅供在tts api不足的情况下进行限制
@@ -141,7 +141,7 @@ export class ChatRenderer {
           }
         }
         else if (message.messageType === 1) {
-          if (message.content.startsWith("#")) {
+          if (message.content.startsWith("%")) {
             await this.renderer.addLineToRenderer(message.content.slice(1));
             continue;
           }

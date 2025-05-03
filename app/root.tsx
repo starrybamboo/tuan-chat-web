@@ -49,16 +49,16 @@ const queryClient = new QueryClient();
 
 export default function App() {
   return (
-    <GlobalContextProvider>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <GlobalContextProvider>
         {/* <Topbar></Topbar> */}
         <Outlet />
         <ReactQueryDevtools initialIsOpen={false} />
         {/* 挂载popWindow的地方 */}
         <div id="modal-root"></div>
         <Toaster />
-      </QueryClientProvider>
-    </GlobalContextProvider>
+      </GlobalContextProvider>
+    </QueryClientProvider>
   );
 }
 
