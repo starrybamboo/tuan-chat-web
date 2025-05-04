@@ -260,29 +260,42 @@ export default function NumericalEditor({
             <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
               {entries.map(([key, value]) => (
                 <div key={key} className="flex flex-col gap-1 mb-2">
-                  <div className="flex items-center gap-1 group ">
-                    <label className={`input flex items-center gap-2 w-full ${
-                      isEditing ? "bg-base-100" : ""
-                    }`}
-                    >
-                      <span className="text-sm font-medium">{key}</span>
-                      <div className="w-px h-4 bg-base-content/20"></div>
-                      <input
-                        type="text"
-                        value={typeof value === "object" && "displayValue" in value
-                          ? value.displayValue.toString()
-                          : typeof value === "string" ? value : value.toString()}
-                        className="grow"
-                        disabled={!isEditing}
-                        onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
-                      />
-                    </label>
-                  </div>
-                  {typeof value === "object" && "formula" in value && (
-                    <div className="text-xs text-gray-500 pl-2">
-                      {value.formula}
-                    </div>
-                  )}
+                  {isEditing
+                    ? (
+                        <div className="flex items-center gap-1 group">
+                          <label className={`input flex items-center gap-2 w-full ${
+                            isEditing ? "bg-base-100" : ""
+                          }`}
+                          >
+                            <span className="text-sm font-medium">{key}</span>
+                            <div className="w-px h-4 bg-base-content/20"></div>
+                            <input
+                              type="text"
+                              value={typeof value === "object" && "displayValue" in value
+                                ? value.displayValue.toString()
+                                : typeof value === "string" ? value : value.toString()}
+                              className="grow"
+                              disabled={!isEditing}
+                              onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
+                            />
+                          </label>
+                        </div>
+                      )
+                    : (
+                        <div className="card bg-base-100 shadow-sm p-2 h-full">
+                          <div className="text-sm font-medium text-primary mb-1">{key}</div>
+                          <div className="text-base-content mt-0.5">
+                            {typeof value === "object" && "displayValue" in value
+                              ? value.displayValue.toString()
+                              : typeof value === "string" ? value : value.toString()}
+                          </div>
+                          {typeof value === "object" && "formula" in value && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {value.formula}
+                            </div>
+                          )}
+                        </div>
+                      )}
                 </div>
               ))}
             </div>
