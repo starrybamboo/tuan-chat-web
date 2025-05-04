@@ -1,8 +1,12 @@
 import { SpaceContext } from "@/components/chat/spaceContext";
+import MemberInfoComponent from "@/components/common/memberInfo";
+import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import {
   useDissolveSpaceMutation,
   useGetSpaceInfoQuery,
+  useGetSpaceMembersQuery,
+  useTransferOwnerMutation,
   useUpdateSpaceMutation,
 } from "api/hooks/chatQueryHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
@@ -16,9 +20,23 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const getSpaceInfoQuery = useGetSpaceInfoQuery(spaceId ?? -1);
   const space = getSpaceInfoQuery.data?.data;
 
+  // 控制成员列表弹窗打开
+  const [isMembersListHandleOpen, setIsMembersListHandleOpen] = useState(false);
+
   // 获取规则列表
   const getRulesQuery = useGetRulePageInfiniteQuery({}, 100);
   const rules = getRulesQuery.data?.pages.flatMap(page => page.data?.list ?? []) ?? [];
+
+  // 获取空间非主持人成员
+  const getSpaceMembersQuery = useGetSpaceMembersQuery(spaceId);
+  const allMembers = getSpaceMembersQuery.data?.data ?? [];
+  const members = allMembers?.filter(member => member.memberType !== 1) ?? [];
+
+  // 处理用户uid
+  const [inputUserId, setInputUserId] = useState<number>(-1);
+
+  // 转让空间
+  const transferOwnerMutation = useTransferOwnerMutation();
 
   // 使用状态管理表单数据
   const [formData, setFormData] = useState({
@@ -153,6 +171,13 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
             </button>
             <button
               type="button"
+              className="btn btn-accent"
+              onClick={() => setIsMembersListHandleOpen(true)}
+            >
+              转让空间
+            </button>
+            <button
+              type="button"
               className="btn btn-error"
               onClick={() => dissolveSpaceMutation.mutate(spaceId, {
                 onSuccess: () => {
@@ -164,6 +189,50 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               解散空间
             </button>
           </div>
+          <PopWindow isOpen={isMembersListHandleOpen} onClose={() => setIsMembersListHandleOpen(false)}>
+            <div className="flex flex-col gap-y-2 pb-4 min-w-72">
+              <div>
+                <label className="label mb-2">
+                  <span className="label-text">搜索玩家Id</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="请输入要加入的玩家ID"
+                  className="input input-bordered w-full mb-2"
+                  onInput={e => setInputUserId(Number(e.currentTarget.value))}
+                />
+              </div>
+              <div className="flex flex-col gap-y-2 pb-4">
+                {(() => {
+                  if (members.length === 0) {
+                    return (
+                      <div className="text-center py-4 text-gray-500">
+                        当前空间内没有玩家哦
+                      </div>
+                    );
+                  }
+
+                  const matchedMember = inputUserId > 0
+                    ? members.find(member => member.userId === inputUserId)
+                    : null;
+                  const memberToShow = matchedMember ? [matchedMember] : members;
+
+                  return memberToShow.map(member => (
+                    <div key={member.userId} className="flex gap-x-4 items-center p-2 bg-base-100 rounded-lg w-full justify-between">
+                      <MemberInfoComponent userId={member.userId ?? -1} />
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => transferOwnerMutation.mutate({ spaceId, newOwnerId: member.userId ?? -1 })}
+                      >
+                        转让
+                      </button>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          </PopWindow>
         </div>
       )}
     </div>
