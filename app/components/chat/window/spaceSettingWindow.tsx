@@ -43,7 +43,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     name: space?.name || "",
     description: space?.description || "",
     avatar: space?.avatar || "",
-    ruleId: space?.ruleId || 1, // 添加规则ID状态
+    ruleId: space?.ruleId || 1,
   });
 
   // 当space数据加载时初始化formData
@@ -66,7 +66,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       name: formData.name,
       description: formData.description,
       avatar: formData.avatar,
-      ruleId: formData.ruleId, // 添加规则ID到更新数据
+      ruleId: formData.ruleId,
     }, {
       onSuccess: () => {
         onClose();
@@ -129,7 +129,6 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               }}
             />
           </div>
-          {/* 新增规则选择部分 */}
           <div className="mb-4">
             <label className="label mb-2">
               <span className="label-text">空间规则</span>
@@ -202,7 +201,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                   onInput={e => setInputUserId(Number(e.currentTarget.value))}
                 />
               </div>
-              <div className="flex flex-col gap-y-2 pb-4">
+              <div className="flex flex-col gap-y-2 pb-4 max-h-[40vh] overflow-y-auto">
                 {(() => {
                   if (members.length === 0) {
                     return (
