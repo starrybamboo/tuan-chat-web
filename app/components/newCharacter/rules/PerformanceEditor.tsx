@@ -194,92 +194,87 @@ export default function PerformanceEditor({
       {/* 短字段区域 - 多列排布 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {shortFields.map(key => (
-          <div key={key} className="group flex items-center gap-1">
-            <div className={`flex items-center gap-2 w-full ${
-              isEditing ? "input input-group bg-base-100" : ""
-            }`}
-            >
-              <span className="text-sm font-medium">{key}</span>
-              <div className="w-px h-4 bg-base-content/25"></div>
-              {isEditing
-                ? (
-                    <input
-                      type="text"
-                      onChange={(e) => {
-                        const newFields = { ...fields, [key]: e.target.value };
-                        onChange(newFields);
-                      }}
-                      value={fields[key] || ""}
-                      className="grow"
-                    />
-                  )
-                : (
-                    <span className="grow text-sm font-medium">
-                      {fields[key] || ""}
-                    </span>
-                  )}
-            </div>
-            <button
-              type="button"
-              className="btn btn-error btn-xs opacity-0 duration-300 transition-opacity group-hover:opacity-100"
-              disabled={!isEditing}
-              onClick={() => handleDeleteField(key)}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                <line x1="10" y1="11" x2="10" y2="17" />
-                <line x1="14" y1="11" x2="14" y2="17" />
-              </svg>
-            </button>
+          <div key={key} className="group">
+            {isEditing
+              ? (
+            // 编辑模式下的UI
+                  <div className="flex items-center gap-1">
+                    <label className="input input-group flex-grow">
+                      <span className="text-sm font-medium">{key}</span>
+                      <div className="w-px h-4 bg-base-content/25"></div>
+                      <input
+                        type="text"
+                        onChange={(e) => {
+                          const newFields = { ...fields, [key]: e.target.value };
+                          onChange(newFields);
+                        }}
+                        value={fields[key] || ""}
+                        className="grow"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="btn btn-error btn-xs opacity-0 duration-300 transition-opacity group-hover:opacity-100"
+                      onClick={() => handleDeleteField(key)}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
+                    </button>
+                  </div>
+                )
+              : (
+            // 非编辑模式下的UI
+                  <div className="card bg-base-100 shadow-sm p-2 h-full">
+                    <div className="text-sm font-medium text-primary mb-1">{key}</div>
+                    <div className="text-base-content mt-0.5">
+                      {fields[key] || <span className="text-base-content/50">未设置</span>}
+                    </div>
+                  </div>
+                )}
           </div>
         ))}
       </div>
 
       {/* 添加新字段区域 */}
-      <div className="border-t border-base-300 pt-4 mt-4">
-        <div className="flex gap-8 max-w-2xl">
-          {isEditing
-            ? (
-                <>
-                  <input
-                    type="text"
-                    placeholder="字段名称"
-                    className="input input-bordered input-sm w-1/3"
-                    value={newKey}
-                    onChange={e => setNewKey(e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    placeholder="值"
-                    className="input input-bordered input-sm w-1/2"
-                    value={newValue}
-                    onChange={e => setNewValue(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    onClick={handleAddField}
-                  >
-                    添加字段
-                  </button>
-                </>
-              )
-            : (
-                <div className="text-base-content/70">
-                  请打开编辑模式以添加新字段
-                </div>
-              )}
+      {isEditing && (
+        <div className="border-t border-base-300 pt-4 mt-4">
+          <div className="flex gap-8 max-w-2xl">
+            <input
+              type="text"
+              placeholder="字段名称"
+              className="input input-bordered input-sm w-1/3"
+              value={newKey}
+              onChange={e => setNewKey(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="值"
+              className="input input-bordered input-sm w-1/2"
+              value={newValue}
+              onChange={e => setNewValue(e.target.value)}
+            />
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={handleAddField}
+            >
+              添加字段
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 长字段区域，目前没用上，而且左右分割对长字段不适用 */}
       {/* <div className="flex gap-4">
