@@ -160,22 +160,31 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const isDragging = dragStartMessageIdRef.current >= 0;
   const indicatorRef = useRef<HTMLDivElement | null>(null);
   // before代表拖拽到元素上半，after代表拖拽到元素下半
-  const [dropPosition, setDropPosition] = useState<"before" | "after">("before");
-  const [curDragOverMessage, setCurDragOverMessage] = useState<HTMLDivElement | null>(null);
+  const dropPositionRef = useRef<"before" | "after">("before");
+  const curDragOverMessageRef = useRef<HTMLDivElement | null>(null);
   function checkPosition(e: React.DragEvent<HTMLDivElement>) {
     if (dragStartMessageIdRef.current === -1) {
       return;
     }
     const target = e.currentTarget;
-    setCurDragOverMessage(target);
+    curDragOverMessageRef.current = target;
     const rect = target.getBoundingClientRect();
     const relativeY = e.clientY - rect.top;
+
+    const indicator = document.createElement("div");
+    indicator.className = "drag-indicator absolute left-0 right-0 h-0.5 bg-info pointer-events-none";
+    indicator.style.zIndex = "50";
     if (relativeY < rect.height / 2) {
-      setDropPosition("before");
+      indicator.style.top = "0";
+      dropPositionRef.current = "before";
     }
     else {
-      setDropPosition("after");
+      indicator.style.top = "0";
+      dropPositionRef.current = "after";
     }
+    indicatorRef.current?.remove();
+    curDragOverMessageRef.current?.appendChild(indicator);
+    indicatorRef.current = indicator;
   }
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.stopPropagation();
@@ -214,13 +223,13 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurDragOverMessage(null);
+    curDragOverMessageRef.current = null;
   };
   const handleDrop = async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
-    setCurDragOverMessage(null);
+    curDragOverMessageRef.current = null;
 
-    const adjustedIndex = dropPosition === "after" ? dragEndIndex : dragEndIndex + 1;
+    const adjustedIndex = dropPositionRef.current === "after" ? dragEndIndex : dragEndIndex + 1;
 
     // 如果是多选状态，则对选中的所有消息进行移动
     if (isSelecting && selectedMessageIds.size > 0) {
@@ -264,25 +273,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       }
     }
     dragStartMessageIdRef.current = -1;
-  };
-  // 生成拖拽指示器(一条线)，同时防止过快创建导致的卡顿
-  useEffect(() => {
-    if (!curDragOverMessage) {
-      indicatorRef.current?.remove();
-    }
-    const indicator = document.createElement("div");
-    indicator.className = "drag-indicator absolute left-0 right-0 h-0.5 bg-info pointer-events-none";
-    indicator.style.zIndex = "50";
-    if (dropPosition === "before") {
-      indicator.style.top = "0";
-    }
-    else {
-      indicator.style.bottom = "0";
-    }
     indicatorRef.current?.remove();
-    curDragOverMessage?.appendChild(indicator);
-    indicatorRef.current = indicator;
-  }, [curDragOverMessage, dropPosition]);
+  };
   /**
    * 右键菜单
    */
