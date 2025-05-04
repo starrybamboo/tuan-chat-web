@@ -24,19 +24,19 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
     setIsTransitioning(true);
     const id = localRuleData?.id || 0;
 
-    const handleSuccess = (data: any, isBasic: boolean) => {
+    const handleSuccess = (data: any, isBasic: number) => {
       setDescription("");
       const newRuleData = {
         id,
         name: localRuleData?.name ?? "",
         description: localRuleData?.description ?? "",
-        performance: isBasic
+        performance: isBasic === 1
           ? Object.entries(data.data || {}).reduce((acc, [key, value]) => {
               acc[key] = typeof value === "object" ? JSON.stringify(value) : String(value);
               return acc;
             }, {} as Record<string, string>)
           : localRuleData?.performance ?? {},
-        numerical: isBasic ? data.data ?? localRuleData?.numerical ?? {} : data.data ?? localRuleData?.numerical ?? {},
+        numerical: isBasic === 2 ? data.data ?? localRuleData?.numerical ?? {} : localRuleData?.numerical ?? data.data ?? {},
       };
       onLocalRuleDataChange(newRuleData);
     };
@@ -46,7 +46,7 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
         { ruleId, prompt: description },
         {
           onSuccess: (data) => {
-            handleSuccess(data, true);
+            handleSuccess(data, 1);
             setIsTransitioning(false);
           },
           onError: () => {
@@ -59,7 +59,7 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
         { ruleId, prompt: description },
         {
           onSuccess: (data) => {
-            handleSuccess(data, true);
+            handleSuccess(data, 2);
             setIsTransitioning(false);
           },
           onError: () => {
@@ -74,7 +74,7 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
         { ruleId, prompt: description },
         {
           onSuccess: (data) => {
-            handleSuccess(data, true);
+            handleSuccess(data, 1);
             setIsTransitioning(false);
           },
           onError: () => {
@@ -89,7 +89,7 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
         { ruleId, prompt: description },
         {
           onSuccess: (data) => {
-            handleSuccess(data, true);
+            handleSuccess(data, 2);
             setIsTransitioning(false);
           },
           onError: () => {
