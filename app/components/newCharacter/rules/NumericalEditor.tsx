@@ -1,6 +1,6 @@
 import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useEffect, useMemo, useState } from "react";
-import FormulaParser from "./FormulaParser";
+import { FormulaParser } from "./FormulaParser";
 import { flattenConstraints } from "./ObjectExpansion";
 
 // 定义公式值的类型
