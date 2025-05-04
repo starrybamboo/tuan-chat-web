@@ -23,10 +23,10 @@ export function RegisterForm({
     <form onSubmit={handleSubmit}>
       <div className="form-control w-full mt-2">
         <label className="floating-label">
-          <span className="label-text">用户ID</span>
+          <span className="label-text">用户名</span>
           <input
             type="text"
-            placeholder="请输入用户ID"
+            placeholder="请输入用户名"
             className="input input-bordered w-full bg-base-200 dark:bg-base-300 text-base-content placeholder:text-base-content/60"
             value={username}
             onChange={e => setUsername(e.target.value)}
