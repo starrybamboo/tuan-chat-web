@@ -195,20 +195,30 @@ export default function PerformanceEditor({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {shortFields.map(key => (
           <div key={key} className="group flex items-center gap-1">
-            <label className="input input-group flex-grow">
+            <div className={`flex items-center gap-2 w-full ${
+              isEditing ? "input input-group bg-base-100" : ""
+            }`}
+            >
               <span className="text-sm font-medium">{key}</span>
               <div className="w-px h-4 bg-base-content/25"></div>
-              <input
-                type="text"
-                onChange={(e) => {
-                  const newFields = { ...fields, [key]: e.target.value };
-                  onChange(newFields);
-                }}
-                disabled={!isEditing}
-                value={fields[key] || ""}
-                className="grow"
-              />
-            </label>
+              {isEditing
+                ? (
+                    <input
+                      type="text"
+                      onChange={(e) => {
+                        const newFields = { ...fields, [key]: e.target.value };
+                        onChange(newFields);
+                      }}
+                      value={fields[key] || ""}
+                      className="grow"
+                    />
+                  )
+                : (
+                    <span className="grow text-sm font-medium">
+                      {fields[key] || ""}
+                    </span>
+                  )}
+            </div>
             <button
               type="button"
               className="btn btn-error btn-xs opacity-0 duration-300 transition-opacity group-hover:opacity-100"
@@ -237,30 +247,37 @@ export default function PerformanceEditor({
       {/* 添加新字段区域 */}
       <div className="border-t border-base-300 pt-4 mt-4">
         <div className="flex gap-8 max-w-2xl">
-          <input
-            type="text"
-            disabled={!isEditing}
-            placeholder={isEditing ? "字段名称" : "请打开编辑模式"}
-            className="input input-bordered input-sm w-1/3"
-            value={newKey}
-            onChange={e => setNewKey(e.target.value)}
-          />
-          <input
-            type="text"
-            disabled={!isEditing}
-            placeholder={isEditing ? "值" : "请打开编辑模式"}
-            className="input input-bordered input-sm w-1/2"
-            value={newValue}
-            onChange={e => setNewValue(e.target.value)}
-          />
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            disabled={!isEditing}
-            onClick={handleAddField}
-          >
-            添加字段
-          </button>
+          {isEditing
+            ? (
+                <>
+                  <input
+                    type="text"
+                    placeholder="字段名称"
+                    className="input input-bordered input-sm w-1/3"
+                    value={newKey}
+                    onChange={e => setNewKey(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    placeholder="值"
+                    className="input input-bordered input-sm w-1/2"
+                    value={newValue}
+                    onChange={e => setNewValue(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={handleAddField}
+                  >
+                    添加字段
+                  </button>
+                </>
+              )
+            : (
+                <div className="text-base-content/70">
+                  请打开编辑模式以添加新字段
+                </div>
+              )}
         </div>
       </div>
 
