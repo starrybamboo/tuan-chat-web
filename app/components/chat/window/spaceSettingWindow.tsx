@@ -5,6 +5,7 @@ import {
   useGetSpaceInfoQuery,
   useUpdateSpaceMutation,
 } from "api/hooks/chatQueryHooks";
+import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
 import { use, useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -15,11 +16,16 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const getSpaceInfoQuery = useGetSpaceInfoQuery(spaceId ?? -1);
   const space = getSpaceInfoQuery.data?.data;
 
+  // 获取规则列表
+  const getRulesQuery = useGetRulePageInfiniteQuery({}, 100);
+  const rules = getRulesQuery.data?.pages.flatMap(page => page.data?.list ?? []) ?? [];
+
   // 使用状态管理表单数据
   const [formData, setFormData] = useState({
     name: space?.name || "",
     description: space?.description || "",
     avatar: space?.avatar || "",
+    ruleId: space?.ruleId || 1, // 添加规则ID状态
   });
 
   // 当space数据加载时初始化formData
@@ -28,6 +34,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       name: space.name || "",
       description: space.description || "",
       avatar: space.avatar || "",
+      ruleId: space.ruleId || 1,
     });
   }
 
@@ -41,6 +48,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       name: formData.name,
       description: formData.description,
       avatar: formData.avatar,
+      ruleId: formData.ruleId, // 添加规则ID到更新数据
     }, {
       onSuccess: () => {
         onClose();
@@ -102,6 +110,38 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                 setFormData(prev => ({ ...prev, description: e.target.value }));
               }}
             />
+          </div>
+          {/* 新增规则选择部分 */}
+          <div className="mb-4">
+            <label className="label mb-2">
+              <span className="label-text">空间规则</span>
+            </label>
+            <div className="dropdown w-full">
+              <label tabIndex={0} className="btn btn-outline w-full justify-start">
+                {rules.find(rule => rule.ruleId === formData.ruleId)?.ruleName ?? "未找到规则"}
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </label>
+              <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full">
+                {rules.map(rule => (
+                  <li key={rule.ruleId}>
+                    <button
+                      type="button"
+                      className="w-full text-left"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, ruleId: Number(rule.ruleId) }));
+                        if (document.activeElement instanceof HTMLElement) {
+                          document.activeElement.blur();
+                        }
+                      }}
+                    >
+                      {rule.ruleName}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
           <div className="flex justify-between mt-16">
             <button
