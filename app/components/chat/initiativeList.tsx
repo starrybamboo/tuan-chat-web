@@ -14,7 +14,8 @@ export default function InitiativeList() {
   const roomContext = use(RoomContext);
   const roomId = roomContext.roomId ?? -1;
   const initiativeListMutation = useRoomInitiativeListMutation(roomId);
-  const list = useGetRoomInitiativeListQuery(roomId).data ?? [];
+  const getRoomInitiativeListQuery = useGetRoomInitiativeListQuery(roomId);
+  const list = getRoomInitiativeListQuery.data ?? [];
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
   const [newItem, setNewItem] = useState({ name: "", value: "" });
@@ -25,13 +26,15 @@ export default function InitiativeList() {
   };
 
   // 开始编辑数值
-  const handleEditStart = (index: number, value: number) => {
+  const handleEditStart = async (index: number, value: number) => {
+    await getRoomInitiativeListQuery.refetch();
     setEditingIndex(index);
     setEditValue(value.toString());
   };
 
   // 保存编辑
-  const handleEditSave = (index: number) => {
+  const handleEditSave = async (index: number) => {
+    await getRoomInitiativeListQuery.refetch();
     const newValue = Number.parseInt(editValue);
     if (!Number.isNaN(newValue)) {
       const newList = [...list];
@@ -42,7 +45,8 @@ export default function InitiativeList() {
   };
 
   // 添加新项
-  const handleAdd = () => {
+  const handleAdd = async () => {
+    await getRoomInitiativeListQuery.refetch();
     if (newItem.name && !Number.isNaN(Number(newItem.value))) {
       initiativeListMutation.mutate(JSON.stringify([
         ...list.filter(i => i.name !== newItem.name),

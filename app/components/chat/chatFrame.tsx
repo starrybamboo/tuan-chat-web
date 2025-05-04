@@ -9,6 +9,7 @@ import { ChatBubble } from "@/components/chat/chatBubble";
 import { RoomContext } from "@/components/chat/roomContext";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
+import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
@@ -157,15 +158,10 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
    */
   // -1 代表未拖动
   const dragStartMessageIdRef = useRef(-1);
-  // before代表拖拽到元素上半，after代表拖拽到元素下半
-  const dropPositionRef = useRef<"before" | "after">("before");
   const indicatorRef = useRef<HTMLDivElement | null>(null);
-  // const handleDragEnd = () => {
-  //   // 重置所有元素的样式
-  //   document.querySelectorAll(".room").forEach((el) => {
-  //     (el as HTMLElement).style.opacity = "1";
-  //   });
-  // };
+  // before代表拖拽到元素上半，after代表拖拽到元素下半
+  const [dropPosition, setDropPosition] = useState<"before" | "after">("before");
+  const [curDragOverMessage, setCurDragOverMessage] = useState<HTMLDivElement | null>(null);
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.stopPropagation();
     e.dataTransfer.effectAllowed = "move";
@@ -201,38 +197,26 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       return;
     }
     const target = e.currentTarget;
+    setCurDragOverMessage(target);
     const rect = target.getBoundingClientRect();
     const relativeY = e.clientY - rect.top;
-
-    // 移除之前可能存在的指示线
-    // target.querySelectorAll(".drag-indicator").forEach(el => el.remove());
-    // 创建新的指示线
-    const indicator = document.createElement("div");
-    indicator.className = "drag-indicator absolute left-0 right-0 h-0.5 bg-info";
-    indicator.style.zIndex = "50";
-
     if (relativeY < rect.height / 2) {
-      indicator.style.top = "0";
-      dropPositionRef.current = "before";
+      setDropPosition("before");
     }
     else {
-      indicator.style.bottom = "0";
-      dropPositionRef.current = "after";
+      setDropPosition("after");
     }
-    indicatorRef.current?.remove();
-    target.appendChild(indicator);
-    indicatorRef.current = indicator;
   };
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    indicatorRef.current?.remove();
+    setCurDragOverMessage(null);
   };
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
-    indicatorRef.current?.remove();
+    setCurDragOverMessage(null);
 
-    const adjustedIndex = dropPositionRef.current === "after" ? dragEndIndex : dragEndIndex + 1;
+    const adjustedIndex = dropPosition === "after" ? dragEndIndex : dragEndIndex + 1;
     const beforeMessageId = historyMessages[adjustedIndex]?.message.messageID ?? null;
     const afterMessageId = historyMessages[adjustedIndex - 1]?.message.messageID ?? null;
 
@@ -241,7 +225,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       const selectedMessages = Array.from(selectedMessageIds)
         .map(id => historyMessages.find(m => m.message.messageID === id)?.message)
         .filter((msg): msg is Message => msg !== undefined)
-        .sort((a, b) => b.position - a.position);
+        .sort((a, b) => a.position - b.position);
       for (const selectedMessage of selectedMessages) {
         const index = selectedMessages.indexOf(selectedMessage);
         await tuanchat.chatController.moveMessage({
@@ -260,7 +244,24 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     }
     dragStartMessageIdRef.current = -1;
   }, [historyMessages]);
-
+  // 生成拖拽指示器(一条线)，同时防止过快创建导致的卡顿
+  useDebounceEffect(() => {
+    if (!curDragOverMessage) {
+      indicatorRef.current?.remove();
+    }
+    const indicator = document.createElement("div");
+    indicator.className = "drag-indicator absolute left-0 right-0 h-0.5 bg-info pointer-events-none";
+    indicator.style.zIndex = "50";
+    if (dropPosition === "before") {
+      indicator.style.top = "0";
+    }
+    else {
+      indicator.style.bottom = "0";
+    }
+    indicatorRef.current?.remove();
+    curDragOverMessage?.appendChild(indicator);
+    indicatorRef.current = indicator;
+  }, 100, [curDragOverMessage, dropPosition]);
   /**
    * 右键菜单
    */

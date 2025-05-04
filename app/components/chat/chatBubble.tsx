@@ -85,7 +85,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     if (message.messageType === 2) {
       return (
         <div>
-          <BetterImg src={message.extra?.imageMessage?.url} className="max-h-[40vh]" />
+          <BetterImg src={message.extra?.imageMessage?.url || message.extra?.fileMessage?.url} className="max-h-[40vh]" />
           {message.extra?.imageMessage?.background && <div className="text-xs text-gray-500 dark:text-gray-400">已设置为背景</div>}
         </div>
       );
