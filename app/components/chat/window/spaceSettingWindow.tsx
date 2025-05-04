@@ -37,6 +37,13 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
 
   // 转让空间
   const transferOwnerMutation = useTransferOwnerMutation();
+  async function transferOwner(userId: number) {
+    transferOwnerMutation.mutate({ spaceId, newOwnerId: userId }, {
+      onSuccess: () => {
+        setIsMembersListHandleOpen(false);
+      },
+    });
+  }
 
   // 使用状态管理表单数据
   const [formData, setFormData] = useState({
@@ -222,7 +229,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                       <button
                         type="button"
                         className="btn"
-                        onClick={() => transferOwnerMutation.mutate({ spaceId, newOwnerId: member.userId ?? -1 })}
+                        onClick={() => transferOwner(member.userId ?? -1)}
                       >
                         转让
                       </button>
