@@ -3,7 +3,7 @@ import type {
   ChatMessageRequest,
   ChatMessageResponse,
   FeedRequest,
-  MoveMessageRequest,
+  Message,
 } from "../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
 import { RoomContext } from "@/components/chat/roomContext";
@@ -12,10 +12,9 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
-import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { use, useEffect, useMemo, useRef, useState } from "react";
 import {
   useDeleteMessageMutation,
-  useMoveMessageMutation,
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
 import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
@@ -26,6 +25,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   // const chatFrameRef = useRef<HTMLDivElement>(null);
   // 滚动加载逻辑, 设置为倒数第n条消息的ref, 当这条消息进入用户窗口时, messageEntry.isIntersecting变为true, 之后启动滚动加载
   const [messageRef, messageEntry] = useIntersectionObserver();
+  // 在顶部也设置一个，保险
+  const [topMessageRef, topMessageEntry] = useIntersectionObserver();
   const PAGE_SIZE = 30; // 每页消息数量
   const roomContext = use(RoomContext);
   const roomId = roomContext.roomId ?? -1;
@@ -38,7 +39,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
 
   // Mutations
-  const moveMessageMutation = useMoveMessageMutation();
+  // const moveMessageMutation = useMoveMessageMutation();
   const deleteMessageMutation = useDeleteMessageMutation();
   const publishFeedMutation = usePublishFeedMutation();
   const updateMessageMutation = useUpdateMessageMutation();
@@ -85,93 +86,16 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
    */
   useEffect(() => {
     if (chatFrameRef.current) {
-      if (chatFrameRef.current.scrollTop >= -300) {
+      if (chatFrameRef.current.scrollTop >= -80) {
         chatFrameRef.current.scrollTo({ top: 0, behavior: "instant" });
       }
     }
   }, [chatFrameRef, historyMessages]);
   useEffect(() => {
-    if (messageEntry?.isIntersecting && !messagesInfiniteQuery.isFetchingNextPage) {
+    if ((messageEntry?.isIntersecting || topMessageEntry?.isIntersecting) && !messagesInfiniteQuery.isFetchingNextPage) {
       messagesInfiniteQuery.fetchNextPage();
     }
-  }, [messageEntry?.isIntersecting, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage, messagesInfiniteQuery]);
-  /**
-   * 聊天气泡拖拽排序
-   */
-  // -1 代表未拖动
-  const dragStartIndex = useRef(-1);
-  // before代表拖拽到元素上半，after代表拖拽到元素下半
-  const dropPositionRef = useRef<"before" | "after">("before");
-  const handleDragEnd = () => {
-    // 重置所有元素的样式
-    document.querySelectorAll(".room").forEach((el) => {
-      (el as HTMLElement).style.opacity = "1";
-    });
-  };
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
-    e.stopPropagation();
-    dragStartIndex.current = index;
-    // 设置拖动预览图像
-    const parent = e.currentTarget.parentElement!;
-    const clone = parent.cloneNode(true) as HTMLElement;
-
-    clone.style.width = `${e.currentTarget.offsetWidth}px`;
-    clone.style.position = "fixed";
-    clone.style.top = "-9999px";
-    clone.style.width = `${parent.offsetWidth}px`; // 使用父元素实际宽度
-    clone.style.opacity = "0.5";
-    document.body.appendChild(clone);
-    e.dataTransfer.setDragImage(clone, 0, 0);
-    setTimeout(() => document.body.removeChild(clone));
-  };
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.dataTransfer.dropEffect = "move";
-    if (dragStartIndex.current === -1) {
-      return;
-    }
-    const target = e.currentTarget;
-    const rect = target.getBoundingClientRect();
-    const relativeY = e.clientY - rect.top;
-
-    if (relativeY < rect.height / 2) {
-      target.style.borderTop = "2px solid #292D3A";
-      target.style.borderBottom = "";
-      dropPositionRef.current = "before";
-    }
-    else {
-      target.style.borderTop = "";
-      target.style.borderBottom = "2px solid #292D3A";
-      dropPositionRef.current = "after";
-    }
-  };
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.currentTarget.style.borderTop = "";
-    e.currentTarget.style.borderBottom = "";
-  };
-  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
-    e.preventDefault();
-    e.currentTarget.style.borderTop = "";
-    e.currentTarget.style.borderBottom = "";
-
-    const adjustedIndex = dropPositionRef.current === "after" ? dragEndIndex : dragEndIndex + 1;
-    // if (dragStartIndex.current === adjustedIndex)
-    //   return;
-    // 边界检查
-    const beforeMessageId = historyMessages[adjustedIndex]?.message.messageID ?? null;
-    const afterMessageId = historyMessages[adjustedIndex - 1]?.message.messageID ?? null;
-
-    const moveRequest: MoveMessageRequest = {
-      messageId: historyMessages[dragStartIndex.current].message.messageID,
-      beforeMessageId,
-      afterMessageId,
-    };
-    moveMessageMutation.mutate(moveRequest);
-    dragStartIndex.current = -1;
-  }, [historyMessages]);
+  }, [messageEntry?.isIntersecting, topMessageEntry?.isIntersecting, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage, messagesInfiniteQuery]);
   /**
    * 消息选择
    */
@@ -228,7 +152,129 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     setIsForwardWindowOpen(false);
     updateSelectedMessageIds(new Set());
   }
+  /**
+   * 聊天气泡拖拽排序
+   */
+  // -1 代表未拖动
+  const dragStartMessageIdRef = useRef(-1);
+  const isDragging = dragStartMessageIdRef.current >= 0;
+  const indicatorRef = useRef<HTMLDivElement | null>(null);
+  // before代表拖拽到元素上半，after代表拖拽到元素下半
+  const dropPositionRef = useRef<"before" | "after">("before");
+  const curDragOverMessageRef = useRef<HTMLDivElement | null>(null);
+  function checkPosition(e: React.DragEvent<HTMLDivElement>) {
+    if (dragStartMessageIdRef.current === -1) {
+      return;
+    }
+    const target = e.currentTarget;
+    curDragOverMessageRef.current = target;
+    const rect = target.getBoundingClientRect();
+    const relativeY = e.clientY - rect.top;
 
+    const indicator = document.createElement("div");
+    indicator.className = "drag-indicator absolute left-0 right-0 h-0.5 bg-info pointer-events-none";
+    indicator.style.zIndex = "50";
+    if (relativeY < rect.height / 2) {
+      indicator.style.top = "0";
+      dropPositionRef.current = "before";
+    }
+    else {
+      indicator.style.top = "0";
+      dropPositionRef.current = "after";
+    }
+    indicatorRef.current?.remove();
+    curDragOverMessageRef.current?.appendChild(indicator);
+    indicatorRef.current = indicator;
+  }
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e.stopPropagation();
+    e.dataTransfer.effectAllowed = "move";
+    dragStartMessageIdRef.current = historyMessages[index].message.messageID;
+    // 设置拖动预览图像
+    const parent = e.currentTarget.parentElement!;
+    let clone: HTMLElement;
+    // 创建拖拽预览元素
+    if (isSelecting && selectedMessageIds.size > 0) {
+      clone = document.createElement("div");
+      clone.className = "p-2 bg-info text-info-content rounded";
+      clone.textContent = `移动${selectedMessageIds.size}条消息`;
+    }
+    else {
+      clone = parent.cloneNode(true) as HTMLElement;
+    }
+    clone.style.width = `${e.currentTarget.offsetWidth}px`;
+    clone.style.position = "fixed";
+    clone.style.top = "-9999px";
+    clone.style.width = `${parent.offsetWidth}px`; // 使用父元素实际宽度
+    clone.style.opacity = "0.5";
+    clone.onwheel = (e) => {
+      chatFrameRef.current.scrollTop += e.deltaY;
+    };
+    document.body.appendChild(clone);
+    e.dataTransfer.setDragImage(clone, 0, 0);
+    setTimeout(() => document.body.removeChild(clone));
+  };
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    // e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    checkPosition(e);
+  };
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    curDragOverMessageRef.current = null;
+  };
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
+    e.preventDefault();
+    curDragOverMessageRef.current = null;
+
+    const adjustedIndex = dropPositionRef.current === "after" ? dragEndIndex : dragEndIndex + 1;
+
+    // 如果是多选状态，则对选中的所有消息进行移动
+    if (isSelecting && selectedMessageIds.size > 0) {
+      const selectedMessages = Array.from(selectedMessageIds)
+        .map(id => historyMessages.find(m => m.message.messageID === id)?.message)
+        .filter((msg): msg is Message => msg !== undefined)
+        .sort((a, b) => a.position - b.position);
+      // 多选情况下，寻找到不位于selectMessageIds中且离dropPosition最近的消息
+      let topMessageIndex: number = adjustedIndex;
+      let bottomMessageIndex: number = adjustedIndex - 1;
+      while (selectedMessageIds.has(historyMessages[topMessageIndex]?.message.messageID)) {
+        topMessageIndex++;
+      }
+      while (selectedMessageIds.has(historyMessages[bottomMessageIndex]?.message.messageID)) {
+        bottomMessageIndex--;
+      }
+      const topMessagePosition = historyMessages[topMessageIndex]?.message.position
+        ?? historyMessages[historyMessages.length - 1].message.position - 1;
+      const bottomMessagePosition = historyMessages[bottomMessageIndex]?.message.position
+        ?? historyMessages[0].message.position + 1;
+
+      for (const selectedMessage of selectedMessages) {
+        const index = selectedMessages.indexOf(selectedMessage);
+        updateMessageMutation.mutate({
+          ...selectedMessage,
+          position: (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1) * (index + 1) + topMessagePosition,
+        });
+      }
+    }
+    else {
+      const beforeMessage = historyMessages[adjustedIndex]?.message;
+      const afterMessage = historyMessages[adjustedIndex - 1]?.message;
+      const beforeMessageId = beforeMessage?.messageID ?? null;
+      const afterMessageId = afterMessage?.messageID ?? null;
+      if (beforeMessageId !== dragStartMessageIdRef.current && afterMessageId !== dragStartMessageIdRef.current) {
+        tuanchat.chatController.moveMessage({
+          messageId: dragStartMessageIdRef.current,
+          beforeMessageId,
+          afterMessageId,
+        });
+      }
+    }
+    dragStartMessageIdRef.current = -1;
+    indicatorRef.current?.remove();
+  };
   /**
    * 右键菜单
    */
@@ -262,8 +308,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       return ((
         <div
           key={chatMessageResponse.message.messageID}
-          ref={index === historyMessages.length - 7 ? messageRef : null}
-          className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""}`}
+          ref={index === historyMessages.length - 7 ? messageRef : (index === historyMessages.length - 1 ? topMessageRef : null)}
+          className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} -my-[5px] ${isDragging ? "pointer-events-auto" : ""}\``}
           data-message-id={chatMessageResponse.message.messageID}
           onClick={(e) => {
             if (isSelecting || e.ctrlKey) {
@@ -273,11 +319,13 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={e => handleDrop(e, index)}
-          onDragEnd={() => handleDragEnd()}
+          draggable={isSelecting}
+          onDragStart={e => handleDragStart(e, index)}
+          // onDragEnd={() => handleDragEnd()}
         >
           <div
             className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
-                      -translate-x-full -translate-y-1/ opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 pr-2 cursor-move`}
+                      -translate-x-full -translate-y-1/ opacity-0 group-hover:opacity-100 transition-opacity flex items-center pr-2 cursor-move`}
             draggable
             onDragStart={e => handleDragStart(e, index)}
           >
@@ -299,7 +347,12 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   return (
     <>
       {/* 这里是从下到上渲染的 */}
-      <div className="card-body overflow-y-auto h-[60vh] flex flex-col-reverse" ref={chatFrameRef} onContextMenu={handleContextMenu} onClick={closeContextMenu}>
+      <div
+        className="card-body overflow-y-auto h-[60vh] flex flex-col-reverse"
+        ref={chatFrameRef}
+        onContextMenu={handleContextMenu}
+        onClick={closeContextMenu}
+      >
         {renderMessages}
         {selectedMessageIds.size > 0 && (
           <div className="sticky top-0 bg-base-300 p-2 shadow-sm z-10 flex justify-between items-center rounded">

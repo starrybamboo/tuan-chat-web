@@ -6,9 +6,9 @@ export default function CommandPanel({ prefix, handleSelectCommand }: {
   handleSelectCommand: (cmdName: string) => void;
   commandType?: "dice" | "webgal";
 }) {
-  const commands = prefix.startsWith("#") ? webgalCommands : diceCommands;
+  const commands = prefix.startsWith("%") ? webgalCommands : diceCommands;
   const suggestionNumber = 10;
-  const isCommandMode = prefix.startsWith(".") || prefix.startsWith("。") || prefix.startsWith("#");
+  const isCommandMode = prefix.startsWith(".") || prefix.startsWith("。") || prefix.startsWith("%");
   const suggestions = isCommandMode
     ? commands.filter(command => command.name.startsWith(prefix.slice(1)))
         .sort((a, b) => b.importance - a.importance)

@@ -1,10 +1,12 @@
 import type { RenderProps } from "@/components/chat/window/renderWindow";
 
+import { terreApis } from "@/webGAL/index";
+
 import type { ChatMessageResponse } from "../../api";
 
 import { tuanchat } from "../../api/instance";
-import { checkGameExist, getAsyncMsg, readTextFile, uploadFile } from "./fileOperator";
-import { createPreview, editScene } from "./game";
+import { getAsyncMsg, uploadFile } from "./fileOperator";
+import { editScene } from "./game";
 
 type Game = {
   name: string;
@@ -35,7 +37,7 @@ export class Renderer {
   constructor(roomId: number, renderProp: RenderProps) {
     this.roomId = roomId;
     this.game = {
-      name: `preview_${roomId}`,
+      name: `preview_${roomId}_${new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" }).replace(/[/\s,:]/g, "-")}`,
       description: `This is game preview of ${roomId}`,
     };
     this.renderProps = renderProp;
@@ -43,17 +45,15 @@ export class Renderer {
   }
 
   public async initRender(): Promise<void> {
-    checkGameExist(this.game.name).then((exist) => {
-      if (!exist) {
-        createPreview(this.roomId);
-      }
-      else {
-        readTextFile(this.game.name, "scene/start.txt").then((data) => {
-          this.rendererContext.text = data;
-          this.rendererContext.lineNumber = data.split("\n").length;
-        });
-      }
+    await terreApis.manageGameControllerCreateGame({
+      gameDir: this.game.name,
+      gameName: this.game.name,
+      templateDir: "WebGAL Black",
     });
+    // readTextFile(this.game.name, "scene/start.txt").then((data) => {
+    //   this.rendererContext.text = data;
+    //   this.rendererContext.lineNumber = data.split("\n").length;
+    // });
   }
 
   public async addDialog(

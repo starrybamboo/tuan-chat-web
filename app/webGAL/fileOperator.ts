@@ -96,14 +96,18 @@ export async function uploadFile(url: string, path: string, fileName?: string | 
   const blob = new Blob([data]);
   // 如果未定义fileName，那就使用url中的fileName
   const newFileName = fileName || url.substring(url.lastIndexOf("/") + 1);
-  const file = new File([blob], newFileName);
+  // 替换中文字符（webgal不支持）
+  const safeFileName = newFileName.replace(/\P{ASCII}/gu, char =>
+    encodeURIComponent(char).replace(/%/g, ""));
+
+  const file = new File([blob], safeFileName);
 
   const formData = new FormData();
   formData.append("files", file);
   formData.append("targetDirectory", path);
 
   await terreApis.uploadFile(formData);
-  return newFileName;
+  return safeFileName;
 };
 
 export async function readTextFile(game: string, path: string): Promise<string> {

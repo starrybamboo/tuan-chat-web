@@ -45,7 +45,7 @@ export default function Topbar() {
           角色
         </a>
         <a
-          onClick={() => navigate("/module/create")}
+          onClick={() => navigate("/module")}
           className="text-base-content hover:text-primary transition-colors"
         >
           模组

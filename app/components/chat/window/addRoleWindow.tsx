@@ -12,22 +12,24 @@ export function AddRoleWindow({ handleAddRole }: { handleAddRole: (roleId: numbe
     <div className="justify-center w-max">
       <p className="text-lg font-bold text-center w-full mb-4">选择要加入的角色</p>
       <div className="grid grid-cols-5 gap-2 justify-items-stretch">
-        {userRoles.map(role => (
-          <div className="" key={role.avatarId}>
-            <div className="flex flex-col items-center">
-              <div onClick={() => handleAddRole(role.roleId ?? -1)} className="">
-                <RoleAvatarComponent
-                  avatarId={role.avatarId ?? -1}
-                  width={24}
-                  isRounded={false}
-                  withTitle={false}
-                  stopPopWindow={true}
-                />
+        {userRoles
+          .filter(role => role.avatarId !== undefined && role.avatarId > 0)
+          .map(role => (
+            <div className="" key={role.avatarId}>
+              <div className="flex flex-col items-center">
+                <div onClick={() => handleAddRole(role.roleId ?? -1)} className="">
+                  <RoleAvatarComponent
+                    avatarId={role.avatarId ?? -1}
+                    width={24}
+                    isRounded={false}
+                    withTitle={false}
+                    stopPopWindow={true}
+                  />
+                </div>
+                <p className="text-center block">{role.roleName}</p>
               </div>
-              <p className="text-center block">{role.roleName}</p>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
     </div>
   );

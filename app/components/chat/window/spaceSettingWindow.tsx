@@ -1,45 +1,84 @@
 import { SpaceContext } from "@/components/chat/spaceContext";
-import { EditableField } from "@/components/common/editableFiled";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import {
   useDissolveSpaceMutation,
   useGetSpaceInfoQuery,
   useUpdateSpaceMutation,
 } from "api/hooks/chatQueryHooks";
-import { use } from "react";
+import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
+import { use, useState } from "react";
 import { useNavigate } from "react-router";
 
 function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const spaceContext = use(SpaceContext);
-  // 获取群组数据
   const spaceId = Number(spaceContext.spaceId);
   const getSpaceInfoQuery = useGetSpaceInfoQuery(spaceId ?? -1);
   const space = getSpaceInfoQuery.data?.data;
-  // 解散空间
+
+  // 获取规则列表
+  const getRulesQuery = useGetRulePageInfiniteQuery({}, 100);
+  const rules = getRulesQuery.data?.pages.flatMap(page => page.data?.list ?? []) ?? [];
+
+  // 使用状态管理表单数据
+  const [formData, setFormData] = useState({
+    name: space?.name || "",
+    description: space?.description || "",
+    avatar: space?.avatar || "",
+    ruleId: space?.ruleId || 1, // 添加规则ID状态
+  });
+
+  // 当space数据加载时初始化formData
+  if (space && formData.name === "" && formData.description === "" && formData.avatar === "") {
+    setFormData({
+      name: space.name || "",
+      description: space.description || "",
+      avatar: space.avatar || "",
+      ruleId: space.ruleId || 1,
+    });
+  }
+
   const dissolveSpaceMutation = useDissolveSpaceMutation();
   const updateSpaceMutation = useUpdateSpaceMutation();
+
+  // 保存数据函数
+  const handleSave = () => {
+    updateSpaceMutation.mutate({
+      spaceId,
+      name: formData.name,
+      description: formData.description,
+      avatar: formData.avatar,
+      ruleId: formData.ruleId, // 添加规则ID到更新数据
+    }, {
+      onSuccess: () => {
+        onClose();
+      },
+    });
+  };
+
+  // 退出时自动保存
+  const handleClose = () => {
+    handleSave();
+  };
 
   return (
     <div className="w-full p-4 min-w-[40vw]">
       {space && (
-        <div className="">
+        <div>
           <div className="flex justify-center">
             <ImgUploaderWithCopper
               setCopperedDownloadUrl={(url) => {
-                updateSpaceMutation.mutate({ spaceId, avatar: url });
+                setFormData(prev => ({ ...prev, avatar: url }));
               }}
               fileName={`spaceId-${space.spaceId}`}
             >
               <div className="relative group overflow-hidden rounded-lg">
                 <img
-                  src={space.avatar}
-                  alt={space.name}
-                  className="w-24 h-24 mx-auto rounded-lg transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
+                  src={formData.avatar || space.avatar}
+                  alt={formData.name}
+                  className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
                 />
-                <div
-                  className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm"
-                >
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
                   <span className="text-white font-medium px-2 py-1 rounded">
                     更新群头像
                   </span>
@@ -47,19 +86,71 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               </div>
             </ImgUploaderWithCopper>
           </div>
-          <EditableField
-            content={space.name ?? ""}
-            handleContentUpdate={name => updateSpaceMutation.mutate({ spaceId, name })}
-            className="text-2xl font-bold text-center my-4"
-          >
-          </EditableField>
-          <EditableField
-            content={space.description ?? ""}
-            handleContentUpdate={description => updateSpaceMutation.mutate({ spaceId, description })}
-            className="text-gray-600 text-center"
-          >
-          </EditableField>
-          <div className="flex justify-center mt-16">
+          <div className="mb-4">
+            <label className="label mb-2">
+              <span className="label-text">空间名称</span>
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              className="input input-bordered w-full"
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, name: e.target.value }));
+              }}
+            />
+          </div>
+          <div className="mb-4">
+            <label className="label mb-2">
+              <span className="label-text">空间描述</span>
+            </label>
+            <textarea
+              value={formData.description}
+              className="input w-full min-h-[100px] pt-2"
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, description: e.target.value }));
+              }}
+            />
+          </div>
+          {/* 新增规则选择部分 */}
+          <div className="mb-4">
+            <label className="label mb-2">
+              <span className="label-text">空间规则</span>
+            </label>
+            <div className="dropdown w-full">
+              <label tabIndex={0} className="btn btn-outline w-full justify-start">
+                {rules.find(rule => rule.ruleId === formData.ruleId)?.ruleName ?? "未找到规则"}
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </label>
+              <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full">
+                {rules.map(rule => (
+                  <li key={rule.ruleId}>
+                    <button
+                      type="button"
+                      className="w-full text-left"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, ruleId: Number(rule.ruleId) }));
+                        if (document.activeElement instanceof HTMLElement) {
+                          document.activeElement.blur();
+                        }
+                      }}
+                    >
+                      {rule.ruleName}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <div className="flex justify-between mt-16">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={handleClose}
+            >
+              保存并关闭
+            </button>
             <button
               type="button"
               className="btn btn-error"
