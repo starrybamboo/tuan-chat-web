@@ -58,7 +58,17 @@ export function UserDetail({ userId }: { userId: number }) {
                 </div>
               )}
         </div>
+        <div className="stats bg-base-100 border-base-300 border text-center">
+          <div className="stat place-items-center hover:text-info transition-colors cursor-pointer">
+            <div className="stat-value">900</div>
+            <div className="stat-title text-sm">关注</div>
+          </div>
 
+          <div className="stat place-items-center hover:text-info transition-colors cursor-pointer">
+            <div className="stat-value">400</div>
+            <div className="stat-title text-sm">粉丝</div>
+          </div>
+        </div>
         {/* 详细信息 */}
         <div className="divider"></div>
         <div className="space-y-2">
