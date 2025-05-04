@@ -9,11 +9,10 @@ import { ChatBubble } from "@/components/chat/chatBubble";
 import { RoomContext } from "@/components/chat/roomContext";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
-import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
-import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { use, useEffect, useMemo, useRef, useState } from "react";
 import {
   useDeleteMessageMutation,
   useUpdateMessageMutation,
@@ -158,41 +157,12 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
    */
   // -1 代表未拖动
   const dragStartMessageIdRef = useRef(-1);
+  const isDragging = dragStartMessageIdRef.current >= 0;
   const indicatorRef = useRef<HTMLDivElement | null>(null);
   // before代表拖拽到元素上半，after代表拖拽到元素下半
   const [dropPosition, setDropPosition] = useState<"before" | "after">("before");
   const [curDragOverMessage, setCurDragOverMessage] = useState<HTMLDivElement | null>(null);
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
-    e.stopPropagation();
-    e.dataTransfer.effectAllowed = "move";
-    dragStartMessageIdRef.current = historyMessages[index].message.messageID;
-    // 设置拖动预览图像
-    const parent = e.currentTarget.parentElement!;
-    let clone: HTMLElement;
-
-    // 创建拖拽预览元素
-    if (isSelecting && selectedMessageIds.size > 0) {
-      clone = document.createElement("div");
-      clone.className = "p-2 bg-info text-info-content rounded";
-      clone.textContent = `移动${selectedMessageIds.size}条消息`;
-    }
-    else {
-      clone = parent.cloneNode(true) as HTMLElement;
-    }
-
-    clone.style.width = `${e.currentTarget.offsetWidth}px`;
-    clone.style.position = "fixed";
-    clone.style.top = "-9999px";
-    clone.style.width = `${parent.offsetWidth}px`; // 使用父元素实际宽度
-    clone.style.opacity = "0.5";
-    document.body.appendChild(clone);
-    e.dataTransfer.setDragImage(clone, 0, 0);
-    setTimeout(() => document.body.removeChild(clone));
-  };
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    // e.stopPropagation();
-    e.dataTransfer.dropEffect = "move";
+  function checkPosition(e: React.DragEvent<HTMLDivElement>) {
     if (dragStartMessageIdRef.current === -1) {
       return;
     }
@@ -206,19 +176,51 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     else {
       setDropPosition("after");
     }
+  }
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e.stopPropagation();
+    e.dataTransfer.effectAllowed = "move";
+    dragStartMessageIdRef.current = historyMessages[index].message.messageID;
+    // 设置拖动预览图像
+    const parent = e.currentTarget.parentElement!;
+    let clone: HTMLElement;
+    // 创建拖拽预览元素
+    if (isSelecting && selectedMessageIds.size > 0) {
+      clone = document.createElement("div");
+      clone.className = "p-2 bg-info text-info-content rounded";
+      clone.textContent = `移动${selectedMessageIds.size}条消息`;
+    }
+    else {
+      clone = parent.cloneNode(true) as HTMLElement;
+    }
+    clone.style.width = `${e.currentTarget.offsetWidth}px`;
+    clone.style.position = "fixed";
+    clone.style.top = "-9999px";
+    clone.style.width = `${parent.offsetWidth}px`; // 使用父元素实际宽度
+    clone.style.opacity = "0.5";
+    clone.onwheel = (e) => {
+      chatFrameRef.current.scrollTop += e.deltaY;
+    };
+    document.body.appendChild(clone);
+    e.dataTransfer.setDragImage(clone, 0, 0);
+    setTimeout(() => document.body.removeChild(clone));
+  };
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    // e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    checkPosition(e);
   };
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setCurDragOverMessage(null);
   };
-  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
     setCurDragOverMessage(null);
 
     const adjustedIndex = dropPosition === "after" ? dragEndIndex : dragEndIndex + 1;
-    const beforeMessageId = historyMessages[adjustedIndex]?.message.messageID ?? null;
-    const afterMessageId = historyMessages[adjustedIndex - 1]?.message.messageID ?? null;
 
     // 如果是多选状态，则对选中的所有消息进行移动
     if (isSelecting && selectedMessageIds.size > 0) {
@@ -226,26 +228,45 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         .map(id => historyMessages.find(m => m.message.messageID === id)?.message)
         .filter((msg): msg is Message => msg !== undefined)
         .sort((a, b) => a.position - b.position);
+      // 多选情况下，寻找到不位于selectMessageIds中且离dropPosition最近的消息
+      let topMessageIndex: number = adjustedIndex;
+      let bottomMessageIndex: number = adjustedIndex - 1;
+      while (selectedMessageIds.has(historyMessages[topMessageIndex]?.message.messageID)) {
+        topMessageIndex++;
+      }
+      while (selectedMessageIds.has(historyMessages[bottomMessageIndex]?.message.messageID)) {
+        bottomMessageIndex--;
+      }
+      const topMessagePosition = historyMessages[topMessageIndex]?.message.position
+        ?? historyMessages[historyMessages.length - 1].message.position - 1;
+      const bottomMessagePosition = historyMessages[bottomMessageIndex]?.message.position
+        ?? historyMessages[0].message.position + 1;
+
       for (const selectedMessage of selectedMessages) {
         const index = selectedMessages.indexOf(selectedMessage);
-        await tuanchat.chatController.moveMessage({
-          messageId: selectedMessage.messageID,
-          beforeMessageId: index === 0 ? beforeMessageId : selectedMessages[index - 1].messageID,
-          afterMessageId,
+        updateMessageMutation.mutate({
+          ...selectedMessage,
+          position: (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1) * (index + 1) + topMessagePosition,
         });
       }
     }
     else {
-      tuanchat.chatController.moveMessage({
-        messageId: dragStartMessageIdRef.current,
-        beforeMessageId,
-        afterMessageId,
-      });
+      const beforeMessage = historyMessages[adjustedIndex]?.message;
+      const afterMessage = historyMessages[adjustedIndex - 1]?.message;
+      const beforeMessageId = beforeMessage?.messageID ?? null;
+      const afterMessageId = afterMessage?.messageID ?? null;
+      if (beforeMessageId !== dragStartMessageIdRef.current && afterMessageId !== dragStartMessageIdRef.current) {
+        tuanchat.chatController.moveMessage({
+          messageId: dragStartMessageIdRef.current,
+          beforeMessageId,
+          afterMessageId,
+        });
+      }
     }
     dragStartMessageIdRef.current = -1;
-  }, [historyMessages]);
+  };
   // 生成拖拽指示器(一条线)，同时防止过快创建导致的卡顿
-  useDebounceEffect(() => {
+  useEffect(() => {
     if (!curDragOverMessage) {
       indicatorRef.current?.remove();
     }
@@ -261,7 +282,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     indicatorRef.current?.remove();
     curDragOverMessage?.appendChild(indicator);
     indicatorRef.current = indicator;
-  }, 100, [curDragOverMessage, dropPosition]);
+  }, [curDragOverMessage, dropPosition]);
   /**
    * 右键菜单
    */
@@ -296,7 +317,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         <div
           key={chatMessageResponse.message.messageID}
           ref={index === historyMessages.length - 7 ? messageRef : (index === historyMessages.length - 1 ? topMessageRef : null)}
-          className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} -my-[5px]`}
+          className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} -my-[5px] ${isDragging ? "pointer-events-auto" : ""}\``}
           data-message-id={chatMessageResponse.message.messageID}
           onClick={(e) => {
             if (isSelecting || e.ctrlKey) {
