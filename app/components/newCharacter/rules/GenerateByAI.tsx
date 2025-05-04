@@ -1,6 +1,7 @@
 import type { GameRule } from "../types";
-import { useGenerateAbilityByRuleMutation, useGenerateBasicInfoByRuleMutation } from "api/hooks/abilityQueryHooks";
+import { useGenerateAbilityByRuleMutation, useGenerateBasicInfoByRuleMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
+import { flattenConstraints } from "./ObjectExpansion";
 
 interface GenerateByAIProps {
   ruleId: number;
@@ -16,6 +17,9 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
   // 接入接口
   const { mutate: generateBasicInfoByRule } = useGenerateBasicInfoByRuleMutation();
   const { mutate: generateAbilityByRule } = useGenerateAbilityByRuleMutation();
+
+  // 提交接口
+  const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
 
   // 编辑状态过渡
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -39,6 +43,7 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
         numerical: isBasic === 2 ? data.data ?? localRuleData?.numerical ?? {} : localRuleData?.numerical ?? data.data ?? {},
       };
       onLocalRuleDataChange(newRuleData);
+      updateFiledAbility({ abilityId: id, act: newRuleData?.performance, ability: flattenConstraints(newRuleData?.numerical) ?? {} });
     };
 
     if (type === 0) {
