@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { useGetUserInfoQuery } from "../../../api/queryHooks";
+import { PopWindow } from "./popWindow";
 
 export function UserDetail({ userId }: { userId: number }) {
   const userQuery = useGetUserInfoQuery(userId);
 
   const user = userQuery.data?.data;
+  const [isEditWindowOpen, setIsEditWindowOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"following" | "followers">("following");
 
   // 状态颜色映射
   const activeStatus = String(user?.activeStatus).toLowerCase() as
@@ -15,6 +19,17 @@ export function UserDetail({ userId }: { userId: number }) {
     busy: "badge-warning",
     away: "badge-accent",
   }[activeStatus ?? "offline"] || "badge-neutral";
+
+  // 在点击处理器中
+  const handleFollowingClick = () => {
+    setActiveTab("following");
+    setIsEditWindowOpen(true);
+  };
+
+  const handleFollowersClick = () => {
+    setActiveTab("followers");
+    setIsEditWindowOpen(true);
+  };
 
   return (
     <div className="card bg-base-100 min-w-[20vw]">
@@ -58,13 +73,20 @@ export function UserDetail({ userId }: { userId: number }) {
                 </div>
               )}
         </div>
+        {/* 关注和粉丝 */}
         <div className="stats bg-base-100 border-base-300 border text-center">
-          <div className="stat place-items-center hover:text-info transition-colors cursor-pointer">
+          <div
+            className="stat place-items-center hover:text-info transition-colors cursor-pointer"
+            onClick={handleFollowingClick}
+          >
             <div className="stat-value">900</div>
             <div className="stat-title text-sm">关注</div>
           </div>
 
-          <div className="stat place-items-center hover:text-info transition-colors cursor-pointer">
+          <div
+            className="stat place-items-center hover:text-info transition-colors cursor-pointer"
+            onClick={handleFollowersClick}
+          >
             <div className="stat-value">400</div>
             <div className="stat-title text-sm">粉丝</div>
           </div>
@@ -97,6 +119,12 @@ export function UserDetail({ userId }: { userId: number }) {
           </div>
         )}
       </div>
+      <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}>
+        <h2 className="text-xl font-bold mb-4">
+          {" "}
+          {activeTab === "following" ? "关注：" : "粉丝："}
+        </h2>
+      </PopWindow>
     </div>
   );
 }
