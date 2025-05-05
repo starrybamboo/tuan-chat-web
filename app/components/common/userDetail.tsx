@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useGetUserInfoQuery } from "../../../api/queryHooks";
+import { FollowButton } from "./Follow/FollowButton";
 import { UserFollower } from "./Follow/Follower";
 import { PopWindow } from "./popWindow";
 
@@ -110,6 +111,7 @@ export function UserDetail({ userId }: { userId: number }) {
             </div>
           )}
         </div>
+        <FollowButton userId={user?.userId || 0} />
 
         {/* 加载错误处理 */}
         {userQuery.isError && (
