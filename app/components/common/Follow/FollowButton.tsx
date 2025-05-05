@@ -34,7 +34,7 @@ export function FollowButton({ userId, status, onStatusChange }: FollowButtonPro
   return (
     <button
       type="button"
-      className="btn btn-primary btn-sm mt-2"
+      className="btn btn-primary btn-sm mt-2 w-20"
       onClick={handleClick}
     >
       {currentStatus === 0 ? "关注" : currentStatus === 1 ? "已关注" : "互相关注"}

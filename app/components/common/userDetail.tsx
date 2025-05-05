@@ -1,3 +1,4 @@
+import { useGlobalContext } from "@/components/globalContextProvider"; // 添加这行导入
 import { useState } from "react";
 import { useGetUserInfoQuery } from "../../../api/queryHooks";
 import { FollowButton } from "./Follow/FollowButton";
@@ -6,6 +7,7 @@ import { PopWindow } from "./popWindow";
 
 export function UserDetail({ userId }: { userId: number }) {
   const userQuery = useGetUserInfoQuery(userId);
+  const globalContext = useGlobalContext(); // 添加这行
 
   const user = userQuery.data?.data;
   const [isEditWindowOpen, setIsEditWindowOpen] = useState(false);
@@ -111,7 +113,11 @@ export function UserDetail({ userId }: { userId: number }) {
             </div>
           )}
         </div>
-        <FollowButton userId={user?.userId || 0} />
+        {
+          user?.userId !== globalContext.userId && (
+            <FollowButton userId={user?.userId || 0} />
+          )
+        }
 
         {/* 加载错误处理 */}
         {userQuery.isError && (
@@ -124,9 +130,6 @@ export function UserDetail({ userId }: { userId: number }) {
         )}
       </div>
       <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}>
-        <h2 className="text-xl font-bold">
-          {activeTab === "following" ? "关注：" : "粉丝："}
-        </h2>
         <UserFollower activeTab={activeTab} userId={userId}></UserFollower>
       </PopWindow>
     </div>

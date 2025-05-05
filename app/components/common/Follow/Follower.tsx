@@ -12,7 +12,7 @@ export function UserFollower({ activeTab, userId }: { activeTab: "following" | "
   // 添加页面状态
   const [pageState, setPageState] = useState({
     current: 1,
-    pageSize: 10,
+    pageSize: 16,
     total: 0,
     isLast: false,
   });
@@ -57,14 +57,16 @@ export function UserFollower({ activeTab, userId }: { activeTab: "following" | "
   };
 
   return (
-    <div className="badge badge-outline">
-      {activeTab === "following" ? "关注列表" : "粉丝列表"}
+    <div className="flex flex-col gap-4 p-4">
+      <h2 className="text-xl font-bold">
+        {activeTab === "following" ? "关注列表：" : "粉丝列表："}
+      </h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
         {userList.map(user => (
-          user.userId && <UserCard key={user.userId} userId={user.userId} status={user.status} />
+          user.userId && <UserCard key={user.userId} userId={user.userId} initialStatus={user.status} />
         ))}
       </div>
-      <div className="join mt-4">
+      <div className="join mt-4 justify-center">
         <button
           type="button"
           className={`join-item btn ${pageState.current <= 1 ? "btn-disabled" : ""}`}
