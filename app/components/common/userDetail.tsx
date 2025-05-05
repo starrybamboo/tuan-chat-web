@@ -1,6 +1,6 @@
 import { useGlobalContext } from "@/components/globalContextProvider"; // 添加这行导入
-import { useEffect, useState } from "react";
-import { useGetUserFollowersMutation, useGetUserFollowingsMutation } from "../../../api/hooks/userFollowQueryHooks";
+import { useState } from "react";
+import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "../../../api/queryHooks";
 import { FollowButton } from "./Follow/FollowButton";
 import { UserFollower } from "./Follow/Follower";
@@ -25,45 +25,21 @@ export function UserDetail({ userId }: { userId: number }) {
   }[activeStatus ?? "offline"] || "badge-neutral";
 
   const [activeTab, setActiveTab] = useState<"following" | "followers">("following");
-  const [followStats, setFollowStats] = useState({ following: 0, followers: 0 });
 
-  // 获取关注和粉丝数据
-  const { mutate: getFollowings } = useGetUserFollowingsMutation();
-  const { mutate: getFollowers } = useGetUserFollowersMutation();
+  const followingsQuery = useGetUserFollowingsQuery(userId, {
+    pageNo: 1,
+    pageSize: 1,
+  });
 
-  useEffect(() => {
-    // 获取关注数据
-    getFollowings({
-      targetUserId: userId,
-      requestBody: {
-        pageNo: 1,
-        pageSize: 1,
-      },
-    }, {
-      onSuccess: (response) => {
-        setFollowStats(prev => ({
-          ...prev,
-          following: response.data?.totalRecords || 0,
-        }));
-      },
-    });
+  const followersQuery = useGetUserFollowersQuery(userId, {
+    pageNo: 1,
+    pageSize: 1,
+  });
 
-    // 获取粉丝数据
-    getFollowers({
-      targetUserId: userId,
-      requestBody: {
-        pageNo: 1,
-        pageSize: 1,
-      },
-    }, {
-      onSuccess: (response) => {
-        setFollowStats(prev => ({
-          ...prev,
-          followers: response.data?.totalRecords || 0,
-        }));
-      },
-    });
-  }, [userId]);
+  const followStats = {
+    following: followingsQuery.data?.data?.totalRecords || 0,
+    followers: followersQuery.data?.data?.totalRecords || 0,
+  };
 
   // 在点击处理器中
   const handleFollowingClick = () => {

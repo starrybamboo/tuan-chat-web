@@ -26,6 +26,8 @@ export function useUserFollowMutation() {
     mutationFn: (targetUserId: number) => tuanchat.userFollowController.follow(targetUserId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({queryKey: ['userIsFollowed',variables]});
+      queryClient.invalidateQueries({queryKey: ['userFollowers',variables]});
+      queryClient.invalidateQueries({queryKey: ['userFollowings',variables]});
     }
   });
 }
@@ -41,6 +43,8 @@ export function useUserUnfollowMutation() {
     mutationFn: (targetUserId: number) => tuanchat.userFollowController.unfollow(targetUserId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({queryKey: ['userIsFollowed',variables]});
+      queryClient.invalidateQueries({queryKey: ['userFollowers',variables]});
+      queryClient.invalidateQueries({queryKey: ['userFollowings',variables]});
     }
   })
 }
@@ -50,11 +54,12 @@ export function useUserUnfollowMutation() {
  * @param targetUserId 目标用户ID
  * @param requestBody 分页请求参数
  */
-export function useGetUserFollowingsMutation() {
-    return useMutation({
-        mutationFn: (params: { targetUserId: number; requestBody: PageBaseRequest }) => 
-            tuanchat.userFollowController.followings(params.targetUserId, params.requestBody)
-    })
+export function useGetUserFollowingsQuery(targetUserId: number, requestBody: PageBaseRequest) {
+    return useQuery({
+        queryKey: ['userFollowings', targetUserId, requestBody],
+        queryFn: () => tuanchat.userFollowController.followings(targetUserId, requestBody),
+        staleTime: 300000, // 5分钟缓存
+    });
 }
 
 /**
@@ -62,9 +67,10 @@ export function useGetUserFollowingsMutation() {
  * @param targetUserId 目标用户ID
  * @param requestBody 分页请求参数
  */
-export function useGetUserFollowersMutation() {
-    return useMutation({
-        mutationFn: (params: { targetUserId: number; requestBody: PageBaseRequest }) => 
-            tuanchat.userFollowController.followers(params.targetUserId, params.requestBody)
-    })
+export function useGetUserFollowersQuery(targetUserId: number, requestBody: PageBaseRequest) {
+    return useQuery({
+        queryKey: ['userFollowers', targetUserId, requestBody],
+        queryFn: () => tuanchat.userFollowController.followers(targetUserId, requestBody),
+        staleTime: 300000, // 5分钟缓存
+    });
 }

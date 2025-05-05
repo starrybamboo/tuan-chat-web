@@ -1,51 +1,27 @@
-// import type { PageBaseRespUserFollowResponse } from "../../../api/models/PageBaseRespUserFollowResponse";
-import type { UserFollowResponse } from "../../../../api/models/UserFollowResponse";
-import { useEffect, useMemo, useState } from "react";
-import { useGetUserFollowersMutation, useGetUserFollowingsMutation } from "../../../../api/hooks/userFollowQueryHooks";
+import { useMemo, useState } from "react";
+import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../../api/hooks/userFollowQueryHooks";
 import { UserCard } from "./UserCard";
 
 export function UserFollower({ activeTab, userId }: { activeTab: "following" | "followers"; userId: number }) {
-  const { mutate: FollowingsMutation } = useGetUserFollowingsMutation();
-  const { mutate: FollowiersMutation } = useGetUserFollowersMutation();
-  const [rawUserList, setRawUserList] = useState<UserFollowResponse[]>([]);
-
-  // 使用 useMemo 存储分页数据
-  const userList = useMemo(() => {
-    return rawUserList.filter(user => user.userId != null);
-  }, [rawUserList]);
-
-  // 添加页面状态
   const [pageState, setPageState] = useState({
     current: 1,
     pageSize: 16,
-    total: 0,
-    isLast: false,
   });
 
-  const getUserList = () => {
-    const mutation = activeTab === "following" ? FollowingsMutation : FollowiersMutation;
+  const followingsQuery = useGetUserFollowingsQuery(userId, {
+    pageNo: pageState.current,
+    pageSize: pageState.pageSize,
+  });
 
-    mutation({
-      targetUserId: userId,
-      requestBody: {
-        pageNo: pageState.current,
-        pageSize: pageState.pageSize,
-      },
-    }, {
-      onSuccess: (response) => {
-        setRawUserList(response.data?.list || []);
-        setPageState(prev => ({
-          ...prev,
-          total: response.data?.totalRecords || 0,
-          isLast: response.data?.isLast || false,
-        }));
-      },
-    });
-  };
+  const followersQuery = useGetUserFollowersQuery(userId, {
+    pageNo: pageState.current,
+    pageSize: pageState.pageSize,
+  });
 
-  useEffect(() => {
-    getUserList();
-  }, [pageState.current]); // 添加 pageState.current 作为依赖
+  const currentQuery = activeTab === "following" ? followingsQuery : followersQuery;
+  const userList = useMemo(() => {
+    return (currentQuery.data?.data?.list || []).filter(user => user.userId != null);
+  }, [currentQuery.data]);
 
   // 添加页面控制函数
   const handlePrevPage = () => {
@@ -55,8 +31,7 @@ export function UserFollower({ activeTab, userId }: { activeTab: "following" | "
   };
 
   const handleNextPage = () => {
-    const maxPage = Math.ceil(pageState.total / pageState.pageSize);
-    if (pageState.current < maxPage) {
+    if (!currentQuery.data?.data?.isLast) {
       setPageState(prev => ({ ...prev, current: prev.current + 1 }));
     }
   };
@@ -91,7 +66,7 @@ export function UserFollower({ activeTab, userId }: { activeTab: "following" | "
         </button>
         <button
           type="button"
-          className={`join-item btn ${pageState.current >= Math.ceil(pageState.total / pageState.pageSize) ? "btn-disabled" : ""}`}
+          className={`join-item btn ${currentQuery.data?.data?.isLast ? "btn-disabled" : ""}`}
           onClick={handleNextPage}
         >
           »
