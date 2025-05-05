@@ -28,7 +28,7 @@ export function UserDetail({ userId }: { userId: number }) {
 
   const followingsQuery = useGetUserFollowingsQuery(userId, {
     pageNo: 1,
-    pageSize: 1,
+    pageSize: 16,
   });
 
   const followersQuery = useGetUserFollowersQuery(userId, {
