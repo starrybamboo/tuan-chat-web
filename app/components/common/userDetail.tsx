@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useGetUserInfoQuery } from "../../../api/queryHooks";
+import { UserFollower } from "./Follow/Follower";
 import { PopWindow } from "./popWindow";
 
 export function UserDetail({ userId }: { userId: number }) {
@@ -7,7 +8,6 @@ export function UserDetail({ userId }: { userId: number }) {
 
   const user = userQuery.data?.data;
   const [isEditWindowOpen, setIsEditWindowOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"following" | "followers">("following");
 
   // 状态颜色映射
   const activeStatus = String(user?.activeStatus).toLowerCase() as
@@ -20,14 +20,16 @@ export function UserDetail({ userId }: { userId: number }) {
     away: "badge-accent",
   }[activeStatus ?? "offline"] || "badge-neutral";
 
+  const [activeTab, setActiveTab] = useState<"following" | "followers">("following");
+
   // 在点击处理器中
   const handleFollowingClick = () => {
-    setActiveTab("following");
+    setActiveTab("following"); // 使用 setState 来更新值
     setIsEditWindowOpen(true);
   };
 
   const handleFollowersClick = () => {
-    setActiveTab("followers");
+    setActiveTab("followers"); // 使用 setState 来更新值
     setIsEditWindowOpen(true);
   };
 
@@ -120,10 +122,10 @@ export function UserDetail({ userId }: { userId: number }) {
         )}
       </div>
       <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}>
-        <h2 className="text-xl font-bold mb-4">
-          {" "}
+        <h2 className="text-xl font-bold">
           {activeTab === "following" ? "关注：" : "粉丝："}
         </h2>
+        <UserFollower activeTab={activeTab} userId={userId}></UserFollower>
       </PopWindow>
     </div>
   );
