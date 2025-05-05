@@ -155,7 +155,9 @@ export function UserDetail({ userId }: { userId: number }) {
         </div>
         {
           user?.userId !== globalContext.userId && (
-            <FollowButton userId={user?.userId || 0} />
+            <div className="flex justify-center">
+              <FollowButton userId={user?.userId || 0} />
+            </div>
           )
         }
 
