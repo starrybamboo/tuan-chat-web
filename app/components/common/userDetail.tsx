@@ -33,7 +33,7 @@ export function UserDetail({ userId }: { userId: number }) {
 
   const followersQuery = useGetUserFollowersQuery(userId, {
     pageNo: 1,
-    pageSize: 1,
+    pageSize: 16,
   });
 
   const followStats = {
