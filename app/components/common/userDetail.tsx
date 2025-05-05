@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "../../../api/queryHooks";
 import { FollowButton } from "./Follow/FollowButton";
-import { UserFollower } from "./Follow/Follower";
+import { UserFollower } from "./Follow/UserFollower";
 import { PopWindow } from "./popWindow";
 
 export function UserDetail({ userId }: { userId: number }) {
