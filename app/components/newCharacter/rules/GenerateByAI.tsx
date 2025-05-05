@@ -1,7 +1,7 @@
 import type { GameRule } from "../types";
 import { useGenerateAbilityByRuleMutation, useGenerateBasicInfoByRuleMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
-import { flattenConstraints } from "./ObjectExpansion";
+import { deepOverrideTargetWithSource, flattenConstraints, wrapIntoNested } from "./ObjectExpansion";
 
 interface GenerateByAIProps {
   ruleId: number;
@@ -30,6 +30,22 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
 
     const handleSuccess = (data: any, isBasic: number) => {
       setDescription("");
+
+      // 用来合并
+      const mergedNumerical: Record<string, any> = {};
+      for (const key in localRuleData?.numerical) {
+        const ignoreKeys = ["0"];
+        if (ignoreKeys.includes(key)) {
+          mergedNumerical[key] = localRuleData?.numerical[key];
+          continue;
+        }
+
+        const base = localRuleData?.numerical[key];
+        const wrappedOverride = wrapIntoNested([key], data.data);
+        mergedNumerical[key] = deepOverrideTargetWithSource(base, wrappedOverride[key]);
+      };
+
+      // 用于上传
       const newRuleData = {
         id,
         name: localRuleData?.name ?? "",
@@ -40,7 +56,7 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
               return acc;
             }, {} as Record<string, string>)
           : localRuleData?.performance ?? {},
-        numerical: isBasic === 2 ? data.data ?? localRuleData?.numerical ?? {} : localRuleData?.numerical ?? data.data ?? {},
+        numerical: isBasic === 2 ? mergedNumerical ?? localRuleData?.numerical ?? {} : localRuleData?.numerical ?? data.data ?? {},
       };
       onLocalRuleDataChange(newRuleData);
       updateFiledAbility({ abilityId: id, act: newRuleData?.performance, ability: flattenConstraints(newRuleData?.numerical) ?? {} });
