@@ -15,19 +15,13 @@ export function FollowButton({ userId, status, onStatusChange }: FollowButtonPro
   const handleClick = () => {
     if (currentStatus === 0) {
       // 未关注状态，执行关注操作
-      followUser(userId, {
-        onSuccess: () => {
-          onStatusChange?.(1); // 更新为已关注状态
-        },
-      });
+      followUser(userId);
+      onStatusChange?.(1);
     }
     else if (currentStatus === 1 || currentStatus === 2) {
       // 已关注或互相关注状态，执行取消关注操作
-      unfollowUser(userId, {
-        onSuccess: () => {
-          onStatusChange?.(0); // 更新为未关注状态
-        },
-      });
+      unfollowUser(userId);
+      onStatusChange?.(0);
     }
   };
 
