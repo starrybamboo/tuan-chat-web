@@ -9,7 +9,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Create() {
   return (
-    <div className="h-screen bg-base-200">
+    <div className="h-screen bg-base-200 overflow-auto">
       <p>create</p>
     </div>
   );

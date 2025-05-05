@@ -1,6 +1,6 @@
 import RoomWindow from "@/components/chat/roomWindow";
 import SpaceWindow from "@/components/chat/spaceWindow";
-import MemberInviteComponent from "@/components/common/memberInvite";
+import MemberInfoComponent from "@/components/common/memberInfo";
 import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { UserDetail } from "@/components/common/userDetail";
@@ -96,7 +96,7 @@ export default function RoomSelect() {
       spaceName,
       ruleId: selectedRuleId,
     }, {
-      onSettled: () => {
+      onSuccess: () => {
         setIsSpaceHandleOpen(false);
       },
     });
@@ -408,7 +408,7 @@ export default function RoomSelect() {
                         setSelectedUserIds(newSet);
                       }}
                     />
-                    <MemberInviteComponent userId={player.userId ?? -1} />
+                    <MemberInfoComponent userId={player.userId ?? -1} />
                   </div>
                 ));
               })()}

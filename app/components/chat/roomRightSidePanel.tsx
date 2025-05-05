@@ -7,6 +7,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import React, { use, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { useAddRoomMemberMutation, useAddRoomRoleMutation, useGetRoomRoleQuery } from "../../../api/hooks/chatQueryHooks";
 
 export default function RoomRightSidePanel() {
@@ -31,6 +32,7 @@ export default function RoomRightSidePanel() {
     }, {
       onSettled: () => {
         setIsRoleHandleOpen(false);
+        toast("添加角色成功");
       },
     });
   };
@@ -42,6 +44,7 @@ export default function RoomRightSidePanel() {
     }, {
       onSettled: () => {
         setIsMemberHandleOpen(false);
+        toast("添加成员成功");
       },
     });
   }

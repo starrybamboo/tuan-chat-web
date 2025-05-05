@@ -1,10 +1,10 @@
 import { useGetUserInfoQuery } from "api/queryHooks";
 
-interface MemberInviteProps {
+interface MemberInfoProps {
   userId: number;
 }
 
-export default function MemberInviteComponent({ userId }: MemberInviteProps) {
+export default function MemberInfoComponent({ userId }: MemberInfoProps) {
   const userQuery = useGetUserInfoQuery(userId);
   const userInfo = userQuery.data?.data;
 

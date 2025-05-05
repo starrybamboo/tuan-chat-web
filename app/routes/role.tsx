@@ -10,7 +10,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Role() {
   return (
-    <div className="h-screen bg-base-200">
+    <div className="h-screen bg-base-200 overflow-auto">
       <CharacterMain />
     </div>
   );
