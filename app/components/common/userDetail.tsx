@@ -147,7 +147,14 @@ export function UserDetail({ userId }: { userId: number }) {
           </div>
         )}
       </div>
-      <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}>
+      <PopWindow
+        isOpen={isEditWindowOpen}
+        onClose={() => {
+          setIsEditWindowOpen(false);
+          followingsQuery.refetch();
+          followersQuery.refetch();
+        }}
+      >
         <UserFollower activeTab={activeTab} userId={userId}></UserFollower>
       </PopWindow>
     </div>
