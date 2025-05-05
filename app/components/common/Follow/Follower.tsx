@@ -1,13 +1,18 @@
 // import type { PageBaseRespUserFollowResponse } from "../../../api/models/PageBaseRespUserFollowResponse";
 import type { UserFollowResponse } from "../../../../api/models/UserFollowResponse";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useGetUserFollowersMutation, useGetUserFollowingsMutation } from "../../../../api/hooks/userFollowQueryHooks";
 import { UserCard } from "./UserCard";
 
 export function UserFollower({ activeTab, userId }: { activeTab: "following" | "followers"; userId: number }) {
   const { mutate: FollowingsMutation } = useGetUserFollowingsMutation();
   const { mutate: FollowiersMutation } = useGetUserFollowersMutation();
-  const [userList, setUserList] = useState<UserFollowResponse[]>([]);
+  const [rawUserList, setRawUserList] = useState<UserFollowResponse[]>([]);
+
+  // 使用 useMemo 存储分页数据
+  const userList = useMemo(() => {
+    return rawUserList.filter(user => user.userId != null);
+  }, [rawUserList]);
 
   // 添加页面状态
   const [pageState, setPageState] = useState({
@@ -28,7 +33,7 @@ export function UserFollower({ activeTab, userId }: { activeTab: "following" | "
       },
     }, {
       onSuccess: (response) => {
-        setUserList(response.data?.list || []);
+        setRawUserList(response.data?.list || []);
         setPageState(prev => ({
           ...prev,
           total: response.data?.totalRecords || 0,
@@ -40,7 +45,7 @@ export function UserFollower({ activeTab, userId }: { activeTab: "following" | "
 
   useEffect(() => {
     getUserList();
-  }, []);
+  }, [pageState.current]); // 添加 pageState.current 作为依赖
 
   // 添加页面控制函数
   const handlePrevPage = () => {
