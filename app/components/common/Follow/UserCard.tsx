@@ -1,11 +1,12 @@
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
+import { FollowButton } from "./FollowButton";
 
 interface UserCardProps {
   userId: number;
   status?: number; // 将 status 设为可选属性，因为可能不是所有场景都需要
 }
 
-export function UserCard({ userId, status = 0 }: UserCardProps) { // 为 status 提供默认值
+export function UserCard({ userId, status = 0 }: UserCardProps) {
   const userInfoQuery = useGetUserInfoQuery(userId);
   const userInfo = userInfoQuery.data?.data;
 
@@ -33,9 +34,13 @@ export function UserCard({ userId, status = 0 }: UserCardProps) { // 为 status 
                   userInfo?.username || "未知用户"
                 )}
           </h3>
-          <button type="button" className="btn btn-primary btn-sm mt-2">
-            {status === 0 ? "关注" : status === 1 ? "已关注" : "互相关注"}
-          </button>
+          <FollowButton
+            userId={userId}
+            status={status}
+            onStatusChange={(newStatus) => {
+              status = newStatus;
+            }}
+          />
         </div>
       </div>
     </div>
