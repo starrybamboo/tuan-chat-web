@@ -28,7 +28,7 @@ function UserCard({ className }: { className?: string }) {
   ];
 
   const classNameMap = {
-    created: "text-primary",
+    created: "text-success",
     saved: "text-warning",
   };
 
@@ -47,7 +47,7 @@ function UserCard({ className }: { className?: string }) {
       <div className="stats shadow basis-2/5 flex-wrap">
         {
           cardSections.map(section => (
-            <div className="stat h-24 hover:bg-neutral-content hover:cursor-pointer" key={section.key}>
+            <div className="stat h-full hover:bg-neutral-content hover:cursor-pointer" key={section.key}>
               <div className={`stat-title mx-auto text-[1rem] ${classNameMap[section.key as keyof typeof classNameMap]}`}>
                 {section.label}
               </div>

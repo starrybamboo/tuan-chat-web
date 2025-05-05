@@ -2,6 +2,7 @@ import type { Route } from "../+types/home";
 import Carousel from "@/components/module/carousel";
 import ModuleCard from "@/components/module/moduleCard";
 import UserCard from "@/components/module/userCard";
+import { useModuleListQuery } from "api/hooks/moduleQueryHooks";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -12,7 +13,7 @@ export function meta(_args: Route.MetaArgs) {
 
 function ModuleCardContainer({ children }: { children: React.ReactNode }) {
   return (
-    <div className="basis-1/3 min-h-32">
+    <div className="basis-[calc(25%-0.5625rem)] min-h-96">
       {children}
     </div>
   );
@@ -29,6 +30,10 @@ export default function Home() {
       alt: "image2",
     },
   ];
+  const { data: moduleList, isSuccess } = useModuleListQuery({
+    pageNo: 1,
+    pageSize: 10,
+  });
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)] bg-base-100 overflow-x-hidden">
@@ -37,13 +42,17 @@ export default function Home() {
           <Carousel className="basis-[80%] rounded-md shrink-0 grow shadow-md" items={data} />
           <UserCard className="basis-[20%] rounded-md shrink-0 grow-0 overflow-hidden bg-base-200 shadow-md" />
         </div>
-        <div className="w-full flex flex-wrap gap-10px">
+        <div className="w-full flex flex-wrap gap-3">
           {
-            [1].map(i => (
-              <ModuleCardContainer key={i}>
-                <ModuleCard />
-              </ModuleCardContainer>
-            ))
+            isSuccess
+              ? moduleList.data!.list!.map((item) => {
+                  return (
+                    <ModuleCardContainer key={item.moduleId}>
+                      <ModuleCard id={item.moduleId!} />
+                    </ModuleCardContainer>
+                  );
+                })
+              : undefined
           }
         </div>
       </div>
