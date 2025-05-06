@@ -135,6 +135,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               onChange={(e) => {
                 setFormData(prev => ({ ...prev, name: e.target.value }));
               }}
+              placeholder="请输入空间名称..."
             />
           </div>
           <div className="mb-4">
