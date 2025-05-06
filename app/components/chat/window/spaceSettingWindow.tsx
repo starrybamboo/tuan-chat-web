@@ -143,10 +143,12 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
             </label>
             <textarea
               value={formData.description}
-              className="input w-full min-h-[100px] pt-2"
+              className="textarea w-full min-h-[100px]"
               onChange={(e) => {
                 setFormData(prev => ({ ...prev, description: e.target.value }));
               }}
+              rows={4}
+              placeholder="请输入空间描述..."
             />
           </div>
           <div className="mb-4">
