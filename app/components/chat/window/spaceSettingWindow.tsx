@@ -7,6 +7,7 @@ import {
   useGetSpaceInfoQuery,
   useGetSpaceMembersQuery,
   useTransferOwnerMutation,
+  useUpdateSpaceArchiveStatusMutation,
   useUpdateSpaceMutation,
 } from "api/hooks/chatQueryHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
@@ -34,6 +35,12 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
 
   // 处理用户uid
   const [inputUserId, setInputUserId] = useState<number>(-1);
+
+  // 空间归档状态
+  const [isArchived, setIsArchived] = useState(space?.status === 2);
+
+  // 设置归档状态
+  const updateAchiveStatusMutation = useUpdateSpaceArchiveStatusMutation();
 
   // 转让空间
   const transferOwnerMutation = useTransferOwnerMutation();
@@ -87,7 +94,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="w-full p-4 min-w-[40vw]">
+    <div className="w-full p-4 min-w-[40vw] max-h-[80vh] overflow-y-scroll">
       {space && (
         <div>
           <div className="flex justify-center">
@@ -170,10 +177,28 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
           <div className="flex justify-between mt-16">
             <button
               type="button"
-              className="btn btn-ghost"
-              onClick={handleClose}
+              className="btn btn-error"
+              onClick={() => dissolveSpaceMutation.mutate(spaceId, {
+                onSuccess: () => {
+                  onClose();
+                  navigate("/chat");
+                },
+              })}
             >
-              保存并关闭
+              解散空间
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary w-24"
+              onClick={() => {
+                updateAchiveStatusMutation.mutate({ spaceId, archived: !isArchived }, {
+                  onSuccess: () => {
+                    setIsArchived(!isArchived);
+                  },
+                });
+              }}
+            >
+              {isArchived ? "取消归档" : "归档"}
             </button>
             <button
               type="button"
@@ -184,15 +209,10 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
             </button>
             <button
               type="button"
-              className="btn btn-error"
-              onClick={() => dissolveSpaceMutation.mutate(spaceId, {
-                onSuccess: () => {
-                  onClose();
-                  navigate("/chat");
-                },
-              })}
+              className="btn btn-success"
+              onClick={handleClose}
             >
-              解散空间
+              保存并关闭
             </button>
           </div>
           <PopWindow isOpen={isMembersListHandleOpen} onClose={() => setIsMembersListHandleOpen(false)}>
