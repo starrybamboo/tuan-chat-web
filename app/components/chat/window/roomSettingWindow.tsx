@@ -90,6 +90,7 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
               onChange={(e) => {
                 setFormData(prev => ({ ...prev, name: e.target.value }));
               }}
+              placeholder="请输入房间名称..."
             />
           </div>
           <div className="mb-4">
@@ -98,10 +99,12 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
             </label>
             <textarea
               value={formData.description}
-              className="input w-full min-h-[100px] pt-2"
+              className="textarea w-full min-h-[100px]"
               onChange={(e) => {
                 setFormData(prev => ({ ...prev, description: e.target.value }));
               }}
+              rows={4}
+              placeholder="请输入房间描述..."
             />
           </div>
           <div className="flex justify-between mt-16">
