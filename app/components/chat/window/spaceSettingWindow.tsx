@@ -1,4 +1,5 @@
 import { SpaceContext } from "@/components/chat/spaceContext";
+import ConfirmModal from "@/components/common/comfirmModel";
 import MemberInfoComponent from "@/components/common/memberInfo";
 import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
@@ -7,15 +8,16 @@ import {
   useGetSpaceInfoQuery,
   useGetSpaceMembersQuery,
   useTransferOwnerMutation,
+  useUpdateSpaceArchiveStatusMutation,
   useUpdateSpaceMutation,
 } from "api/hooks/chatQueryHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
-import { use, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router";
 
 function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
-  const spaceContext = use(SpaceContext);
+  const spaceContext = React.use(SpaceContext);
   const spaceId = Number(spaceContext.spaceId);
   const getSpaceInfoQuery = useGetSpaceInfoQuery(spaceId ?? -1);
   const space = getSpaceInfoQuery.data?.data;
@@ -34,6 +36,12 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
 
   // 处理用户uid
   const [inputUserId, setInputUserId] = useState<number>(-1);
+
+  // 空间归档状态
+  const [isArchived, setIsArchived] = useState(space?.status === 2);
+
+  // 设置归档状态
+  const updateAchiveStatusMutation = useUpdateSpaceArchiveStatusMutation();
 
   // 转让空间
   const transferOwnerMutation = useTransferOwnerMutation();
@@ -86,8 +94,13 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     handleSave();
   };
 
+  // 新增状态，控制更新归档状态的确认弹窗显示
+  const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
+  // 新增状态，控制删除群组的确认弹窗显示
+  const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = useState(false);
+
   return (
-    <div className="w-full p-4 min-w-[40vw]">
+    <div className="w-full p-4 min-w-[40vw] max-h-[80vh] overflow-y-scroll">
       {space && (
         <div>
           <div className="flex justify-center">
@@ -104,8 +117,8 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                   className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
                 />
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
-                  <span className="text-white font-medium px-2 py-1 rounded">
-                    更新群头像
+                  <span className="font-bold text-black px-2 py-1 rounded">
+                    更新头像
                   </span>
                 </div>
               </div>
@@ -122,6 +135,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               onChange={(e) => {
                 setFormData(prev => ({ ...prev, name: e.target.value }));
               }}
+              placeholder="请输入空间名称..."
             />
           </div>
           <div className="mb-4">
@@ -130,10 +144,12 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
             </label>
             <textarea
               value={formData.description}
-              className="input w-full min-h-[100px] pt-2"
+              className="textarea w-full min-h-[100px]"
               onChange={(e) => {
                 setFormData(prev => ({ ...prev, description: e.target.value }));
               }}
+              rows={4}
+              placeholder="请输入空间描述..."
             />
           </div>
           <div className="mb-4">
@@ -170,10 +186,17 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
           <div className="flex justify-between mt-16">
             <button
               type="button"
-              className="btn btn-ghost"
-              onClick={handleClose}
+              className="btn btn-error"
+              onClick={() => setIsDissolveConfirmOpen(true)} // 点击按钮打开删除群组的确认弹窗
             >
-              保存并关闭
+              解散空间
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary w-24"
+              onClick={() => setIsArchiveConfirmOpen(true)} // 点击按钮打开更新归档状态的确认弹窗
+            >
+              {isArchived ? "取消归档" : "归档"}
             </button>
             <button
               type="button"
@@ -184,15 +207,10 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
             </button>
             <button
               type="button"
-              className="btn btn-error"
-              onClick={() => dissolveSpaceMutation.mutate(spaceId, {
-                onSuccess: () => {
-                  onClose();
-                  navigate("/chat");
-                },
-              })}
+              className="btn btn-success"
+              onClick={handleClose}
             >
-              解散空间
+              保存并关闭
             </button>
           </div>
           <PopWindow isOpen={isMembersListHandleOpen} onClose={() => setIsMembersListHandleOpen(false)}>
@@ -239,6 +257,37 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               </div>
             </div>
           </PopWindow>
+          {/* 渲染更新归档状态的确认弹窗 */}
+          <ConfirmModal
+            isOpen={isArchiveConfirmOpen}
+            onClose={() => setIsArchiveConfirmOpen(false)}
+            title="确认更新归档状态"
+            message={`是否确定要${isArchived ? "取消归档" : "归档"}该空间？`}
+            onConfirm={() => {
+              updateAchiveStatusMutation.mutate({ spaceId, archived: !isArchived }, {
+                onSuccess: () => {
+                  setIsArchived(!isArchived);
+                  setIsArchiveConfirmOpen(false);
+                },
+              });
+            }}
+          />
+          {/* 渲染删除群组的确认弹窗 */}
+          <ConfirmModal
+            isOpen={isDissolveConfirmOpen}
+            onClose={() => setIsDissolveConfirmOpen(false)}
+            title="确认解散空间"
+            message="是否确定要解散该空间？此操作不可逆。"
+            onConfirm={() => {
+              dissolveSpaceMutation.mutate(spaceId, {
+                onSuccess: () => {
+                  onClose();
+                  navigate("/chat");
+                  setIsDissolveConfirmOpen(false);
+                },
+              });
+            }}
+          />
         </div>
       )}
     </div>

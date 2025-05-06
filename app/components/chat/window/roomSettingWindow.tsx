@@ -1,4 +1,5 @@
 import { RoomContext } from "@/components/chat/roomContext";
+import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import {
   useDissolveRoomMutation,
@@ -7,6 +8,7 @@ import {
 } from "api/hooks/chatQueryHooks";
 import { use, useState } from "react";
 import { useNavigate } from "react-router";
+import RenderWindow from "./renderWindow";
 
 function RoomSettingWindow({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
@@ -18,6 +20,8 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
   // 解散群组
   const dissolveRoomMutation = useDissolveRoomMutation();
   const updateRoomMutation = useUpdateRoomMutation();
+  // 渲染对话
+  const [isRenderWindowOpen, setIsRenderWindowOpen] = useState(false);
 
   // 使用状态管理表单数据
   const [formData, setFormData] = useState({
@@ -72,8 +76,8 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
                   className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
                 />
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
-                  <span className="text-white font-medium px-2 py-1 rounded">
-                    更新房间头像
+                  <span className="font-bold text-black px-2 py-1 rounded">
+                    更新头像
                   </span>
                 </div>
               </div>
@@ -90,6 +94,7 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
               onChange={(e) => {
                 setFormData(prev => ({ ...prev, name: e.target.value }));
               }}
+              placeholder="请输入房间名称..."
             />
           </div>
           <div className="mb-4">
@@ -98,10 +103,12 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
             </label>
             <textarea
               value={formData.description}
-              className="input w-full min-h-[100px] pt-2"
+              className="textarea w-full min-h-[100px]"
               onChange={(e) => {
                 setFormData(prev => ({ ...prev, description: e.target.value }));
               }}
+              rows={4}
+              placeholder="请输入房间描述..."
             />
           </div>
           <div className="flex justify-between mt-16">
@@ -111,6 +118,14 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
               onClick={handleClose}
             >
               保存并关闭
+            </button>
+            <button
+              className="btn btn-primary"
+              type="button"
+              onClick={() => setIsRenderWindowOpen(true)}
+              disabled={isRenderWindowOpen}
+            >
+              渲染对话
             </button>
             <button
               type="button"
@@ -127,6 +142,10 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       )}
+      {/* 渲染设置窗口 */}
+      <PopWindow isOpen={isRenderWindowOpen} onClose={() => setIsRenderWindowOpen(false)}>
+        <RenderWindow></RenderWindow>
+      </PopWindow>
     </div>
   );
 }
