@@ -10,7 +10,6 @@ import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
-import RenderWindow from "@/components/chat/window/renderWindow";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
@@ -73,8 +72,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const curMember = useMemo(() => {
     return members.find(member => member.userId === userId);
   }, [members, userId]);
-
-  const [isRenderWindowOpen, setIsRenderWindowOpen] = useState(false);
 
   // Context
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
@@ -304,9 +301,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   </div>
 
                   <div className="flex gap-2">
-                    <button className="btn" type="button" onClick={() => setIsRenderWindowOpen(true)} disabled={isRenderWindowOpen}>
-                      渲染对话
-                    </button>
                     <label className="swap w-30 btn">
                       <input type="checkbox" />
                       <div className="swap-on" onClick={() => setUseChatBubbleStyle(false)}>Use Chat Bubble Style</div>
@@ -316,7 +310,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     <button
                       type="button"
                       className="btn btn-primary"
-                      disabled={!(inputText.trim() || imgFiles.length) || isRenderWindowOpen || isSubmitting}
+                      disabled={!(inputText.trim() || imgFiles.length) || isSubmitting}
                       onClick={handleMessageSubmit}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -335,10 +329,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       {/* 设置窗口 */}
       <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
         <RoomSettingWindow onClose={() => setIsSettingWindowOpen(false)}></RoomSettingWindow>
-      </PopWindow>
-      {/* 渲染设置窗口 */}
-      <PopWindow isOpen={isRenderWindowOpen} onClose={() => setIsRenderWindowOpen(false)}>
-        <RenderWindow></RenderWindow>
       </PopWindow>
     </RoomContext>
   );

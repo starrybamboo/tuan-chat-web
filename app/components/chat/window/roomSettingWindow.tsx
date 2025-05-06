@@ -1,4 +1,5 @@
 import { RoomContext } from "@/components/chat/roomContext";
+import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import {
   useDissolveRoomMutation,
@@ -7,6 +8,7 @@ import {
 } from "api/hooks/chatQueryHooks";
 import { use, useState } from "react";
 import { useNavigate } from "react-router";
+import RenderWindow from "./renderWindow";
 
 function RoomSettingWindow({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
@@ -18,6 +20,8 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
   // 解散群组
   const dissolveRoomMutation = useDissolveRoomMutation();
   const updateRoomMutation = useUpdateRoomMutation();
+  // 渲染对话
+  const [isRenderWindowOpen, setIsRenderWindowOpen] = useState(false);
 
   // 使用状态管理表单数据
   const [formData, setFormData] = useState({
@@ -116,6 +120,14 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
               保存并关闭
             </button>
             <button
+              className="btn btn-primary"
+              type="button"
+              onClick={() => setIsRenderWindowOpen(true)}
+              disabled={isRenderWindowOpen}
+            >
+              渲染对话
+            </button>
+            <button
               type="button"
               className="btn btn-error"
               onClick={() => dissolveRoomMutation.mutate(roomId, {
@@ -130,6 +142,10 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       )}
+      {/* 渲染设置窗口 */}
+      <PopWindow isOpen={isRenderWindowOpen} onClose={() => setIsRenderWindowOpen(false)}>
+        <RenderWindow></RenderWindow>
+      </PopWindow>
     </div>
   );
 }
