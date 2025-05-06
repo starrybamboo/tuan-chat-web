@@ -118,7 +118,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                 />
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
                   <span className="font-bold text-black px-2 py-1 rounded">
-                    更新群头像
+                    更新头像
                   </span>
                 </div>
               </div>

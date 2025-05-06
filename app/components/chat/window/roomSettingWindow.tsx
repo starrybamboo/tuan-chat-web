@@ -76,8 +76,8 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
                   className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
                 />
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
-                  <span className="text-white font-medium px-2 py-1 rounded">
-                    更新房间头像
+                  <span className="font-bold text-black px-2 py-1 rounded">
+                    更新头像
                   </span>
                 </div>
               </div>
