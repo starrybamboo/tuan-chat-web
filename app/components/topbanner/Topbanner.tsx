@@ -22,13 +22,13 @@ export default function Topbar() {
   }
 
   return (
-    <div className="w-full h-14 flex items-center justify-between px-4 bg-base-300 shrink-0">
-      {/* 左侧 */}
-      <div className="flex items-center space-x-6">
+    <div className="navbar bg-base-300">
+      {/* 左侧导航区域 */}
+      <div className="navbar-start">
         <img
           src="http://47.119.147.6/tuan/favicon.ico"
           alt="Logo"
-          className="h-8 w-8 mr-4"
+          className="h-8 w-8 mr-4 ml-2"
           onClick={() => navigate("/")}
         />
 
@@ -58,27 +58,23 @@ export default function Topbar() {
         </a>
       </div>
 
-      {/* 右侧 */}
-      <div className="flex items-center space-x-6">
+      {/* 右侧用户区域 */}
+      <div className="navbar-end gap-2">
         <ThemeSwitch />
         {isLoggedIn
           ? (
               <div className="dropdown dropdown-end">
-                <div className="flex items-center content-center gap-2">
-                  <div onClick={() => navigate("/profile")} className="flex items-center content-center gap-2">
-                    <UserAvatarComponent
-                      userId={userId || 1}
-                      width={8}
-                      isRounded={true}
-                      withName={true}
-                      stopPopWindow={true}
-                    />
-                  </div>
-                  <div tabIndex={0} role="button" className="cursor-pointer">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="m6 9 6 6 6-6" />
-                    </svg>
-                  </div>
+                <div tabIndex={0} role="button" className="btn btn-ghost flex items-center gap-2">
+                  <UserAvatarComponent
+                    userId={userId || 1}
+                    width={8}
+                    isRounded={true}
+                    withName={true}
+                    stopPopWindow={true}
+                  />
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
                 </div>
                 <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
                   <li><a onClick={() => navigate("/profile")}>个人中心</a></li>

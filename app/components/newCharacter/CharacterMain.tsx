@@ -11,7 +11,7 @@ export default function CharacterMain() {
   // 获取用户数据
   const userId = useGlobalContext().userId;
   const roleQuery = useGetUserRolesQuery(userId ?? -1);
-  const { roles, initializeRoles, setRoles } = useRolesInitialization(roleQuery);
+  const { roles, initializeRoles, setRoles, isLoading } = useRolesInitialization(roleQuery);
 
   // 状态管理
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
@@ -35,10 +35,6 @@ export default function CharacterMain() {
         console.error("删除角色失败");
         return undefined;
       }
-    },
-    onSuccess: () => {
-      initializeRoles();
-      roleQuery.refetch();
     },
     onError: (error) => {
       console.error("Mutation failed:", error);
@@ -156,27 +152,47 @@ export default function CharacterMain() {
               onClick={handleCreate}
               title="创建新角色"
             >
-              <span className="text-xl">+</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor" // 使用当前文字颜色
+                strokeWidth="3" // 线条粗细
+                strokeLinecap="round" // 线条端点样式
+                strokeLinejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
             </button>
           </div>
 
           {/* 角色列表 */}
           <div className="space-y-2 overflow-y-auto flex-1 h-0 pb-16">
-            {filteredRoles.map(role => (
-              <RoleListItem
-                key={role.id}
-                role={role}
-                isSelected={selectedRoleId === role.id}
-                onSelect={() => {
-                  setSelectedRoleId(role.id);
-                  setIsEditing(false);
-                  const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
-                  if (drawerCheckbox)
-                    drawerCheckbox.checked = false;
-                }}
-                onDelete={() => handleDelete(role.id)}
-              />
-            ))}
+            {isLoading
+              ? (
+                  <div className="flex justify-center items-center h-full">
+                    <span className="loading loading-spinner loading-lg"></span>
+                  </div>
+                )
+              : (
+                  filteredRoles.map(role => (
+                    <RoleListItem
+                      key={role.id}
+                      role={role}
+                      isSelected={selectedRoleId === role.id}
+                      onSelect={() => {
+                        setSelectedRoleId(role.id);
+                        setIsEditing(false);
+                        const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
+                        if (drawerCheckbox)
+                          drawerCheckbox.checked = false;
+                      }}
+                      onDelete={() => handleDelete(role.id)}
+                    />
+                  ))
+                )}
           </div>
         </div>
       </div>
@@ -231,8 +247,7 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
 }) {
   return (
     <div
-      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group max-h-20 max-w-[18rem] ${
-        isSelected ? "bg-base-100" : "hover:bg-base-100"
+      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group max-h-20 max-w-[18rem] ${isSelected ? "bg-base-100" : "hover:bg-base-100"
       }`}
       onClick={onSelect}
     >
@@ -257,13 +272,23 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
       </div>
       <button
         type="button"
-        className="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100"
+        className="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100 hover:bg-base-300 rounded-full p-1 hover:[&>svg]:stroke-error"
         onClick={(e) => {
           e.stopPropagation();
           onDelete();
         }}
       >
-        ✕
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
       </button>
     </div>
   );
@@ -277,7 +302,12 @@ function MobileDrawerToggle() {
         htmlFor="character-drawer"
         className="btn btn-square btn-ghost"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block w-6 h-6 stroke-current">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          className="inline-block w-6 h-6 stroke-current"
+        >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
         </svg>
       </label>

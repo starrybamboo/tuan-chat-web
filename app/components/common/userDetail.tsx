@@ -1,9 +1,17 @@
+import { useGlobalContext } from "@/components/globalContextProvider"; // 添加这行导入
+import { useEffect, useState } from "react";
+import { useGetUserFollowersMutation, useGetUserFollowingsMutation } from "../../../api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "../../../api/queryHooks";
+import { FollowButton } from "./Follow/FollowButton";
+import { UserFollower } from "./Follow/Follower";
+import { PopWindow } from "./popWindow";
 
 export function UserDetail({ userId }: { userId: number }) {
   const userQuery = useGetUserInfoQuery(userId);
+  const globalContext = useGlobalContext(); // 添加这行
 
   const user = userQuery.data?.data;
+  const [isEditWindowOpen, setIsEditWindowOpen] = useState(false);
 
   // 状态颜色映射
   const activeStatus = String(user?.activeStatus).toLowerCase() as
@@ -15,6 +23,58 @@ export function UserDetail({ userId }: { userId: number }) {
     busy: "badge-warning",
     away: "badge-accent",
   }[activeStatus ?? "offline"] || "badge-neutral";
+
+  const [activeTab, setActiveTab] = useState<"following" | "followers">("following");
+  const [followStats, setFollowStats] = useState({ following: 0, followers: 0 });
+
+  // 获取关注和粉丝数据
+  const { mutate: getFollowings } = useGetUserFollowingsMutation();
+  const { mutate: getFollowers } = useGetUserFollowersMutation();
+
+  useEffect(() => {
+    // 获取关注数据
+    getFollowings({
+      targetUserId: userId,
+      requestBody: {
+        pageNo: 1,
+        pageSize: 1,
+      },
+    }, {
+      onSuccess: (response) => {
+        setFollowStats(prev => ({
+          ...prev,
+          following: response.data?.totalRecords || 0,
+        }));
+      },
+    });
+
+    // 获取粉丝数据
+    getFollowers({
+      targetUserId: userId,
+      requestBody: {
+        pageNo: 1,
+        pageSize: 1,
+      },
+    }, {
+      onSuccess: (response) => {
+        setFollowStats(prev => ({
+          ...prev,
+          followers: response.data?.totalRecords || 0,
+        }));
+      },
+    });
+  }, [userId]);
+
+  // 在点击处理器中
+  const handleFollowingClick = () => {
+    setActiveTab("following"); // 使用 setState 来更新值
+    setIsEditWindowOpen(true);
+  };
+
+  const handleFollowersClick = () => {
+    setActiveTab("followers"); // 使用 setState 来更新值
+    setIsEditWindowOpen(true);
+  };
 
   return (
     <div className="card bg-base-100 min-w-[20vw]">
@@ -58,7 +118,24 @@ export function UserDetail({ userId }: { userId: number }) {
                 </div>
               )}
         </div>
+        {/* 关注和粉丝 */}
+        <div className="stats bg-base-100 border-base-300 border text-center">
+          <div
+            className="stat place-items-center hover:text-info transition-colors cursor-pointer"
+            onClick={handleFollowingClick}
+          >
+            <div className="stat-value">{followStats.following}</div>
+            <div className="stat-title text-sm">关注</div>
+          </div>
 
+          <div
+            className="stat place-items-center hover:text-info transition-colors cursor-pointer"
+            onClick={handleFollowersClick}
+          >
+            <div className="stat-value">{followStats.followers}</div>
+            <div className="stat-title text-sm">粉丝</div>
+          </div>
+        </div>
         {/* 详细信息 */}
         <div className="divider"></div>
         <div className="space-y-2">
@@ -76,6 +153,13 @@ export function UserDetail({ userId }: { userId: number }) {
             </div>
           )}
         </div>
+        {
+          user?.userId !== globalContext.userId && (
+            <div className="flex justify-center">
+              <FollowButton userId={user?.userId || 0} />
+            </div>
+          )
+        }
 
         {/* 加载错误处理 */}
         {userQuery.isError && (
@@ -87,6 +171,9 @@ export function UserDetail({ userId }: { userId: number }) {
           </div>
         )}
       </div>
+      <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}>
+        <UserFollower activeTab={activeTab} userId={userId}></UserFollower>
+      </PopWindow>
     </div>
   );
 }

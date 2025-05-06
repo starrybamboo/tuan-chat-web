@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useState } from "react";
 import { PopWindow } from "../common/popWindow";
-import { ImgUploaderWithCopper } from "../common/uploader/imgUploaderWithCopper";
+import { CharacterCopper } from "./CharacterCopper";
 
 export default function CharacterAvatar({ role, onchange }: {
   role: Role;
@@ -217,7 +217,7 @@ export default function CharacterAvatar({ role, onchange }: {
                       />
                       {/* 删除按钮  */}
                       <button
-                        className="absolute -top-2 -right-2 w-7 h-7 bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800"
+                        className="absolute -top-2 -right-2 w-7 h-7 bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800 z-2"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteAvatar(index);
@@ -235,7 +235,7 @@ export default function CharacterAvatar({ role, onchange }: {
                   </li>
                 ))}
                 <li className="relative w-full max-w-[128px] aspect-square flex flex-col items-center rounded-lg transition-colors">
-                  <ImgUploaderWithCopper
+                  <CharacterCopper
                     setDownloadUrl={() => { }}
                     setCopperedDownloadUrl={setCopperedUrl}
                     fileName={uniqueFileName}
@@ -259,7 +259,7 @@ export default function CharacterAvatar({ role, onchange }: {
                         />
                       </svg>
                     </button>
-                  </ImgUploaderWithCopper>
+                  </CharacterCopper>
                 </li>
               </div>
             </div>
