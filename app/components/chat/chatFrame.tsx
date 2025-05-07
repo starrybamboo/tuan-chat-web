@@ -342,7 +342,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         </div>
       )
       );
-    })), [historyMessages, isSelecting]);
+    })), [historyMessages, isSelecting, selectedMessageIds]);
 
   return (
     <>
