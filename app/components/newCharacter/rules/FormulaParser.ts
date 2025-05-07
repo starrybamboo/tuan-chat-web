@@ -38,6 +38,16 @@ export class FormulaParser {
       }
       return args[0] ? args[1] : args[2];
     },
+    cond: (args: number[]) => {
+      if (args.length < 3 || args.length % 2 !== 1) {
+        throw new Error("BA ↑ KA ↓ cond函数需要奇数个参数~ cond(条件1,值1,...,默认值)，果然是杂鱼♡");
+      }
+      for (let i = 0; i < args.length - 1; i += 2) {
+        if (args[i])
+          return args[i + 1];
+      }
+      return args[args.length - 1];
+    },
   };
 
   // 运算优先级
@@ -83,9 +93,6 @@ export class FormulaParser {
   }
 
   private static parseFunction(token: string, args: number[]): number {
-    if (!this.isFunction(token)) {
-      throw new TypeError(`Unknown function: ${token}`);
-    }
     return this.functions[token](args);
   }
 
