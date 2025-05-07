@@ -130,7 +130,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               {/* 消息内容 */}
               <div className="flex-1">
                 {/* 角色名 */}
-                <div className={`text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`} onClick={handleRoleNameClick}>
+                <div className={`text-sm font-semibold cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`} onClick={handleRoleNameClick}>
                   {role?.roleName?.trim() || "Undefined"}
                 </div>
                 {renderedContent}
