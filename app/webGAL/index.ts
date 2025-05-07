@@ -5,12 +5,11 @@ import {
   readDir,
   readTextFile,
 } from "./fileOperator";
-import { createPreview, editScene } from "./game";
+import { editScene } from "./game";
 import { Renderer } from "./renderer";
 
 export {
   checkGameExist,
-  createPreview,
   editScene,
   readDir,
   readTextFile,

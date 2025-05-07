@@ -1,6 +1,7 @@
 import type { GameRule } from "../types";
-import { useGenerateAbilityByRuleMutation, useGenerateBasicInfoByRuleMutation } from "api/hooks/abilityQueryHooks";
+import { useGenerateAbilityByRuleMutation, useGenerateBasicInfoByRuleMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
+import { deepOverrideTargetWithSource, flattenConstraints, wrapIntoNested } from "./ObjectExpansion";
 
 interface GenerateByAIProps {
   ruleId: number;
@@ -17,6 +18,9 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
   const { mutate: generateBasicInfoByRule } = useGenerateBasicInfoByRuleMutation();
   const { mutate: generateAbilityByRule } = useGenerateAbilityByRuleMutation();
 
+  // 提交接口
+  const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
+
   // 编辑状态过渡
   const [isTransitioning, setIsTransitioning] = useState(false);
 
@@ -24,21 +28,38 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
     setIsTransitioning(true);
     const id = localRuleData?.id || 0;
 
-    const handleSuccess = (data: any, isBasic: boolean) => {
+    const handleSuccess = (data: any, isBasic: number) => {
       setDescription("");
+
+      // 用来合并
+      const mergedNumerical: Record<string, any> = {};
+      for (const key in localRuleData?.numerical) {
+        const ignoreKeys = ["0"];
+        if (ignoreKeys.includes(key)) {
+          mergedNumerical[key] = localRuleData?.numerical[key];
+          continue;
+        }
+
+        const base = localRuleData?.numerical[key];
+        const wrappedOverride = wrapIntoNested([key], data.data);
+        mergedNumerical[key] = deepOverrideTargetWithSource(base, wrappedOverride[key]);
+      };
+
+      // 用于上传
       const newRuleData = {
         id,
         name: localRuleData?.name ?? "",
         description: localRuleData?.description ?? "",
-        performance: isBasic
+        performance: isBasic === 1
           ? Object.entries(data.data || {}).reduce((acc, [key, value]) => {
               acc[key] = typeof value === "object" ? JSON.stringify(value) : String(value);
               return acc;
             }, {} as Record<string, string>)
           : localRuleData?.performance ?? {},
-        numerical: isBasic ? data.data ?? localRuleData?.numerical ?? {} : data.data ?? localRuleData?.numerical ?? {},
+        numerical: isBasic === 2 ? mergedNumerical ?? localRuleData?.numerical ?? {} : localRuleData?.numerical ?? data.data ?? {},
       };
       onLocalRuleDataChange(newRuleData);
+      updateFiledAbility({ abilityId: id, act: newRuleData?.performance, ability: flattenConstraints(newRuleData?.numerical) ?? {} });
     };
 
     if (type === 0) {
@@ -46,7 +67,7 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
         { ruleId, prompt: description },
         {
           onSuccess: (data) => {
-            handleSuccess(data, true);
+            handleSuccess(data, 1);
             setIsTransitioning(false);
           },
           onError: () => {
@@ -59,7 +80,7 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
         { ruleId, prompt: description },
         {
           onSuccess: (data) => {
-            handleSuccess(data, true);
+            handleSuccess(data, 2);
             setIsTransitioning(false);
           },
           onError: () => {
@@ -74,7 +95,7 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
         { ruleId, prompt: description },
         {
           onSuccess: (data) => {
-            handleSuccess(data, true);
+            handleSuccess(data, 1);
             setIsTransitioning(false);
           },
           onError: () => {
@@ -89,7 +110,7 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
         { ruleId, prompt: description },
         {
           onSuccess: (data) => {
-            handleSuccess(data, true);
+            handleSuccess(data, 2);
             setIsTransitioning(false);
           },
           onError: () => {

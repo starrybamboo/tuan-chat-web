@@ -9,7 +9,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Settings() {
   return (
-    <div className="h-screen bg-base-200">
+    <div className="h-screen bg-base-200 overflow-auto">
       settings
     </div>
   );

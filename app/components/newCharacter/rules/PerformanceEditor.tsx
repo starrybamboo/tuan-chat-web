@@ -233,6 +233,7 @@ export default function PerformanceEditor({
                       </svg>
                     </button>
                   </div>
+
                 )
               : (
             // 非编辑模式下的UI
