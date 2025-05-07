@@ -323,7 +323,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
 
     return `${attr}检定：D100=${roll}/${value} ${result}`;
   }
-
   /**
    *先攻 args[0] 如果不能被解析成骰子表达式，则视为角色名；args[1]在args[0]为角色名的时候可以作为骰子表达式
    */
@@ -477,12 +476,9 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
   }
 
   /**
-   * 解析骰子表达式 (如1d6, 2d10, 3等)
+   * 解析单个的骰子表达式 (如1d6, 2d10, 3等)，并返回结果和可能的最大值与最小值
    */
-  function parseDiceExpression(expr: string): {
-    value: number;
-    possibleValues: number[];
-  } {
+  function parseDiceExpression(expr: string): { value: number; possibleValues: number[] } {
     // 固定值
     if (!expr.includes("d")) {
       const value = Number.parseInt(expr);
@@ -497,7 +493,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     // 骰子表达式
     const [countStr, sidesStr] = expr.split("d");
     const count = countStr ? Number.parseInt(countStr) : 1;
-    const sides = Number.parseInt(sidesStr);
+    const sides = sidesStr ? Number.parseInt(sidesStr) : defaultDice.current;
 
     if (Number.isNaN(count) || Number.isNaN(sides) || count < 1 || sides < 1) {
       throw new Error(`无效的骰子表达式: ${expr}`);
@@ -508,7 +504,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     const max = count * sides;
     const possibleValues = Array.from({ length: max - min + 1 }, (_, i) => min + i);
 
-    // 随机一个值
     let value = 0;
     for (let i = 0; i < count; i++) {
       value += rollDice(sides);
@@ -519,7 +514,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
       possibleValues,
     };
   }
-
   function rollDice(sides: number): number {
     return Math.floor(Math.random() * sides) + 1;
   }
