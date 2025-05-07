@@ -30,6 +30,46 @@ function Tags({ tags }: { tags: string[] }) {
   );
 }
 
+function Author() {
+  // const { data, isSuccess } = useAuthordQuery(authordId);
+  const data = {
+    name: "格黑娜",
+    avatar: "https://imagebucket-1322308688.cos.ap-tokyo.myqcloud.com/picnia/image/65d2fa0e1c42c75df8dd3713.jpg",
+    description: "欢迎关注我!",
+  };
+
+  return (
+    <div className="card bg-base-200 shadow-xl w-full">
+      <div className="card-body p-4">
+        <div className="flex flex-col gap-4 items-start">
+          <div className="flex gap-4">
+            <img className="w-16 h-16 rounded-full object-cover" src={data.avatar} />
+            <div className="flex flex-col justify-between">
+              <h3 className="card-title text-lg">{data.name}</h3>
+              <button type="button" className="btn btn-primary rounded-md h-7">
+                关注
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-base-content/80">{data.description}</p>
+          </div>
+          <div className="divider m-0"></div>
+          <div className="flex w-full justify-evenly">
+            <button type="button" className="btn btn-primary rounded-md">
+              使用模组
+            </button>
+            <button type="button" className="btn btn-accent rounded-md">
+              克隆模组
+            </button>
+          </div>
+          <div className="divider m-0"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ModuleDetail() {
   // const { id } = useParams();
   // const { data, isSuccess } = useModuleDetailQuery(Number(id));
@@ -57,7 +97,7 @@ function ModuleDetail() {
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)] bg-base-100 overflow-x-hidden">
-      <div className="mx-auto max-w-[1280px] px-4 py-[10px]">
+      <div className="mx-auto max-w-[1380px] px-4 py-[10px]">
         <div className="w-full mb-8">
           <div
             className="text-lg text-base-content cursor-pointer hover:underline hover:underline-offset-4"
@@ -66,43 +106,62 @@ function ModuleDetail() {
             返回
           </div>
         </div>
-        <div className="flex bg-base-100 gap-4">
-          {/* 图片部分 */}
-          <div className="basis-[30%] min-h-[250px] aspect-square">
-            <img className="w-full h-full object-cover rounded-md" src={data.image} />
-          </div>
-          {/* 信息以及操作部分 */}
-          <div className="basis-[70%] flex flex-col gap-4">
-            {/* 模组名称 */}
-            <h1 className="text-2xl px-4 mb-2 font-bold text-primary">
-              {data.moduleName}
-            </h1>
-            {/* 模组简介 */}
-            <div className="p-4 bg-base-200 rounded-box">
-              <h2 className="text-base-content text-xl">
-                简介
-              </h2>
-              <p>
-                {data.discription}
-              </p>
-            </div>
-            <div className="flex p-4 bg-base-200 rounded-box">
-              {/* 其他的模组信息 */}
-              <div className="flex flex-col basis-2/5">
-                {infos.map(info => (
-                  <Info key={info.label} label={info.label} value={info.value} />
-                ))}
+        {/* 修改主要内容区域的布局 */}
+        <div className="flex gap-8">
+          {/* 左侧主要内容区域 */}
+          <div className="flex-grow">
+            <div className="flex bg-base-100 gap-4">
+
+              <div className="basis-[30%] relative">
+                <img
+                  className="absolute aspect-square object-cover rounded-md"
+                  src={data.image}
+                />
               </div>
-              <div className="divider divider-horizontal m-0"></div>
-              {/* 模组的标签 */}
-              <div className="flex pl-2 flex-col gap-1 basis-3/5">
-                <h2 className="text-base-content text-l w-full">
-                  标签
-                </h2>
-                <div className="flex gap-2 flex-wrap">
-                  <Tags tags={data.tags} />
+
+              <div className="basis-[70%] flex flex-col gap-4">
+                {/* 模组名称 */}
+                <h1 className="text-2xl px-4 mb-2 font-bold text-primary">
+                  {data.moduleName}
+                </h1>
+
+                {/* 模组简介 */}
+                <div className="p-4 bg-base-200 rounded-box shadow-md">
+                  <h2 className="text-base-content text-xl">
+                    简介
+                  </h2>
+                  <p>
+                    {data.discription}
+                  </p>
+                </div>
+
+                <div className="flex p-4 bg-base-200 rounded-box shadow-lg">
+                  {/* 其他的模组信息 */}
+                  <div className="flex flex-col basis-1/2">
+                    {infos.map(info => (
+                      <Info key={info.label} label={info.label} value={info.value} />
+                    ))}
+                  </div>
+                  <div className="divider divider-horizontal m-0"></div>
+
+                  {/* 模组的标签 */}
+                  <div className="flex pl-2 flex-col gap-1 basis-1/2">
+                    <h2 className="text-base-content text-l w-full">
+                      标签
+                    </h2>
+                    <div className="flex gap-2 flex-wrap">
+                      <Tags tags={data.tags} />
+                    </div>
+                  </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* 右侧作者信息卡片 */}
+          <div className="w-72 shrink-0 mt-[calc(var(--spacing)*14)]">
+            <div className="sticky top-4">
+              <Author />
             </div>
           </div>
         </div>
