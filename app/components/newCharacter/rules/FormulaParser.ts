@@ -19,6 +19,8 @@ export class FormulaParser {
     "<=": (a: number, b: number) => a <= b ? 1 : 0,
     "==": (a: number, b: number) => a === b ? 1 : 0,
     "!=": (a: number, b: number) => a !== b ? 1 : 0,
+    "&&": (a: number, b: number) => a && b ? 1 : 0, // 新增 AND 运算符
+    "||": (a: number, b: number) => a || b ? 1 : 0, // 新增 OR 运算符
   };
 
   private static functions: Record<string, (args: number[]) => number> = {
@@ -52,22 +54,24 @@ export class FormulaParser {
 
   // 运算优先级
   private static precedence: Record<string, number> = {
-    ">": 0,
-    "<": 0,
-    ">=": 0,
-    "<=": 0,
-    "==": 0,
-    "!=": 0,
-    "+": 1,
-    "-": 1,
-    "*": 2,
-    "/": 2,
-    "%": 2,
-    "^": 3,
+    "||": -1, // OR 优先级最低
+    "&&": 0, // AND 优先级高于 OR
+    ">": 1,
+    "<": 1,
+    ">=": 1,
+    "<=": 1,
+    "==": 1,
+    "!=": 1,
+    "+": 2,
+    "-": 2,
+    "*": 3,
+    "/": 3,
+    "%": 3,
+    "^": 4,
   };
 
   private static isComparisonOperator(token: string): boolean {
-    return [">", "<", ">=", "<=", "==", "!="].includes(token);
+    return [">", "<", ">=", "<=", "==", "!=", "&&", "||"].includes(token);
   }
 
   private static isOperator(token: string): boolean {
@@ -109,8 +113,8 @@ export class FormulaParser {
 
     // 匹配数字、运算符、函数名、变量名和括号
     const tokens: string[] = [];
-    // 分别匹配函数名 中文变量名 数字 分隔符 运算符
-    const regex = /([a-z_]+)|([\u4E00-\u9FA5]+)|(\d+(?:\.\d+)?)|(,)|(>=|<=|==|!=|>|<)|([+\-*/%^()])/gi;
+    // 添加对 && 和 || 的匹配
+    const regex = /([a-z_]+)|([\u4E00-\u9FA5]+)|(\d+(?:\.\d+)?)|(,)|(>=|<=|==|!=|&&|\|\||>|<)|([+\-*/%^()])/gi;
 
     let match;
     // eslint-disable-next-line no-cond-assign
