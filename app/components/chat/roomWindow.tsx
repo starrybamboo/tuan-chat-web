@@ -39,7 +39,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   const [inputText, setInputText] = useState("");
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
-  const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(true);
   const uploadUtils = new UploadUtils(2);
 
   // 承载聊天记录窗口的ref
@@ -63,6 +62,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const roleAvatarQuery = useGetRoleAvatarsQuery(curRoleId ?? -1);
   const roleAvatars = useMemo(() => roleAvatarQuery.data?.data ?? [], [roleAvatarQuery.data?.data]);
   const curAvatarId = roleAvatars[curAvatarIndex]?.avatarId || -1;
+
+  const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(localStorage.getItem("useChatBubbleStyle") === "true");
+  useEffect(() => {
+    localStorage.setItem("useChatBubbleStyle", useChatBubbleStyle.toString());
+  }, [useChatBubbleStyle]);
+
   // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(roomId);
   const members: RoomMember[] = useMemo(() => {

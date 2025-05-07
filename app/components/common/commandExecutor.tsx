@@ -76,6 +76,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
         case "st": return handleSt(args);
         case "rc": return handleRc(args);
         case "ri": return handleRi(args);
+        case "sc": return handleSc(args);
         default: return `未知命令 ${cmdPart}`;
       }
     }
@@ -83,7 +84,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
       return `执行错误：${e instanceof Error ? e.message : String(e)}`;
     }
   }
-
   /**
    *解析骰子表达式
    * @const
@@ -323,7 +323,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
 
     return `${attr}检定：D100=${roll}/${value} ${result}`;
   }
-
   /**
    *先攻 args[0] 如果不能被解析成骰子表达式，则视为角色名；args[1]在args[0]为角色名的时候可以作为骰子表达式
    */
@@ -384,6 +383,137 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     }
   }
 
+  /**
+   * 处理理智检定指令
+   * 格式: .sc[成功损失]/[失败损失] ([当前san值])
+   */
+  function handleSc(args: string[]): string {
+    // 解析参数
+    const [lossExpr, currentSanArg] = args;
+
+    // 获取当前san值，优先使用参数，其次从角色卡获取
+    let currentSan: number;
+    if (currentSanArg) {
+      currentSan = Number.parseInt(currentSanArg);
+      if (Number.isNaN(currentSan)) {
+        throw new TypeError("无效的当前san值");
+      }
+    }
+    else {
+      if (!curAbility?.ability)
+        throw new Error("未设置角色属性");
+      currentSan = curAbility.ability["san值"] || curAbility.ability.san;
+      if (currentSan === undefined)
+        throw new Error("角色卡中没有设置san值");
+    }
+
+    // 解析损失表达式
+    const [successLossStr, failureLossStr] = lossExpr.split("/");
+    if (!successLossStr || !failureLossStr) {
+      throw new Error("损失表达式格式错误，应为[成功损失]/[失败损失]");
+    }
+
+    // 解析成功和失败的损失值
+    const successLoss = parseDiceExpression(successLossStr);
+    const failureLoss = parseDiceExpression(failureLossStr);
+
+    // 进行理智检定
+    const roll = rollDice(100);
+    let result: string;
+    let actualLoss: number;
+
+    // 大成功判定
+    if (roll <= 5) {
+      actualLoss = Math.max(...failureLoss.possibleValues); // 大失败时失去最大san值
+      result = "大成功";
+    }
+    // 大失败判定
+    else if (roll >= 96) {
+      actualLoss = Math.max(...successLoss.possibleValues); // 大成功时失去最小san值
+      result = "大失败";
+    }
+    // 普通成功
+    else if (roll <= currentSan) {
+      actualLoss = successLoss.value;
+      result = "成功";
+    }
+    // 普通失败
+    else {
+      actualLoss = failureLoss.value;
+      result = "失败";
+    }
+
+    // 计算新san值
+    const newSan = currentSan - actualLoss;
+
+    // 更新角色卡中的san值
+    if (curAbility) {
+      const ability = { ...curAbility.ability };
+      ability["san值"] = newSan;
+      ability.san = newSan;
+
+      if (curAbility.abilityId) {
+        updateAbilityMutation.mutate({
+          abilityId: curAbility.abilityId,
+          ability,
+          act: {},
+        });
+      }
+      else {
+        setAbilityMutation.mutate({
+          roleId,
+          ruleId,
+          act: {},
+          ability,
+        });
+      }
+    }
+
+    // 构建返回信息
+    return `理智检定：D100=${roll}/${currentSan} ${result}\n`
+      + `损失san值：${actualLoss}\n`
+      + `当前san值：${newSan}`;
+  }
+
+  /**
+   * 解析单个的骰子表达式 (如1d6, 2d10, 3等)，并返回结果和可能的最大值与最小值
+   */
+  function parseDiceExpression(expr: string): { value: number; possibleValues: number[] } {
+    // 固定值
+    if (!expr.includes("d")) {
+      const value = Number.parseInt(expr);
+      if (Number.isNaN(value))
+        throw new Error(`无效的骰子表达式: ${expr}`);
+      return {
+        value,
+        possibleValues: [value],
+      };
+    }
+
+    // 骰子表达式
+    const [countStr, sidesStr] = expr.split("d");
+    const count = countStr ? Number.parseInt(countStr) : 1;
+    const sides = sidesStr ? Number.parseInt(sidesStr) : defaultDice.current;
+
+    if (Number.isNaN(count) || Number.isNaN(sides) || count < 1 || sides < 1) {
+      throw new Error(`无效的骰子表达式: ${expr}`);
+    }
+
+    // 计算可能的值范围
+    const min = count;
+    const max = count * sides;
+    const possibleValues = Array.from({ length: max - min + 1 }, (_, i) => min + i);
+
+    let value = 0;
+    for (let i = 0; i < count; i++) {
+      value += rollDice(sides);
+    }
+
+    return {
+      value,
+      possibleValues,
+    };
+  }
   function rollDice(sides: number): number {
     return Math.floor(Math.random() * sides) + 1;
   }

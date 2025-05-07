@@ -24,7 +24,7 @@ export default function Topbar() {
   return (
     <div className="navbar bg-base-300">
       {/* 左侧导航区域 */}
-      <div className="navbar-start">
+      <div className="navbar-start gap-4">
         <img
           src="http://47.119.147.6/tuan/favicon.ico"
           alt="Logo"

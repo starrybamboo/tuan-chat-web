@@ -12,7 +12,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
-import React, { use, useEffect, useMemo, useRef, useState } from "react";
+import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useDeleteMessageMutation,
   useUpdateMessageMutation,
@@ -162,7 +162,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   // before代表拖拽到元素上半，after代表拖拽到元素下半
   const dropPositionRef = useRef<"before" | "after">("before");
   const curDragOverMessageRef = useRef<HTMLDivElement | null>(null);
-  function checkPosition(e: React.DragEvent<HTMLDivElement>) {
+  const checkPosition = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     if (dragStartMessageIdRef.current === -1) {
       return;
     }
@@ -185,8 +185,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     indicatorRef.current?.remove();
     curDragOverMessageRef.current?.appendChild(indicator);
     indicatorRef.current = indicator;
-  }
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+  }, []);
+  const handleDragStart = useCallback ((e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.stopPropagation();
     e.dataTransfer.effectAllowed = "move";
     dragStartMessageIdRef.current = historyMessages[index].message.messageID;
@@ -213,7 +213,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     document.body.appendChild(clone);
     e.dataTransfer.setDragImage(clone, 0, 0);
     setTimeout(() => document.body.removeChild(clone));
-  };
+  }, [chatFrameRef, historyMessages, isSelecting, selectedMessageIds.size]);
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     // e.stopPropagation();
@@ -342,7 +342,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         </div>
       )
       );
-    })), [handleDrop, historyMessages, isSelecting, messageRef, selectedMessageIds, useChatBubbleStyle]);
+    })), [historyMessages, isSelecting, selectedMessageIds]);
 
   return (
     <>
