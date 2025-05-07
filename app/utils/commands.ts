@@ -28,7 +28,7 @@ export const diceCommands: command[] = [
   {
     name: "sc",
     importance: 2,
-    description: "理智检定（例：.sc 1/1d6 成功扣1，失败扣1d6；支持多阶段.sc 0/1d3+1/1d10）",
+    description: "理智检定（例：.sc 1/1d6 成功扣1，失败扣1d6）",
   },
   {
     name: "ri",
