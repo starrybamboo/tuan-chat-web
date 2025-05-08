@@ -1,4 +1,5 @@
 import { RoomContext } from "@/components/chat/roomContext";
+import checkBack from "@/components/common/autoContrastText";
 import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import {
@@ -6,7 +7,7 @@ import {
   useGetRoomInfoQuery,
   useUpdateRoomMutation,
 } from "api/hooks/chatQueryHooks";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import RenderWindow from "./renderWindow";
 
@@ -29,6 +30,21 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
     description: room?.description || "",
     avatar: room?.avatar || "",
   });
+
+  // 头像文字颜色
+  const [avatarTextColor, setAvatarTextColor] = useState("text-black");
+
+  // 监听头像变化，自动调整文字颜色
+  useEffect(() => {
+    if (formData.avatar) {
+      checkBack(formData.avatar).then(() => {
+        const computedColor = getComputedStyle(document.documentElement)
+          .getPropertyValue("--text-color")
+          .trim();
+        setAvatarTextColor(computedColor === "white" ? "text-white" : "text-black");
+      });
+    }
+  }, [formData.avatar]);
 
   // 当room数据加载时初始化formData
   if (room && formData.name === "" && formData.description === "" && formData.avatar === "") {
@@ -76,7 +92,7 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
                   className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
                 />
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
-                  <span className="font-bold text-black px-2 py-1 rounded">
+                  <span className={`${avatarTextColor} font-bold px-2 py-1 rounded`}>
                     更新头像
                   </span>
                 </div>

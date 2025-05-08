@@ -1,4 +1,5 @@
 import { SpaceContext } from "@/components/chat/spaceContext";
+import checkBack from "@/components/common/autoContrastText";
 import ConfirmModal from "@/components/common/comfirmModel";
 import MemberInfoComponent from "@/components/common/memberInfo";
 import { PopWindow } from "@/components/common/popWindow";
@@ -12,7 +13,7 @@ import {
   useUpdateSpaceMutation,
 } from "api/hooks/chatQueryHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
 function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
@@ -43,6 +44,29 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   // 设置归档状态
   const updateAchiveStatusMutation = useUpdateSpaceArchiveStatusMutation();
 
+  // 使用状态管理表单数据
+  const [formData, setFormData] = useState({
+    name: space?.name || "",
+    description: space?.description || "",
+    avatar: space?.avatar || "",
+    ruleId: space?.ruleId || 1,
+  });
+
+  // 头像文字颜色
+  const [avatarTextColor, setAvatarTextColor] = useState("text-black");
+
+  // 监听头像变化，自动调整文字颜色
+  useEffect(() => {
+    if (formData.avatar) {
+      checkBack(formData.avatar).then(() => {
+        const computedColor = getComputedStyle(document.documentElement)
+          .getPropertyValue("--text-color")
+          .trim();
+        setAvatarTextColor(computedColor === "white" ? "text-white" : "text-black");
+      });
+    }
+  }, [formData.avatar]);
+
   // 转让空间
   const transferOwnerMutation = useTransferOwnerMutation();
   async function transferOwner(userId: number) {
@@ -52,14 +76,6 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       },
     });
   }
-
-  // 使用状态管理表单数据
-  const [formData, setFormData] = useState({
-    name: space?.name || "",
-    description: space?.description || "",
-    avatar: space?.avatar || "",
-    ruleId: space?.ruleId || 1,
-  });
 
   // 当space数据加载时初始化formData
   if (space && formData.name === "" && formData.description === "" && formData.avatar === "") {
@@ -117,7 +133,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                   className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
                 />
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
-                  <span className="font-bold text-black px-2 py-1 rounded">
+                  <span className={`${avatarTextColor} font-bold px-2 py-1 rounded`}>
                     更新头像
                   </span>
                 </div>
