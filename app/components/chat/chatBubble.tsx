@@ -4,7 +4,7 @@ import ForwardMessage from "@/components/chat/forwardMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import BetterImg from "@/components/common/betterImg";
-import { EditableField } from "@/components/common/editableFiled";
+import { EditableField } from "@/components/common/editableField";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";

@@ -302,6 +302,13 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     }
     updateSelectedMessageIds(new Set());
   }
+  function handleEditMessage(messageId: number) {
+    const target = document.querySelector(
+      `[data-message-id="${messageId}"]`,
+    ) as HTMLElement;
+    // console.log(target);
+    target.dispatchEvent(new Event("doubleClick"));
+  }
   // 关闭右键菜单
   function closeContextMenu() {
     setContextMenu(null);
@@ -445,7 +452,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
                     <a
                       onClick={(e) => {
                         e.preventDefault();
-                        toggleBackground(contextMenu.messageId);
+                        handleEditMessage(contextMenu.messageId);
                         closeContextMenu();
                       }}
                     >

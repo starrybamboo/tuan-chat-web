@@ -1,5 +1,6 @@
 import type { RenderProps } from "@/components/chat/window/renderWindow";
 
+import { getCurTimeStamp } from "@/utils/dataUtil";
 import { terreApis } from "@/webGAL/index";
 
 import type { ChatMessageResponse } from "../../api";
@@ -37,7 +38,7 @@ export class Renderer {
   constructor(roomId: number, renderProp: RenderProps) {
     this.roomId = roomId;
     this.game = {
-      name: `preview_${roomId}_${new Date().toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" }).replace(/[/\s,:]/g, "-")}`,
+      name: `preview_${roomId}_${getCurTimeStamp()}`,
       description: `This is game preview of ${roomId}`,
     };
     this.renderProps = renderProp;
