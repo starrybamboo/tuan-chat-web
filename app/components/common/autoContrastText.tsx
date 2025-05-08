@@ -64,7 +64,6 @@ export default async function checkBack(img: string) {
     c4.height = 16;
     const ctx4 = c4.getContext("2d");
 
-    // Add null check for ctx4
     if (!ctx4) {
       setFontColor("black");
       resolve(false);

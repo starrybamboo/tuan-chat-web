@@ -44,6 +44,9 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   // 设置归档状态
   const updateAchiveStatusMutation = useUpdateSpaceArchiveStatusMutation();
 
+  // 用于强制重置上传组件
+  const [uploaderKey, setUploaderKey] = useState(0);
+
   // 使用状态管理表单数据
   const [formData, setFormData] = useState({
     name: space?.name || "",
@@ -66,6 +69,12 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
       });
     }
   }, [formData.avatar]);
+
+  const handleAvatarUpdate = (url: string) => {
+    setFormData(prev => ({ ...prev, avatar: url }));
+    // 上传完成后强制重置上传组件
+    setUploaderKey(prev => prev + 1);
+  };
 
   // 转让空间
   const transferOwnerMutation = useTransferOwnerMutation();
@@ -110,9 +119,9 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     handleSave();
   };
 
-  // 新增状态，控制更新归档状态的确认弹窗显示
+  // 控制更新归档状态的确认弹窗显示
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
-  // 新增状态，控制删除群组的确认弹窗显示
+  // 控制删除群组的确认弹窗显示
   const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = useState(false);
 
   return (
@@ -121,9 +130,8 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
         <div>
           <div className="flex justify-center">
             <ImgUploaderWithCopper
-              setCopperedDownloadUrl={(url) => {
-                setFormData(prev => ({ ...prev, avatar: url }));
-              }}
+              key={uploaderKey}
+              setCopperedDownloadUrl={handleAvatarUpdate}
               fileName={`spaceId-${space.spaceId}`}
             >
               <div className="relative group overflow-hidden rounded-lg">
