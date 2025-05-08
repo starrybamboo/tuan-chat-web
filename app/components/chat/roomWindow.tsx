@@ -10,10 +10,8 @@ import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
-import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
-import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -218,11 +216,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     setCurAvatarIndex(0);
   };
 
-  /**
-   *  群组设置(鳩)
-   */
-  const [isSettingWindowOpen, setIsSettingWindowOpen] = useState(false);
-
   return (
     <RoomContext value={roomContext}>
       <div className="flex flex-row p-6 gap-4 w-full min-w-0 h-full">
@@ -230,9 +223,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         <div className="flex-1 min-w-[480px] flex flex-col h-full">
           {/* 聊天框 */}
           <div className="card bg-base-100 shadow-sm flex-1 relative">
-            <button type="button" className="btn btn-ghost absolute top-0 right-0 z-50" onClick={() => { setIsSettingWindowOpen(true); }}>
-              设置
-            </button>
             <ChatFrame useChatBubbleStyle={useChatBubbleStyle} chatFrameRef={chatFrameRef}></ChatFrame>
           </div>
           {/* 输入区域 */}
@@ -331,10 +321,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         {/* 成员与角色展示框 */}
         <RoomRightSidePanel></RoomRightSidePanel>
       </div>
-      {/* 设置窗口 */}
-      <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
-        <RoomSettingWindow onClose={() => setIsSettingWindowOpen(false)}></RoomSettingWindow>
-      </PopWindow>
     </RoomContext>
   );
 }
