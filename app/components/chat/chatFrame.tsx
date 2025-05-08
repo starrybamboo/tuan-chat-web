@@ -417,7 +417,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
                 closeContextMenu();
               }}
               >
-                选择
+                多选
               </a>
             </li>
             {
@@ -440,7 +440,19 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
             {(() => {
               const message = historyMessages.find(message => message.message.messageID === contextMenu.messageId);
               if (!message || message.message.messageType !== 2) {
-                return null;
+                return (
+                  <li>
+                    <a
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleBackground(contextMenu.messageId);
+                        closeContextMenu();
+                      }}
+                    >
+                      编辑文本
+                    </a>
+                  </li>
+                );
               }
               return (
                 <li>
