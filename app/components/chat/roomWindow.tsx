@@ -1,9 +1,10 @@
+import type { commandModeType } from "@/components/chat/commandPanel";
 import type { RoomContextType } from "@/components/chat/roomContext";
+
 import type {
   ChatMessageRequest,
   RoomMember,
 } from "../../../api";
-
 import ChatFrame from "@/components/chat/chatFrame";
 import CommandPanel from "@/components/chat/commandPanel";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
@@ -15,6 +16,7 @@ import useCommandExecutor, { isCommand } from "@/components/common/commandExecut
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { CommandSolid, DiceTwentyFacesTwenty, GalleryBroken } from "@/icons";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
@@ -41,6 +43,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   // 承载聊天记录窗口的ref
   const chatFrameRef = useRef<HTMLDivElement>(document.createElement("div"));
+
+  const [commandMode, setCommandMode] = useState<commandModeType>("none");
 
   // 聊天框中包含的图片
   const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
@@ -107,7 +111,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const handleMessageSubmit = async () => {
     setIsSubmitting(true);
     if (!inputText.trim() && !imgFiles.length) {
@@ -216,6 +219,19 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     setCurAvatarIndex(0);
   };
 
+  const handleTextInputChange = (newInput: string) => {
+    setInputText(newInput);
+    if (newInput.startsWith("%")) {
+      setCommandMode("webgal");
+    }
+    else if (newInput.startsWith(".") || newInput.startsWith("。")) {
+      setCommandMode("dice");
+    }
+    else {
+      setCommandMode("none");
+    }
+  };
+
   return (
     <RoomContext value={roomContext}>
       <div className="flex flex-row p-6 gap-4 w-full min-w-0 h-full">
@@ -251,7 +267,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               </div>
 
               <div className="flex-1 flex flex-col min-w-0">
-                <CommandPanel prefix={inputText} handleSelectCommand={handleSelectCommand}></CommandPanel>
+                <CommandPanel prefix={inputText} handleSelectCommand={handleSelectCommand} commandMode={commandMode}></CommandPanel>
                 {/* 图片显示 */}
                 {imgFiles.length > 0 && (
                   <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
@@ -266,13 +282,17 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   </div>
                 )}
                 {/* text input */}
+                <div className="flex flex-row gap-2 pl-3">
+                  <DiceTwentyFacesTwenty className="w-6 h-6 cursor-pointer hover:text-info"></DiceTwentyFacesTwenty>
+                  <CommandSolid className="w-6 h-6 cursor-pointer hover:text-info"></CommandSolid>
+                </div>
                 <textarea
                   className="textarea w-full flex-1 min-h-[80px] max-h-[200px] resize-none border-none focus:outline-none focus:ring-0"
                   placeholder={curRoleId <= 0
                     ? "请先在群聊里拉入你的角色，之后才能发送消息。"
                     : (curAvatarId <= 0 ? "请给你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)")}
                   value={inputText}
-                  onChange={e => setInputText(e.target.value)}
+                  onChange={e => handleTextInputChange(e.target.value)}
                   onKeyDown={handleKeyDown}
                   onPaste={async e => handlePaste(e)}
                 />
@@ -281,17 +301,18 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     {/* 角色选择器 */}
                     <div className="dropdown dropdown-top">
                       <div tabIndex={0} role="button" className="btn m-1">选择角色 ⬆️</div>
-                      <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto">
+                      <ul
+                        tabIndex={0}
+                        className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
+                      >
                         <RoleChooser handleRoleChange={handleRoleChange}></RoleChooser>
                       </ul>
                     </div>
-                    <ImgUploader setImg={newImg => updateImgFiles((draft) => { draft.push(newImg); })}>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-600 hover:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        {/* 图片框 */}
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2-2h4l2 2h4a2 2 0 012 2v10a2 2 0 01-2 2H5z" />
-                        {/* 山峰图形 */}
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l-3-3m0 0l3-3m-3 3h6" />
-                      </svg>
+                    <ImgUploader setImg={newImg => updateImgFiles((draft) => {
+                      draft.push(newImg);
+                    })}
+                    >
+                      <GalleryBroken className="w-10 h-10 cursor-pointer hover:text-info"></GalleryBroken>
                     </ImgUploader>
                   </div>
 
@@ -308,8 +329,19 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       disabled={!(inputText.trim() || imgFiles.length) || isSubmitting}
                       onClick={handleMessageSubmit}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                        />
                       </svg>
                     </button>
                   </div>

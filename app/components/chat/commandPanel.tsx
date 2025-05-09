@@ -1,20 +1,30 @@
 import { diceCommands, webgalCommands } from "@/utils/commands";
 import React from "react";
 
-export default function CommandPanel({ prefix, handleSelectCommand }: {
+export type commandModeType = "dice" | "webgal" | "none";
+
+export default function CommandPanel({ prefix, handleSelectCommand, commandMode, suggestionNumber = 10 }: {
   prefix: string;
   handleSelectCommand: (cmdName: string) => void;
-  commandType?: "dice" | "webgal";
+  commandMode?: commandModeType;
+  suggestionNumber?: number;
 }) {
-  const commands = prefix.startsWith("%") ? webgalCommands : diceCommands;
-  const suggestionNumber = 10;
-  const isCommandMode = prefix.startsWith(".") || prefix.startsWith("。") || prefix.startsWith("%");
-  const suggestions = isCommandMode
-    ? commands.filter(command => command.name.startsWith(prefix.slice(1)))
-        .sort((a, b) => b.importance - a.importance)
-        .reverse()
-        .slice(0, suggestionNumber)
-    : [];
+  const commands = (() => {
+    switch (commandMode) {
+      case "dice":
+        return diceCommands;
+      case "webgal":
+        return webgalCommands;
+      case "none":
+      default:
+        return [];
+    }
+  })();
+  const suggestions = commands
+    .filter(command => command.name.startsWith(prefix.slice(1)))
+    .sort((a, b) => b.importance - a.importance)
+    .reverse()
+    .slice(0, suggestionNumber);
   return (
     <div className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden">
       {suggestions.map(cmd => (
