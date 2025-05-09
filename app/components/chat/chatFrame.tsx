@@ -340,14 +340,15 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={e => handleDrop(e, index)}
-          draggable={isSelecting}
+          draggable={isSelecting && (spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId)}
           onDragStart={e => handleDragStart(e, index)}
           // onDragEnd={() => handleDragEnd()}
         >
           <div
             className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
-                      -translate-x-full -translate-y-1/ opacity-0 group-hover:opacity-100 transition-opacity flex items-center pr-2 cursor-move`}
-            draggable
+                      -translate-x-full -translate-y-1/ opacity-0 transition-opacity flex items-center pr-2 cursor-move
+                      ${(spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId) ? "group-hover:opacity-100" : ""}`}
+            draggable={spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId}
             onDragStart={e => handleDragStart(e, index)}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
