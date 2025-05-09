@@ -1,4 +1,6 @@
 import { RoomContext } from "@/components/chat/roomContext";
+import checkBack from "@/components/common/autoContrastText";
+import ConfirmModal from "@/components/common/comfirmModel";
 import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import {
@@ -6,7 +8,7 @@ import {
   useGetRoomInfoQuery,
   useUpdateRoomMutation,
 } from "api/hooks/chatQueryHooks";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import RenderWindow from "./renderWindow";
 
@@ -29,6 +31,33 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
     description: room?.description || "",
     avatar: room?.avatar || "",
   });
+
+  // 用于强制重置上传组件
+  const [uploaderKey, setUploaderKey] = useState(0);
+
+  const handleAvatarUpdate = (url: string) => {
+    setFormData(prev => ({ ...prev, avatar: url }));
+    // 上传完成后强制重置上传组件
+    setUploaderKey(prev => prev + 1);
+  };
+
+  // 控制删除群组的确认弹窗显示
+  const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = useState(false);
+
+  // 头像文字颜色
+  const [avatarTextColor, setAvatarTextColor] = useState("text-black");
+
+  // 监听头像变化，自动调整文字颜色
+  useEffect(() => {
+    if (formData.avatar) {
+      checkBack(formData.avatar).then(() => {
+        const computedColor = getComputedStyle(document.documentElement)
+          .getPropertyValue("--text-color")
+          .trim();
+        setAvatarTextColor(computedColor === "white" ? "text-white" : "text-black");
+      });
+    }
+  }, [formData.avatar]);
 
   // 当room数据加载时初始化formData
   if (room && formData.name === "" && formData.description === "" && formData.avatar === "") {
@@ -64,9 +93,8 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
         <div>
           <div className="flex justify-center">
             <ImgUploaderWithCopper
-              setCopperedDownloadUrl={(url) => {
-                setFormData(prev => ({ ...prev, avatar: url }));
-              }}
+              key={uploaderKey}
+              setCopperedDownloadUrl={handleAvatarUpdate}
               fileName={`roomId-${room.roomId}`}
             >
               <div className="relative group overflow-hidden rounded-lg">
@@ -76,7 +104,7 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
                   className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
                 />
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
-                  <span className="font-bold text-black px-2 py-1 rounded">
+                  <span className={`${avatarTextColor} font-bold px-2 py-1 rounded`}>
                     更新头像
                   </span>
                 </div>
@@ -114,10 +142,10 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
           <div className="flex justify-between mt-16">
             <button
               type="button"
-              className="btn btn-ghost"
-              onClick={handleClose}
+              className="btn btn-error"
+              onClick={() => setIsDissolveConfirmOpen(true)}
             >
-              保存并关闭
+              解散房间
             </button>
             <button
               className="btn btn-primary"
@@ -129,15 +157,10 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
             </button>
             <button
               type="button"
-              className="btn btn-error"
-              onClick={() => dissolveRoomMutation.mutate(roomId, {
-                onSuccess: () => {
-                  onClose();
-                  navigate("/chat");
-                },
-              })}
+              className="btn btn-success"
+              onClick={handleClose}
             >
-              解散房间
+              保存并关闭
             </button>
           </div>
         </div>
@@ -146,6 +169,22 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
       <PopWindow isOpen={isRenderWindowOpen} onClose={() => setIsRenderWindowOpen(false)}>
         <RenderWindow></RenderWindow>
       </PopWindow>
+      {/* 渲染删除群组的确认弹窗 */}
+      <ConfirmModal
+        isOpen={isDissolveConfirmOpen}
+        onClose={() => setIsDissolveConfirmOpen(false)}
+        title="确认解散房间"
+        message="是否确定要解散该房间？此操作不可逆。"
+        onConfirm={() => {
+          dissolveRoomMutation.mutate(roomId, {
+            onSuccess: () => {
+              onClose();
+              navigate(`/chat/${roomContext.spaceId}`);
+              setIsDissolveConfirmOpen(false);
+            },
+          });
+        }}
+      />
     </div>
   );
 }

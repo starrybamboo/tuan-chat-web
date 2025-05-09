@@ -15,4 +15,3 @@ export type LikeRecordRequest = {
      */
     targetType: string;
 };
-

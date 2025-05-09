@@ -3,8 +3,9 @@ import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import ForwardMessage from "@/components/chat/forwardMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
+import { SpaceContext } from "@/components/chat/spaceContext";
 import BetterImg from "@/components/common/betterImg";
-import { EditableField } from "@/components/common/editableFiled";
+import { EditableField } from "@/components/common/editableField";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -28,6 +29,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
   const userId = useGlobalContext().userId;
 
   const roomContext = use(RoomContext);
+  const spaceContext = use(SpaceContext);
   useChatBubbleStyle = useChatBubbleStyle || roomContext.useChatBubbleStyle;
 
   function handleExpressionChange(avatarId: number) {
@@ -51,9 +53,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     });
   }
 
-  const canEdit = userId === message.userId
-    || roomContext.curMember?.userId === message.userId
-    || roomContext.curMember?.memberType === 1;
+  const canEdit = userId === message.userId || spaceContext.isSpaceOwner;
 
   function handleAvatarClick() {
     if (canEdit) {
@@ -72,14 +72,13 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
         status: 1,
       });
     }
-    else {
+    else if (message.content !== content) {
       updateMessageMutation.mutate({
         ...message,
         content,
       });
     }
   }
-  // console.log("render message");
 
   const renderedContent = useMemo(() => {
     if (message.messageType === 2) {
@@ -93,7 +92,15 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     else if (message.messageType === 5) {
       return <ForwardMessage messageList={message.extra?.forwardMessage?.messageList ?? []}></ForwardMessage>;
     }
-    return (<EditableField content={message.content} handleContentUpdate={handleContentUpdate} className="whitespace-pre-wrap" canEdit={canEdit}></EditableField>);
+    return (
+      <EditableField
+        content={message.content}
+        handleContentUpdate={handleContentUpdate}
+        className="whitespace-pre-wrap editable-field" // 为了方便select到这个节点
+        canEdit={canEdit}
+      >
+      </EditableField>
+    );
   }, [message.content, message.extra, message.messageType]);
 
   return (
@@ -130,7 +137,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               {/* 消息内容 */}
               <div className="flex-1">
                 {/* 角色名 */}
-                <div className={`text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`} onClick={handleRoleNameClick}>
+                <div className={`text-sm font-semibold cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`} onClick={handleRoleNameClick}>
                   {role?.roleName?.trim() || "Undefined"}
                 </div>
                 {renderedContent}
