@@ -3,6 +3,7 @@ import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import ForwardMessage from "@/components/chat/forwardMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
+import { SpaceContext } from "@/components/chat/spaceContext";
 import BetterImg from "@/components/common/betterImg";
 import { EditableField } from "@/components/common/editableField";
 import { PopWindow } from "@/components/common/popWindow";
@@ -28,6 +29,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
   const userId = useGlobalContext().userId;
 
   const roomContext = use(RoomContext);
+  const spaceContext = use(SpaceContext);
   useChatBubbleStyle = useChatBubbleStyle || roomContext.useChatBubbleStyle;
 
   function handleExpressionChange(avatarId: number) {
@@ -51,9 +53,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     });
   }
 
-  const canEdit = userId === message.userId
-    || roomContext.curMember?.userId === message.userId
-    || roomContext.curMember?.memberType === 1;
+  const canEdit = userId === message.userId || spaceContext.isSpaceOwner;
 
   function handleAvatarClick() {
     if (canEdit) {
@@ -72,14 +72,13 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
         status: 1,
       });
     }
-    else {
+    else if (message.content !== content) {
       updateMessageMutation.mutate({
         ...message,
         content,
       });
     }
   }
-  // console.log("render message");
 
   const renderedContent = useMemo(() => {
     if (message.messageType === 2) {

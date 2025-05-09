@@ -17,7 +17,7 @@ export function EditableField({ content, handleContentUpdate, className, canEdit
   return isEditing
     ? (
         <textarea
-          className={`${className} border-none bg-transparent textarea w-full`}
+          className={`${className} border-none bg-transparent textarea w-full editable-textarea`}
           value={editContent}
           onChange={e => setEditContent(e.target.value)}
           onKeyDown={(e) => {

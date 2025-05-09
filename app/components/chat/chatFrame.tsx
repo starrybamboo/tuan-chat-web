@@ -304,10 +304,24 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   }
   function handleEditMessage(messageId: number) {
     const target = document.querySelector(
-      `[data-message-id="${messageId}"]`,
+      `[data-message-id="${messageId}"] .editable-field`,
     ) as HTMLElement;
-    // console.log(target);
-    target.dispatchEvent(new Event("doubleClick"));
+    target.dispatchEvent(new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      clientX: target.offsetLeft + target.offsetWidth / 2,
+      clientY: target.offsetTop + target.offsetHeight / 2,
+    }));
+    setTimeout(() => {
+      target.dispatchEvent(new MouseEvent("dblclick", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        clientX: target.offsetLeft + target.offsetWidth / 2,
+        clientY: target.offsetTop + target.offsetHeight / 2,
+      }));
+    }, 50);
   }
   // 关闭右键菜单
   function closeContextMenu() {
