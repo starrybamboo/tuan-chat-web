@@ -2,6 +2,7 @@ import type { SpaceContextType } from "@/components/chat/spaceContext";
 import RoomWindow from "@/components/chat/roomWindow";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import SpaceWindow from "@/components/chat/spaceWindow";
+import checkBack from "@/components/common/autoContrastText";
 import MemberInfoComponent from "@/components/common/memberInfo";
 import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
@@ -82,6 +83,33 @@ export default function RoomSelect() {
   // 获取规则
   const getRulesQuery = useGetRulePageInfiniteQuery({}, 100);
   const rules = getRulesQuery.data?.pages.flatMap(page => page.data?.list ?? []) ?? [];
+
+  // 空间头像文字颜色
+  const [spaceAvatarTextColor, setSpaceAvatarTextColor] = useState("text-black");
+
+  // 房间头像文字颜色
+  const [roomAvatarTextColor, setRoomAvatarTextColor] = useState("text-black");
+
+  // 监听头像变化，自动调整文字颜色（合并空间和房间）
+  useEffect(() => {
+    // 定义头像和对应文字颜色的映射
+    const avatarColorMap = [
+      { avatar: spaceAvatar, setColor: setSpaceAvatarTextColor },
+      { avatar: roomAvatar, setColor: setRoomAvatarTextColor },
+    ];
+
+    // 批量处理所有头像
+    avatarColorMap.forEach(({ avatar, setColor }) => {
+      if (avatar) {
+        checkBack(avatar).then(() => {
+          const computedColor = getComputedStyle(document.documentElement)
+            .getPropertyValue("--text-color")
+            .trim();
+          setColor(computedColor === "white" ? "text-white" : "text-black");
+        });
+      }
+    });
+  }, [spaceAvatar, roomAvatar]); // 依赖项包含两个头像
 
   // websocket封装, 用于发送接受消息
   const websocketUtils = useGlobalContext().websocketUtils;
@@ -200,7 +228,7 @@ export default function RoomSelect() {
               )}
             </div>
           ))}
-          {activeSpaceId !== null && (
+          {activeSpaceId !== null && spaceContext.isSpaceOwner && (
             <button
               className="btn btn-dash btn-info flex w-full"
               type="button"
@@ -245,7 +273,7 @@ export default function RoomSelect() {
                   <div
                     className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm"
                   >
-                    <span className="font-bold text-black px-2 py-1 rounded leading-normal tracking-normal">
+                    <span className={`${spaceAvatarTextColor} font-bold px-2 py-1 rounded`}>
                       上传头像
                     </span>
                   </div>
@@ -353,7 +381,7 @@ export default function RoomSelect() {
                     <div
                       className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm"
                     >
-                      <span className="font-bold text-black px-2 py-1 rounded leading-normal tracking-normal">
+                      <span className={`${roomAvatarTextColor} font-bold px-2 py-1 rounded`}>
                         上传头像
                       </span>
                     </div>
