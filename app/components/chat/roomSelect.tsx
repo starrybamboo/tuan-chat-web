@@ -95,9 +95,9 @@ export default function RoomSelect() {
   const spaceContext: SpaceContextType = useMemo((): SpaceContextType => {
     return {
       spaceId: activeSpaceId ?? -1,
-      isSpaceOwner: spaceMembersQuery.data?.data?.some(member => member.userId === userInfo?.userId && member.memberType === 1),
+      isSpaceOwner: spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1),
     };
-  }, [activeSpaceId]);
+  }, [activeSpaceId, globalContext.userId, spaceMembersQuery.data?.data]);
 
   // 创建空间
   async function createSpace(userId: number) {

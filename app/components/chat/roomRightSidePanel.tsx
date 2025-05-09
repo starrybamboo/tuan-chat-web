@@ -1,6 +1,7 @@
 import InitiativeList from "@/components/chat/initiativeList";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
 import { RoomContext } from "@/components/chat/roomContext";
+import { SpaceContext } from "@/components/chat/spaceContext";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import { PopWindow } from "@/components/common/popWindow";
@@ -13,6 +14,7 @@ import RoomSettingWindow from "./window/roomSettingWindow";
 
 export default function RoomRightSidePanel() {
   const roomContext = use(RoomContext);
+  const spaceContext = use(SpaceContext);
   const roomId = roomContext.roomId ?? -1;
   const members = roomContext.roomMembers;
   // 全局登录用户对应的member
@@ -56,17 +58,23 @@ export default function RoomRightSidePanel() {
       <div
         className="flex flex-col gap-2 p-4 bg-base-100 rounded-box shadow-sm items-center w-full space-y-4 max-h-[calc(100vh-6rem)] overflow-y-auto"
       >
-        <div className="w-full flex justify-end">
-          <button
-            type="button"
-            className="btn btn-ghost z-50"
-            onClick={() => {
-              setIsSettingWindowOpen(true);
-            }}
-          >
-            设置
-          </button>
-        </div>
+        {
+          spaceContext.isSpaceOwner
+          && (
+            <div className="w-full flex justify-end">
+              <button
+                type="button"
+                className="btn btn-ghost z-50"
+                onClick={() => {
+                  setIsSettingWindowOpen(true);
+                }}
+              >
+                设置
+              </button>
+            </div>
+          )
+        }
+
         {/* 先攻表 */}
         <div className="divider">先攻表</div>
         <InitiativeList></InitiativeList>

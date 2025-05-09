@@ -54,18 +54,22 @@ export default function SpaceRightSidePanel() {
   return (
     <div className="flex flex-row gap-4 h-full">
       <div className="flex flex-col gap-2 p-4 bg-base-100 rounded-box shadow-sm items-center w-full space-y-4 max-h-[calc(100vh-6rem)] overflow-y-auto">
-        {/* 设置按钮调整到右侧 */}
-        <div className="w-full flex justify-end">
-          <button
-            type="button"
-            className="btn btn-ghost z-50"
-            onClick={() => {
-              setIsOpenSpaceSettingWindow(true);
-            }}
-          >
-            设置
-          </button>
-        </div>
+        {
+          spaceContext.isSpaceOwner && (
+            <div className="w-full flex justify-end">
+              <button
+                type="button"
+                className="btn btn-ghost z-50"
+                onClick={() => {
+                  setIsOpenSpaceSettingWindow(true);
+                }}
+              >
+                设置
+              </button>
+            </div>
+          )
+        }
+
         {/* 群成员列表 */}
         <div className="space-y-2">
           <div className="flex flex-row justify-center items-center gap-2">
