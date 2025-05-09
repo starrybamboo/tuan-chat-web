@@ -7,6 +7,7 @@ import type {
 } from "../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
 import { RoomContext } from "@/components/chat/roomContext";
+import { SpaceContext } from "@/components/chat/spaceContext";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -28,7 +29,9 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   // 在顶部也设置一个，保险
   const [topMessageRef, topMessageEntry] = useIntersectionObserver();
   const PAGE_SIZE = 30; // 每页消息数量
+  const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
+  const spaceContext = use(SpaceContext);
   const roomId = roomContext.roomId ?? -1;
   const curRoleId = roomContext.curRoleId ?? -1;
   const curAvatarId = roomContext.curAvatarId ?? -1;
@@ -306,22 +309,13 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     const target = document.querySelector(
       `[data-message-id="${messageId}"] .editable-field`,
     ) as HTMLElement;
-    target.dispatchEvent(new MouseEvent("click", {
+    target.dispatchEvent(new MouseEvent("dblclick", {
       bubbles: true,
       cancelable: true,
       view: window,
       clientX: target.offsetLeft + target.offsetWidth / 2,
       clientY: target.offsetTop + target.offsetHeight / 2,
     }));
-    setTimeout(() => {
-      target.dispatchEvent(new MouseEvent("dblclick", {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-        clientX: target.offsetLeft + target.offsetWidth / 2,
-        clientY: target.offsetTop + target.offsetHeight / 2,
-      }));
-    }, 50);
   }
   // 关闭右键菜单
   function closeContextMenu() {
@@ -399,13 +393,18 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
               >
                 转发
               </button>
-              <button
-                className="btn btn-sm btn-error"
-                onClick={() => handleBatchDelete()}
-                type="button"
-              >
-                删除
-              </button>
+              {
+                spaceContext.isSpaceOwner
+                && (
+                  <button
+                    className="btn btn-sm btn-error"
+                    onClick={() => handleBatchDelete()}
+                    type="button"
+                  >
+                    删除
+                  </button>
+                )
+              }
             </div>
           </div>
         )}
@@ -414,86 +413,97 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         <ForwardWindow onClickRoom={roomId => handleForward(roomId)} handlePublishFeed={handlePublishFeed}></ForwardWindow>
       </PopWindow>
       {/* 右键菜单 */}
-      {contextMenu && (
-        <div
-          className="fixed bg-base-100 shadow-lg rounded-md z-50"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-          onClick={e => e.stopPropagation()}
-        >
-          <ul className="menu p-2 w-40">
-            <li>
-              <a onClick={(e) => {
-                e.preventDefault();
-                handleDelete();
-                closeContextMenu();
-              }}
-              >
-                删除
-              </a>
-            </li>
-            <li>
-              <a onClick={(e) => {
-                e.preventDefault();
-                toggleMessageSelection(contextMenu.messageId);
-                closeContextMenu();
-              }}
-              >
-                多选
-              </a>
-            </li>
-            {
-              isSelecting && (
-                <li>
-                  <a onClick={(e) => {
-                    e.preventDefault();
-                    handleMoveMessages(
-                      historyMessages.findIndex(message => message.message.messageID === contextMenu.messageId),
-                      Array.from(selectedMessageIds),
-                    );
-                    closeContextMenu();
-                  }}
-                  >
-                    将选中消息移动到此消息下方
-                  </a>
-                </li>
-              )
-            }
-            {(() => {
-              const message = historyMessages.find(message => message.message.messageID === contextMenu.messageId);
-              if (!message || message.message.messageType !== 2) {
+      {contextMenu && (() => {
+        const message = historyMessages.find(message => message.message.messageID === contextMenu.messageId);
+        return (
+          <div
+            className="fixed bg-base-100 shadow-lg rounded-md z-50"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            onClick={e => e.stopPropagation()}
+          >
+            <ul className="menu p-2 w-40">
+              {
+                (spaceContext.isSpaceOwner || message?.message.userId === globalContext.userId)
+                && (
+                  <li>
+                    <a onClick={(e) => {
+                      e.preventDefault();
+                      handleDelete();
+                      closeContextMenu();
+                    }}
+                    >
+                      删除
+                    </a>
+                  </li>
+                )
+              }
+
+              <li>
+                <a onClick={(e) => {
+                  e.preventDefault();
+                  toggleMessageSelection(contextMenu.messageId);
+                  closeContextMenu();
+                }}
+                >
+                  多选
+                </a>
+              </li>
+              {
+                (isSelecting && (spaceContext.isSpaceOwner)) && (
+                  <li>
+                    <a onClick={(e) => {
+                      e.preventDefault();
+                      handleMoveMessages(
+                        historyMessages.findIndex(message => message.message.messageID === contextMenu.messageId),
+                        Array.from(selectedMessageIds),
+                      );
+                      closeContextMenu();
+                    }}
+                    >
+                      将选中消息移动到此消息下方
+                    </a>
+                  </li>
+                )
+              }
+              {(() => {
+                if (message?.message.userId !== globalContext.userId && !spaceContext.isSpaceOwner) {
+                  return null;
+                }
+                if (!message || message.message.messageType !== 2) {
+                  return (
+                    <li>
+                      <a
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleEditMessage(contextMenu.messageId);
+                          closeContextMenu();
+                        }}
+                      >
+                        编辑文本
+                      </a>
+                    </li>
+                  );
+                }
                 return (
                   <li>
                     <a
                       onClick={(e) => {
                         e.preventDefault();
-                        handleEditMessage(contextMenu.messageId);
+                        toggleBackground(contextMenu.messageId);
                         closeContextMenu();
                       }}
                     >
-                      编辑文本
+                      {
+                        message?.message.extra?.imageMessage?.background ? "取消设置为背景" : "设为背景"
+                      }
                     </a>
                   </li>
                 );
-              }
-              return (
-                <li>
-                  <a
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toggleBackground(contextMenu.messageId);
-                      closeContextMenu();
-                    }}
-                  >
-                    {
-                      message?.message.extra?.imageMessage?.background ? "取消设置为背景" : "设为背景"
-                    }
-                  </a>
-                </li>
-              );
-            })()}
-          </ul>
-        </div>
-      )}
+              })()}
+            </ul>
+          </div>
+        );
+      })()}
     </>
   );
 }
