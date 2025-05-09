@@ -13,6 +13,7 @@ import { RoomContext } from "@/components/chat/roomContext";
 import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
+import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -64,6 +65,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const roleAvatarQuery = useGetRoleAvatarsQuery(curRoleId ?? -1);
   const roleAvatars = useMemo(() => roleAvatarQuery.data?.data ?? [], [roleAvatarQuery.data?.data]);
   const curAvatarId = roleAvatars[curAvatarIndex]?.avatarId || -1;
+
+  const [commandBrowseWindow, setCommandBrowseWindow] = useState<commandModeType>("none");
 
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(localStorage.getItem("useChatBubbleStyle") === "true");
   useEffect(() => {
@@ -267,7 +270,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               </div>
 
               <div className="flex-1 flex flex-col min-w-0">
-                <CommandPanel prefix={inputText} handleSelectCommand={handleSelectCommand} commandMode={commandMode}></CommandPanel>
+                <CommandPanel
+                  prefix={inputText}
+                  handleSelectCommand={handleSelectCommand}
+                  commandMode={commandMode}
+                  className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden"
+                />
                 {/* 图片显示 */}
                 {imgFiles.length > 0 && (
                   <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
@@ -283,8 +291,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                 )}
                 {/* text input */}
                 <div className="flex flex-row gap-2 pl-3">
-                  <DiceTwentyFacesTwenty className="w-6 h-6 cursor-pointer hover:text-info"></DiceTwentyFacesTwenty>
-                  <CommandSolid className="w-6 h-6 cursor-pointer hover:text-info"></CommandSolid>
+                  <DiceTwentyFacesTwenty className="w-6 h-6 cursor-pointer hover:text-info" onClick={() => setCommandBrowseWindow("dice")}></DiceTwentyFacesTwenty>
+                  <CommandSolid className="w-6 h-6 cursor-pointer hover:text-info" onClick={() => setCommandBrowseWindow("webgal")}> </CommandSolid>
                 </div>
                 <textarea
                   className="textarea w-full flex-1 min-h-[80px] max-h-[200px] resize-none border-none focus:outline-none focus:ring-0"
@@ -353,6 +361,34 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         {/* 成员与角色展示框 */}
         <RoomRightSidePanel></RoomRightSidePanel>
       </div>
+      <PopWindow isOpen={commandBrowseWindow === "dice"} onClose={() => setCommandBrowseWindow("none")}>
+        <span className="text-center text-lg font-semibold">浏览所有骰子命令</span>
+        <CommandPanel
+          prefix="."
+          handleSelectCommand={(cmdName) => {
+            handleTextInputChange(`.${cmdName}`);
+            setCommandBrowseWindow("none");
+          }}
+          commandMode="dice"
+          suggestionNumber={10000}
+          className="overflow-x-clip max-h-[80vh] overflow-y-auto"
+        >
+        </CommandPanel>
+      </PopWindow>
+      <PopWindow isOpen={commandBrowseWindow === "webgal"} onClose={() => setCommandBrowseWindow("none")}>
+        <span className="text-center text-lg font-semibold">浏览常见webgal命令</span>
+        <CommandPanel
+          prefix="%"
+          handleSelectCommand={(cmdName) => {
+            handleTextInputChange(`%${cmdName}`);
+            setCommandBrowseWindow("none");
+          }}
+          commandMode="webgal"
+          suggestionNumber={10000}
+          className="overflow-x-clip max-h-[80vh] overflow-y-auto"
+        >
+        </CommandPanel>
+      </PopWindow>
     </RoomContext>
   );
 }
