@@ -175,6 +175,13 @@ export default function CharacterDetail({
                       <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden">
                         {localRole.description || "暂无描述"}
                       </p>
+                      <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden float-right">
+                        采用模型：
+                        {localRole.modelName || "暂无描述"}
+                        <br />
+                        语音来源：
+                        {localRole.speakerName || "暂无描述"}
+                      </p>
                     </>
                   )}
               {/* </Section> */}

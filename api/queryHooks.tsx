@@ -341,9 +341,9 @@ export const useRolesInitialization = (roleQuery: any) => {
           name: role.roleName || "",
           description: role.description || "无描述",
           avatar: "",
-          inventory: [],
-          abilities: [],
           avatarId: role.avatarId || 0,
+          modelName: role.modelName || "",
+          speakerName: role.speakerName || "",
         }));
 
         setRoles(mappedRoles);

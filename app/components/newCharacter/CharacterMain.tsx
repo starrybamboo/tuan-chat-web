@@ -76,6 +76,8 @@ export default function CharacterMain() {
       description: "",
       avatar: "",
       avatarId: 0,
+      modelName: "散华",
+      speakerName: "鸣潮",
     };
 
     setRoles(prev => [...prev, newRole]);

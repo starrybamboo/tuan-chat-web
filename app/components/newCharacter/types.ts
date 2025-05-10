@@ -6,6 +6,8 @@ export type Role = {
   name: string;
   description: string;
   avatarId: number;
+  modelName: string;
+  speakerName: string;
 };
 
 export type NumericalConstraint = {
