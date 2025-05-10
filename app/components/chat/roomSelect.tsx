@@ -6,7 +6,6 @@ import checkBack from "@/components/common/autoContrastText";
 import MemberInfoComponent from "@/components/common/memberInfo";
 import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
-import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   useCreateRoomMutation,
@@ -16,6 +15,7 @@ import {
   useGetUserSpacesQuery,
 } from "api/hooks/chatQueryHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
+import { useGetUserFollowingsQuery } from "api/hooks/userFollowQueryHooks";
 import {
   useGetUserInfoQuery,
 } from "api/queryHooks";
@@ -57,7 +57,6 @@ export default function RoomSelect() {
   const [isRoomHandleOpen, setIsRoomHandleOpen] = useState(false);
   // 处理邀请用户uid
   const [inputUserId, setInputUserId] = useState<number>(-1);
-  const inputUserInfo = useGetUserInfoQuery(inputUserId).data?.data;
   // 获取当前用户信息
   const globalContext = useGlobalContext();
   const getUserInfo = useGetUserInfoQuery(Number(globalContext.userId));
@@ -89,6 +88,10 @@ export default function RoomSelect() {
 
   // 房间头像文字颜色
   const [roomAvatarTextColor, setRoomAvatarTextColor] = useState("text-black");
+
+  // 获取用户好友
+  const followingQuery = useGetUserFollowingsQuery(globalContext.userId ?? -1, { pageNo: 1, pageSize: 100 });
+  const friends = followingQuery.data?.data?.list?.filter(user => user.status === 2) ?? [];
 
   // 监听头像变化，自动调整文字颜色（合并空间和房间）
   useEffect(() => {
@@ -128,9 +131,9 @@ export default function RoomSelect() {
   }, [activeSpaceId, globalContext.userId, spaceMembersQuery.data?.data]);
 
   // 创建空间
-  async function createSpace(userId: number) {
+  async function createSpace(userIds: number[]) {
     createSpaceMutation.mutate({
-      userIdList: [userId],
+      userIdList: userIds,
       avatar: spaceAvatar,
       spaceName,
       ruleId: selectedRuleId,
@@ -331,33 +334,68 @@ export default function RoomSelect() {
             </div>
 
             {/* 邀请成员部分 */}
-            <div className="mb-4">
+            <div>
               <label className="label mb-2">
-                <span className="label-text">邀请成员(输入用户ID)</span>
+                <span className="label-text">搜索好友Id</span>
               </label>
               <input
                 type="text"
-                placeholder="请输入要加入的成员ID"
-                className="input input-bordered w-full mb-4"
+                placeholder="请输入要加入的好友ID"
+                className="input input-bordered w-full mb-2"
                 onInput={e => setInputUserId(Number(e.currentTarget.value))}
               />
             </div>
 
             {/* 用户信息预览和确认按钮 */}
-            {inputUserId > 0 && inputUserInfo && (
-              <div className="items-center flex flex-col gap-y-4 pb-4">
-                <UserDetail userId={inputUserId} />
-                <div className="sticky bottom-0 w-full bg-base-300 pt-4">
-                  <button
-                    className="btn btn-primary w-full shadow-lg"
-                    type="button"
-                    onClick={() => createSpace(Number(inputUserId))}
-                  >
-                    创建空间
-                  </button>
-                </div>
-              </div>
-            )}
+            <div className="flex flex-col gap-y-2 pb-4">
+              {(() => {
+                if (friends.length === 0) {
+                  return (
+                    <div className="text-center py-4 text-gray-500">
+                      您还没有好友哦
+                    </div>
+                  );
+                }
+
+                const matchedFriends = inputUserId > 0
+                  ? friends.find(friend => friend.userId === inputUserId)
+                  : null;
+                const friendsToShow = matchedFriends ? [matchedFriends] : friends;
+
+                return friendsToShow.map(friend => (
+                  <div key={friend.userId} className="flex gap-x-4 items-center p-2 bg-base-100 rounded-lg w-full">
+                    <input
+                      type="checkbox"
+                      className="checkbox"
+                      checked={selectedUserIds.has(friend.userId ?? -1)}
+                      onChange={(e) => {
+                        const newSet = new Set(selectedUserIds);
+                        e.target.checked
+                          ? newSet.add(friend.userId ?? -1)
+                          : newSet.delete(friend.userId ?? -1);
+                        setSelectedUserIds(newSet);
+                      }}
+                    />
+                    <MemberInfoComponent userId={friend.userId ?? -1} />
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+          <div className="bottom-0 w-full bg-base-300 pt-4">
+            <button
+              type="button"
+              className="btn btn-primary w-full shadow-lg"
+              onClick={() => {
+                const userIds = [
+                  ...selectedUserIds,
+                  ...(inputUserId > 0 ? [inputUserId] : []),
+                ];
+                createSpace(userIds);
+              }}
+            >
+              创建空间
+            </button>
           </div>
         </PopWindow>
         {/* 创建房间弹出窗口 */}
