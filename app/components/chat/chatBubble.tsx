@@ -60,11 +60,6 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       setIsExpressionChooserOpen(true);
     }
   }
-  function handleRoleNameClick() {
-    if (canEdit) {
-      setIsRoleChooserOpen(true);
-    }
-  }
   function handleContentUpdate(content: string) {
     if (content.trim() === "") {
       updateMessageMutation.mutate({
@@ -102,6 +97,30 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       </EditableField>
     );
   }, [message.content, message.extra, message.messageType]);
+
+  // @角色
+  function handleRoleNameClick() {
+    if (canEdit) {
+      setIsRoleChooserOpen(true);
+    }
+    else {
+      const roleName = role?.roleName?.trim() || "Undefined";
+      const inputElement = document.querySelector("textarea") as HTMLTextAreaElement;
+      if (inputElement) {
+        const currentText = inputElement.value;
+        const atText = `@${roleName} `;
+
+        // 如果已经@过这个角色，就不再添加
+        if (!currentText.includes(atText)) {
+          inputElement.value = currentText + atText;
+          inputElement.focus();
+          // 触发React的状态更新
+          const event = new Event("input", { bubbles: true });
+          inputElement.dispatchEvent(event);
+        }
+      }
+    }
+  }
 
   return (
     <div>
@@ -155,7 +174,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               <div className="flex-1">
                 {/* 角色名 */}
                 <div
-                  className={`text-sm font-semibold cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`}
+                  className={`cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`}
                   onClick={handleRoleNameClick}
                 >
                   {role?.roleName?.trim() || "Undefined"}
