@@ -153,7 +153,7 @@ function BetterImg({ src, className, onClose }: { src: string | File | undefined
               onClick={() => setTipOpen()}
             />
           </div>
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 bg-base-200 p-2 rounded-full">
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 bg-base-200 p-2 rounded-full opacity-70">
             <button
               type="button"
               className="btn btn-circle btn-sm"

@@ -82,7 +82,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
       ? (
           <input
             type={type === "ability" && !isKeyField ? "number" : "text"}
-            className="text-xs text-gray-800 cursor-text border min-w-[10px] max-w-[40px]"
+            className="text-xs cursor-text border min-w-[10px] max-w-[40px]"
             value={editValue}
             onChange={e => setEditValue(e.target.value)}
             onBlur={() => handleUpdate(abilityId, type, key, editValue, isKeyField)}
@@ -92,7 +92,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
         )
       : (
           <div
-            className="text-xs text-gray-800 cursor-text min-w-[10px] max-w-[40px]"
+            className="text-xs cursor-text min-w-[10px] max-w-[40px]"
             onDoubleClick={() => handleDoubleClick(abilityId, type, key, value, isKeyField)}
           >
             {isKeyField ? key : value}

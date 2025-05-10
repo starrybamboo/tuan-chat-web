@@ -60,7 +60,6 @@ export default function InitiativeList() {
     <div className="flex flex-col gap-4 w-full">
       {/* 先攻指令列表 */}
       <div className="space-y-2 w-full">
-
         {/* 添加新项的表单 */}
         <div className="flex gap-2 w-full justify-center">
           <input

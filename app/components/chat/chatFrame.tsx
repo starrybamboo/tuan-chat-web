@@ -12,7 +12,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
-import React, { use, useEffect, useMemo, useRef, useState } from "react";
+import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useDeleteMessageMutation,
   useUpdateMessageMutation,
@@ -162,7 +162,39 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   // before代表拖拽到元素上半，after代表拖拽到元素下半
   const dropPositionRef = useRef<"before" | "after">("before");
   const curDragOverMessageRef = useRef<HTMLDivElement | null>(null);
-  function checkPosition(e: React.DragEvent<HTMLDivElement>) {
+  // 通用的处理消息移动的函数
+  const handleMoveMessages = (
+    targetIndex: number, // 将被移动到targetIndex对应的消息的下方
+    messageIds: number[],
+  ) => {
+    const selectedMessages = Array.from(messageIds)
+      .map(id => historyMessages.find(m => m.message.messageID === id)?.message)
+      .filter((msg): msg is Message => msg !== undefined)
+      .sort((a, b) => a.position - b.position);
+    // 寻找到不位于，messageIds中且离dropPosition最近的消息
+    let topMessageIndex: number = targetIndex;
+    let bottomMessageIndex: number = targetIndex - 1;
+    while (selectedMessageIds.has(historyMessages[topMessageIndex]?.message.messageID)) {
+      topMessageIndex++;
+    }
+    while (selectedMessageIds.has(historyMessages[bottomMessageIndex]?.message.messageID)) {
+      bottomMessageIndex--;
+    }
+    const topMessagePosition = historyMessages[topMessageIndex]?.message.position
+      ?? historyMessages[historyMessages.length - 1].message.position - 1;
+    const bottomMessagePosition = historyMessages[bottomMessageIndex]?.message.position
+      ?? historyMessages[0].message.position + 1;
+
+    for (const selectedMessage of selectedMessages) {
+      const index = selectedMessages.indexOf(selectedMessage);
+      updateMessageMutation.mutate({
+        ...selectedMessage,
+        position: (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1) * (index + 1) + topMessagePosition,
+      });
+    }
+  };
+
+  const checkPosition = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     if (dragStartMessageIdRef.current === -1) {
       return;
     }
@@ -185,8 +217,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     indicatorRef.current?.remove();
     curDragOverMessageRef.current?.appendChild(indicator);
     indicatorRef.current = indicator;
-  }
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+  }, []);
+  const handleDragStart = useCallback ((e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.stopPropagation();
     e.dataTransfer.effectAllowed = "move";
     dragStartMessageIdRef.current = historyMessages[index].message.messageID;
@@ -213,7 +245,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     document.body.appendChild(clone);
     e.dataTransfer.setDragImage(clone, 0, 0);
     setTimeout(() => document.body.removeChild(clone));
-  };
+  }, [chatFrameRef, historyMessages, isSelecting, selectedMessageIds.size]);
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     // e.stopPropagation();
@@ -233,48 +265,22 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
 
     // 如果是多选状态，则对选中的所有消息进行移动
     if (isSelecting && selectedMessageIds.size > 0) {
-      const selectedMessages = Array.from(selectedMessageIds)
-        .map(id => historyMessages.find(m => m.message.messageID === id)?.message)
-        .filter((msg): msg is Message => msg !== undefined)
-        .sort((a, b) => a.position - b.position);
-      // 多选情况下，寻找到不位于selectMessageIds中且离dropPosition最近的消息
-      let topMessageIndex: number = adjustedIndex;
-      let bottomMessageIndex: number = adjustedIndex - 1;
-      while (selectedMessageIds.has(historyMessages[topMessageIndex]?.message.messageID)) {
-        topMessageIndex++;
-      }
-      while (selectedMessageIds.has(historyMessages[bottomMessageIndex]?.message.messageID)) {
-        bottomMessageIndex--;
-      }
-      const topMessagePosition = historyMessages[topMessageIndex]?.message.position
-        ?? historyMessages[historyMessages.length - 1].message.position - 1;
-      const bottomMessagePosition = historyMessages[bottomMessageIndex]?.message.position
-        ?? historyMessages[0].message.position + 1;
-
-      for (const selectedMessage of selectedMessages) {
-        const index = selectedMessages.indexOf(selectedMessage);
-        updateMessageMutation.mutate({
-          ...selectedMessage,
-          position: (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1) * (index + 1) + topMessagePosition,
-        });
-      }
+      handleMoveMessages(adjustedIndex, Array.from(selectedMessageIds));
     }
     else {
+      // 判断是否移动到原来的位置
       const beforeMessage = historyMessages[adjustedIndex]?.message;
       const afterMessage = historyMessages[adjustedIndex - 1]?.message;
       const beforeMessageId = beforeMessage?.messageID ?? null;
       const afterMessageId = afterMessage?.messageID ?? null;
       if (beforeMessageId !== dragStartMessageIdRef.current && afterMessageId !== dragStartMessageIdRef.current) {
-        tuanchat.chatController.moveMessage({
-          messageId: dragStartMessageIdRef.current,
-          beforeMessageId,
-          afterMessageId,
-        });
+        handleMoveMessages(adjustedIndex, [dragStartMessageIdRef.current]);
       }
     }
     dragStartMessageIdRef.current = -1;
     indicatorRef.current?.remove();
   };
+
   /**
    * 右键菜单
    */
@@ -342,7 +348,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         </div>
       )
       );
-    })), [handleDrop, historyMessages, isSelecting, messageRef, selectedMessageIds, useChatBubbleStyle]);
+    })), [historyMessages, isSelecting, selectedMessageIds]);
 
   return (
     <>
@@ -411,13 +417,42 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
                 closeContextMenu();
               }}
               >
-                选择
+                多选
               </a>
             </li>
+            {
+              isSelecting && (
+                <li>
+                  <a onClick={(e) => {
+                    e.preventDefault();
+                    handleMoveMessages(
+                      historyMessages.findIndex(message => message.message.messageID === contextMenu.messageId),
+                      Array.from(selectedMessageIds),
+                    );
+                    closeContextMenu();
+                  }}
+                  >
+                    将选中消息移动到此消息下方
+                  </a>
+                </li>
+              )
+            }
             {(() => {
               const message = historyMessages.find(message => message.message.messageID === contextMenu.messageId);
               if (!message || message.message.messageType !== 2) {
-                return null;
+                return (
+                  <li>
+                    <a
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleBackground(contextMenu.messageId);
+                        closeContextMenu();
+                      }}
+                    >
+                      编辑文本
+                    </a>
+                  </li>
+                );
               }
               return (
                 <li>
