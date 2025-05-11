@@ -32,30 +32,15 @@ export default function Topbar() {
           onClick={() => navigate("/")}
         />
 
-        <a onClick={() => navigate("/feed")} className="text-base-content hover:text-primary transition-colors">
-          推荐
-        </a>
-        <a onClick={() => navigate("/community")} className="text-base-content hover:text-primary transition-colors">
-          社区
-        </a>
-        <a onClick={() => navigate("/chat")} className="text-base-content hover:text-primary transition-colors">
-          游玩
-        </a>
-        <a onClick={() => navigate("/role")} className="text-base-content hover:text-primary transition-colors">
-          角色
-        </a>
-        <a
-          onClick={() => navigate("/module")}
-          className="text-base-content hover:text-primary transition-colors"
-        >
-          模组
-        </a>
-        <a onClick={() => navigate("/create")} className="text-base-content hover:text-primary transition-colors">
-          创作
-        </a>
-        <a onClick={() => navigate("/collection")} className="text-base-content hover:text-primary transition-colors">
-          收藏
-        </a>
+        <div className="flex gap-2">
+          <a onClick={() => navigate("/feed")} className="btn btn-link font-normal text-base no-underline">推荐</a>
+          <a onClick={() => navigate("/community")} className="btn btn-link font-normal text-base no-underline">社区</a>
+          <a onClick={() => navigate("/chat")} className="btn btn-link font-normal text-base no-underline">游玩</a>
+          <a onClick={() => navigate("/role")} className="btn btn-link font-normal text-base no-underline">角色</a>
+          <a onClick={() => navigate("/module/create")} className="btn btn-link font-normal text-base no-underline">模组</a>
+          <a onClick={() => navigate("/create")} className="btn btn-link font-normal text-base no-underline">创作</a>
+          <a onClick={() => navigate("/collection")} className="btn btn-link font-normal text-base no-underline">收藏</a>
+        </div>
       </div>
 
       {/* 右侧用户区域 */}
