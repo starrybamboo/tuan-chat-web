@@ -242,7 +242,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         <div className="flex-1 min-w-[480px] flex flex-col h-full">
           {/* 聊天框 */}
           <div className="card bg-base-100 shadow-sm flex-1 relative">
-            <ChatFrame useChatBubbleStyle={useChatBubbleStyle} chatFrameRef={chatFrameRef}></ChatFrame>
+            <ChatFrame useChatBubbleStyle={useChatBubbleStyle} chatFrameRef={chatFrameRef} key={roomId}></ChatFrame>
           </div>
           {/* 输入区域 */}
           <form className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm flex flex-col">

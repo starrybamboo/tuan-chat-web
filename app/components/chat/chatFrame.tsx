@@ -39,6 +39,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const websocketUtils = useGlobalContext().websocketUtils;
   const getNewMessagesByRoomId = websocketUtils.getNewMessagesByRoomId;
   const send = websocketUtils.send;
+  const hasNewMessages = websocketUtils.messagesNumber[roomId];
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
 
   // Mutations
@@ -68,12 +69,17 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     initialPageParam: { roomId, pageSize: PAGE_SIZE, cursor: null } as unknown as ChatMessagePageRequest,
     refetchOnWindowFocus: false,
   });
+  const [receivedMessages, setReceivedMessages] = useState<ChatMessageResponse[]>([]);
+  useEffect(() => {
+    const newMessages = getNewMessagesByRoomId(roomId);
+    if (newMessages.length > 0) {
+      setReceivedMessages([...receivedMessages, ...newMessages]);
+    }
+  }, [hasNewMessages]);
   // 合并所有分页消息 同时更新重复的消息
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     const historyMessages = (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
     const messageMap = new Map<number, ChatMessageResponse>();
-
-    const receivedMessages = getNewMessagesByRoomId(roomId);
     // 这是为了更新历史消息(ws发过来的消息有可能是带有相同的messageId的, 代表消息的更新)
     historyMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
     receivedMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
@@ -83,7 +89,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     // 过滤掉删除的消息和不符合规则的消息
       .filter(msg => msg.message.status !== 1)
       .reverse();
-  }, [getNewMessagesByRoomId, roomId, messagesInfiniteQuery.data?.pages]);
+  }, [receivedMessages, messagesInfiniteQuery.data?.pages]);
   /**
    * scroll相关
    */

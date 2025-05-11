@@ -22,6 +22,7 @@ export interface WebsocketUtils{
     send: (request: ChatMessageRequest) => void
     getNewMessagesByRoomId: (roomId: number) => ChatMessageResponse[]
     isConnected: boolean
+    messagesNumber: Record<number, number>   // roomId to messagesNumber,用于通知下游组件接受到了新消息
 }
 
 const WS_URL = import.meta.env.VITE_API_WS_URL
@@ -32,7 +33,8 @@ export function useWebSocket() {
     const [isConnected, setIsConnected] = useState(false)
     const heartbeatTimer = useRef<NodeJS.Timeout>(setTimeout(()=>{}))
     // 接受消息的存储
-    const [roomMessages, updateRoomMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
+    const [tempMessages, updatetempMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
+    const [messagesNumber, updateMessagesNumber] = useImmer<Record<number, number>>({})
     const queryClient = useQueryClient();
 
     let token = ""
@@ -115,20 +117,28 @@ export function useWebSocket() {
             chatMessageResponse.message.createTime = formatLocalDateTime(new Date())
         }
         if(chatMessageResponse!=undefined && chatMessageResponse){
-            updateRoomMessages(draft => {
-                if (chatMessageResponse.message.roomId in draft) {
+            const roomId = chatMessageResponse.message.roomId
+            updateMessagesNumber(draft => {
+                if (roomId in draft) {
+                    draft[roomId] += 1
+                } else {
+                    draft[roomId] = 1
+                }
+            })
+            updatetempMessages(draft => {
+                if (roomId in draft) {
                     // 查找已存在消息的索引
-                    const existingIndex = draft[chatMessageResponse.message.roomId].findIndex(
+                    const existingIndex = draft[roomId].findIndex(
                         (msg) => msg.message.messageID === chatMessageResponse.message.messageID
                     );
                     if (existingIndex !== -1) {
                         // 更新已存在的消息
-                        draft[chatMessageResponse.message.roomId][existingIndex] = chatMessageResponse;
+                        draft[roomId][existingIndex] = chatMessageResponse;
                     } else {
-                        draft[chatMessageResponse.message.roomId].push(chatMessageResponse);
+                        draft[roomId].push(chatMessageResponse);
                     }
                 } else {
-                    draft[chatMessageResponse.message.roomId] = [chatMessageResponse];
+                    draft[roomId] = [chatMessageResponse];
                 }
             })
         }}
@@ -185,7 +195,13 @@ export function useWebSocket() {
 
     //
     const getNewMessagesByRoomId = (roomId: number): ChatMessageResponse[] => {
-        return roomMessages[roomId] || []
+        // return tempMessages[roomId] || []
+        if(!tempMessages[roomId]){
+            return [];
+        }
+        const newMessages = tempMessages[roomId] || []
+        updatetempMessages(draft => {draft[roomId] = []})
+        return newMessages;
     }
 
     const webSocketUtils:WebsocketUtils = {
@@ -193,6 +209,7 @@ export function useWebSocket() {
         getNewMessagesByRoomId,
         connect,
         send,
+        messagesNumber,
     }
     return webSocketUtils
 }
