@@ -37,7 +37,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const curAvatarId = roomContext.curAvatarId ?? -1;
 
   const websocketUtils = useGlobalContext().websocketUtils;
-  const getNewMessagesByRoomId = websocketUtils.getNewMessagesByRoomId;
+  const getNewMessagesByRoomId = websocketUtils.getTempMessagesByRoomId;
   const send = websocketUtils.send;
   const hasNewMessages = websocketUtils.messagesNumber[roomId];
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
@@ -71,7 +71,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   });
   const [receivedMessages, setReceivedMessages] = useState<ChatMessageResponse[]>([]);
   useEffect(() => {
-    const newMessages = getNewMessagesByRoomId(roomId);
+    const newMessages = getNewMessagesByRoomId(roomId, true);
     if (newMessages.length > 0) {
       setReceivedMessages([...receivedMessages, ...newMessages]);
     }

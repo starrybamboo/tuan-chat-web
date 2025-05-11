@@ -20,9 +20,9 @@ interface WsMessage<T> {
 export interface WebsocketUtils{
     connect: () => void
     send: (request: ChatMessageRequest) => void
-    getNewMessagesByRoomId: (roomId: number) => ChatMessageResponse[]
+    getTempMessagesByRoomId: (roomId: number,cleanTemp:boolean) => ChatMessageResponse[]
     isConnected: boolean
-    messagesNumber: Record<number, number>   // roomId to messagesNumber,用于通知下游组件接受到了新消息
+    messagesNumber: Record<number, number>   // roomId to messagesNumber,统计到目前为止接受了多少条新消息,用于通知下游组件接受到了新消息
 }
 
 const WS_URL = import.meta.env.VITE_API_WS_URL
@@ -33,7 +33,7 @@ export function useWebSocket() {
     const [isConnected, setIsConnected] = useState(false)
     const heartbeatTimer = useRef<NodeJS.Timeout>(setTimeout(()=>{}))
     // 接受消息的存储
-    const [tempMessages, updatetempMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
+    const [tempMessages, updateTempMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
     const [messagesNumber, updateMessagesNumber] = useImmer<Record<number, number>>({})
     const queryClient = useQueryClient();
 
@@ -125,7 +125,7 @@ export function useWebSocket() {
                     draft[roomId] = 1
                 }
             })
-            updatetempMessages(draft => {
+            updateTempMessages(draft => {
                 if (roomId in draft) {
                     // 查找已存在消息的索引
                     const existingIndex = draft[roomId].findIndex(
@@ -194,19 +194,19 @@ export function useWebSocket() {
     }
 
     //
-    const getNewMessagesByRoomId = (roomId: number): ChatMessageResponse[] => {
+    const getTempMessagesByRoomId = (roomId: number,cleanTemp:boolean): ChatMessageResponse[] => {
         // return tempMessages[roomId] || []
         if(!tempMessages[roomId]){
             return [];
         }
         const newMessages = tempMessages[roomId] || []
-        updatetempMessages(draft => {draft[roomId] = []})
+        updateTempMessages(draft => {draft[roomId] = []})
         return newMessages;
     }
 
     const webSocketUtils:WebsocketUtils = {
         isConnected,
-        getNewMessagesByRoomId,
+        getTempMessagesByRoomId,
         connect,
         send,
         messagesNumber,
