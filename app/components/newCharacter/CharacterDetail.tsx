@@ -120,7 +120,7 @@ export default function CharacterDetail({
               role={localRole}
               onchange={handleAvatarChange}
             />
-            <div className="divider divider-horizontal ml-0"></div>
+
             <div className="card flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               {/* <Section title="基本信息"> */}
 

@@ -238,9 +238,12 @@ export default function PerformanceEditor({
               : (
             // 非编辑模式下的UI
                   <div className="card bg-base-100 shadow-sm p-2 h-full">
-                    <div className="text-sm font-medium text-primary mb-1">{key}</div>
-                    <div className="text-base-content mt-0.5">
-                      {fields[key] || <span className="text-base-content/50">未设置</span>}
+                    {/* <div className="text-primary">{key}</div> */}
+                    <div className="divider" mt-0>{key}</div>
+                    <div className="text-base-content mt-0.5 flex justify-center">
+                      <div className="text-left">
+                        {fields[key] || <span className="text-base-content/50">未设置</span>}
+                      </div>
                     </div>
                   </div>
                 )}
