@@ -192,7 +192,7 @@ export default function PerformanceEditor({
       </div>
 
       {/* 短字段区域 - 多列排布 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {shortFields.map(key => (
           <div key={key} className="group">
             {isEditing
