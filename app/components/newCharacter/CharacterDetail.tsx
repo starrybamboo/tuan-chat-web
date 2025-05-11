@@ -127,17 +127,19 @@ export default function CharacterDetail({
               {isEditing
                 ? (
                     <div className="card-body">
-                      <p>
-                        角色ID号：
-                        {localRole.id}
+                      <p className="text-lg">
+                        角色名：
                       </p>
                       <input
                         type="text"
                         value={localRole.name}
                         onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
                         placeholder="角色名称"
-                        className="input input-bordered w-full text-lg font-bold"
+                        className="input input-bordered w-full text-lg font-bold mt-2"
                       />
+                      <p className="text-lg mt-2">
+                        描述：
+                      </p>
                       <textarea
                         value={localRole.description}
                         onChange={(e) => {
@@ -145,7 +147,7 @@ export default function CharacterDetail({
                           setCharCount(e.target.value.length);
                         }}
                         placeholder="角色描述"
-                        className="textarea textarea-bordered w-full h-24 resize-none"
+                        className="textarea textarea-bordered w-full h-24 resize-none mt-2"
                       />
                       <div className="text-right mt-1">
                         <span className={`text-sm font-bold ${
@@ -162,6 +164,10 @@ export default function CharacterDetail({
                           )}
                         </span>
                       </div>
+                      <p>
+                        角色ID号：
+                        {localRole.id}
+                      </p>
                     </div>
                   )
                 : (
