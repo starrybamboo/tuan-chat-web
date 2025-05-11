@@ -295,7 +295,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   <CommandSolid className="w-6 h-6 cursor-pointer hover:text-info" onClick={() => setCommandBrowseWindow("webgal")}> </CommandSolid>
                 </div>
                 <textarea
-                  className="textarea w-full flex-1 min-h-[80px] max-h-[200px] resize-none border-none focus:outline-none focus:ring-0"
+                  className="textarea chatInputTextarea w-full flex-1 min-h-[80px] max-h-[200px] resize-none border-none focus:outline-none focus:ring-0"
                   placeholder={curRoleId <= 0
                     ? "请先在群聊里拉入你的角色，之后才能发送消息。"
                     : (curAvatarId <= 0 ? "请给你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)")}

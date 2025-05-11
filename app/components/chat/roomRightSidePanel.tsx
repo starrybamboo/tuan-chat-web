@@ -7,6 +7,7 @@ import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import UserAvatarComponent from "@/components/common/userAvatar";
+import { Setting } from "@/icons";
 import React, { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useAddRoomMemberMutation, useAddRoomRoleMutation, useGetRoomRoleQuery } from "../../../api/hooks/chatQueryHooks";
@@ -62,15 +63,7 @@ export default function RoomRightSidePanel() {
           spaceContext.isSpaceOwner
           && (
             <div className="w-full flex justify-end">
-              <button
-                type="button"
-                className="btn btn-ghost z-50"
-                onClick={() => {
-                  setIsSettingWindowOpen(true);
-                }}
-              >
-                设置
-              </button>
+              <Setting className="w-12 h-12 cursor-pointer hover:text-info" onClick={() => setIsSettingWindowOpen(true)}> </Setting>
             </div>
           )
         }

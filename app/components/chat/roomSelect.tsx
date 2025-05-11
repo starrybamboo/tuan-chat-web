@@ -93,9 +93,8 @@ export default function RoomSelect() {
   const followingQuery = useGetUserFollowingsQuery(globalContext.userId ?? -1, { pageNo: 1, pageSize: 100 });
   const friends = followingQuery.data?.data?.list?.filter(user => user.status === 2) ?? [];
 
-  // 监听头像变化，自动调整文字颜色（合并空间和房间）
+  // 监听头像变化，自动调整文字颜色
   useEffect(() => {
-    // 定义头像和对应文字颜色的映射
     const avatarColorMap = [
       { avatar: spaceAvatar, setColor: setSpaceAvatarTextColor },
       { avatar: roomAvatar, setColor: setRoomAvatarTextColor },
@@ -112,7 +111,7 @@ export default function RoomSelect() {
         });
       }
     });
-  }, [spaceAvatar, roomAvatar]); // 依赖项包含两个头像
+  }, [spaceAvatar, roomAvatar]);
 
   // websocket封装, 用于发送接受消息
   const websocketUtils = useGlobalContext().websocketUtils;

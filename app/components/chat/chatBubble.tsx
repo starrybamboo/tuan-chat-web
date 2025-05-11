@@ -105,7 +105,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     }
     else {
       const roleName = role?.roleName?.trim() || "Undefined";
-      const inputElement = document.querySelector("textarea") as HTMLTextAreaElement;
+      const inputElement = document.querySelector(".chatInputTextarea") as HTMLTextAreaElement;
       if (inputElement) {
         const currentText = inputElement.value;
         const atText = `@${roleName} `;
