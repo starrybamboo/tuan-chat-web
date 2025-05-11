@@ -115,13 +115,13 @@ export default function CharacterDetail({
       }`}
       >
         <div className="card-body">
-          <div className="flex items-center">
+          <div className="flex flex-col md:flex-row justify-center items-center">
             <CharacterAvatar
               role={localRole}
               onchange={handleAvatarChange}
             />
 
-            <div className="card flex-1 space-y-4 min-w-0 overflow-hidden p-2">
+            <div className="card flex-1 space-y-4 min-w-0 overflow-hidden p-2 mt-4 md:mt-0">
               {/* <Section title="基本信息"> */}
 
               {isEditing
