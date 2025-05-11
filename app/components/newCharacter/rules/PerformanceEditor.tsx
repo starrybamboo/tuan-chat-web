@@ -240,7 +240,7 @@ export default function PerformanceEditor({
                   <div className="card bg-base-100 shadow-sm p-2 h-full">
                     {/* <div className="text-primary">{key}</div> */}
                     <div className="divider" mt-0>{key}</div>
-                    <div className="text-base-content mt-0.5 flex justify-center">
+                    <div className="text-base-content mt-0.5 flex justify-center p-2">
                       <div className="text-left">
                         {fields[key] || <span className="text-base-content/50">未设置</span>}
                       </div>
