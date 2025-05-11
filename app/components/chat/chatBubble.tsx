@@ -60,11 +60,6 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       setIsExpressionChooserOpen(true);
     }
   }
-  function handleRoleNameClick() {
-    if (canEdit) {
-      setIsRoleChooserOpen(true);
-    }
-  }
   function handleContentUpdate(content: string) {
     if (content.trim() === "") {
       updateMessageMutation.mutate({
@@ -103,19 +98,53 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     );
   }, [message.content, message.extra, message.messageType]);
 
+  // @角色
+  function handleRoleNameClick() {
+    if (canEdit) {
+      setIsRoleChooserOpen(true);
+    }
+    else {
+      const roleName = role?.roleName?.trim() || "Undefined";
+      const inputElement = document.querySelector("textarea") as HTMLTextAreaElement;
+      if (inputElement) {
+        const currentText = inputElement.value;
+        const atText = `@${roleName} `;
+
+        // 如果已经@过这个角色，就不再添加
+        if (!currentText.includes(atText)) {
+          inputElement.value = currentText + atText;
+          inputElement.focus();
+          // 触发React的状态更新
+          const event = new Event("input", { bubbles: true });
+          inputElement.dispatchEvent(event);
+        }
+      }
+    }
+  }
+
   return (
     <div>
       {useChatBubbleStyle
         ? (
             <div className="chat chat-start " key={message.messageID}>
               <div className="avatar chat-image" onClick={handleAvatarClick}>
-                <RoleAvatarComponent avatarId={message.avatarId} width={10} isRounded={true} withTitle={false} stopPopWindow={true}></RoleAvatarComponent>
+                <RoleAvatarComponent
+                  avatarId={message.avatarId}
+                  width={10}
+                  isRounded={true}
+                  withTitle={false}
+                  stopPopWindow={true}
+                >
+                </RoleAvatarComponent>
               </div>
               <div className={message.messageType !== 0 ? "chat-bubble" : "chat-bubble chat-bubble-neutral"}>
                 {renderedContent}
               </div>
               <div className="chat-footer">
-                <div className={`cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`} onClick={handleRoleNameClick}>
+                <div
+                  className={`cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`}
+                  onClick={handleRoleNameClick}
+                >
                   {role?.roleName?.trim() || "Undefined"}
                 </div>
                 <time className="text-xs opacity-50">
@@ -131,13 +160,23 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               {/* 圆角矩形头像 */}
               <div className="flex-shrink-0 mr-3">
                 <div className="w-20 h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
-                  <RoleAvatarComponent avatarId={message.avatarId} width={20} isRounded={false} withTitle={false} stopPopWindow={true}></RoleAvatarComponent>
+                  <RoleAvatarComponent
+                    avatarId={message.avatarId}
+                    width={20}
+                    isRounded={false}
+                    withTitle={false}
+                    stopPopWindow={true}
+                  >
+                  </RoleAvatarComponent>
                 </div>
               </div>
               {/* 消息内容 */}
               <div className="flex-1">
                 {/* 角色名 */}
-                <div className={`text-sm font-semibold cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`} onClick={handleRoleNameClick}>
+                <div
+                  className={`cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`}
+                  onClick={handleRoleNameClick}
+                >
                   {role?.roleName?.trim() || "Undefined"}
                 </div>
                 {renderedContent}
@@ -156,14 +195,22 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
             <PopWindow isOpen={isExpressionChooserOpen} onClose={() => setIsExpressionChooserOpen(false)}>
               <div className="flex flex-col">
                 <div>选择新的表情差分</div>
-                <ExpressionChooser roleId={message.roleId} handleExpressionChange={handleExpressionChange}></ExpressionChooser>
+                <ExpressionChooser
+                  roleId={message.roleId}
+                  handleExpressionChange={handleExpressionChange}
+                >
+                </ExpressionChooser>
               </div>
             </PopWindow>
             {/* role选择窗口 */}
             <PopWindow isOpen={isRoleChooserOpen} onClose={() => setIsRoleChooserOpen(false)}>
               <div className="flex flex-col items-center gap-4">
                 <div>选择新的角色</div>
-                <RoleChooser handleRoleChange={handleRoleChange} className=" menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"></RoleChooser>
+                <RoleChooser
+                  handleRoleChange={handleRoleChange}
+                  className=" menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
+                >
+                </RoleChooser>
               </div>
             </PopWindow>
           </>

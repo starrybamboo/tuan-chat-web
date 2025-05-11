@@ -1,4 +1,5 @@
 import { RoomContext } from "@/components/chat/roomContext";
+import RenderWindow from "@/components/chat/window/renderWindow";
 import checkBack from "@/components/common/autoContrastText";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { PopWindow } from "@/components/common/popWindow";
@@ -10,7 +11,6 @@ import {
 } from "api/hooks/chatQueryHooks";
 import { use, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import RenderWindow from "./renderWindow";
 
 function RoomSettingWindow({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
