@@ -115,17 +115,18 @@ export default function CharacterDetail({
       }`}
       >
         <div className="card-body">
-          <div className="flex items-center gap-8">
+          <div className="flex items-center">
             <CharacterAvatar
               role={localRole}
               onchange={handleAvatarChange}
             />
-
-            <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
+            <div className="divider divider-horizontal ml-0"></div>
+            <div className="card flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               {/* <Section title="基本信息"> */}
+
               {isEditing
                 ? (
-                    <>
+                    <div className="card-body">
                       <p>
                         角色ID号：
                         {localRole.id}
@@ -161,21 +162,21 @@ export default function CharacterDetail({
                           )}
                         </span>
                       </div>
-                    </>
+                    </div>
                   )
                 : (
                     <>
-                      <h2 className="card-title text-2xl">
+                      <h2 className="card-title text-3xl mt-4">
                         {localRole.name || "未命名角色"}
                       </h2>
-                      <p>
-                        角色ID号：
-                        {localRole.id}
-                      </p>
-                      <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden">
+                      <div className="divider divider-start font-bold mt-0" />
+                      <p className="text-lg whitespace-pre-wrap break-words max-w-full overflow-hidden mb-16">
                         {localRole.description || "暂无描述"}
                       </p>
-                      <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden float-right">
+                      <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden float-left">
+                        角色ID号：
+                        {localRole.id}
+                        <br />
                         采用模型：
                         {localRole.modelName || "暂无描述"}
                         <br />
