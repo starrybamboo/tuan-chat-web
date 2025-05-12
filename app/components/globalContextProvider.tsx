@@ -20,7 +20,8 @@ const GlobalContext = createContext<GlobalContextType>({
     },
     isConnected: false,
     getTempMessagesByRoomId(roomId: number, cleanTemp: boolean): ChatMessageResponse[] {
-      throw new Error(`Function not implemented.${roomId} ${cleanTemp}`);
+      console.error(`Function not implemented.${roomId} ${cleanTemp}`);
+      return [];
     },
     messagesNumber: {},
     unreadMessagesNumber: {},

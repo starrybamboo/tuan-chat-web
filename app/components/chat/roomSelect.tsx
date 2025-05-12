@@ -120,6 +120,7 @@ export default function RoomSelect() {
       websocketUtils.connect();
     }
   }, [websocketUtils.isConnected]);
+  const unreadMessagesNumber = websocketUtils.unreadMessagesNumber;
 
   // spaceContext
   const spaceContext: SpaceContextType = useMemo((): SpaceContextType => {
@@ -167,25 +168,27 @@ export default function RoomSelect() {
     <SpaceContext value={spaceContext}>
       <div className="flex flex-row bg-base-100 flex-1">
         {/* 空间列表 */}
-        <div className="menu flex flex-col gap-2 p-3 bg-base-300">
+        <div className="menu flex flex-col p-3 bg-base-300">
           {spaces.map(space => (
-            <button
-              key={space.spaceId}
-              className="tooltip tooltip-right w-10 btn btn-square z-10"
-              data-tip={space.name}
-              type="button"
-              onClick={() => {
-                setActiveSpaceId(space.spaceId ?? -1);
-                setActiveRoomId(null);
-              }}
-            >
-              <div className="avatar mask mask-squircle">
-                <img
-                  src={space.avatar}
-                  alt={space.name}
-                />
-              </div>
-            </button>
+            <div className={`p-1 mask mask-squircle ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""}`} key={space.spaceId}>
+              <button
+                className="tooltip tooltip-right w-10 btn btn-square z-10"
+                data-tip={space.name}
+                type="button"
+                onClick={() => {
+                  setActiveSpaceId(space.spaceId ?? -1);
+                  setActiveRoomId(null);
+                }}
+              >
+                <div className="avatar mask mask-squircle">
+                  <img
+                    src={space.avatar}
+                    alt={space.name}
+                  />
+                </div>
+              </button>
+            </div>
+
           ))}
           <button
             className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10"
@@ -201,7 +204,17 @@ export default function RoomSelect() {
             }}
           >
             <div className="avatar mask mask-squircle flex content-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
@@ -209,21 +222,26 @@ export default function RoomSelect() {
           </button>
         </div>
         {/* 房间列表 */}
-        <div className="flex flex-col gap-2 p-2 w-[200px] bg-base-100">
+        <div className={`flex flex-col gap-2 p-2 w-[200px] bg-base-100 `}>
           {rooms.map(room => (
             <div key={room.roomId}>
               {activeSpaceId === room.spaceId && (
                 <button
                   key={room.roomId}
-                  className="btn btn-ghost flex justify-start w-full gap-2"
+                  className={`btn btn-ghost flex justify-start w-full gap-2 ${activeRoomId === room.roomId ? "bg-info-content/30" : ""}`}
                   type="button"
                   onClick={() => setActiveRoomId(room.roomId ?? -1)}
                 >
-                  <div className="avatar mask mask-squircle w-8">
-                    <img
-                      src={room.avatar}
-                      alt={room.name}
-                    />
+                  <div className="indicator">
+                    {unreadMessagesNumber[room.roomId ?? -1] > 0
+                      && <span className="indicator-item badge badge-xs bg-error">{unreadMessagesNumber[room.roomId ?? -1]}</span>}
+
+                    <div className="avatar mask mask-squircle w-8">
+                      <img
+                        src={room.avatar}
+                        alt={room.name}
+                      />
+                    </div>
                   </div>
                   <span className="truncate flex-1 text-left">{room.name}</span>
                 </button>
