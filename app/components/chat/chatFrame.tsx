@@ -30,6 +30,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const [topMessageRef, topMessageEntry] = useIntersectionObserver();
   // 底部的messageRef， 用于更新未读消息;
   const [bottomMessageRef, bottomMessageEntry] = useIntersectionObserver();
+  // 从底部数第二个消息的ref， 用于新消息scroll；
+  const [nearBottomMessageRef, nearBottomMessageEntry] = useIntersectionObserver();
   const PAGE_SIZE = 30; // 每页消息数量
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
@@ -118,7 +120,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   }, [bottomMessageEntry?.isIntersecting]);
   useEffect(() => {
     if (chatFrameRef.current) {
-      if (chatFrameRef.current.scrollTop >= -80) {
+      if (nearBottomMessageEntry?.isIntersecting) {
         scrollToBottom();
       }
     }
@@ -366,7 +368,9 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
             ? messageRef
             : (index === historyMessages.length - 1
                 ? topMessageRef
-                : (index === 0 ? bottomMessageRef : null))}
+                : (index === 0
+                    ? bottomMessageRef
+                    : (index === 1 ? nearBottomMessageRef : null)))}
           className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} -my-[5px] ${isDragging ? "pointer-events-auto" : ""}\``}
           data-message-id={chatMessageResponse.message.messageID}
           onClick={(e) => {
