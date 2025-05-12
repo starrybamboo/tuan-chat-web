@@ -18,11 +18,12 @@ const GlobalContext = createContext<GlobalContextType>({
     send(_: ChatMessageRequest): void {
       console.error("Function not implemented.");
     },
-    getNewMessagesByRoomId(_: number): ChatMessageResponse[] {
-      console.error("Function not implemented.");
-      return [];
-    },
     isConnected: false,
+    getTempMessagesByRoomId(roomId: number, cleanTemp: boolean): ChatMessageResponse[] {
+      throw new Error(`Function not implemented.${roomId} ${cleanTemp}`);
+    },
+    messagesNumber: {},
+    unreadMessagesNumber: {},
   },
   setUserId: () => {},
 });

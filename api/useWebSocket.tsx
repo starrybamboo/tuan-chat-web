@@ -6,6 +6,7 @@ import {formatLocalDateTime} from "@/utils/dataUtil";
 import {useGlobalContext} from "@/components/globalContextProvider";
 import {TuanChat} from "./TuanChat";
 import {useQueryClient} from "@tanstack/react-query";
+import {getLocalStorageValue, useLocalStorage} from "@/components/common/customHooks/useLocalStorage";
 
 // type WsMessageType =
 //     | 2 // 心跳
@@ -23,6 +24,7 @@ export interface WebsocketUtils{
     getTempMessagesByRoomId: (roomId: number,cleanTemp:boolean) => ChatMessageResponse[]
     isConnected: boolean
     messagesNumber: Record<number, number>   // roomId to messagesNumber,统计到目前为止接受了多少条新消息,用于通知下游组件接受到了新消息
+    unreadMessagesNumber: Record<number, number> // 存储未读消息数
 }
 
 const WS_URL = import.meta.env.VITE_API_WS_URL
@@ -37,11 +39,10 @@ export function useWebSocket() {
     const [messagesNumber, updateMessagesNumber] = useImmer<Record<number, number>>({})
     const queryClient = useQueryClient();
 
-    let token = ""
+    // 新消息数记录，用于显示红点
+    const [unreadMessagesNumber, setUnreadMessagesNumber] = useLocalStorage<Record<number, number>>("unreadMessagesNumber",{});
 
-    if (typeof window !== 'undefined') {
-       token = localStorage.getItem("token") ?? "-1"
-    }
+    const token = getLocalStorageValue<number>("token", -1)
     // 配置参数
     const MAX_RECONNECT_ATTEMPTS = 12
     const HEARTBEAT_INTERVAL = 25000
@@ -125,6 +126,13 @@ export function useWebSocket() {
                     draft[roomId] = 1
                 }
             })
+            if (chatMessageResponse.message.status === 0) {
+                setUnreadMessagesNumber(prev => ({
+                    ...prev,
+                    [roomId]: (prev[roomId] || 0) + 1
+                }));
+            }
+
             updateTempMessages(draft => {
                 if (roomId in draft) {
                     // 查找已存在消息的索引
@@ -210,6 +218,7 @@ export function useWebSocket() {
         connect,
         send,
         messagesNumber,
+        unreadMessagesNumber
     }
     return webSocketUtils
 }

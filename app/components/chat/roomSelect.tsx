@@ -119,7 +119,7 @@ export default function RoomSelect() {
     if (!websocketUtils.isConnected) {
       websocketUtils.connect();
     }
-  }, []);
+  }, [websocketUtils.isConnected]);
 
   // spaceContext
   const spaceContext: SpaceContextType = useMemo((): SpaceContextType => {
