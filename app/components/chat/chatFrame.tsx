@@ -420,7 +420,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
             className="sticky bottom-4 self-end z-50 cursor-pointer"
             onClick={() => { scrollToBottom(); }}
           >
-            <div className="badge badge-lg badge-info gap-2 shadow-lg">
+            <div className="btn btn-info gap-2 shadow-lg">
               <span>{unreadMessageNumber}</span>
               <span>条新消息</span>
             </div>
