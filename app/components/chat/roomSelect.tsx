@@ -147,7 +147,7 @@ export default function RoomSelect() {
   const getSpaceUnreadMessagesNumber = (spaceId: number) => {
     let result = 0;
     for (const room of spaceIdToRooms[spaceId]) {
-      if (room.spaceId === spaceId && room.roomId) {
+      if (room.spaceId === spaceId && room.roomId && activeRoomId !== room.roomId) {
         result += unreadMessagesNumber[room.roomId] ?? 0;
       }
     }
@@ -205,13 +205,14 @@ export default function RoomSelect() {
                 }}
               >
                 <div className="indicator">
-                  {getSpaceUnreadMessagesNumber(space.spaceId ?? -1) > 0
-                    && (
+                  {(() => {
+                    const unreadCount = getSpaceUnreadMessagesNumber(space.spaceId ?? -1);
+                    return unreadCount > 0 && (
                       <span className="indicator-item badge badge-xs bg-error">
-                        {getSpaceUnreadMessagesNumber(space.spaceId ?? -1)}
+                        {unreadCount}
                       </span>
-                    )}
-
+                    );
+                  })()}
                   <div className="avatar mask mask-squircle">
                     <img
                       src={space.avatar}
@@ -265,7 +266,7 @@ export default function RoomSelect() {
                   onClick={() => setActiveRoomId(room.roomId ?? -1)}
                 >
                   <div className="indicator">
-                    {unreadMessagesNumber[room.roomId ?? -1] > 0
+                    {(activeRoomId !== room.roomId && unreadMessagesNumber[room.roomId ?? -1] > 0)
                       && <span className="indicator-item badge badge-xs bg-error">{unreadMessagesNumber[room.roomId ?? -1]}</span>}
 
                     <div className="avatar mask mask-squircle w-8">

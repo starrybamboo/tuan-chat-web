@@ -415,7 +415,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
       >
-        {unreadMessageNumber > 0 && (
+        {(unreadMessageNumber > 0 && !bottomMessageEntry?.isIntersecting) && (
           <div
             className="sticky bottom-4 self-end z-50 cursor-pointer"
             onClick={() => { scrollToBottom(); }}
