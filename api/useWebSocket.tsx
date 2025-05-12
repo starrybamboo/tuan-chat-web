@@ -1,4 +1,4 @@
-import {useState, useRef, useCallback, useEffect, use} from 'react'
+import React, {useState, useRef, useCallback, useEffect, use} from 'react'
 import type {ChatMessageRequest} from "./models/ChatMessageRequest";
 import type {ChatMessageResponse} from "./models/ChatMessageResponse";
 import {useImmer} from "use-immer";
@@ -25,6 +25,7 @@ export interface WebsocketUtils{
     isConnected: boolean
     messagesNumber: Record<number, number>   // roomId to messagesNumber,统计到目前为止接受了多少条新消息,用于通知下游组件接受到了新消息
     unreadMessagesNumber: Record<number, number> // 存储未读消息数
+    setUnreadMessagesNumber: React.Dispatch<React.SetStateAction<Record<number, number>>>
 }
 
 const WS_URL = import.meta.env.VITE_API_WS_URL
@@ -212,13 +213,21 @@ export function useWebSocket() {
         return newMessages;
     }
 
+    const updateUnreadMessagesNumber = (roomId:number,newNumber:number) =>{
+        setUnreadMessagesNumber(prev => ({
+            ...prev,
+            [roomId]: (prev[roomId] || 0) + 1
+        }));
+    }
+
     const webSocketUtils:WebsocketUtils = {
         isConnected,
         getTempMessagesByRoomId,
         connect,
         send,
         messagesNumber,
-        unreadMessagesNumber
+        unreadMessagesNumber,
+        setUnreadMessagesNumber,
     }
     return webSocketUtils
 }

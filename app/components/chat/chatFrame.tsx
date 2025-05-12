@@ -28,6 +28,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const [messageRef, messageEntry] = useIntersectionObserver();
   // 在顶部也设置一个，保险
   const [topMessageRef, topMessageEntry] = useIntersectionObserver();
+  // 底部的messageRef， 用于更新未读消息;
+  const [bottomMessageRef, bottomMessageEntry] = useIntersectionObserver();
   const PAGE_SIZE = 30; // 每页消息数量
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
@@ -91,12 +93,33 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       .reverse();
   }, [receivedMessages, messagesInfiniteQuery.data?.pages]);
   /**
+   * 新消息提醒
+   */
+  const unreadMessageNumber = websocketUtils.unreadMessagesNumber[roomId] ?? 0;
+  const updateUnreadMessageNumber = useCallback((number: number) => {
+    websocketUtils.setUnreadMessagesNumber(prev => ({
+      ...prev,
+      [roomId]: number,
+    }));
+  }, [websocketUtils]);
+  /**
    * scroll相关
    */
+  const scrollToBottom = () => {
+    chatFrameRef.current.scrollTo({ top: 0, behavior: "instant" });
+    updateUnreadMessageNumber(0);
+  };
+  // const isNearBottom = chatFrameRef.current.scrollTop < -80;
+  // 若滚动到底部，设置未读消息为0
+  useEffect(() => {
+    if (bottomMessageEntry?.isIntersecting) {
+      updateUnreadMessageNumber(0);
+    }
+  }, [bottomMessageEntry?.isIntersecting]);
   useEffect(() => {
     if (chatFrameRef.current) {
       if (chatFrameRef.current.scrollTop >= -80) {
-        chatFrameRef.current.scrollTo({ top: 0, behavior: "instant" });
+        scrollToBottom();
       }
     }
   }, [chatFrameRef, historyMessages]);
@@ -328,6 +351,10 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     setContextMenu(null);
   }
 
+  /**
+   * 渲染缓存
+   */
+
   const renderMessages = useMemo(() => (historyMessages
   // .filter(chatMessageResponse => chatMessageResponse.message.content !== "")
     .map((chatMessageResponse, index) => {
@@ -335,7 +362,11 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       return ((
         <div
           key={chatMessageResponse.message.messageID}
-          ref={index === historyMessages.length - 7 ? messageRef : (index === historyMessages.length - 1 ? topMessageRef : null)}
+          ref={index === historyMessages.length - 7
+            ? messageRef
+            : (index === historyMessages.length - 1
+                ? topMessageRef
+                : (index === 0 ? bottomMessageRef : null))}
           className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} -my-[5px] ${isDragging ? "pointer-events-auto" : ""}\``}
           data-message-id={chatMessageResponse.message.messageID}
           onClick={(e) => {
@@ -372,6 +403,9 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       );
     })), [historyMessages, isSelecting, selectedMessageIds]);
 
+  /**
+   * 渲染
+   */
   return (
     <>
       {/* 这里是从下到上渲染的 */}
@@ -381,6 +415,17 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
       >
+        {unreadMessageNumber > 0 && (
+          <div
+            className="sticky bottom-4 self-end z-50 cursor-pointer"
+            onClick={() => { scrollToBottom(); }}
+          >
+            <div className="badge badge-lg badge-info gap-2 shadow-lg">
+              <span>{unreadMessageNumber}</span>
+              <span>条新消息</span>
+            </div>
+          </div>
+        )}
         {renderMessages}
         {selectedMessageIds.size > 0 && (
           <div className="sticky top-0 bg-base-300 p-2 shadow-sm z-10 flex justify-between items-center rounded">
