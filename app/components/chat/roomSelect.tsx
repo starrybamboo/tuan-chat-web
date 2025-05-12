@@ -1,4 +1,5 @@
 import type { SpaceContextType } from "@/components/chat/spaceContext";
+import type { Room } from "../../../api";
 import RoomWindow from "@/components/chat/roomWindow";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import SpaceWindow from "@/components/chat/spaceWindow";
@@ -11,6 +12,7 @@ import {
   useCreateRoomMutation,
   useCreateSpaceMutation,
   useGetSpaceMembersQuery,
+  useGetUserRoomsQueries,
   useGetUserRoomsQuery,
   useGetUserSpacesQuery,
 } from "api/hooks/chatQueryHooks";
@@ -41,10 +43,22 @@ export default function RoomSelect() {
 
   // 获取用户空间列表
   const userSpacesQuery = useGetUserSpacesQuery();
-  const spaces = userSpacesQuery.data?.data ?? [];
+  const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
   // 当前激活的空间对应的房间列表
+  const userRoomQueries = useGetUserRoomsQueries(spaces);
+  // 空间对应的房间列表
+  const spaceIdToRooms = useMemo(() => {
+    const result: Record<number, Room[]> = {};
+    for (const space of spaces) {
+      const spaceId = space.spaceId ?? -1;
+      result[spaceId] = userRoomQueries.find(query => query.data?.data?.some(room => room.spaceId === space.spaceId))?.data?.data ?? [];
+    }
+    return result;
+  }, [spaces, userRoomQueries]);
+
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
+  // 当前激活的space对应的rooms。
   const rooms = userRoomQuery.data?.data ?? [];
 
   // 创建空间
@@ -130,6 +144,16 @@ export default function RoomSelect() {
     };
   }, [activeSpaceId, globalContext.userId, spaceMembersQuery.data?.data]);
 
+  const getSpaceUnreadMessagesNumber = (spaceId: number) => {
+    let result = 0;
+    for (const room of spaceIdToRooms[spaceId]) {
+      if (room.spaceId === spaceId && room.roomId) {
+        result += unreadMessagesNumber[room.roomId] ?? 0;
+      }
+    }
+    return result;
+  };
+
   // 创建空间
   async function createSpace(userIds: number[]) {
     createSpaceMutation.mutate({
@@ -170,7 +194,7 @@ export default function RoomSelect() {
         {/* 空间列表 */}
         <div className="menu flex flex-col p-3 bg-base-300">
           {spaces.map(space => (
-            <div className={`p-1 mask mask-squircle ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""}`} key={space.spaceId}>
+            <div className={`p-1 rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""}`} key={space.spaceId}>
               <button
                 className="tooltip tooltip-right w-10 btn btn-square z-10"
                 data-tip={space.name}
@@ -180,15 +204,23 @@ export default function RoomSelect() {
                   setActiveRoomId(null);
                 }}
               >
-                <div className="avatar mask mask-squircle">
-                  <img
-                    src={space.avatar}
-                    alt={space.name}
-                  />
+                <div className="indicator">
+                  {getSpaceUnreadMessagesNumber(space.spaceId ?? -1) > 0
+                    && (
+                      <span className="indicator-item badge badge-xs bg-error">
+                        {getSpaceUnreadMessagesNumber(space.spaceId ?? -1)}
+                      </span>
+                    )}
+
+                  <div className="avatar mask mask-squircle">
+                    <img
+                      src={space.avatar}
+                      alt={space.name}
+                    />
+                  </div>
                 </div>
               </button>
             </div>
-
           ))}
           <button
             className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10"
