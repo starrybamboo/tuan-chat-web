@@ -115,6 +115,13 @@ export default function NumericalEditor({
     return updatedConstraints;
   };
 
+  // 实时计算约束值
+  const calculatedConstraints = useMemo(() => {
+    const allContext = getAllContext(localConstraints);
+    return calculateFormulas(localConstraints, allContext);
+  }, [localConstraints]);
+
+  // 处理字段值更新
   const handleExitEditing = () => {
     setIsTransitioning(true);
     // 获取扁平化的约束数据
@@ -258,46 +265,70 @@ export default function NumericalEditor({
 
             {/* 网格布局 */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
-              {entries.map(([key, value]) => (
-                <div key={key} className="flex flex-col gap-1 mb-2">
-                  {isEditing
-                    ? (
-                        <div className="flex items-center gap-1 group">
-                          <label className={`input flex items-center gap-2 w-full ${
-                            isEditing ? "bg-base-100" : ""
-                          }`}
-                          >
-                            <span className="text-sm font-medium">{key}</span>
-                            <div className="w-px h-4 bg-base-content/20"></div>
-                            <input
-                              type="text"
-                              value={typeof value === "object" && "displayValue" in value
-                                ? value.displayValue.toString()
-                                : typeof value === "string" ? value : value.toString()}
-                              className="grow"
-                              disabled={!isEditing}
-                              onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
-                            />
-                          </label>
+              {entries.map(([key]) => {
+                const calculatedValue = calculatedConstraints[totalKey][key];
+                if (totalKey === "0") {
+                  return (
+                    <div key={key} className="flex flex-col gap-1 mb-2">
+                      <div className="card bg-base-100 shadow-sm p-2 h-full">
+                        <div className="text-sm font-medium text-primary mb-1">{key}</div>
+                        <div className="text-base-content mt-0.5">
+                          {typeof calculatedValue === "object" && "displayValue" in calculatedValue
+                            ? calculatedValue.displayValue.toString()
+                            : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
                         </div>
-                      )
-                    : (
-                        <div className="card bg-base-100 shadow-sm p-2 h-full">
-                          <div className="text-sm font-medium text-primary mb-1">{key}</div>
-                          <div className="text-base-content mt-0.5">
-                            {typeof value === "object" && "displayValue" in value
-                              ? value.displayValue.toString()
-                              : typeof value === "string" ? value : value.toString()}
+                        {typeof calculatedValue === "object" && "formula" in calculatedValue && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {calculatedValue.formula}
                           </div>
-                          {typeof value === "object" && "formula" in value && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {value.formula}
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+                else {
+                  return (
+                    <div key={key} className="flex flex-col gap-1 mb-2">
+                      {isEditing
+                        ? (
+                            <div className="flex items-center gap-1 group">
+                              <label className={`input flex items-center gap-2 w-full ${
+                                isEditing ? "bg-base-100" : ""
+                              }`}
+                              >
+                                <span className="text-sm font-medium">{key}</span>
+                                <div className="w-px h-4 bg-base-content/20"></div>
+                                <input
+                                  type="text"
+                                  value={typeof calculatedValue === "object" && "displayValue" in calculatedValue
+                                    ? calculatedValue.displayValue.toString()
+                                    : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
+                                  className="grow"
+                                  disabled={!isEditing}
+                                  onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
+                                />
+                              </label>
+                            </div>
+                          )
+                        : (
+                            <div className="card bg-base-100 shadow-sm p-2 h-full">
+                              <div className="text-sm font-medium text-primary mb-1">{key}</div>
+                              <div className="text-base-content mt-0.5">
+                                {typeof calculatedValue === "object" && "displayValue" in calculatedValue
+                                  ? calculatedValue.displayValue.toString()
+                                  : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
+                              </div>
+                              {typeof calculatedValue === "object" && "formula" in calculatedValue && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {calculatedValue.formula}
+                                </div>
+                              )}
                             </div>
                           )}
-                        </div>
-                      )}
-                </div>
-              ))}
+                    </div>
+                  );
+                }
+              })}
             </div>
           </div>
         );

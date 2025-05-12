@@ -2,6 +2,7 @@
  * 喜欢的图标
  */
 import type { LikeRecordRequest } from "../../../api";
+import { useGetCounterQuery } from "../../../api/hooks/couterQueryHooks";
 import { useIsLikedQuery, useLikeMutation, useUnlikeMutation } from "../../../api/hooks/likeQueryHooks";
 
 export default function LikeIconButton({ targetInfo }: { targetInfo: LikeRecordRequest }) {
@@ -11,7 +12,7 @@ export default function LikeIconButton({ targetInfo }: { targetInfo: LikeRecordR
   });
 
   const isLiked = isLikedQuery.data?.data;
-  const likeCount = targetInfo.targetId;
+  const likeCount = useGetCounterQuery({ targetId: targetInfo.targetId, targetType: Number(targetInfo.targetType) }).data?.data ?? -2;
 
   const likeMutation = useLikeMutation();
   const unlikeMutation = useUnlikeMutation();

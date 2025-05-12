@@ -114,9 +114,7 @@ export class CounterService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/counter/get',
-            query: {
-                'dto': dto,
-            },
+            query: dto,
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -137,9 +135,7 @@ export class CounterService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/counter/all',
-            query: {
-                'dto': dto,
-            },
+            query: dto,
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
