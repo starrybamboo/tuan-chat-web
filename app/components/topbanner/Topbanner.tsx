@@ -51,7 +51,7 @@ export default function Topbar() {
           模组
         </a>
         <a onClick={() => navigate("/create")} className="text-base-content hover:text-primary transition-colors">
-          创作
+          工作间
         </a>
         <a onClick={() => navigate("/collection")} className="text-base-content hover:text-primary transition-colors">
           收藏
