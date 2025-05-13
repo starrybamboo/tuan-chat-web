@@ -185,9 +185,9 @@ export default function CharacterAvatar({ role, onchange }: {
 
       <PopWindow isOpen={changeAvatarConfirmOpen} onClose={handleCancelChangeAvatar}>
         <div className="h-full w-full p-4 flex flex-col">
-          <div className="flex gap-4 min-h-0 justify-center">
+          <div className="flex flex-col md:flex-row gap-4 min-h-0 justify-center">
             {/* 大图预览 */}
-            <div className="w-1/2 bg-base-200 p-3 rounded-lg">
+            <div className="w-full md:w-1/2 bg-base-200 p-3 rounded-lg order-2 md:order-1">
               <h2 className="text-xl font-bold mb-4">角色立绘</h2>
               <div className="h-[90%] bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
                 <img
@@ -198,7 +198,7 @@ export default function CharacterAvatar({ role, onchange }: {
               </div>
             </div>
 
-            <div className="w-1/2 p-3">
+            <div className="w-full md:w-1/2 p-3 order-1 md:order-2">
               {/* 头像列表区域 */}
               <h2 className="text-xl font-bold mb-4">选择头像：</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
@@ -291,7 +291,7 @@ export default function CharacterAvatar({ role, onchange }: {
                 setChangeAvatarConfirmOpen(false);
                 onchange(copperedUrl, avatarId);
               }}
-              className="btn btn-primary"
+              className="btn btn-primary mt-2"
             >
               确认更改头像
             </button>
