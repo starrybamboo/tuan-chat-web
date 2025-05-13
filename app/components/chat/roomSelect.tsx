@@ -4,7 +4,6 @@ import RoomWindow from "@/components/chat/roomWindow";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import SpaceWindow from "@/components/chat/spaceWindow";
 import checkBack from "@/components/common/autoContrastText";
-import MemberInfoComponent from "@/components/common/memberInfo";
 import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useGlobalContext } from "@/components/globalContextProvider";
@@ -23,6 +22,7 @@ import {
 } from "api/queryHooks";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { MemberSelect } from "../common/memberSelect";
 
 export default function RoomSelect() {
   const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
@@ -192,9 +192,9 @@ export default function RoomSelect() {
     <SpaceContext value={spaceContext}>
       <div className="flex flex-row bg-base-100 flex-1">
         {/* 空间列表 */}
-        <div className="menu flex flex-col p-3 bg-base-300">
+        <div className="menu flex flex-col p-3 bg-base-300 space-y-2">
           {spaces.map(space => (
-            <div className={`p-1 rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""}`} key={space.spaceId}>
+            <div className={`rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""}`} key={space.spaceId}>
               <button
                 className="tooltip tooltip-right w-10 btn btn-square z-10"
                 data-tip={space.name}
@@ -224,7 +224,7 @@ export default function RoomSelect() {
             </div>
           ))}
           <button
-            className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10"
+            className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10 z-10"
             type="button"
             data-tip="创建空间"
             onClick={() => {
@@ -307,7 +307,7 @@ export default function RoomSelect() {
         }
         {/* 创建空间弹出窗口 */}
         <PopWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
-          <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[80vh] overflow-y-scroll">
+          <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[60vh] overflow-y-scroll">
             <p className="text-lg font-bold text-center w-full mb-4">创建空间</p>
 
             {/* 头像上传 */}
@@ -382,55 +382,15 @@ export default function RoomSelect() {
                 </ul>
               </div>
             </div>
-
-            {/* 邀请成员部分 */}
-            <div>
-              <label className="label mb-2">
-                <span className="label-text">搜索好友Id</span>
-              </label>
-              <input
-                type="text"
-                placeholder="请输入要加入的好友ID"
-                className="input input-bordered w-full mb-2"
-                onInput={e => setInputUserId(Number(e.currentTarget.value))}
-              />
-            </div>
-
-            {/* 用户信息预览和确认按钮 */}
-            <div className="flex flex-col gap-y-2 pb-4">
-              {(() => {
-                if (friends.length === 0) {
-                  return (
-                    <div className="text-center py-4 text-gray-500">
-                      您还没有好友哦
-                    </div>
-                  );
-                }
-
-                const matchedFriends = inputUserId > 0
-                  ? friends.find(friend => friend.userId === inputUserId)
-                  : null;
-                const friendsToShow = matchedFriends ? [matchedFriends] : friends;
-
-                return friendsToShow.map(friend => (
-                  <div key={friend.userId} className="flex gap-x-4 items-center p-2 bg-base-100 rounded-lg w-full">
-                    <input
-                      type="checkbox"
-                      className="checkbox"
-                      checked={selectedUserIds.has(friend.userId ?? -1)}
-                      onChange={(e) => {
-                        const newSet = new Set(selectedUserIds);
-                        e.target.checked
-                          ? newSet.add(friend.userId ?? -1)
-                          : newSet.delete(friend.userId ?? -1);
-                        setSelectedUserIds(newSet);
-                      }}
-                    />
-                    <MemberInfoComponent userId={friend.userId ?? -1} />
-                  </div>
-                ));
-              })()}
-            </div>
+            <MemberSelect
+              members={friends}
+              selectedUserIds={selectedUserIds}
+              onSelectionChange={setSelectedUserIds}
+              searchInput={inputUserId}
+              onSearchInputChange={setInputUserId}
+              emptyMessage="您还没有好友哦"
+              searchPlaceholder="请输入要加入的好友ID"
+            />
           </div>
           <div className="bottom-0 w-full bg-base-300 pt-4">
             <button
@@ -492,70 +452,30 @@ export default function RoomSelect() {
                   }}
                 />
               </div>
-
-              {/* 邀请成员部分 */}
-              <div>
-                <label className="label mb-2">
-                  <span className="label-text">搜索玩家Id</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="请输入要加入的玩家ID"
-                  className="input input-bordered w-full mb-2"
-                  onInput={e => setInputUserId(Number(e.currentTarget.value))}
-                />
+              <MemberSelect
+                members={players}
+                selectedUserIds={selectedUserIds}
+                onSelectionChange={setSelectedUserIds}
+                searchInput={inputUserId}
+                onSearchInputChange={setInputUserId}
+                emptyMessage="当前空间内没有玩家哦"
+                searchPlaceholder="请输入要加入的玩家ID"
+              />
+              <div className="bottom-0 w-full bg-base-300 pt-4">
+                <button
+                  type="button"
+                  className="btn btn-primary w-full shadow-lg"
+                  onClick={() => {
+                    const userIds = [
+                      ...selectedUserIds,
+                      ...(inputUserId > 0 ? [inputUserId] : []),
+                    ];
+                    createRoom(Number(activeSpaceId), userIds);
+                  }}
+                >
+                  创建房间
+                </button>
               </div>
-
-              {/* 用户信息预览和确认按钮 */}
-              <div className="flex flex-col gap-y-2 pb-4">
-                {(() => {
-                  if (players.length === 0) {
-                    return (
-                      <div className="text-center py-4 text-gray-500">
-                        当前空间内没有玩家哦
-                      </div>
-                    );
-                  }
-
-                  const matchedPlayer = inputUserId > 0
-                    ? players.find(player => player.userId === inputUserId)
-                    : null;
-                  const playersToShow = matchedPlayer ? [matchedPlayer] : players;
-
-                  return playersToShow.map(player => (
-                    <div key={player.userId} className="flex gap-x-4 items-center p-2 bg-base-100 rounded-lg w-full">
-                      <input
-                        type="checkbox"
-                        className="checkbox"
-                        checked={selectedUserIds.has(player.userId ?? -1)}
-                        onChange={(e) => {
-                          const newSet = new Set(selectedUserIds);
-                          e.target.checked
-                            ? newSet.add(player.userId ?? -1)
-                            : newSet.delete(player.userId ?? -1);
-                          setSelectedUserIds(newSet);
-                        }}
-                      />
-                      <MemberInfoComponent userId={player.userId ?? -1} />
-                    </div>
-                  ));
-                })()}
-              </div>
-            </div>
-            <div className="bottom-0 w-full bg-base-300 pt-4">
-              <button
-                type="button"
-                className="btn btn-primary w-full shadow-lg"
-                onClick={() => {
-                  const userIds = [
-                    ...selectedUserIds,
-                    ...(inputUserId > 0 ? [inputUserId] : []),
-                  ];
-                  createRoom(Number(activeSpaceId), userIds);
-                }}
-              >
-                创建房间
-              </button>
             </div>
           </div>
         </PopWindow>
