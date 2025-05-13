@@ -22,94 +22,85 @@ export default function Topbar() {
   }
 
   return (
-    <div className="drawer z-100">
-      <input id="nav-drawer" type="checkbox" className="drawer-toggle" />
-      <div className="drawer-content">
-        {/* 导航栏内容 */}
-        <div className="navbar bg-base-300">
-          {/* 左侧导航区域 */}
-          <div className="navbar-start gap-4">
-            {/* 移动端汉堡菜单按钮 */}
-            <div className="flex-none lg:hidden">
-              <label htmlFor="nav-drawer" className="btn btn-square btn-ghost">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block h-5 w-5 stroke-current">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                </svg>
-              </label>
+    <div className="w-full">
+      <div className="navbar bg-base-300">
+        {/* 左侧导航区域 */}
+        <div className="navbar-start gap-4">
+          {/* 移动端下拉菜单按钮 */}
+          <div className="dropdown lg:hidden">
+            <div tabIndex={0} role="button" className="btn btn-square btn-ghost">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="inline-block h-5 w-5 stroke-current">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
+              </svg>
             </div>
-
-            <img
-              src="http://47.119.147.6/tuan/favicon.ico"
-              alt="Logo"
-              className="h-8 w-8 mr-4 ml-2"
-              onClick={() => navigate("/")}
-            />
-
-            {/* 导航链接 - 在移动端隐藏 */}
-            <div className="hidden lg:flex gap-2">
-              <a onClick={() => navigate("/feed")} className="btn btn-link font-normal text-base no-underline">推荐</a>
-              <a onClick={() => navigate("/community")} className="btn btn-link font-normal text-base no-underline">社区</a>
-              <a onClick={() => navigate("/chat")} className="btn btn-link font-normal text-base no-underline">游玩</a>
-              <a onClick={() => navigate("/role")} className="btn btn-link font-normal text-base no-underline">角色</a>
-              <a onClick={() => navigate("/module/create")} className="btn btn-link font-normal text-base no-underline">模组</a>
-              <a onClick={() => navigate("/create")} className="btn btn-link font-normal text-base no-underline">创作</a>
-              <a onClick={() => navigate("/collection")} className="btn btn-link font-normal text-base no-underline">收藏</a>
-            </div>
+            <ul tabIndex={0} className="dropdown-content z-[50] menu p-2 shadow bg-base-200 rounded-box w-52 mt-3">
+              <li><a onClick={() => navigate("/feed")}>推荐</a></li>
+              <li><a onClick={() => navigate("/community")}>社区</a></li>
+              <li><a onClick={() => navigate("/chat")}>游玩</a></li>
+              <li><a onClick={() => navigate("/role")}>角色</a></li>
+              <li><a onClick={() => navigate("/module/create")}>模组</a></li>
+              <li><a onClick={() => navigate("/create")}>创作</a></li>
+              <li><a onClick={() => navigate("/collection")}>收藏</a></li>
+            </ul>
           </div>
 
-          {/* 右侧用户区域 */}
-          <div className="navbar-end gap-2">
-            <ThemeSwitch />
-            {isLoggedIn
-              ? (
-                  <div className="dropdown dropdown-end">
-                    <div tabIndex={0} role="button" className="btn btn-ghost flex items-center gap-2">
-                      <UserAvatarComponent
-                        userId={userId || 1}
-                        width={8}
-                        isRounded={true}
-                        withName={true}
-                        stopPopWindow={true}
-                      />
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
-                    </div>
-                    <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-                      <li><a onClick={() => navigate("/profile")}>个人中心</a></li>
-                      <li><a onClick={() => navigate("/settings")}>设置</a></li>
-                      <li>
-                        <a onClick={() => {
-                          localStorage.removeItem("token");
-                          queryClient.invalidateQueries({ queryKey: ["authStatus"] });
-                          window.location.reload();
-                        }}
-                        >
-                          退出登录
-                        </a>
-                      </li>
-                    </ul>
-                  </div>
-                )
-              : (
-                  <LoginButton />
-                )}
+          <img
+            src="http://47.119.147.6/tuan/favicon.ico"
+            alt="Logo"
+            className="h-8 w-8 mr-4 ml-2"
+            onClick={() => navigate("/")}
+          />
+
+          {/* 导航链接 - 在移动端隐藏 */}
+          <div className="hidden lg:flex gap-2">
+            <a onClick={() => navigate("/feed")} className="btn btn-link font-normal text-base no-underline">推荐</a>
+            <a onClick={() => navigate("/community")} className="btn btn-link font-normal text-base no-underline">社区</a>
+            <a onClick={() => navigate("/chat")} className="btn btn-link font-normal text-base no-underline">游玩</a>
+            <a onClick={() => navigate("/role")} className="btn btn-link font-normal text-base no-underline">角色</a>
+            <a onClick={() => navigate("/module/create")} className="btn btn-link font-normal text-base no-underline">模组</a>
+            <a onClick={() => navigate("/create")} className="btn btn-link font-normal text-base no-underline">创作</a>
+            <a onClick={() => navigate("/collection")} className="btn btn-link font-normal text-base no-underline">收藏</a>
           </div>
         </div>
-      </div>
 
-      {/* 抽屉菜单内容 */}
-      <div className="drawer-side">
-        <label htmlFor="nav-drawer" aria-label="close sidebar" className="drawer-overlay"></label>
-        <ul className="menu p-4 w-80 min-h-full bg-base-200">
-          <li><a onClick={() => navigate("/feed")}>推荐</a></li>
-          <li><a onClick={() => navigate("/community")}>社区</a></li>
-          <li><a onClick={() => navigate("/chat")}>游玩</a></li>
-          <li><a onClick={() => navigate("/role")}>角色</a></li>
-          <li><a onClick={() => navigate("/module/create")}>模组</a></li>
-          <li><a onClick={() => navigate("/create")}>创作</a></li>
-          <li><a onClick={() => navigate("/collection")}>收藏</a></li>
-        </ul>
+        {/* 右侧用户区域 */}
+        <div className="navbar-end gap-2">
+          <ThemeSwitch />
+          {isLoggedIn
+            ? (
+                <div className="dropdown dropdown-end">
+                  <div tabIndex={0} role="button" className="btn btn-ghost flex items-center gap-2">
+                    <UserAvatarComponent
+                      userId={userId || 1}
+                      width={8}
+                      isRounded={true}
+                      withName={true}
+                      stopPopWindow={true}
+                    />
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </div>
+                  <ul tabIndex={0} className="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-52">
+                    <li><a onClick={() => navigate("/profile")}>个人中心</a></li>
+                    <li><a onClick={() => navigate("/settings")}>设置</a></li>
+                    <li>
+                      <a onClick={() => {
+                        localStorage.removeItem("token");
+                        queryClient.invalidateQueries({ queryKey: ["authStatus"] });
+                        window.location.reload();
+                      }}
+                      >
+                        退出登录
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              )
+            : (
+                <LoginButton />
+              )}
+        </div>
       </div>
     </div>
   );

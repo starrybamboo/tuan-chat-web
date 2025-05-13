@@ -220,7 +220,7 @@ export default function CharacterMain() {
 
       {/* 删除确认对话框 */}
       <PopWindow isOpen={deleteConfirmOpen} onClose={handleCancelDelete}>
-        <div className="card w-96">
+        <div className="card flex flex-col w-full max-w-md">
           <div className="card-body items-center text-center">
             <h2 className="card-title text-2xl font-bold">确认删除角色</h2>
             <div className="divider"></div>
@@ -274,7 +274,7 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
       </div>
       <button
         type="button"
-        className="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100 hover:bg-base-300 rounded-full p-1 hover:[&>svg]:stroke-error"
+        className="btn btn-ghost btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1 hover:[&>svg]:stroke-error"
         onClick={(e) => {
           e.stopPropagation();
           onDelete();

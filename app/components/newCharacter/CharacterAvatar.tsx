@@ -184,28 +184,28 @@ export default function CharacterAvatar({ role, onchange }: {
       </div>
 
       <PopWindow isOpen={changeAvatarConfirmOpen} onClose={handleCancelChangeAvatar}>
-        <div className="h-[80vh] p-4 w-[90vw] max-w-[1200px] block relative">
-          <div className="w-full h-full flex gap-4">
+        <div className="h-full w-full p-4 flex flex-col">
+          <div className="flex gap-4 min-h-0 justify-center">
             {/* 大图预览 */}
-            <div className="flex-1 bg-base-200 p-3 rounded-lg">
+            <div className="w-1/2 bg-base-200 p-3 rounded-lg">
               <h2 className="text-xl font-bold mb-4">角色立绘</h2>
-              <div className="h-full bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
+              <div className="h-[90%] bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
                 <img
                   src={previewSrc || "/favicon.ico"}
                   alt="预览"
-                  className="max-w-full h-full w-full object-contain p-2"
+                  className="max-w-full h-[90%] w-full object-contain p-2"
                 />
               </div>
             </div>
 
-            <div className="flex-1 p-3">
+            <div className="w-1/2 p-3">
               {/* 头像列表区域 */}
               <h2 className="text-xl font-bold mb-4">选择头像：</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
                 {roleAvatars.map((item, index) => (
                   <li
                     key={item.avatarUrl}
-                    className="relative w-full max-w-[128px] h-36 flex flex-col items-center rounded-lg transition-colors"
+                    className="relative w-full max-w-[128px] flex flex-col items-center rounded-lg transition-colors"
                     onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
                   >
                     {/* 头像卡片容器 */}
@@ -262,6 +262,7 @@ export default function CharacterAvatar({ role, onchange }: {
                   </CharacterCopper>
                 </li>
               </div>
+
             </div>
 
             {/* 删除确认弹窗 */}
@@ -283,19 +284,20 @@ export default function CharacterAvatar({ role, onchange }: {
               </div>
             </PopWindow>
           </div>
+          <div className="card-actions justify-end">
+            <button
+              type="submit"
+              onClick={() => {
+                setChangeAvatarConfirmOpen(false);
+                onchange(copperedUrl, avatarId);
+              }}
+              className="btn btn-primary"
+            >
+              确认更改头像
+            </button>
+          </div>
         </div>
-        <div className="card-actions justify-end">
-          <button
-            type="submit"
-            onClick={() => {
-              setChangeAvatarConfirmOpen(false);
-              onchange(copperedUrl, avatarId);
-            }}
-            className="btn btn-primary"
-          >
-            确认更改头像
-          </button>
-        </div>
+
       </PopWindow>
     </div>
   );
