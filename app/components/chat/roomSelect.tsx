@@ -1,4 +1,5 @@
 import type { SpaceContextType } from "@/components/chat/spaceContext";
+import type { Room } from "../../../api";
 import RoomWindow from "@/components/chat/roomWindow";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import SpaceWindow from "@/components/chat/spaceWindow";
@@ -11,6 +12,7 @@ import {
   useCreateRoomMutation,
   useCreateSpaceMutation,
   useGetSpaceMembersQuery,
+  useGetUserRoomsQueries,
   useGetUserRoomsQuery,
   useGetUserSpacesQuery,
 } from "api/hooks/chatQueryHooks";
@@ -41,10 +43,22 @@ export default function RoomSelect() {
 
   // 获取用户空间列表
   const userSpacesQuery = useGetUserSpacesQuery();
-  const spaces = userSpacesQuery.data?.data ?? [];
+  const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
   // 当前激活的空间对应的房间列表
+  const userRoomQueries = useGetUserRoomsQueries(spaces);
+  // 空间对应的房间列表
+  const spaceIdToRooms = useMemo(() => {
+    const result: Record<number, Room[]> = {};
+    for (const space of spaces) {
+      const spaceId = space.spaceId ?? -1;
+      result[spaceId] = userRoomQueries.find(query => query.data?.data?.some(room => room.spaceId === space.spaceId))?.data?.data ?? [];
+    }
+    return result;
+  }, [spaces, userRoomQueries]);
+
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
+  // 当前激活的space对应的rooms。
   const rooms = userRoomQuery.data?.data ?? [];
 
   // 创建空间
@@ -93,9 +107,8 @@ export default function RoomSelect() {
   const followingQuery = useGetUserFollowingsQuery(globalContext.userId ?? -1, { pageNo: 1, pageSize: 100 });
   const friends = followingQuery.data?.data?.list?.filter(user => user.status === 2) ?? [];
 
-  // 监听头像变化，自动调整文字颜色（合并空间和房间）
+  // 监听头像变化，自动调整文字颜色
   useEffect(() => {
-    // 定义头像和对应文字颜色的映射
     const avatarColorMap = [
       { avatar: spaceAvatar, setColor: setSpaceAvatarTextColor },
       { avatar: roomAvatar, setColor: setRoomAvatarTextColor },
@@ -112,7 +125,7 @@ export default function RoomSelect() {
         });
       }
     });
-  }, [spaceAvatar, roomAvatar]); // 依赖项包含两个头像
+  }, [spaceAvatar, roomAvatar]);
 
   // websocket封装, 用于发送接受消息
   const websocketUtils = useGlobalContext().websocketUtils;
@@ -120,7 +133,8 @@ export default function RoomSelect() {
     if (!websocketUtils.isConnected) {
       websocketUtils.connect();
     }
-  }, []);
+  }, [websocketUtils.isConnected]);
+  const unreadMessagesNumber = websocketUtils.unreadMessagesNumber;
 
   // spaceContext
   const spaceContext: SpaceContextType = useMemo((): SpaceContextType => {
@@ -129,6 +143,16 @@ export default function RoomSelect() {
       isSpaceOwner: spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1),
     };
   }, [activeSpaceId, globalContext.userId, spaceMembersQuery.data?.data]);
+
+  const getSpaceUnreadMessagesNumber = (spaceId: number) => {
+    let result = 0;
+    for (const room of spaceIdToRooms[spaceId]) {
+      if (room.spaceId === spaceId && room.roomId && activeRoomId !== room.roomId) {
+        result += unreadMessagesNumber[room.roomId] ?? 0;
+      }
+    }
+    return result;
+  };
 
   // 创建空间
   async function createSpace(userIds: number[]) {
@@ -168,25 +192,36 @@ export default function RoomSelect() {
     <SpaceContext value={spaceContext}>
       <div className="flex flex-row bg-base-100 flex-1">
         {/* 空间列表 */}
-        <div className="menu flex flex-col gap-2 p-3 bg-base-300">
+        <div className="menu flex flex-col p-3 bg-base-300">
           {spaces.map(space => (
-            <button
-              key={space.spaceId}
-              className="tooltip tooltip-right w-10 btn btn-square z-10"
-              data-tip={space.name}
-              type="button"
-              onClick={() => {
-                setActiveSpaceId(space.spaceId ?? -1);
-                setActiveRoomId(null);
-              }}
-            >
-              <div className="avatar mask mask-squircle">
-                <img
-                  src={space.avatar}
-                  alt={space.name}
-                />
-              </div>
-            </button>
+            <div className={`p-1 rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""}`} key={space.spaceId}>
+              <button
+                className="tooltip tooltip-right w-10 btn btn-square z-10"
+                data-tip={space.name}
+                type="button"
+                onClick={() => {
+                  setActiveSpaceId(space.spaceId ?? -1);
+                  setActiveRoomId(null);
+                }}
+              >
+                <div className="indicator">
+                  {(() => {
+                    const unreadCount = getSpaceUnreadMessagesNumber(space.spaceId ?? -1);
+                    return unreadCount > 0 && (
+                      <span className="indicator-item badge badge-xs bg-error">
+                        {unreadCount}
+                      </span>
+                    );
+                  })()}
+                  <div className="avatar mask mask-squircle">
+                    <img
+                      src={space.avatar}
+                      alt={space.name}
+                    />
+                  </div>
+                </div>
+              </button>
+            </div>
           ))}
           <button
             className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10"
@@ -202,7 +237,17 @@ export default function RoomSelect() {
             }}
           >
             <div className="avatar mask mask-squircle flex content-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
@@ -210,21 +255,26 @@ export default function RoomSelect() {
           </button>
         </div>
         {/* 房间列表 */}
-        <div className="flex flex-col gap-2 p-2 w-[200px] bg-base-100">
+        <div className={`flex flex-col gap-2 p-2 w-[200px] bg-base-100 `}>
           {rooms.map(room => (
             <div key={room.roomId}>
               {activeSpaceId === room.spaceId && (
                 <button
                   key={room.roomId}
-                  className="btn btn-ghost flex justify-start w-full gap-2"
+                  className={`btn btn-ghost flex justify-start w-full gap-2 ${activeRoomId === room.roomId ? "bg-info-content/30" : ""}`}
                   type="button"
                   onClick={() => setActiveRoomId(room.roomId ?? -1)}
                 >
-                  <div className="avatar mask mask-squircle w-8">
-                    <img
-                      src={room.avatar}
-                      alt={room.name}
-                    />
+                  <div className="indicator">
+                    {(activeRoomId !== room.roomId && unreadMessagesNumber[room.roomId ?? -1] > 0)
+                      && <span className="indicator-item badge badge-xs bg-error">{unreadMessagesNumber[room.roomId ?? -1]}</span>}
+
+                    <div className="avatar mask mask-squircle w-8">
+                      <img
+                        src={room.avatar}
+                        alt={room.name}
+                      />
+                    </div>
                   </div>
                   <span className="truncate flex-1 text-left">{room.name}</span>
                 </button>

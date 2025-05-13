@@ -1,4 +1,4 @@
-import {useState, useRef, useCallback, useEffect, use} from 'react'
+import React, {useState, useRef, useCallback, useEffect, use} from 'react'
 import type {ChatMessageRequest} from "./models/ChatMessageRequest";
 import type {ChatMessageResponse} from "./models/ChatMessageResponse";
 import {useImmer} from "use-immer";
@@ -6,6 +6,7 @@ import {formatLocalDateTime} from "@/utils/dataUtil";
 import {useGlobalContext} from "@/components/globalContextProvider";
 import {TuanChat} from "./TuanChat";
 import {useQueryClient} from "@tanstack/react-query";
+import {getLocalStorageValue, useLocalStorage} from "@/components/common/customHooks/useLocalStorage";
 
 // type WsMessageType =
 //     | 2 // 心跳
@@ -20,8 +21,11 @@ interface WsMessage<T> {
 export interface WebsocketUtils{
     connect: () => void
     send: (request: ChatMessageRequest) => void
-    getNewMessagesByRoomId: (roomId: number) => ChatMessageResponse[]
+    getTempMessagesByRoomId: (roomId: number,cleanTemp:boolean) => ChatMessageResponse[]
     isConnected: boolean
+    messagesNumber: Record<number, number>   // roomId to messagesNumber,统计到目前为止接受了多少条新消息,用于通知下游组件接受到了新消息
+    unreadMessagesNumber: Record<number, number> // 存储未读消息数
+    setUnreadMessagesNumber: React.Dispatch<React.SetStateAction<Record<number, number>>>
 }
 
 const WS_URL = import.meta.env.VITE_API_WS_URL
@@ -32,14 +36,14 @@ export function useWebSocket() {
     const [isConnected, setIsConnected] = useState(false)
     const heartbeatTimer = useRef<NodeJS.Timeout>(setTimeout(()=>{}))
     // 接受消息的存储
-    const [roomMessages, updateRoomMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
+    const [tempMessages, updateTempMessages] = useImmer<Record<number, ChatMessageResponse[]>>({})
+    const [messagesNumber, updateMessagesNumber] = useImmer<Record<number, number>>({})
     const queryClient = useQueryClient();
 
-    let token = ""
+    // 新消息数记录，用于显示红点
+    const [unreadMessagesNumber, setUnreadMessagesNumber] = useLocalStorage<Record<number, number>>("unreadMessagesNumber",{});
 
-    if (typeof window !== 'undefined') {
-       token = localStorage.getItem("token") ?? "-1"
-    }
+    const token = getLocalStorageValue<number>("token", -1)
     // 配置参数
     const MAX_RECONNECT_ATTEMPTS = 12
     const HEARTBEAT_INTERVAL = 25000
@@ -115,20 +119,35 @@ export function useWebSocket() {
             chatMessageResponse.message.createTime = formatLocalDateTime(new Date())
         }
         if(chatMessageResponse!=undefined && chatMessageResponse){
-            updateRoomMessages(draft => {
-                if (chatMessageResponse.message.roomId in draft) {
+            const roomId = chatMessageResponse.message.roomId
+            updateMessagesNumber(draft => {
+                if (roomId in draft) {
+                    draft[roomId] += 1
+                } else {
+                    draft[roomId] = 1
+                }
+            })
+            if (chatMessageResponse.message.status === 0) {
+                setUnreadMessagesNumber(prev => ({
+                    ...prev,
+                    [roomId]: (prev[roomId] || 0) + 1
+                }));
+            }
+
+            updateTempMessages(draft => {
+                if (roomId in draft) {
                     // 查找已存在消息的索引
-                    const existingIndex = draft[chatMessageResponse.message.roomId].findIndex(
+                    const existingIndex = draft[roomId].findIndex(
                         (msg) => msg.message.messageID === chatMessageResponse.message.messageID
                     );
                     if (existingIndex !== -1) {
                         // 更新已存在的消息
-                        draft[chatMessageResponse.message.roomId][existingIndex] = chatMessageResponse;
+                        draft[roomId][existingIndex] = chatMessageResponse;
                     } else {
-                        draft[chatMessageResponse.message.roomId].push(chatMessageResponse);
+                        draft[roomId].push(chatMessageResponse);
                     }
                 } else {
-                    draft[chatMessageResponse.message.roomId] = [chatMessageResponse];
+                    draft[roomId] = [chatMessageResponse];
                 }
             })
         }}
@@ -184,15 +203,31 @@ export function useWebSocket() {
     }
 
     //
-    const getNewMessagesByRoomId = (roomId: number): ChatMessageResponse[] => {
-        return roomMessages[roomId] || []
+    const getTempMessagesByRoomId = (roomId: number,cleanTemp:boolean): ChatMessageResponse[] => {
+        // return tempMessages[roomId] || []
+        if(!tempMessages[roomId]){
+            return [];
+        }
+        const newMessages = tempMessages[roomId] || []
+        updateTempMessages(draft => {draft[roomId] = []})
+        return newMessages;
+    }
+
+    const updateUnreadMessagesNumber = (roomId:number,newNumber:number) =>{
+        setUnreadMessagesNumber(prev => ({
+            ...prev,
+            [roomId]: (prev[roomId] || 0) + 1
+        }));
     }
 
     const webSocketUtils:WebsocketUtils = {
         isConnected,
-        getNewMessagesByRoomId,
+        getTempMessagesByRoomId,
         connect,
         send,
+        messagesNumber,
+        unreadMessagesNumber,
+        setUnreadMessagesNumber,
     }
     return webSocketUtils
 }
