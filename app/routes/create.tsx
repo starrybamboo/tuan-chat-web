@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 import WorkspaceContext from "@/components/create/context/module";
-import LeftContent from "@/components/create/left";
+import Work from "@/components/module/workPlace/work";
 import { useMemo } from "react";
 
 export function meta(_args: Route.MetaArgs) {
@@ -22,21 +22,7 @@ export default function Create() {
 
   return (
     <WorkspaceContext value={contextValue}>
-      <div className="min-h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)] bg-base-200">
-        <div className="w-full h-full flex flex-col">
-          <div className="flex flex-grow">
-            <div className="bg-base-300 basis-1/5">
-              <LeftContent />
-            </div>
-            <div className="bg-emerald-400 basis-3/5">
-              预览内容
-            </div>
-            <div className="bg-cyan-700 basis-1/5">
-              AI 面板
-            </div>
-          </div>
-        </div>
-      </div>
+      <Work></Work>
     </WorkspaceContext>
   );
 }
