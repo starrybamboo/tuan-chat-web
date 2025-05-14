@@ -177,7 +177,8 @@ export function useGetRoleAvatarQuery(avatarId: number) {
   return useQuery({
     queryKey: ['getRoleAvatar', avatarId],
     queryFn: () => tuanchat.avatarController.getRoleAvatar(avatarId),
-    staleTime: 86400000 // 24小时缓存
+    staleTime: 86400000, // 24小时缓存
+    enabled: Boolean(avatarId) // 仅在avatarId存在时启用查询
   });
 }
 
