@@ -10,11 +10,11 @@ export type ModuleRoleInfoResponse = {
     /**
      * 模组id
      */
-    moduleId?: number;
+    moduleId: number;
     /**
      * 角色类型
      */
-    type?: number;
-    roleResponse?: RoleResponse;
+    type: number;
+    roleResponse: RoleResponse;
 };
 
