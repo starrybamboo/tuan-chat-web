@@ -8,9 +8,9 @@ const GitLayoutId = "git-graph-layout";
 class GitLayout extends BaseLayout {
   id = GitLayoutId;
   async execute(model: GraphData): Promise<GraphData> {
-    const xOffsetBasis = 20; // 每个 branch 之间的 x 轴间隔
-    const yOffsetbasis = 20; // 每个 branch 之间的 y 轴间隔
-    const yOffset = 40; // 每个 node 之间的 y 轴间隔
+    const xOffsetBasis = 10; // 每个 branch 之间的 x 轴间隔
+    const yOffsetbasis = 10; // 每个 branch 之间的 y 轴间隔
+    const yOffset = 20; // 每个 node 之间的 y 轴间隔
     const branches: BranchMap = new Map();
     const nodes = (model.nodes || []) as GitNodeData[];
 

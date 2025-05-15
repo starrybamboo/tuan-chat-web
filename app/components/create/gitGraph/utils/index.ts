@@ -1,6 +1,11 @@
-import type { EdgeOptions, GraphData, NodeOptions } from "@antv/g6";
+import type { EdgeOptions, GraphData, IElementEvent, NodeOptions } from "@antv/g6";
+
+import { flushSync } from "react-dom";
+import { createRoot } from "react-dom/client";
 
 import type { Branch, BranchMap, Commit, GitEdgeData, GitNodeData } from "./types";
+
+import GitToolTip from "../tooltip";
 
 /**
  * 生成随机的十六进制颜色代码
@@ -22,7 +27,7 @@ function generateRandomColor(): string {
  * @returns 颜色字符串
  */
 function* colorGenerator() {
-  const ColorPalette = ["#66ccff", "#F4664A"];
+  const ColorPalette = ["#1783FF", "#F08F56", "#D580FF", "#00C9C9", "#7863FF"];
   let index = 0;
   while (true) {
     yield ColorPalette[index % ColorPalette.length];
@@ -113,11 +118,26 @@ function formatter({ branches: _branches, commits }: { branches: Branch[]; commi
 }
 
 // 修改 nodeOption，使用传入的颜色
+// see: https://g6.antv.antgroup.com/manual/element/node/build-in/base-node
 const nodeOption: NodeOptions = {
   type: "git-node",
   style: {
     size: 8,
     label: true,
+    labelText: (rawData) => {
+      const gitNode = (rawData as unknown) as GitNodeData;
+      return gitNode.data.message;
+    },
+    labelPlacement: "right",
+    labelTextBaseline: "middle",
+    labelOffsetX: 4,
+    labelFontSize: 6,
+    labelLineHeight: 6,
+    labelWordWrap: true,
+    labelMaxWidth: 120,
+    labelMaxLines: 3,
+    labelBackground: true,
+    badgePalette: ["#7E92B5", "#F4664A", "#FFBE3A"], // 徽标的背景色板
     stroke: "#fff",
     lineWidth: 1,
     fill: (rawData) => {
@@ -146,8 +166,36 @@ const edgeOption: EdgeOptions = {
   },
 };
 
+const tooltipOption = {
+  type: "tooltip",
+  enable: (d: any) => d.targetType === "node",
+  enterable: true,
+  trigger: "hover",
+  getContent: (_e: IElementEvent, node: GitNodeData[]) => {
+    // let result = `<h4 class="font-[sans-serif] text-2xl">Custom Content</h4>`;
+    // node.forEach((node) => {
+    //   result += `<p>Id: ${node.id}</p>`;
+    //   result += `<p class="max-w-32">CommitMessage: ${node.data.message}</p>`;
+    // });
+    // return result;
+    const div = document.createElement("div");
+    const root = createRoot(div);
+    // eslint-disable-next-line react-dom/no-flush-sync
+    flushSync(() => {
+      root.render(GitToolTip({ gitNodeData: node[0] }));
+    });
+    return div.innerHTML;
+  },
+  style: {
+    ".tooltip": {
+      padding: 0,
+    },
+  },
+};
+
 export {
   edgeOption,
   formatter,
   nodeOption,
+  tooltipOption,
 };

@@ -1,6 +1,6 @@
 import { Graph } from "@antv/g6";
 import { useEffect, useRef } from "react";
-import { edgeOption, formatter, nodeOption } from "./utils";
+import { edgeOption, formatter, nodeOption, tooltipOption } from "./utils";
 import "./utils/gitLayout";
 import "./utils/gitNode";
 
@@ -18,7 +18,7 @@ const mockData = {
   commits: [
     {
       commitId: "A",
-      message: "Initial commit on main",
+      message: "Initial commit on main,Initial commit on main,Initial commit on main,Initial commit on main,Initial commit on main,Initial commit on main",
       firstParentId: null,
       secondParentId: null,
       branch: "main",
@@ -101,13 +101,28 @@ function GitGraph() {
         nodes,
         edges,
       },
-      autoFit: "center",
+      autoResize: true,
+      autoFit: {
+        type: "view",
+        options: {
+          when: "always",
+          direction: "x",
+        },
+      },
+      padding: 20,
       layout: {
         type: "git-graph-layout",
       },
       node: nodeOption,
       edge: edgeOption,
-      behaviors: ["drag-canvas", "zoom-canvas"],
+      behaviors: [{
+        type: "scroll-canvas",
+        key: "scroll-canvas",
+        range: 0.5, // antv/g6 的滚动限制很有可能有问题, 暂时使用 0.5
+        preventDefault: false,
+        direction: "y",
+      }],
+      plugins: [tooltipOption],
     });
     graph.render();
     return () => {
@@ -118,7 +133,7 @@ function GitGraph() {
   return (
     <div>
       <div>Use G6 in React</div>
-      <div ref={containerRef} className="w-[800px] h-[800px] bg-white"></div>
+      <div ref={containerRef} className="w-[400px] h-[800px] bg-white"></div>
     </div>
   );
 }
