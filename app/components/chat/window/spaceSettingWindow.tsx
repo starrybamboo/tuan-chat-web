@@ -78,13 +78,6 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
 
   // 转让空间
   const transferOwnerMutation = useTransferOwnerMutation();
-  async function transferOwner(userId: number) {
-    transferOwnerMutation.mutate({ spaceId, newOwnerId: userId }, {
-      onSuccess: () => {
-        setIsMembersListHandleOpen(false);
-      },
-    });
-  }
 
   // 当space数据加载时初始化formData
   if (space && formData.name === "" && formData.description === "" && formData.avatar === "") {
@@ -121,8 +114,12 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
 
   // 控制更新归档状态的确认弹窗显示
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
-  // 控制删除群组的确认弹窗显示
+  // 控制删除空间的确认弹窗显示
   const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = useState(false);
+  // 控制转让空间的确认弹窗显示
+  const [isTransferOwnerConfirmOpen, setIsTransferOwnerConfirmOpen] = useState(false);
+  // 转让的用户Id
+  const [transfereeId, setTransfereeId] = useState(-1);
 
   return (
     <div className="w-full p-4 min-w-[40vw] max-h-[80vh] overflow-y-scroll">
@@ -271,7 +268,11 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                       <button
                         type="button"
                         className="btn"
-                        onClick={() => transferOwner(member.userId ?? -1)}
+                        onClick={() => {
+                          setIsTransferOwnerConfirmOpen(true);
+                          setTransfereeId(member.userId ?? -1);
+                          setIsMembersListHandleOpen(false);
+                        }}
                       >
                         转让
                       </button>
@@ -310,6 +311,17 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                   setIsDissolveConfirmOpen(false);
                 },
               });
+            }}
+          />
+          <ConfirmModal
+            isOpen={isTransferOwnerConfirmOpen}
+            onClose={() => setIsTransferOwnerConfirmOpen(false)}
+            title="确认转让空间"
+            message="是否确定转让空间给该用户？此操作不可逆。转让后会关闭设置窗口并自动保存数据"
+            onConfirm={() => {
+              transferOwnerMutation.mutate({ spaceId, newOwnerId: transfereeId });
+              spaceContext.isSpaceOwner = false;
+              handleClose();
             }}
           />
         </div>

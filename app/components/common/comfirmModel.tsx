@@ -14,7 +14,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, title, mes
 
   return (
     <div className="fixed inset-0 z-50">
-      {/* 背景遮罩 - 模仿PopWindow的效果 */}
+      {/* 背景遮罩 */}
       <div
         className="fixed inset-0 bg-black/50 dark:bg-black/70"
         onClick={onClose}
@@ -23,7 +23,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, title, mes
 
       {/* 原有内容容器 */}
       <div className="fixed inset-0 flex items-center justify-center">
-        <div className="bg-base-100 p-8 rounded-lg shadow-lg z-10">
+        <div className="bg-base-100 p-8 rounded-lg shadow-lg z-10 animate-fade-in-top duration-300">
           <h2 className="text-lg font-bold mb-4">{title}</h2>
           <p className="mb-6">{message}</p>
           <div className="flex justify-between">
