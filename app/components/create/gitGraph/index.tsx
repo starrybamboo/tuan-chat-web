@@ -93,48 +93,73 @@ const mockData = {
 
 function GitGraph() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const graphRef = useRef<Graph | null>(null);
+
   useEffect(() => {
-    const { nodes, edges } = formatter(mockData);
-    const graph = new Graph({
-      container: containerRef.current!,
-      data: {
-        nodes,
-        edges,
-      },
-      autoResize: true,
-      autoFit: {
-        type: "view",
-        options: {
-          when: "always",
-          direction: "x",
+    if (!containerRef.current)
+      return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry.contentRect.width === 0 || entry.contentRect.height === 0)
+        return;
+
+      // 如果图表已经初始化，则不需要再次初始化
+      if (graphRef.current)
+        return;
+
+      const { nodes, edges } = formatter(mockData);
+      const graph = new Graph({
+        container: containerRef.current!,
+        width: entry.contentRect.width,
+        height: entry.contentRect.height,
+        data: {
+          nodes,
+          edges,
         },
-      },
-      padding: 20,
-      layout: {
-        type: "git-graph-layout",
-      },
-      node: nodeOption,
-      edge: edgeOption,
-      behaviors: [{
-        type: "scroll-canvas",
-        key: "scroll-canvas",
-        range: 0.5, // antv/g6 的滚动限制很有可能有问题, 暂时使用 0.5
-        preventDefault: false,
-        direction: "y",
-      }],
-      plugins: [tooltipOption],
+        autoResize: true,
+        autoFit: {
+          type: "view",
+          options: {
+            when: "always",
+            direction: "x",
+          },
+        },
+        padding: 20,
+        layout: {
+          type: "git-graph-layout",
+        },
+        node: nodeOption,
+        edge: edgeOption,
+        behaviors: [{
+          type: "scroll-canvas",
+          key: "scroll-canvas",
+          range: 0.5,
+          preventDefault: false,
+          direction: "y",
+        }],
+        plugins: [tooltipOption],
+      });
+
+      graph.render();
+      graphRef.current = graph;
     });
-    graph.render();
+
+    // 开始观察容器尺寸变化
+    resizeObserver.observe(containerRef.current);
+
+    // 清理函数
     return () => {
-      graph.destroy();
+      resizeObserver.disconnect();
+      if (graphRef.current) {
+        graphRef.current.destroy();
+        graphRef.current = null;
+      }
     };
   }, []);
 
   return (
-    <div>
-      <div>Use G6 in React</div>
-      <div ref={containerRef} className="w-[400px] h-[800px] bg-white"></div>
-    </div>
+    <div ref={containerRef} className="w-full h-full bg-base-100"></div>
   );
 }
 
