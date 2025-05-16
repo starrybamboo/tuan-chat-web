@@ -1,11 +1,17 @@
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { moduleType, useModuleContext } from "@/components/module/workPlace/ModuleContext";
+import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
+import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useModuleRolesQuery } from "api/hooks/moduleQueryHooks";
 import { use } from "react";
 import WorkspaceContext from "../context/module";
 
-function Section({ label, children }: { label: string; children?: React.ReactNode | React.ReactNode[] }) {
+function Section(
+  { label, children }: {
+    label: string;
+    children?: React.ReactNode | React.ReactNode[];
+  },
+) {
   return (
     <div className="collapse collapse-arrow bg-base-100 border-base-300 border rounded-none border-x-0">
       <input type="checkbox" />
@@ -18,24 +24,43 @@ function Section({ label, children }: { label: string; children?: React.ReactNod
 }
 
 // 角色表单项
-function RoleListItem({ avatarId, name, onClick }: { avatarId: number; name: string; onClick: () => void }) {
+function RoleListItem(
+  { avatarId, name, isSelected, onClick }: {
+    avatarId: number;
+    name: string;
+    isSelected: boolean;
+    onClick: () => void;
+  },
+) {
   return (
     <div
-      className="w-full h-12 p-2 flex gap-2 items-center hover:bg-base-200 cursor-pointer"
+      className={`w-full h-12 p-2 flex gap-2 items-center hover:bg-base-200 cursor-pointer ${
+        isSelected ? "bg-base-200" : ""
+      }`}
       onClick={onClick}
     >
-      <RoleAvatarComponent avatarId={avatarId} width={10} withTitle={false} isRounded={true} stopPopWindow={true} />
+      <RoleAvatarComponent
+        avatarId={avatarId}
+        width={10}
+        withTitle={false}
+        isRounded={true}
+        stopPopWindow={true}
+      />
       <p className="self-baseline">{name}</p>
     </div>
   );
 }
 
 function RoleList() {
-  const { setModulePartition, setSelectedRoleId } = useModuleContext();
+  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
   const queryClient = useQueryClient();
-  const handleClick = (roleId: number) => {
-    setSelectedRoleId(roleId);
-    setModulePartition(moduleType.content.role);
+  const handleClick = (roleId: number, roleName: string) => {
+    pushModuleTabItem({
+      id: roleId.toString(),
+      label: roleName,
+      type: ModuleItemEnum.ROLE,
+    });
+    setCurrentSelectedTabId(roleId.toString());
     queryClient.invalidateQueries({
       queryKey: ["role", roleId],
     });
@@ -51,9 +76,15 @@ function RoleList() {
 
   return (
     <Section label="角色">
-      {
-        list?.map(i => <RoleListItem key={i!.roleId} avatarId={i!.avatarId} name={i!.roleName} onClick={() => handleClick(i!.roleId)} />)
-      }
+      {list?.map(i => (
+        <RoleListItem
+          key={i!.roleId}
+          avatarId={i!.avatarId}
+          name={i!.roleName}
+          isSelected={currentSelectedTabId === i!.roleId.toString()}
+          onClick={() => handleClick(i!.roleId, i!.roleName)}
+        />
+      ))}
     </Section>
   );
 }
@@ -63,13 +94,9 @@ function ModuleItems() {
   return (
     <div className="w-full h-full">
       <RoleList />
-      {
-        sections.slice(1).map((i) => {
-          return (
-            <Section key={i} label={i}></Section>
-          );
-        })
-      }
+      {sections.slice(1).map((i) => {
+        return <Section key={i} label={i}></Section>;
+      })}
     </div>
   );
 }

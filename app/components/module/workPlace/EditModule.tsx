@@ -1,22 +1,39 @@
 import type { Role } from "@/components/newCharacter/types";
+import type { RoleModuleItem } from "./context/types";
 import { useQuery } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-// EditModule.tsx
-import { useState } from "react";
-import { moduleType, useModuleContext } from "./ModuleContext";
+import { useEffect, useRef, useState } from "react";
+import { useModuleContext } from "./context/_moduleContext";
+import { ModuleItemEnum } from "./context/types";
 import NPCEdit from "./NPCEdit";
 
-export default function EditModule() {
-  const { modulePartition, selectedRoleId } = useModuleContext();
-
-  // 编辑角色所需
+function RoleModuleTabItem({
+  roleModuleItem,
+  isSelected,
+  onTabClick,
+}: {
+  roleModuleItem: RoleModuleItem;
+  isSelected: boolean;
+  onTabClick: (id: string) => void;
+}) {
+  const { id, label } = roleModuleItem;
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  useQuery({
-    queryKey: ["role", selectedRoleId],
+  // 当组件是最新的时候，自动选中
+  useEffect(() => {
+    if (isSelected && inputRef.current) {
+      inputRef.current.checked = true;
+    }
+  }, [isSelected]);
+
+  const { isPending } = useQuery({
+    queryKey: ["role", roleModuleItem.id],
     queryFn: async () => {
-      const res = await tuanchat.roleController.getRole(selectedRoleId || 0);
-      const avatar = await tuanchat.avatarController.getRoleAvatar(res.data?.avatarId || 0);
+      const res = await tuanchat.roleController.getRole(Number(id));
+      const avatar = await tuanchat.avatarController.getRoleAvatar(
+        res.data?.avatarId || 0,
+      );
       if (res.success && avatar.success) {
         const newRole = {
           id: res.data?.roleId || 0,
@@ -31,46 +48,47 @@ export default function EditModule() {
       }
       return null;
     },
+    enabled: !!roleModuleItem.id,
   });
 
   return (
+    <>
+      <input
+        ref={inputRef}
+        type="radio"
+        name="WorkSpaceTab"
+        className="tab"
+        aria-label={label}
+        onClick={onTabClick.bind(null, id)}
+      />
+      <div className="tab-content bg-base-100 border-base-300 p-6">
+        {isPending
+          ? <div>Loading</div>
+          : <NPCEdit selectRole={selectedRole!} />}
+      </div>
+    </>
+  );
+}
+
+export default function EditModule() {
+  const { moduleTabItems, currentSelectedTabId, setCurrentSelectedTabId }
+    = useModuleContext();
+  const roleModuleItems = moduleTabItems.filter(item =>
+    item.type === ModuleItemEnum.ROLE,
+  );
+
+  return (
     <div className="h-screen p-4 overflow-y-scroll">
-      <h2 className="text-xl font-bold mb-4">编辑区域</h2>
-
-      {/* 判断是否是 content 下的不同子类型 */}
-      {modulePartition === moduleType.content.role && (
-        <div>
-          <p>正在编辑：角色</p>
-          {selectedRole && <NPCEdit selectRole={selectedRole} />}
-        </div>
-      )}
-
-      {modulePartition === moduleType.content.item && (
-        <div>
-          <p>正在编辑：物品</p>
-          {/* 这里可以插入物品编辑内容 */}
-        </div>
-      )}
-
-      {modulePartition === moduleType.content.scene && (
-        <div>
-          <p>正在编辑：场景</p>
-          {/* 这里可以插入场景编辑内容 */}
-        </div>
-      )}
-
-      {/* 其他模块类型 */}
-      {modulePartition === moduleType.staging && (
-        <div>
-          <p>暂存区内容</p>
-        </div>
-      )}
-
-      {modulePartition === moduleType.history && (
-        <div>
-          <p>历史记录面板</p>
-        </div>
-      )}
+      <div className="w-full h-full tabs tabs-lift">
+        {roleModuleItems.map(item => (
+          <RoleModuleTabItem
+            key={item.id}
+            roleModuleItem={item}
+            isSelected={item.id === currentSelectedTabId}
+            onTabClick={setCurrentSelectedTabId}
+          />
+        ))}
+      </div>
     </div>
   );
 }
