@@ -240,15 +240,15 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       <div className="w-full h-full">
         <div className="drawer drawer-end lg:drawer-open">
           <input id="room-side-drawer" type="checkbox" className="drawer-toggle" />
-          <div className="drawer-content">
+          <div className="drawer-content h-full">
             {/* 聊天区域主体 */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex flex-col h-[90vh]">
               {/* 聊天框 */}
-              <div className="card bg-base-100 shadow-sm flex-1 relative">
+              <div className="card bg-base-100 shadow-sm">
                 <ChatFrame useChatBubbleStyle={useChatBubbleStyle} chatFrameRef={chatFrameRef} key={roomId}></ChatFrame>
               </div>
               {/* 输入区域 */}
-              <form className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm flex flex-col">
+              <form className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm flex flex-col flex-1">
                 <div className="flex gap-2 relative flex-1">
                   {/* 表情差分展示与选择 */}
                   <div className="dropdown dropdown-top flex-shrink-0">

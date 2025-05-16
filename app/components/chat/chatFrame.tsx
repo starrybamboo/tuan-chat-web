@@ -412,7 +412,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
    * 渲染
    */
   return (
-    <>
+    <div>
       <MobileDrawerToggle htmlFor="room-side-drawer" className="self-end"></MobileDrawerToggle>
       {/* 这里是从下到上渲染的 */}
       <div
@@ -562,6 +562,6 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
           </div>
         );
       })()}
-    </>
+    </div>
   );
 }
