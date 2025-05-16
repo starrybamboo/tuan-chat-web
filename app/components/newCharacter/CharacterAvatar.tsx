@@ -170,8 +170,8 @@ export default function CharacterAvatar({ role, onchange }: {
   return (
     <div className="form-control w-full max-w-xs">
       <div className="flex flex-col items-center">
-        <div className="avatar cursor-pointer group" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
-          <div className="rounded-xl ring-primary ring-offset-base-100 w-48 ring ring-offset-2 relative overflow-hidden">
+        <div className="avatar cursor-pointer group flex items-center justify-center w-full sm:w-40 md:w-48" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
+          <div className="rounded-xl ring-primary ring-offset-base-100 w-36 sm:w-40 md:w-48 ring ring-offset-2 relative overflow-hidden">
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
             <img
               src={role.avatar || "./favicon.ico"}
