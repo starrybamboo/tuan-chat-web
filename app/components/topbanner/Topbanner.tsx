@@ -22,7 +22,7 @@ export default function Topbar() {
   }
 
   return (
-    <div className="drawer z-100">
+    <div className="drawer">
       <input id="nav-drawer" type="checkbox" className="drawer-toggle" />
       <div className="drawer-content">
         {/* 导航栏内容 */}
@@ -99,7 +99,7 @@ export default function Topbar() {
       </div>
 
       {/* 抽屉菜单内容 */}
-      <div className="drawer-side">
+      <div className="drawer-side z-10">
         <label htmlFor="nav-drawer" aria-label="close sidebar" className="drawer-overlay"></label>
         <ul className="menu p-4 w-80 min-h-full bg-base-200">
           <li><a onClick={() => navigate("/feed")}>推荐</a></li>
