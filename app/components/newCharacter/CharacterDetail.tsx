@@ -115,28 +115,31 @@ export default function CharacterDetail({
       }`}
       >
         <div className="card-body">
-          <div className="flex items-center gap-8">
+          <div className="flex flex-col md:flex-row justify-center items-center">
             <CharacterAvatar
               role={localRole}
               onchange={handleAvatarChange}
             />
 
-            <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
+            <div className="card flex-1 space-y-4 min-w-0 overflow-hidden p-2 mt-4 md:mt-0">
               {/* <Section title="基本信息"> */}
+
               {isEditing
                 ? (
-                    <>
-                      <p>
-                        角色ID号：
-                        {localRole.id}
+                    <div className="card-body">
+                      <p className="text-lg">
+                        角色名：
                       </p>
                       <input
                         type="text"
                         value={localRole.name}
                         onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
                         placeholder="角色名称"
-                        className="input input-bordered w-full text-lg font-bold"
+                        className="input input-bordered w-full text-lg font-bold mt-2"
                       />
+                      <p className="text-lg mt-2">
+                        描述：
+                      </p>
                       <textarea
                         value={localRole.description}
                         onChange={(e) => {
@@ -144,7 +147,7 @@ export default function CharacterDetail({
                           setCharCount(e.target.value.length);
                         }}
                         placeholder="角色描述"
-                        className="textarea textarea-bordered w-full h-24 resize-none"
+                        className="textarea textarea-bordered w-full h-24 resize-none mt-2"
                       />
                       <div className="text-right mt-1">
                         <span className={`text-sm font-bold ${
@@ -161,19 +164,30 @@ export default function CharacterDetail({
                           )}
                         </span>
                       </div>
-                    </>
-                  )
-                : (
-                    <>
-                      <h2 className="card-title text-2xl">
-                        {localRole.name || "未命名角色"}
-                      </h2>
                       <p>
                         角色ID号：
                         {localRole.id}
                       </p>
-                      <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden">
+                    </div>
+                  )
+                : (
+                    <>
+                      <h2 className="card-title text-3xl mt-4">
+                        {localRole.name || "未命名角色"}
+                      </h2>
+                      <div className="divider divider-start font-bold mt-0" />
+                      <p className="text-lg whitespace-pre-wrap break-words max-w-full overflow-hidden mb-16">
                         {localRole.description || "暂无描述"}
+                      </p>
+                      <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden float-left">
+                        角色ID号：
+                        {localRole.id}
+                        <br />
+                        采用模型：
+                        {localRole.modelName || "暂无描述"}
+                        <br />
+                        语音来源：
+                        {localRole.speakerName || "暂无描述"}
                       </p>
                     </>
                   )}

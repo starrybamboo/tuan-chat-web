@@ -123,7 +123,8 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
   };
 
   return (
-    <div className="flex justify-center">
+    <fieldset className="border border-base-300 rounded-lg p-4">
+      <legend className="px-2 font-bold">AI 生成</legend>
       <div className="relative w-full">
         <textarea
           name="车所有"
@@ -152,6 +153,6 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
               )}
         </button>
       </div>
-    </div>
+    </fieldset>
   );
 }

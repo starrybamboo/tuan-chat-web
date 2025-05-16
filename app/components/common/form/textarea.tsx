@@ -1,3 +1,30 @@
+/**
+ * 封装了react-hook-form的文本域组件
+ *
+ * @component TTextArea
+ * @template T - 表单数据类型
+ *
+ * @example
+ * ```tsx
+ * const { register, formState: { errors } } = useForm<FormData>();
+ *
+ * <TTextArea
+ *   field="description"
+ *   name="描述"
+ *   register={register}
+ *   errors={errors}
+ *   placeholder="请输入描述"
+ * />
+ * ```
+ *
+ * @prop {string} [className] - 自定义CSS类名
+ * @prop {Path<T>} field - 表单字段名
+ * @prop {string} name - 字段显示名称
+ * @prop {UseFormRegister<T>} register - react-hook-form的register函数
+ * @prop {FieldErrors<T>} errors - 表单错误对象
+ * @prop {boolean} [isRequired=true] - 是否必填
+ */
+
 import type { FieldErrors, FieldValues, Path, UseFormRegister } from "react-hook-form";
 
 type TextAreaHTMLAttributes = React.DetailedHTMLProps<
