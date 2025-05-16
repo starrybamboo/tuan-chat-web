@@ -69,9 +69,6 @@ function UserCard({ className }: { className?: string }) {
         </button>
         <button
           className="btn btn-warning"
-          onClick={() => {
-
-          }}
         >
           查看模组
         </button>
