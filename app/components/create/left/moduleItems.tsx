@@ -7,7 +7,7 @@ import WorkspaceContext from "../context/module";
 
 function Section({ label, children }: { label: string; children?: React.ReactNode | React.ReactNode[] }) {
   return (
-    <div className="collapse collapse-arrow bg-base-100 border-base-300 border rounded-none">
+    <div className="collapse collapse-arrow bg-base-100 border-base-300 border rounded-none border-x-0">
       <input type="checkbox" />
       <div className="collapse-title font-semibold">{label}</div>
       <div className="collapse-content p-0 text-sm flex flex-col">

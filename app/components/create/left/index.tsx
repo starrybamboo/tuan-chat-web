@@ -38,7 +38,7 @@ function LeftContent() {
           }
         }
       />
-      <div className="tab-content bg-base-100 border-base-300 min-h-full">
+      <div className="tab-content bg-base-100 border-base-300 min-h-full rounded-none">
         <Stages />
       </div>
 
