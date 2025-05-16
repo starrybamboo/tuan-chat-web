@@ -320,7 +320,6 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
             message="是否确定转让空间给该用户？此操作不可逆。转让后会关闭设置窗口并自动保存数据"
             onConfirm={() => {
               transferOwnerMutation.mutate({ spaceId, newOwnerId: transfereeId });
-              spaceContext.isSpaceOwner = false;
               handleClose();
             }}
           />

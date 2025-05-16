@@ -237,158 +237,186 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   return (
     <RoomContext value={roomContext}>
-      <div className="flex flex-row p-6 gap-4 w-full min-w-0 h-full">
-        {/* 聊天区域主体 */}
-        <div className="flex-1 min-w-[480px] flex flex-col h-full">
-          {/* 聊天框 */}
-          <div className="card bg-base-100 shadow-sm flex-1 relative">
-            <ChatFrame useChatBubbleStyle={useChatBubbleStyle} chatFrameRef={chatFrameRef} key={roomId}></ChatFrame>
-          </div>
-          {/* 输入区域 */}
-          <form className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm flex flex-col">
-            <div className="flex gap-2 relative flex-1">
-              {/* 表情差分展示与选择 */}
-              <div className="dropdown dropdown-top flex-shrink-0">
-                <div role="button" tabIndex={0} className="flex justify-center flex-col items-center space-y-2">
-                  <RoleAvatarComponent
-                    avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
-                    width={32}
-                    isRounded={true}
-                    withTitle={false}
-                    stopPopWindow={true}
-                  />
-                  <div className="text-sm whitespace-nowrap">{userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}</div>
-                </div>
-                {/* 表情差分选择器 */}
-                <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm">
-                  <ExpressionChooser
-                    roleId={curRoleId}
-                    handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}
-                  >
-                  </ExpressionChooser>
-                </ul>
+      <div className="w-full h-full">
+        <div className="drawer drawer-end lg:drawer-open">
+          <input id="room-side-drawer" type="checkbox" className="drawer-toggle" />
+          <div className="drawer-content">
+            {/* 聊天区域主体 */}
+            <div className="flex-1 flex flex-col">
+              {/* 聊天框 */}
+              <div className="card bg-base-100 shadow-sm flex-1 relative">
+                <ChatFrame useChatBubbleStyle={useChatBubbleStyle} chatFrameRef={chatFrameRef} key={roomId}></ChatFrame>
               </div>
-
-              <div className="flex-1 flex flex-col min-w-0">
-                <CommandPanel
-                  prefix={inputText}
-                  handleSelectCommand={handleSelectCommand}
-                  commandMode={commandMode}
-                  className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden"
-                />
-                {/* 图片显示 */}
-                {imgFiles.length > 0 && (
-                  <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
-                    {imgFiles.map((file, index) => (
-                      <BetterImg
-                        src={file}
-                        className="h-14 w-max rounded"
-                        onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
-                        key={file.name}
+              {/* 输入区域 */}
+              <form className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm flex flex-col">
+                <div className="flex gap-2 relative flex-1">
+                  {/* 表情差分展示与选择 */}
+                  <div className="dropdown dropdown-top flex-shrink-0">
+                    <div role="button" tabIndex={0} className="flex justify-center flex-col items-center space-y-2">
+                      <RoleAvatarComponent
+                        avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
+                        width={32}
+                        isRounded={true}
+                        withTitle={false}
+                        stopPopWindow={true}
                       />
-                    ))}
-                  </div>
-                )}
-                {/* text input */}
-                <div className="flex flex-row gap-2 pl-3">
-                  <DiceTwentyFacesTwenty className="w-6 h-6 cursor-pointer hover:text-info" onClick={() => setCommandBrowseWindow("dice")}></DiceTwentyFacesTwenty>
-                  <CommandSolid className="w-6 h-6 cursor-pointer hover:text-info" onClick={() => setCommandBrowseWindow("webgal")}> </CommandSolid>
-                </div>
-                <textarea
-                  className="textarea chatInputTextarea w-full flex-1 min-h-[80px] max-h-[200px] resize-none border-none focus:outline-none focus:ring-0"
-                  placeholder={curRoleId <= 0
-                    ? "请先在群聊里拉入你的角色，之后才能发送消息。"
-                    : (curAvatarId <= 0 ? "请给你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)")}
-                  value={inputText}
-                  onChange={e => handleTextInputChange(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  onPaste={async e => handlePaste(e)}
-                />
-                <div className="flex items-center justify-between mt-2">
-                  <div className="flex items-center">
-                    {/* 角色选择器 */}
-                    <div className="dropdown dropdown-top">
-                      <div tabIndex={0} role="button" className="btn m-1">选择角色 ⬆️</div>
-                      <ul
-                        tabIndex={0}
-                        className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
+                      <div
+                        className="text-sm whitespace-nowrap"
                       >
-                        <RoleChooser handleRoleChange={handleRoleChange}></RoleChooser>
-                      </ul>
+                        {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
+                      </div>
                     </div>
-                    <ImgUploader setImg={newImg => updateImgFiles((draft) => {
-                      draft.push(newImg);
-                    })}
-                    >
-                      <GalleryBroken className="w-10 h-10 cursor-pointer hover:text-info"></GalleryBroken>
-                    </ImgUploader>
+                    {/* 表情差分选择器 */}
+                    <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm">
+                      <ExpressionChooser
+                        roleId={curRoleId}
+                        handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}
+                      >
+                      </ExpressionChooser>
+                    </ul>
                   </div>
 
-                  <div className="flex gap-2">
-                    <label className="swap w-30 btn">
-                      <input type="checkbox" />
-                      <div className="swap-on" onClick={() => setUseChatBubbleStyle(false)}>Use Chat Bubble Style</div>
-                      <div className="swap-off" onClick={() => setUseChatBubbleStyle(true)}>Use Chat Box Style</div>
-                    </label>
-                    {/* send button */}
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      disabled={!(inputText.trim() || imgFiles.length) || isSubmitting}
-                      onClick={handleMessageSubmit}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                  <div className="flex-1 flex flex-col min-w-0">
+                    <CommandPanel
+                      prefix={inputText}
+                      handleSelectCommand={handleSelectCommand}
+                      commandMode={commandMode}
+                      className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden"
+                    />
+                    {/* 图片显示 */}
+                    {imgFiles.length > 0 && (
+                      <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
+                        {imgFiles.map((file, index) => (
+                          <BetterImg
+                            src={file}
+                            className="h-14 w-max rounded"
+                            onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
+                            key={file.name}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {/* text input */}
+                    <div className="flex flex-row gap-2 pl-3">
+                      <DiceTwentyFacesTwenty
+                        className="w-6 h-6 cursor-pointer hover:text-info"
+                        onClick={() => setCommandBrowseWindow("dice")}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                        />
-                      </svg>
-                    </button>
+                      </DiceTwentyFacesTwenty>
+                      <CommandSolid
+                        className="w-6 h-6 cursor-pointer hover:text-info"
+                        onClick={() => setCommandBrowseWindow("webgal")}
+                      >
+                      </CommandSolid>
+                    </div>
+                    <textarea
+                      className="textarea chatInputTextarea w-full flex-1 min-h-[80px] max-h-[200px] resize-none border-none focus:outline-none focus:ring-0"
+                      placeholder={curRoleId <= 0
+                        ? "请先在群聊里拉入你的角色，之后才能发送消息。"
+                        : (curAvatarId <= 0 ? "请给你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)")}
+                      value={inputText}
+                      onChange={e => handleTextInputChange(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      onPaste={async e => handlePaste(e)}
+                    />
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center">
+                        {/* 角色选择器 */}
+                        <div className="dropdown dropdown-top">
+                          <div tabIndex={0} role="button" className="btn m-1">选择角色 ⬆️</div>
+                          <ul
+                            tabIndex={0}
+                            className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
+                          >
+                            <RoleChooser handleRoleChange={handleRoleChange}></RoleChooser>
+                          </ul>
+                        </div>
+                        <ImgUploader setImg={newImg => updateImgFiles((draft) => {
+                          draft.push(newImg);
+                        })}
+                        >
+                          <GalleryBroken className="w-10 h-10 cursor-pointer hover:text-info"></GalleryBroken>
+                        </ImgUploader>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <label className="swap w-30 btn">
+                          <input type="checkbox" />
+                          <div className="swap-on" onClick={() => setUseChatBubbleStyle(false)}>
+                            Use Chat Bubble Style
+                          </div>
+                          <div className="swap-off" onClick={() => setUseChatBubbleStyle(true)}>Use Chat Box Style</div>
+                        </label>
+                        {/* send button */}
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          disabled={!(inputText.trim() || imgFiles.length) || isSubmitting}
+                          onClick={handleMessageSubmit}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </form>
             </div>
-          </form>
+          </div>
+          <div className="drawer-side">
+            <label htmlFor="room-side-drawer" aria-label="close sidebar" className="drawer-overlay"></label>
+            <ul className="menu overflow-auto h-full">
+              {/* 成员与角色展示框 */}
+              <RoomRightSidePanel></RoomRightSidePanel>
+            </ul>
+          </div>
         </div>
-        {/* 成员与角色展示框 */}
-        <RoomRightSidePanel></RoomRightSidePanel>
+        <div className="flex flex-row p-6 gap-4 w-full min-w-0 h-full">
+
+        </div>
+        <PopWindow isOpen={commandBrowseWindow === "dice"} onClose={() => setCommandBrowseWindow("none")}>
+          <span className="text-center text-lg font-semibold">浏览所有骰子命令</span>
+          <CommandPanel
+            prefix="."
+            handleSelectCommand={(cmdName) => {
+              handleTextInputChange(`.${cmdName}`);
+              setCommandBrowseWindow("none");
+            }}
+            commandMode="dice"
+            suggestionNumber={10000}
+            className="overflow-x-clip max-h-[80vh] overflow-y-auto"
+          >
+          </CommandPanel>
+        </PopWindow>
+        <PopWindow isOpen={commandBrowseWindow === "webgal"} onClose={() => setCommandBrowseWindow("none")}>
+          <span className="text-center text-lg font-semibold">浏览常见webgal命令</span>
+          <CommandPanel
+            prefix="%"
+            handleSelectCommand={(cmdName) => {
+              handleTextInputChange(`%${cmdName}`);
+              setCommandBrowseWindow("none");
+            }}
+            commandMode="webgal"
+            suggestionNumber={10000}
+            className="overflow-x-clip max-h-[80vh] overflow-y-auto"
+          >
+          </CommandPanel>
+        </PopWindow>
       </div>
-      <PopWindow isOpen={commandBrowseWindow === "dice"} onClose={() => setCommandBrowseWindow("none")}>
-        <span className="text-center text-lg font-semibold">浏览所有骰子命令</span>
-        <CommandPanel
-          prefix="."
-          handleSelectCommand={(cmdName) => {
-            handleTextInputChange(`.${cmdName}`);
-            setCommandBrowseWindow("none");
-          }}
-          commandMode="dice"
-          suggestionNumber={10000}
-          className="overflow-x-clip max-h-[80vh] overflow-y-auto"
-        >
-        </CommandPanel>
-      </PopWindow>
-      <PopWindow isOpen={commandBrowseWindow === "webgal"} onClose={() => setCommandBrowseWindow("none")}>
-        <span className="text-center text-lg font-semibold">浏览常见webgal命令</span>
-        <CommandPanel
-          prefix="%"
-          handleSelectCommand={(cmdName) => {
-            handleTextInputChange(`%${cmdName}`);
-            setCommandBrowseWindow("none");
-          }}
-          commandMode="webgal"
-          suggestionNumber={10000}
-          className="overflow-x-clip max-h-[80vh] overflow-y-auto"
-        >
-        </CommandPanel>
-      </PopWindow>
+
     </RoomContext>
   );
 }

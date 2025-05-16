@@ -56,9 +56,7 @@ export default function RoomRightSidePanel() {
   }
   return (
     <div className="flex flex-row gap-4 h-full">
-      <div
-        className="flex flex-col gap-2 p-4 bg-base-100 rounded-box shadow-sm items-center w-full space-y-4 max-h-[calc(100vh-6rem)] overflow-y-auto"
-      >
+      <div className="flex flex-col gap-2 p-4 bg-base-100 rounded-box shadow-sm items-center w-full space-y-4  max-h-[calc(100vh-6rem)] overflow-y-auto">
         {
           spaceContext.isSpaceOwner
           && (

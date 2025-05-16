@@ -272,6 +272,8 @@ export function useUpdateSpaceArchiveStatusMutation() {
         mutationKey: ['updateSpaceArchiveStatus'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
+            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList'] });
+            queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
         }
     });
 }

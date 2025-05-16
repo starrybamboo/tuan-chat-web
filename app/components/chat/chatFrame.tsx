@@ -11,6 +11,7 @@ import { SpaceContext } from "@/components/chat/spaceContext";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { MobileDrawerToggle } from "@/icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -412,6 +413,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
    */
   return (
     <>
+      <MobileDrawerToggle htmlFor="room-side-drawer" className="self-end"></MobileDrawerToggle>
       {/* 这里是从下到上渲染的 */}
       <div
         className="card-body overflow-y-auto h-[60vh] flex flex-col-reverse"

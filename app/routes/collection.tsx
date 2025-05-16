@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 import CollectionPage from "@/components/common/collection/collectionPage";
-import GitGraph from "@/components/module/GitGraph";
+import GitGraph from "@/components/create/gitGraph";
 
 export function meta(_args: Route.MetaArgs) {
   return [

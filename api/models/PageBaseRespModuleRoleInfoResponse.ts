@@ -10,22 +10,22 @@ export type PageBaseRespModuleRoleInfoResponse = {
     /**
      * 当前页数
      */
-    pageNo?: number;
+    pageNo: number;
     /**
      * 每页查询数量
      */
-    pageSize?: number;
+    pageSize: number;
     /**
      * 总记录数
      */
-    totalRecords?: number;
+    totalRecords: number;
     /**
      * 是否最后一页
      */
-    isLast?: boolean;
+    isLast: boolean;
     /**
      * 数据列表
      */
-    list?: Array<ModuleRoleInfoResponse>;
+    list: Array<ModuleRoleInfoResponse>;
 };
 

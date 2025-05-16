@@ -1,4 +1,5 @@
 import type { ChatMessageRequest, ChatMessageResponse } from "api";
+import type { SetStateAction } from "react";
 import type { WebsocketUtils } from "../../api/useWebSocket";
 import { createContext, use, useEffect, useMemo, useState } from "react";
 import { useWebSocket } from "../../api/useWebSocket";
@@ -25,6 +26,9 @@ const GlobalContext = createContext<GlobalContextType>({
     },
     messagesNumber: {},
     unreadMessagesNumber: {},
+    setUnreadMessagesNumber(value: SetStateAction<Record<number, number>>): void {
+      console.error(`Function not implemented.${value}`);
+    },
   },
   setUserId: () => {},
 });

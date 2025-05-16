@@ -140,7 +140,8 @@ export default function RoomSelect() {
   const spaceContext: SpaceContextType = useMemo((): SpaceContextType => {
     return {
       spaceId: activeSpaceId ?? -1,
-      isSpaceOwner: spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1),
+      isSpaceOwner: spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1)
+        || spaces.find(space => space.spaceId === activeSpaceId)?.userId === globalContext.userId,
     };
   }, [activeSpaceId, globalContext.userId, spaceMembersQuery.data?.data]);
 
@@ -192,7 +193,7 @@ export default function RoomSelect() {
     <SpaceContext value={spaceContext}>
       <div className="flex flex-row bg-base-100 flex-1">
         {/* 空间列表 */}
-        <div className="menu flex flex-col p-3 bg-base-300 space-y-2">
+        <div className="menu flex flex-col p-3 bg-base-300 space-y-2 w-16">
           {spaces.map(space => (
             <div className={`rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""}`} key={space.spaceId}>
               <button
@@ -223,36 +224,39 @@ export default function RoomSelect() {
               </button>
             </div>
           ))}
-          <button
-            className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10 z-10"
-            type="button"
-            data-tip="创建空间"
-            onClick={() => {
-              setIsSpaceHandleOpen(true);
-              // 重置表单状态
-              setspaceAvatar(String(userInfo?.avatar));
-              setSpaceName(`${String(userInfo?.username)}的空间`);
-              setInputUserId(-1);
-              setSelectedRuleId(1);
-            }}
-          >
-            <div className="avatar mask mask-squircle flex content-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+          {userInfo
+            && (
+              <button
+                className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10 z-10"
+                type="button"
+                data-tip="创建空间"
+                onClick={() => {
+                  setIsSpaceHandleOpen(true);
+                  // 重置表单状态
+                  setspaceAvatar(String(userInfo?.avatar));
+                  setSpaceName(`${String(userInfo?.username)}的空间`);
+                  setInputUserId(-1);
+                  setSelectedRuleId(1);
+                }}
               >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </div>
-          </button>
+                <div className="avatar mask mask-squircle flex content-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                </div>
+              </button>
+            )}
         </div>
         {/* 房间列表 */}
         <div className={`flex flex-col gap-2 p-2 w-[200px] bg-base-100 `}>

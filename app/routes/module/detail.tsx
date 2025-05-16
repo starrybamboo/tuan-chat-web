@@ -1,5 +1,6 @@
-// import { useModuleDetailQuery } from "api/hooks/moduleQueryHooks";
-import { useNavigate } from "react-router";
+import TitleBar from "@/components/module/common/titleBar";
+import Rules from "@/components/module/detail/roles";
+import { useLocation, useNavigate } from "react-router";
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
@@ -63,7 +64,6 @@ function Author() {
               克隆模组
             </button>
           </div>
-          <div className="divider m-0"></div>
         </div>
       </div>
     </div>
@@ -71,6 +71,9 @@ function Author() {
 }
 
 function LeftContent() {
+  const location = useLocation();
+  const moduleId = location.pathname.split("/").pop();
+
   const data = {
     image: "https://imagebucket-1322308688.cos.ap-tokyo.myqcloud.com/picnia/image/65d2fa0e1c42c75df8dd3713.jpg",
     moduleName: "格黑娜的期末考题是征服世界？！",
@@ -140,6 +143,10 @@ function LeftContent() {
         </div>
       </div>
       <div className="divider"></div>
+      <div className="rounded-md overflow-hidden mb-64">
+        <TitleBar label="人物" className="rounded-none" />
+        <Rules moduleId={Number(moduleId!)} />
+      </div>
     </div>
   );
 }
