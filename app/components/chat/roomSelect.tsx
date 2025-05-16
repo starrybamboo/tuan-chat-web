@@ -197,7 +197,7 @@ export default function RoomSelect() {
           {spaces.map(space => (
             <div className={`rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""}`} key={space.spaceId}>
               <button
-                className="tooltip tooltip-right w-10 btn btn-square z-10"
+                className="tooltip tooltip-right w-10 btn btn-square "
                 data-tip={space.name}
                 type="button"
                 onClick={() => {
@@ -209,7 +209,7 @@ export default function RoomSelect() {
                   {(() => {
                     const unreadCount = getSpaceUnreadMessagesNumber(space.spaceId ?? -1);
                     return unreadCount > 0 && (
-                      <span className="indicator-item badge badge-xs bg-error">
+                      <span className="indicator-item badge badge-xs bg-error z-10">
                         {unreadCount}
                       </span>
                     );
@@ -227,7 +227,7 @@ export default function RoomSelect() {
           {userInfo
             && (
               <button
-                className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10 z-10"
+                className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10"
                 type="button"
                 data-tip="创建空间"
                 onClick={() => {
