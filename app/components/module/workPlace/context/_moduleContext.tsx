@@ -28,6 +28,14 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
       if (index !== -1) {
         updateModuleTabItems((draft) => {
           draft.splice(index, 1);
+          if (id === currentSelectedTabId) {
+            if (draft.length > 0) {
+              _setCurrentSelectedTabId(draft[0].id);
+            }
+            else {
+              _setCurrentSelectedTabId(null);
+            }
+          }
         });
       }
     },
