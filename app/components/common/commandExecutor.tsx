@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useParams } from "react-router";
 import {
   useGetRoleAbilitiesQuery,
   useSetRoleAbilityMutation,
@@ -34,9 +35,8 @@ export function isCommand(command: string) {
 }
 
 export default function useCommandExecutor(roleId: number, ruleId: number) {
-  // const { spaceId: urlSpaceId } = useParams();
-  // const spaceId = Number(urlSpaceId);
-  // const space = useGetSpaceInfoQuery(spaceId).data?.data;
+  const { spaceId: _, roomId: urlRoomId } = useParams();
+  const roomId = Number(urlRoomId);
 
   const role = useGetRoleQuery(roleId).data?.data;
 
@@ -50,8 +50,8 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
   const updateAbilityMutation = useUpdateRoleAbilityMutation();
   const setAbilityMutation = useSetRoleAbilityMutation();
 
-  const initiativeListMutation = useRoomInitiativeListMutation(ruleId);
-  const initiativeList = useGetRoomInitiativeListQuery(ruleId).data ?? [];
+  const initiativeListMutation = useRoomInitiativeListMutation(roomId);
+  const initiativeList = useGetRoomInitiativeListQuery(roomId).data ?? [];
 
   useEffect(() => {
     try {

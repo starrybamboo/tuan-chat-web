@@ -419,7 +419,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
       >
-        {(unreadMessageNumber > 0 && !bottomMessageEntry?.isIntersecting) && (
+        {/* historyMessages.length > 2是为了防止一些奇怪的bug */}
+        {(unreadMessageNumber > 0 && !bottomMessageEntry?.isIntersecting && historyMessages.length > 2) && (
           <div
             className="sticky bottom-4 self-end z-50 cursor-pointer"
             onClick={() => { scrollToBottom(); }}
