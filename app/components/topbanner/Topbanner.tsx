@@ -38,7 +38,7 @@ export default function Topbar() {
               <li><a onClick={() => navigate("/community")}>社区</a></li>
               <li><a onClick={() => navigate("/chat")}>游玩</a></li>
               <li><a onClick={() => navigate("/role")}>角色</a></li>
-              <li><a onClick={() => navigate("/module/create")}>模组</a></li>
+              <li><a onClick={() => navigate("/module")}>模组</a></li>
               <li><a onClick={() => navigate("/create")}>创作</a></li>
               <li><a onClick={() => navigate("/collection")}>收藏</a></li>
             </ul>
@@ -57,7 +57,7 @@ export default function Topbar() {
             <a onClick={() => navigate("/community")} className="btn btn-link font-normal text-base no-underline">社区</a>
             <a onClick={() => navigate("/chat")} className="btn btn-link font-normal text-base no-underline">游玩</a>
             <a onClick={() => navigate("/role")} className="btn btn-link font-normal text-base no-underline">角色</a>
-            <a onClick={() => navigate("/module/create")} className="btn btn-link font-normal text-base no-underline">模组</a>
+            <a onClick={() => navigate("/module")} className="btn btn-link font-normal text-base no-underline">模组</a>
             <a onClick={() => navigate("/create")} className="btn btn-link font-normal text-base no-underline">创作</a>
             <a onClick={() => navigate("/collection")} className="btn btn-link font-normal text-base no-underline">收藏</a>
           </div>

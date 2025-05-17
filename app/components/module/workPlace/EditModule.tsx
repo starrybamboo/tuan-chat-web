@@ -97,7 +97,7 @@ function RoleModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content bg-base-100 border-base-300 p-6">
+      <div className="tab-content h-fit! bg-base-100 border-base-300 p-6">
         {isPending
           ? <div>Loading</div>
           : <NPCEdit selectRole={role} />}
