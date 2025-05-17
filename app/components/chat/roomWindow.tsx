@@ -18,7 +18,7 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { SideDrawer } from "@/components/common/sideDrawer";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { CommandSolid, DiceTwentyFacesTwenty, GalleryBroken, GirlIcon } from "@/icons";
+import { Bubble2, CommandSolid, DiceTwentyFacesTwenty, GalleryBroken, GirlIcon } from "@/icons";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
@@ -248,18 +248,18 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             <div className="flex gap-2 relative flex-1">
               {/* 表情差分展示与选择 */}
               <div className="dropdown dropdown-top flex-shrink-0">
-                <div role="button" tabIndex={0} className="flex justify-center flex-col items-center space-y-2">
-                  <RoleAvatarComponent
-                    avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
-                    width={32}
-                    isRounded={true}
-                    withTitle={false}
-                    stopPopWindow={true}
-                  />
-                  <div
-                    className="text-sm whitespace-nowrap"
-                  >
-                    {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
+                <div role="button" tabIndex={0} className="">
+                  <div className="tooltip flex justify-center flex-col items-center space-y-2" data-tip="切换表情差分">
+                    <RoleAvatarComponent
+                      avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
+                      width={32}
+                      isRounded={true}
+                      withTitle={false}
+                      stopPopWindow={true}
+                    />
+                    <div className="text-sm whitespace-nowrap">
+                      {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
+                    </div>
                   </div>
                 </div>
                 {/* 表情差分选择器 */}
@@ -294,16 +294,20 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                 )}
                 {/* text input */}
                 <div className="flex flex-row gap-2 pl-3">
-                  <DiceTwentyFacesTwenty
-                    className="w-6 h-6 cursor-pointer hover:text-info"
-                    onClick={() => setCommandBrowseWindow("dice")}
-                  >
-                  </DiceTwentyFacesTwenty>
-                  <CommandSolid
-                    className="w-6 h-6 cursor-pointer hover:text-info"
-                    onClick={() => setCommandBrowseWindow("webgal")}
-                  >
-                  </CommandSolid>
+                  <div className="tooltip" data-tip="浏览所有骰子命令">
+                    <DiceTwentyFacesTwenty
+                      className="w-6 h-6 cursor-pointer hover:text-info"
+                      onClick={() => setCommandBrowseWindow("dice")}
+                    >
+                    </DiceTwentyFacesTwenty>
+                  </div>
+                  <div className="tooltip" data-tip="浏览常用webgal命令">
+                    <CommandSolid
+                      className="w-6 h-6 cursor-pointer hover:text-info"
+                      onClick={() => setCommandBrowseWindow("webgal")}
+                    >
+                    </CommandSolid>
+                  </div>
                 </div>
                 <textarea
                   className="textarea chatInputTextarea w-full flex-1 min-h-[80px] max-h-[200px] resize-none border-none focus:outline-none focus:ring-0"
@@ -319,7 +323,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   <div className="flex items-center gap-1">
                     {/* 角色选择器 */}
                     <div className="dropdown dropdown-top">
-                      <GirlIcon className="size-10" tabIndex={0} role="button"></GirlIcon>
+                      <div className="tooltip" data-tip="切换角色">
+                        <GirlIcon className="size-10 hover:text-info" tabIndex={0} role="button"></GirlIcon>
+                      </div>
                       <ul
                         tabIndex={0}
                         className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
@@ -331,18 +337,25 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       draft.push(newImg);
                     })}
                     >
-                      <GalleryBroken className="w-10 h-10 cursor-pointer hover:text-info"></GalleryBroken>
+                      <div className="tooltip" data-tip="发送图片">
+                        <GalleryBroken className="size-10 cursor-pointer hover:text-info"></GalleryBroken>
+                      </div>
                     </ImgUploader>
                   </div>
 
                   <div className="flex gap-2">
-                    <label className="swap w-30 btn">
-                      <input type="checkbox" />
-                      <div className="swap-on" onClick={() => setUseChatBubbleStyle(false)}>
-                        Use Chat Bubble Style
-                      </div>
-                      <div className="swap-off" onClick={() => setUseChatBubbleStyle(true)}>Use Chat Box Style</div>
-                    </label>
+                    <div className="tooltip" data-tip="切换聊天气泡风格">
+                      <label className="swap">
+                        <input type="checkbox" />
+                        <div className="swap-on" onClick={() => setUseChatBubbleStyle(false)}>
+                          <Bubble2 className="size-10 font-light"></Bubble2>
+                        </div>
+                        <div className="swap-off" onClick={() => setUseChatBubbleStyle(true)}>
+                          <Bubble2 className="size-10"></Bubble2>
+                        </div>
+                      </label>
+                    </div>
+
                     {/* send button */}
                     <button
                       type="button"
