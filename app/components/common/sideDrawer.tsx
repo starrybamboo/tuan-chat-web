@@ -25,15 +25,29 @@ export function SideDrawer({
         <input id={sideDrawerId} type="checkbox" className="drawer-toggle" />
         <div className="drawer-side">
           <label htmlFor={sideDrawerId} className="drawer-overlay"></label>
-          <div className="bg-base-200 w-80 h-full">
+          <div className="bg-base-200 max-w-[80%] h-full">
             {children}
-            <label htmlFor={sideDrawerId} className="btn btn-sm btn-circle absolute right-2 top-2">
-              ✕
-            </label>
+            {/* <label htmlFor={sideDrawerId} className="btn btn-sm btn-circle absolute right-2 top-2"> */}
+            {/*  ✕ */}
+            {/* </label> */}
           </div>
         </div>
       </div>
     </Mounter>
+  );
+}
+
+export function SideDrawerToggle({ htmlFor, children, className }: { htmlFor: string; children: React.ReactNode; className?: string }) {
+  if (isLgScreen()) {
+    return null;
+  }
+  return (
+    <label
+      htmlFor={htmlFor}
+      className={className}
+    >
+      {children}
+    </label>
   );
 }
 

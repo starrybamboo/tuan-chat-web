@@ -1,4 +1,5 @@
 import type { SVGProps } from "react";
+import React from "react";
 
 export function CommandSolid(props: SVGProps<SVGSVGElement>) {
   return (
@@ -74,29 +75,51 @@ export function Setting(props: SVGProps<SVGSVGElement>) {
       {...props}
     >
       <g fill="currentColor">
-        <path d="M12 4a1 1 0 0 0-1 1c0 1.692-2.046 2.54-3.243 1.343a1 1 0 1 0-1.414 1.414C7.54 8.954 6.693 11 5 11a1 1 0 1 0 0 2c1.692 0 2.54 2.046 1.343 3.243a1 1 0 0 0 1.414 1.414C8.954 16.46 11 17.307 11 19a1 1 0 1 0 2 0c0-1.692 2.046-2.54 3.243-1.343a1 1 0 1 0 1.414-1.414C16.46 15.046 17.307 13 19 13a1 1 0 1 0 0-2c-1.692 0-2.54-2.046-1.343-3.243a1 1 0 0 0-1.414-1.414C15.046 7.54 13 6.693 13 5a1 1 0 0 0-1-1m-2.992.777a3 3 0 0 1 5.984 0a3 3 0 0 1 4.23 4.231a3 3 0 0 1 .001 5.984a3 3 0 0 1-4.231 4.23a3 3 0 0 1-5.984 0a3 3 0 0 1-4.231-4.23a3 3 0 0 1 0-5.984a3 3 0 0 1 4.231-4.231"></path>
+        <path
+          d="M12 4a1 1 0 0 0-1 1c0 1.692-2.046 2.54-3.243 1.343a1 1 0 1 0-1.414 1.414C7.54 8.954 6.693 11 5 11a1 1 0 1 0 0 2c1.692 0 2.54 2.046 1.343 3.243a1 1 0 0 0 1.414 1.414C8.954 16.46 11 17.307 11 19a1 1 0 1 0 2 0c0-1.692 2.046-2.54 3.243-1.343a1 1 0 1 0 1.414-1.414C16.46 15.046 17.307 13 19 13a1 1 0 1 0 0-2c-1.692 0-2.54-2.046-1.343-3.243a1 1 0 0 0-1.414-1.414C15.046 7.54 13 6.693 13 5a1 1 0 0 0-1-1m-2.992.777a3 3 0 0 1 5.984 0a3 3 0 0 1 4.23 4.231a3 3 0 0 1 .001 5.984a3 3 0 0 1-4.231 4.23a3 3 0 0 1-5.984 0a3 3 0 0 1-4.231-4.23a3 3 0 0 1 0-5.984a3 3 0 0 1 4.231-4.231"
+        >
+        </path>
         <path d="M12 10a2 2 0 1 0 0 4a2 2 0 0 0 0-4m-2.828-.828a4 4 0 1 1 5.656 5.656a4 4 0 0 1-5.656-5.656"></path>
       </g>
     </svg>
   );
 }
 
-export function MobileDrawerToggle({ htmlFor, className }: { htmlFor: string; className?: string }) {
+export function ThreeLines(props: SVGProps<SVGSVGElement>) {
   return (
-    <div className={`lg:hidden p-2 bg-base-100 ${className}`}>
-      <label
-        htmlFor={htmlFor}
-        className="btn btn-square btn-ghost"
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      className="inline-block w-6 h-6 stroke-current"
+      {...props}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
+    </svg>
+  );
+}
+
+export function GirlIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 64 64"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M62 37.504c0-1.877-.893-3.766-2.613-4.768c.391-1.949.678-4.204.678-6.734C60.064 15.001 52.205 2 32 2C11.793 2 3.936 15.001 3.936 26.002c0 2.529.287 4.783.678 6.732C2.891 33.736 2 35.627 2 37.504c0 2.102 1.125 4.211 3.277 5.078c-2.347 4.422-3.338 10.773-.886 15.254c1.061 1.939 10.699 8.119 13.9.342c3.66 1.736 8.209 2.828 13.709 2.828s10.047-1.092 13.707-2.828c3.203 7.777 12.84 1.598 13.902-.342c2.449-4.48 1.459-10.83-.889-15.254c2.153-.867 3.28-2.975 3.28-5.078M32.01 6c14.799 0 24.668 8.001 24.668 18.002c0 0-2.961-15.001-24.668-15.001S6.354 24.002 6.354 24.002C6.354 14.001 17.209 6 32.01 6m23.541 35.004v1c0 7.061-7.307 17.002-23.551 17.002c-16.246 0-23.553-9.941-23.553-17.002v-1H7.48c-2.449 0-3.545-1.758-3.545-3.5s1.096-3.5 3.545-3.5h.184l.172-.07c.092-.037 8.426-3.567 8.336-13.917c9.475 9.174 34.137 10.723 39.379 10.952v3.036h.969c2.447 0 3.545 1.758 3.545 3.5s-1.098 3.5-3.545 3.5h-.969z"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          className="inline-block w-6 h-6 stroke-current"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
-        </svg>
-      </label>
-    </div>
+      </path>
+      <circle cx="44.5" cy="36.504" r="5" fill="currentColor"></circle>
+      <circle cx="19.5" cy="36.504" r="5" fill="currentColor"></circle>
+      <path
+        fill="currentColor"
+        d="M40.09 48.131c-5.215 3.6-11 3.578-16.182 0c-.621-.432-1.184.314-.762 1.006c1.576 2.572 4.768 4.867 8.852 4.867c4.086 0 7.277-2.295 8.854-4.867c.425-.692-.137-1.438-.762-1.006"
+      >
+      </path>
+    </svg>
   );
 }

@@ -5,9 +5,10 @@ import { SpaceContext } from "@/components/chat/spaceContext";
 import SpaceWindow from "@/components/chat/spaceWindow";
 import checkBack from "@/components/common/autoContrastText";
 import { PopWindow } from "@/components/common/popWindow";
-import { SideDrawer } from "@/components/common/sideDrawer";
+import { SideDrawer, SideDrawerToggle } from "@/components/common/sideDrawer";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { ThreeLines } from "@/icons";
 import {
   useCreateRoomMutation,
   useCreateSpaceMutation,
@@ -192,8 +193,17 @@ export default function RoomSelect() {
 
   return (
     <SpaceContext value={spaceContext}>
+      <div className="flex justify-between">
+        <SideDrawerToggle htmlFor="room-select">
+          <ThreeLines></ThreeLines>
+        </SideDrawerToggle>
+        <SideDrawerToggle htmlFor="room-side-drawer">
+          <ThreeLines></ThreeLines>
+        </SideDrawerToggle>
+      </div>
+
       <div className="flex flex-row bg-base-100 h-full">
-        <SideDrawer sideDrawerId="roomSelect">
+        <SideDrawer sideDrawerId="room-select">
           <div className="flex flex-row bg-base-100 h-full">
             {/* 空间列表 */}
             <div className="menu flex flex-col p-3 bg-base-300 space-y-2 w-16">
@@ -317,7 +327,6 @@ export default function RoomSelect() {
             </div>
           </div>
         </SideDrawer>
-
         {/* 对话窗口 */}
         {
           activeRoomId

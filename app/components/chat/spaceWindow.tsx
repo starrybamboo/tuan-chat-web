@@ -1,4 +1,5 @@
 import SpaceRightSidePanel from "@/components/chat/spaceRightSidePanel";
+import { SideDrawer } from "@/components/common/sideDrawer";
 
 export default function SpaceWindow({ spaceId }: { spaceId: number }) {
   if (!spaceId || spaceId <= 0) {
@@ -13,7 +14,9 @@ export default function SpaceWindow({ spaceId }: { spaceId: number }) {
           </div>
         </div>
         {/* 成员与角色展示框 */}
-        <SpaceRightSidePanel></SpaceRightSidePanel>
+        <SideDrawer sideDrawerId="room-side-drawer" isAtRight>
+          <SpaceRightSidePanel></SpaceRightSidePanel>
+        </SideDrawer>
       </div>
     </>
   );

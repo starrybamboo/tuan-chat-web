@@ -18,7 +18,7 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { SideDrawer } from "@/components/common/sideDrawer";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { CommandSolid, DiceTwentyFacesTwenty, GalleryBroken } from "@/icons";
+import { CommandSolid, DiceTwentyFacesTwenty, GalleryBroken, GirlIcon } from "@/icons";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
@@ -315,11 +315,11 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   onKeyDown={handleKeyDown}
                   onPaste={async e => handlePaste(e)}
                 />
-                <div className="flex items-center justify-between mt-2">
-                  <div className="flex items-center">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
                     {/* 角色选择器 */}
                     <div className="dropdown dropdown-top">
-                      <div tabIndex={0} role="button" className="btn m-1">选择角色 ⬆️</div>
+                      <GirlIcon className="size-10" tabIndex={0} role="button"></GirlIcon>
                       <ul
                         tabIndex={0}
                         className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
@@ -371,7 +371,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             </div>
           </form>
         </div>
-        <SideDrawer sideDrawerId="RoomRightSidePanel" isAtRight={true}>
+        <SideDrawer sideDrawerId="room-side-drawer" isAtRight={true}>
           <RoomRightSidePanel></RoomRightSidePanel>
         </SideDrawer>
 
