@@ -26,6 +26,21 @@ export default function RulesSection({
   const [rules, setRules] = useState<GameRule[]>([]);
   // const [filteredRules, setFilteredRules] = useState<GameRule[]>([]); // 删除这行
 
+  // 根据屏宽设置分页数
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 768;
+      setPageSize(isMobile ? 4 : 10);
+    };
+
+    // 初始设置
+    handleResize();
+
+    // 监听窗口大小
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // API Hooks
   const rulePageMutation = useRulePageMutation();
 
@@ -111,7 +126,7 @@ export default function RulesSection({
                   keyword,
                 });
               }}
-              className="select select-bordered w-full sm:w-auto"
+              className="select select-bordered w-full sm:w-auto hidden sm:block"
             >
               <option value={10}>10条/页</option>
               <option value={20}>20条/页</option>
