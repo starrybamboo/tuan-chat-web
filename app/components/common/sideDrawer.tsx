@@ -6,10 +6,11 @@ function isLgScreen() {
   return typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
 }
 
+// 在大屏的时候直接返回包裹的原组件，在小屏（移动端），挂载到很靠近根组件的一个div上
 export function SideDrawer({
-  sideDrawerId,
-  isAtRight = false,
-  children,
+  sideDrawerId, // id, 之后设置sideDrawerToggle会用到
+  isAtRight = false, // 抽屉是否在右边
+  children, // 内容
 }: {
   sideDrawerId: string;
   isAtRight?: boolean;
@@ -37,7 +38,11 @@ export function SideDrawer({
   );
 }
 
-export function SideDrawerToggle({ htmlFor, children, className }: { htmlFor: string; children: React.ReactNode; className?: string }) {
+export function SideDrawerToggle({
+  htmlFor, // 这里填入对应的sideDrawerId
+  children, // 显示的内容
+  className,
+}: { htmlFor: string; children: React.ReactNode; className?: string }) {
   if (isLgScreen()) {
     return null;
   }

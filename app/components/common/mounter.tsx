@@ -2,6 +2,7 @@ import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 
+// 包裹这个组件后， 会自动将children挂载到targetId对应的dom元素下
 export function Mounter({ children, targetId }: { children: React.ReactNode; targetId: string }) {
   const [isMounted, setIsMounted] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
