@@ -91,7 +91,6 @@ export function ThreeLines(props: SVGProps<SVGSVGElement>) {
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
-      className="inline-block w-6 h-6 stroke-current"
       {...props}
     >
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
@@ -138,6 +137,31 @@ export function Bubble2(props: SVGProps<SVGSVGElement>) {
         d="M8 3c-.858 0-1.687.135-2.464.402c-.73.251-1.38.605-1.932 1.054C2.569 5.297 2 6.378 2 7.5c0 .63.175 1.24.52 1.815c.356.592.89 1.134 1.547 1.566c.474.312.793.812.878 1.373q.042.281.053.564q.175-.146.342-.312a2 2 0 0 1 1.666-.57q.494.063.995.063c.858 0 1.687-.135 2.464-.402a6.3 6.3 0 0 0 1.932-1.054c1.035-.841 1.604-1.922 1.604-3.044s-.57-2.203-1.604-3.044a6.3 6.3 0 0 0-1.932-1.054a7.6 7.6 0 0 0-2.464-.402zm0-2c4.418 0 8 2.91 8 6.5S12.418 14 8 14q-.637 0-1.247-.079C5.035 15.639 2.983 15.948 1 15.993v-.421c1.071-.525 2-1.48 2-2.572a3 3 0 0 0-.034-.448C1.157 11.36 0 9.54 0 7.5C0 3.91 3.582 1 8 1"
       >
       </path>
+    </svg>
+  );
+}
+
+export function ChatBubbleEllipsesOutline(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 512 512"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeMiterlimit="10"
+        strokeWidth="32"
+        d="M87.48 380c1.2-4.38-1.43-10.47-3.94-14.86a43 43 0 0 0-2.54-3.8a199.8 199.8 0 0 1-33-110C47.64 139.09 140.72 48 255.82 48C356.2 48 440 117.54 459.57 209.85a199 199 0 0 1 4.43 41.64c0 112.41-89.49 204.93-204.59 204.93c-18.31 0-43-4.6-56.47-8.37s-26.92-8.77-30.39-10.11a31.1 31.1 0 0 0-11.13-2.07a30.7 30.7 0 0 0-12.08 2.43L81.5 462.78a16 16 0 0 1-4.66 1.22a9.61 9.61 0 0 1-9.58-9.74a16 16 0 0 1 .6-3.29Z"
+      >
+      </path>
+      <circle cx="160" cy="256" r="32" fill="currentColor"></circle>
+      <circle cx="256" cy="256" r="32" fill="currentColor"></circle>
+      <circle cx="352" cy="256" r="32" fill="currentColor"></circle>
     </svg>
   );
 }

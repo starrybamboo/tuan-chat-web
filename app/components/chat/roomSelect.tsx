@@ -8,10 +8,12 @@ import { PopWindow } from "@/components/common/popWindow";
 import { SideDrawer, SideDrawerToggle } from "@/components/common/sideDrawer";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { ThreeLines } from "@/icons";
+import { ChatBubbleEllipsesOutline, ThreeLines } from "@/icons";
 import {
   useCreateRoomMutation,
   useCreateSpaceMutation,
+  useGetRoomInfoQuery,
+  useGetSpaceInfoQuery,
   useGetSpaceMembersQuery,
   useGetUserRoomsQueries,
   useGetUserRoomsQuery,
@@ -59,6 +61,8 @@ export default function RoomSelect() {
   }, [spaces, userRoomQueries]);
 
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
+  const activeRoom = useGetRoomInfoQuery(activeRoomId ?? -1).data?.data;
+  const activeSpace = useGetSpaceInfoQuery(activeSpaceId ?? -1).data?.data;
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
   // 当前激活的space对应的rooms。
   const rooms = userRoomQuery.data?.data ?? [];
@@ -195,10 +199,15 @@ export default function RoomSelect() {
     <SpaceContext value={spaceContext}>
       <div className="flex justify-between">
         <SideDrawerToggle htmlFor="room-select">
-          <ThreeLines></ThreeLines>
+          <ChatBubbleEllipsesOutline className="size-6"></ChatBubbleEllipsesOutline>
         </SideDrawerToggle>
+        <span className="text-center font-bold lg:hidden">{activeSpace?.name ?? activeRoom?.name ?? ""}</span>
         <SideDrawerToggle htmlFor="room-side-drawer">
-          <ThreeLines></ThreeLines>
+          {
+            (activeRoomId || activeSpaceId)
+            && <ThreeLines className="size-6"></ThreeLines>
+          }
+
         </SideDrawerToggle>
       </div>
 
@@ -331,7 +340,13 @@ export default function RoomSelect() {
         {
           activeRoomId
             ? <RoomWindow roomId={activeRoomId} spaceId={activeSpaceId ?? -1} />
-            : <SpaceWindow spaceId={activeSpaceId ?? -1} />
+            : (activeSpaceId
+                ? <SpaceWindow spaceId={activeSpaceId ?? -1} />
+                : (
+                    <div className="flex items-center justify-center w-full h-full font-bold">
+                      <span className="text-center lg:hidden">请从左上角选择空间或房间</span>
+                    </div>
+                  ))
         }
         {/* 创建空间弹出窗口 */}
         <PopWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
