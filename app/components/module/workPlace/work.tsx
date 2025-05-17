@@ -1,7 +1,7 @@
 // Work.tsx
 import LeftContent from "@/components/create/left";
+import { ModuleProvider } from "./context/_moduleContext";
 import EditModule from "./EditModule";
-import { ModuleProvider } from "./ModuleContext";
 
 export default function Work() {
   return (

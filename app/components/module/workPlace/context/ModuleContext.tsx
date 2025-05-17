@@ -1,6 +1,6 @@
 // ModuleContext.tsx
 import type { ReactNode } from "react";
-import { createContext, use, useState } from "react";
+import { createContext, use, useMemo, useState } from "react";
 
 interface ModuleContextType {
   modulePartition: string;
@@ -25,14 +25,16 @@ export function ModuleProvider({ children }: { children: ReactNode }) {
   const [modulePartition, setModulePartition] = useState(moduleType.content.role);
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
 
+  const moduleValue = useMemo(() => ({
+    modulePartition,
+    setModulePartition,
+    selectedRoleId,
+    setSelectedRoleId,
+  }), [modulePartition, selectedRoleId]);
+
   return (
     <ModuleContext
-      value={{
-        modulePartition,
-        setModulePartition,
-        selectedRoleId,
-        setSelectedRoleId,
-      }}
+      value={moduleValue}
     >
       {children}
     </ModuleContext>

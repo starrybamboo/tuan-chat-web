@@ -1,4 +1,4 @@
-import { useModuleContext } from "@/components/module/workPlace/ModuleContext";
+// import { useModuleContext } from "@/components/module/workPlace/context/ModuleContext";
 import History from "./history";
 import ModuleItems from "./moduleItems";
 import Stages from "./stages";
@@ -7,8 +7,6 @@ import Stages from "./stages";
 //   onChange?: (s: string) => void;
 // }
 function LeftContent() {
-  const { setModulePartition } = useModuleContext();
-
   return (
     <div className="tabs tabs-lift h-full">
       <input
@@ -16,11 +14,7 @@ function LeftContent() {
         name="left-tabs"
         className="tab min-w-18!"
         aria-label="内容"
-        onClick={
-          () => {
-            setModulePartition("content");
-          }
-        }
+        defaultChecked
       />
       <div className="tab-content bg-base-100 border-base-300 min-h-full">
         <ModuleItems />
@@ -31,14 +25,13 @@ function LeftContent() {
         name="left-tabs"
         className="tab min-w-18!"
         aria-label="暂存区"
-        defaultChecked
-        onClick={
-          () => {
-            setModulePartition("StagingArea");
-          }
-        }
+        // onClick={
+        //   () => {
+        //     setModulePartition("StagingArea");
+        //   }
+        // }
       />
-      <div className="tab-content bg-base-100 border-base-300 min-h-full">
+      <div className="tab-content bg-base-100 border-base-300 min-h-full rounded-none">
         <Stages />
       </div>
 
@@ -47,11 +40,11 @@ function LeftContent() {
         name="left-tabs"
         className="tab min-w-18!"
         aria-label="历史"
-        onClick={
-          () => {
-            setModulePartition("history");
-          }
-        }
+        // onClick={
+        //   () => {
+        //     setModulePartition("history");
+        //   }
+        // }
       />
       <div className="tab-content bg-base-100 border-base-300 min-h-full">
         <History />
