@@ -1,9 +1,11 @@
+import type { ModuleScene } from "api";
 import type { SVGProps } from "react";
-import type { RoleModuleItem } from "./context/types";
+import type { ModuleTabItem, RoleModuleItem } from "./context/types";
 import { useQuery } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useEffect, useRef } from "react";
 import { useModuleContext } from "./context/_moduleContext";
+import SceneEdit from "./context/SceneEdit";
 import { ModuleItemEnum } from "./context/types";
 import NPCEdit from "./NPCEdit";
 
@@ -104,11 +106,82 @@ function RoleModuleTabItem({
   );
 }
 
+function SceneModuleTabItem({
+  sceneModuleItem,
+  isSelected,
+  onTabClick,
+  onCloseClick,
+}: {
+  sceneModuleItem: ModuleTabItem;
+  isSelected: boolean;
+  onTabClick: (id: string) => void;
+  onCloseClick: (id: string) => void;
+}) {
+  const { id, label } = sceneModuleItem;
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // 当组件是最新的时候，自动选中
+  useEffect(() => {
+    if (isSelected && inputRef.current) {
+      inputRef.current.checked = true;
+    }
+  }, [isSelected]);
+
+  // 请求场景数据
+  const { data, isPending } = useQuery({
+    queryKey: ["scene", id],
+    queryFn: () => tuanchat.moduleScene.getSceneById(Number(id)),
+  });
+
+  const scene = data?.data || ({} as ModuleScene); // 根据实际类型调整
+
+  return (
+    <>
+      <label className="tab flex-row-reverse pr-8! relative group before:hidden!">
+        <input
+          ref={inputRef}
+          type="radio"
+          name="WorkSpaceTab"
+          className="tab"
+          aria-label={label}
+          onClick={onTabClick.bind(null, id)}
+        />
+        <div
+          className={`
+            absolute right-[10px] invisible
+            w-4 h-4 flex items-center justify-center
+            group-hover:visible ${isSelected ? "visible" : ""}
+            hover:bg-base-content/80 rounded-sm
+          `}
+          onClick={() => {
+            onCloseClick(id);
+          }}
+        >
+          <BaselineClose />
+        </div>
+        {label}
+      </label>
+      <div className="tab-content bg-base-100 border-base-300 p-6">
+        {isPending
+          ? (
+              <div>Loading</div>
+            )
+          : (
+              <SceneEdit selectedScene={scene} />
+            )}
+      </div>
+    </>
+  );
+}
+
 export default function EditModule() {
   const { moduleTabItems, currentSelectedTabId, setCurrentSelectedTabId, removeModuleTabItem }
     = useModuleContext();
   const roleModuleItems = moduleTabItems.filter(item =>
     item.type === ModuleItemEnum.ROLE,
+  );
+  const sceneModuleItems = moduleTabItems.filter(item =>
+    item.type === ModuleItemEnum.SCENE,
   );
 
   return (
@@ -123,6 +196,17 @@ export default function EditModule() {
             onCloseClick={removeModuleTabItem}
           />
         ))}
+        {
+          sceneModuleItems.map(item => (
+            <SceneModuleTabItem
+              key={item.id}
+              sceneModuleItem={item}
+              isSelected={item.id === currentSelectedTabId}
+              onTabClick={setCurrentSelectedTabId}
+              onCloseClick={removeModuleTabItem}
+            />
+          ))
+        }
       </div>
     </div>
   );

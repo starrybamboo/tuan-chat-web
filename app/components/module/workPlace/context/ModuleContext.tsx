@@ -24,13 +24,19 @@ const ModuleContext = createContext<ModuleContextType | undefined>(undefined);
 export function ModuleProvider({ children }: { children: ReactNode }) {
   const [modulePartition, setModulePartition] = useState(moduleType.content.role);
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+  const [selectedSceneId, setSelectedSceneId] = useState<number | null>(null);
 
   const moduleValue = useMemo(() => ({
     modulePartition,
     setModulePartition,
     selectedRoleId,
     setSelectedRoleId,
-  }), [modulePartition, selectedRoleId]);
+    selectedItemId,
+    setSelectedItemId,
+    selectedSceneId,
+    setSelectedSceneId,
+  }), [modulePartition, selectedItemId, selectedRoleId, selectedSceneId]);
 
   return (
     <ModuleContext
