@@ -8,7 +8,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import { SideDrawer, SideDrawerToggle } from "@/components/common/sideDrawer";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { ChatBubbleEllipsesOutline, ThreeLines } from "@/icons";
+import { ChatBubbleEllipsesOutline, MoreMenu } from "@/icons";
 import {
   useCreateRoomMutation,
   useCreateSpaceMutation,
@@ -197,7 +197,7 @@ export default function RoomSelect() {
 
   return (
     <SpaceContext value={spaceContext}>
-      <div className="flex justify-between">
+      <div className="flex justify-between pl-2 pr-2">
         <SideDrawerToggle htmlFor="room-select">
           <ChatBubbleEllipsesOutline className="size-6"></ChatBubbleEllipsesOutline>
         </SideDrawerToggle>
@@ -205,9 +205,8 @@ export default function RoomSelect() {
         <SideDrawerToggle htmlFor="room-side-drawer">
           {
             (activeRoomId || activeSpaceId)
-            && <ThreeLines className="size-6"></ThreeLines>
+            && <MoreMenu className="size-6"></MoreMenu>
           }
-
         </SideDrawerToggle>
       </div>
 

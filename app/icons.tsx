@@ -85,15 +85,21 @@ export function Setting(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-export function ThreeLines(props: SVGProps<SVGSVGElement>) {
+export function MoreMenu(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
+      viewBox="0 0 512 512"
+      width="1em"
+      height="1em"
       {...props}
     >
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        d="M117.333 256c0-17.673-14.327-32-32-32s-32 14.327-32 32s14.327 32 32 32s32-14.327 32-32m341.333 0c0-17.673-14.327-32-32-32s-32 14.327-32 32s14.327 32 32 32s32-14.327 32-32M288 256c0-17.673-14.327-32-32-32s-32 14.327-32 32s14.327 32 32 32s32-14.327 32-32"
+      >
+      </path>
     </svg>
   );
 }

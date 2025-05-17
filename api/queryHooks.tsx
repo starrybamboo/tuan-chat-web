@@ -61,7 +61,8 @@ export function useGetRoleQuery(roleId: number) {
   return useQuery({
     queryKey: ['getRole', roleId],
     queryFn: () => tuanchat.roleController.getRole(roleId),
-    staleTime: 600000 // 10分钟缓存
+    staleTime: 600000, // 10分钟缓存
+    enabled: roleId > 0,
   });
 }
 
