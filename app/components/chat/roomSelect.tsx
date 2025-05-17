@@ -5,6 +5,7 @@ import { SpaceContext } from "@/components/chat/spaceContext";
 import SpaceWindow from "@/components/chat/spaceWindow";
 import checkBack from "@/components/common/autoContrastText";
 import { PopWindow } from "@/components/common/popWindow";
+import { SideDrawer } from "@/components/common/sideDrawer";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
@@ -192,117 +193,131 @@ export default function RoomSelect() {
   return (
     <SpaceContext value={spaceContext}>
       <div className="flex flex-row bg-base-100 h-full">
-        {/* 空间列表 */}
-        <div className="menu flex flex-col p-3 bg-base-300 space-y-2 w-16">
-          {spaces.map(space => (
-            <div className={`rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""}`} key={space.spaceId}>
-              <button
-                className="tooltip tooltip-right w-10 btn btn-square "
-                data-tip={space.name}
-                type="button"
-                onClick={() => {
-                  setActiveSpaceId(space.spaceId ?? -1);
-                  setActiveRoomId(null);
-                }}
-              >
-                <div className="indicator">
-                  {(() => {
-                    const unreadCount = getSpaceUnreadMessagesNumber(space.spaceId ?? -1);
-                    return unreadCount > 0 && (
-                      <span className="indicator-item badge badge-xs bg-error z-10">
-                        {unreadCount}
-                      </span>
-                    );
-                  })()}
-                  <div className="avatar mask mask-squircle">
-                    <img
-                      src={space.avatar}
-                      alt={space.name}
-                    />
-                  </div>
-                </div>
-              </button>
-            </div>
-          ))}
-          {userInfo
-            && (
-              <button
-                className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10"
-                type="button"
-                data-tip="创建空间"
-                onClick={() => {
-                  setIsSpaceHandleOpen(true);
-                  // 重置表单状态
-                  setspaceAvatar(String(userInfo?.avatar));
-                  setSpaceName(`${String(userInfo?.username)}的空间`);
-                  setInputUserId(-1);
-                  setSelectedRuleId(1);
-                }}
-              >
-                <div className="avatar mask mask-squircle flex content-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
-                </div>
-              </button>
-            )}
-        </div>
-        {/* 房间列表 */}
-        <div className={`flex flex-col gap-2 p-2 w-[200px] bg-base-100 `}>
-          {rooms.map(room => (
-            <div key={room.roomId}>
-              {activeSpaceId === room.spaceId && (
-                <button
-                  key={room.roomId}
-                  className={`btn btn-ghost flex justify-start w-full gap-2 ${activeRoomId === room.roomId ? "bg-info-content/30" : ""}`}
-                  type="button"
-                  onClick={() => setActiveRoomId(room.roomId ?? -1)}
+        <SideDrawer sideDrawerId="roomSelect">
+          <div className="flex flex-row bg-base-100 h-full">
+            {/* 空间列表 */}
+            <div className="menu flex flex-col p-3 bg-base-300 space-y-2 w-16">
+              {spaces.map(space => (
+                <div
+                  className={`rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""}`}
+                  key={space.spaceId}
                 >
-                  <div className="indicator">
-                    {(activeRoomId !== room.roomId && unreadMessagesNumber[room.roomId ?? -1] > 0)
-                      && <span className="indicator-item badge badge-xs bg-error">{unreadMessagesNumber[room.roomId ?? -1]}</span>}
-
-                    <div className="avatar mask mask-squircle w-8">
-                      <img
-                        src={room.avatar}
-                        alt={room.name}
-                      />
+                  <button
+                    className="tooltip tooltip-right w-10 btn btn-square "
+                    data-tip={space.name}
+                    type="button"
+                    onClick={() => {
+                      setActiveSpaceId(space.spaceId ?? -1);
+                      setActiveRoomId(null);
+                    }}
+                  >
+                    <div className="indicator">
+                      {(() => {
+                        const unreadCount = getSpaceUnreadMessagesNumber(space.spaceId ?? -1);
+                        return unreadCount > 0 && (
+                          <span className="indicator-item badge badge-xs bg-error z-10">
+                            {unreadCount}
+                          </span>
+                        );
+                      })()}
+                      <div className="avatar mask mask-squircle">
+                        <img
+                          src={space.avatar}
+                          alt={space.name}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <span className="truncate flex-1 text-left">{room.name}</span>
+                  </button>
+                </div>
+              ))}
+              {userInfo
+                && (
+                  <button
+                    className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10"
+                    type="button"
+                    data-tip="创建空间"
+                    onClick={() => {
+                      setIsSpaceHandleOpen(true);
+                      // 重置表单状态
+                      setspaceAvatar(String(userInfo?.avatar));
+                      setSpaceName(`${String(userInfo?.username)}的空间`);
+                      setInputUserId(-1);
+                      setSelectedRuleId(1);
+                    }}
+                  >
+                    <div className="avatar mask mask-squircle flex content-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                    </div>
+                  </button>
+                )}
+            </div>
+            {/* 房间列表 */}
+            <div className={`flex flex-col gap-2 p-2 w-[200px] bg-base-100 `}>
+              {rooms.map(room => (
+                <div key={room.roomId}>
+                  {activeSpaceId === room.spaceId && (
+                    <button
+                      key={room.roomId}
+                      className={`btn btn-ghost flex justify-start w-full gap-2 ${activeRoomId === room.roomId ? "bg-info-content/30" : ""}`}
+                      type="button"
+                      onClick={() => setActiveRoomId(room.roomId ?? -1)}
+                    >
+                      <div className="indicator">
+                        {(activeRoomId !== room.roomId && unreadMessagesNumber[room.roomId ?? -1] > 0)
+                          && (
+                            <span
+                              className="indicator-item badge badge-xs bg-error"
+                            >
+                              {unreadMessagesNumber[room.roomId ?? -1]}
+                            </span>
+                          )}
+
+                        <div className="avatar mask mask-squircle w-8">
+                          <img
+                            src={room.avatar}
+                            alt={room.name}
+                          />
+                        </div>
+                      </div>
+                      <span className="truncate flex-1 text-left">{room.name}</span>
+                    </button>
+                  )}
+                </div>
+              ))}
+              {activeSpaceId !== null && spaceContext.isSpaceOwner && (
+                <button
+                  className="btn btn-dash btn-info flex w-full"
+                  type="button"
+                  onClick={() => {
+                    if (activeSpaceId) {
+                      setIsRoomHandleOpen(true);
+                      setRoomAvatar(String(spaces.find(space => (space.spaceId === activeSpaceId))?.avatar));
+                      setRoomName(`${String(userInfo?.username)}的房间`);
+                      setInputUserId(-1);
+                      setSelectedUserIds(new Set());
+                    }
+                  }}
+                >
+                  创建房间
                 </button>
               )}
             </div>
-          ))}
-          {activeSpaceId !== null && spaceContext.isSpaceOwner && (
-            <button
-              className="btn btn-dash btn-info flex w-full"
-              type="button"
-              onClick={() => {
-                if (activeSpaceId) {
-                  setIsRoomHandleOpen(true);
-                  setRoomAvatar(String(spaces.find(space => (space.spaceId === activeSpaceId))?.avatar));
-                  setRoomName(`${String(userInfo?.username)}的房间`);
-                  setInputUserId(-1);
-                  setSelectedUserIds(new Set());
-                }
-              }}
-            >
-              创建房间
-            </button>
-          )}
-        </div>
+          </div>
+        </SideDrawer>
+
         {/* 对话窗口 */}
         {
           activeRoomId
@@ -362,7 +377,13 @@ export default function RoomSelect() {
               <div className="dropdown w-full">
                 <label tabIndex={0} className="btn btn-outline w-full justify-start">
                   {rules.find(rule => rule.ruleId === selectedRuleId)?.ruleName ?? "未找到规则"}
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 ml-auto"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                   </svg>
                 </label>

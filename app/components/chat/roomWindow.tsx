@@ -15,6 +15,7 @@ import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { SideDrawer } from "@/components/common/sideDrawer";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { CommandSolid, DiceTwentyFacesTwenty, GalleryBroken } from "@/icons";
@@ -237,7 +238,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   return (
     <RoomContext value={roomContext}>
       <div className="w-full flex gap-4">
-        <div className="flex flex-col flex-1 h-full">
+        <div className="flex flex-col flex-1 h-full w-full">
           {/* 聊天框 */}
           <div className="card bg-base-100 shadow-sm">
             <ChatFrame useChatBubbleStyle={useChatBubbleStyle} chatFrameRef={chatFrameRef} key={roomId}></ChatFrame>
@@ -370,7 +371,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             </div>
           </form>
         </div>
-        <RoomRightSidePanel></RoomRightSidePanel>
+        <SideDrawer sideDrawerId="RoomRightSidePanel" isAtRight={true}>
+          <RoomRightSidePanel></RoomRightSidePanel>
+        </SideDrawer>
+
         <PopWindow isOpen={commandBrowseWindow === "dice"} onClose={() => setCommandBrowseWindow("none")}>
           <span className="text-center text-lg font-semibold">浏览所有骰子命令</span>
           <CommandPanel
@@ -400,7 +404,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           </CommandPanel>
         </PopWindow>
       </div>
-
     </RoomContext>
   );
 }

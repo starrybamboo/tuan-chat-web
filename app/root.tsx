@@ -57,6 +57,8 @@ export default function App() {
         <ReactQueryDevtools initialIsOpen={false} />
         {/* 挂载popWindow的地方 */}
         <div id="modal-root"></div>
+        {/* 挂载sideDrawer的地方 */}
+        <div id="side-drawer"></div>
         <Toaster />
       </GlobalContextProvider>
     </QueryClientProvider>

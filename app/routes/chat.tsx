@@ -11,7 +11,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Chat() {
   return (
-    <div className="bg-base-200 h-full">
+    <div className="bg-base-200 h-full w-full">
       <RoomSelect />
     </div>
   );
