@@ -191,7 +191,7 @@ export default function RoomSelect() {
 
   return (
     <SpaceContext value={spaceContext}>
-      <div className="flex flex-row bg-base-100">
+      <div className="flex flex-row bg-base-100 h-full">
         {/* 空间列表 */}
         <div className="menu flex flex-col p-3 bg-base-300 space-y-2 w-16">
           {spaces.map(space => (

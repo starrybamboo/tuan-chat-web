@@ -107,6 +107,18 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   /**
    *处理与组件的各种交互
    */
+  const handleTextInputChange = (newInput: string) => {
+    setInputText(newInput);
+    if (newInput.startsWith("%")) {
+      setCommandMode("webgal");
+    }
+    else if (newInput.startsWith(".") || newInput.startsWith("。")) {
+      setCommandMode("dice");
+    }
+    else {
+      setCommandMode("none");
+    }
+  };
   const handleSelectCommand = (cmdName: string) => {
     // 保持命令前缀格式（保留原输入的 . 或 。）
     const prefixChar = inputText[0];
@@ -172,7 +184,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       else {
         send(messageRequest);
       }
-      setInputText("");
+      handleTextInputChange("");
     }
     // 滚动到底部, 设置异步是为了等待新消息接受并渲染好
     setTimeout(() => {
@@ -222,27 +234,14 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     setCurAvatarIndex(0);
   };
 
-  const handleTextInputChange = (newInput: string) => {
-    setInputText(newInput);
-    if (newInput.startsWith("%")) {
-      setCommandMode("webgal");
-    }
-    else if (newInput.startsWith(".") || newInput.startsWith("。")) {
-      setCommandMode("dice");
-    }
-    else {
-      setCommandMode("none");
-    }
-  };
-
   return (
     <RoomContext value={roomContext}>
-      <div className="w-full h-full">
+      <div className="w-full">
         <div className="drawer drawer-end lg:drawer-open">
           <input id="room-side-drawer" type="checkbox" className="drawer-toggle" />
           <div className="drawer-content h-full">
             {/* 聊天区域主体 */}
-            <div className="flex flex-col h-[90vh]">
+            <div className="flex flex-col h-full">
               {/* 聊天框 */}
               <div className="card bg-base-100 shadow-sm">
                 <ChatFrame useChatBubbleStyle={useChatBubbleStyle} chatFrameRef={chatFrameRef} key={roomId}></ChatFrame>
