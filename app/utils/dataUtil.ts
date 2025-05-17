@@ -7,3 +7,7 @@ export function formatLocalDateTime(date: Date): string {
   const seconds = date.getSeconds().toString().padStart(2, "0").slice(0, 2);
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 }
+
+export function getCurTimeStamp() {
+  return (new Date()).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" }).replace(/[/\s,:]/g, "-");
+}

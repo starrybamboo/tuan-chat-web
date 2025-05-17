@@ -188,7 +188,7 @@ export default function RulesSection({
         </div>
 
         {/* 规则列表 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {filteredRulesList.map(rule => (
             <div
               key={rule.id}

@@ -74,7 +74,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
         },
       );
     }
-    if (spaceId > 0) {
+    else if (spaceId > 0) {
       mutateSpaceMember.mutate(
         { spaceId, userIdList: [userId] },
         {

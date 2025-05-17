@@ -1,4 +1,5 @@
 import type { ChatMessageRequest, ChatMessageResponse } from "api";
+import type { SetStateAction } from "react";
 import type { WebsocketUtils } from "../../api/useWebSocket";
 import { createContext, use, useEffect, useMemo, useState } from "react";
 import { useWebSocket } from "../../api/useWebSocket";
@@ -18,11 +19,16 @@ const GlobalContext = createContext<GlobalContextType>({
     send(_: ChatMessageRequest): void {
       console.error("Function not implemented.");
     },
-    getNewMessagesByRoomId(_: number): ChatMessageResponse[] {
-      console.error("Function not implemented.");
+    isConnected: false,
+    getTempMessagesByRoomId(roomId: number, cleanTemp: boolean): ChatMessageResponse[] {
+      console.error(`Function not implemented.${roomId} ${cleanTemp}`);
       return [];
     },
-    isConnected: false,
+    messagesNumber: {},
+    unreadMessagesNumber: {},
+    setUnreadMessagesNumber(value: SetStateAction<Record<number, number>>): void {
+      console.error(`Function not implemented.${value}`);
+    },
   },
   setUserId: () => {},
 });

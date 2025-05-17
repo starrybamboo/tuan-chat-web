@@ -5,6 +5,7 @@ import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import UserAvatarComponent from "@/components/common/userAvatar";
+import { Setting } from "@/icons";
 import React, { use, useState } from "react";
 import {
   useAddSpaceMemberMutation,
@@ -12,6 +13,7 @@ import {
   useGetSpaceMembersQuery,
   useGetSpaceRolesQuery,
 } from "../../../api/hooks/chatQueryHooks";
+import SpaceSettingWindow from "./window/spaceSettingWindow";
 
 export default function SpaceRightSidePanel() {
   const spaceContext = use(SpaceContext);
@@ -26,6 +28,8 @@ export default function SpaceRightSidePanel() {
 
   const addMemberMutation = useAddSpaceMemberMutation();
   const addRoleMutation = useAddSpaceRoleMutation();
+
+  const [isOpenSpaceSettingWindow, setIsOpenSpaceSettingWindow] = useState(false);
 
   const handleAddRole = async (roleId: number) => {
     addRoleMutation.mutate({
@@ -51,6 +55,14 @@ export default function SpaceRightSidePanel() {
   return (
     <div className="flex flex-row gap-4 h-full">
       <div className="flex flex-col gap-2 p-4 bg-base-100 rounded-box shadow-sm items-center w-full space-y-4 max-h-[calc(100vh-6rem)] overflow-y-auto">
+        {
+          spaceContext.isSpaceOwner && (
+            <div className="w-full flex justify-end">
+              <Setting className="w-12 h-12 cursor-pointer hover:text-info" onClick={() => setIsOpenSpaceSettingWindow(true)}> </Setting>
+            </div>
+          )
+        }
+
         {/* 群成员列表 */}
         <div className="space-y-2">
           <div className="flex flex-row justify-center items-center gap-2">
@@ -124,6 +136,9 @@ export default function SpaceRightSidePanel() {
           ))}
         </div>
       </div>
+      <PopWindow isOpen={isOpenSpaceSettingWindow} onClose={() => setIsOpenSpaceSettingWindow(false)}>
+        <SpaceSettingWindow onClose={() => setIsOpenSpaceSettingWindow(false)}></SpaceSettingWindow>
+      </PopWindow>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
         <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
       </PopWindow>

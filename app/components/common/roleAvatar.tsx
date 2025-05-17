@@ -59,7 +59,7 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
   };
 
   return (
-    <div className="flex flex-col items-center space-x-2 space-y-2">
+    <div className="flex flex-col items-center">
       <div className="avatar">
         <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""}`}>
           <img

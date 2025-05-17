@@ -264,7 +264,7 @@ export default function NumericalEditor({
             </div>
 
             {/* 网格布局 */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
               {entries.map(([key]) => {
                 const calculatedValue = calculatedConstraints[totalKey][key];
                 if (totalKey === "0") {
@@ -312,11 +312,16 @@ export default function NumericalEditor({
                           )
                         : (
                             <div className="card bg-base-100 shadow-sm p-2 h-full">
-                              <div className="text-sm font-medium text-primary mb-1">{key}</div>
-                              <div className="text-base-content mt-0.5">
-                                {typeof calculatedValue === "object" && "displayValue" in calculatedValue
-                                  ? calculatedValue.displayValue.toString()
-                                  : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
+                              <div className="flex items-center gap-2">
+                                <div className="text-primary p-2">
+                                  {key}
+                                </div>
+                                <div className="divider divider-horizontal ml-0" />
+                                <div className="text-base-content">
+                                  {typeof calculatedValue === "object" && "displayValue" in calculatedValue
+                                    ? calculatedValue.displayValue.toString()
+                                    : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
+                                </div>
                               </div>
                               {typeof calculatedValue === "object" && "formula" in calculatedValue && (
                                 <div className="text-xs text-gray-500 mt-1">

@@ -1,5 +1,6 @@
 import type { Route } from "./+types/home";
 import Topbar from "@/components/topbanner/Topbanner";
+import React from "react";
 import { Outlet } from "react-router";
 
 export function meta(_args: Route.MetaArgs) {

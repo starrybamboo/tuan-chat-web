@@ -192,7 +192,7 @@ export default function PerformanceEditor({
       </div>
 
       {/* 短字段区域 - 多列排布 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 lg:5 gap-6">
         {shortFields.map(key => (
           <div key={key} className="group">
             {isEditing
@@ -214,7 +214,7 @@ export default function PerformanceEditor({
                     </label>
                     <button
                       type="button"
-                      className="btn btn-error btn-xs opacity-0 duration-300 transition-opacity group-hover:opacity-100"
+                      className="btn btn-error btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1"
                       onClick={() => handleDeleteField(key)}
                     >
                       <svg
@@ -238,9 +238,12 @@ export default function PerformanceEditor({
               : (
             // 非编辑模式下的UI
                   <div className="card bg-base-100 shadow-sm p-2 h-full">
-                    <div className="text-sm font-medium text-primary mb-1">{key}</div>
-                    <div className="text-base-content mt-0.5">
-                      {fields[key] || <span className="text-base-content/50">未设置</span>}
+                    {/* <div className="text-primary">{key}</div> */}
+                    <div className="divider">{key}</div>
+                    <div className="text-base-content mt-0.5 flex justify-center p-2">
+                      <div className="text-left">
+                        {fields[key] || <span className="text-base-content/50">未设置</span>}
+                      </div>
                     </div>
                   </div>
                 )}

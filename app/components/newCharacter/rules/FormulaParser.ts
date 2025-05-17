@@ -290,8 +290,7 @@ export class FormulaParser {
       // 解析并计算表达式
       return this.parseExpression(tokens, context);
     }
-    catch (error) {
-      console.error("公式计算错啦~ 连小学数学都不会了吗♡杂鱼♡:", error);
+    catch {
       return 0;
     }
   }

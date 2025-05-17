@@ -1,4 +1,5 @@
 import { SpaceContext } from "@/components/chat/spaceContext";
+import checkBack from "@/components/common/autoContrastText";
 import ConfirmModal from "@/components/common/comfirmModel";
 import MemberInfoComponent from "@/components/common/memberInfo";
 import { PopWindow } from "@/components/common/popWindow";
@@ -12,7 +13,7 @@ import {
   useUpdateSpaceMutation,
 } from "api/hooks/chatQueryHooks";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
 function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
@@ -43,15 +44,8 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   // 设置归档状态
   const updateAchiveStatusMutation = useUpdateSpaceArchiveStatusMutation();
 
-  // 转让空间
-  const transferOwnerMutation = useTransferOwnerMutation();
-  async function transferOwner(userId: number) {
-    transferOwnerMutation.mutate({ spaceId, newOwnerId: userId }, {
-      onSuccess: () => {
-        setIsMembersListHandleOpen(false);
-      },
-    });
-  }
+  // 用于强制重置上传组件
+  const [uploaderKey, setUploaderKey] = useState(0);
 
   // 使用状态管理表单数据
   const [formData, setFormData] = useState({
@@ -60,6 +54,30 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     avatar: space?.avatar || "",
     ruleId: space?.ruleId || 1,
   });
+
+  // 头像文字颜色
+  const [avatarTextColor, setAvatarTextColor] = useState("text-black");
+
+  // 监听头像变化，自动调整文字颜色
+  useEffect(() => {
+    if (formData.avatar) {
+      checkBack(formData.avatar).then(() => {
+        const computedColor = getComputedStyle(document.documentElement)
+          .getPropertyValue("--text-color")
+          .trim();
+        setAvatarTextColor(computedColor === "white" ? "text-white" : "text-black");
+      });
+    }
+  }, [formData.avatar]);
+
+  const handleAvatarUpdate = (url: string) => {
+    setFormData(prev => ({ ...prev, avatar: url }));
+    // 上传完成后强制重置上传组件
+    setUploaderKey(prev => prev + 1);
+  };
+
+  // 转让空间
+  const transferOwnerMutation = useTransferOwnerMutation();
 
   // 当space数据加载时初始化formData
   if (space && formData.name === "" && formData.description === "" && formData.avatar === "") {
@@ -94,10 +112,14 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
     handleSave();
   };
 
-  // 新增状态，控制更新归档状态的确认弹窗显示
+  // 控制更新归档状态的确认弹窗显示
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
-  // 新增状态，控制删除群组的确认弹窗显示
+  // 控制删除空间的确认弹窗显示
   const [isDissolveConfirmOpen, setIsDissolveConfirmOpen] = useState(false);
+  // 控制转让空间的确认弹窗显示
+  const [isTransferOwnerConfirmOpen, setIsTransferOwnerConfirmOpen] = useState(false);
+  // 转让的用户Id
+  const [transfereeId, setTransfereeId] = useState(-1);
 
   return (
     <div className="w-full p-4 min-w-[40vw] max-h-[80vh] overflow-y-scroll">
@@ -105,9 +127,8 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
         <div>
           <div className="flex justify-center">
             <ImgUploaderWithCopper
-              setCopperedDownloadUrl={(url) => {
-                setFormData(prev => ({ ...prev, avatar: url }));
-              }}
+              key={uploaderKey}
+              setCopperedDownloadUrl={handleAvatarUpdate}
               fileName={`spaceId-${space.spaceId}`}
             >
               <div className="relative group overflow-hidden rounded-lg">
@@ -117,7 +138,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                   className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
                 />
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm">
-                  <span className="font-bold text-black px-2 py-1 rounded">
+                  <span className={`${avatarTextColor} font-bold px-2 py-1 rounded`}>
                     更新头像
                   </span>
                 </div>
@@ -247,7 +268,11 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                       <button
                         type="button"
                         className="btn"
-                        onClick={() => transferOwner(member.userId ?? -1)}
+                        onClick={() => {
+                          setIsTransferOwnerConfirmOpen(true);
+                          setTransfereeId(member.userId ?? -1);
+                          setIsMembersListHandleOpen(false);
+                        }}
                       >
                         转让
                       </button>
@@ -286,6 +311,16 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
                   setIsDissolveConfirmOpen(false);
                 },
               });
+            }}
+          />
+          <ConfirmModal
+            isOpen={isTransferOwnerConfirmOpen}
+            onClose={() => setIsTransferOwnerConfirmOpen(false)}
+            title="确认转让空间"
+            message="是否确定转让空间给该用户？此操作不可逆。转让后会关闭设置窗口并自动保存数据"
+            onConfirm={() => {
+              transferOwnerMutation.mutate({ spaceId, newOwnerId: transfereeId });
+              handleClose();
             }}
           />
         </div>

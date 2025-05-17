@@ -1,8 +1,11 @@
+import UserAvatarComponent from "@/components/common/userAvatar";
+import { useNavigate } from "react-router";
 import { useGlobalContext } from "../globalContextProvider";
 
 function UserCard({ className }: { className?: string }) {
-  const defaultAvatar = "https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp";
-  const _userId = useGlobalContext().userId;
+  const { userId } = useGlobalContext();
+  const navigate = useNavigate();
+
   const cardSections = [
     {
       label: "已创建",
@@ -24,30 +27,51 @@ function UserCard({ className }: { className?: string }) {
     // },
   ];
 
+  const classNameMap = {
+    created: "text-success",
+    saved: "text-warning",
+  };
+
   return (
-    <div className={`flex flex-col ${className}`}>
+    <div className={`flex flex-col p-3 gap-3 ${className}`}>
       <div className="basis-2/5 flex justify-center items-center">
-        {/* {userId
-          ? <UserAvatarComponent userId={userId} width={12} isRounded />
-          : (
-              <div className="avatar w-12 h-12 rounded-full">
-                <img src={defaultAvatar} />
-              </div>
-            )} */}
         <div className="avatar w-20 h-20">
-          <img className="rounded-full" src={defaultAvatar} />
+          <UserAvatarComponent
+            userId={userId!}
+            width={20}
+            isRounded={true}
+            withName={false}
+          />
         </div>
       </div>
-      <div className="stats shadow basis-3/5 flex-wrap">
+      <div className="stats shadow basis-2/5 flex-wrap">
         {
           cardSections.map(section => (
-            <div className="stat h-24 hover:bg-neutral-content hover:cursor-pointer" key={section.key}>
-              <div className="stat-title mx-auto text-[1rem] text-primary">{section.label}</div>
-              <div className="stat-value mx-auto text-primary">{section.value}</div>
-              {/* <div className="stat-desc">21% more than last month</div> */}
+            <div className="stat h-full hover:bg-neutral-content hover:cursor-pointer" key={section.key}>
+              <div className={`stat-title mx-auto text-[1rem] ${classNameMap[section.key as keyof typeof classNameMap]}`}>
+                {section.label}
+              </div>
+              <div className={`stat-value mx-auto ${classNameMap[section.key as keyof typeof classNameMap]}`}>
+                {section.value}
+              </div>
             </div>
           ))
         }
+      </div>
+      <div className="basis-1/5 join join-vertical w-4/5 mx-auto gap-3">
+        <button
+          className="btn btn-primary"
+          onClick={() => {
+            navigate("/module/create");
+          }}
+        >
+          创建模组
+        </button>
+        <button
+          className="btn btn-warning"
+        >
+          查看模组
+        </button>
       </div>
     </div>
   );
