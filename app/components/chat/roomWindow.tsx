@@ -18,7 +18,7 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { SideDrawer } from "@/components/common/sideDrawer";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { Bubble2, CommandSolid, DiceTwentyFacesTwenty, GalleryBroken, GirlIcon } from "@/icons";
+import { Bubble2, CommandSolid, DiceTwentyFacesTwenty, GalleryBroken, GirlIcon, SendIcon } from "@/icons";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
@@ -327,7 +327,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     {/* 角色选择器 */}
                     <div className="dropdown dropdown-top">
                       <div className="tooltip" data-tip="切换角色">
-                        <GirlIcon className="size-10 hover:text-info" tabIndex={0} role="button"></GirlIcon>
+                        <GirlIcon className="size-8 hover:text-info" tabIndex={0} role="button"></GirlIcon>
                       </div>
                       <ul
                         tabIndex={0}
@@ -341,7 +341,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     })}
                     >
                       <div className="tooltip" data-tip="发送图片">
-                        <GalleryBroken className="size-10 cursor-pointer hover:text-info"></GalleryBroken>
+                        <GalleryBroken className="size-8 cursor-pointer hover:text-info"></GalleryBroken>
                       </div>
                     </ImgUploader>
                   </div>
@@ -354,7 +354,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                           <Bubble2 className="size-10 font-light"></Bubble2>
                         </div>
                         <div className="swap-off" onClick={() => setUseChatBubbleStyle(true)}>
-                          <Bubble2 className="size-10"></Bubble2>
+                          <Bubble2 className="size-8"></Bubble2>
                         </div>
                       </label>
                     </div>
@@ -366,20 +366,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       disabled={!(inputText.trim() || imgFiles.length) || isSubmitting}
                       onClick={handleMessageSubmit}
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                        />
-                      </svg>
+                      <SendIcon className="size-6"></SendIcon>
                     </button>
                   </div>
                 </div>
