@@ -223,8 +223,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     setCurAvatarIndex(avatarIndex);
   };
 
+  const isComposingRef = useRef(false);
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !isComposingRef.current) {
       e.preventDefault();
       handleMessageSubmit();
     }
@@ -317,6 +318,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   value={inputText}
                   onChange={e => handleTextInputChange(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  onCompositionStart={() => isComposingRef.current = true}
+                  onCompositionEnd={() => isComposingRef.current = false}
                   onPaste={async e => handlePaste(e)}
                 />
                 <div className="flex items-center justify-between">
