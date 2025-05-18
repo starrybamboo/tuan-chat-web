@@ -99,19 +99,19 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
    * 新消息提醒
    */
   const unreadMessageNumber = websocketUtils.unreadMessagesNumber[roomId] ?? 0;
-  const updateUnreadMessageNumber = websocketUtils.updateUnreadMessagesNumber;
+  const updateUnreadMessagesNumber = websocketUtils.updateUnreadMessagesNumber;
   /**
    * scroll相关
    */
   const scrollToBottom = () => {
     chatFrameRef.current.scrollTo({ top: 0, behavior: "instant" });
-    updateUnreadMessageNumber(roomId, 0);
+    updateUnreadMessagesNumber(roomId, 0);
   };
   // const isNearBottom = chatFrameRef.current.scrollTop < -80;
   // 若滚动到底部，设置未读消息为0
   useEffect(() => {
     if (bottomMessageEntry?.isIntersecting) {
-      updateUnreadMessageNumber(roomId, 0);
+      updateUnreadMessagesNumber(roomId, 0);
     }
   }, [bottomMessageEntry?.isIntersecting]);
   useEffect(() => {
@@ -120,7 +120,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         scrollToBottom();
       }
     }
-  }, [chatFrameRef, historyMessages]);
+  }, [historyMessages.length]);
   useEffect(() => {
     if ((messageEntry?.isIntersecting || topMessageEntry?.isIntersecting) && !messagesInfiniteQuery.isFetchingNextPage) {
       messagesInfiniteQuery.fetchNextPage();
