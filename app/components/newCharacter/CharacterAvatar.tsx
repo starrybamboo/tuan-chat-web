@@ -1,6 +1,7 @@
 /* eslint-disable react-dom/no-missing-button-type */
 import type { RoleAvatar } from "api";
 import type { Role } from "./types";
+import { useUploadAvatarMutation } from "@/../api/queryHooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useState } from "react";
@@ -44,62 +45,9 @@ export default function CharacterAvatar({ role, onchange }: {
       return null;
     },
   });
-  // 上传头像到服务器
-  const { mutate } = useMutation({
-    mutationKey: ["uploadAvatar"],
-    mutationFn: async ({ avatarUrl, spriteUrl }: { avatarUrl: string; spriteUrl: string }) => {
-      if (!avatarUrl || !role.id || !spriteUrl) {
-        console.error("参数错误：avatarUrl 或 roleId 为空");
-        return undefined;
-      }
 
-      try {
-        const res = await tuanchat.avatarController.setRoleAvatar({
-          roleId: role.id,
-        });
-
-        if (!res.success || !res.data) {
-          console.error("头像创建失败", res);
-          return undefined;
-        }
-
-        const avatarId = res.data;
-
-        if (avatarId) {
-          const uploadRes = await tuanchat.avatarController.updateRoleAvatar({
-            roleId: role.id,
-            avatarId,
-            avatarUrl,
-            spriteUrl,
-          });
-
-          if (!uploadRes.success) {
-            console.error("头像更新失败", uploadRes);
-            return undefined;
-          }
-
-          console.warn("头像上传成功");
-          await queryClient.invalidateQueries({ queryKey: ["roleAvatar", role.id] });
-          setCopperedUrl(avatarUrl);
-          setPreviewSrc(spriteUrl);
-          setAvatarId(avatarId);
-          // onchange(avatarUrl, avatarId);
-          return uploadRes;
-        }
-        else {
-          console.error("头像ID无效");
-          return undefined;
-        }
-      }
-      catch (error) {
-        console.error("头像上传请求失败", error);
-        throw error; // 将错误抛给 onError 处理
-      }
-    },
-    onError: (error) => {
-      console.error("Mutation failed:", error.message || error);
-    },
-  });
+  // 使用新的 hook
+  const { mutate } = useUploadAvatarMutation(role.id);
 
   // 迁移
   // post删除头像请求

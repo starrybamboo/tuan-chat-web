@@ -402,3 +402,63 @@ export function useDeleteRole() {
     },
   });
 }
+
+
+/**
+ * 上传头像
+ * @param roleId 角色ID
+ */
+export function useUploadAvatarMutation(roleId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["uploadAvatar"],
+    mutationFn: async ({ avatarUrl, spriteUrl }: { avatarUrl: string; spriteUrl: string }) => {
+      if (!avatarUrl || !roleId || !spriteUrl) {
+        console.error("参数错误：avatarUrl 或 roleId 为空");
+        return undefined;
+      }
+
+      try {
+        const res = await tuanchat.avatarController.setRoleAvatar({
+          roleId: roleId,
+        });
+
+        if (!res.success || !res.data) {
+          console.error("头像创建失败", res);
+          return undefined;
+        }
+
+        const avatarId = res.data;
+
+        if (avatarId) {
+          const uploadRes = await tuanchat.avatarController.updateRoleAvatar({
+            roleId: roleId,
+            avatarId,
+            avatarUrl,
+            spriteUrl,
+          });
+
+          if (!uploadRes.success) {
+            console.error("头像更新失败", uploadRes);
+            return undefined;
+          }
+
+          console.warn("头像上传成功");
+          await queryClient.invalidateQueries({ queryKey: ["roleAvatar", roleId] });
+          return uploadRes;
+        }
+        else {
+          console.error("头像ID无效");
+          return undefined;
+        }
+      }
+      catch (error) {
+        console.error("头像上传请求失败", error);
+        throw error;
+      }
+    },
+    onError: (error) => {
+      console.error("Mutation failed:", error.message || error);
+    },
+  });
+}
