@@ -1,56 +1,23 @@
+// Warpper界面useEffect的逻辑,去掉了useEffect
+import type { Role } from "@/components/newCharacter/types";
+import type { ApiResultRoleAbility, RoleResponse, UserInfoResponse } from "api";
+// import type { RoleAbilityTable } from './models/RoleAbilityTable';
+import type { RoleAvatar } from "./models/RoleAvatar";
+import type { RoleAvatarCreateRequest } from "./models/RoleAvatarCreateRequest";
+import type { UserLoginRequest } from "./models/UserLoginRequest";
+import type { UserRegisterRequest } from "./models/UserRegisterRequest";
+
+import type { UserRole } from "./models/UserRole";
+
 /**
  * AI根据Service生成的hook, 使用的时候请好好检查.
  * 请不要在function外定义一个queryClient, React 上下文作用域外使用是不行的
  * 以后这里只放通用的hooks
  */
-/* generated using openapi-typescript-codegen -- do no edit */
-/* istanbul ignore file */
-/* tslint:disable */
-/* eslint-disable */
-import { useQuery, useMutation, QueryClient, useQueryClient, useQueries, useInfiniteQuery } from '@tanstack/react-query';
-import { tuanchat } from './instance';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { ChatMessagePageRequest } from './models/ChatMessagePageRequest';
-import type { ChatMessageRequest } from './models/ChatMessageRequest';
-import type { RoomAddRequest } from './models/RoomAddRequest';
-
-import type { MoveMessageRequest } from './models/MoveMessageRequest';
-// import type { RoleAbilityTable } from './models/RoleAbilityTable';
-import type { RoleAvatar } from './models/RoleAvatar';
-import type { RoleAvatarCreateRequest } from './models/RoleAvatarCreateRequest';
-import type { UserLoginRequest } from './models/UserLoginRequest';
-import type { UserRegisterRequest } from './models/UserRegisterRequest';
-import type { UserRole } from './models/UserRole';
-import type { AbilitySetRequest } from "./models/AbilitySetRequest";
-import type { AbilityUpdateRequest } from "./models/AbilityUpdateRequest";
-import type { UseQueryResult } from "@tanstack/react-query";
-
-import {
-  type AbilityFieldUpdateRequest,
-  type ApiResultListRoleResponse,
-  type ApiResultRoleAbility,
-  type ApiResultUserInfoResponse,
-  type Message,
-  type RoleResponse,
-  type SpaceOwnerTransferRequest,
-  type FeedRequest,
-  type Space,
-  type SpaceAddRequest,
-  type SpaceMemberAddRequest,
-  type SpaceMemberDeleteRequest,
-  type UserInfoResponse,
-  type RoomUpdateRequest,
-  type PlayerGrantRequest,
-  type PlayerRevokeRequest,
-  type RoomRoleAddRequest,
-  type RoomRoleDeleteRequest,
-  type SpaceRoleAddRequest,
-  type RoomMemberAddRequest,
-  type RoomMemberDeleteRequest,
-  type SpaceUpdateRequest,
-  type LikeRecordRequest,
-  LikeRecordControllerService, type CommentPageRequest, type CommentAddRequest
-} from "api";
+import { useCallback, useState } from "react";
+import { tuanchat } from "./instance";
 
 // ==================== 角色管理 ====================
 /**
@@ -59,7 +26,7 @@ import {
  */
 export function useGetRoleQuery(roleId: number) {
   return useQuery({
-    queryKey: ['getRole', roleId],
+    queryKey: ["getRole", roleId],
     queryFn: () => tuanchat.roleController.getRole(roleId),
     staleTime: 600000, // 10分钟缓存
     enabled: roleId > 0,
@@ -74,15 +41,14 @@ export function useUpdateRoleMutation(onSuccess?: () => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (requestBody: UserRole) => tuanchat.roleController.updateRole(requestBody),
-    mutationKey: ['updateRole'],
+    mutationKey: ["updateRole"],
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['getRole', variables.roleId] });
-      queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
+      queryClient.invalidateQueries({ queryKey: ["getRole", variables.roleId] });
+      queryClient.invalidateQueries({ queryKey: ["getUserRoles"] });
       onSuccess?.();
-    }
+    },
   });
 }
-
 
 /**
  * 删除角色（单个角色）
@@ -92,11 +58,11 @@ export function useDeleteRoleMutation(roleId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => tuanchat.roleController.deleteRole2([roleId]),
-    mutationKey: ['deleteRole', roleId],
+    mutationKey: ["deleteRole", roleId],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['getRole', roleId] });
-      queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["getRole", roleId] });
+      queryClient.invalidateQueries({ queryKey: ["getUserRoles"] });
+    },
   });
 }
 
@@ -108,10 +74,10 @@ export function useDeleteRoleMutation(roleId: number) {
 export function useRegisterMutation(onSuccess?: () => void) {
   return useMutation({
     mutationFn: (req: UserRegisterRequest) => tuanchat.userController.register(req),
-    mutationKey: ['register'],
+    mutationKey: ["register"],
     onSuccess: () => {
       onSuccess?.();
-    }
+    },
   });
 }
 
@@ -122,10 +88,10 @@ export function useRegisterMutation(onSuccess?: () => void) {
 export function useLoginMutation(onSuccess?: () => void) {
   return useMutation({
     mutationFn: (req: UserLoginRequest) => tuanchat.userController.login(req),
-    mutationKey: ['login'],
+    mutationKey: ["login"],
     onSuccess: () => {
       onSuccess?.();
-    }
+    },
   });
 }
 
@@ -135,10 +101,10 @@ export function useLoginMutation(onSuccess?: () => void) {
  */
 export function useGetUserInfoQuery(userId: number) {
   return useQuery({
-    queryKey: ['getUserInfo', userId],
+    queryKey: ["getUserInfo", userId],
     queryFn: () => tuanchat.userController.getUserInfo(userId),
     staleTime: 600000, // 10分钟缓存
-    enabled: userId > 0
+    enabled: userId > 0,
   });
 }
 
@@ -149,13 +115,12 @@ export function useUpdateUserInfoMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (req: UserInfoResponse) => tuanchat.userController.updateUserInfo(req),
-    mutationKey: ['updateUserInfo'],
+    mutationKey: ["updateUserInfo"],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['getUserInfo'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["getUserInfo"] });
+    },
   });
 }
-
 
 // ==================== 头像系统 ====================
 /**
@@ -164,9 +129,9 @@ export function useUpdateUserInfoMutation() {
  */
 export function useGetRoleAvatarsQuery(roleId: number) {
   return useQuery({
-    queryKey: ['getRoleAvatars', roleId],
+    queryKey: ["getRoleAvatars", roleId],
     queryFn: () => tuanchat.avatarController.getRoleAvatars(roleId),
-    staleTime: 86400000 // 24小时缓存
+    staleTime: 86400000, // 24小时缓存
   });
 }
 
@@ -176,10 +141,10 @@ export function useGetRoleAvatarsQuery(roleId: number) {
  */
 export function useGetRoleAvatarQuery(avatarId: number) {
   return useQuery({
-    queryKey: ['getRoleAvatar', avatarId],
+    queryKey: ["getRoleAvatar", avatarId],
     queryFn: () => tuanchat.avatarController.getRoleAvatar(avatarId),
     staleTime: 86400000, // 24小时缓存
-    enabled: Boolean(avatarId) // 仅在avatarId存在时启用查询
+    enabled: Boolean(avatarId), // 仅在avatarId存在时启用查询
   });
 }
 
@@ -191,10 +156,10 @@ export function useUpdateRoleAvatarMutation(roleId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (req: RoleAvatar) => tuanchat.avatarController.updateRoleAvatar(req),
-    mutationKey: ['updateRoleAvatar'],
+    mutationKey: ["updateRoleAvatar"],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
+    },
   });
 }
 
@@ -206,10 +171,10 @@ export function useSetRoleAvatarMutation(roleId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (req: RoleAvatarCreateRequest) => tuanchat.avatarController.setRoleAvatar(req),
-    mutationKey: ['setRoleAvatar'],
+    mutationKey: ["setRoleAvatar"],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
+    },
   });
 }
 
@@ -221,10 +186,10 @@ export function useDeleteRoleAvatarMutation(roleId: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (avatarId: number) => tuanchat.avatarController.deleteRoleAvatar(avatarId),
-    mutationKey: ['deleteRoleAvatar'],
+    mutationKey: ["deleteRoleAvatar"],
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', roleId] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
+    },
   });
 }
 
@@ -235,12 +200,11 @@ export function useDeleteRoleAvatarMutation(roleId: number) {
  */
 export function useGetUserRolesQuery(userId: number) {
   return useQuery({
-    queryKey: ['getUserRoles', userId],
+    queryKey: ["getUserRoles", userId],
     queryFn: () => tuanchat.roleController.getUserRoles(userId),
-    staleTime: 600000 // 10分钟缓存
+    staleTime: 600000, // 10分钟缓存
   });
 }
-
 
 // 头像查询
 export function useRoleAvaters(roleId: number) {
@@ -273,7 +237,6 @@ export function useRoleAvaters(roleId: number) {
   return roleAvatarQuery;
 }
 
-
 // 获取能力
 export function useRoleAbility(roleId: number) {
   const abilityQuery = useQuery({
@@ -285,7 +248,6 @@ export function useRoleAbility(roleId: number) {
           res.success
           && res.data !== null
         ) {
-          console.log(res.data);
           return res;
         }
         else {
@@ -314,22 +276,19 @@ export function useRoleAvatarQuery(avatarId: number) {
         if (
           res.success
           && res.data !== null
-        )
+        ) {
           return res.data?.avatarUrl;
+        }
       }
       catch (error) {
         console.error(`${avatarId} 的头像时出错`, error);
       }
-    }
-  })
+    },
+  });
   return avatarQuery.data;
 }
 
-
-//Warpper界面useEffect的逻辑,去掉了useEffect
-import type { Role } from '@/components/newCharacter/types';
-import { useCallback, useState } from 'react';
-export const useRolesInitialization = (roleQuery: any) => {
+export function useRolesInitialization(roleQuery: any) {
   const queryClient = useQueryClient();
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -355,8 +314,8 @@ export const useRolesInitialization = (roleQuery: any) => {
           try {
             const res = await tuanchat.avatarController.getRoleAvatar(Roles.avatarId);
             if (
-              res.success &&
-              res.data
+              res.success
+              && res.data
             ) {
               const avatarUrl = res.data.avatarUrl;
               queryClient.setQueryData(["roleAvatar", Roles.id], avatarUrl);
@@ -365,25 +324,26 @@ export const useRolesInitialization = (roleQuery: any) => {
                   char.id === Roles.id ? { ...char, avatar: avatarUrl } : char,
                 ),
               );
-            } else {
+            }
+            else {
               console.warn(`角色 ${Roles.id} 的头像数据无效或为空`);
             }
-          } catch (error) {
+          }
+          catch (error) {
             console.error(`加载角色 ${Roles.id} 的头像时出错`, error);
           }
         }
       }
-    } finally {
+    }
+    finally {
       setIsLoading(false);
     }
   }, [roleQuery?.data, queryClient]);
 
   return { roles, initializeRoles, setRoles, isLoading };
-};
+}
 
-
-
-//删除角色
+// 删除角色
 export function useDeleteRole() {
   return useMutation({
     mutationKey: ["deleteRole"],

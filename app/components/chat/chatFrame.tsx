@@ -43,7 +43,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const websocketUtils = useGlobalContext().websocketUtils;
   const getNewMessagesByRoomId = websocketUtils.getTempMessagesByRoomId;
   const send = websocketUtils.send;
-  const hasNewMessages = websocketUtils.messagesNumber[roomId];
+  // const hasNewMessages = websocketUtils.messagesNumber[roomId];
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
 
   // Mutations
@@ -73,13 +73,14 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     initialPageParam: { roomId, pageSize: PAGE_SIZE, cursor: null } as unknown as ChatMessagePageRequest,
     refetchOnWindowFocus: false,
   });
-  const [receivedMessages, setReceivedMessages] = useState<ChatMessageResponse[]>([]);
-  useEffect(() => {
-    const newMessages = getNewMessagesByRoomId(roomId, true);
-    if (newMessages.length > 0) {
-      setReceivedMessages([...receivedMessages, ...newMessages]);
-    }
-  }, [hasNewMessages]);
+  // const [receivedMessages, setReceivedMessages] = useState<ChatMessageResponse[]>([]);
+  // useEffect(() => {
+  //   const newMessages = getNewMessagesByRoomId(roomId, true);
+  //   if (newMessages.length > 0) {
+  //     setReceivedMessages([...receivedMessages, ...newMessages]);
+  //   }
+  // }, [hasNewMessages]);
+  const receivedMessages = getNewMessagesByRoomId(roomId, true);
   // 合并所有分页消息 同时更新重复的消息
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     const historyMessages = (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
@@ -98,24 +99,19 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
    * 新消息提醒
    */
   const unreadMessageNumber = websocketUtils.unreadMessagesNumber[roomId] ?? 0;
-  const updateUnreadMessageNumber = useCallback((number: number) => {
-    websocketUtils.setUnreadMessagesNumber(prev => ({
-      ...prev,
-      [roomId]: number,
-    }));
-  }, [websocketUtils]);
+  const updateUnreadMessageNumber = websocketUtils.updateUnreadMessagesNumber;
   /**
    * scroll相关
    */
   const scrollToBottom = () => {
     chatFrameRef.current.scrollTo({ top: 0, behavior: "instant" });
-    updateUnreadMessageNumber(0);
+    updateUnreadMessageNumber(roomId, 0);
   };
   // const isNearBottom = chatFrameRef.current.scrollTop < -80;
   // 若滚动到底部，设置未读消息为0
   useEffect(() => {
     if (bottomMessageEntry?.isIntersecting) {
-      updateUnreadMessageNumber(0);
+      updateUnreadMessageNumber(roomId, 0);
     }
   }, [bottomMessageEntry?.isIntersecting]);
   useEffect(() => {

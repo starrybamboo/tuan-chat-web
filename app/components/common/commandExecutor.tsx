@@ -72,6 +72,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     try {
       switch (cmdPart) {
         case "r": return handleRoll(args).result;
+        case "rd": return handleRd(args).result;
         case "set": return handleSet(args);
         case "st": return handleSt(args);
         case "rc": return handleRc(args);
@@ -95,6 +96,10 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     const cmdPart = cmdMatch?.[0] ?? "";
     const args = trimmed.slice(cmdPart.length).trim().split(/\s+/).filter(arg => arg !== "");
     return [cmdPart.toLowerCase(), ...args];
+  }
+
+  function handleRd(args: string[]) {
+    return handleRoll(["d", ...args]);
   }
 
   function parseDices(input: string): Array<{ sign: number; x: number; y: number }> {
