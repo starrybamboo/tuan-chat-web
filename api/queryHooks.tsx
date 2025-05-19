@@ -82,6 +82,30 @@ export function useUpdateRoleMutation(onSuccess?: () => void) {
   });
 }
 
+/**
+ * 创建角色的hook
+ * @returns 创建角色的mutation对象
+ */
+export function useCreateRoleMutation() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationKey: ["createRole"],
+    mutationFn: async () => {
+      const res = await tuanchat.roleController.createRole({});
+      if (res.success) {
+        console.warn("角色创建成功");
+        return res.data;
+      }
+      else {
+        console.error("创建角色失败");
+      }
+    },
+    onError: (error) => {
+      console.error("Mutation failed:", error);
+    },
+  });
+}
 
 /**
  * 删除角色（单个角色）
@@ -95,6 +119,29 @@ export function useDeleteRoleMutation(roleId: number) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['getRole', roleId] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
+    }
+  });
+}
+
+/**
+ * 删除角色的hook
+ * @param onSuccess 删除成功的回调函数
+ * @returns 删除角色的mutation对象
+ */
+export function useDeleteRolesMutation(onSuccess?: () => void) {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationKey: ["deleteRoles"],
+    mutationFn: async (roleIds: number[]) => {
+      const res = await tuanchat.roleController.deleteRole2(roleIds);
+      if (!res.success) {
+        throw new Error("删除角色失败");
+      }
+      return res;
+    },
+    onError: (error) => {
+      console.error("删除角色失败:", error);
     }
   });
 }

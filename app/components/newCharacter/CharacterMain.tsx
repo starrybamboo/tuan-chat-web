@@ -1,7 +1,5 @@
 import type { Role } from "./types";
-import { useMutation } from "@tanstack/react-query";
-import { tuanchat } from "api/instance";
-import { useGetUserRolesQuery, useRolesInitialization } from "api/queryHooks";
+import { useCreateRoleMutation, useDeleteRolesMutation, useGetUserRolesQuery, useRolesInitialization } from "api/queryHooks";
 import { useEffect, useState } from "react";
 import { PopWindow } from "../common/popWindow";
 import { useGlobalContext } from "../globalContextProvider";
@@ -17,51 +15,20 @@ export default function CharacterMain() {
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // 创建角色接口
+  const { mutateAsync: createRole } = useCreateRoleMutation();
+  // 删除角色接口
+  const { mutate: deleteRole } = useDeleteRolesMutation();
+
   // 初始化角色数据
   useEffect(() => {
     initializeRoles();
   }, [initializeRoles]);
 
-  // 删除角色接口
-  const { mutate: deleteRole } = useMutation({
-    mutationKey: ["deleteRole"],
-    mutationFn: async (roleId: number[]) => {
-      const res = await tuanchat.roleController.deleteRole2(roleId);
-      if (res.success) {
-        console.warn("角色删除成功");
-        return res;
-      }
-      else {
-        console.error("删除角色失败");
-        return undefined;
-      }
-    },
-    onError: (error) => {
-      console.error("Mutation failed:", error);
-    },
-  });
-
   // 删除弹窗状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
-
-  // 创建角色接口
-  const { mutateAsync: createRole } = useMutation({
-    mutationKey: ["createRole"],
-    mutationFn: async () => {
-      const res = await tuanchat.roleController.createRole({});
-      if (res.success) {
-        console.warn("角色创建成功");
-        return res.data;
-      }
-      else {
-        console.error("创建角色失败");
-      }
-    },
-    onError: (error) => {
-      console.error("Mutation failed:", error);
-    },
-  });
 
   // 创建新角色
   const handleCreate = async () => {
