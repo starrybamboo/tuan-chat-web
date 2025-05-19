@@ -47,7 +47,7 @@ export default function CharacterAvatar({ role, onchange }: {
   });
 
   // 使用新的 hook
-  const { mutate } = useUploadAvatarMutation(role.id);
+  const { mutate } = useUploadAvatarMutation();
 
   // 迁移
   // post删除头像请求
@@ -188,7 +188,7 @@ export default function CharacterAvatar({ role, onchange }: {
                     setCopperedDownloadUrl={setCopperedUrl}
                     fileName={uniqueFileName}
                     mutate={(data) => {
-                      mutate(data);
+                      mutate({ ...data, roleId: role.id });
                     }}
                   >
                     <button className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group">

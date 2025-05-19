@@ -479,13 +479,12 @@ export const useRolesInitialization = (roleQuery: any) => {
 
 /**
  * 上传头像
- * @param roleId 角色ID
  */
-export function useUploadAvatarMutation(roleId: number) {
+export function useUploadAvatarMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["uploadAvatar"],
-    mutationFn: async ({ avatarUrl, spriteUrl }: { avatarUrl: string; spriteUrl: string }) => {
+    mutationFn: async ({ avatarUrl, spriteUrl, roleId }: { avatarUrl: string; spriteUrl: string; roleId: number }) => {
       if (!avatarUrl || !roleId || !spriteUrl) {
         console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;

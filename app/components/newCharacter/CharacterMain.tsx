@@ -1,5 +1,5 @@
 import type { Role } from "./types";
-import { useCreateRoleMutation, useDeleteRolesMutation, useGetUserRolesQuery, useRolesInitialization } from "api/queryHooks";
+import { useCreateRoleMutation, useDeleteRolesMutation, useGetUserRolesQuery, useRolesInitialization, useUploadAvatarMutation } from "api/queryHooks";
 import { useEffect, useState } from "react";
 import { PopWindow } from "../common/popWindow";
 import { useGlobalContext } from "../globalContextProvider";
@@ -20,6 +20,8 @@ export default function CharacterMain() {
   const { mutateAsync: createRole } = useCreateRoleMutation();
   // 删除角色接口
   const { mutate: deleteRole } = useDeleteRolesMutation();
+  // 上传头像接口
+  const { mutate: uploadAvatar } = useUploadAvatarMutation();
 
   // 初始化角色数据
   useEffect(() => {
@@ -46,7 +48,11 @@ export default function CharacterMain() {
       modelName: "散华",
       speakerName: "鸣潮",
     };
-
+    uploadAvatar({
+      avatarUrl: "/favicon.ico",
+      spriteUrl: "/favicon.ico",
+      roleId: data,
+    });
     setRoles(prev => [...prev, newRole]);
     setSelectedRoleId(newRole.id);
     setIsEditing(true);
@@ -267,7 +273,7 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
 // 子组件：移动端抽屉开关
 function MobileDrawerToggle() {
   return (
-    <div className="lg:hidden fixed p-2 rounded-lg z-1">
+    <div className="lg:hidden fixed p-2 ml-1 mt-2 rounded-lg z-1">
       <label
         htmlFor="character-drawer"
         className="btn btn-square btn-ghost"
