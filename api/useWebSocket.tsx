@@ -39,7 +39,6 @@ export function useWebSocket() {
   const queryClient = useQueryClient();
 
   // 新消息数记录，用于显示红点
-  // const [unreadMessagesNumber, setUnreadMessagesNumber] = useLocalStorage<Record<number, number>>("unreadMessagesNumber",{});
   const [unreadMessagesNumber, setUnreadMessagesNumber] = useState<Record<number, number>>({});
 
   const token = getLocalStorageValue<number>("token", -1);

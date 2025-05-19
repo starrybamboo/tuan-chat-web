@@ -9,6 +9,7 @@ import { SideDrawer, SideDrawerToggle } from "@/components/common/sideDrawer";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ChatBubbleEllipsesOutline, MoreMenu } from "@/icons";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useCreateRoomMutation,
   useCreateSpaceMutation,
@@ -135,12 +136,31 @@ export default function RoomSelect() {
 
   // websocket封装, 用于发送接受消息
   const websocketUtils = useGlobalContext().websocketUtils;
+  const queryClient = useQueryClient();
   useEffect(() => {
     if (!websocketUtils.isConnected) {
       websocketUtils.connect();
+      queryClient.invalidateQueries({ queryKey: ["getMsgPage"] });
     }
   }, [websocketUtils.isConnected]);
+  // 消息提醒相关
   const unreadMessagesNumber = websocketUtils.unreadMessagesNumber;
+  const totalUnreadMessages = useMemo(() => {
+    return Object.values(unreadMessagesNumber).reduce((sum, count) => sum + count, 0);
+  }, [unreadMessagesNumber]);
+  // 在标签页中显示未读消息
+  useEffect(() => {
+    const originalTitle = document.title.replace(/^\d+条新消息-/, ""); // 清除已有前缀
+    if (totalUnreadMessages > 0) {
+      document.title = `${totalUnreadMessages}条新消息-${originalTitle}`;
+    }
+    else {
+      document.title = originalTitle;
+    }
+    return () => {
+      document.title = originalTitle;
+    };
+  }, [totalUnreadMessages]);
 
   // spaceContext
   const spaceContext: SpaceContextType = useMemo((): SpaceContextType => {
