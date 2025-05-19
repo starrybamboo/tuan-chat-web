@@ -83,6 +83,36 @@ export function useUpdateRoleMutation(onSuccess?: () => void) {
 }
 
 /**
+ * 更新角色信息（带本地角色状态）
+ * @param onSave 保存成功的回调函数，接收本地角色状态
+ */
+export function useUpdateRoleWithLocalMutation(onSave: (localRole: any) => void) {
+  return useMutation({
+    mutationKey: ["UpdateRole"],
+    mutationFn: async (data: any) => {
+      if (data.id !== 0) {
+        const updateRes = await tuanchat.roleController.updateRole({
+          roleId: data.id,
+          roleName: data.name,
+          description: data.description,
+          avatarId: data.avatarId,
+        });
+        return updateRes;
+      }
+    },
+    onSuccess: (_, variables) => {
+      onSave(variables);
+    },
+    onError: (error: any) => {
+      console.error("Mutation failed:", error);
+      if (error.response && error.response.data) {
+        console.error("Server response:", error.response.data);
+      }
+    },
+  });
+}
+
+/**
  * 创建角色的hook
  * @returns 创建角色的mutation对象
  */
@@ -143,6 +173,27 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
     onError: (error) => {
       console.error("删除角色失败:", error);
     }
+  });
+}
+
+//删除角色
+export function useDeleteRole() {
+  return useMutation({
+    mutationKey: ["deleteRole"],
+    mutationFn: async (roleId: number[]) => {
+      const res = await tuanchat.roleController.deleteRole2(roleId);
+      if (res.success) {
+        console.warn("角色删除成功");
+        return res;
+      }
+      else {
+        console.error("删除角色失败");
+        return undefined;
+      }
+    },
+    onError: (error) => {
+      console.error("Mutation failed:", error);
+    },
   });
 }
 
@@ -371,7 +422,6 @@ export function useRoleAvatarQuery(avatarId: number) {
   return avatarQuery.data;
 }
 
-
 //Warpper界面useEffect的逻辑,去掉了useEffect
 import type { Role } from '@/components/newCharacter/types';
 import { useCallback, useState } from 'react';
@@ -426,30 +476,6 @@ export const useRolesInitialization = (roleQuery: any) => {
 
   return { roles, initializeRoles, setRoles, isLoading };
 };
-
-
-
-//删除角色
-export function useDeleteRole() {
-  return useMutation({
-    mutationKey: ["deleteRole"],
-    mutationFn: async (roleId: number[]) => {
-      const res = await tuanchat.roleController.deleteRole2(roleId);
-      if (res.success) {
-        console.warn("角色删除成功");
-        return res;
-      }
-      else {
-        console.error("删除角色失败");
-        return undefined;
-      }
-    },
-    onError: (error) => {
-      console.error("Mutation failed:", error);
-    },
-  });
-}
-
 
 /**
  * 上传头像
