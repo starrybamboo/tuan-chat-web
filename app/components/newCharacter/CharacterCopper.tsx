@@ -170,6 +170,22 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
         // 更新当前图片文件引用
         imgFile.current = firstStepCroppedImage;
         setCurrentStep(2);
+        // 更新裁剪框比例为1:1
+        if (imgRef.current) {
+          const { width, height } = imgRef.current;
+          const newCrop = centerAspectCrop(width, height, 1);
+          setCrop(newCrop);
+          // 设置新的completedCrop，保持预览图显示并居中
+          const cropWidth = (width * newCrop.width) / 100;
+          const cropHeight = (height * newCrop.height) / 100;
+          setCompletedCrop({
+            unit: "px",
+            x: (width - cropWidth) / 2,
+            y: (height - cropHeight) / 2,
+            width: cropWidth,
+            height: cropHeight,
+          });
+        }
       }
       else if (currentStep === 2) {
         // 第二步：上传原始图片和裁剪后的头像
@@ -276,11 +292,31 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
         {children}
       </div>
       {/* 裁剪弹窗 */}
-      <PopWindow isOpen={isOpen} onClose={() => { setIsOpen(false); }}>
-        <div className="flex flex-row items-center overflow-auto">
+      <PopWindow
+        isOpen={isOpen}
+        onClose={() => {
+          setCurrentStep(1);
+          setImgSrc("");
+          setCrop(undefined);
+          setCompletedCrop(undefined);
+          setisSubmiting(false);
+          if (previewCanvasRef.current) {
+            const ctx = previewCanvasRef.current.getContext("2d");
+            ctx?.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
+          }
+          if (imgRef.current) {
+            imgRef.current.src = "";
+          }
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+          setIsOpen(false);
+        }}
+      >
+        <div className="flex flex-col md:flex-row gap-8 justify-center">
           {/* 原始图片裁剪区域 */}
           {!!imgSrc && (
-            <div className="overflow-auto flex">
+            <div className="w-full md:w-1/2 rounded-lg order-2 md:order-1 flex items-center justify-center">
               <ReactCrop
                 crop={crop}
                 onChange={(_, percentCrop) => setCrop(percentCrop)}
@@ -296,34 +332,34 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                   onLoad={onImageLoad}
                   // className="max-w-[50vw] max-h-[70vh]"
                   // 不能用className设置, 否则会出问题, 见鬼!!!
-                  style={{
-                    maxWidth: "50vw",
-                    maxHeight: "70vh",
-                  }}
+                  // style={{
+                  //   maxWidth: "50vw",
+                  //   maxHeight: "70vh",
+                  // }}
+                  className="max-w-full w-full object-contain"
                 />
               </ReactCrop>
             </div>
           )}
-          <div className="divider lg:divider-horizontal"></div>
+          {/* <div className="divider lg:divider-horizontal"></div> */}
           {/* 裁剪预览和操作按钮 */}
           {!!completedCrop && (
-            <div className="flex flex-col gap-3">
-              <div className="w-96 h-96">
-                <canvas
-                  ref={previewCanvasRef}
-                  style={{
-                    objectFit: "contain",
-                  }}
-                  className="w-full h-full"
-                />
-              </div>
+            <div className="w-full md:w-1/2 p-3 order-1 md:order-2 gap-4">
+              <canvas
+                ref={previewCanvasRef}
+                style={{
+                  objectFit: "contain",
+                }}
+                className=" w-full h-[90%]"
+              />
+
               {
                 isSubmiting
                   ? (
                       <button className="btn loading" disabled={true} type="button"></button>
                     )
                   : (
-                      <div className="flex flex-row justify-center gap-4">
+                      <div className="flex flex-row justify-center gap-4 mt-2">
                         <button className="btn w-max btn-info" onClick={handleSubmit} type="button">完成</button>
                         <button className="btn w-max btn-info" onClick={handleDownload} type="button">下载裁切后的图像</button>
                       </div>
@@ -333,7 +369,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
             </div>
           )}
         </div>
-        <ul className="steps">
+        <ul className="steps mt-2">
           <li className={`step ${currentStep >= 1 ? "step-primary" : ""}`}>上传立绘</li>
           <li className={`step ${currentStep >= 2 ? "step-primary" : ""}`}>上传头像</li>
         </ul>
