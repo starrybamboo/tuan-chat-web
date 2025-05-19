@@ -88,7 +88,18 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
     const aspect = currentStep === 1 ? 2 / 3 : 1;
-    setCrop(centerAspectCrop(width, height, aspect));
+    const newCrop = centerAspectCrop(width, height, aspect);
+    setCrop(newCrop);
+    // 在图片加载完成时设置completedCrop
+    const cropWidth = (width * newCrop.width) / 100;
+    const cropHeight = (height * newCrop.height) / 100;
+    setCompletedCrop({
+      unit: "px",
+      x: (width - cropWidth) / 2,
+      y: (height - cropHeight) / 2,
+      width: cropWidth,
+      height: cropHeight,
+    });
   }
 
   // 使用防抖效果更新预览画布
@@ -171,21 +182,21 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
         imgFile.current = firstStepCroppedImage;
         setCurrentStep(2);
         // 更新裁剪框比例为1:1
-        if (imgRef.current) {
-          const { width, height } = imgRef.current;
-          const newCrop = centerAspectCrop(width, height, 1);
-          setCrop(newCrop);
-          // 设置新的completedCrop，保持预览图显示并居中
-          const cropWidth = (width * newCrop.width) / 100;
-          const cropHeight = (height * newCrop.height) / 100;
-          setCompletedCrop({
-            unit: "px",
-            x: (width - cropWidth) / 2,
-            y: (height - cropHeight) / 2,
-            width: cropWidth,
-            height: cropHeight,
-          });
-        }
+        // if (imgRef.current) {
+        //   const { width, height } = imgRef.current;
+        //   const newCrop = centerAspectCrop(width, height, 1);
+        //   setCrop(newCrop);
+        //   // 设置新的completedCrop，保持预览图显示并居中
+        //   const cropWidth = (width * newCrop.width) / 100;
+        //   const cropHeight = (height * newCrop.height) / 100;
+        //   setCompletedCrop({
+        //     unit: "px",
+        //     x: (width - cropWidth) / 2,
+        //     y: (height - cropHeight) / 2,
+        //     width: cropWidth,
+        //     height: cropHeight,
+        //   });
+        // }
       }
       else if (currentStep === 2) {
         // 第二步：上传原始图片和裁剪后的头像
