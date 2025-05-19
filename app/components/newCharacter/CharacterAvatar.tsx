@@ -141,7 +141,7 @@ export default function CharacterAvatar({ role, onchange }: {
                 <img
                   src={previewSrc || "/favicon.ico"}
                   alt="预览"
-                  className="max-w-full h-[90%] w-full object-contain p-2"
+                  className="w-full object-contain"
                 />
               </div>
             </div>

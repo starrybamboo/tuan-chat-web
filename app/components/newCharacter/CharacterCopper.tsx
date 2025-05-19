@@ -181,22 +181,6 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
         // 更新当前图片文件引用
         imgFile.current = firstStepCroppedImage;
         setCurrentStep(2);
-        // 更新裁剪框比例为1:1
-        // if (imgRef.current) {
-        //   const { width, height } = imgRef.current;
-        //   const newCrop = centerAspectCrop(width, height, 1);
-        //   setCrop(newCrop);
-        //   // 设置新的completedCrop，保持预览图显示并居中
-        //   const cropWidth = (width * newCrop.width) / 100;
-        //   const cropHeight = (height * newCrop.height) / 100;
-        //   setCompletedCrop({
-        //     unit: "px",
-        //     x: (width - cropWidth) / 2,
-        //     y: (height - cropHeight) / 2,
-        //     width: cropWidth,
-        //     height: cropHeight,
-        //   });
-        // }
       }
       else if (currentStep === 2) {
         // 第二步：上传原始图片和裁剪后的头像
@@ -327,12 +311,12 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
         <div className="flex flex-col md:flex-row gap-8 justify-center">
           {/* 原始图片裁剪区域 */}
           {!!imgSrc && (
-            <div className="w-full md:w-1/2 rounded-lg order-2 md:order-1 flex items-center justify-center">
+            <div className="w-full md:w-1/2 rounded-lg flex items-center justify-center">
               <ReactCrop
                 crop={crop}
                 onChange={(_, percentCrop) => setCrop(percentCrop)}
                 onComplete={c => setCompletedCrop(c)}
-                aspect={currentStep === 1 ? 2 / 3 : 1}
+                aspect={currentStep === 2 ? 1 : undefined}// 第一步不限制比例，第二步固定1:1
                 minHeight={10}
               >
                 <img
@@ -352,10 +336,9 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
               </ReactCrop>
             </div>
           )}
-          {/* <div className="divider lg:divider-horizontal"></div> */}
           {/* 裁剪预览和操作按钮 */}
           {!!completedCrop && (
-            <div className="w-full md:w-1/2 p-3 order-1 md:order-2 gap-4">
+            <div className="w-full md:w-1/2 p-3 gap-4">
               <canvas
                 ref={previewCanvasRef}
                 style={{
