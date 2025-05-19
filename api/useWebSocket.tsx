@@ -95,6 +95,11 @@ export function useWebSocket() {
             case 14:{
               queryClient.invalidateQueries({ queryKey: ["getUserSpaces"] });
               queryClient.invalidateQueries({ queryKey: ["getUserRooms"] });
+              break;
+            }
+            case 15:{
+              queryClient.invalidateQueries({queryKey: ['getRoomExtra'],});
+              queryClient.invalidateQueries({queryKey: ['getRoomInitiativeList'],});
             }
           }
         }
