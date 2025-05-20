@@ -12,7 +12,7 @@ export function PopWindow({ isOpen, children, onClose }: {
   return (
     <Mounter targetId="modal-root">
       <div className={`modal ${isOpen ? "modal-open" : ""}`}>
-        <div className="modal-box relative bg-base-100 dark:bg-base-300 w-max max-w-none h-max max-h-none">
+        <div className="modal-box relative bg-base-100 dark:bg-base-300 w-auto max-w-[90vw] md:max-w-[80vw] lg:max-w-[55vw] h-auto max-h-[90vh] overflow-auto">
           {/* 关闭按钮 */}
           <button
             type="button"
@@ -22,7 +22,7 @@ export function PopWindow({ isOpen, children, onClose }: {
             ✕
           </button>
           {/* 卡片内容 */}
-          <div className="card-body px-0 w-max">
+          <div className="card-body p-4 w-full">
             {children}
           </div>
         </div>

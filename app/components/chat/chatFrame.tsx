@@ -100,6 +100,9 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
    */
   const unreadMessageNumber = websocketUtils.unreadMessagesNumber[roomId] ?? 0;
   const updateUnreadMessagesNumber = websocketUtils.updateUnreadMessagesNumber;
+  // useEffect(() => {
+  //   sendNotificationWithGrant();
+  // }, [historyMessages]);
   /**
    * scroll相关
    */
@@ -297,8 +300,11 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     if (isSelecting && selectedMessageIds.size > 0) {
       handleMoveMessages(adjustedIndex, Array.from(selectedMessageIds));
     }
+    // else {
+    //   handleMoveMessages();
+    // }
     else {
-      // 判断是否移动到原来的位置
+      // 单条消息移动，额外判断是否移动到原来的位置
       const beforeMessage = historyMessages[adjustedIndex]?.message;
       const afterMessage = historyMessages[adjustedIndex - 1]?.message;
       const beforeMessageId = beforeMessage?.messageID ?? null;

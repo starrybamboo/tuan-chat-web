@@ -339,13 +339,40 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
           {/* 裁剪预览和操作按钮 */}
           {!!completedCrop && (
             <div className="w-full md:w-1/2 p-3 gap-4">
-              <canvas
-                ref={previewCanvasRef}
-                style={{
-                  objectFit: "contain",
-                }}
-                className=" w-full h-[90%]"
-              />
+              {
+                currentStep !== 1
+                  ? (
+                      <canvas
+                        ref={previewCanvasRef}
+                        style={{ objectFit: "contain" }}
+                        className=" w-full h-[90%]"
+                      />
+                    )
+                  : (
+                      <div className="flex flex-col">
+                        <span className="text-center font-bold">webgal渲染结果预览</span>
+                        <div className="relative w-full aspect-video ">
+                          {/* 裁剪后的图像 - 左侧显示 */}
+                          <canvas
+                            ref={previewCanvasRef}
+                            className="absolute left-0 h-full object-contain"
+                            style={{ objectPosition: "left center" }}
+                          />
+                          {/* 底部1/3的黑色半透明遮罩 */}
+                          <div className="absolute bottom-0 w-full h-[30%] bg-black/50">
+                            <div className="absolute top-0 left-[6%] text-white">
+                              <p className="text-white leading-snug">
+                                <span className="block text-xs font-medium">角色名</span>
+                                <span className="block text-xs mt-1">对话内容</span>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                    )
+
+              }
 
               {
                 isSubmiting
@@ -355,7 +382,9 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                   : (
                       <div className="flex flex-row justify-center gap-4 mt-2">
                         <button className="btn w-max btn-info" onClick={handleSubmit} type="button">完成</button>
-                        <button className="btn w-max btn-info" onClick={handleDownload} type="button">下载裁切后的图像</button>
+                        <button className="btn w-max btn-info" onClick={handleDownload} type="button">
+                          下载裁切后的图像
+                        </button>
                       </div>
                     )
               }
