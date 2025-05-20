@@ -210,7 +210,6 @@ export default function CharacterAvatar({ role, onchange }: {
                   </CharacterCopper>
                 </li>
               </div>
-
             </div>
 
             {/* 删除确认弹窗 */}
