@@ -9,7 +9,6 @@ import { SideDrawer, SideDrawerToggle } from "@/components/common/sideDrawer";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ChatBubbleEllipsesOutline, MoreMenu } from "@/icons";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   useCreateRoomMutation,
   useCreateSpaceMutation,
@@ -136,13 +135,6 @@ export default function RoomSelect() {
 
   // websocket封装, 用于发送接受消息
   const websocketUtils = useGlobalContext().websocketUtils;
-  const queryClient = useQueryClient();
-  useEffect(() => {
-    if (!websocketUtils.isConnected) {
-      websocketUtils.connect();
-      queryClient.invalidateQueries({ queryKey: ["getMsgPage"] });
-    }
-  }, [websocketUtils.isConnected]);
   // 消息提醒相关
   const unreadMessagesNumber = websocketUtils.unreadMessagesNumber;
   const totalUnreadMessages = useMemo(() => {

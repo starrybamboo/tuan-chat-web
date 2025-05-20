@@ -3,7 +3,7 @@ import type { ChatMessageResponse } from "./models/ChatMessageResponse";
 import { getLocalStorageValue } from "@/components/common/customHooks/useLocalStorage";
 import { formatLocalDateTime } from "@/utils/dataUtil";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useRef, useState } from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import { useImmer } from "use-immer";
 
 // type WsMessageType =
@@ -20,7 +20,7 @@ export interface WebsocketUtils {
   connect: () => void;
   send: (request: ChatMessageRequest) => void;
   getTempMessagesByRoomId: (roomId: number, cleanTemp: boolean) => ChatMessageResponse[];
-  isConnected: boolean;
+  isConnected: () => boolean;
   messagesNumber: Record<number, number>; // roomId to messagesNumber,统计到目前为止接受了多少条新消息,用于通知下游组件接受到了新消息
   unreadMessagesNumber: Record<number, number>; // 存储未读消息数
   updateUnreadMessagesNumber: (roomId: number, newNumber: number,) => void;
@@ -31,7 +31,8 @@ const WS_URL = import.meta.env.VITE_API_WS_URL;
 export function useWebSocket() {
   // let token = "-1"
   const wsRef = useRef<WebSocket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const isConnected = () => wsRef.current?.readyState === WebSocket.OPEN;
+
   const heartbeatTimer = useRef<NodeJS.Timeout>(setTimeout(() => {}));
   // 接受消息的存储
   const [tempMessages, updateTempMessages] = useImmer<Record<number, ChatMessageResponse[]>>({});
@@ -43,33 +44,38 @@ export function useWebSocket() {
 
   const token = getLocalStorageValue<number>("token", -1);
   // 配置参数
-  const MAX_RECONNECT_ATTEMPTS = 12;
   const HEARTBEAT_INTERVAL = 25000;
-  const RECONNECT_DELAY_BASE = 10;
 
-  // 核心连接逻辑
-  const connect = useCallback(() => {
-    if (wsRef.current || !WS_URL)
-      return;
-
+  if (typeof window !== "undefined"){
     window.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible" && !isConnected) {
+      if (document.visibilityState === "visible" &&  wsRef.current?.readyState !== WebSocket.OPEN) {
         connect();
       }
     });
+  }
 
+  useEffect(() => {
+    connect();
+  }, []);
+
+  // 核心连接逻辑
+  const connect = useCallback(() => {
+    if (isConnected()){
+      return;
+    }
+    // 连接前，先重置消息
+    queryClient.resetQueries({ queryKey: ["getMsgPage"] });
     try {
       wsRef.current = new WebSocket(`${WS_URL}?token=${token}`);
       wsRef.current.onopen = () => {
         console.log("WebSocket connected");
-        setIsConnected(true);
         startHeartbeat();
       };
 
       wsRef.current.onclose = (event) => {
         console.log(`Close code: ${event.code}, Reason: ${event.reason}`);
-        setIsConnected(false);
         // handleReconnect(MAX_RECONNECT_ATTEMPTS)
+        connect();
       };
 
       wsRef.current.onmessage = (event) => {
@@ -114,7 +120,6 @@ export function useWebSocket() {
     }
     catch (error) {
       console.error("Connection failed:", error);
-      handleReconnect(MAX_RECONNECT_ATTEMPTS);
     }
   }, []);
 
@@ -160,19 +165,6 @@ export function useWebSocket() {
     }
   };
 
-  // 重连机制
-  const handleReconnect = useCallback((remainAttempts: number) => {
-    if (remainAttempts === 0 || isConnected)
-      return;
-    connect();
-    const delay = Math.min(
-      RECONNECT_DELAY_BASE * 2 ** (MAX_RECONNECT_ATTEMPTS - remainAttempts),
-      30000,
-    );
-    console.log(`Reconnecting in ${delay}ms...`);
-    setTimeout(() => handleReconnect(remainAttempts - 1), delay);
-  }, [connect]);
-
   // 心跳机制
   const startHeartbeat = useCallback(() => {
     stopHeartbeat();
@@ -189,11 +181,7 @@ export function useWebSocket() {
 
   async function send(request: ChatMessageRequest) {
     if (!isConnected) {
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      handleReconnect(MAX_RECONNECT_ATTEMPTS);
+      connect()
     }
     for (let i = 0; i < 1000; i++) {
       if (wsRef.current?.readyState === WebSocket.OPEN)
