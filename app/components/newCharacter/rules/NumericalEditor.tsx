@@ -264,7 +264,7 @@ export default function NumericalEditor({
             </div>
 
             {/* 网格布局 */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
               {entries.map(([key]) => {
                 const calculatedValue = calculatedConstraints[totalKey][key];
                 if (totalKey === "0") {

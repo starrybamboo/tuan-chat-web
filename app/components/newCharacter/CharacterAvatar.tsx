@@ -1,6 +1,7 @@
 /* eslint-disable react-dom/no-missing-button-type */
 import type { RoleAvatar } from "api";
 import type { Role } from "./types";
+import { useUploadAvatarMutation } from "@/../api/queryHooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useState } from "react";
@@ -44,62 +45,9 @@ export default function CharacterAvatar({ role, onchange }: {
       return null;
     },
   });
-  // 上传头像到服务器
-  const { mutate } = useMutation({
-    mutationKey: ["uploadAvatar"],
-    mutationFn: async ({ avatarUrl, spriteUrl }: { avatarUrl: string; spriteUrl: string }) => {
-      if (!avatarUrl || !role.id || !spriteUrl) {
-        console.error("参数错误：avatarUrl 或 roleId 为空");
-        return undefined;
-      }
 
-      try {
-        const res = await tuanchat.avatarController.setRoleAvatar({
-          roleId: role.id,
-        });
-
-        if (!res.success || !res.data) {
-          console.error("头像创建失败", res);
-          return undefined;
-        }
-
-        const avatarId = res.data;
-
-        if (avatarId) {
-          const uploadRes = await tuanchat.avatarController.updateRoleAvatar({
-            roleId: role.id,
-            avatarId,
-            avatarUrl,
-            spriteUrl,
-          });
-
-          if (!uploadRes.success) {
-            console.error("头像更新失败", uploadRes);
-            return undefined;
-          }
-
-          console.warn("头像上传成功");
-          await queryClient.invalidateQueries({ queryKey: ["roleAvatar", role.id] });
-          setCopperedUrl(avatarUrl);
-          setPreviewSrc(spriteUrl);
-          setAvatarId(avatarId);
-          // onchange(avatarUrl, avatarId);
-          return uploadRes;
-        }
-        else {
-          console.error("头像ID无效");
-          return undefined;
-        }
-      }
-      catch (error) {
-        console.error("头像上传请求失败", error);
-        throw error; // 将错误抛给 onError 处理
-      }
-    },
-    onError: (error) => {
-      console.error("Mutation failed:", error.message || error);
-    },
-  });
+  // 使用新的 hook
+  const { mutate } = useUploadAvatarMutation();
 
   // 迁移
   // post删除头像请求
@@ -170,8 +118,8 @@ export default function CharacterAvatar({ role, onchange }: {
   return (
     <div className="form-control w-full max-w-xs">
       <div className="flex flex-col items-center">
-        <div className="avatar cursor-pointer group" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
-          <div className="rounded-xl ring-primary ring-offset-base-100 w-48 ring ring-offset-2 relative overflow-hidden">
+        <div className="avatar cursor-pointer group flex items-center justify-center w-full sm:w-40 md:w-48" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
+          <div className="rounded-xl ring-primary ring-offset-base-100 w-36 sm:w-40 md:w-48 ring ring-offset-2 relative overflow-hidden">
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
             <img
               src={role.avatar || "./favicon.ico"}
@@ -184,28 +132,28 @@ export default function CharacterAvatar({ role, onchange }: {
       </div>
 
       <PopWindow isOpen={changeAvatarConfirmOpen} onClose={handleCancelChangeAvatar}>
-        <div className="h-[80vh] p-4 w-[90vw] max-w-[1200px] block relative">
-          <div className="w-full h-full flex gap-4">
+        <div className="h-full w-full p-4 flex flex-col">
+          <div className="flex flex-col md:flex-row gap-4 min-h-0 justify-center">
             {/* 大图预览 */}
-            <div className="flex-1 bg-base-200 p-3 rounded-lg">
+            <div className="w-full md:w-1/2 bg-base-200 p-3 rounded-lg order-2 md:order-1">
               <h2 className="text-xl font-bold mb-4">角色立绘</h2>
-              <div className="h-full bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
+              <div className="h-[90%] bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
                 <img
                   src={previewSrc || "/favicon.ico"}
                   alt="预览"
-                  className="max-w-full h-full w-full object-contain p-2"
+                  className="w-full object-contain"
                 />
               </div>
             </div>
 
-            <div className="flex-1 p-3">
+            <div className="w-full md:w-1/2 p-3 order-1 md:order-2">
               {/* 头像列表区域 */}
               <h2 className="text-xl font-bold mb-4">选择头像：</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
                 {roleAvatars.map((item, index) => (
                   <li
                     key={item.avatarUrl}
-                    className="relative w-full max-w-[128px] h-36 flex flex-col items-center rounded-lg transition-colors"
+                    className="relative w-full max-w-[128px] flex flex-col items-center rounded-lg transition-colors"
                     onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
                   >
                     {/* 头像卡片容器 */}
@@ -240,7 +188,7 @@ export default function CharacterAvatar({ role, onchange }: {
                     setCopperedDownloadUrl={setCopperedUrl}
                     fileName={uniqueFileName}
                     mutate={(data) => {
-                      mutate(data);
+                      mutate({ ...data, roleId: role.id });
                     }}
                   >
                     <button className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group">
@@ -262,6 +210,7 @@ export default function CharacterAvatar({ role, onchange }: {
                   </CharacterCopper>
                 </li>
               </div>
+
             </div>
 
             {/* 删除确认弹窗 */}
@@ -283,19 +232,20 @@ export default function CharacterAvatar({ role, onchange }: {
               </div>
             </PopWindow>
           </div>
+          <div className="card-actions justify-end">
+            <button
+              type="submit"
+              onClick={() => {
+                setChangeAvatarConfirmOpen(false);
+                onchange(copperedUrl, avatarId);
+              }}
+              className="btn btn-primary mt-2"
+            >
+              确认更改头像
+            </button>
+          </div>
         </div>
-        <div className="card-actions justify-end">
-          <button
-            type="submit"
-            onClick={() => {
-              setChangeAvatarConfirmOpen(false);
-              onchange(copperedUrl, avatarId);
-            }}
-            className="btn btn-primary"
-          >
-            确认更改头像
-          </button>
-        </div>
+
       </PopWindow>
     </div>
   );

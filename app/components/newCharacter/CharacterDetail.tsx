@@ -1,6 +1,5 @@
 import type { Role } from "./types";
-import { useMutation } from "@tanstack/react-query";
-import { tuanchat } from "api/instance";
+import { useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { useEffect, useState } from "react";
 import CharacterAvatar from "./CharacterAvatar";
 import ExpansionModule from "./rules/ExpansionModule";
@@ -40,29 +39,7 @@ export default function CharacterDetail({
 
   // 接口部分
   // 发送post数据部分,保存角色数据
-  const { mutate: updateRole } = useMutation({
-    mutationKey: ["UpdateRole"],
-    mutationFn: async (data: any) => {
-      if (role.id !== 0) {
-        const updateRes = await tuanchat.roleController.updateRole({
-          roleId: role.id,
-          roleName: data.name,
-          description: data.description,
-          avatarId: data.avatarId,
-        });
-        return updateRes;
-      }
-    },
-    onSuccess: () => {
-      onSave(localRole);
-    },
-    onError: (error: any) => {
-      console.error("Mutation failed:", error);
-      if (error.response && error.response.data) {
-        console.error("Server response:", error.response.data);
-      }
-    },
-  });
+  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
   // 干净的文本
   const cleanText = (text: string) => {
     if (!text)
