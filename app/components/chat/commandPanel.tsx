@@ -40,7 +40,6 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
             </span>
             <span className="ml-2 text-sm">{cmd.description}</span>
           </div>
-
         </div>
       ))}
     </div>

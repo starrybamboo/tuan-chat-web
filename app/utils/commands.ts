@@ -13,7 +13,7 @@ export const diceCommands: command[] = [
   {
     name: "set",
     importance: 4,
-    description: "设置默认骰（例：.set d10 设置默认骰为10面，使用.rd时自动调用）",
+    description: "设置默认骰（例：.set 10 设置默认骰为10面，使用.rd时自动调用）",
   },
   {
     name: "st",
