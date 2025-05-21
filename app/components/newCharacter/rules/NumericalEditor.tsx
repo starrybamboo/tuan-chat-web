@@ -242,7 +242,7 @@ export default function NumericalEditor({
         return (
           <div
             key={totalKey}
-            className={`bg-base-200 p-4 rounded-lg ${
+            className={`bg-base-200 p-1 md:p-4 rounded-lg ${
               isEditing ? "bg-base-100" : ""
             }`}
           >
@@ -264,7 +264,7 @@ export default function NumericalEditor({
             </div>
 
             {/* 网格布局 */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-6">
               {entries.map(([key]) => {
                 const calculatedValue = calculatedConstraints[totalKey][key];
                 if (totalKey === "0") {
@@ -292,11 +292,11 @@ export default function NumericalEditor({
                       {isEditing
                         ? (
                             <div className="flex items-center gap-1 group">
-                              <label className={`input flex items-center gap-2 w-full ${
+                              <label className={`input flex items-center gap-1 md:gap-2 w-full ${
                                 isEditing ? "bg-base-100" : ""
                               }`}
                               >
-                                <span className="text-sm font-medium">{key}</span>
+                                <span className="text-xs md:text-sm">{key}</span>
                                 <div className="w-px h-4 bg-base-content/20"></div>
                                 <input
                                   type="text"
@@ -312,15 +312,17 @@ export default function NumericalEditor({
                           )
                         : (
                             <div className="card bg-base-100 shadow-sm p-2 h-full">
-                              <div className="flex items-center gap-2">
-                                <div className="text-primary p-2">
+                              <div className="flex items-center gap-0 md:gap-2">
+                                <div className="text-primary p-1 text-xs md:text-base md:p-2">
                                   {key}
                                 </div>
-                                <div className="divider divider-horizontal ml-0" />
-                                <div className="text-base-content">
-                                  {typeof calculatedValue === "object" && "displayValue" in calculatedValue
-                                    ? calculatedValue.displayValue.toString()
-                                    : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
+                                <div className="divider divider-horizontal ml-0 mr-0 md:mr-2" />
+                                <div className="text-base-content text-xs md:text-base p-1 md:p-0">
+                                  <span>
+                                    {typeof calculatedValue === "object" && "displayValue" in calculatedValue
+                                      ? calculatedValue.displayValue.toString()
+                                      : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
+                                  </span>
                                 </div>
                               </div>
                               {typeof calculatedValue === "object" && "formula" in calculatedValue && (
