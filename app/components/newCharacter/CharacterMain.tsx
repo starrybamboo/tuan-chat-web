@@ -34,7 +34,7 @@ export default function CharacterMain() {
 
   // 创建新角色
   const handleCreate = async () => {
-    const data = await createRole();
+    const data = await createRole({});
     if (data === undefined) {
       console.error("角色创建失败");
       return;

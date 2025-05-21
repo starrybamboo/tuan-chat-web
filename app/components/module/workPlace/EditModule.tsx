@@ -3,11 +3,12 @@ import type { SVGProps } from "react";
 import type { ModuleTabItem, RoleModuleItem } from "./context/types";
 import { useQuery } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
+import { useGetRoleAvatarQuery } from "api/queryHooks";
 import { useEffect, useRef } from "react";
 import { useModuleContext } from "./context/_moduleContext";
-import SceneEdit from "./context/SceneEdit";
 import { ModuleItemEnum } from "./context/types";
 import NPCEdit from "./NPCEdit";
+import SceneEdit from "./SceneEdit";
 
 export function BaselineClose(props: SVGProps<SVGSVGElement>) {
   return (
@@ -55,11 +56,7 @@ function RoleModuleTabItem({
   });
   const avatarId = data?.data?.avatarId;
   // 根据 avatarId 请求 avatar数据
-  const { data: avatarData, isPending } = useQuery({
-    queryKey: ["RoleAvatar", avatarId],
-    queryFn: () => tuanchat.avatarController.getRoleAvatar(avatarId || 0),
-    enabled: !!avatarId,
-  });
+  const { data: avatarData, isPending } = useGetRoleAvatarQuery(avatarId || 0);
   // 完成所有请求,设置角色
   const role = {
     id: data?.data?.roleId || 0,
@@ -98,7 +95,7 @@ function RoleModuleTabItem({
         {label}
       </label>
       <div className="tab-content h-fit! bg-base-100 border-base-300 p-6">
-        {isPending
+        {isPending && avatarId !== undefined
           ? <div>Loading</div>
           : <NPCEdit selectRole={role} />}
       </div>

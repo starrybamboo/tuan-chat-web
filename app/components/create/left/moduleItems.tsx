@@ -1,10 +1,14 @@
-import type { ModuleItemResponse, ModuleScene } from "api";
+import type { ItemAddRequest, ModuleItemResponse, ModuleScene } from "api";
+import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
-import { useQueryClient } from "@tanstack/react-query";
-import { useAddSceneMutation, useModuleItemsQuery, useModuleRolesQuery, useModuleScenesQuery } from "api/hooks/moduleQueryHooks";
-import { use } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAddItemMutation, useAddSceneMutation, useCreateModuleRoleMutation, useModuleItemsQuery, useModuleRolesQuery, useModuleScenesQuery } from "api/hooks/moduleQueryHooks";
+import { tuanchat } from "api/instance";
+import { useCreateRoleMutation, useGetUserRolesQuery } from "api/queryHooks";
+import { use, useState } from "react";
 import WorkspaceContext from "../context/module";
 
 function Section({ label, children, onClick }: { label: string; children?: React.ReactNode; onClick?: () => void }) {
@@ -73,6 +77,7 @@ function RoleListItem(
 function RoleList() {
   const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
   const queryClient = useQueryClient();
+  const userId = useGlobalContext().userId ?? -1;
   const handleClick = (roleId: number, roleName: string) => {
     pushModuleTabItem({
       id: roleId.toString(),
@@ -85,6 +90,7 @@ function RoleList() {
     });
   };
 
+  // 模组相关
   const ctx = use(WorkspaceContext);
   const { data, isSuccess: _isSuccess } = useModuleRolesQuery({
     pageNo: 1,
@@ -93,8 +99,78 @@ function RoleList() {
   });
   const list = data?.data!.list!.map(i => i.roleResponse);
 
+  // 控制弹窗
+  const [isOpen, setIsOpen] = useState(false);
+  const [isAddRoleOpen, setIsAddRoleOpen] = useState(false);
+  const [addRoleType, setAddRoleType] = useState<"add" | "creat">("add");
+  const handleOpen = () => {
+    setIsOpen(true);
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+  };
+
+  const handleAddRoleOpen = (type: "add" | "creat") => {
+    setIsAddRoleOpen(true);
+    setAddRoleType(type);
+  };
+  const handleAddRoleClose = () => {
+    setIsAddRoleOpen(false);
+  };
+
+  // 添加角色弹窗
+  const [selectedRoleList, setSelectedRoleList] = useState<number[]>([]);
+
+  const handleAddRole = (roleId: number) => {
+    if (selectedRoleList.includes(roleId)) {
+      setSelectedRoleList(selectedRoleList.filter(id => id !== roleId));
+    }
+    else {
+      setSelectedRoleList([...selectedRoleList, roleId]);
+    }
+  };
+
+  // 添加自己的角色
+  const { data: myRoleData } = useGetUserRolesQuery(userId);
+  const myRoleList = myRoleData?.data || [];
+
+  // 添加模组角色
+  const { mutate: addRole } = useCreateModuleRoleMutation();
+  const handleAddRoleSubmit = (type: number) => {
+    selectedRoleList.map((id) => {
+      addRole({
+        moduleId: ctx.moduleId,
+        roleId: id,
+        type,
+      });
+      return id;
+    });
+    handleAddRoleClose();
+  };
+
+  // 创建全新的模组角色
+  const { mutate: createRole } = useCreateRoleMutation();
+  const handleCreateRoleSubmit = (type: number) => {
+    createRole({
+      roleName: "新角色",
+      description: "",
+    }, {
+      onSuccess: (data) => {
+        addRole({
+          moduleId: ctx.moduleId,
+          roleId: data as number,
+          type,
+        });
+        handleClick(data as number, "新角色");
+      },
+    });
+
+    handleAddRoleClose();
+  };
+
   return (
-    <Section label="角色">
+    <Section label="角色" onClick={handleOpen}>
       {list?.map(i => (
         <RoleListItem
           key={i!.roleId}
@@ -104,6 +180,77 @@ function RoleList() {
           onClick={() => handleClick(i!.roleId, i!.roleName)}
         />
       ))}
+      <PopWindow isOpen={isOpen} onClose={handleClose}>
+        <div className="p-4 space-y-4">
+          <p className="text-xl font-bold">选择你的角色进行添加</p>
+          <div className="space-y-2">
+            {myRoleList?.map(i => (
+              <RoleListItem
+                key={i!.roleId}
+                avatarId={i!.avatarId}
+                name={i!.roleName}
+                isSelected={selectedRoleList.includes(i!.roleId)}
+                onClick={() => handleAddRole(i!.roleId)}
+              />
+            ))}
+          </div>
+          <div className="flex justify-end space-x-2">
+            <button
+              type="button"
+              className="btn btn-primary btn-md"
+              onClick={() => {
+                handleAddRoleOpen("creat");
+              }}
+              title="创建一个全新的模组角色"
+            >
+              创建一个全新的模组角色
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary btn-md"
+              onClick={() => {
+                handleAddRoleOpen("add");
+                // 添加角色的逻辑
+              }}
+              title="添加角色"
+            >
+              添加角色
+            </button>
+          </div>
+        </div>
+        <PopWindow isOpen={isAddRoleOpen} onClose={handleAddRoleClose}>
+          <div className="card w-96">
+            <div className="card-body items-center text-center">
+              <h2 className="card-title text-2xl font-bold">确认添加角色</h2>
+              <div className="divider"></div>
+              <p className="text-lg opacity-75 mb-8">确定要添加角色的类型</p>
+            </div>
+          </div>
+          <div className="card-actions justify-center gap-6 mt-8">
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => {
+                addRoleType === "add" ? handleAddRoleSubmit(1) : handleCreateRoleSubmit(1);
+                handleClose();
+              }}
+            >
+              NPC
+            </button>
+            <button
+              type="button"
+              className="btn btn-accent"
+              onClick={() => {
+                addRoleType === "add" ? handleAddRoleSubmit(0) : handleCreateRoleSubmit(0);
+                handleAddRoleClose();
+                handleClose();
+              }}
+            >
+              预设卡
+            </button>
+          </div>
+        </PopWindow>
+      </PopWindow>
     </Section>
   );
 }
@@ -124,10 +271,13 @@ function ItemListItem(
       {/* 物品名称 */}
       <p className="self-baseline font-medium">{item.name}</p>
 
-      {/* 可选：显示物品所在场景ID 或 提示 */}
+      {/* 所属场景ID提示 */}
       {item.moduleSceneId && (
-        <p className="text-xs text-gray-500">
+        <p
+          className="text-xs text-gray-500 ml-auto cursor-pointer hover:underline"
+        >
           场景ID:
+          {" "}
           {item.moduleSceneId}
         </p>
       )}
@@ -138,11 +288,8 @@ function ItemListItem(
 // 可能用得上
 function ItemList() {
   const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
-
-  const handleClick = (item: ModuleItemResponse) => {
-    const itemId = item.itemId!;
-    const itemName = item.name!;
-
+  const queryClient = useQueryClient();
+  const handleClick = (itemId: number, itemName: string) => {
     pushModuleTabItem({
       id: itemId.toString(),
       label: itemName,
@@ -155,12 +302,61 @@ function ItemList() {
   const { data } = useModuleItemsQuery({
     moduleId: ctx.moduleId,
   });
+  const { data: sceneData } = useModuleScenesQuery({
+    pageNo: 1,
+    pageSize: 100,
+    moduleId: ctx.moduleId,
+  });
+
+  // 控制弹窗
+  const [isOpen, setIsOpen] = useState(false);
+  // 选择场景
+  const [selectedSceneId, setSelectedSceneId] = useState<number>(0);
+  const handleOpen = () => {
+    setIsOpen(true);
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+  };
+
+  // 创建物品并添加物品
+  const { mutate: createItem } = useMutation({
+    mutationKey: ["createItem"],
+    mutationFn: async (req: ItemAddRequest) => await tuanchat.itemController.addItem1(req),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["moduleItems"] });
+    },
+  });
+  const { mutate: addItem } = useAddItemMutation();
+  const handleCreateItemSubmit = (moduleSceneId: number) => {
+    const itemName = "新物品";
+    createItem({
+      ruleId: ctx.ruleId,
+      name: itemName,
+      description: "",
+      extra: {},
+      type: "",
+      image: "",
+    }, {
+      onSuccess: ({ data: itemId }) => {
+        addItem({
+          moduleId: ctx.moduleId,
+          itemId: itemId || 0,
+          moduleSceneId,
+          name: itemName,
+        });
+        handleClick(itemId as number, itemName);
+      },
+    });
+  };
 
   const list = data?.data;
+  const sceneList = sceneData?.data!.list;
   const isEmpty = !list || list.length === 0;
 
   return (
-    <Section label="物品">
+    <Section label="物品" onClick={handleOpen}>
       <>
         {isEmpty
           ? (
@@ -174,11 +370,39 @@ function ItemList() {
                   key={item.itemId}
                   item={item}
                   isSelected={currentSelectedTabId === item.itemId?.toString()}
-                  onClick={() => handleClick(item)}
+                  onClick={() => handleClick(item.itemId!, item.name!)}
                 />
               ))
             )}
       </>
+      <PopWindow isOpen={isOpen} onClose={handleClose}>
+        <div className="p-4 space-y-4">
+          <p className="text-xl font-bold">选择添加的物品所在的场景</p>
+          <div className="space-y-2">
+            {sceneList?.map(scene => (
+              <SceneListItem
+                key={scene.moduleSceneId}
+                scene={scene}
+                isSelected={selectedSceneId === scene.moduleSceneId}
+                onClick={() => setSelectedSceneId(scene.moduleSceneId as number)}
+              />
+            ))}
+          </div>
+          <div className="flex justify-end space-x-2">
+            <button
+              type="button"
+              className="btn btn-primary btn-md"
+              onClick={() => {
+                handleCreateItemSubmit(selectedSceneId);
+                setIsOpen(false);
+              }}
+              title="创建物品"
+            >
+              创建物品
+            </button>
+          </div>
+        </div>
+      </PopWindow>
     </Section>
   );
 }
