@@ -1,12 +1,15 @@
 import type { ModuleScene } from "api";
 import type { SVGProps } from "react";
 import type { ModuleTabItem, RoleModuleItem } from "./context/types";
+import WorkspaceContext from "@/components/create/context/module";
 import { useQuery } from "@tanstack/react-query";
+import { useModuleItemsQuery } from "api/hooks/moduleQueryHooks";
 import { tuanchat } from "api/instance";
 import { useGetRoleAvatarQuery } from "api/queryHooks";
-import { useEffect, useRef } from "react";
+import { use, useEffect, useRef } from "react";
 import { useModuleContext } from "./context/_moduleContext";
 import { ModuleItemEnum } from "./context/types";
+import ItemEdit from "./ItemEdit";
 import NPCEdit from "./NPCEdit";
 import SceneEdit from "./SceneEdit";
 
@@ -103,6 +106,66 @@ function RoleModuleTabItem({
   );
 }
 
+function ItemModuleTabItem({
+  sceneModuleItem,
+  isSelected,
+  onTabClick,
+  onCloseClick,
+}: {
+  sceneModuleItem: ModuleTabItem;
+  isSelected: boolean;
+  onTabClick: (id: string) => void;
+  onCloseClick: (id: string) => void;
+}) {
+  const { id, label } = sceneModuleItem;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const ctx = use(WorkspaceContext);
+
+  // 当前tab被选中时自动勾选radio
+  useEffect(() => {
+    if (isSelected && inputRef.current) {
+      inputRef.current.checked = true;
+    }
+  }, [isSelected]);
+
+  // 请求物品数据
+  const { data, isPending } = useModuleItemsQuery({ moduleId: ctx.moduleId });
+
+  const item = data?.data!.find(item => item.itemId === Number(id)) || {};
+
+  return (
+    <>
+      <label className="tab flex-row-reverse pr-8! relative group before:hidden!">
+        <input
+          ref={inputRef}
+          type="radio"
+          name="WorkSpaceTab"
+          className="tab"
+          aria-label={label}
+          onClick={onTabClick.bind(null, id)}
+        />
+        <div
+          className={`
+            absolute right-[10px] invisible
+            w-4 h-4 flex items-center justify-center
+            group-hover:visible ${isSelected ? "visible" : ""}
+            hover:bg-base-content/80 rounded-sm
+          `}
+          onClick={() => {
+            onCloseClick(id);
+          }}
+        >
+          <BaselineClose />
+        </div>
+        {label}
+      </label>
+      <div className="tab-content bg-base-100 border-base-300 p-6">
+        {isPending ? <div>Loading</div> : <ItemEdit selectedItem={item} />}
+      </div>
+    </>
+  );
+}
+
 function SceneModuleTabItem({
   sceneModuleItem,
   isSelected,
@@ -177,6 +240,9 @@ export default function EditModule() {
   const roleModuleItems = moduleTabItems.filter(item =>
     item.type === ModuleItemEnum.ROLE,
   );
+  const itemModuleItems = moduleTabItems.filter(item =>
+    item.type === ModuleItemEnum.ITEM,
+  );
   const sceneModuleItems = moduleTabItems.filter(item =>
     item.type === ModuleItemEnum.SCENE,
   );
@@ -196,6 +262,17 @@ export default function EditModule() {
         {
           sceneModuleItems.map(item => (
             <SceneModuleTabItem
+              key={item.id}
+              sceneModuleItem={item}
+              isSelected={item.id === currentSelectedTabId}
+              onTabClick={setCurrentSelectedTabId}
+              onCloseClick={removeModuleTabItem}
+            />
+          ))
+        }
+        {
+          itemModuleItems.map(item => (
+            <ItemModuleTabItem
               key={item.id}
               sceneModuleItem={item}
               isSelected={item.id === currentSelectedTabId}
