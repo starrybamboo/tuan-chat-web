@@ -12,6 +12,7 @@ export function useGetRoleAbilitiesQuery(roleId: number) {
         queryKey: ["listRoleAbility", roleId],
         queryFn: () => tuanchat.abilityController.listRoleAbility(roleId),
         staleTime: 10000,
+        enabled: roleId > 0,
     });
 }
 

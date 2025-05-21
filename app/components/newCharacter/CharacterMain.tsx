@@ -1,7 +1,5 @@
 import type { Role } from "./types";
-import { useMutation } from "@tanstack/react-query";
-import { tuanchat } from "api/instance";
-import { useGetUserRolesQuery, useRolesInitialization } from "api/queryHooks";
+import { useCreateRoleMutation, useDeleteRolesMutation, useGetUserRolesQuery, useRolesInitialization, useUploadAvatarMutation } from "api/queryHooks";
 import { useEffect, useState } from "react";
 import { PopWindow } from "../common/popWindow";
 import { useGlobalContext } from "../globalContextProvider";
@@ -17,51 +15,22 @@ export default function CharacterMain() {
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // 创建角色接口
+  const { mutateAsync: createRole } = useCreateRoleMutation();
+  // 删除角色接口
+  const { mutate: deleteRole } = useDeleteRolesMutation();
+  // 上传头像接口
+  const { mutate: uploadAvatar } = useUploadAvatarMutation();
+
   // 初始化角色数据
   useEffect(() => {
     initializeRoles();
   }, [initializeRoles]);
 
-  // 删除角色接口
-  const { mutate: deleteRole } = useMutation({
-    mutationKey: ["deleteRole"],
-    mutationFn: async (roleId: number[]) => {
-      const res = await tuanchat.roleController.deleteRole2(roleId);
-      if (res.success) {
-        console.warn("角色删除成功");
-        return res;
-      }
-      else {
-        console.error("删除角色失败");
-        return undefined;
-      }
-    },
-    onError: (error) => {
-      console.error("Mutation failed:", error);
-    },
-  });
-
   // 删除弹窗状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
-
-  // 创建角色接口
-  const { mutateAsync: createRole } = useMutation({
-    mutationKey: ["createRole"],
-    mutationFn: async () => {
-      const res = await tuanchat.roleController.createRole({});
-      if (res.success) {
-        console.warn("角色创建成功");
-        return res.data;
-      }
-      else {
-        console.error("创建角色失败");
-      }
-    },
-    onError: (error) => {
-      console.error("Mutation failed:", error);
-    },
-  });
 
   // 创建新角色
   const handleCreate = async () => {
@@ -79,7 +48,11 @@ export default function CharacterMain() {
       modelName: "散华",
       speakerName: "鸣潮",
     };
-
+    uploadAvatar({
+      avatarUrl: "/favicon.ico",
+      spriteUrl: "/favicon.ico",
+      roleId: data,
+    });
     setRoles(prev => [...prev, newRole]);
     setSelectedRoleId(newRole.id);
     setIsEditing(true);
@@ -133,10 +106,31 @@ export default function CharacterMain() {
 
   return (
     <div className="drawer lg:drawer-open">
-      <MobileDrawerToggle />
+      {/* 移动端悬浮按钮 */}
+      <div className="lg:hidden fixed p-2 z-1">
+        <label
+          htmlFor="character-drawer"
+          className="btn btn-circle bg-base-200 hover:bg-base-300 shadow-sm border border-base-300/50 transition-all duration-200"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            className="w-6 h-6 stroke-current"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+            />
+          </svg>
+        </label>
+      </div>
+
       <input id="character-drawer" type="checkbox" className="drawer-toggle" />
       {/* 侧边栏 */}
-      <div className="drawer-side z-10">
+      <div className="drawer-side z-40">
         <label htmlFor="character-drawer" className="drawer-overlay"></label>
         <div className="menu p-4 w-80 min-h-full bg-base-200 flex flex-col">
           {/* 搜索和创建区域 - 固定在顶部 */}
@@ -201,6 +195,7 @@ export default function CharacterMain() {
 
       {/* 主内容区 */}
       <div className="drawer-content bg-base-100">
+
         {/* 添加条件渲染，在小屏幕且抽屉打开时隐藏内容 */}
         <div className="p-4 overflow-y-auto h-[calc(100vh-2rem)] scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-base-100">
           {currentRole
@@ -292,27 +287,6 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
           <path d="M18 6L6 18M6 6l12 12" />
         </svg>
       </button>
-    </div>
-  );
-}
-
-// 子组件：移动端抽屉开关
-function MobileDrawerToggle() {
-  return (
-    <div className="lg:hidden p-2 bg-base-100">
-      <label
-        htmlFor="character-drawer"
-        className="btn btn-square btn-ghost"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          className="inline-block w-6 h-6 stroke-current"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
-        </svg>
-      </label>
     </div>
   );
 }

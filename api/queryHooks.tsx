@@ -61,7 +61,8 @@ export function useGetRoleQuery(roleId: number) {
   return useQuery({
     queryKey: ['getRole', roleId],
     queryFn: () => tuanchat.roleController.getRole(roleId),
-    staleTime: 600000 // 10分钟缓存
+    staleTime: 600000, // 10分钟缓存
+    enabled: roleId>0
   });
 }
 
@@ -82,6 +83,60 @@ export function useUpdateRoleMutation(onSuccess?: () => void) {
   });
 }
 
+/**
+ * 更新角色信息（带本地角色状态）
+ * @param onSave 保存成功的回调函数，接收本地角色状态
+ */
+export function useUpdateRoleWithLocalMutation(onSave: (localRole: any) => void) {
+  return useMutation({
+    mutationKey: ["UpdateRole"],
+    mutationFn: async (data: any) => {
+      if (data.id !== 0) {
+        const updateRes = await tuanchat.roleController.updateRole({
+          roleId: data.id,
+          roleName: data.name,
+          description: data.description,
+          avatarId: data.avatarId,
+        });
+        return updateRes;
+      }
+    },
+    onSuccess: (_, variables) => {
+      onSave(variables);
+    },
+    onError: (error: any) => {
+      console.error("Mutation failed:", error);
+      if (error.response && error.response.data) {
+        console.error("Server response:", error.response.data);
+      }
+    },
+  });
+}
+
+/**
+ * 创建角色的hook
+ * @returns 创建角色的mutation对象
+ */
+export function useCreateRoleMutation() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationKey: ["createRole"],
+    mutationFn: async () => {
+      const res = await tuanchat.roleController.createRole({});
+      if (res.success) {
+        console.warn("角色创建成功");
+        return res.data;
+      }
+      else {
+        console.error("创建角色失败");
+      }
+    },
+    onError: (error) => {
+      console.error("Mutation failed:", error);
+    },
+  });
+}
 
 /**
  * 删除角色（单个角色）
@@ -96,6 +151,50 @@ export function useDeleteRoleMutation(roleId: number) {
       queryClient.invalidateQueries({ queryKey: ['getRole', roleId] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
     }
+  });
+}
+
+/**
+ * 删除角色的hook
+ * @param onSuccess 删除成功的回调函数
+ * @returns 删除角色的mutation对象
+ */
+export function useDeleteRolesMutation(onSuccess?: () => void) {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationKey: ["deleteRoles"],
+    mutationFn: async (roleIds: number[]) => {
+      const res = await tuanchat.roleController.deleteRole2(roleIds);
+      if (!res.success) {
+        throw new Error("删除角色失败");
+      }
+      return res;
+    },
+    onError: (error) => {
+      console.error("删除角色失败:", error);
+    }
+  });
+}
+
+//删除角色
+export function useDeleteRole() {
+  return useMutation({
+    mutationKey: ["deleteRole"],
+    mutationFn: async (roleId: number[]) => {
+      const res = await tuanchat.roleController.deleteRole2(roleId);
+      if (res.success) {
+        console.warn("角色删除成功");
+        return res;
+      }
+      else {
+        console.error("删除角色失败");
+        return undefined;
+      }
+    },
+    onError: (error) => {
+      console.error("Mutation failed:", error);
+    },
   });
 }
 
@@ -324,7 +423,6 @@ export function useRoleAvatarQuery(avatarId: number) {
   return avatarQuery.data;
 }
 
-
 //Warpper界面useEffect的逻辑,去掉了useEffect
 import type { Role } from '@/components/newCharacter/types';
 import { useCallback, useState } from 'react';
@@ -380,25 +478,60 @@ export const useRolesInitialization = (roleQuery: any) => {
   return { roles, initializeRoles, setRoles, isLoading };
 };
 
-
-
-//删除角色
-export function useDeleteRole() {
+/**
+ * 上传头像
+ */
+export function useUploadAvatarMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
-    mutationKey: ["deleteRole"],
-    mutationFn: async (roleId: number[]) => {
-      const res = await tuanchat.roleController.deleteRole2(roleId);
-      if (res.success) {
-        console.warn("角色删除成功");
-        return res;
-      }
-      else {
-        console.error("删除角色失败");
+    mutationKey: ["uploadAvatar"],
+    mutationFn: async ({ avatarUrl, spriteUrl, roleId }: { avatarUrl: string; spriteUrl: string; roleId: number }) => {
+      if (!avatarUrl || !roleId || !spriteUrl) {
+        console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;
+      }
+
+      try {
+        const res = await tuanchat.avatarController.setRoleAvatar({
+          roleId: roleId,
+        });
+
+        if (!res.success || !res.data) {
+          console.error("头像创建失败", res);
+          return undefined;
+        }
+
+        const avatarId = res.data;
+
+        if (avatarId) {
+          const uploadRes = await tuanchat.avatarController.updateRoleAvatar({
+            roleId: roleId,
+            avatarId,
+            avatarUrl,
+            spriteUrl,
+          });
+
+          if (!uploadRes.success) {
+            console.error("头像更新失败", uploadRes);
+            return undefined;
+          }
+
+          console.warn("头像上传成功");
+          await queryClient.invalidateQueries({ queryKey: ["roleAvatar", roleId] });
+          return uploadRes;
+        }
+        else {
+          console.error("头像ID无效");
+          return undefined;
+        }
+      }
+      catch (error) {
+        console.error("头像上传请求失败", error);
+        throw error;
       }
     },
     onError: (error) => {
-      console.error("Mutation failed:", error);
+      console.error("Mutation failed:", error.message || error);
     },
   });
 }

@@ -11,7 +11,6 @@ import { SpaceContext } from "@/components/chat/spaceContext";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { MobileDrawerToggle } from "@/icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -44,7 +43,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const websocketUtils = useGlobalContext().websocketUtils;
   const getNewMessagesByRoomId = websocketUtils.getTempMessagesByRoomId;
   const send = websocketUtils.send;
-  const hasNewMessages = websocketUtils.messagesNumber[roomId];
+  // const hasNewMessages = websocketUtils.messagesNumber[roomId];
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
 
   // Mutations
@@ -74,13 +73,14 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     initialPageParam: { roomId, pageSize: PAGE_SIZE, cursor: null } as unknown as ChatMessagePageRequest,
     refetchOnWindowFocus: false,
   });
-  const [receivedMessages, setReceivedMessages] = useState<ChatMessageResponse[]>([]);
-  useEffect(() => {
-    const newMessages = getNewMessagesByRoomId(roomId, true);
-    if (newMessages.length > 0) {
-      setReceivedMessages([...receivedMessages, ...newMessages]);
-    }
-  }, [hasNewMessages]);
+  // const [receivedMessages, setReceivedMessages] = useState<ChatMessageResponse[]>([]);
+  // useEffect(() => {
+  //   const newMessages = getNewMessagesByRoomId(roomId, true);
+  //   if (newMessages.length > 0) {
+  //     setReceivedMessages([...receivedMessages, ...newMessages]);
+  //   }
+  // }, [hasNewMessages]);
+  const receivedMessages = getNewMessagesByRoomId(roomId, true);
   // 合并所有分页消息 同时更新重复的消息
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     const historyMessages = (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
@@ -99,24 +99,22 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
    * 新消息提醒
    */
   const unreadMessageNumber = websocketUtils.unreadMessagesNumber[roomId] ?? 0;
-  const updateUnreadMessageNumber = useCallback((number: number) => {
-    websocketUtils.setUnreadMessagesNumber(prev => ({
-      ...prev,
-      [roomId]: number,
-    }));
-  }, [websocketUtils]);
+  const updateUnreadMessagesNumber = websocketUtils.updateUnreadMessagesNumber;
+  // useEffect(() => {
+  //   sendNotificationWithGrant();
+  // }, [historyMessages]);
   /**
    * scroll相关
    */
   const scrollToBottom = () => {
     chatFrameRef.current.scrollTo({ top: 0, behavior: "instant" });
-    updateUnreadMessageNumber(0);
+    updateUnreadMessagesNumber(roomId, 0);
   };
   // const isNearBottom = chatFrameRef.current.scrollTop < -80;
   // 若滚动到底部，设置未读消息为0
   useEffect(() => {
     if (bottomMessageEntry?.isIntersecting) {
-      updateUnreadMessageNumber(0);
+      updateUnreadMessagesNumber(roomId, 0);
     }
   }, [bottomMessageEntry?.isIntersecting]);
   useEffect(() => {
@@ -125,7 +123,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         scrollToBottom();
       }
     }
-  }, [chatFrameRef, historyMessages]);
+  }, [historyMessages.length]);
   useEffect(() => {
     if ((messageEntry?.isIntersecting || topMessageEntry?.isIntersecting) && !messagesInfiniteQuery.isFetchingNextPage) {
       messagesInfiniteQuery.fetchNextPage();
@@ -302,8 +300,11 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     if (isSelecting && selectedMessageIds.size > 0) {
       handleMoveMessages(adjustedIndex, Array.from(selectedMessageIds));
     }
+    // else {
+    //   handleMoveMessages();
+    // }
     else {
-      // 判断是否移动到原来的位置
+      // 单条消息移动，额外判断是否移动到原来的位置
       const beforeMessage = historyMessages[adjustedIndex]?.message;
       const afterMessage = historyMessages[adjustedIndex - 1]?.message;
       const beforeMessageId = beforeMessage?.messageID ?? null;
@@ -412,8 +413,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
    * 渲染
    */
   return (
-    <>
-      <MobileDrawerToggle htmlFor="room-side-drawer" className="self-end"></MobileDrawerToggle>
+    <div>
       {/* 这里是从下到上渲染的 */}
       <div
         className="card-body overflow-y-auto h-[60vh] flex flex-col-reverse"
@@ -421,7 +421,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
       >
-        {(unreadMessageNumber > 0 && !bottomMessageEntry?.isIntersecting) && (
+        {/* historyMessages.length > 2是为了防止一些奇怪的bug */}
+        {(unreadMessageNumber > 0 && !bottomMessageEntry?.isIntersecting && historyMessages.length > 2) && (
           <div
             className="sticky bottom-4 self-end z-50 cursor-pointer"
             onClick={() => { scrollToBottom(); }}
@@ -562,6 +563,6 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
           </div>
         );
       })()}
-    </>
+    </div>
   );
 }
