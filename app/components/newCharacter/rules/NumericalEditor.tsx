@@ -264,15 +264,15 @@ export default function NumericalEditor({
             </div>
 
             {/* 网格布局 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
               {entries.map(([key]) => {
                 const calculatedValue = calculatedConstraints[totalKey][key];
                 if (totalKey === "0") {
                   return (
-                    <div key={key} className="flex flex-col gap-1 mb-2">
+                    <div key={key} className="flex flex-col gap-1">
                       <div className="card bg-base-100 shadow-sm p-2 h-full">
                         <div className="text-sm font-medium text-primary mb-1">{key}</div>
-                        <div className="text-base-content mt-0.5">
+                        <div className="text-base-content mt-0.5 text-sm">
                           {typeof calculatedValue === "object" && "displayValue" in calculatedValue
                             ? calculatedValue.displayValue.toString()
                             : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
@@ -288,11 +288,11 @@ export default function NumericalEditor({
                 }
                 else {
                   return (
-                    <div key={key} className="flex flex-col gap-1 mb-2">
+                    <div key={key} className="flex flex-col gap-1">
                       {isEditing
                         ? (
                             <div className="flex items-center gap-1 group">
-                              <label className={`input flex items-center gap-2 w-full ${
+                              <label className={`input input-sm flex items-center gap-2 w-full ${
                                 isEditing ? "bg-base-100" : ""
                               }`}
                               >
@@ -303,7 +303,7 @@ export default function NumericalEditor({
                                   value={typeof calculatedValue === "object" && "displayValue" in calculatedValue
                                     ? calculatedValue.displayValue.toString()
                                     : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
-                                  className="grow"
+                                  className="grow text-sm"
                                   disabled={!isEditing}
                                   onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
                                 />
@@ -313,11 +313,11 @@ export default function NumericalEditor({
                         : (
                             <div className="card bg-base-100 shadow-sm p-2 h-full">
                               <div className="flex items-center gap-2">
-                                <div className="text-primary p-2">
+                                <div className="text-primary p-1 text-sm">
                                   {key}
                                 </div>
                                 <div className="divider divider-horizontal ml-0" />
-                                <div className="text-base-content">
+                                <div className="text-base-content text-sm">
                                   {typeof calculatedValue === "object" && "displayValue" in calculatedValue
                                     ? calculatedValue.displayValue.toString()
                                     : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
