@@ -332,7 +332,7 @@ export default function PerformanceEditor({
             </div>
             {/* 桌面端原有样式 */}
             <div className="hidden sm:block">
-              <fieldset className="group fieldset p-4">
+              <fieldset className="group fieldset">
                 <legend className="fieldset-legend">{key}</legend>
                 <textarea
                   value={value}

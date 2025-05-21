@@ -271,8 +271,8 @@ export default function NumericalEditor({
                   return (
                     <Fragment key={key}>
                       <div className="sm:hidden">
-                        <fieldset className="fieldset p-2">
-                          <legend className="fieldset-legend text-sm font-medium text-primary">{key}</legend>
+                        <fieldset className="fieldset p-2 gap-1">
+                          <legend className="fieldset-legend text-sm font-bold text-primary ">{key}</legend>
                           <div className="text-base-content mt-1 p-2">
                             {typeof calculatedValue === "object" && "displayValue" in calculatedValue
                               ? calculatedValue.displayValue.toString()
@@ -311,7 +311,7 @@ export default function NumericalEditor({
                       {/* 移动端 fieldset */}
                       <div className="sm:hidden">
                         <fieldset className="fieldset p-2">
-                          <legend className="fieldset-legend text-sm font-medium">{key}</legend>
+                          <legend className="fieldset-legend text-sm text-primary font-bold">{key}</legend>
                           {isEditing
                             ? (
                                 <div className="flex items-center gap-1">
@@ -341,7 +341,7 @@ export default function NumericalEditor({
                               )}
                         </fieldset>
                       </div>
-                      {/* 桌面端原有样式 */}
+                      {/* 桌面端样式 */}
                       <div className="hidden sm:block">
                         <div key={key} className="flex flex-col gap-1">
                           {isEditing
