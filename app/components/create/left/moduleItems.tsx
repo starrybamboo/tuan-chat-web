@@ -5,7 +5,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAddItemMutation, useAddSceneMutation, useCreateModuleRoleMutation, useModuleItemsQuery, useModuleRolesQuery, useModuleScenesQuery } from "api/hooks/moduleQueryHooks";
+import { useAddItemMutation, useAddSceneMutation, useCreateModuleRoleMutation, useDeleteItemMutation, useDeleteModuleRoleMutation, useDeleteSceneMutation, useModuleItemsQuery, useModuleRolesQuery, useModuleScenesQuery } from "api/hooks/moduleQueryHooks";
 import { tuanchat } from "api/instance";
 import { useCreateRoleMutation, useGetUserRolesQuery } from "api/queryHooks";
 import { use, useState } from "react";
@@ -49,27 +49,53 @@ function Section({ label, children, onClick }: { label: string; children?: React
 
 // 角色表单项
 function RoleListItem(
-  { avatarId, name, isSelected, onClick }: {
+  { avatarId, name, isSelected, onClick, onDelete }: {
     avatarId: number;
     name: string;
     isSelected: boolean;
     onClick: () => void;
+    onDelete?: () => void;
   },
 ) {
   return (
     <div
-      className={`w-full h-12 p-2 flex gap-2 items-center hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""
-      }`}
+      className={`group w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""}`}
       onClick={onClick}
     >
-      <RoleAvatarComponent
-        avatarId={avatarId}
-        width={10}
-        withTitle={false}
-        isRounded={true}
-        stopPopWindow={true}
-      />
-      <p className="self-baseline">{name}</p>
+      {/* 左侧内容 */}
+      <div className="flex items-center gap-2">
+        <RoleAvatarComponent
+          avatarId={avatarId}
+          width={10}
+          withTitle={false}
+          isRounded={true}
+          stopPopWindow={true}
+        />
+        <p className="self-baseline">{name}</p>
+      </div>
+
+      {/* 右侧按钮 */}
+      <button
+        type="button"
+        className="btn btn-ghost btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1 hover:[&>svg]:stroke-error"
+        onClick={(e) => {
+          if (onDelete)
+            onDelete();
+          e.stopPropagation();
+        }}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
     </div>
   );
 }
@@ -89,6 +115,9 @@ function RoleList() {
       queryKey: ["role", roleId],
     });
   };
+
+  // 删除模组角色
+  const { mutate: deleteModuleRole } = useDeleteModuleRoleMutation();
 
   // 模组相关
   const ctx = use(WorkspaceContext);
@@ -178,6 +207,7 @@ function RoleList() {
           name={i!.roleName}
           isSelected={currentSelectedTabId === i!.roleId.toString()}
           onClick={() => handleClick(i!.roleId, i!.roleName)}
+          onDelete={() => deleteModuleRole({ moduleId: ctx.moduleId, roleId: i!.roleId })}
         />
       ))}
       <PopWindow isOpen={isOpen} onClose={handleClose}>
@@ -255,31 +285,56 @@ function RoleList() {
   );
 }
 
-function ItemListItem(
-  { item, isSelected, onClick }: {
-    item: ModuleItemResponse;
-    isSelected: boolean;
-    onClick: () => void;
-  },
-) {
+function ItemListItem({
+  item,
+  isSelected,
+  onClick,
+  onDelete,
+}: {
+  item: ModuleItemResponse;
+  isSelected: boolean;
+  onClick: () => void;
+  onDelete?: () => void;
+}) {
   return (
     <div
-      className={`w-full h-12 p-2 flex gap-2 items-center hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""
-      }`}
+      className={`group w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""}`}
       onClick={onClick}
     >
-      {/* 物品名称 */}
-      <p className="self-baseline font-medium">{item.name}</p>
+      {/* 左侧内容 */}
+      <div className="flex items-center gap-2">
+        <p className="self-baseline font-medium">{item.name}</p>
+        {item.moduleSceneId && (
+          <p className="text-xs text-gray-500 truncate">
+            场景ID:
+            {item.moduleSceneId}
+          </p>
+        )}
+      </div>
 
-      {/* 所属场景ID提示 */}
-      {item.moduleSceneId && (
-        <p
-          className="text-xs text-gray-500 ml-auto cursor-pointer hover:underline"
+      {/* 右侧按钮 */}
+      {onDelete && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1 hover:[&>svg]:stroke-error"
+          onClick={(e) => {
+            if (onDelete)
+              onDelete();
+            e.stopPropagation();
+          }}
         >
-          场景ID:
-          {" "}
-          {item.moduleSceneId}
-        </p>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
       )}
     </div>
   );
@@ -289,6 +344,7 @@ function ItemListItem(
 function ItemList() {
   const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
   const queryClient = useQueryClient();
+
   const handleClick = (itemId: number, itemName: string) => {
     pushModuleTabItem({
       id: itemId.toString(),
@@ -307,6 +363,9 @@ function ItemList() {
     pageSize: 100,
     moduleId: ctx.moduleId,
   });
+
+  // 删除物品
+  const { mutate: deleteItem } = useDeleteItemMutation();
 
   // 控制弹窗
   const [isOpen, setIsOpen] = useState(false);
@@ -371,6 +430,7 @@ function ItemList() {
                   item={item}
                   isSelected={currentSelectedTabId === item.itemId?.toString()}
                   onClick={() => handleClick(item.itemId!, item.name!)}
+                  onDelete={() => deleteItem({ itemIds: [item.itemId!] })}
                 />
               ))
             )}
@@ -407,23 +467,53 @@ function ItemList() {
   );
 }
 
-function SceneListItem(
-  { scene, isSelected, onClick }: {
-    scene: ModuleScene; // 使用 ModuleScene 类型
-    isSelected: boolean;
-    onClick: () => void;
-  },
-) {
+function SceneListItem({
+  scene,
+  isSelected,
+  onClick,
+  onDelete,
+}: {
+  scene: ModuleScene;
+  isSelected: boolean;
+  onClick: () => void;
+  onDelete?: () => void;
+}) {
   return (
     <div
-      className={`w-full h-12 p-2 flex gap-2 items-center hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""
-      }`}
+      className={`group w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""}`}
       onClick={onClick}
     >
-      {/* 场景名称 */}
-      <p className="self-baseline font-medium">{scene.moduleSceneName}</p>
-      {scene.sceneDescription && (
-        <p className="text-xs text-gray-500 truncate">{scene.sceneDescription}</p>
+      {/* 左侧内容 */}
+      <div className="flex items-center gap-2">
+        <p className="self-baseline font-medium">{scene.moduleSceneName}</p>
+        {scene.sceneDescription && (
+          <p className="text-xs text-gray-500 truncate">{scene.sceneDescription}</p>
+        )}
+      </div>
+
+      {/* 右侧按钮 */}
+      {onDelete && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1 hover:[&>svg]:stroke-error"
+          onClick={(e) => {
+            if (onDelete)
+              onDelete();
+            e.stopPropagation();
+          }}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
       )}
     </div>
   );
@@ -444,7 +534,10 @@ function SceneList() {
     setCurrentSelectedTabId(sceneId.toString());
   };
 
+  // 创建场景
   const { mutate: createScene } = useAddSceneMutation();
+  // 删除场景
+  const { mutate: deleteScene } = useDeleteSceneMutation();
 
   const handleAddScene = () => {
     createScene({
@@ -491,6 +584,7 @@ function SceneList() {
                     scene={scene}
                     isSelected={currentSelectedTabId === scene.moduleSceneId?.toString()}
                     onClick={() => handleClick(scene)}
+                    onDelete={() => deleteScene({ sceneIds: [scene.moduleSceneId!] })}
                   />
                 ))}
               </>
