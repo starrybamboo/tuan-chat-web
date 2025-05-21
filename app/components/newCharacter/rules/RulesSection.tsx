@@ -19,27 +19,12 @@ export default function RulesSection({
 }: RulesSectionProps) {
   // 分页和搜索状态
   const [pageNum, setPageNum] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(4);
   const [keyword, setKeyword] = useState("");
 
   // 状态
   const [rules, setRules] = useState<GameRule[]>([]);
   // const [filteredRules, setFilteredRules] = useState<GameRule[]>([]); // 删除这行
-
-  // 根据屏宽设置分页数
-  useEffect(() => {
-    const handleResize = () => {
-      const isMobile = window.innerWidth < 768;
-      setPageSize(isMobile ? 4 : 10);
-    };
-
-    // 初始设置
-    handleResize();
-
-    // 监听窗口大小
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   // API Hooks
   const rulePageMutation = useRulePageMutation();

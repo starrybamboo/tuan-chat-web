@@ -120,7 +120,7 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="w-[70vw] mx-auto overflow-y-auto flex flex-col h-[95vh]">
+    <div className="w-[70vw] mx-auto overflow-y-auto flex flex-col h-full">
       {feeds.map((feed, index) => (
         <div
           ref={index === feeds.length - FETCH_ON_REMAIN ? feedRef : null}

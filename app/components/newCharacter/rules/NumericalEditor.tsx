@@ -242,7 +242,7 @@ export default function NumericalEditor({
         return (
           <div
             key={totalKey}
-            className={`bg-base-200 p-4 rounded-lg ${
+            className={`bg-base-200 p-1 md:p-4 rounded-lg ${
               isEditing ? "bg-base-100" : ""
             }`}
           >
@@ -264,7 +264,7 @@ export default function NumericalEditor({
             </div>
 
             {/* 网格布局 */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-6">
               {entries.map(([key]) => {
                 const calculatedValue = calculatedConstraints[totalKey][key];
                 if (totalKey === "0") {
@@ -292,11 +292,11 @@ export default function NumericalEditor({
                       {isEditing
                         ? (
                             <div className="flex items-center gap-1 group">
-                              <label className={`input input-sm flex items-center gap-2 w-full ${
+                              <label className={`input input-sm flex items-center gap-1 md:gap-2 w-full ${
                                 isEditing ? "bg-base-100" : ""
                               }`}
                               >
-                                <span className="text-sm font-medium">{key}</span>
+                                <span className="text-xs md:text-sm">{key}</span>
                                 <div className="w-px h-4 bg-base-content/20"></div>
                                 <input
                                   type="text"
@@ -312,8 +312,8 @@ export default function NumericalEditor({
                           )
                         : (
                             <div className="card bg-base-100 shadow-sm p-2 h-full">
-                              <div className="flex items-center gap-2">
-                                <div className="text-primary p-1 text-sm">
+                              <div className="flex items-center gap-0 md:gap-2">
+                                <div className="text-primary p-1 text-xs md:text-base md:p-1 text-sm">
                                   {key}
                                 </div>
                                 <div className="divider divider-horizontal ml-0" />
