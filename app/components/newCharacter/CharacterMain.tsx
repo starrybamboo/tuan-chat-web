@@ -106,10 +106,31 @@ export default function CharacterMain() {
 
   return (
     <div className="drawer lg:drawer-open">
-      <MobileDrawerToggle />
+      {/* 移动端悬浮按钮 */}
+      <div className="lg:hidden fixed p-2 z-1">
+        <label
+          htmlFor="character-drawer"
+          className="btn btn-circle bg-base-200 hover:bg-base-300 shadow-sm border border-base-300/50 transition-all duration-200"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            className="w-6 h-6 stroke-current"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+            />
+          </svg>
+        </label>
+      </div>
+
       <input id="character-drawer" type="checkbox" className="drawer-toggle" />
       {/* 侧边栏 */}
-      <div className="drawer-side z-10">
+      <div className="drawer-side z-40">
         <label htmlFor="character-drawer" className="drawer-overlay"></label>
         <div className="menu p-4 w-80 min-h-full bg-base-200 flex flex-col">
           {/* 搜索和创建区域 - 固定在顶部 */}
@@ -266,27 +287,6 @@ function RoleListItem({ role, isSelected, onSelect, onDelete }: {
           <path d="M18 6L6 18M6 6l12 12" />
         </svg>
       </button>
-    </div>
-  );
-}
-
-// 子组件：移动端抽屉开关
-function MobileDrawerToggle() {
-  return (
-    <div className="lg:hidden fixed p-2 ml-1 mt-2 rounded-lg z-1">
-      <label
-        htmlFor="character-drawer"
-        className="btn btn-square btn-ghost"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          className="inline-block w-6 h-6 stroke-current"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
-        </svg>
-      </label>
     </div>
   );
 }
