@@ -192,26 +192,25 @@ export default function PerformanceEditor({
       </div>
 
       {/* 短字段区域 - 多列排布 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 lg:5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:5 gap-6">
         {shortFields.map(key => (
           <div key={key} className="group">
             {isEditing
               ? (
             // 编辑模式下的UI
                   <div className="flex items-center gap-1">
-                    <label className="input input-group flex-grow">
-                      <span className="text-sm font-medium">{key}</span>
-                      <div className="w-px h-4 bg-base-content/25"></div>
-                      <input
-                        type="text"
+                    <fieldset className="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
+                      <legend className="fieldset-legend text-sm font-medium">{key}</legend>
+                      <textarea
                         onChange={(e) => {
                           const newFields = { ...fields, [key]: e.target.value };
                           onChange(newFields);
                         }}
                         value={fields[key] || ""}
-                        className="grow"
+                        className="textarea w-full resize-none"
+                        rows={1}
                       />
-                    </label>
+                    </fieldset>
                     <button
                       type="button"
                       className="btn btn-error btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1"
@@ -262,12 +261,12 @@ export default function PerformanceEditor({
               value={newKey}
               onChange={e => setNewKey(e.target.value)}
             />
-            <input
-              type="text"
+            <textarea
               placeholder="值"
-              className="input input-bordered input-sm w-1/2"
+              className="textarea textarea-bordered textarea-sm w-1/2 resize-none"
               value={newValue}
               onChange={e => setNewValue(e.target.value)}
+              rows={1}
             />
             <button
               type="button"
