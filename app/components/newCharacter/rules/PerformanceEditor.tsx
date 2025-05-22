@@ -252,31 +252,32 @@ export default function PerformanceEditor({
 
       {/* 添加新字段区域 */}
       {isEditing && (
-        <div className="border-t border-base-300 pt-4 mt-4">
-          <div className="flex gap-8 max-w-2xl">
+        <fieldset className="border border-base-300 rounded-lg p-4 mt-4">
+          <legend className="px-2 font-bold">添加新字段</legend>
+          <div className="flex flex-col w-full gap-2">
             <input
               type="text"
               placeholder="字段名称"
-              className="input input-bordered input-sm w-1/3"
+              className="input input-bordered input-sm w-1/4 mt-2"
               value={newKey}
               onChange={e => setNewKey(e.target.value)}
             />
             <textarea
               placeholder="值"
-              className="textarea textarea-bordered textarea-sm w-1/2 resize-none"
+              className="textarea textarea-bordered textarea-sm w-full resize-none"
               value={newValue}
               onChange={e => setNewValue(e.target.value)}
               rows={1}
             />
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm w-fit"
               onClick={handleAddField}
             >
               添加字段
             </button>
           </div>
-        </div>
+        </fieldset>
       )}
 
       {/* 长字段区域，目前没用上，而且左右分割对长字段不适用 */}
