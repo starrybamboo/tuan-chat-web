@@ -165,13 +165,18 @@ export default function CharacterAvatar({ role, onchange }: {
                       />
                       {/* 删除按钮  */}
                       <button
-                        className="absolute -top-2 -right-2 w-7 h-7 bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800 z-2"
+                        className="absolute -top-2 -right-2 w-7 h-7 bg-gray-500 cursor-pointer text-white rounded-full flex items-center justify-center md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800 z-2"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteAvatar(index);
                         }}
                       >
-                        ×
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+                          <path
+                            fill="currentColor"
+                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                          />
+                        </svg>
                       </button>
                       {/* 添加悬浮遮罩 */}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 rounded-lg"></div>
@@ -182,6 +187,7 @@ export default function CharacterAvatar({ role, onchange }: {
                     </p>
                   </li>
                 ))}
+                {/* 添加新头像 */}
                 <li className="relative w-full max-w-[128px] aspect-square flex flex-col items-center rounded-lg transition-colors">
                   <CharacterCopper
                     setDownloadUrl={() => { }}
@@ -191,7 +197,9 @@ export default function CharacterAvatar({ role, onchange }: {
                       mutate({ ...data, roleId: role.id });
                     }}
                   >
-                    <button className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group">
+                    <button
+                      className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group"
+                    >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         className="w-full h-full text-gray-400 transition-transform duration-300 group-hover:scale-105"
