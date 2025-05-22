@@ -222,11 +222,11 @@ export default function CharacterAvatar({ role, onchange }: {
 
             {/* 删除确认弹窗 */}
             <PopWindow isOpen={isDeleteModalOpen} onClose={cancelDeleteAvatar}>
-              <div className="card w-96">
+              <div className="card">
                 <div className="card-body items-center text-center">
                   <h2 className="card-title text-2xl font-bold">确认删除头像</h2>
                   <div className="divider"></div>
-                  <p className="text-lg opacity-75 mb-8">确定要删除这个头像吗？</p>
+                  <p className="text-lg opacity-75 mb-8 ">确定要删除这个头像吗？</p>
                 </div>
               </div>
               <div className="card-actions justify-center gap-6 mt-8">

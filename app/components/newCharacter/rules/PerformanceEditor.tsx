@@ -192,7 +192,7 @@ export default function PerformanceEditor({
       </div>
 
       {/* 短字段区域 - 多列排布 */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 ">
         {shortFields.map(key => (
           <div key={key} className="group">
             {isEditing
@@ -201,7 +201,7 @@ export default function PerformanceEditor({
                     {/* 移动端 fieldset */}
                     <div className="sm:hidden">
                       <fieldset className="fieldset p-2">
-                        <legend className="fieldset-legend text-sm font-medium">{key}</legend>
+                        <legend className="fieldset-legend text-sm font-medium font-medium text-primary">{key}</legend>
                         <div className="flex items-center gap-1">
                           <input
                             type="text"
@@ -281,7 +281,7 @@ export default function PerformanceEditor({
                     {/* 移动端 fieldset */}
                     <div className="sm:hidden">
                       <fieldset className="fieldset p-2">
-                        <legend className="fieldset-legend text-sm font-medium">{key}</legend>
+                        <legend className="fieldset-legend text-sm font-medium font-medium text-primary">{key}</legend>
                         <div className="text-base-content mt-1 p-2">
                           {fields[key] || <span className="text-base-content/50">未设置</span>}
                         </div>
