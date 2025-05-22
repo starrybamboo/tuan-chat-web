@@ -1,5 +1,5 @@
 import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FormulaParser } from "./FormulaParser";
 import { flattenConstraints } from "./ObjectExpansion";
 
@@ -264,130 +264,91 @@ export default function NumericalEditor({
             </div>
 
             {/* 网格布局 */}
-            <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-6">
               {entries.map(([key]) => {
                 const calculatedValue = calculatedConstraints[totalKey][key];
                 if (totalKey === "0") {
                   return (
-                    <Fragment key={key}>
-                      <div className="sm:hidden">
-                        <fieldset className="fieldset p-2 gap-1">
-                          <legend className="fieldset-legend text-sm font-bold text-primary ">{key}</legend>
-                          <div className="text-base-content mt-1 p-2">
-                            {typeof calculatedValue === "object" && "displayValue" in calculatedValue
-                              ? calculatedValue.displayValue.toString()
-                              : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
-                          </div>
-                          {typeof calculatedValue === "object" && "formula" in calculatedValue && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {calculatedValue.formula}
-                            </div>
-                          )}
-                        </fieldset>
-                      </div>
-                      <div className="hidden sm:block">
-                        <div key={key} className="flex flex-col gap-1">
-                          <div className="card bg-base-100 shadow-sm p-2 h-full">
-                            <div className="text-sm font-medium text-primary mb-1">{key}</div>
-                            <div className="text-base-content mt-0.5 text-sm">
-                              {typeof calculatedValue === "object" && "displayValue" in calculatedValue
-                                ? calculatedValue.displayValue.toString()
-                                : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
-                            </div>
-                            {typeof calculatedValue === "object" && "formula" in calculatedValue && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                {calculatedValue.formula}
-                              </div>
-                            )}
-                          </div>
+                    <div key={key} className="flex flex-col gap-1 mb-2">
+                      <div className="card bg-base-100 shadow-sm p-2 h-full">
+                        <div className="text-sm font-medium text-primary mb-1">{key}</div>
+                        <div className="text-base-content mt-0.5">
+                          {typeof calculatedValue === "object" && "displayValue" in calculatedValue
+                            ? calculatedValue.displayValue.toString()
+                            : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
                         </div>
+                        {typeof calculatedValue === "object" && "formula" in calculatedValue && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            {calculatedValue.formula}
+                          </div>
+                        )}
                       </div>
-                    </Fragment>
+                    </div>
                   );
                 }
                 else {
                   return (
-                    <Fragment key={key}>
-                      {/* 移动端 fieldset */}
-                      <div className="sm:hidden">
-                        <fieldset className="fieldset p-2">
-                          <legend className="fieldset-legend text-sm text-primary font-bold">{key}</legend>
-                          {isEditing
-                            ? (
-                                <div className="flex items-center gap-1">
+                    <div key={key} className="flex flex-col gap-1 mb-2">
+                      {isEditing
+                        ? (
+                            <div className="flex items-center gap-1 group">
+                              <div className="hidden md:block w-full">
+                                <label className={`input flex items-center gap-1 md:gap-2 w-full ${
+                                  isEditing ? "bg-base-100" : ""
+                                }`}
+                                >
+                                  <span className="text-xs md:text-sm">{key}</span>
+                                  <div className="w-px h-4 bg-base-content/20"></div>
                                   <input
                                     type="text"
                                     value={typeof calculatedValue === "object" && "displayValue" in calculatedValue
                                       ? calculatedValue.displayValue.toString()
                                       : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
-                                    className="input input-bordered input-sm w-full"
+                                    className="grow"
                                     disabled={!isEditing}
                                     onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
-                                    placeholder="请输入"
                                   />
+                                </label>
+                              </div>
+                              <div className="block md:hidden w-full">
+                                <fieldset className="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
+                                  <legend className="fieldset-legend text-xs">{key}</legend>
+                                  <input
+                                    type="text"
+                                    value={typeof calculatedValue === "object" && "displayValue" in calculatedValue
+                                      ? calculatedValue.displayValue.toString()
+                                      : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
+                                    className="input w-full"
+                                    disabled={!isEditing}
+                                    onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
+                                  />
+                                </fieldset>
+                              </div>
+                            </div>
+                          )
+                        : (
+                            <div className="card bg-base-100 shadow-sm p-2 h-full">
+                              <div className="flex items-center gap-0 md:gap-2">
+                                <div className="text-primary p-1 text-xs md:text-base md:p-2">
+                                  {key}
                                 </div>
-                              )
-                            : (
-                                <div className="text-base-content mt-1 p-2">
-                                  {typeof calculatedValue === "object" && "displayValue" in calculatedValue
-                                    ? calculatedValue.displayValue.toString()
-                                    : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
-                                  {typeof calculatedValue === "object" && "formula" in calculatedValue && (
-                                    <div className="text-xs text-gray-500 mt-1">
-                                      {calculatedValue.formula}
-                                    </div>
-                                  )}
+                                <div className="divider divider-horizontal ml-0 mr-0 md:mr-2" />
+                                <div className="text-base-content text-xs md:text-base p-1 md:p-0">
+                                  <span>
+                                    {typeof calculatedValue === "object" && "displayValue" in calculatedValue
+                                      ? calculatedValue.displayValue.toString()
+                                      : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
+                                  </span>
                                 </div>
-                              )}
-                        </fieldset>
-                      </div>
-                      {/* 桌面端样式 */}
-                      <div className="hidden sm:block">
-                        <div key={key} className="flex flex-col gap-1">
-                          {isEditing
-                            ? (
-                                <div className="flex items-center gap-1 group">
-                                  <label className={`input input-sm flex items-center gap-1 md:gap-2 w-full ${
-                                    isEditing ? "bg-base-100" : ""
-                                  }`}
-                                  >
-                                    <span className="text-xs md:text-sm">{key}</span>
-                                    <div className="w-px h-4 bg-base-content/20"></div>
-                                    <input
-                                      type="text"
-                                      value={typeof calculatedValue === "object" && "displayValue" in calculatedValue
-                                        ? calculatedValue.displayValue.toString()
-                                        : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
-                                      className="grow text-sm"
-                                      disabled={!isEditing}
-                                      onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
-                                    />
-                                  </label>
-                                </div>
-                              )
-                            : (
-                                <div className="card bg-base-100 shadow-sm p-2 h-full">
-                                  <div className="flex items-center gap-0 md:gap-2">
-                                    <div className="text-primary p-1 text-xs md:text-base md:p-1 text-sm">
-                                      {key}
-                                    </div>
-                                    <div className="divider divider-horizontal ml-0" />
-                                    <div className="text-base-content text-sm">
-                                      {typeof calculatedValue === "object" && "displayValue" in calculatedValue
-                                        ? calculatedValue.displayValue.toString()
-                                        : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
-                                    </div>
-                                  </div>
-                                  {typeof calculatedValue === "object" && "formula" in calculatedValue && (
-                                    <div className="text-xs text-gray-500 mt-1">
-                                      {calculatedValue.formula}
-                                    </div>
-                                  )}
+                              </div>
+                              {typeof calculatedValue === "object" && "formula" in calculatedValue && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {calculatedValue.formula}
                                 </div>
                               )}
-                        </div>
-                      </div>
-                    </Fragment>
+                            </div>
+                          )}
+                    </div>
                   );
                 }
               })}

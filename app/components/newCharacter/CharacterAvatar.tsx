@@ -116,10 +116,10 @@ export default function CharacterAvatar({ role, onchange }: {
   const uniqueFileName = generateUniqueFileName(role.id);
 
   return (
-    <div className="form-control w-full max-w-xs">
-      <div className="flex flex-col items-center">
-        <div className="avatar cursor-pointer group flex items-center justify-center w-full sm:w-40 md:w-48" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
-          <div className="rounded-xl ring-primary ring-offset-base-100 w-36 sm:w-40 md:w-48 ring ring-offset-2 relative overflow-hidden">
+    <div className="w-full max-w-xs">
+      <div className="flex justify-center">
+        <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
+          <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative overflow-hidden">
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
             <img
               src={role.avatar || "./favicon.ico"}
@@ -197,9 +197,7 @@ export default function CharacterAvatar({ role, onchange }: {
                       mutate({ ...data, roleId: role.id });
                     }}
                   >
-                    <button
-                      className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group"
-                    >
+                    <button className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         className="w-full h-full text-gray-400 transition-transform duration-300 group-hover:scale-105"
@@ -226,7 +224,7 @@ export default function CharacterAvatar({ role, onchange }: {
                 <div className="card-body items-center text-center">
                   <h2 className="card-title text-2xl font-bold">确认删除头像</h2>
                   <div className="divider"></div>
-                  <p className="text-lg opacity-75 mb-8 ">确定要删除这个头像吗？</p>
+                  <p className="text-lg opacity-75 mb-8">确定要删除这个头像吗？</p>
                 </div>
               </div>
               <div className="card-actions justify-center gap-6 mt-8">

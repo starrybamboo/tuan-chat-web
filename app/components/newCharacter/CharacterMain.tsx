@@ -130,9 +130,9 @@ export default function CharacterMain() {
 
       <input id="character-drawer" type="checkbox" className="drawer-toggle" />
       {/* 侧边栏 */}
-      <div className="drawer-side z-40">
+      <div className="drawer-side z-10">
         <label htmlFor="character-drawer" className="drawer-overlay"></label>
-        <div className="menu p-4 w-80 min-h-full bg-base-200 flex flex-col">
+        <div className="menu p-4 w-80 h-full bg-base-200 flex flex-col">
           {/* 搜索和创建区域 - 固定在顶部 */}
           <div className="flex gap-2 mb-4 sticky top-0 bg-base-200 z-10 py-2">
             <input

@@ -36,8 +36,8 @@ export default function PerformanceEditor({
   const longFieldKeys = ["外貌", "背景故事", "特质"];
 
   // 长字段（如背景故事等）
-  const longFields = Object.entries(fields)
-    .filter(([key]) => longFieldKeys.includes(key));
+  // const longFields = Object.entries(fields)
+  //   .filter(([key]) => longFieldKeys.includes(key));
 
   const shortFields = Object.keys(abilityData || fields)
     .filter(key => key !== "携带物品" && !longFieldKeys.includes(key));
@@ -50,7 +50,7 @@ export default function PerformanceEditor({
   // const leftLongFields = longFields.slice(0, leftColumnCount);
   // const rightLongFields = longFields.slice(leftColumnCount);
 
-  // 物品相关字段处理 - 提取携带物品信息
+  // // 物品相关字段处理 - 提取携带物品信息
   // const itemsString = fields["携带物品"] || "";
   // const items = itemsString
   //   // 格式：物品名称1:描述1|物品名称2:描述2|...
@@ -192,191 +192,251 @@ export default function PerformanceEditor({
       </div>
 
       {/* 短字段区域 - 多列排布 */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 ">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:5 gap-6">
         {shortFields.map(key => (
           <div key={key} className="group">
             {isEditing
               ? (
-                  <>
-                    {/* 移动端 fieldset */}
-                    <div className="sm:hidden">
-                      <fieldset className="fieldset p-2">
-                        <legend className="fieldset-legend text-sm font-medium font-medium text-primary">{key}</legend>
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="text"
-                            onChange={(e) => {
-                              const newFields = { ...fields, [key]: e.target.value };
-                              onChange(newFields);
-                            }}
-                            value={fields[key] || ""}
-                            className="input input-bordered input-sm w-full"
-                            placeholder="请输入"
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-error btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1"
-                            onClick={() => handleDeleteField(key)}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-4 w-4"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                              <line x1="10" y1="11" x2="10" y2="17" />
-                              <line x1="14" y1="11" x2="14" y2="17" />
-                            </svg>
-                          </button>
-                        </div>
-                      </fieldset>
-                    </div>
-                    {/* 桌面端原有样式 */}
-                    <div className="hidden sm:block">
-                      <div className="flex items-center gap-1">
-                        <label className="input input-group flex-grow">
-                          <span className="text-sm font-medium">{key}</span>
-                          <div className="w-px h-4 bg-base-content/25"></div>
-                          <input
-                            type="text"
-                            onChange={(e) => {
-                              const newFields = { ...fields, [key]: e.target.value };
-                              onChange(newFields);
-                            }}
-                            value={fields[key] || ""}
-                            className="grow"
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          className="btn btn-error btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1"
-                          onClick={() => handleDeleteField(key)}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                            <line x1="10" y1="11" x2="10" y2="17" />
-                            <line x1="14" y1="11" x2="14" y2="17" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </>
+            // 编辑模式下的UI
+                  <div className="flex items-center gap-1">
+                    <fieldset className="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
+                      <legend className="fieldset-legend text-sm font-medium">{key}</legend>
+                      <textarea
+                        onChange={(e) => {
+                          const newFields = { ...fields, [key]: e.target.value };
+                          onChange(newFields);
+                        }}
+                        value={fields[key] || ""}
+                        className="textarea w-full resize-none"
+                        rows={1}
+                      />
+                    </fieldset>
+                    <button
+                      type="button"
+                      className="btn btn-error btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1"
+                      onClick={() => handleDeleteField(key)}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
+                    </button>
+                  </div>
+
                 )
               : (
-                  <>
-                    {/* 移动端 fieldset */}
-                    <div className="sm:hidden">
-                      <fieldset className="fieldset p-2">
-                        <legend className="fieldset-legend text-sm font-medium font-medium text-primary">{key}</legend>
-                        <div className="text-base-content mt-1 p-2">
-                          {fields[key] || <span className="text-base-content/50">未设置</span>}
-                        </div>
-                      </fieldset>
-                    </div>
-                    {/* 桌面端原有样式 */}
-                    <div className="hidden sm:block">
-                      <div className="card bg-base-100 shadow-sm p-2 h-full">
-                        <div className="divider">{key}</div>
-                        <div className="text-base-content mt-0.5 flex justify-center p-2">
-                          <div className="text-left">
-                            {fields[key] || <span className="text-base-content/50">未设置</span>}
-                          </div>
-                        </div>
+            // 非编辑模式下的UI
+                  <div className="card bg-base-100 shadow-sm p-2 h-full">
+                    {/* <div className="text-primary">{key}</div> */}
+                    <div className="divider">{key}</div>
+                    <div className="text-base-content mt-0.5 flex justify-center p-2">
+                      <div className="text-left">
+                        {fields[key] || <span className="text-base-content/50">未设置</span>}
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
-          </div>
-        ))}
-      </div>
-
-      {/* 长字段区域 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {longFields.map(([key, value]) => (
-          <div key={key}>
-            {/* 移动端 fieldset */}
-            <div className="sm:hidden">
-              <fieldset className="fieldset p-2">
-                <legend className="fieldset-legend text-sm font-medium">{key}</legend>
-                {isEditing
-                  ? (
-                      <textarea
-                        value={value}
-                        className="textarea textarea-bordered w-full h-32 resize-none"
-                        onChange={(e) => {
-                          onChange({ ...fields, [key]: e.target.value });
-                        }}
-                        placeholder="请输入"
-                      />
-                    )
-                  : (
-                      <div className="text-base-content mt-1 p-2 whitespace-pre-wrap">
-                        {value || <span className="text-base-content/50">未设置</span>}
-                      </div>
-                    )}
-              </fieldset>
-            </div>
-            {/* 桌面端原有样式 */}
-            <div className="hidden sm:block">
-              <fieldset className="group fieldset">
-                <legend className="fieldset-legend">{key}</legend>
-                <textarea
-                  value={value}
-                  className="textarea w-full h-24 resize-none"
-                  onChange={(e) => {
-                    onChange({ ...fields, [key]: e.target.value });
-                  }}
-                  disabled={!isEditing}
-                  placeholder={isEditing ? "请输入" : "请打开编辑模式"}
-                />
-              </fieldset>
-            </div>
           </div>
         ))}
       </div>
 
       {/* 添加新字段区域 */}
       {isEditing && (
-        <div className="border-t border-base-300 pt-4 mt-4">
-          <div className="flex gap-4 max-w-2xl">
+        <fieldset className="border border-base-300 rounded-lg p-4 mt-4">
+          <legend className="px-2 font-bold">添加新字段</legend>
+          <div className="flex flex-col w-full gap-2">
             <input
               type="text"
               placeholder="字段名称"
-              className="input input-bordered input-sm w-1/3"
+              className="input input-bordered input-sm w-1/4 mt-2"
               value={newKey}
               onChange={e => setNewKey(e.target.value)}
             />
-            <input
-              type="text"
+            <textarea
               placeholder="值"
-              className="input input-bordered input-sm w-1/2"
+              className="textarea textarea-bordered textarea-sm w-full resize-none"
               value={newValue}
               onChange={e => setNewValue(e.target.value)}
+              rows={1}
             />
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm w-fit"
               onClick={handleAddField}
             >
               添加字段
             </button>
           </div>
-        </div>
+        </fieldset>
       )}
+
+      {/* 长字段区域，目前没用上，而且左右分割对长字段不适用 */}
+      {/* <div className="flex gap-4">
+         左侧列
+        <div className="flex-1 space-y-3">
+          {leftLongFields.map(([key, value]) => (
+            <fieldset key={key} className="group feildset p-4">
+              <legend className="fieldset-legend">{key}</legend>
+              <textarea
+                value={value}
+                className="textarea w-full h-24 resize-none"
+                onChange={(e) => {
+                  onChange({ ...fields, [key]: e.target.value });
+                }}
+                disabled={!isEditing}
+                placeholder={isEditing ? "请输入" : "请打开编辑模式"}
+              />
+            </fieldset>
+          ))}
+        </div>
+         分隔线
+        {rightLongFields.length > 0 && (
+          <div className="border-r border-base-300"></div>
+        )}
+         右侧列
+        <div className="flex-1 space-y-3">
+          {rightLongFields.map(([key, value]) => (
+            <div key={key} className="group flex flex-col">
+              <label className="text-sm font-medium mb-1">{key}</label>
+              <textarea
+                value={value}
+                className="textarea textarea-bordered w-full h-24 resize-none"
+                onChange={(e) => {
+                  onChange({ ...fields, [key]: e.target.value });
+                }}
+                disabled={!isEditing}
+                placeholder={isEditing ? "请输入" : "请打开编辑模式"}
+              />
+            </div>
+          ))}
+        </div>
+      </div> */ }
+
+      {/* 物品区域 - 特殊布局 */}
+      {/* <div className="border-t border-base-300 pt-4 mt-4">
+        <h3 className="font-bold mb-3">携带物品</h3>
+
+        <div className="bg-base-200 rounded-lg">
+          <table className="table table-zebra table-compact w-full">
+            <thead>
+              <tr>
+                <th className="w-1/4">物品名称</th>
+                <th className="w-3/4">物品描述</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, index) => (
+                <tr key={index} className="group border-hidden">
+                  <td>
+                    <input
+                      type="text"
+                      value={item.name}
+                      className="input input-bordered input-sm w-full"
+                      onChange={(e) => {
+                        handleUpdateItem(index, e.target.value, item.desc);
+                      }}
+                      disabled={!isEditing}
+                      placeholder={isEditing ? "新物品名称" : "请打开编辑模式"}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      value={item.desc}
+                      className="input input-bordered input-sm w-full"
+                      onChange={(e) => {
+                        handleUpdateItem(index, item.name, e.target.value);
+                      }}
+                      disabled={!isEditing}
+                      placeholder={isEditing ? "物品描述" : "请打开编辑模式"}
+                    />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn btn-error btn-xs"
+                      disabled={!isEditing}
+                      onClick={() => handleRemoveItem(index)}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path
+                          d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                        />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+
+              <tr className="group">
+                <td>
+                  <input
+                    type="text"
+                    disabled={!isEditing}
+                    placeholder={isEditing ? "请输入" : "请打开编辑模式"}
+                    className="input input-bordered input-sm w-full"
+                    value={newItemName}
+                    onChange={e => setNewItemName(e.target.value)}
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    disabled={!isEditing}
+                    placeholder={isEditing ? "请输入" : "请打开编辑模式"}
+                    className="input input-bordered input-sm w-full"
+                    value={newItemDesc}
+                    onChange={e => setNewItemDesc(e.target.value)}
+                  />
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-xs"
+                    disabled={!isEditing || !newItemName || !newItemDesc}
+                    onClick={handleAddItem}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div> */}
     </div>
   );
 }

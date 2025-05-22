@@ -1,4 +1,5 @@
 import { RoomContext } from "@/components/chat/roomContext";
+import { EditableField } from "@/components/common/editableField";
 import { use, useState } from "react";
 import {
   useGetRoomInitiativeListQuery,
@@ -16,8 +17,6 @@ export default function InitiativeList() {
   const initiativeListMutation = useRoomInitiativeListMutation(roomId);
   const getRoomInitiativeListQuery = useGetRoomInitiativeListQuery(roomId);
   const list = getRoomInitiativeListQuery.data ?? [];
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editValue, setEditValue] = useState("");
   const [newItem, setNewItem] = useState({ name: "", value: "" });
 
   // 删除项
@@ -25,35 +24,17 @@ export default function InitiativeList() {
     initiativeListMutation.mutate(JSON.stringify(list.filter((_, i) => i !== index)));
   };
 
-  // 开始编辑数值
-  const handleEditStart = async (index: number, value: number) => {
-    await getRoomInitiativeListQuery.refetch();
-    setEditingIndex(index);
-    setEditValue(value.toString());
-  };
-
   // 保存编辑
-  const handleEditSave = async (index: number) => {
-    await getRoomInitiativeListQuery.refetch();
-    const newValue = Number.parseInt(editValue);
-    if (!Number.isNaN(newValue)) {
-      const newList = [...list];
-      newList[index].value = newValue;
-      initiativeListMutation.mutate(JSON.stringify(newList.sort((a, b) => b.value - a.value)));
-    }
-    setEditingIndex(null);
+  const handleUpdate = (initiativeList: Initiative[]) => {
+    initiativeListMutation.mutate(JSON.stringify(initiativeList.sort((a, b) => b.value - a.value)));
   };
 
   // 添加新项
-  const handleAdd = async () => {
-    await getRoomInitiativeListQuery.refetch();
-    if (newItem.name && !Number.isNaN(Number(newItem.value))) {
-      initiativeListMutation.mutate(JSON.stringify([
-        ...list.filter(i => i.name !== newItem.name),
-        { name: newItem.name, value: Number(newItem.value) },
-      ].sort((a, b) => b.value - a.value)));
-      setNewItem({ name: "", value: "" });
-    }
+  const handleAdd = () => {
+    handleUpdate([
+      ...list.filter(i => i.name !== newItem.name),
+      { name: newItem.name, value: Number(newItem.value) },
+    ]);
   };
 
   return (
@@ -89,32 +70,30 @@ export default function InitiativeList() {
         <div className="space-y-2 w-full ">
           {list.map((item, index) => (
             <div
-              key={index}
+              key={item.name}
               className="flex gap-3 p-3 rounded-lg items-center justify-between hover:bg-base-200 transition-colors group"
             >
-              <span className="font-medium truncate">{item.name}</span>
+              <EditableField
+                content={item.name}
+                handleContentUpdate={(newName) => {
+                  handleUpdate(list.map(i => i.name === item.name ? { ...i, name: newName } : i));
+                }}
+                className="font-medium truncate max-w-30"
+                usingInput
+              >
+              </EditableField>
 
               <div className="flex items-center gap-2">
-                {editingIndex === index
-                  ? (
-                      <input
-                        type="number"
-                        value={editValue}
-                        onChange={e => setEditValue(e.target.value)}
-                        onBlur={() => handleEditSave(index)}
-                        onKeyDown={e => e.key === "Enter" && handleEditSave(index)}
-                        className="input input-bordered w-20 text-right"
-                        autoFocus
-                      />
-                    )
-                  : (
-                      <span
-                        onDoubleClick={() => handleEditStart(index, item.value)}
-                        className="cursor-text select-none px-2 min-w-[40px] text-right"
-                      >
-                        {item.value}
-                      </span>
-                    )}
+                <EditableField
+                  content={item.value.toString()}
+                  handleContentUpdate={(newValue) => {
+                    handleUpdate(list.map(i => i.name === item.name ? { ...i, value: Number(newValue) } : i));
+                  }}
+                  className="max-w-20 text-right"
+                  usingInput
+                  type="number"
+                >
+                </EditableField>
 
                 <button
                   onClick={() => handleDelete(index)}
