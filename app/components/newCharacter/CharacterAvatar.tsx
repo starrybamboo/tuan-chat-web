@@ -165,7 +165,7 @@ export default function CharacterAvatar({ role, onchange }: {
                       />
                       {/* 删除按钮  */}
                       <button
-                        className="absolute -top-2 -right-2 w-7 h-7 bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800 z-2"
+                        className="absolute -top-2 -right-2 w-5 h-5 md:w-7 md:h-7 bg-gray-700 md:bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800 z-2"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteAvatar(index);

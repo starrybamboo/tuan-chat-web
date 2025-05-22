@@ -199,7 +199,7 @@ export default function PerformanceEditor({
               ? (
             // 编辑模式下的UI
                   <div className="flex items-center gap-1">
-                    <fieldset className="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
+                    <fieldset className="fieldset relative bg-base-200 border-base-300 rounded-box w-full border p-4">
                       <legend className="fieldset-legend text-sm font-medium">{key}</legend>
                       <textarea
                         onChange={(e) => {
@@ -210,27 +210,27 @@ export default function PerformanceEditor({
                         className="textarea w-full resize-none"
                         rows={1}
                       />
-                    </fieldset>
-                    <button
-                      type="button"
-                      className="btn btn-error btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1"
-                      onClick={() => handleDeleteField(key)}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                      <button
+                        type="button"
+                        className="absolute -top-6 -right-3 btn btn-error btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1"
+                        onClick={() => handleDeleteField(key)}
                       >
-                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        <line x1="10" y1="11" x2="10" y2="17" />
-                        <line x1="14" y1="11" x2="14" y2="17" />
-                      </svg>
-                    </button>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          <line x1="10" y1="11" x2="10" y2="17" />
+                          <line x1="14" y1="11" x2="14" y2="17" />
+                        </svg>
+                      </button>
+                    </fieldset>
                   </div>
 
                 )
