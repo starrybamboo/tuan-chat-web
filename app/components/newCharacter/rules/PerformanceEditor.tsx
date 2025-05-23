@@ -192,7 +192,7 @@ export default function PerformanceEditor({
       </div>
 
       {/* 短字段区域 - 多列排布 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:5 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:5 gap-6">
         {shortFields.map(key => (
           <div key={key} className="group">
             {isEditing
@@ -213,7 +213,7 @@ export default function PerformanceEditor({
                     </fieldset>
                     <button
                       type="button"
-                      className="btn btn-error btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1"
+                      className="btn btn-error transition-opacity duration-400 btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1"
                       onClick={() => handleDeleteField(key)}
                     >
                       <svg
