@@ -122,7 +122,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const [transfereeId, setTransfereeId] = useState(-1);
 
   return (
-    <div className="w-full p-4 min-w-[40vw] max-h-[80vh] overflow-y-scroll">
+    <div className="w-full p-4 min-w-[40vw] max-h-[80vh]">
       {space && (
         <div>
           <div className="flex justify-center">

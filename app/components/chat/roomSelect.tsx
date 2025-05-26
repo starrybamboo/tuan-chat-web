@@ -39,10 +39,13 @@ export default function RoomSelect() {
 
   // 同步路由状态
   useEffect(() => {
-    if (activeSpaceId || activeRoomId) {
-      const path = `/chat/${activeSpaceId || ""}/${activeRoomId || ""}`;
-      navigate(path.replace(/\/+$/, ""), { replace: true });
-    }
+    const handler = setTimeout(() => {
+      if (activeSpaceId || activeRoomId) {
+        const path = `/chat/${activeSpaceId || ""}/${activeRoomId || ""}`;
+        navigate(path.replace(/\/+$/, ""), { replace: true });
+      }
+    }, 100); // 延迟 100ms
+    return () => clearTimeout(handler);
   }, [activeSpaceId, activeRoomId, navigate]);
 
   // 获取用户空间列表
@@ -470,73 +473,73 @@ export default function RoomSelect() {
         </PopWindow>
         {/* 创建房间弹出窗口 */}
         <PopWindow isOpen={isRoomHandleOpen} onClose={() => setIsRoomHandleOpen(false)}>
-          <div>
-            <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[60vh] overflow-y-scroll">
-              <p className="text-lg font-bold text-center w-full mb-4">创建房间</p>
-              {/* 头像上传 */}
-              <div className="flex justify-center mb-6">
-                <ImgUploaderWithCopper
-                  setCopperedDownloadUrl={(url) => {
-                    setRoomAvatar(url);
-                  }}
-                  fileName={`new-room-avatar-${Date.now()}`}
-                >
-                  <div className="relative group overflow-hidden rounded-lg">
-                    <img
-                      src={roomAvatar}
-                      className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
-                    />
-                    <div
-                      className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm"
-                    >
-                      <span className={`${roomAvatarTextColor} font-bold px-2 py-1 rounded`}>
-                        上传头像
-                      </span>
-                    </div>
-                  </div>
-                </ImgUploaderWithCopper>
-              </div>
+          <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[60vh] overflow-y-scroll">
+            <p className="text-lg font-bold text-center w-full mb-4">创建房间</p>
 
-              {/* 房间名称 */}
-              <div className="mb-4">
-                <label className="label mb-2">
-                  <span className="label-text">房间名称</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder={roomName}
-                  className="input input-bordered w-full"
-                  onChange={(e) => {
-                    const inputValue = e.target.value;
-                    setRoomName(inputValue === "" ? `${String(userInfo?.username)}的房间` : inputValue);
-                  }}
-                />
-              </div>
-              <MemberSelect
-                members={players}
-                selectedUserIds={selectedUserIds}
-                onSelectionChange={setSelectedUserIds}
-                searchInput={inputUserId}
-                onSearchInputChange={setInputUserId}
-                emptyMessage="当前空间内没有玩家哦"
-                searchPlaceholder="请输入要加入的玩家ID"
-              />
-              <div className="bottom-0 w-full bg-base-300 pt-4">
-                <button
-                  type="button"
-                  className="btn btn-primary w-full shadow-lg"
-                  onClick={() => {
-                    const userIds = [
-                      ...selectedUserIds,
-                      ...(inputUserId > 0 ? [inputUserId] : []),
-                    ];
-                    createRoom(Number(activeSpaceId), userIds);
-                  }}
-                >
-                  创建房间
-                </button>
-              </div>
+            {/* 头像上传 */}
+            <div className="flex justify-center mb-6">
+              <ImgUploaderWithCopper
+                setCopperedDownloadUrl={(url) => {
+                  setRoomAvatar(url);
+                }}
+                fileName={`new-room-avatar-${Date.now()}`}
+              >
+                <div className="relative group overflow-hidden rounded-lg">
+                  <img
+                    src={roomAvatar}
+                    className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
+                  />
+                  <div
+                    className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm"
+                  >
+                    <span className={`${roomAvatarTextColor} font-bold px-2 py-1 rounded`}>
+                      上传头像
+                    </span>
+                  </div>
+                </div>
+              </ImgUploaderWithCopper>
             </div>
+
+            {/* 房间名称 */}
+            <div className="mb-4">
+              <label className="label mb-2">
+                <span className="label-text">房间名称</span>
+              </label>
+              <input
+                type="text"
+                placeholder={roomName}
+                className="input input-bordered w-full"
+                onChange={(e) => {
+                  const inputValue = e.target.value;
+                  setRoomName(inputValue === "" ? `${String(userInfo?.username)}的房间` : inputValue);
+                }}
+              />
+            </div>
+
+            <MemberSelect
+              members={players}
+              selectedUserIds={selectedUserIds}
+              onSelectionChange={setSelectedUserIds}
+              searchInput={inputUserId}
+              onSearchInputChange={setInputUserId}
+              emptyMessage="当前空间内没有玩家哦"
+              searchPlaceholder="请输入要加入的玩家ID"
+            />
+          </div>
+          <div className="bottom-0 w-full bg-base-300 pt-4">
+            <button
+              type="button"
+              className="btn btn-primary w-full shadow-lg"
+              onClick={() => {
+                const userIds = [
+                  ...selectedUserIds,
+                  ...(inputUserId > 0 ? [inputUserId] : []),
+                ];
+                createRoom(Number(activeSpaceId), userIds);
+              }}
+            >
+              创建房间
+            </button>
           </div>
         </PopWindow>
       </div>
