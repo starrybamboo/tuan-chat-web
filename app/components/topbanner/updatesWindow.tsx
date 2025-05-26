@@ -35,7 +35,7 @@ export default function UpdatesPopWindow() {
     return null;
   return (
     <PopWindow isOpen={isOpen} onClose={handleClose}>
-      <div className="max-w-2xl p-6 w-[80vw] lg:w-[60vw]">
+      <div className="p-6 w-[80vw] lg:w-[60vw] overflow-auto flex flex-col">
         <div className="flex justify-between items-center pb-4">
           <span className="text-xl font-bold">
             更新日志 (
@@ -46,11 +46,11 @@ export default function UpdatesPopWindow() {
           </span>
         </div>
 
-        <div className="max-h-[60vh] overflow-y-auto ">
+        <div className="max-h-[60vh] overflow-y-auto w-full overflow-auto">
           <MarkdownViewer content={currentContent} />
         </div>
 
-        <div className="flex justify-between pt-3">
+        <div className="flex justify-between pt-3 w-full">
           <button
             onClick={() => { setMarkdownIndex(prev => (prev > 0 ? prev - 1 : totalFiles - 1)); }}
             type="button"
