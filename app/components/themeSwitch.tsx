@@ -1,16 +1,22 @@
-import { useMediaQuery } from "@uidotdev/usehooks";
+import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 
 export default function ThemeSwitch() {
-  const isDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
+  const [isDarkMode, setIsDarkMode] = useLocalStorage("isDarkMode", false);
 
   return (
     <label className="swap swap-rotate w-8 h-8">
       {/* this hidden checkbox controls the state */}
-      <input type="checkbox" className="theme-controller" value={isDarkMode ? "silk" : "forest"} />
+      <input
+        type="checkbox"
+        className="theme-controller"
+        value="forest"
+        checked={isDarkMode}
+        onChange={() => { setIsDarkMode(!isDarkMode); }}
+      />
 
       {/* sun icon */}
       <svg
-        className={`${isDarkMode ? "swap-off" : "swap-on"} w-8 h-8 fill-current`}
+        className="swap-on w-8 h-8 fill-current"
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
       >
@@ -21,7 +27,7 @@ export default function ThemeSwitch() {
 
       {/* moon icon */}
       <svg
-        className={`${isDarkMode ? "swap-on" : "swap-off"} w-8 h-8 fill-current`}
+        className="swap-off w-8 h-8 fill-current"
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
       >

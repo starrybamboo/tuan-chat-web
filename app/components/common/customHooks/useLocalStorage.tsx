@@ -4,7 +4,12 @@ export function getLocalStorageValue<T>(key: string, defaultValue: T): T {
   // getting stored value
   if (typeof window !== "undefined") {
     const saved = localStorage.getItem(key);
-    return saved !== null ? JSON.parse(saved) as T : defaultValue;
+    if (saved === null || saved === undefined || saved === "undefined") {
+      return defaultValue;
+    }
+    else {
+      return JSON.parse(saved) as T;
+    }
   }
 
   return defaultValue;
