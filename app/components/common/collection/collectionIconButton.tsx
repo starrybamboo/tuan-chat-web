@@ -1,8 +1,10 @@
 import type { CollectionCheckRequest } from "../../../../api";
 import {
   useAddCollectionMutation,
+  useDeleteCollectionMutation,
   useCheckUserCollectionQuery,
 } from "../../../../api/hooks/collectionQueryHooks";
+import { toast } from "react-hot-toast";
 
 export default function CollectionIconButton({ targetInfo }: { targetInfo: CollectionCheckRequest }) {
   const isCollectedQuery = useCheckUserCollectionQuery(targetInfo);
@@ -11,11 +13,15 @@ export default function CollectionIconButton({ targetInfo }: { targetInfo: Colle
   const collectionCount = targetInfo.resourceId; // 假设targetId包含收藏数
 
   const addCollectionMutation = useAddCollectionMutation();
-  // const deleteCollectionMutation = useDeleteCollectionMutation();
+  const deleteCollectionMutation = useDeleteCollectionMutation();
 
   const toggleCollection = () => {
+    const isLogin = Boolean(localStorage.getItem("token"));
+    if (!isLogin) {
+      toast.error("请先登录！");
+    }
     if (isCollected) {
-      // deleteCollectionMutation.mutate(targetInfo);
+       deleteCollectionMutation.mutate(targetInfo.resourceId);
     }
     else {
       addCollectionMutation.mutate({ ...targetInfo, comment: "default" });

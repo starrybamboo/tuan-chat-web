@@ -98,23 +98,23 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
         </button>
       </div>
 
-      {/* 底部评论区 - 弹出式 */}
-      {/* {showComments && ( */}
-      {/*  <div className="absolute inset-0 z-10 shadow-xl"> */}
-      {/*    <div className="absolute bottom-0 left-0 right-0 bg-base-100/90 rounded-t-3xl p-4 h-[70vh] flex flex-col"> */}
-      {/*      /!* 评论区标题和关闭按钮 *!/ */}
-      {/*      <div className="flex justify-end "> */}
-      {/*        <button onClick={() => setShowComments(false)} className="text-gray-400" type="button"> */}
-      {/*          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"> */}
-      {/*            <path d="M18 6L6 18M6 6l12 12" /> */}
-      {/*          </svg> */}
-      {/*        </button> */}
-      {/*      </div> */}
+       {/* 底部评论区 - 弹出式
+       {showComments && ( 
+        <div className="absolute inset-0 z-10 shadow-xl"> 
+          <div className="absolute bottom-0 left-0 right-0 bg-base-100/90 rounded-t-3xl p-4 h-[70vh] flex flex-col">
+            /!* 评论区标题和关闭按钮 *!/ 
+            <div className="flex justify-end "> 
+              <button onClick={() => setShowComments(false)} className="text-gray-400" type="button">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"> 
+                  <path d="M18 6L6 18M6 6l12 12" /> 
+                </svg> 
+              </button>
+            </div> 
 
-      {/*      /!* 评论列表 *!/ */}
-      {/*    </div> */}
-      {/*  </div> */}
-      {/* )} */}
+            /!* 评论列表 *!/
+          </div> 
+        </div> )} */}
+    
       <PopWindow isOpen={showComments} onClose={() => setShowComments(false)}>
         <div className="overflow-y-auto space-y-4 h-[80vh] w-[60vw]">
           <CommentPanel targetInfo={{ targetId: feed.feedId ?? -1, targetType: "1" }} className="h-full"></CommentPanel>

@@ -4,6 +4,8 @@
 import type { LikeRecordRequest } from "../../../api";
 import { useGetCounterQuery } from "../../../api/hooks/couterQueryHooks";
 import { useIsLikedQuery, useLikeMutation, useUnlikeMutation } from "../../../api/hooks/likeQueryHooks";
+import { useGetUserInfoQuery } from "../../../api/queryHooks";
+import { toast } from "react-hot-toast";
 
 export default function LikeIconButton({ targetInfo }: { targetInfo: LikeRecordRequest }) {
   const isLikedQuery = useIsLikedQuery({
@@ -18,6 +20,10 @@ export default function LikeIconButton({ targetInfo }: { targetInfo: LikeRecordR
   const unlikeMutation = useUnlikeMutation();
 
   const toggleLike = () => {
+    const isLogin = Boolean(localStorage.getItem("token"));
+    if (!isLogin) {
+      toast.error("请先登录！");
+    }
     if (isLiked) {
       unlikeMutation.mutate(targetInfo);
     }
