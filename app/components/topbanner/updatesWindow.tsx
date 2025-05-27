@@ -1,5 +1,5 @@
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
-import { MarkdownViewer } from "@/components/common/MarkDownViewer";
+import { MarkDownViewer } from "@/components/common/markDownViewer";
 import { PopWindow } from "@/components/common/popWindow";
 
 import { useEffect, useState } from "react";
@@ -47,7 +47,7 @@ export default function UpdatesPopWindow() {
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto w-full overflow-auto">
-          <MarkdownViewer content={currentContent} />
+          <MarkDownViewer content={currentContent} />
         </div>
 
         <div className="flex justify-between pt-3 w-full">
@@ -60,7 +60,10 @@ export default function UpdatesPopWindow() {
             {"<"}
           </button>
           <button
-            onClick={() => { setLastUnRemindFileNumber(totalFiles); }}
+            onClick={() => {
+              setLastUnRemindFileNumber(totalFiles);
+              setIsOpen(false);
+            }}
             type="button"
             className="btn btn-info"
           >

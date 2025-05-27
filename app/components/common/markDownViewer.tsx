@@ -19,7 +19,6 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
             height="500"
             scrolling="no"
             frameBorder="0"
-            sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"
           >
           </iframe>
         </div>
@@ -60,7 +59,7 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
   }
 }
 
-export function MarkdownViewer({ content }: { content: string }) {
+export function MarkDownViewer({ content }: { content: string }) {
   return (
     <div className="prose max-w-none">
       <ReactMarkdown
