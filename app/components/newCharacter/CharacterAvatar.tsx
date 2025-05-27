@@ -185,7 +185,7 @@ export default function CharacterAvatar({ role, onchange }: {
               <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
                 {roleAvatars.map((item, index) => (
                   <li
-                    key={item.avatarUrl}
+                    key={`${role.id}-${item.avatarUrl}`}
                     className="relative w-full max-w-[128px] flex flex-col items-center rounded-lg transition-colors"
                     onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
                   >
