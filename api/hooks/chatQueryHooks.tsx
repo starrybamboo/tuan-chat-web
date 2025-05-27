@@ -24,6 +24,7 @@ import type { RoomExtraSetRequest } from "../models/RoomExtraSetRequest";
 import type { FightRoomAddRequest } from "../models/FightRoomAddRequest";
 import type { Initiative } from "@/components/chat/initiativeList";
 import type { SpaceArchiveRequest } from "api/models/SpaceArchiveRequest";
+import type { LeaderTransferRequest } from "api/models/LeaderTransferRequest";
 
 /**
  * 创建空间
@@ -398,6 +399,22 @@ export function useTransferOwnerMutation() {
             queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
         }
     });
+}
+
+/**
+ * 转让KP
+ */
+export function useTransferLeader() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn:(req: LeaderTransferRequest) => tuanchat.spaceMemberController.transferLeader(req),
+        mutationKey: ['transferLeader'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['getSpaceMemberList', variables.spaceId] });
+            queryClient.invalidateQueries({ queryKey: ['getRoomMemberList'] });
+            queryClient.invalidateQueries({ queryKey: ['getUserSpaces'] });
+        }
+    })
 }
 
 // ==================== 群组角色管理 ====================

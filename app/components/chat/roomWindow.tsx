@@ -188,11 +188,11 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       handleTextInputChange("");
     }
     // 滚动到底部, 设置异步是为了等待新消息接受并渲染好
-    setTimeout(() => {
-      if (chatFrameRef.current) {
-        chatFrameRef.current.scrollTo({ top: 0, behavior: "smooth" });
-      }
-    }, 300);
+    // setTimeout(() => {
+    //   if (chatFrameRef.current) {
+    //     chatFrameRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    //   }
+    // }, 300);
 
     setIsSubmitting(false);
   };
