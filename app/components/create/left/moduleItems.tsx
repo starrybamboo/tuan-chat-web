@@ -393,10 +393,10 @@ function ItemList() {
     createItem({
       ruleId: ctx.ruleId,
       name: itemName,
-      description: "",
-      extra: {},
-      type: "",
-      image: "",
+      description: "新物品",
+      extra: { default: "default" },
+      type: "暂时未知",
+      image: "null",
     }, {
       onSuccess: ({ data: itemId }) => {
         addItem({

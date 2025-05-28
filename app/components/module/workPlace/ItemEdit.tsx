@@ -1,11 +1,13 @@
 import type { ModuleItemResponse } from "api/models/ModuleItemResponse";
+import { useUpdateItemMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useState } from "react";
 
 interface ItemEditProps {
   selectedItem: ModuleItemResponse;
+  moduleId: number;
 }
 
-export default function ItemEdit({ selectedItem }: ItemEditProps) {
+export default function ItemEdit({ selectedItem, moduleId }: ItemEditProps) {
   const [item, setItem] = useState<ModuleItemResponse>({ ...selectedItem });
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -13,6 +15,9 @@ export default function ItemEdit({ selectedItem }: ItemEditProps) {
   // 字数统计状态
   const [charCount, setCharCount] = useState(item.tip?.length || 0);
   const MAX_DESCRIPTION_LENGTH = 300;
+
+  // 更新物品mutation
+  const { mutate: updateItem } = useUpdateItemMutation();
 
   // 当外部传入的物品更新时同步本地状态
   useEffect(() => {
@@ -22,8 +27,8 @@ export default function ItemEdit({ selectedItem }: ItemEditProps) {
 
   const handleSave = () => {
     setIsTransitioning(true);
-    // 模拟保存逻辑，实际中替换为 API 调用
     setTimeout(() => {
+      updateItem({ ...item, itemId: item.itemId as number, moduleId });
       setIsTransitioning(false);
       setIsEditing(false);
     }, 500);

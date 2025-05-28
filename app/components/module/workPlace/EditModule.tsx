@@ -160,7 +160,7 @@ function ItemModuleTabItem({
         {label}
       </label>
       <div className="tab-content bg-base-100 border-base-300 p-6">
-        {isPending ? <div>Loading</div> : <ItemEdit selectedItem={item} />}
+        {isPending ? <div>Loading</div> : <ItemEdit selectedItem={item} moduleId={ctx.moduleId} />}
       </div>
     </>
   );
