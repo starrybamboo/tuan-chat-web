@@ -43,9 +43,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const uploadUtils = new UploadUtils(2);
 
-  // 承载聊天记录窗口的ref
-  const chatFrameRef = useRef<HTMLDivElement>(document.createElement("div"));
-
   const [commandMode, setCommandMode] = useState<commandModeType>("none");
 
   // 聊天框中包含的图片
@@ -242,7 +239,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         <div className="flex flex-col flex-1 h-full w-full">
           {/* 聊天框 */}
           <div className="card bg-base-100 shadow-sm">
-            <ChatFrame useChatBubbleStyle={useChatBubbleStyle} chatFrameRef={chatFrameRef} key={roomId}></ChatFrame>
+            <ChatFrame useChatBubbleStyle={useChatBubbleStyle} key={roomId}></ChatFrame>
           </div>
           {/* 输入区域 */}
           <form className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm flex flex-col flex-1">
