@@ -12,7 +12,7 @@ export function PopWindow({ isOpen, children, onClose }: {
   return (
     <Mounter targetId="modal-root">
       <div className={`modal ${isOpen ? "modal-open" : ""}`}>
-        <div className="modal-box relative bg-base-100 dark:bg-base-300 w-auto max-w-[90vw] md:max-w-[80vw] lg:max-w-[55vw] h-auto max-h-[90vh] overflow-auto">
+        <div className="modal-box relative bg-base-100 dark:bg-base-300 w-auto max-w-[90vw] lg:max-w-[80vw] h-auto max-h-[90vh] overflow-auto">
           {/* 关闭按钮 */}
           <button
             type="button"

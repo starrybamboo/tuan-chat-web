@@ -1,5 +1,8 @@
+import type { RoleResponse } from "api";
 import type { Role } from "./types";
-import { useCreateRoleMutation, useDeleteRolesMutation, useGetUserRolesQuery, useRolesInitialization, useUploadAvatarMutation } from "api/queryHooks";
+import { tuanchat } from "@/../api/instance";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCreateRoleMutation, useDeleteRolesMutation, useGetUserRolesQuery, useUploadAvatarMutation } from "api/queryHooks";
 import { useEffect, useState } from "react";
 import { PopWindow } from "../common/popWindow";
 import { useGlobalContext } from "../globalContextProvider";
@@ -9,7 +12,63 @@ export default function CharacterMain() {
   // 获取用户数据
   const userId = useGlobalContext().userId;
   const roleQuery = useGetUserRolesQuery(userId ?? -1);
-  const { roles, initializeRoles, setRoles, isLoading } = useRolesInitialization(roleQuery);
+
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
+
+  const initializeRoles = async () => {
+    setIsLoading(true);
+    try {
+      // 有query数据时
+      if (roleQuery?.data && Array.isArray(roleQuery.data.data)) {
+        // 将API返回的角色数据映射为前端使用的格式
+        const mappedRoles = roleQuery.data.data.map((role: RoleResponse) => ({
+          id: role.roleId || 0,
+          name: role.roleName || "",
+          description: role.description || "无描述",
+          avatar: "",
+          avatarId: role.avatarId || 0,
+          modelName: role.modelName || "",
+          speakerName: role.speakerName || "",
+        }));
+        // 将映射后的角色数据设置到状态中
+        setRoles(mappedRoles);
+
+        // 异步加载每个角色的头像
+        for (const Roles of mappedRoles) {
+          try {
+            const res = await tuanchat.avatarController.getRoleAvatar(Roles.avatarId);
+            if (
+              res.success
+              && res.data
+            ) {
+              const avatarUrl = res.data.avatarUrl;
+              // 将头像URL缓存到React Query缓存中
+              queryClient.setQueryData(["roleAvatar", Roles.id], avatarUrl);
+              // 更新角色列表中对应角色的头像URL
+              setRoles((prevChars: any[]) =>
+                prevChars.map(char =>
+                  char.id === Roles.id ? { ...char, avatar: avatarUrl } : char,
+                ),
+              );
+            }
+            else {
+              console.warn(`角色 ${Roles.id} 的头像数据无效或为空`);
+            }
+          }
+          catch (error) {
+            console.error(`加载角色 ${Roles.id} 的头像时出错`, error);
+          }
+        }
+      }
+    }
+    finally {
+      setIsLoading(false);
+    }
+  };
+
+  // const { roles, initializeRoles, setRoles, isLoading } = useRolesInitialization(roleQuery);
 
   // 状态管理
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
@@ -25,8 +84,10 @@ export default function CharacterMain() {
 
   // 初始化角色数据
   useEffect(() => {
-    initializeRoles();
-  }, [initializeRoles]);
+    if (roleQuery.isSuccess) {
+      initializeRoles();
+    }
+  }, [roleQuery.isSuccess]);
 
   // 删除弹窗状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -130,9 +191,9 @@ export default function CharacterMain() {
 
       <input id="character-drawer" type="checkbox" className="drawer-toggle" />
       {/* 侧边栏 */}
-      <div className="drawer-side z-40">
+      <div className="drawer-side z-10">
         <label htmlFor="character-drawer" className="drawer-overlay"></label>
-        <div className="menu p-4 w-80 min-h-full bg-base-200 flex flex-col">
+        <div className="menu p-4 w-80 h-full bg-base-200 flex flex-col">
           {/* 搜索和创建区域 - 固定在顶部 */}
           <div className="flex gap-2 mb-4 sticky top-0 bg-base-200 z-10 py-2">
             <input

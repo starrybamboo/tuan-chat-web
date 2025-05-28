@@ -9,15 +9,6 @@ function BetterImg({ src, className, onClose }: { src: string | File | undefined
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   const imgRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isTipOpen, setIsTipOpen] = useState(false);
-
-  const setTipOpen = () => {
-    setIsTipOpen(true);
-    setTimeout(() => {
-      setIsTipOpen(false);
-    }, 3000);
-  };
-
   const imgSrc = typeof src === "string" || !src ? src : URL.createObjectURL(src);
 
   const zoom = (delta: number, mouseX: number, mouseY: number) => {
@@ -42,34 +33,23 @@ function BetterImg({ src, className, onClose }: { src: string | File | undefined
     }
   };
 
-  const zoomIn = () => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      zoom(0.5, rect.left + rect.width / 2, rect.top + rect.height / 2); // 以中心点缩放
-    }
-  };
-
-  const zoomOut = () => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      zoom(-0.5, rect.left + rect.width / 2, rect.top + rect.height / 2); // 以中心点缩放
-    }
-  };
-
   const resetZoom = () => {
     setScale(1);
     setPosition({ x: 0, y: 0 });
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    // 去掉 scale <= 1 的限制
-    setIsDragging(true);
-    setStartPos({ x: e.clientX - position.x, y: e.clientY - position.y });
+    // 左键点击触发拖动（e.button === 0 表示左键）
+    if (e.button === 0) {
+      e.preventDefault(); // 防止选中文字
+      setIsDragging(true);
+      setStartPos({ x: e.clientX - position.x, y: e.clientY - position.y });
+    }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    // 去掉 !isDragging || scale <= 1 的限制
     if (isDragging) {
+      e.preventDefault(); // 防止选中文字
       setPosition({
         x: e.clientX - startPos.x,
         y: e.clientY - startPos.y,
@@ -81,6 +61,11 @@ function BetterImg({ src, className, onClose }: { src: string | File | undefined
     setIsDragging(false);
   };
 
+  const handleMouseLeave = () => {
+    // 鼠标离开容器时结束拖动
+    setIsDragging(false);
+  };
+
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.25 : 0.25;
@@ -88,16 +73,19 @@ function BetterImg({ src, className, onClose }: { src: string | File | undefined
   };
 
   useEffect(() => {
+    // 拖动时修改全局鼠标样式
     if (isDragging) {
       document.body.style.cursor = "grabbing";
     }
     else {
-      document.body.style.cursor = "";
+      document.body.style.cursor = scale > 1 ? "grab" : "default";
     }
+
+    // 清理函数，确保组件卸载时恢复默认样式
     return () => {
       document.body.style.cursor = "";
     };
-  }, [isDragging]);
+  }, [isDragging, scale]);
 
   return (
     <div>
@@ -134,9 +122,12 @@ function BetterImg({ src, className, onClose }: { src: string | File | undefined
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          onMouseLeave={handleMouseLeave} // 新增事件处理
           onWheel={handleWheel}
-          style={{ cursor: scale > 1 ? (isDragging ? "grabbing" : "grab") : "default" }}
+          style={{
+            // 根据缩放状态和拖动状态显示不同光标
+            cursor: isDragging ? "grabbing" : scale > 1 ? "grab" : "default",
+          }}
         >
           <div
             className="w-max h-max"
@@ -148,43 +139,10 @@ function BetterImg({ src, className, onClose }: { src: string | File | undefined
           >
             <img
               src={imgSrc}
-              className="max-h-[70vh] max-w-[70wh]"
+              className="max-h-[70vh] max-w-[70vw]"
               alt="img"
-              onClick={() => setTipOpen()}
             />
           </div>
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 bg-base-200 p-2 rounded-full opacity-70">
-            <button
-              type="button"
-              className="btn btn-circle btn-sm"
-              onClick={zoomOut}
-              disabled={scale <= 0.5}
-            >
-              -
-            </button>
-            <button
-              type="button"
-              className="btn btn-circle btn-sm"
-              onClick={resetZoom}
-            >
-              {Math.round(scale * 100)}
-              %
-            </button>
-            <button
-              type="button"
-              className="btn btn-circle btn-sm"
-              onClick={zoomIn}
-              disabled={scale >= 3}
-            >
-              +
-            </button>
-          </div>
-          {isTipOpen
-            && (
-              <div className="absolute top-4 right-4 bg-base-300 p-2 rounded-md flex items-center">
-                <span>鼠标中键拖动图片，滚轮控制图片大小</span>
-              </div>
-            )}
         </div>
       </PopWindow>
     </div>

@@ -1,3 +1,4 @@
+import type { VirtuosoHandle } from "react-virtuoso";
 import type {
   ChatMessagePageRequest,
   ChatMessageRequest,
@@ -14,8 +15,10 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Virtuoso } from "react-virtuoso";
 import {
   useDeleteMessageMutation,
+  useSendMessageMutation,
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
 import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
@@ -23,15 +26,11 @@ import { tuanchat } from "../../../api/instance";
 
 export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
 { useChatBubbleStyle: boolean; chatFrameRef: React.RefObject<HTMLDivElement> }) {
-  // const chatFrameRef = useRef<HTMLDivElement>(null);
   // 滚动加载逻辑, 设置为倒数第n条消息的ref, 当这条消息进入用户窗口时, messageEntry.isIntersecting变为true, 之后启动滚动加载
   const [messageRef, messageEntry] = useIntersectionObserver();
   // 在顶部也设置一个，保险
   const [topMessageRef, topMessageEntry] = useIntersectionObserver();
-  // 底部的messageRef， 用于更新未读消息;
-  const [bottomMessageRef, bottomMessageEntry] = useIntersectionObserver();
-  // 从底部数第二个消息的ref， 用于新消息scroll；
-  const [nearBottomMessageRef, nearBottomMessageEntry] = useIntersectionObserver();
+
   const PAGE_SIZE = 30; // 每页消息数量
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
@@ -45,6 +44,8 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const send = websocketUtils.send;
   // const hasNewMessages = websocketUtils.messagesNumber[roomId];
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
+
+  const sendMessageMutation = useSendMessageMutation(roomId);
 
   // Mutations
   // const moveMessageMutation = useMoveMessageMutation();
@@ -92,9 +93,18 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     return Array.from(messageMap.values())
       .sort((a, b) => a.message.position - b.message.position)
     // 过滤掉删除的消息和不符合规则的消息
-      .filter(msg => msg.message.status !== 1)
-      .reverse();
+      .filter(msg => msg.message.status !== 1);
+    // .reverse();
   }, [receivedMessages, messagesInfiniteQuery.data?.pages]);
+  /**
+   * 虚拟列表
+   */
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  // 虚拟列表的index到historyMessage中的index的转换
+  const INDEX_SHIFTER = 100000;
+  const virtuosoIndexToNormalIndex = (virtuosoIndex: number) => {
+    return historyMessages.length + virtuosoIndex - INDEX_SHIFTER;
+  };
   /**
    * 新消息提醒
    */
@@ -107,28 +117,14 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
    * scroll相关
    */
   const scrollToBottom = () => {
-    chatFrameRef.current.scrollTo({ top: 0, behavior: "instant" });
+    virtuosoRef?.current?.scrollToIndex(historyMessages.length - 1);
     updateUnreadMessagesNumber(roomId, 0);
   };
-  // const isNearBottom = chatFrameRef.current.scrollTop < -80;
-  // 若滚动到底部，设置未读消息为0
-  useEffect(() => {
-    if (bottomMessageEntry?.isIntersecting) {
-      updateUnreadMessagesNumber(roomId, 0);
-    }
-  }, [bottomMessageEntry?.isIntersecting]);
-  useEffect(() => {
-    if (chatFrameRef.current) {
-      if (nearBottomMessageEntry?.isIntersecting) {
-        scrollToBottom();
-      }
-    }
-  }, [historyMessages.length]);
   useEffect(() => {
     if ((messageEntry?.isIntersecting || topMessageEntry?.isIntersecting) && !messagesInfiniteQuery.isFetchingNextPage) {
       messagesInfiniteQuery.fetchNextPage();
     }
-  }, [messageEntry?.isIntersecting, topMessageEntry?.isIntersecting, messagesInfiniteQuery.isFetchingNextPage, messagesInfiniteQuery.fetchNextPage, messagesInfiniteQuery]);
+  }, [messageEntry?.isIntersecting, topMessageEntry?.isIntersecting, messagesInfiniteQuery.isFetchingNextPage]);
   /**
    * 消息选择
    */
@@ -148,7 +144,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     });
   };
 
-  function handleForward(forwardRoomId: number) {
+  const constructForwardRequest = (forwardRoomId: number) => {
     const forwardMessages = Array.from(selectedMessageIds)
       .map(id => historyMessages.find(m => m.message.messageID === id))
       .filter((msg): msg is ChatMessageResponse => msg !== undefined);
@@ -162,7 +158,10 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         messageList: forwardMessages,
       },
     };
-    send(forwardMessageRequest);
+    return forwardMessageRequest;
+  };
+  function handleForward(forwardRoomId: number) {
+    send(constructForwardRequest(forwardRoomId));
     setIsForwardWindowOpen(false);
     updateSelectedMessageIds(new Set());
   }
@@ -175,7 +174,15 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       extra: { imageMessage: { background: !message.extra.imageMessage.background, size: message?.extra?.imageMessage.size ?? 0, fileName: message.extra.imageMessage.fileName, url: message.extra.imageMessage.url } },
     });
   }
-  function handlePublishFeed({ title, description }: { title: string; description: string }) {
+  async function handlePublishFeed({ title, description }: { title: string; description: string }) {
+    sendMessageMutation.mutate({
+      roomId,
+      messageType: 1,
+      roleId: curRoleId,
+      avatarId: curAvatarId,
+      content: "转发了以下消息到社区",
+      body: {},
+    }, { onSuccess: () => { sendMessageMutation.mutate(constructForwardRequest(roomId)); } });
     const feedRequest: FeedRequest = {
       messageId: selectedMessageIds.values().next().value,
       title: title || "default",
@@ -272,9 +279,6 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     clone.style.top = "-9999px";
     clone.style.width = `${parent.offsetWidth}px`; // 使用父元素实际宽度
     clone.style.opacity = "0.5";
-    clone.onwheel = (e) => {
-      chatFrameRef.current.scrollTop += e.deltaY;
-    };
     document.body.appendChild(clone);
     e.dataTransfer.setDragImage(clone, 0, 0);
     setTimeout(() => document.body.removeChild(clone));
@@ -356,59 +360,55 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   }
 
   /**
-   * 渲染缓存
+   * 渲染单条消息
    */
-
-  const renderMessages = useMemo(() => (historyMessages
-  // .filter(chatMessageResponse => chatMessageResponse.message.content !== "")
-    .map((chatMessageResponse, index) => {
-      const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageID);
-      return ((
+  const renderMessage = (index: number, chatMessageResponse: ChatMessageResponse) => {
+    const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageID);
+    const normalIndex = virtuosoIndexToNormalIndex(index);
+    return ((
+      <div
+        key={chatMessageResponse.message.messageID}
+        ref={normalIndex === 6
+          ? messageRef
+          : (normalIndex === 0
+              ? topMessageRef
+              : null)}
+        className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} -my-[5px] ${isDragging ? "pointer-events-auto" : ""}\``}
+        data-message-id={chatMessageResponse.message.messageID}
+        onClick={(e) => {
+          if (isSelecting || e.ctrlKey) {
+            toggleMessageSelection(chatMessageResponse.message.messageID);
+          }
+        }}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={e => handleDrop(e, index)}
+        draggable={isSelecting && (spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId)}
+        onDragStart={e => handleDragStart(e, index)}
+        // onDragEnd={() => handleDragEnd()}
+      >
+        {index}
         <div
-          key={chatMessageResponse.message.messageID}
-          ref={index === historyMessages.length - 7
-            ? messageRef
-            : (index === historyMessages.length - 1
-                ? topMessageRef
-                : (index === 0
-                    ? bottomMessageRef
-                    : (index === 1 ? nearBottomMessageRef : null)))}
-          className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} -my-[5px] ${isDragging ? "pointer-events-auto" : ""}\``}
-          data-message-id={chatMessageResponse.message.messageID}
-          onClick={(e) => {
-            if (isSelecting || e.ctrlKey) {
-              toggleMessageSelection(chatMessageResponse.message.messageID);
-            }
-          }}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={e => handleDrop(e, index)}
-          draggable={isSelecting && (spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId)}
-          onDragStart={e => handleDragStart(e, index)}
-          // onDragEnd={() => handleDragEnd()}
-        >
-          <div
-            className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
+          className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
                       -translate-x-full -translate-y-1/ opacity-0 transition-opacity flex items-center pr-2 cursor-move
                       ${(spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId) ? "group-hover:opacity-100" : ""}`}
-            draggable={spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId}
-            onDragStart={e => handleDragStart(e, index)}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </div>
-          <ChatBubble chatMessageResponse={chatMessageResponse} />
+          draggable={spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId}
+          onDragStart={e => handleDragStart(e, index)}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
         </div>
-      )
-      );
-    })), [historyMessages, isSelecting, selectedMessageIds]);
-
+        <ChatBubble chatMessageResponse={chatMessageResponse} />
+      </div>
+    )
+    );
+  };
   /**
    * 渲染
    */
@@ -422,7 +422,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         onClick={closeContextMenu}
       >
         {/* historyMessages.length > 2是为了防止一些奇怪的bug */}
-        {(unreadMessageNumber > 0 && !bottomMessageEntry?.isIntersecting && historyMessages.length > 2) && (
+        {(unreadMessageNumber > 0 && historyMessages.length > 2) && (
           <div
             className="sticky bottom-4 self-end z-50 cursor-pointer"
             onClick={() => { scrollToBottom(); }}
@@ -433,7 +433,24 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
             </div>
           </div>
         )}
-        {renderMessages}
+        <div className="h-full">
+          <Virtuoso
+            data={historyMessages}
+            firstItemIndex={INDEX_SHIFTER - historyMessages.length} // 使用这个技巧来在react-virtuoso中实现反向无限滚动
+            initialTopMostItemIndex={historyMessages.length - 1}
+            alignToBottom
+            followOutput={true}
+            overscan={500}
+            ref={virtuosoRef}
+            itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
+            atBottomStateChange={(atBottom) => {
+              atBottom && updateUnreadMessagesNumber(roomId, 0);
+            }}
+            atTopThreshold={200}
+            atBottomThreshold={200}
+          />
+        </div>
+
         {selectedMessageIds.size > 0 && (
           <div className="sticky top-0 bg-base-300 p-2 shadow-sm z-10 flex justify-between items-center rounded">
             <span>{`已选择${selectedMessageIds.size} 条消息`}</span>
@@ -508,7 +525,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
                 </a>
               </li>
               {
-                (isSelecting && (spaceContext.isSpaceOwner)) && (
+                (isSelecting) && (
                   <li>
                     <a onClick={(e) => {
                       e.preventDefault();

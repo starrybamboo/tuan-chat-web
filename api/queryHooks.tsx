@@ -133,6 +133,10 @@ export function useCreateRoleMutation() {
         console.error("创建角色失败");
       }
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['getRole'] });
+      queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
+    },
     onError: (error) => {
       console.error("Mutation failed:", error);
     },
@@ -171,6 +175,10 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
         throw new Error("删除角色失败");
       }
       return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['getRole'] });
+      queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
     },
     onError: (error) => {
       console.error("删除角色失败:", error);
@@ -424,60 +432,6 @@ export function useRoleAvatarQuery(avatarId: number) {
   return avatarQuery.data;
 }
 
-//Warpper界面useEffect的逻辑,去掉了useEffect
-import type { Role } from '@/components/newCharacter/types';
-import { useCallback, useState } from 'react';
-export const useRolesInitialization = (roleQuery: any) => {
-  const queryClient = useQueryClient();
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const initializeRoles = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      if (roleQuery?.data && Array.isArray(roleQuery.data.data)) {
-        const mappedRoles = roleQuery.data.data.map((role: RoleResponse) => ({
-          id: role.roleId || 0,
-          name: role.roleName || "",
-          description: role.description || "无描述",
-          avatar: "",
-          avatarId: role.avatarId || 0,
-          modelName: role.modelName || "",
-          speakerName: role.speakerName || "",
-        }));
-
-        setRoles(mappedRoles);
-
-        // 异步加载每个角色的头像
-        for (const Roles of mappedRoles) {
-          try {
-            const res = await tuanchat.avatarController.getRoleAvatar(Roles.avatarId);
-            if (
-              res.success &&
-              res.data
-            ) {
-              const avatarUrl = res.data.avatarUrl;
-              queryClient.setQueryData(["roleAvatar", Roles.id], avatarUrl);
-              setRoles((prevChars: any[]) =>
-                prevChars.map(char =>
-                  char.id === Roles.id ? { ...char, avatar: avatarUrl } : char,
-                ),
-              );
-            } else {
-              console.warn(`角色 ${Roles.id} 的头像数据无效或为空`);
-            }
-          } catch (error) {
-            console.error(`加载角色 ${Roles.id} 的头像时出错`, error);
-          }
-        }
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [roleQuery?.data, queryClient]);
-
-  return { roles, initializeRoles, setRoles, isLoading };
-};
 
 /**
  * 上传头像

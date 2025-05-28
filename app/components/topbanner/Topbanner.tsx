@@ -1,4 +1,5 @@
 import UserAvatarComponent from "@/components/common/userAvatar";
+import UpdatesPopWindow from "@/components/topbanner/updatesWindow";
 import { checkAuthStatus } from "@/utils/auth/authapi";
 import { QueryClient, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
@@ -33,12 +34,12 @@ export default function Topbar() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
               </svg>
             </div>
-            <ul tabIndex={0} className="dropdown-content z-[50] menu p-2 shadow bg-base-200 rounded-box w-52 mt-3">
+            <ul tabIndex={0} className="dropdown-content z-[50] menu p-2 shadow bg-base-200 rounded-box w-52 mt-3 text-base-content">
               <li><a onClick={() => navigate("/feed")}>推荐</a></li>
               <li><a onClick={() => navigate("/community")}>社区</a></li>
               <li><a onClick={() => navigate("/chat")}>游玩</a></li>
               <li><a onClick={() => navigate("/role")}>角色</a></li>
-              <li><a onClick={() => navigate("/module")}>模组</a></li>
+              <li><a onClick={() => navigate("/module/create")}>模组</a></li>
               <li><a onClick={() => navigate("/create")}>创作</a></li>
               <li><a onClick={() => navigate("/collection")}>收藏</a></li>
             </ul>
@@ -52,14 +53,14 @@ export default function Topbar() {
           />
 
           {/* 导航链接 - 在移动端隐藏 */}
-          <div className="hidden lg:flex gap-2">
-            <a onClick={() => navigate("/feed")} className="btn btn-link font-normal text-base no-underline">推荐</a>
-            <a onClick={() => navigate("/community")} className="btn btn-link font-normal text-base no-underline">社区</a>
-            <a onClick={() => navigate("/chat")} className="btn btn-link font-normal text-base no-underline">游玩</a>
-            <a onClick={() => navigate("/role")} className="btn btn-link font-normal text-base no-underline">角色</a>
-            <a onClick={() => navigate("/module")} className="btn btn-link font-normal text-base no-underline">模组</a>
-            <a onClick={() => navigate("/create")} className="btn btn-link font-normal text-base no-underline">创作</a>
-            <a onClick={() => navigate("/collection")} className="btn btn-link font-normal text-base no-underline">收藏</a>
+          <div className="hidden lg:flex gap-7">
+            <a onClick={() => navigate("/feed")} className="font-normal text-base hover:underline cursor-default ">推荐</a>
+            <a onClick={() => navigate("/community")} className="font-normal text-base hover:underline cursor-default">社区</a>
+            <a onClick={() => navigate("/chat")} className="font-normal text-base hover:underline cursor-default">游玩</a>
+            <a onClick={() => navigate("/role")} className="font-normal text-base hover:underline cursor-default">角色</a>
+            <a onClick={() => navigate("/module/create")} className="font-normal text-base hover:underline cursor-default">模组</a>
+            <a onClick={() => navigate("/create")} className="font-normal text-base hover:underline cursor-default">创作</a>
+            <a onClick={() => navigate("/collection")} className="font-normal text-base hover:underline cursor-default">收藏</a>
           </div>
         </div>
 
@@ -102,6 +103,7 @@ export default function Topbar() {
               )}
         </div>
       </div>
+      <UpdatesPopWindow></UpdatesPopWindow>
     </div>
   );
 }

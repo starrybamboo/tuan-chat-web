@@ -192,46 +192,37 @@ export default function PerformanceEditor({
       </div>
 
       {/* 短字段区域 - 多列排布 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 lg:5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:5 gap-6">
         {shortFields.map(key => (
           <div key={key} className="group">
             {isEditing
               ? (
             // 编辑模式下的UI
                   <div className="flex items-center gap-1">
-                    <label className="input input-group flex-grow">
-                      <span className="text-sm font-medium">{key}</span>
-                      <div className="w-px h-4 bg-base-content/25"></div>
-                      <input
-                        type="text"
+                    <fieldset className="fieldset relative bg-base-200 border-base-300 rounded-box w-full border p-4">
+                      <legend className="fieldset-legend text-sm font-medium">{key}</legend>
+                      <textarea
                         onChange={(e) => {
                           const newFields = { ...fields, [key]: e.target.value };
                           onChange(newFields);
                         }}
                         value={fields[key] || ""}
-                        className="grow"
+                        className="textarea w-full resize-none"
+                        rows={1}
                       />
-                    </label>
-                    <button
-                      type="button"
-                      className="btn btn-error btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1"
-                      onClick={() => handleDeleteField(key)}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                      <button
+                        type="button"
+                        className="absolute -top-6 -right-3 btn btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-error hover:text-white rounded-full p-1"
+                        onClick={() => handleDeleteField(key)}
                       >
-                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        <line x1="10" y1="11" x2="10" y2="17" />
-                        <line x1="14" y1="11" x2="14" y2="17" />
-                      </svg>
-                    </button>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+                          <path
+                            fill="currentColor"
+                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                          />
+                        </svg>
+                      </button>
+                    </fieldset>
                   </div>
 
                 )
@@ -253,31 +244,32 @@ export default function PerformanceEditor({
 
       {/* 添加新字段区域 */}
       {isEditing && (
-        <div className="border-t border-base-300 pt-4 mt-4">
-          <div className="flex gap-8 max-w-2xl">
+        <fieldset className="border border-base-300 rounded-lg p-4 mt-4">
+          <legend className="px-2 font-bold">添加新字段</legend>
+          <div className="flex flex-col w-full gap-2">
             <input
               type="text"
               placeholder="字段名称"
-              className="input input-bordered input-sm w-1/3"
+              className="input input-bordered input-sm w-1/4 mt-2"
               value={newKey}
               onChange={e => setNewKey(e.target.value)}
             />
-            <input
-              type="text"
+            <textarea
               placeholder="值"
-              className="input input-bordered input-sm w-1/2"
+              className="textarea textarea-bordered textarea-sm w-full resize-none"
               value={newValue}
               onChange={e => setNewValue(e.target.value)}
+              rows={1}
             />
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm w-fit"
               onClick={handleAddField}
             >
               添加字段
             </button>
           </div>
-        </div>
+        </fieldset>
       )}
 
       {/* 长字段区域，目前没用上，而且左右分割对长字段不适用 */}
