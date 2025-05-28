@@ -1,4 +1,4 @@
-import { MarkDownViewer } from "@/components/common/markDownViewer";
+import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGetPostDetailQuery } from "../../../api/hooks/communityQueryHooks";
 

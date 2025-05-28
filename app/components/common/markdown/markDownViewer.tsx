@@ -6,6 +6,54 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 // import { dark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
+// 由于tailwind的preflight.css覆盖了原本的html样式，这里需要重新定义样式
+const MARKDOWN_STYLES = `
+  [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:my-6
+  [&_h2]:text-3xl [&_h2]:font-bold [&_h2]:my-5
+  [&_h3]:text-2xl [&_h3]:font-bold [&_h3]:my-4
+  [&_h4]:text-xl [&_h4]:font-bold [&_h4]:my-3
+  [&_h5]:text-lg [&_h5]:font-bold [&_h5]:my-2
+  [&_h6]:text-base [&_h6]:font-bold [&_h6]:my-2
+  
+  [&_a]:underline [&_a:hover]:text-blue-800 [&_a:hover]:dark:text-blue-300
+  
+  [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 
+  [&_blockquote]:dark:border-gray-600 [&_blockquote]:pl-4 
+  [&_blockquote]:my-4 [&_blockquote]:text-gray-600 [&_blockquote]:dark:text-gray-300
+  
+  [&_code]:font-mono [&_code]:bg-gray-100 [&_code]:dark:bg-gray-800 
+  [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm
+  
+  [&_pre]:font-mono [&_pre]:bg-gray-100 [&_pre]:dark:bg-gray-800 
+  [&_pre]:p-4 [&_pre]:rounded [&_pre]:overflow-x-auto [&_pre]:my-4
+  
+  [&_em]:italic
+  [&_strong]:font-bold
+  [&_del]:line-through [&_del]:text-gray-500 [&_del]:dark:text-gray-400
+  
+  [&_hr]:border-t [&_hr]:border-gray-300 [&_hr]:dark:border-gray-700 [&_hr]:my-4
+  
+  [&_img]:max-w-full [&_img]:h-auto [&_img]:my-4
+  
+  [&_ul]:my-4 [&_ul]:pl-6 [&_ul]:list-disc
+  [&_ol]:my-4 [&_ol]:pl-6 [&_ol]:list-decimal
+  [&_li]:my-1
+  
+  [&_p]:my-4
+  
+  [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse
+  [&_th]:border [&_th]:border-gray-300 [&_th]:dark:border-gray-600 
+  [&_th]:px-4 [&_th]:py-2 [&_th]:bg-gray-100 [&_th]:dark:bg-gray-800 
+  [&_th]:font-semibold [&_th]:text-left
+  [&_td]:border [&_td]:border-gray-300 [&_td]:dark:border-gray-600 
+  [&_td]:px-4 [&_td]:py-2
+  [&_thead]:bg-gray-50 [&_thead]:dark:bg-gray-800/50
+  
+  [&_input]:border [&_input]:border-gray-300 [&_input]:dark:border-gray-600 
+  [&_input]:rounded [&_input]:px-3 [&_input]:py-2 
+  [&_input]:bg-white [&_input]:dark:bg-gray-800 
+  [&_input]:text-gray-900 [&_input]:dark:text-gray-100
+`;
 
 function MediaEmbed({ type, src }: { type: string; src: string }) {
   switch (type) {
@@ -61,7 +109,7 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
 
 export function MarkDownViewer({ content }: { content: string }) {
   return (
-    <div className="prose max-w-none">
+    <div className={`prose max-w-none ${MARKDOWN_STYLES}`}>
       <ReactMarkdown
         rehypePlugins={[rehypeRaw]}
         remarkPlugins={[remarkGfm]}
