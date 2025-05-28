@@ -13,8 +13,7 @@ import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useIntersectionObserver } from "@uidotdev/usehooks";
-import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { use, useCallback, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import {
   useDeleteMessageMutation,
@@ -24,13 +23,31 @@ import {
 import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
 import { tuanchat } from "../../../api/instance";
 
-export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
-{ useChatBubbleStyle: boolean; chatFrameRef: React.RefObject<HTMLDivElement> }) {
-  // 滚动加载逻辑, 设置为倒数第n条消息的ref, 当这条消息进入用户窗口时, messageEntry.isIntersecting变为true, 之后启动滚动加载
-  const [messageRef, messageEntry] = useIntersectionObserver();
-  // 在顶部也设置一个，保险
-  const [topMessageRef, topMessageEntry] = useIntersectionObserver();
+// function RefetchIndicator({ context }: { context: { fetchNextPage: () => void; isFetching: boolean } }) {
+//   const [ref, entry] = useIntersectionObserver();
+//   useEffect(() => {
+//     if (entry?.isIntersecting && !context.isFetching) {
+//       context.fetchNextPage();
+//     }
+//   }, [context, entry?.isIntersecting, entry]);
+//   return (
+//     <div className="text-center" ref={ref}>
+//       加载中...
+//     </div>
+//   );
+// }
 
+function ScrollSeekPlaceholder({ height }: { height: number }) {
+  return (
+    <div
+      className="bg-base-200 rounded-lg my-1"
+      style={{ height: height - 10 }} // 减去margin
+    />
+  );
+}
+
+export default function ChatFrame({ useChatBubbleStyle }:
+{ useChatBubbleStyle: boolean }) {
   const PAGE_SIZE = 30; // 每页消息数量
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
@@ -54,25 +71,31 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   const updateMessageMutation = useUpdateMessageMutation();
   /**
    * 获取历史消息
+   * 分页获取消息
+   * cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
    */
-  // 分页获取消息
-  // cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
+  // 你说的对，我什么要这里定义一个莫名奇妙的ref呢？因为该死的virtuoso不知道为什么，里面的函数指针会会指向一个旧的fetchNextPage，并不能随着重新渲染而更新。导致里面的cursor也是旧的。
+  // 定义这个ref只是为了绕开virtuoso这个问题的hack。
+  const cursorRef = useRef<number | undefined>(undefined);
   const messagesInfiniteQuery = useInfiniteQuery({
     queryKey: ["getMsgPage", roomId],
     queryFn: async ({ pageParam }) => {
-      return tuanchat.chatController.getMsgPage(pageParam);
+      const result = await tuanchat.chatController.getMsgPage(pageParam);
+      cursorRef.current = result.data?.cursor;
+      return result;
     },
     getNextPageParam: (lastPage) => {
       if (lastPage.data === undefined || lastPage.data?.isLast) {
         return undefined;
       }
       else {
-        const params: ChatMessagePageRequest = { roomId, pageSize: PAGE_SIZE, cursor: lastPage.data?.cursor };
+        const params: ChatMessagePageRequest = { roomId, pageSize: PAGE_SIZE, cursor: cursorRef.current };
         return params;
       }
     },
-    initialPageParam: { roomId, pageSize: PAGE_SIZE, cursor: null } as unknown as ChatMessagePageRequest,
+    initialPageParam: { roomId, pageSize: PAGE_SIZE, cursor: cursorRef.current } as unknown as ChatMessagePageRequest,
     refetchOnWindowFocus: false,
+    staleTime: Infinity,
   });
   // const [receivedMessages, setReceivedMessages] = useState<ChatMessageResponse[]>([]);
   // useEffect(() => {
@@ -96,12 +119,17 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
       .filter(msg => msg.message.status !== 1);
     // .reverse();
   }, [receivedMessages, messagesInfiniteQuery.data?.pages]);
+  const fetchNextPage = useCallback(() => {
+    messagesInfiniteQuery.fetchNextPage();
+  }, [messagesInfiniteQuery]);
   /**
    * 虚拟列表
    */
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   // 虚拟列表的index到historyMessage中的index的转换
   const INDEX_SHIFTER = 100000;
+  const isAtBottomRef = useRef(false);
+  const isAtTopRef = useRef(false);
   const virtuosoIndexToNormalIndex = (virtuosoIndex: number) => {
     return historyMessages.length + virtuosoIndex - INDEX_SHIFTER;
   };
@@ -120,11 +148,11 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     virtuosoRef?.current?.scrollToIndex(historyMessages.length - 1);
     updateUnreadMessagesNumber(roomId, 0);
   };
-  useEffect(() => {
-    if ((messageEntry?.isIntersecting || topMessageEntry?.isIntersecting) && !messagesInfiniteQuery.isFetchingNextPage) {
-      messagesInfiniteQuery.fetchNextPage();
-    }
-  }, [messageEntry?.isIntersecting, topMessageEntry?.isIntersecting, messagesInfiniteQuery.isFetchingNextPage]);
+  // useEffect(() => {
+  //   if ((messageEntry?.isIntersecting) && !messagesInfiniteQuery.isFetchingNextPage) {
+  //     messagesInfiniteQuery.fetchNextPage();
+  //   }
+  // }, [messageEntry?.isIntersecting, messagesInfiniteQuery.isFetchingNextPage]);
   /**
    * 消息选择
    */
@@ -282,7 +310,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     document.body.appendChild(clone);
     e.dataTransfer.setDragImage(clone, 0, 0);
     setTimeout(() => document.body.removeChild(clone));
-  }, [chatFrameRef, historyMessages, isSelecting, selectedMessageIds.size]);
+  }, [historyMessages, isSelecting, selectedMessageIds.size]);
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     // e.stopPropagation();
@@ -360,7 +388,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
   }
 
   /**
-   * 渲染单条消息
+   * 预渲染
    */
   const renderMessage = (index: number, chatMessageResponse: ChatMessageResponse) => {
     const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageID);
@@ -368,11 +396,9 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     return ((
       <div
         key={chatMessageResponse.message.messageID}
-        ref={normalIndex === 6
-          ? messageRef
-          : (normalIndex === 0
-              ? topMessageRef
-              : null)}
+        // ref={(normalIndex === 4
+        //   ? messageRef
+        //   : null)}
         className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} -my-[5px] ${isDragging ? "pointer-events-auto" : ""}\``}
         data-message-id={chatMessageResponse.message.messageID}
         onClick={(e) => {
@@ -387,7 +413,7 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
         onDragStart={e => handleDragStart(e, index)}
         // onDragEnd={() => handleDragEnd()}
       >
-        {index}
+        {normalIndex}
         <div
           className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
                       -translate-x-full -translate-y-1/ opacity-0 transition-opacity flex items-center pr-2 cursor-move
@@ -409,6 +435,49 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     )
     );
   };
+  const renderedVirtuosoList = useMemo(() => {
+    return (
+      <div className="h-full flex-1">
+        <Virtuoso
+          data={historyMessages}
+          firstItemIndex={INDEX_SHIFTER - historyMessages.length} // 使用这个技巧来在react-virtuoso中实现反向无限滚动
+          initialTopMostItemIndex={historyMessages.length - 1}
+          alignToBottom
+          followOutput={true}
+          overscan={2000}
+          ref={virtuosoRef}
+          context={{
+            fetchNextPage: () => messagesInfiniteQuery.fetchNextPage(),
+            isFetching: messagesInfiniteQuery.isFetchingNextPage,
+          }}
+          itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
+          atBottomStateChange={(atBottom) => {
+            atBottom && updateUnreadMessagesNumber(roomId, 0);
+            isAtBottomRef.current = atBottom;
+          }}
+          atTopStateChange={(atTop) => {
+            atTop && fetchNextPage();
+            isAtTopRef.current = atTop;
+          }}
+          components={{
+            // Header: RefetchIndicator,
+            ScrollSeekPlaceholder,
+          }}
+          scrollSeekConfiguration={{
+            enter: velocity => Math.abs(velocity) > 600, // 滚动速度阈值
+            exit: velocity => Math.abs(velocity) < 50,
+          }}
+          onWheel={(e) => {
+            if (e.deltaY < 0 && isAtTopRef.current && !messagesInfiniteQuery.isFetching) {
+              fetchNextPage();
+            }
+          }}
+          atTopThreshold={1200}
+          // atBottomThreshold={200}
+        />
+      </div>
+    );
+  }, [fetchNextPage, historyMessages, messagesInfiniteQuery, renderMessage, roomId, updateUnreadMessagesNumber]);
   /**
    * 渲染
    */
@@ -416,41 +485,10 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
     <div>
       {/* 这里是从下到上渲染的 */}
       <div
-        className="card-body overflow-y-auto h-[60vh] flex flex-col-reverse"
-        ref={chatFrameRef}
+        className="card-body overflow-y-auto h-[60vh] flex flex-col"
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
       >
-        {/* historyMessages.length > 2是为了防止一些奇怪的bug */}
-        {(unreadMessageNumber > 0 && historyMessages.length > 2) && (
-          <div
-            className="sticky bottom-4 self-end z-50 cursor-pointer"
-            onClick={() => { scrollToBottom(); }}
-          >
-            <div className="btn btn-info gap-2 shadow-lg">
-              <span>{unreadMessageNumber}</span>
-              <span>条新消息</span>
-            </div>
-          </div>
-        )}
-        <div className="h-full">
-          <Virtuoso
-            data={historyMessages}
-            firstItemIndex={INDEX_SHIFTER - historyMessages.length} // 使用这个技巧来在react-virtuoso中实现反向无限滚动
-            initialTopMostItemIndex={historyMessages.length - 1}
-            alignToBottom
-            followOutput={true}
-            overscan={500}
-            ref={virtuosoRef}
-            itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
-            atBottomStateChange={(atBottom) => {
-              atBottom && updateUnreadMessagesNumber(roomId, 0);
-            }}
-            atTopThreshold={200}
-            atBottomThreshold={200}
-          />
-        </div>
-
         {selectedMessageIds.size > 0 && (
           <div className="sticky top-0 bg-base-300 p-2 shadow-sm z-10 flex justify-between items-center rounded">
             <span>{`已选择${selectedMessageIds.size} 条消息`}</span>
@@ -481,6 +519,19 @@ export default function ChatFrame({ useChatBubbleStyle, chatFrameRef }:
                   </button>
                 )
               }
+            </div>
+          </div>
+        )}
+        {renderedVirtuosoList}
+        {/* historyMessages.length > 2是为了防止一些奇怪的bug */}
+        {(unreadMessageNumber > 0 && historyMessages.length > 2 && !isAtBottomRef.current) && (
+          <div
+            className="sticky bottom-4 self-end z-50 cursor-pointer"
+            onClick={() => { scrollToBottom(); }}
+          >
+            <div className="btn btn-info gap-2 shadow-lg">
+              <span>{unreadMessageNumber}</span>
+              <span>条新消息</span>
             </div>
           </div>
         )}
