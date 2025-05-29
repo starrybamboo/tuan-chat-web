@@ -432,6 +432,34 @@ export function useGetUserRolesPageQuery(params: RolePageQueryRequest) {
   });
 }
 
+export function useGetInfiniteUserRolesQuery(userId: number) {
+  const PAGE_SIZE = 10;
+  return useInfiniteQuery({
+    queryKey: ["roleInfinite", userId],
+    queryFn: async ({ pageParam }: { pageParam: RolePageQueryRequest }) => {
+      const res = await tuanchat.roleController.getRolesByPage(pageParam);
+      console.log(res);
+      return res;
+    },
+    initialPageParam: { pageNo: 1, pageSize: PAGE_SIZE, userId: userId ?? -1 },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.data?.pageNo === undefined || lastPage.data?.isLast) {
+        return undefined;
+      }
+      else {
+        const param: RolePageQueryRequest = {
+          pageNo: lastPage.data.pageNo + 1,
+          pageSize: PAGE_SIZE,
+          userId: userId ?? -1,
+        };
+        return param;
+      }
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+}
+
+
 // 获取能力
 export function useRoleAbility(roleId: number) {
   const abilityQuery = useQuery({

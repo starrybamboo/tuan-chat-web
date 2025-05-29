@@ -2,7 +2,7 @@ import type { RoleResponse } from "api";
 import type { Role } from "./types";
 import { tuanchat } from "@/../api/instance";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCreateRoleMutation, useDeleteRolesMutation, useGetUserRolesQuery, useUploadAvatarMutation } from "api/queryHooks";
+import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUploadAvatarMutation } from "api/queryHooks";
 import { useEffect, useState } from "react";
 import { PopWindow } from "../common/popWindow";
 import { useGlobalContext } from "../globalContextProvider";
@@ -11,27 +11,39 @@ import CharacterDetail from "./CharacterDetail";
 export default function CharacterMain() {
   // 获取用户数据
   const userId = useGlobalContext().userId;
-  const roleQuery = useGetUserRolesQuery(userId ?? -1);
+  const {
+    data: roleQuery,
+    isSuccess,
+    // fetchNextPage,
+    // isFetchingNextPage,
+    // hasNextPage,
+    // status,
+  } = useGetInfiniteUserRolesQuery(userId ?? -1);
 
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
 
   const initializeRoles = async () => {
+    const convertRole = (role: RoleResponse) => ({
+      id: role.roleId || 0,
+      name: role.roleName || "",
+      description: role.description || "无描述",
+      avatar: "",
+      avatarId: role.avatarId || 0,
+      modelName: role.modelName || "",
+      speakerName: role.speakerName || "",
+    });
+
     setIsLoading(true);
     try {
       // 有query数据时
-      if (roleQuery?.data && Array.isArray(roleQuery.data.data)) {
+      if (isSuccess && roleQuery.pages.length > 0) {
         // 将API返回的角色数据映射为前端使用的格式
-        const mappedRoles = roleQuery.data.data.map((role: RoleResponse) => ({
-          id: role.roleId || 0,
-          name: role.roleName || "",
-          description: role.description || "无描述",
-          avatar: "",
-          avatarId: role.avatarId || 0,
-          modelName: role.modelName || "",
-          speakerName: role.speakerName || "",
-        }));
+        const mappedRoles = roleQuery?.pages.flatMap(page =>
+          (page.data?.list ?? []).map(convertRole),
+        ) ?? [];
+        // console.log(mappedRoles); // 打印映射后的角色数据，用于调试
         // 将映射后的角色数据设置到状态中
         setRoles(mappedRoles);
 
@@ -84,10 +96,10 @@ export default function CharacterMain() {
 
   // 初始化角色数据
   useEffect(() => {
-    if (roleQuery.isSuccess) {
+    if (isSuccess) {
       initializeRoles();
     }
-  }, [roleQuery.isSuccess]);
+  }, [isSuccess]);
 
   // 删除弹窗状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
