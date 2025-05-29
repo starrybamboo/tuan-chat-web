@@ -140,10 +140,40 @@ export function MarkDownViewer({ content }: { content: string }) {
               .join("");
 
             // 匹配 {{type:source}} 格式
-            const embedMatch = textContent.match(/\{\{([^:]+):([^}]+)\}\}/);
-            if (embedMatch) {
-              const [_, type, src] = embedMatch;
-              return <MediaEmbed type={type.trim()} src={src.trim()} />;
+            const embedMatches = [...textContent.matchAll(/\{\{([^:]+):([^}]+)\}\}/g)];
+
+            if (embedMatches.length > 0) {
+              let lastIndex = 0;
+              const parts: React.ReactNode[] = [];
+
+              for (const match of embedMatches) {
+                // 添加匹配前的文本
+                if (match.index !== undefined && match.index > lastIndex) {
+                  const text = textContent.substring(lastIndex, match.index);
+                  parts.push(<p key={`text-${lastIndex}`} {...props}>{text}</p>);
+                }
+
+                // 添加嵌入组件
+                const [_, type, src] = match;
+                parts.push(
+                  <MediaEmbed
+                    key={`embed-${match.index}`}
+                    type={type.trim()}
+                    src={src.trim()}
+                  />,
+                );
+
+                // 更新最后处理的位置
+                lastIndex = match.index + match[0].length;
+              }
+
+              // 添加最后一段文本
+              if (lastIndex < textContent.length) {
+                const text = textContent.substring(lastIndex);
+                parts.push(<p key="text-end" {...props}>{text}</p>);
+              }
+
+              return <>{parts}</>;
             }
 
             // 默认段落渲染

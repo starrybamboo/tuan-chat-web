@@ -297,13 +297,9 @@ export function useGetAllMessageQuery(roomId: number) {
  * @param roomId 关联的群聊ID（用于缓存刷新）
  */
 export function useSendMessageMutation(roomId: number) {
-    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: ChatMessageRequest) => tuanchat.chatController.sendMessage(req),
         mutationKey: ['sendMessage'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['getAllMessage', roomId] });
-        }
     });
 }
 

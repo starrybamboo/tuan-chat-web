@@ -56,18 +56,17 @@ export default function CommunityPostList() {
   };
   return (
     <div>
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div className="bg-base-100 rounded-lg shadow p-4 mb-6">
         <button className="btn btn-info" onClick={() => { setIsPublishWindowOpen(true); }} type="button">
           发布帖子
         </button>
       </div>
-      {/* 帖子列表 - 修改为Tailwind样式 */}
       <div className="space-y-4">
         {isPostsLoading && <div className="text-center py-4">加载中...</div>}
         {posts.map(post => (
           <div
             key={post.communityPostId}
-            className="bg-white rounded-lg shadow p-4"
+            className="bg-base-100 rounded-lg shadow p-4"
             onClick={() => { navigate(`/community/${communityId}/${post.communityPostId}`); }}
           >
             <div className="mb-2">
@@ -93,8 +92,8 @@ export default function CommunityPostList() {
       <div className="text-center py-4 text-gray-500">
         {isFetchingNextPage ? "加载中..." : hasNextPage ? "上拉加载更多" : "没有更多了"}
       </div>
-      <PopWindow isOpen={isPublishWindowOpen} onClose={() => { setIsPublishWindowOpen(false); }}>
-        <PostWriter></PostWriter>
+      <PopWindow isOpen={isPublishWindowOpen} onClose={() => { setIsPublishWindowOpen(false); }} fullScreen>
+        <PostWriter onClose={() => { setIsPublishWindowOpen(false); }}></PostWriter>
       </PopWindow>
     </div>
   );
