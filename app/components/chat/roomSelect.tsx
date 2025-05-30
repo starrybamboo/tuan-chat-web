@@ -232,7 +232,7 @@ export default function RoomSelect() {
         <SideDrawer sideDrawerId="room-select">
           <div className="flex flex-row bg-base-100 h-full">
             {/* 空间列表 */}
-            <div className="menu flex flex-col p-3 bg-base-300 space-y-2 w-16">
+            <div className="menu flex flex-col p-3 bg-base-200 space-y-2 w-16">
               {spaces.map(space => (
                 <div
                   className={`rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""}`}

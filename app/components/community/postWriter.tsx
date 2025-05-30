@@ -84,7 +84,7 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
         const blob = item.getAsFile();
         if (!blob)
           continue;
-        const file = new File([blob], `pasted-image-${Date.now()}`, {
+        const file = new File([blob], blob.name, {
           type: blob.type,
         });
         const url = await uploadUtils.uploadImg(file);
@@ -165,44 +165,40 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
     }, 0);
   };
   // 快捷键处理部分
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key) {
-        const textarea = document.activeElement as HTMLTextAreaElement;
-        if (!textarea || textarea.tagName !== "TEXTAREA")
-          return;
-        switch (e.key.toLowerCase()) {
-          case "b":
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key) {
+      const textarea = document.activeElement as HTMLTextAreaElement;
+      if (!textarea || textarea.tagName !== "TEXTAREA")
+        return;
+      switch (e.key.toLowerCase()) {
+        case "b":
+          e.preventDefault();
+          insertFormat("strong");
+          break;
+        case "i":
+          e.preventDefault();
+          insertFormat("em");
+          break;
+        case "k":
+          e.preventDefault();
+          insertFormat("a");
+          break;
+        case "e":
+          e.preventDefault();
+          insertFormat("code");
+          break;
+        case "q":
+          e.preventDefault();
+          insertFormat("blockquote");
+          break;
+        case "d":
+          if (e.altKey) {
             e.preventDefault();
-            insertFormat("strong");
-            break;
-          case "i":
-            e.preventDefault();
-            insertFormat("em");
-            break;
-          case "k":
-            e.preventDefault();
-            insertFormat("a");
-            break;
-          case "e":
-            e.preventDefault();
-            insertFormat("code");
-            break;
-          case "q":
-            e.preventDefault();
-            insertFormat("blockquote");
-            break;
-          case "d":
-            if (e.altKey) {
-              e.preventDefault();
-              insertFormat("del");
-            }
-        }
+            insertFormat("del");
+          }
       }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+    }
+  };
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -228,13 +224,13 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
   };
 
   return (
-    <div className="card bg-base-100 shadow-md h-full">
-      <div className="card-body flex flex-col">
+    <div className="card bg-base-100 shadow-md">
+      <div className="card-body ">
         <h2 className="card-title">
           创建帖子
           <span className="text-xs opacity-70">（所有改动都会实时保存到浏览器本地）</span>
         </h2>
-        <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col">
+        <form onSubmit={handleSubmit} className="space-y-4 ">
           <div>
             <label className="label">
               <span className="label-text">标题</span>
@@ -248,7 +244,7 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
               required
             />
           </div>
-          <div className="flex flex-col lg:flex-row md:flex-row gap-4 flex-1">
+          <div className="flex flex-col lg:flex-row md:flex-row gap-4 flex-1  ">
             {/* 编辑器 */}
             <div className="space-y-2 flex flex-col min-w-[50%]">
               {/* 操作按钮栏 */}
@@ -352,10 +348,15 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
               <textarea
                 ref={textareaRef}
                 placeholder="写下你的想法..."
-                className="textarea textarea-bordered w-full min-h-[255px] flex-1"
+                className="textarea textarea-bordered w-full min-h-[255px] overflow-auto"
                 value={content}
-                onChange={e => setContent(e.target.value)}
+                onChange={(e) => {
+                  setContent(e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight + 20}px`;
+                }}
                 onPaste={handlePaste}
+                onKeyDown={handleKeyDown}
                 required
               />
             </div>

@@ -37,20 +37,25 @@ export function isCommand(command: string) {
 export default function useCommandExecutor(roleId: number, ruleId: number) {
   const { spaceId: _, roomId: urlRoomId } = useParams();
   const roomId = Number(urlRoomId);
-
   const role = useGetRoleQuery(roleId).data?.data;
+
+  // 可以通过以下代码获取用户信息
+  // const globalContext = useGlobalContext();
+  // const userId = globalContext.userId;
+  // const userInfo = useGetUserInfoQuery().data?.data;
 
   const defaultDice = useRef(100);
 
   const abilityQuery = useGetRoleAbilitiesQuery(roleId);
   const abilityList = abilityQuery.data?.data ?? [];
-  // 当前规则下激活的能力
+  // 当前规则下激活的能力组
   const curAbility = abilityList.find(a => a.ruleId === ruleId);
 
-  const updateAbilityMutation = useUpdateRoleAbilityMutation();
-  const setAbilityMutation = useSetRoleAbilityMutation();
+  // 通过以下的mutation来对后端发送引起数据变动的请求
+  const updateAbilityMutation = useUpdateRoleAbilityMutation(); // 更改属性与能力字段
+  const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
+  const initiativeListMutation = useRoomInitiativeListMutation(roomId); // 更新先攻表
 
-  const initiativeListMutation = useRoomInitiativeListMutation(roomId);
   const initiativeList = useGetRoomInitiativeListQuery(roomId).data ?? [];
 
   useEffect(() => {

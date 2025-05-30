@@ -42,31 +42,76 @@ export default function CommunityPostList() {
     });
   };
   return (
-    <div className="space-y-4">
-      <div className="bg-base-100 rounded-lg shadow p-4 ">
-        <button className="btn btn-info" onClick={() => { setIsPublishWindowOpen(true); }} type="button">
+    <div className="space-y-6">
+      {/* Publish Post Button */}
+      <div className="bg-base-100 rounded-box shadow p-4 flex justify-end">
+        <button
+          className="btn btn-primary gap-2"
+          onClick={() => setIsPublishWindowOpen(true)}
+          type="button"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
           发布帖子
         </button>
       </div>
+
+      {/* Loading State */}
+      {pageCommunityPostsQuery.isLoading && (
+        <div className="flex justify-center py-8">
+          <span className="loading loading-spinner loading-lg text-primary"></span>
+        </div>
+      )}
+
+      {/* Posts List */}
       <div className="space-y-4">
-        {pageCommunityPostsQuery.isLoading && <div className="text-center py-4">加载中...</div>}
         {posts.map(post => (
           <div
             key={post.communityPostId}
-            className="bg-base-100 rounded-lg shadow p-4 transition-all duration-150 hover:shadow-lg hover:-translate-y-1"
-            onClick={() => { navigate(`/community/${communityId}/${post.communityPostId}`); }}
+            className="bg-base-100 rounded-box shadow hover:shadow-lg p-6 transition-all duration-200 hover:-translate-y-1 cursor-pointer group"
+            onClick={() => navigate(`/community/${communityId}/${post.communityPostId}`)}
           >
-            <div className="mb-2">
-              <h3 className="font-medium">{post.title || "无标题"}</h3>
-              <p className="text-gray-600 line-clamp-3">{post.content}</p>
+            <div className="mb-4">
+              <h3 className="text-xl font-bold group-hover:text-primary transition-colors">
+                {post.title || "无标题"}
+              </h3>
+              <p className="text-base-content/80 mt-2 line-clamp-3">
+                {post.content}
+              </p>
             </div>
-            <div className="text-sm text-gray-500">
-              {new Date(post.createTime ?? "").toLocaleString()}
-            </div>
-            <div className="mt-3 flex space-x-2">
+
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-base-content/50">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 inline mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                {new Date(post.createTime ?? "").toLocaleString()}
+              </div>
+
               <button
-                className="btn btn-error"
-                onClick={() => handleDeletePost(post.communityPostId ?? -1)}
+                className="btn btn-sm btn-error btn-outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeletePost(post.communityPostId ?? -1);
+                }}
                 type="button"
               >
                 删除
@@ -75,10 +120,25 @@ export default function CommunityPostList() {
           </div>
         ))}
       </div>
-      <Pagination total={totalPages} onChange={(newPageNo) => { setSearchParams({ pageNo: newPageNo.toString() }); }} initialPageNo={pageNo}></Pagination>
-      <PopWindow isOpen={isPublishWindowOpen} onClose={() => { setIsPublishWindowOpen(false); }} fullScreen>
-        <PostWriter onClose={() => { setIsPublishWindowOpen(false); }}></PostWriter>
+
+      {/* Pagination */}
+      <div className="flex justify-center">
+        <Pagination
+          total={totalPages}
+          onChange={newPageNo => setSearchParams({ pageNo: newPageNo.toString() })}
+          initialPageNo={pageNo}
+        />
+      </div>
+
+      {/* Publish Window */}
+      <PopWindow
+        isOpen={isPublishWindowOpen}
+        onClose={() => setIsPublishWindowOpen(false)}
+        fullScreen
+      >
+        <PostWriter onClose={() => setIsPublishWindowOpen(false)} />
       </PopWindow>
     </div>
+
   );
 }

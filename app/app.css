@@ -16,7 +16,7 @@
 }
 
 @plugin "daisyui/theme" {
-  name: "forest";
+  name: "night";
   default: false;
   prefersdark: true;
   color-scheme: "dark";
