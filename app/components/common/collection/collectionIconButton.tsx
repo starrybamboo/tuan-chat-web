@@ -17,11 +17,11 @@ export default function CollectionIconButton({ targetInfo }: { targetInfo: Colle
 
   const toggleCollection = () => {
     const isLogin = Boolean(localStorage.getItem("token"));
-    if (!isLogin) {
+     if (!isLogin) {
       toast.error("请先登录！");
     }
     if (isCollected) {
-       deleteCollectionMutation.mutate(targetInfo.resourceId);
+      // deleteCollectionMutation.mutate(targetInfo);
     }
     else {
       addCollectionMutation.mutate({ ...targetInfo, comment: "default" });

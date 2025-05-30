@@ -9,11 +9,14 @@ import React, { useState } from "react";
 
 import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
 import { useGetFeedByIdQuery } from "../../../api/hooks/FeedQueryHooks";
+import { CopyLinkButton } from "../common/copyLinkButton";
+import ShareToQQButton from "../common/shareToQQButton";
 
 export default function FeedDetail({ feedId, handleWheel }: { feedId: number; handleWheel: (e: WheelEvent<HTMLDivElement>) => void }) {
   const feedQuery = useGetFeedByIdQuery(feedId);
   const feed = feedQuery.data;
   const [showComments, setShowComments] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const getMessageQuery = useGetMessageByIdQuery(feed?.messageId ?? -1);
   const messageResponse = getMessageQuery.data;
 
@@ -47,9 +50,18 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
         {/* 内容展示区 */}
         <div className="flex-1 flex justify-center items-center relative">
           <div className="text-center">
-            {
+            {/* {
               messageResponse && <ChatBubble chatMessageResponse={messageResponse} useChatBubbleStyle={false}></ChatBubble>
-            }
+            } */}
+            {!messageResponse ? (
+                <div>请登录后查看详细内容</div>
+              ) :getMessageQuery.isLoading ? (
+                <div>加载中...</div>
+              ) : getMessageQuery.isError ? (
+                <div>加载失败</div>
+              ) :  (
+                <ChatBubble chatMessageResponse={messageResponse} useChatBubbleStyle={false} />
+              )}
           </div>
         </div>
 
@@ -86,7 +98,7 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
         </button>
 
         {/* 分享按钮 */}
-        <button className="flex flex-col items-center" type="button">
+        <button onClick={()=>setShowShare(!showShare)} className="flex flex-col items-center" type="button">
           <div className="w-10 h-10">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
@@ -114,9 +126,18 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
             /!* 评论列表 *!/
           </div> 
         </div> )} */}
-    
+      <PopWindow isOpen={showShare} onClose={() => setShowShare(false)}>
+        <div className="overflow-y-auto space-y-4 h-[40vh] w-[30vw] flex flex-col items-center justify-center">
+          <h2 className="text-xl font-bold">分享至</h2>
+          <div className="flex gap-4 mt-4">
+            <button className="btn btn-primary">社区</button>
+            <ShareToQQButton feedId={1}/>
+            <CopyLinkButton />
+          </div>
+        </div>
+      </PopWindow>
       <PopWindow isOpen={showComments} onClose={() => setShowComments(false)}>
-        <div className="overflow-y-auto space-y-4 h-[80vh] w-[60vw]">
+        <div className="overflow-y-auto space-y-4 h-[80vh] w-[60vw] sm:w-[60vw]">
           <CommentPanel targetInfo={{ targetId: feed.feedId ?? -1, targetType: "1" }} className="h-full"></CommentPanel>
         </div>
       </PopWindow>
