@@ -25,7 +25,7 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
         {/* TODO：分页获取子消息 */}
         {
           commentVO?.children && commentVO?.children.length > 0 && (
-            <div>
+            <div className="pt-4">
               {commentVO.children.map(child => (
                 <CommentComponent key={child.commentId} comment={child} level={level + 1 > MAX_LEVEL ? 1 : level + 1} />
               ))}
@@ -51,7 +51,7 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
   if (isFolded) {
     return (
       <div
-        className="flex items-center gap-2"
+        className="flex items-center "
         onClick={(e) => {
           e.stopPropagation();
           setIsFolded(!isFolded);
@@ -68,7 +68,6 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
 
     );
   }
-
   return (
     <div className="text-base-content">
       {/* Comment Header - User Info */}
@@ -77,7 +76,7 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
         <CommentPreview commentVO={commentVO}></CommentPreview>
       </div>
       <div className="flex flex-col lg:flex-row">
-        <div className="divider lg:divider-horizontal divider-start hover:divider-neutral hover:font-bold" onClick={() => setIsFolded(!isFolded)}>
+        <div className="divider lg:divider-horizontal divider-start hover:divider-neutral hover:font-bold ml-3 mr-3" onClick={() => setIsFolded(!isFolded)}>
           <div className="pt-3">
             <CommentToggle isFolded={isFolded} />
           </div>

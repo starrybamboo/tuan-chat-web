@@ -1,50 +1,37 @@
+import Pagination from "@/components/common/form/pagination";
 import { PopWindow } from "@/components/common/popWindow";
 import { CommunityContext } from "@/components/community/communityContext";
 import PostWriter from "@/components/community/postWriter";
-import { use, useMemo, useState } from "react";
+import { use, useState } from "react";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import {
   useDeletePostMutation,
-  usePageCommunityPostsInfiniteQuery,
+  usePageCommunityPostsQuery,
 } from "../../../api/hooks/communityQueryHooks";
+
+const PAGE_SIZE = 10;
 
 export default function CommunityPostList() {
   const communityContext = use(CommunityContext);
   const communityId = communityContext.communityId ?? -1;
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pageNo = Number.parseInt(searchParams.get("pageNo") || "1");
 
   const navigate = useNavigate();
 
   const [isPublishWindowOpen, setIsPublishWindowOpen] = useState(false);
 
   // 获取帖子列表
-  const {
-    data: postsData,
-    isLoading: isPostsLoading,
-    // fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = usePageCommunityPostsInfiniteQuery({
-    communityId,
-    pageSize: 10,
-  });
+  const pageCommunityPostsQuery = usePageCommunityPostsQuery(
+    { communityId, pageNo, pageSize: PAGE_SIZE },
+  );
+  const posts = pageCommunityPostsQuery.data?.data?.list ?? [];
+  const totalPages = Math.ceil((pageCommunityPostsQuery.data?.data?.totalRecords ?? 0) / PAGE_SIZE);
 
   // 删除帖子mutation
   const deletePostMutation = useDeletePostMutation();
-
-  // 无限滚动触发
-  // const { ref: loadMoreRef, inView } = useInView();
-
-  // useEffect(() => {
-  //   if (inView && hasNextPage && !isFetchingNextPage) {
-  //     fetchNextPage();
-  //   }
-  // }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  // 扁平化分页数据
-  const posts = useMemo(() => {
-    return postsData?.pages.flatMap(page => page.data?.list || []) || [];
-  }, [postsData]);
 
   // 处理删除帖子
   const handleDeletePost = (postId: number) => {
@@ -55,18 +42,18 @@ export default function CommunityPostList() {
     });
   };
   return (
-    <div>
-      <div className="bg-base-100 rounded-lg shadow p-4 mb-6">
+    <div className="space-y-4">
+      <div className="bg-base-100 rounded-lg shadow p-4 ">
         <button className="btn btn-info" onClick={() => { setIsPublishWindowOpen(true); }} type="button">
           发布帖子
         </button>
       </div>
       <div className="space-y-4">
-        {isPostsLoading && <div className="text-center py-4">加载中...</div>}
+        {pageCommunityPostsQuery.isLoading && <div className="text-center py-4">加载中...</div>}
         {posts.map(post => (
           <div
             key={post.communityPostId}
-            className="bg-base-100 rounded-lg shadow p-4"
+            className="bg-base-100 rounded-lg shadow p-4 transition-all duration-150 hover:shadow-lg hover:-translate-y-1"
             onClick={() => { navigate(`/community/${communityId}/${post.communityPostId}`); }}
           >
             <div className="mb-2">
@@ -88,10 +75,7 @@ export default function CommunityPostList() {
           </div>
         ))}
       </div>
-      {/* 无限滚动加载更多 - 修改为Tailwind样式 */}
-      <div className="text-center py-4 text-gray-500">
-        {isFetchingNextPage ? "加载中..." : hasNextPage ? "上拉加载更多" : "没有更多了"}
-      </div>
+      <Pagination total={totalPages} onChange={(newPageNo) => { setSearchParams({ pageNo: newPageNo.toString() }); }} initialPageNo={pageNo}></Pagination>
       <PopWindow isOpen={isPublishWindowOpen} onClose={() => { setIsPublishWindowOpen(false); }} fullScreen>
         <PostWriter onClose={() => { setIsPublishWindowOpen(false); }}></PostWriter>
       </PopWindow>

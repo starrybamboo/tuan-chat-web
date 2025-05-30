@@ -142,6 +142,12 @@ export function usePageCommunityPostsInfiniteQuery(requestBody: PagePostRequest)
             }
             return undefined;
         },
+    });
+}
+export function usePageCommunityPostsQuery(requestBody: PagePostRequest) {
+    return useQuery({
+        queryKey: ['pageCommunityPosts', requestBody],
+        queryFn: () => tuanchat.communityPost.pageCommunityPosts(requestBody),
         staleTime: 30000 // 30秒缓存
     });
 }

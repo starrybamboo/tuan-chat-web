@@ -33,10 +33,6 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
             e.preventDefault();
             setContent(`${content.substring(0, start)} _${selectedText}_ ${content.substring(end)}`);
             break;
-          case "k":
-            e.preventDefault();
-            setContent(`${content.substring(0, start)}[${selectedText}](url)${content.substring(end)}`);
-            break;
         }
       }
     };
@@ -87,10 +83,9 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
               required
             />
           </div>
-
-          <div className="flex flex-col md:flex-row gap-4 relative min-h-[400px]">
+          <div className="flex flex-col md:flex-row gap-4 relative">
             {/* 编辑器 */}
-            <div className="flex-1 md:w-auto">
+            <div className="flex-1 md:w-auto space-y-2">
               <label className="label">
                 <span className="label-text">内容 (支持Markdown)</span>
                 <span className="label-text-alt text-xs opacity-70">
@@ -99,7 +94,7 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
               </label>
               <textarea
                 placeholder="写下你的想法..."
-                className="textarea textarea-bordered w-full h-full min-h-[200px]"
+                className="textarea textarea-bordered w-full"
                 value={content}
                 onChange={e => setContent(e.target.value)}
                 required
@@ -107,17 +102,16 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
             </div>
 
             {/* 预览 */}
-            <div className="flex-1 md:w-auto">
+            <div className="flex-1 md:w-auto  space-y-2">
               <label className="label">
                 <span className="label-text">预览</span>
               </label>
-              <div className="border border-base-300 rounded-box pl-4 pr-4 h-full overflow-auto">
+              <div className="border border-base-300 rounded-box pl-4 min-h-[255px] pr-4 overflow-auto">
                 <MarkDownViewer content={content} />
               </div>
             </div>
           </div>
-
-          <div className="card-actions justify-end">
+          <div className="flex justify-end">
             <button
               type="submit"
               className="btn btn-info"
@@ -131,11 +125,12 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
                     </>
                   )
                 : (
-                    "Publish Post"
+                    "发布帖子"
                   )}
             </button>
           </div>
         </form>
+
       </div>
     </div>
   );
