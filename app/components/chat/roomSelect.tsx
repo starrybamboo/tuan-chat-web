@@ -163,6 +163,8 @@ export default function RoomSelect() {
       spaceId: activeSpaceId ?? -1,
       isSpaceOwner: spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1)
         || spaces.find(space => space.spaceId === activeSpaceId)?.userId === globalContext.userId,
+      setActiveSpaceId,
+      setActiveRoomId,
     };
   }, [activeSpaceId, globalContext.userId, spaceMembersQuery.data?.data]);
 
@@ -186,6 +188,7 @@ export default function RoomSelect() {
     }, {
       onSuccess: () => {
         setIsSpaceHandleOpen(false);
+        setSelectedUserIds(new Set());
       },
     });
   }
@@ -229,14 +232,14 @@ export default function RoomSelect() {
         <SideDrawer sideDrawerId="room-select">
           <div className="flex flex-row bg-base-100 h-full">
             {/* 空间列表 */}
-            <div className="menu flex flex-col p-3 bg-base-300 space-y-2 w-16">
+            <div className="menu flex flex-col p-3 bg-base-200 space-y-2 w-16">
               {spaces.map(space => (
                 <div
                   className={`rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""}`}
                   key={space.spaceId}
                 >
                   <button
-                    className="tooltip tooltip-right w-10 btn btn-square "
+                    className="tooltip tooltip-right w-10 btn btn-square z-10"
                     data-tip={space.name}
                     type="button"
                     onClick={() => {

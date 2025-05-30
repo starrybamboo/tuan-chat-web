@@ -1,4 +1,5 @@
 import type { Route } from "./+types/home";
+import CommunityPage from "@/components/community/communityPage";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -10,7 +11,7 @@ export function meta(_args: Route.MetaArgs) {
 export default function Community() {
   return (
     <div className="h-full bg-base-200 overflow-auto">
-      <p>community</p>
+      <CommunityPage></CommunityPage>
     </div>
   );
 }

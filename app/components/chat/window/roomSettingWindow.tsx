@@ -11,10 +11,13 @@ import {
 } from "api/hooks/chatQueryHooks";
 import { use, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { SpaceContext } from "../spaceContext";
 
 function RoomSettingWindow({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const roomContext = use(RoomContext);
+  const spaceContext = use(SpaceContext);
+  const setActiveRoomId = spaceContext.setActiveRoomId;
   // 获取群组数据
   const roomId = Number(roomContext.roomId);
   const getRoomInfoQuery = useGetRoomInfoQuery(roomId ?? -1);
@@ -179,8 +182,9 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
           dissolveRoomMutation.mutate(roomId, {
             onSuccess: () => {
               onClose();
-              navigate(`/chat/${roomContext.spaceId}`);
+              navigate(`/chat/${roomContext.spaceId}`, { replace: true });
               setIsDissolveConfirmOpen(false);
+              setActiveRoomId(null);
             },
           });
         }}

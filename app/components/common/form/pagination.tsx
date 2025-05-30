@@ -5,13 +5,15 @@ function Pagination({
   max = 8,
   className = "",
   onChange = null,
+  initialPageNo = 1, // 初始化的pageNo
 }: {
   total: number;
   className?: string;
   max?: number;
   onChange?: ((page: number) => void) | null;
+  initialPageNo?: number;
 }) {
-  const [current, setCurrent] = useState(1);
+  const [current, setCurrent] = useState(initialPageNo);
   const isOverflowing = total > max;
 
   function handlePagClick(num: number) {

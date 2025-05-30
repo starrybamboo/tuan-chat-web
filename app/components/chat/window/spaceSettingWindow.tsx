@@ -22,6 +22,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const spaceId = Number(spaceContext.spaceId);
   const getSpaceInfoQuery = useGetSpaceInfoQuery(spaceId ?? -1);
   const space = getSpaceInfoQuery.data?.data;
+  const setActiveSpaceId = spaceContext.setActiveSpaceId;
 
   // 控制成员列表弹窗打开
   const [isMembersListHandleOpen, setIsMembersListHandleOpen] = useState(false);
@@ -307,8 +308,9 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               dissolveSpaceMutation.mutate(spaceId, {
                 onSuccess: () => {
                   onClose();
-                  navigate("/chat");
+                  navigate("/chat", { replace: true });
                   setIsDissolveConfirmOpen(false);
+                  setActiveSpaceId(null);
                 },
               });
             }}
