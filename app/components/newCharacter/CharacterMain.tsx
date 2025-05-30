@@ -45,10 +45,23 @@ export default function CharacterMain() {
         ) ?? [];
         // console.log(mappedRoles); // 打印映射后的角色数据，用于调试
         // 将映射后的角色数据设置到状态中
-        setRoles(mappedRoles);
+        setRoles((prev) => {
+          // 如果存在旧角色数据，需要过滤掉重复的角色
+          const existingIds = new Set(prev.map(r => r.id));
+          const newRoles = mappedRoles.filter(
+            role => !existingIds.has(role.id),
+          );
+          return [...prev, ...newRoles];
+        });
 
         // 异步加载每个角色的头像
         for (const Roles of mappedRoles) {
+          // 检查角色的头像是否已经缓存
+          const cachedAvatar = queryClient.getQueryData<string>(["roleAvatar", Roles.id]);
+          if (cachedAvatar) {
+            return;
+          }
+
           try {
             const res = await tuanchat.avatarController.getRoleAvatar(Roles.avatarId);
             if (
@@ -59,7 +72,7 @@ export default function CharacterMain() {
               // 将头像URL缓存到React Query缓存中
               queryClient.setQueryData(["roleAvatar", Roles.id], avatarUrl);
               // 更新角色列表中对应角色的头像URL
-              setRoles((prevChars: any[]) =>
+              setRoles(prevChars =>
                 prevChars.map(char =>
                   char.id === Roles.id ? { ...char, avatar: avatarUrl } : char,
                 ),
