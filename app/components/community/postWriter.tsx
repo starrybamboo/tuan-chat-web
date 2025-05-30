@@ -15,6 +15,7 @@ import {
   QuoteAltRight,
   YoutubeSolid,
 } from "@/icons";
+import { UploadUtils } from "@/utils/UploadUtils";
 import { useDebounce } from "ahooks";
 import React, { use, useEffect, useMemo, useRef, useState } from "react";
 import { usePublishPostMutation } from "../../../api/hooks/communityQueryHooks";
@@ -40,6 +41,8 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
   const isPublishing = publishPostMutation.isPending;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const uploadUtils = new UploadUtils(2);
+
   const [storedPost, setStoredPost] = useLocalStorage<StoredPost>("saveWritingPost", {});
 
   const [title, setTitle] = useState(storedPost.title ?? "");
@@ -58,16 +61,45 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
     });
   }, [title, debouncedContent, setStoredPost]);
 
-  // 插入一段markdown支持的格式
-  const insertText = (format: MarkdownFormatType) => {
+  // 向光标位置插入一段文本，或者替换选中的文本。
+  const insertText = (text: string) => {
     if (!textareaRef.current)
       return;
-
     const textarea = textareaRef.current;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const beforeText = content.substring(0, start);
     const afterText = content.substring(end);
+    setContent(`${beforeText}${text}${afterText}`);
+  };
+  async function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    // 获取剪贴板中的图片
+    const items = e.clipboardData?.items;
+    if (!items)
+      return;
+    // 如果是图片则放到imgFile中;
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        e.preventDefault();
+        const blob = item.getAsFile();
+        if (!blob)
+          continue;
+        const file = new File([blob], `pasted-image-${Date.now()}`, {
+          type: blob.type,
+        });
+        const url = await uploadUtils.uploadImg(file);
+        insertText(`![${file.name}](${url})`);
+      }
+    }
+  }
+  // 插入一段markdown支持的格式
+  const insertFormat = (format: MarkdownFormatType) => {
+    if (!textareaRef.current)
+      return;
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
     const selectedText = content.substring(start, end);
     let textToInsert: string;
     let newCursorOffset: number = 0;
@@ -124,8 +156,7 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
       default:
         textToInsert = selectedText;
     }
-
-    setContent(`${beforeText}${textToInsert}${afterText}`);
+    insertText(textToInsert);
     // 设置光标位置
     setTimeout(() => {
       textarea.selectionStart = start + newCursorOffset;
@@ -143,36 +174,35 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
         switch (e.key.toLowerCase()) {
           case "b":
             e.preventDefault();
-            insertText("strong");
+            insertFormat("strong");
             break;
           case "i":
             e.preventDefault();
-            insertText("em");
+            insertFormat("em");
             break;
           case "k":
             e.preventDefault();
-            insertText("a");
+            insertFormat("a");
             break;
           case "e":
             e.preventDefault();
-            insertText("code");
+            insertFormat("code");
             break;
           case "q":
             e.preventDefault();
-            insertText("blockquote");
+            insertFormat("blockquote");
             break;
           case "d":
             if (e.altKey) {
               e.preventDefault();
-              insertText("del");
+              insertFormat("del");
             }
         }
       }
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [content]);
-
+  }, []);
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -198,10 +228,13 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
   };
 
   return (
-    <div className="card bg-base-100 shadow-md">
-      <div className="card-body">
-        <h2 className="card-title">创建帖子</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="card bg-base-100 shadow-md h-full">
+      <div className="card-body flex flex-col">
+        <h2 className="card-title">
+          创建帖子
+          <span className="text-xs opacity-70">（所有改动都会实时保存到浏览器本地）</span>
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col">
           <div>
             <label className="label">
               <span className="label-text">标题</span>
@@ -215,127 +248,119 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
               required
             />
           </div>
-
-          {/* 操作按钮栏 */}
-          <div className="flex flex-wrap gap-2">
-            <div
-              className="tooltip hover:bg-base-200 rounded cursor-pointer"
-              data-tip="加粗 (Ctrl+B)"
-              onClick={() => insertText("strong")}
-            >
-              <BaselineFormatBold className="size-6" />
-            </div>
-
-            <div
-              className="tooltip hover:bg-base-200 rounded cursor-pointer"
-              data-tip="斜体 (Ctrl+I)"
-              onClick={() => insertText("em")}
-            >
-              <BaselineFormatItalic className="size-6" />
-            </div>
-
-            <div
-              className="tooltip hover:bg-base-200 rounded cursor-pointer"
-              data-tip="链接 (Ctrl+K)"
-              onClick={() => insertText("a")}
-            >
-              <LinkFilled className="size-6" />
-            </div>
-
-            <div
-              className="tooltip hover:bg-base-200 rounded cursor-pointer"
-              data-tip="代码 (Ctrl+E)"
-              onClick={() => insertText("code")}
-            >
-              <BaselineCode className="size-6" />
-            </div>
-
-            <div
-              className="tooltip hover:bg-base-200 rounded cursor-pointer"
-              data-tip="无序列表"
-              onClick={() => insertText("ul")}
-            >
-              <ListUnordered className="size-6" />
-            </div>
-
-            <div
-              className="tooltip hover:bg-base-200 rounded cursor-pointer"
-              data-tip="有序列表"
-              onClick={() => insertText("ol")}
-            >
-              <ListOrdered className="size-6" />
-            </div>
-
-            <div
-              className="tooltip hover:bg-base-200 rounded cursor-pointer"
-              data-tip="引用 (Ctrl+Q)"
-              onClick={() => insertText("blockquote")}
-            >
-              <QuoteAltRight className="size-6" />
-            </div>
-
-            <div
-              className="tooltip hover:bg-base-200 rounded cursor-pointer"
-              data-tip="删除线 (Ctrl+Alt+D)"
-              onClick={() => insertText("del")}
-            >
-              <DeleteLine className="size-6"></DeleteLine>
-            </div>
-
-            <div
-              className="tooltip hover:bg-base-200 rounded cursor-pointer"
-              data-tip="插入图片"
-              onClick={() => insertText("img")}
-            >
-              <Image2Fill className="size-6" />
-            </div>
-
-            <div
-              className="tooltip hover:bg-base-200 rounded cursor-pointer"
-              data-tip="插入代码块"
-              onClick={() => insertText("codeBlock")}
-            >
-              <FileCodeOne className="size-6" />
-            </div>
-
-            <div
-              className="tooltip hover:bg-base-200 rounded cursor-pointer"
-              data-tip="插入B站视频"
-              onClick={() => insertText("bilibili")}
-            >
-              <BilibiliFill className="size-6" />
-            </div>
-
-            <div
-              className="tooltip hover:bg-base-200 rounded cursor-pointer"
-              data-tip="插入YouTube视频"
-              onClick={() => insertText("youtube")}
-            >
-              <YoutubeSolid className="size-6" />
-            </div>
-          </div>
-
-          <div className="flex flex-col md:flex-row gap-4 relative">
+          <div className="flex flex-col lg:flex-row md:flex-row gap-4 flex-1">
             {/* 编辑器 */}
-            <div className="flex-1 md:w-auto space-y-2">
-              <label className="label">
-                <span className="label-text">内容 (支持Markdown)</span>
-                <span className="label-text-alt text-xs opacity-70">
-                  Ctrl+B: 加粗, Ctrl+I: 斜体, Ctrl+K: 链接, Ctrl+E: 代码, Ctrl+Q: 引用 ctrl+alt+d: del
-                </span>
-              </label>
+            <div className="space-y-2 flex flex-col min-w-[50%]">
+              {/* 操作按钮栏 */}
+              <div className="flex flex-wrap gap-2">
+                <div
+                  className="tooltip hover:bg-base-200 rounded cursor-pointer"
+                  data-tip="加粗 (Ctrl+B)"
+                  onClick={() => insertFormat("strong")}
+                >
+                  <BaselineFormatBold className="size-6" />
+                </div>
+
+                <div
+                  className="tooltip hover:bg-base-200 rounded cursor-pointer"
+                  data-tip="斜体 (Ctrl+I)"
+                  onClick={() => insertFormat("em")}
+                >
+                  <BaselineFormatItalic className="size-6" />
+                </div>
+
+                <div
+                  className="tooltip hover:bg-base-200 rounded cursor-pointer"
+                  data-tip="链接 (Ctrl+K)"
+                  onClick={() => insertFormat("a")}
+                >
+                  <LinkFilled className="size-6" />
+                </div>
+
+                <div
+                  className="tooltip hover:bg-base-200 rounded cursor-pointer"
+                  data-tip="代码 (Ctrl+E)"
+                  onClick={() => insertFormat("code")}
+                >
+                  <BaselineCode className="size-6" />
+                </div>
+
+                <div
+                  className="tooltip hover:bg-base-200 rounded cursor-pointer"
+                  data-tip="无序列表"
+                  onClick={() => insertFormat("ul")}
+                >
+                  <ListUnordered className="size-6" />
+                </div>
+
+                <div
+                  className="tooltip hover:bg-base-200 rounded cursor-pointer"
+                  data-tip="有序列表"
+                  onClick={() => insertFormat("ol")}
+                >
+                  <ListOrdered className="size-6" />
+                </div>
+
+                <div
+                  className="tooltip hover:bg-base-200 rounded cursor-pointer"
+                  data-tip="引用 (Ctrl+Q)"
+                  onClick={() => insertFormat("blockquote")}
+                >
+                  <QuoteAltRight className="size-6" />
+                </div>
+
+                <div
+                  className="tooltip hover:bg-base-200 rounded cursor-pointer"
+                  data-tip="删除线 (Ctrl+Alt+D)"
+                  onClick={() => insertFormat("del")}
+                >
+                  <DeleteLine className="size-6"></DeleteLine>
+                </div>
+
+                <div
+                  className="tooltip hover:bg-base-200 rounded cursor-pointer"
+                  data-tip="插入图片(可以直接粘贴图片）"
+                  onClick={() => insertFormat("img")}
+                >
+                  <Image2Fill className="size-6" />
+                </div>
+
+                <div
+                  className="tooltip hover:bg-base-200 rounded cursor-pointer"
+                  data-tip="插入代码块"
+                  onClick={() => insertFormat("codeBlock")}
+                >
+                  <FileCodeOne className="size-6" />
+                </div>
+
+                <div
+                  className="tooltip hover:bg-base-200 rounded cursor-pointer"
+                  data-tip="插入B站视频"
+                  onClick={() => insertFormat("bilibili")}
+                >
+                  <BilibiliFill className="size-6" />
+                </div>
+
+                <div
+                  className="tooltip hover:bg-base-200 rounded cursor-pointer"
+                  data-tip="插入YouTube视频"
+                  onClick={() => insertFormat("youtube")}
+                >
+                  <YoutubeSolid className="size-6" />
+                </div>
+              </div>
               <textarea
                 ref={textareaRef}
                 placeholder="写下你的想法..."
-                className="textarea textarea-bordered w-full min-h-[255px]"
+                className="textarea textarea-bordered w-full min-h-[255px] flex-1"
                 value={content}
                 onChange={e => setContent(e.target.value)}
+                onPaste={handlePaste}
                 required
               />
             </div>
-
             {/* 预览 */}
-            <div className="flex-1 md:w-auto  space-y-2">
+            <div className="flex-1 space-y-2 lg:w-[50%]">
               <label className="label">
                 <span className="label-text">预览</span>
               </label>

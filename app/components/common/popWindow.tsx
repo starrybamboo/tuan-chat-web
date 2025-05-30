@@ -25,7 +25,7 @@ export function PopWindow({ isOpen, children, onClose, fullScreen }: {
             ✕
           </button>
           {/* 卡片内容 */}
-          <div className="card-body p-4 w-full">
+          <div className="card-body p-4 w-full h-full">
             {children}
           </div>
         </div>
