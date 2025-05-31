@@ -43,10 +43,9 @@ export default function CharacterMain() {
         const mappedRoles = roleQuery?.pages.flatMap(page =>
           (page.data?.list ?? []).map(convertRole),
         ) ?? [];
-        // console.log(mappedRoles); // 打印映射后的角色数据，用于调试
         // 将映射后的角色数据设置到状态中
         setRoles((prev) => {
-          // 如果存在旧角色数据，需要过滤掉重复的角色
+          // 如果存在旧角色数据，需要过滤掉重复的角色，这也避免了头像数据的重复加载
           const existingIds = new Set(prev.map(r => r.id));
           const newRoles = mappedRoles.filter(
             role => !existingIds.has(role.id),
@@ -112,7 +111,7 @@ export default function CharacterMain() {
     if (isSuccess) {
       initializeRoles();
     }
-  }, [isSuccess]);
+  }, [isSuccess, roleQuery]);
 
   // 删除弹窗状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
