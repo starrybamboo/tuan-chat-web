@@ -24,7 +24,7 @@ export default function CharacterMain() {
   const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
 
-  const initializeRoles = async () => {
+  const loadRoles = async () => {
     const convertRole = (role: RoleResponse) => ({
       id: role.roleId || 0,
       name: role.roleName || "",
@@ -53,37 +53,42 @@ export default function CharacterMain() {
           return [...prev, ...newRoles];
         });
 
-        // 异步加载每个角色的头像
-        for (const Roles of mappedRoles) {
+        // 并行加载所有角色的头像
+        const avatarPromises = mappedRoles.map(async (role) => {
           // 检查角色的头像是否已经缓存
-          const cachedAvatar = queryClient.getQueryData<string>(["roleAvatar", Roles.id]);
+          const cachedAvatar = queryClient.getQueryData<string>(["roleAvatar", role.id]);
           if (cachedAvatar) {
-            return;
+            return { id: role.id, avatar: cachedAvatar };
           }
 
           try {
-            const res = await tuanchat.avatarController.getRoleAvatar(Roles.avatarId);
-            if (
-              res.success
-              && res.data
-            ) {
+            const res = await tuanchat.avatarController.getRoleAvatar(role.avatarId);
+            if (res.success && res.data) {
               const avatarUrl = res.data.avatarUrl;
               // 将头像URL缓存到React Query缓存中
-              queryClient.setQueryData(["roleAvatar", Roles.id], avatarUrl);
-              // 更新角色列表中对应角色的头像URL
-              setRoles(prevChars =>
-                prevChars.map(char =>
-                  char.id === Roles.id ? { ...char, avatar: avatarUrl } : char,
-                ),
-              );
+              queryClient.setQueryData(["roleAvatar", role.id], avatarUrl);
+              return { id: role.id, avatar: avatarUrl };
             }
-            else {
-              console.warn(`角色 ${Roles.id} 的头像数据无效或为空`);
-            }
+            console.warn(`角色 ${role.id} 的头像数据无效或为空`);
+            return null;
           }
           catch (error) {
-            console.error(`加载角色 ${Roles.id} 的头像时出错`, error);
+            console.error(`加载角色 ${role.id} 的头像时出错`, error);
+            return null;
           }
+        });
+
+        // 等待所有头像加载完成并一次性更新状态
+        const avatarResults = await Promise.all(avatarPromises);
+        const validAvatars = avatarResults.filter(result => result !== null);
+
+        if (validAvatars.length > 0) {
+          setRoles((prevChars) => {
+            return prevChars.map((char) => {
+              const avatarData = validAvatars.find(avatar => avatar?.id === char.id);
+              return avatarData ? { ...char, avatar: avatarData.avatar } : char;
+            });
+          });
         }
       }
     }
@@ -109,9 +114,9 @@ export default function CharacterMain() {
   // 初始化角色数据
   useEffect(() => {
     if (isSuccess) {
-      initializeRoles();
+      loadRoles();
     }
-  }, [isSuccess, roleQuery]);
+  }, [isSuccess, roleQuery?.pages]);
 
   // 删除弹窗状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
