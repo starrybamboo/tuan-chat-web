@@ -9,7 +9,7 @@ export default function ThemeSwitch() {
       <input
         type="checkbox"
         className="theme-controller"
-        value="forest"
+        value="dark"
         checked={isDarkMode}
         onChange={() => { setIsDarkMode(!isDarkMode); }}
       />

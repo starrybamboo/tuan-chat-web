@@ -8,6 +8,7 @@ import {
   BilibiliFill,
   DeleteLine,
   FileCodeOne,
+  FoldDown,
   Image2Fill,
   LinkFilled,
   ListOrdered,
@@ -26,7 +27,8 @@ type MarkdownFormatType =
   | "a" | "img"
   | "p" | "pre" | "hr" | "br" | "del"
   | "table" | "thead" | "tbody" | "tr" | "th" | "td"
-  | "bilibili" | "youtube";
+  | "bilibili" | "youtube" |
+  "detail";
 
 // save editing post
 interface StoredPost {
@@ -144,6 +146,10 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
       case "codeBlock":
         textToInsert = `\n\`\`\`\n${selectedText}\n\`\`\`\n`;
         newCursorOffset = 4;
+        break;
+      case "detail":
+        textToInsert = `\n<details>\n<summary>${selectedText || "标题"}</summary>\n\n内容\n</details>\n`;
+        newCursorOffset = 33 + selectedText.length;
         break;
       case "bilibili":
         textToInsert = `{{bilibili:${selectedText || "bv"}}}`;
@@ -327,6 +333,14 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
                   onClick={() => insertFormat("codeBlock")}
                 >
                   <FileCodeOne className="size-6" />
+                </div>
+
+                <div
+                  className="tooltip hover:bg-base-200 rounded cursor-pointer"
+                  data-tip="插入折叠块"
+                  onClick={() => insertFormat("detail")}
+                >
+                  <FoldDown className="size-6" />
                 </div>
 
                 <div
