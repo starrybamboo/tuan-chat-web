@@ -110,7 +110,7 @@ export default function CharacterMain() {
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
+  const currentRole = roles.find(r => r.id === selectedRoleId);
   // 创建角色接口
   const { mutateAsync: createRole } = useCreateRoleMutation();
   // 删除角色接口
@@ -150,19 +150,25 @@ export default function CharacterMain() {
       spriteUrl: "/favicon.ico",
       roleId: data,
     });
-    setRoles(prev => [...prev, newRole]);
+    setRoles(prev => [newRole, ...prev]);
     setSelectedRoleId(newRole.id);
     setIsEditing(true);
   };
 
   // 保存角色
   const handleSave = (updatedRole: Role) => {
+    let IsChangeAvatar = false;
+    if (currentRole && updatedRole.avatarId !== currentRole.avatarId) {
+      IsChangeAvatar = true;
+    }
     setRoles(prev =>
       prev.map(role =>
         role.id === updatedRole.id ? updatedRole : role,
       ),
     );
-    setIsEditing(false);
+    if (!IsChangeAvatar) {
+      setIsEditing(false);
+    }
     setSelectedRoleId(updatedRole.id);
   };
 
@@ -198,8 +204,6 @@ export default function CharacterMain() {
     role.name.toLowerCase().includes(searchQuery.toLowerCase())
     || role.description.toLowerCase().includes(searchQuery.toLowerCase()),
   );
-
-  const currentRole = roles.find(r => r.id === selectedRoleId);
 
   return (
     <div className="drawer lg:drawer-open">

@@ -274,8 +274,8 @@ export default function CharacterAvatar({ role, onchange }: {
             <button
               type="submit"
               onClick={() => {
-                setChangeAvatarConfirmOpen(false);
                 onchange(copperedUrl, avatarId);
+                setChangeAvatarConfirmOpen(false);
               }}
               className="btn btn-primary mt-2"
             >
