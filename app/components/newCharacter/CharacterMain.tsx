@@ -3,7 +3,8 @@ import type { Role } from "./types";
 import { tuanchat } from "@/../api/instance";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUploadAvatarMutation } from "api/queryHooks";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Virtuoso } from "react-virtuoso";
 import { PopWindow } from "../common/popWindow";
 import { useGlobalContext } from "../globalContextProvider";
 import CharacterDetail from "./CharacterDetail";
@@ -14,15 +15,27 @@ export default function CharacterMain() {
   const {
     data: roleQuery,
     isSuccess,
-    // fetchNextPage,
+    fetchNextPage,
     // isFetchingNextPage,
-    // hasNextPage,
+    hasNextPage,
     // status,
   } = useGetInfiniteUserRolesQuery(userId ?? -1);
 
   const [roles, setRoles] = useState<Role[]>([]);
   // const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
+
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // 添加加载更多角色的函数
+  const loadMoreRoles = useCallback(async () => {
+    if (isLoadingMore || !hasNextPage)
+      return;
+
+    setIsLoadingMore(true);
+    await fetchNextPage();
+    setIsLoadingMore(false);
+  }, [fetchNextPage, hasNextPage, isLoadingMore]);
 
   const loadRoles = async () => {
     const convertRole = (role: RoleResponse) => ({
@@ -248,10 +261,14 @@ export default function CharacterMain() {
             </button>
           </div>
 
-          {/* 角色列表 */}
-          <div className="space-y-2 overflow-y-auto flex-1 h-0 pb-16">
-            {
-              filteredRoles.map(role => (
+          {/* 角色列表 - 使用 Virtuoso 替换 */}
+          <div className="flex-1 h-0">
+            <Virtuoso
+              style={{ height: "92%" }}
+              data={filteredRoles}
+              endReached={loadMoreRoles}
+              overscan={200}
+              itemContent={(index, role) => (
                 <RoleListItem
                   key={role.id}
                   role={role}
@@ -265,13 +282,17 @@ export default function CharacterMain() {
                   }}
                   onDelete={() => handleDelete(role.id)}
                 />
-              ))
-            }
-            {/* {isLoading && (
-              <div className="flex justify-center items-center h-full">
-                <span className="loading loading-spinner loading-lg"></span>
-              </div>
-            )} */}
+              )}
+              components={{
+                Footer: () => isLoadingMore
+                  ? (
+                      <div className="flex justify-center items-center py-4">
+                        <span className="loading loading-spinner loading-md"></span>
+                      </div>
+                    )
+                  : null,
+              }}
+            />
           </div>
         </div>
       </div>
