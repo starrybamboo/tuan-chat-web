@@ -21,7 +21,7 @@ export default function CharacterMain() {
   } = useGetInfiniteUserRolesQuery(userId ?? -1);
 
   const [roles, setRoles] = useState<Role[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false);
   const queryClient = useQueryClient();
 
   const loadRoles = async () => {
@@ -35,65 +35,59 @@ export default function CharacterMain() {
       speakerName: role.speakerName || "",
     });
 
-    setIsLoading(true);
-    try {
-      // 有query数据时
-      if (isSuccess && roleQuery.pages.length > 0) {
-        // 将API返回的角色数据映射为前端使用的格式
-        const mappedRoles = roleQuery?.pages.flatMap(page =>
-          (page.data?.list ?? []).map(convertRole),
-        ) ?? [];
+    // 有query数据时
+    if (isSuccess && roleQuery.pages.length > 0) {
+      // 将API返回的角色数据映射为前端使用的格式
+      const mappedRoles = roleQuery?.pages.flatMap(page =>
+        (page.data?.list ?? []).map(convertRole),
+      ) ?? [];
         // 将映射后的角色数据设置到状态中
-        setRoles((prev) => {
-          // 如果存在旧角色数据，需要过滤掉重复的角色，这也避免了头像数据的重复加载
-          const existingIds = new Set(prev.map(r => r.id));
-          const newRoles = mappedRoles.filter(
-            role => !existingIds.has(role.id),
-          );
-          return [...prev, ...newRoles];
-        });
+      setRoles((prev) => {
+        // 如果存在旧角色数据，需要过滤掉重复的角色，这也避免了头像数据的重复加载
+        const existingIds = new Set(prev.map(r => r.id));
+        const newRoles = mappedRoles.filter(
+          role => !existingIds.has(role.id),
+        );
+        return [...prev, ...newRoles];
+      });
 
-        // 并行加载所有角色的头像
-        const avatarPromises = mappedRoles.map(async (role) => {
-          // 检查角色的头像是否已经缓存
-          const cachedAvatar = queryClient.getQueryData<string>(["roleAvatar", role.id]);
-          if (cachedAvatar) {
-            return { id: role.id, avatar: cachedAvatar };
-          }
-
-          try {
-            const res = await tuanchat.avatarController.getRoleAvatar(role.avatarId);
-            if (res.success && res.data) {
-              const avatarUrl = res.data.avatarUrl;
-              // 将头像URL缓存到React Query缓存中
-              queryClient.setQueryData(["roleAvatar", role.id], avatarUrl);
-              return { id: role.id, avatar: avatarUrl };
-            }
-            console.warn(`角色 ${role.id} 的头像数据无效或为空`);
-            return null;
-          }
-          catch (error) {
-            console.error(`加载角色 ${role.id} 的头像时出错`, error);
-            return null;
-          }
-        });
-
-        // 等待所有头像加载完成并一次性更新状态
-        const avatarResults = await Promise.all(avatarPromises);
-        const validAvatars = avatarResults.filter(result => result !== null);
-
-        if (validAvatars.length > 0) {
-          setRoles((prevChars) => {
-            return prevChars.map((char) => {
-              const avatarData = validAvatars.find(avatar => avatar?.id === char.id);
-              return avatarData ? { ...char, avatar: avatarData.avatar } : char;
-            });
-          });
+      // 并行加载所有角色的头像
+      const avatarPromises = mappedRoles.map(async (role) => {
+        // 检查角色的头像是否已经缓存
+        const cachedAvatar = queryClient.getQueryData<string>(["roleAvatar", role.id]);
+        if (cachedAvatar) {
+          return { id: role.id, avatar: cachedAvatar };
         }
+
+        try {
+          const res = await tuanchat.avatarController.getRoleAvatar(role.avatarId);
+          if (res.success && res.data) {
+            const avatarUrl = res.data.avatarUrl;
+            // 将头像URL缓存到React Query缓存中
+            queryClient.setQueryData(["roleAvatar", role.id], avatarUrl);
+            return { id: role.id, avatar: avatarUrl };
+          }
+          console.warn(`角色 ${role.id} 的头像数据无效或为空`);
+          return null;
+        }
+        catch (error) {
+          console.error(`加载角色 ${role.id} 的头像时出错`, error);
+          return null;
+        }
+      });
+
+      // 等待所有头像加载完成并一次性更新状态
+      const avatarResults = await Promise.all(avatarPromises);
+      const validAvatars = avatarResults.filter(result => result !== null);
+
+      if (validAvatars.length > 0) {
+        setRoles((prevChars) => {
+          return prevChars.map((char) => {
+            const avatarData = validAvatars.find(avatar => avatar?.id === char.id);
+            return avatarData ? { ...char, avatar: avatarData.avatar } : char;
+          });
+        });
       }
-    }
-    finally {
-      setIsLoading(false);
     }
   };
 
@@ -256,29 +250,28 @@ export default function CharacterMain() {
 
           {/* 角色列表 */}
           <div className="space-y-2 overflow-y-auto flex-1 h-0 pb-16">
-            {isLoading
-              ? (
-                  <div className="flex justify-center items-center h-full">
-                    <span className="loading loading-spinner loading-lg"></span>
-                  </div>
-                )
-              : (
-                  filteredRoles.map(role => (
-                    <RoleListItem
-                      key={role.id}
-                      role={role}
-                      isSelected={selectedRoleId === role.id}
-                      onSelect={() => {
-                        setSelectedRoleId(role.id);
-                        setIsEditing(false);
-                        const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
-                        if (drawerCheckbox)
-                          drawerCheckbox.checked = false;
-                      }}
-                      onDelete={() => handleDelete(role.id)}
-                    />
-                  ))
-                )}
+            {
+              filteredRoles.map(role => (
+                <RoleListItem
+                  key={role.id}
+                  role={role}
+                  isSelected={selectedRoleId === role.id}
+                  onSelect={() => {
+                    setSelectedRoleId(role.id);
+                    setIsEditing(false);
+                    const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
+                    if (drawerCheckbox)
+                      drawerCheckbox.checked = false;
+                  }}
+                  onDelete={() => handleDelete(role.id)}
+                />
+              ))
+            }
+            {/* {isLoading && (
+              <div className="flex justify-center items-center h-full">
+                <span className="loading loading-spinner loading-lg"></span>
+              </div>
+            )} */}
           </div>
         </div>
       </div>
