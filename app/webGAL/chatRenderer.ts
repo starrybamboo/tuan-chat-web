@@ -6,6 +6,10 @@ import type { ChatMessageResponse, Message, RoleResponse } from "../../api";
 
 import { tuanchat } from "../../api/instance";
 
+/**
+ * 核心render组件
+ */
+
 export class ChatRenderer {
   private MAX_VOCAL: number = 5;
 
@@ -70,6 +74,12 @@ export class ChatRenderer {
     }
   }
 
+  /**
+   * 对于过长的文本，尽可能按照标点拆分
+   * @param content 要渲染的文本
+   * @param maxLength 每一个拆分的最大长度
+   * @private
+   */
   private splitContent(content: string, maxLength = 80) {
     const segments = [];
     let start = 0;
@@ -105,6 +115,9 @@ export class ChatRenderer {
     return segments;
   }
 
+  /**
+   * 一个聊天记录一个聊天记录地渲染，并在这个过程中自动检测不存在的语音或者立绘等并进行上传
+   */
   private async renderMessages(messages: ChatMessageResponse[]): Promise<void> {
     try {
       // 过滤调掉不是文本类型的消息，并排序
@@ -163,7 +176,7 @@ export class ChatRenderer {
               // 生成语音
               let vocalFileName: string | undefined;
               // 不是系统角色，且不是空行，且不是指令，则生成语音
-              if (maxVocal > 0 && message.roleId !== 0 && segment !== "" && !message.content.startsWith(".") && !message.content.startsWith("。")) {
+              if (maxVocal > 0 && message.roleId !== 0 && segment !== "" && !message.content.startsWith(".") && !message.content.startsWith("。") && !message.content.startsWith("%")) {
                 // 将聊天内容替换为 segment
                 vocalFileName = await this.renderer.uploadVocal({ ...messageResponse, message: { ...messageResponse.message, content: segment } });
                 maxVocal--;

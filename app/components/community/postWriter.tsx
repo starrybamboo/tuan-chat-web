@@ -234,7 +234,21 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
       <div className="card-body ">
         <h2 className="card-title">
           创建帖子
-          <span className="text-xs opacity-70">（所有改动都会实时保存到浏览器本地）</span>
+          <span className="text-sm font-normal text-base-content/70 flex items-center badge badge-outline">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              className="mr-1 fill-info"
+            >
+              <path
+                d="M12 1c6.075 0 11 4.925 11 11s-4.925 11-11 11S1 18.075 1 12 5.925 1 12 1Zm0 2a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 13a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm1-9v8h-2V7h2Z"
+              />
+            </svg>
+            所有改动都会实时保存到浏览器本地
+          </span>
+
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4 ">
           <div>
