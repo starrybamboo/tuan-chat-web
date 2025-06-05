@@ -11,7 +11,7 @@ import {
   useGetSpaceMembersQuery,
   useRevokePlayerMutation,
   useSetPlayerMutation,
-  useTransferOwnerMutation,
+  useTransferLeader,
 } from "../../../api/hooks/chatQueryHooks";
 import {
   useGetUserInfoQuery,
@@ -57,7 +57,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
   const mutateSpaceMember = useDeleteSpaceMemberMutation();
   const setPlayerMutation = useSetPlayerMutation();
   const revokePlayerMutation = useRevokePlayerMutation();
-  const transferOwnerMutation = useTransferOwnerMutation();
+  const transferLeader = useTransferLeader();
 
   // 是否是群主
   function isManager() {
@@ -103,9 +103,9 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
   }
 
   function handTransferRoomOwner() {
-    transferOwnerMutation.mutate({
+    transferLeader.mutate({
       spaceId,
-      newOwnerId: userId,
+      newLeaderId: userId,
     }, {
       onSettled: () => setIsOpen(false),
     });
