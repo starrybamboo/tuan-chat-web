@@ -97,9 +97,7 @@ export default function CommunityPage() {
         <div className="flex-1 min-w-0">
           {postId
             ? (
-                <div className="bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden">
-                  <CommunityPostDetail postId={postId} />
-                </div>
+                <CommunityPostDetail postId={postId} />
               )
             : (
                 <CommunityPostList />

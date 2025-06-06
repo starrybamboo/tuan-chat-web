@@ -22,7 +22,7 @@ export function useGetCommentByIdQuery(commentId: number){
 /**
  * comment分页查询
  */
-export function useGetCommentPageInfiniteQuery(targetInfo: LikeRecordRequest, pageSize: number = 10, childLimit:number = 5, maxLevel:number = 99) {
+export function useGetCommentPageInfiniteQuery(targetInfo: LikeRecordRequest, pageSize: number = 10, childLimit:number = 9999,maxLevel:number = 99) {
     return useInfiniteQuery({
         queryKey: ["pageComments", targetInfo],
         queryFn: async ({ pageParam }) => {

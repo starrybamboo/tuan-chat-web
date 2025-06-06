@@ -7,7 +7,10 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import React, { useMemo, useState } from "react";
 import { useGetCommentByIdQuery } from "../../../../api/hooks/commentQueryHooks";
 
-export default function CommentComponent({ comment, level = 1 }: { comment: number | CommentVO; level?: number }) {
+export default function CommentComponent({ comment, level = 1 }: {
+  comment: number | CommentVO; // 可以传commentVO数据或者commentId
+  level?: number;
+}) {
   const MAX_LEVEL = 4;
 
   const getCommentByIdQuery = useGetCommentByIdQuery(typeof comment === "number" ? comment : -1);
@@ -65,7 +68,6 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
         </div>
         <CommentPreview commentVO={commentVO}></CommentPreview>
       </div>
-
     );
   }
   return (
@@ -75,15 +77,15 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
         <UserAvatarComponent userId={commentVO?.userId || -1} width={10} isRounded={true} withName={false} />
         <CommentPreview commentVO={commentVO}></CommentPreview>
       </div>
-      <div className="flex flex-col lg:flex-row">
-        <div className="divider lg:divider-horizontal divider-start hover:divider-neutral hover:font-bold ml-3 mr-3" onClick={() => setIsFolded(!isFolded)}>
+      <div className="flex flex-row">
+        <div className="divider divider-horizontal divider-start hover:divider-neutral hover:font-bold ml-3 mr-3" onClick={() => setIsFolded(!isFolded)}>
           <div className="pt-3">
             <CommentToggle isFolded={isFolded} />
           </div>
         </div>
         <div>
           {/* Comment Content */}
-          <div className="prose max-w-none ">
+          <div className="prose max-w-none pl-2">
             <p>{commentVO?.content}</p>
           </div>
           {/* Comment Actions */}
