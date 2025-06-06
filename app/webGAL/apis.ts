@@ -257,33 +257,32 @@ export class Api {
     this.httpClient = http;
   }
 
-  // 原 api 对象下的方法
   public appControllerApiTest(params: RequestParams = {}) {
     return this.httpClient.request({ path: `/api/test`, method: "GET", ...params });
   }
 
-  public assetsControllerReadAssets(readDirPath: string): any {
-    return this.httpClient.request<void>({
+  public assetsControllerReadAssets(readDirPath: string) {
+    return this.httpClient.request<any>({
       path: `/api/assets/readAssets/${readDirPath}`,
       method: "GET",
     });
   }
 
-  public manageGameControllerGetGameList(): any {
+  public manageGameControllerGetGameList() {
     return this.httpClient.request<GameInfoDto[]>({
       path: `/api/manageGame/gameList`,
       method: "GET",
     });
   }
 
-  public manageGameControllerOpenGameDict(gameName: string): any {
+  public manageGameControllerOpenGameDict(gameName: string) {
     return this.httpClient.request<void>({
       path: `/api/manageGame/openGameDict/${gameName}`,
       method: "GET",
     });
   }
 
-  public assetsControllerUpload(data: FormData, targetDirectory: string): any {
+  public assetsControllerUpload(data: FormData, targetDirectory: string) {
     const formData = new FormData();
     formData.append("targetDirectory", targetDirectory);
     if (data instanceof File) {
@@ -296,7 +295,7 @@ export class Api {
     });
   }
 
-  public manageGameControllerEditTextFile(data: EditTextFileDto): any {
+  public manageGameControllerEditTextFile(data: EditTextFileDto) {
     return this.httpClient.request<void>({
       path: `/api/manageGame/editTextFile`,
       method: "POST",
@@ -311,7 +310,7 @@ export class Api {
     });
   }
 
-  public manageGameControllerCreateGame(data: CreateGameDto): any {
+  public manageGameControllerCreateGame(data: CreateGameDto) {
     return this.httpClient.request<void>({
       path: `/api/manageGame/createGame`,
       method: "POST",

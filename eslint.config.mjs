@@ -17,6 +17,7 @@ export default antfu(
       "api/**",
       ".github/**",
       "**/*.md",
+      "android/**",
     ],
     plugins: {
       "@tanstack/query": pluginQuery,

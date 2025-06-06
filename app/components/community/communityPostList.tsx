@@ -1,5 +1,6 @@
 import Pagination from "@/components/common/form/pagination";
 import { PopWindow } from "@/components/common/popWindow";
+import UserAvatarComponent from "@/components/common/userAvatar";
 import { CommunityContext } from "@/components/community/communityContext";
 import PostWriter from "@/components/community/postWriter";
 import { use, useState } from "react";
@@ -37,18 +38,22 @@ export default function CommunityPostList() {
   const handleDeletePost = (postId: number) => {
     deletePostMutation.mutate(postId, {
       onSuccess: () => {
-        toast("帖子删除成功");
+        toast.success("帖子删除成功", {
+          icon: "🗑️",
+        });
+        pageCommunityPostsQuery.refetch();
       },
     });
   };
+
   return (
-    <div className="space-y-6">
-      {/* Publish Post Button */}
-      <div className="bg-base-100 rounded-box shadow p-4 flex justify-end">
+    <div className="space-y-8">
+      {/* Header with publish button */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-base-content">社区帖子</h2>
         <button
-          className="btn btn-primary gap-2"
+          className="btn btn-primary gap-2 shadow-lg hover:shadow-primary/30"
           onClick={() => setIsPublishWindowOpen(true)}
-          type="button"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -59,76 +64,163 @@ export default function CommunityPostList() {
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          发布帖子
+          发布新帖
         </button>
       </div>
 
       {/* Loading State */}
       {pageCommunityPostsQuery.isLoading && (
-        <div className="flex justify-center py-8">
-          <span className="loading loading-spinner loading-lg text-primary"></span>
+        <div className="flex flex-col items-center justify-center py-16">
+          <span className="loading loading-spinner loading-lg text-primary mb-4"></span>
+          <p className="text-base-content/60">正在加载帖子...</p>
         </div>
       )}
 
       {/* Posts List */}
-      <div className="space-y-4">
-        {posts.map(post => (
-          <div
-            key={post.communityPostId}
-            className="bg-base-100 rounded-box shadow hover:shadow-lg p-6 transition-all duration-200 hover:-translate-y-1 cursor-pointer group"
-            onClick={() => navigate(`/community/${communityId}/${post.communityPostId}`)}
+      {posts.length === 0 && !pageCommunityPostsQuery.isLoading && (
+        <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-base-300 rounded-box">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-16 w-16 text-base-content/30 mb-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
           >
-            <div className="mb-4">
-              <h3 className="text-xl font-bold group-hover:text-primary transition-colors">
-                {post.title || "无标题"}
-              </h3>
-              <p className="text-base-content/80 mt-2 line-clamp-3">
-                {post.content}
-              </p>
-            </div>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          <h3 className="text-xl text-base-content/50 mb-2">暂无帖子</h3>
+          <p className="text-base-content/40 mb-4">成为第一个在此社区发帖的人</p>
+          <button className="btn btn-primary btn-sm" onClick={() => setIsPublishWindowOpen(true)}>
+            发布帖子
+          </button>
+        </div>
+      )}
 
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-base-content/50">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 inline mr-1"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-                {new Date(post.createTime ?? "").toLocaleString()}
+      {posts.length > 0 && (
+        <div className="space-y-5">
+          {posts.map(post => (
+            <div
+              key={post.communityPostId}
+              className="bg-base-100 rounded-2xl border border-base-200 shadow-sm p-6 transition-all duration-300 hover:shadow-lg hover:border-primary/30 cursor-pointer group"
+            >
+              <div className="flex items-start gap-4">
+                <UserAvatarComponent userId={post.userId ?? -1} width={12} isRounded={true}></UserAvatarComponent>
+                <div className="flex-1" onClick={() => navigate(`/community/${communityId}/${post.communityPostId}`)}>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold group-hover:text-primary transition-colors line-clamp-1">
+                        {post.title || "无标题帖子"}
+                      </h3>
+                      <p className="text-base-content/80 mt-2 line-clamp-3">
+                        {post.content}
+                      </p>
+                    </div>
+
+                    <button
+                      className="btn btn-circle btn-sm btn-ghost text-error/60 hover:text-error group-hover:opacity-100 opacity-0 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePost(post.communityPostId ?? -1);
+                      }}
+                      aria-label="删除帖子"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-base-200/80">
+                    <div className="flex items-center gap-3 text-sm text-base-content/50">
+                      <span className="inline-flex items-center">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 mr-1"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.8}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        {new Date(post.createTime ?? "").toLocaleDateString()}
+                      </span>
+
+                      <span className="inline-flex items-center">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 mr-1"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.8}
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+
+                    <div className="badge badge-outline badge-sm flex items-center gap-1">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"
+                        />
+                      </svg>
+                      <span>
+                        999回复
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-
-              <button
-                className="btn btn-sm btn-error btn-outline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeletePost(post.communityPostId ?? -1);
-                }}
-                type="button"
-              >
-                删除
-              </button>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Pagination */}
-      <div className="flex justify-center">
-        <Pagination
-          total={totalPages}
-          onChange={newPageNo => setSearchParams({ pageNo: newPageNo.toString() })}
-          initialPageNo={pageNo}
-        />
-      </div>
+      {totalPages > 1 && (
+        <div className="mt-8 flex justify-center">
+          <Pagination
+            total={totalPages}
+            onChange={newPageNo => setSearchParams({ pageNo: newPageNo.toString() })}
+            initialPageNo={pageNo}
+          />
+        </div>
+      )}
 
       {/* Publish Window */}
       <PopWindow
@@ -139,6 +231,5 @@ export default function CommunityPostList() {
         <PostWriter onClose={() => setIsPublishWindowOpen(false)} />
       </PopWindow>
     </div>
-
   );
 }

@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @plugin "daisyui";
+@plugin "daisyui" {
+  themes: all;
+}
 @plugin "daisyui/theme" {
   name: "silk";
   default: true;
@@ -16,7 +19,7 @@
 }
 
 @plugin "daisyui/theme" {
-  name: "night";
+  name: "dark";
   default: false;
   prefersdark: true;
   color-scheme: "dark";
