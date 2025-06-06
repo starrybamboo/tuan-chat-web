@@ -13,6 +13,8 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
   const getCommentByIdQuery = useGetCommentByIdQuery(typeof comment === "number" ? comment : -1);
   const commentVO = typeof comment === "number" ? getCommentByIdQuery.data : comment;
 
+  const currentUserId = localStorage.getItem("userId");//目前是null?
+
   const [isInput, setIsInput] = useState(false);
   const [isFolded, setIsFolded] = useState(false);
   // 评论过深时，打开一个PopWindow来显示
@@ -68,7 +70,6 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
 
     );
   }
-
   return (
     <div className="text-base-content">
       {/* Comment Header - User Info */}
@@ -105,15 +106,12 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
               </svg>
               喜欢
             </button>
-             <button
-          className="btn btn-sm btn-ghost text-base-content hover:text-error"
-          type="button"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-          删除
-        </button>
+            {String(commentVO.userId) === currentUserId && ( <button className="btn btn-sm btn-ghost text-base-content hover:text-error" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+                删除
+            </button>)}
           </div>
           {
             isInput && (

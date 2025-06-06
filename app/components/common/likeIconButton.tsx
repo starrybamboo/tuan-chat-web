@@ -2,16 +2,16 @@
  * 喜欢的图标
  */
 import type { LikeRecordRequest } from "../../../api";
+import { toast } from "react-hot-toast";
 import { useGetCounterQuery } from "../../../api/hooks/couterQueryHooks";
 import { useIsLikedQuery, useLikeMutation, useUnlikeMutation } from "../../../api/hooks/likeQueryHooks";
-import { useGetUserInfoQuery } from "../../../api/queryHooks";
-import { toast } from "react-hot-toast";
 
 export default function LikeIconButton({ targetInfo }: { targetInfo: LikeRecordRequest }) {
   const isLikedQuery = useIsLikedQuery({
     targetId: targetInfo.targetId,
     targetType: targetInfo.targetType,
   });
+
 
   const isLiked = isLikedQuery.data?.data;
   const likeCount = useGetCounterQuery({ targetId: targetInfo.targetId, targetType: Number(targetInfo.targetType) }).data?.data ?? -2;

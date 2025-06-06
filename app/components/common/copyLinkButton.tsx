@@ -5,7 +5,8 @@ export function CopyLinkButton() {
     try {
       await navigator.clipboard.writeText(window.location.href);
       toast.success("链接已复制！");
-    } catch (err) {
+    }
+    catch (err) {
       toast.error("复制失败，请手动复制");
       console.error(err);
     }
