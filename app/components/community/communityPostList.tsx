@@ -1,3 +1,4 @@
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import Pagination from "@/components/common/form/pagination";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
@@ -5,7 +6,7 @@ import { CommunityContext } from "@/components/community/communityContext";
 import PostWriter from "@/components/community/postWriter";
 import { use, useState } from "react";
 import toast from "react-hot-toast";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate } from "react-router";
 import {
   useDeletePostMutation,
   usePageCommunityPostsQuery,
@@ -17,8 +18,8 @@ export default function CommunityPostList() {
   const communityContext = use(CommunityContext);
   const communityId = communityContext.communityId ?? -1;
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  const pageNo = Number.parseInt(searchParams.get("pageNo") || "1");
+  const [pageNoStr, setPageNo] = useSearchParamsState<number>("pageNo", 1);
+  const pageNo = Number(pageNoStr);
 
   const navigate = useNavigate();
 
@@ -216,7 +217,7 @@ export default function CommunityPostList() {
         <div className="mt-8 flex justify-center">
           <Pagination
             total={totalPages}
-            onChange={newPageNo => setSearchParams({ pageNo: newPageNo.toString() })}
+            onChange={newPageNo => setPageNo(newPageNo)}
             initialPageNo={pageNo}
           />
         </div>
