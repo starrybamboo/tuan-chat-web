@@ -348,7 +348,7 @@ export function Sidebar({
           {/* 角色列表 - 使用 Virtuoso */}
           <div className="flex-1 h-0">
             <Virtuoso
-              style={{ height: "92%" }}
+              style={{ height: "100%" }}
               data={filteredRoles}
               endReached={loadMoreRoles}
               overscan={200}
