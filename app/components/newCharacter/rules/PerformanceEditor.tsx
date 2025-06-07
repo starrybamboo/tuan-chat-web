@@ -212,7 +212,7 @@ export default function PerformanceEditor({
                       />
                       <button
                         type="button"
-                        className="absolute -top-6 -right-3 btn btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-error hover:text-white rounded-full p-1"
+                        className="absolute -top-6 -right-3 btn btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-gray-800 hover:text-white rounded-full p-1"
                         onClick={() => handleDeleteField(key)}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
