@@ -224,7 +224,6 @@ export default function PerformanceEditor({
                       </button>
                     </fieldset>
                   </div>
-
                 )
               : (
             // 非编辑模式下的UI
@@ -246,25 +245,26 @@ export default function PerformanceEditor({
       {isEditing && (
         <fieldset className="border border-base-300 rounded-lg p-4 mt-4">
           <legend className="px-2 font-bold">添加新字段</legend>
-          <div className="flex flex-col w-full gap-2">
-            <input
-              type="text"
-              placeholder="字段名称"
-              className="input input-bordered input-sm w-1/4 mt-2"
-              value={newKey}
-              onChange={e => setNewKey(e.target.value)}
-            />
+          <input
+            type="text"
+            placeholder="字段名称"
+            className="input input-bordered input-sm w-1/4 mt-2"
+            value={newKey}
+            onChange={e => setNewKey(e.target.value)}
+          />
+          <div className="relative w-full">
             <textarea
               placeholder="值"
-              className="textarea textarea-bordered textarea-sm w-full resize-none"
+              className="textarea textarea-bordered textarea-sm w-full h-30 resize-none mt-4"
               value={newValue}
               onChange={e => setNewValue(e.target.value)}
               rows={1}
             />
             <button
               type="button"
-              className="btn btn-primary btn-sm w-fit"
+              className="btn btn-sm btn-primary absolute bottom-2 right-2"
               onClick={handleAddField}
+              disabled={!newKey || !newValue}
             >
               添加字段
             </button>
