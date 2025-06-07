@@ -170,11 +170,11 @@ export default function CharacterAvatar({ role, onchange }: {
                   {showSprite ? "头像" : "立绘"}
                 </button>
               </div>
-              <div className="h-[90%] bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
+              <div className=" bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
                 <img
                   src={showSprite ? (previewSrc || "/favicon.ico") : (copperedUrl || "/favicon.ico")}
                   alt="预览"
-                  className="w-full object-contain"
+                  className="max-h-[65vh] object-contain"
                 />
               </div>
             </div>

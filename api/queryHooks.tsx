@@ -433,7 +433,7 @@ export function useGetUserRolesPageQuery(params: RolePageQueryRequest) {
 }
 
 export function useGetInfiniteUserRolesQuery(userId: number) {
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 15;
   return useInfiniteQuery({
     queryKey: ["roleInfinite", userId],
     queryFn: async ({ pageParam }: { pageParam: RolePageQueryRequest }) => {
