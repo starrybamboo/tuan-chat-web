@@ -1,7 +1,8 @@
 import { Mounter } from "@/components/common/mounter";
+import { getScreenSize } from "@/utils/getScreenSize";
 import React from "react";
 
-export function PopWindow({ isOpen, children, onClose, fullScreen }: {
+export function PopWindow({ isOpen, children, onClose, fullScreen = getScreenSize() === "sm" }: {
   isOpen: boolean;
   children: React.ReactNode;
   onClose: () => void;
