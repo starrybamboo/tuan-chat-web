@@ -86,7 +86,7 @@ export default function CharacterDetail({
   };
 
   return (
-    <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${
+    <div className={`space-y-6 transition-opacity duration-300 ease-in-out ${
       isTransitioning ? "opacity-50" : ""
     }`}
     >
@@ -219,11 +219,14 @@ export default function CharacterDetail({
                 )}
           </div>
         </div>
+
+      </div>
+      <div className="card-sm md:card bg-base-100 shadow-xl">
+        <ExpansionModule
+          roleId={localRole.id}
+        />
       </div>
 
-      <ExpansionModule
-        roleId={localRole.id}
-      />
     </div>
   );
 }
