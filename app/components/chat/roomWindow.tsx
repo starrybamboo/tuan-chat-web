@@ -237,14 +237,14 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   return (
     <RoomContext value={roomContext}>
       <div className="w-full flex gap-4">
-        <div className="flex flex-col flex-1 h-full w-full">
+        <div className="flex flex-col flex-1">
           {/* 聊天框 */}
           <div className="card bg-base-100 shadow-sm">
             <ChatFrame useChatBubbleStyle={useChatBubbleStyle} key={roomId}></ChatFrame>
           </div>
           {/* 输入区域 */}
           <form className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm flex flex-col flex-1">
-            <div className="flex gap-2 relative flex-1">
+            <div className="flex gap-2 flex-1">
               {/* 表情差分展示与选择 */}
               <div className="dropdown dropdown-top flex-shrink-0">
                 <div role="button" tabIndex={0} className="">

@@ -12,9 +12,11 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function DashBoard() {
   return (
-    <div className="h-screen w-screen flex flex-col overflow-auto">
+    <div className="h-screen w-screen flex flex-col">
       <Topbar></Topbar>
-      <Outlet></Outlet>
+      <div className="flex-1 overflow-auto">
+        <Outlet></Outlet>
+      </div>
     </div>
   );
 }

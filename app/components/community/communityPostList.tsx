@@ -4,7 +4,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { CommunityContext } from "@/components/community/communityContext";
 import PostWriter from "@/components/community/postWriter";
-import { use, useState } from "react";
+import { use } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import {
@@ -23,7 +23,7 @@ export default function CommunityPostList() {
 
   const navigate = useNavigate();
 
-  const [isPublishWindowOpen, setIsPublishWindowOpen] = useState(false);
+  const [isPublishWindowOpen, setIsPublishWindowOpen] = useSearchParamsState<boolean>("editPop", false);
 
   // 获取帖子列表
   const pageCommunityPostsQuery = usePageCommunityPostsQuery(

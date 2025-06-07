@@ -101,7 +101,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   };
 
   return (
-    <div className="flex flex-col gap-2 overflow-auto h-[70vh] w-full">
+    <div className="flex flex-col gap-2 overflow-auto">
       {roleAbilityList.map((ability, index) => {
         return (
           <div key={ability.abilityId} className="flex flex-col gap-1">
@@ -111,14 +111,14 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
                 {rules[index].ruleName ?? "未命名规则"}
                 <span className="text-xs text-gray-500">{` id:${rules[index].ruleId}`}</span>
               </div>
-              <div className="collapse-content flex flex-row gap-2 w-full">
+              <div className="collapse-content  flex flex-row gap-2 w-full">
                 <div className="flex flex-col gap-1">
                   {/* 角色属性 */}
                   <div className="collapse collapse-plus bg-base-100 border-base-300 border m-2 w-full">
                     <input type="checkbox" />
                     <div className="collapse-title font-semibold">角色属性</div>
                     <div className="collapse-content flex flex-col gap-y-4">
-                      <div className="flex gap-3 w-max justify-center items-center">
+                      <div className="flex gap-3 justify-center items-center">
                         <input
                           type="text"
                           placeholder="属性名"
@@ -133,8 +133,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
                         />
                         <button className="btn-info btn " type="button" onClick={() => handleUpdate(ability.abilityId ?? -1, "ability", editAddKey, editAddValue, false)}>添加属性</button>
                       </div>
-
-                      <div className="grid grid-cols-6 w-max">
+                      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6">
                         {Object.entries(ability.ability ?? {}).map(([key, value]) => (
                           <div key={key} className="break-inside-avoid mb-2 ml-1 p-2 border rounded-lg">
                             <div className="flex justify-between">
@@ -146,14 +145,12 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
                       </div>
                     </div>
                   </div>
-                  {/* TODO */}
                   {/* // 角色能力 */}
                   <div className="collapse collapse-plus bg-base-100 border-base-300 border m-2 w-full">
                     <input type="checkbox" />
                     <div className="collapse-title font-semibold">角色能力</div>
                     <div className="collapse-content">
-                      <div className="grid grid-cols-6 overflow-auto">
-
+                      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6">
                         {Object.entries(ability.act ?? {}).map(([key, value]) => (
                           <div
                             key={key}
