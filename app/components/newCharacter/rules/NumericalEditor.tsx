@@ -293,10 +293,7 @@ export default function NumericalEditor({
                         ? (
                             <div className="flex items-center gap-1 group">
                               <div className="hidden md:block w-full">
-                                <label className={`input flex items-center gap-1 md:gap-2 w-full ${
-                                  isEditing ? "bg-base-100" : ""
-                                }`}
-                                >
+                                <label className="input flex items-center gap-1 md:gap-2 w-full">
                                   <span className="text-xs md:text-sm">{key}</span>
                                   <div className="w-px h-4 bg-base-content/20"></div>
                                   <input
@@ -311,7 +308,7 @@ export default function NumericalEditor({
                                 </label>
                               </div>
                               <div className="block md:hidden w-full">
-                                <fieldset className="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
+                                <fieldset className="fieldset">
                                   <legend className="fieldset-legend text-xs">{key}</legend>
                                   <input
                                     type="text"

@@ -199,8 +199,8 @@ export default function PerformanceEditor({
               ? (
             // 编辑模式下的UI
                   <div className="flex items-center gap-1">
-                    <fieldset className="fieldset relative bg-base-200 border-base-300 rounded-box w-full border p-4">
-                      <legend className="fieldset-legend text-sm font-medium">{key}</legend>
+                    <fieldset className="fieldset relative bg-base-200 border-base-300 rounded-box w-full">
+                      <legend className="fieldset-legend text-sm">{key}</legend>
                       <textarea
                         onChange={(e) => {
                           const newFields = { ...fields, [key]: e.target.value };
