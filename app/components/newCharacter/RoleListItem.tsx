@@ -16,7 +16,7 @@ export function RoleListItem({ role, isSelected, onSelect, onDelete, isSelection
       onClick={onSelect}
     >
       <div className="avatar shrink-0">
-        <div className="w-14 h-14 rounded-full">
+        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full">
           {role.avatar
             ? (
                 <img src={role.avatar} alt={role.name} />

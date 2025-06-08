@@ -174,7 +174,7 @@ export default function CharacterAvatar({ role, onchange }: {
                 <img
                   src={showSprite ? (previewSrc || "/favicon.ico") : (copperedUrl || "/favicon.ico")}
                   alt="预览"
-                  className="max-h-[65vh] object-contain"
+                  className="md:max-h-[65vh] object-contain"
                 />
               </div>
             </div>
@@ -270,14 +270,14 @@ export default function CharacterAvatar({ role, onchange }: {
               </div>
             </PopWindow>
           </div>
-          <div className="card-actions justify-end">
+          <div className="absolute bottom-5 right-5 md:bottom-10 md:right-10 card-actions justify-end">
             <button
               type="submit"
               onClick={() => {
                 onchange(copperedUrl, avatarId);
                 setChangeAvatarConfirmOpen(false);
               }}
-              className="btn btn-primary mt-2"
+              className="btn btn-primary btn-md md:btn-lg"
             >
               确认更改头像
             </button>
