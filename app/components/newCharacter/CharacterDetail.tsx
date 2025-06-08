@@ -101,7 +101,6 @@ export default function CharacterDetail({
               role={localRole}
               onchange={handleAvatarChange}
             />
-
             <div className="card-sm md:card flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               {/* <Section title="基本信息"> */}
 
@@ -157,10 +156,10 @@ export default function CharacterDetail({
                         {localRole.name || "未命名角色"}
                       </h2>
                       <div className="divider divider-start font-bold mt-0" />
-                      <p className="text-base md:text-lg whitespace-pre-wrap break-words max-w-full overflow-hidden mb-8 md:mb-16">
+                      <p className="text-base md:text-lg whitespace-pre-wrap break-words max-w-full overflow-hidden md:min-h-22">
                         {localRole.description || "暂无描述"}
                       </p>
-                      <p className="text-xs md:text-sm text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden float-left">
+                      <p className="text-xs">
                         角色ID号：
                         {localRole.id}
                         <br />
@@ -203,6 +202,7 @@ export default function CharacterDetail({
                   </button>
                 )
               : (
+
                   <button
                     type="button"
                     onClick={onEdit}
