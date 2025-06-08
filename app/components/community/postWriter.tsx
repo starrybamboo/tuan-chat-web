@@ -230,8 +230,8 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
   };
 
   return (
-    <div className="card bg-base-100 shadow-md">
-      <div className="card-body ">
+    <div className="card bg-base-100 shadow-md h-full w-full">
+      <div className="card-body flex h-full">
         <h2 className="card-title">
           创建帖子
           <span className="text-sm font-normal text-base-content/70 flex items-center badge badge-outline">
@@ -248,9 +248,8 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
             </svg>
             所有改动都会实时保存到浏览器本地
           </span>
-
         </h2>
-        <form onSubmit={handleSubmit} className="space-y-4 ">
+        <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col">
           <div>
             <label className="label">
               <span className="label-text">标题</span>
@@ -264,9 +263,9 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
               required
             />
           </div>
-          <div className="flex flex-col lg:flex-row md:flex-row gap-4 flex-1  ">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
             {/* 编辑器 */}
-            <div className="space-y-2 flex flex-col min-w-[50%]">
+            <div className="space-y-2 flex flex-col">
               {/* 操作按钮栏 */}
               <div className="flex flex-wrap gap-2">
                 <div
@@ -376,24 +375,20 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
               <textarea
                 ref={textareaRef}
                 placeholder="写下你的想法..."
-                className="textarea textarea-bordered w-full min-h-[255px] overflow-auto"
+                className="textarea textarea-bordered w-full min-h-[255px] lg:flex-1 overflow-auto"
                 value={content}
-                onChange={(e) => {
-                  setContent(e.target.value);
-                  e.target.style.height = "auto";
-                  e.target.style.height = `${e.target.scrollHeight + 20}px`;
-                }}
+                onChange={(e) => { setContent(e.target.value); }}
                 onPaste={handlePaste}
                 onKeyDown={handleKeyDown}
                 required
               />
             </div>
             {/* 预览 */}
-            <div className="flex-1 space-y-2 lg:w-[50%]">
+            <div className="flex-1 space-y-2 flex flex-col">
               <label className="label">
                 <span className="label-text">预览</span>
               </label>
-              <div className="border border-base-300 rounded-box pl-4 min-h-[255px] pr-4 overflow-auto">
+              <div className="border border-base-300 rounded-box pl-4 min-h-[255px] lg:flex-1 pr-4 overflow-auto w-full">
                 {renderedMarkdown}
               </div>
             </div>
