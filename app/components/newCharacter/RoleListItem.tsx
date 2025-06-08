@@ -11,12 +11,12 @@ interface RoleListItemProps {
 export function RoleListItem({ role, isSelected, onSelect, onDelete, isSelectionMode }: RoleListItemProps) {
   return (
     <div
-      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group max-h-20 max-w-[18rem] ${isSelected ? "bg-base-100" : "hover:bg-base-100"
+      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group ${isSelected ? "bg-base-100" : "hover:bg-base-100"
       }`}
       onClick={onSelect}
     >
       <div className="avatar shrink-0">
-        <div className="w-12 h-12 rounded-full">
+        <div className="w-14 h-14 rounded-full">
           {role.avatar
             ? (
                 <img src={role.avatar} alt={role.name} />
