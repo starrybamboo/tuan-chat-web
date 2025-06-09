@@ -1,7 +1,7 @@
 import type { Role } from "./types";
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
 import CharacterDetail from "./CharacterDetail";
+import { RoleCard } from "./RoleCard";
 import { Sidebar } from "./Sidebar";
 
 export default function CharacterMain() {
@@ -14,6 +14,12 @@ export default function CharacterMain() {
   const [isEditing, setIsEditing] = useState(false);
   const currentRole = roles.find(r => r.id === selectedRoleId);
 
+  useEffect(() => {
+    const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
+    if (drawerCheckbox) {
+      drawerCheckbox.checked = selectedRoleId !== null; // 有角色 ID 时打开，否则关闭
+    }
+  }, [selectedRoleId]);
   // 保存角色
   const handleSave = (updatedRole: Role) => {
     let IsChangeAvatar = false;
@@ -32,7 +38,7 @@ export default function CharacterMain() {
   };
 
   return (
-    <div className="drawer lg:drawer-open">
+    <div className="drawer">
       {/* 移动端悬浮按钮 */}
       <div className="lg:hidden fixed p-2 z-1">
         <label
@@ -58,13 +64,17 @@ export default function CharacterMain() {
       <input id="character-drawer" type="checkbox" className="drawer-toggle" />
 
       {/* 使用抽象出的 Sidebar 组件 */}
-      <Sidebar
-        roles={roles}
-        setRoles={setRoles}
-        selectedRoleId={selectedRoleId}
-        setSelectedRoleId={setSelectedRoleId}
-        setIsEditing={setIsEditing}
-      />
+      <div className="drawer-side z-10">
+        <label htmlFor="character-drawer" className="drawer-overlay">
+          <Sidebar
+            roles={roles}
+            setRoles={setRoles}
+            selectedRoleId={selectedRoleId}
+            setSelectedRoleId={setSelectedRoleId}
+            setIsEditing={setIsEditing}
+          />
+        </label>
+      </div>
 
       {/* 主内容区 */}
       <div className="drawer-content bg-base-200">
@@ -80,22 +90,23 @@ export default function CharacterMain() {
                 />
               )
             : (
-                <EmptyState />
+                <EmptyState
+                  roles={roles}
+                />
               )}
         </div>
-
       </div>
-
     </div>
   );
 }
 
 // 空状态组件
-function EmptyState() {
+function EmptyState({ roles }: { roles: Role[] }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full min-h-[calc(100vh-4rem)] text-base-content/70">
-      <div className="text-2xl mb-2">🏰</div>
-      <p>请选择或创建角色</p>
+    <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-10 justify-items-center">
+      {roles.map(role => (
+        <RoleCard key={role.id} role={role} />
+      ))}
     </div>
   );
 }
