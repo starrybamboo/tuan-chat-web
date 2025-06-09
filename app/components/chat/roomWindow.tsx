@@ -271,12 +271,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                 </ul>
               </div>
 
-              <div className="flex-1 flex flex-col min-w-0">
+              <div className="flex-1 flex flex-col min-w-0 relative">
                 <CommandPanel
                   prefix={inputText}
                   handleSelectCommand={handleSelectCommand}
                   commandMode={commandMode}
-                  className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden"
+                  className="absolute bottom-full w-[100%] mb-2 bg-base-200 rounded-box shadow-md z-10"
                 />
                 {/* 图片显示 */}
                 {imgFiles.length > 0 && (
@@ -361,7 +361,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     <button
                       type="button"
                       className="btn btn-primary"
-                      disabled={!(inputText.trim() || imgFiles.length) || isSubmitting}
+                      disabled={!(inputText.trim() || imgFiles.length) || isSubmitting || curAvatarId <= 0}
                       onClick={handleMessageSubmit}
                     >
                       <SendIcon className="size-6"></SendIcon>
