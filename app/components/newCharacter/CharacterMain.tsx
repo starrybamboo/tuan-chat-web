@@ -1,7 +1,7 @@
 import type { Role } from "./types";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import CharacterDetail from "./CharacterDetail";
-import { RoleCard } from "./RoleCard";
+// import { RoleCard } from "./RoleCard";
 import { Sidebar } from "./Sidebar";
 
 export default function CharacterMain() {
@@ -14,12 +14,12 @@ export default function CharacterMain() {
   const [isEditing, setIsEditing] = useState(false);
   const currentRole = roles.find(r => r.id === selectedRoleId);
 
-  useEffect(() => {
-    const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
-    if (drawerCheckbox) {
-      drawerCheckbox.checked = selectedRoleId !== null; // 有角色 ID 时打开，否则关闭
-    }
-  }, [selectedRoleId]);
+  // useEffect(() => {
+  //   const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
+  //   if (drawerCheckbox) {
+  //     drawerCheckbox.checked = selectedRoleId !== null; // 有角色 ID 时打开，否则关闭
+  //   }
+  // }, [selectedRoleId]);
   // 保存角色
   const handleSave = (updatedRole: Role) => {
     let IsChangeAvatar = false;
@@ -90,9 +90,7 @@ export default function CharacterMain() {
                 />
               )
             : (
-                <EmptyState
-                  roles={roles}
-                />
+                <EmptyState />
               )}
         </div>
       </div>
@@ -101,12 +99,11 @@ export default function CharacterMain() {
 }
 
 // 空状态组件
-function EmptyState({ roles }: { roles: Role[] }) {
+function EmptyState() {
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-10 justify-items-center">
-      {roles.map(role => (
-        <RoleCard key={role.id} role={role} />
-      ))}
+    <div className="flex flex-col items-center justify-center h-full min-h-[calc(100vh-4rem)] text-base-content/70">
+      <div className="text-2xl mb-2">🏰</div>
+      <p>请选择或创建角色</p>
     </div>
   );
 }

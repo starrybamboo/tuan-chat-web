@@ -202,7 +202,6 @@ export default function CharacterDetail({
                   </button>
                 )
               : (
-
                   <button
                     type="button"
                     onClick={onEdit}
