@@ -32,7 +32,7 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
         <div
           key={cmd.name}
           onClick={() => handleSelectCommand(cmd.name)}
-          className="p-2 w-full last:border-0 hover:bg-base-300 active:bg-base-300"
+          className="p-2 w-full last:border-0 hover:bg-base-300"
         >
           <div className="transform origin-left">
             <span className="font-mono text-blue-600 dark:text-blue-400">
