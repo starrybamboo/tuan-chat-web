@@ -19,7 +19,7 @@ export default function RulesSection({
 }: RulesSectionProps) {
   // 分页和搜索状态
   const [pageNum, setPageNum] = useState(1);
-  const [pageSize, setPageSize] = useState(4);
+  const [pageSize, setPageSize] = useState(10);
   const [keyword, setKeyword] = useState("");
 
   // 状态
@@ -111,7 +111,7 @@ export default function RulesSection({
                   keyword,
                 });
               }}
-              className="select select-bordered w-full sm:w-auto hidden sm:block"
+              className="select select-bordered w-full sm:w-auto"
             >
               <option value={10}>10条/页</option>
               <option value={20}>20条/页</option>

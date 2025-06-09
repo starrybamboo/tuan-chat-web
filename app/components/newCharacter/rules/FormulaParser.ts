@@ -19,8 +19,6 @@ export class FormulaParser {
     "<=": (a: number, b: number) => a <= b ? 1 : 0,
     "==": (a: number, b: number) => a === b ? 1 : 0,
     "!=": (a: number, b: number) => a !== b ? 1 : 0,
-    "&&": (a: number, b: number) => a && b ? 1 : 0, // 新增 AND 运算符
-    "||": (a: number, b: number) => a || b ? 1 : 0, // 新增 OR 运算符
   };
 
   private static functions: Record<string, (args: number[]) => number> = {
@@ -40,38 +38,26 @@ export class FormulaParser {
       }
       return args[0] ? args[1] : args[2];
     },
-    cond: (args: number[]) => {
-      if (args.length < 3 || args.length % 2 !== 1) {
-        throw new Error("BA ↑ KA ↓ cond函数需要奇数个参数~ cond(条件1,值1,...,默认值)，果然是杂鱼♡");
-      }
-      for (let i = 0; i < args.length - 1; i += 2) {
-        if (args[i])
-          return args[i + 1];
-      }
-      return args[args.length - 1];
-    },
   };
 
   // 运算优先级
   private static precedence: Record<string, number> = {
-    "||": -1, // OR 优先级最低
-    "&&": 0, // AND 优先级高于 OR
-    ">": 1,
-    "<": 1,
-    ">=": 1,
-    "<=": 1,
-    "==": 1,
-    "!=": 1,
-    "+": 2,
-    "-": 2,
-    "*": 3,
-    "/": 3,
-    "%": 3,
-    "^": 4,
+    ">": 0,
+    "<": 0,
+    ">=": 0,
+    "<=": 0,
+    "==": 0,
+    "!=": 0,
+    "+": 1,
+    "-": 1,
+    "*": 2,
+    "/": 2,
+    "%": 2,
+    "^": 3,
   };
 
   private static isComparisonOperator(token: string): boolean {
-    return [">", "<", ">=", "<=", "==", "!=", "&&", "||"].includes(token);
+    return [">", "<", ">=", "<=", "==", "!="].includes(token);
   }
 
   private static isOperator(token: string): boolean {
@@ -97,6 +83,9 @@ export class FormulaParser {
   }
 
   private static parseFunction(token: string, args: number[]): number {
+    if (!this.isFunction(token)) {
+      throw new TypeError(`Unknown function: ${token}`);
+    }
     return this.functions[token](args);
   }
 
@@ -113,8 +102,8 @@ export class FormulaParser {
 
     // 匹配数字、运算符、函数名、变量名和括号
     const tokens: string[] = [];
-    // 添加对 && 和 || 的匹配
-    const regex = /([a-z_]+)|([\u4E00-\u9FA5]+)|(\d+(?:\.\d+)?)|(,)|(>=|<=|==|!=|&&|\|\||>|<)|([+\-*/%^()])/gi;
+    // 分别匹配函数名 中文变量名 数字 分隔符 运算符
+    const regex = /([a-z_]+)|([\u4E00-\u9FA5]+)|(\d+(?:\.\d+)?)|(,)|(>=|<=|==|!=|>|<)|([+\-*/%^()])/gi;
 
     let match;
     // eslint-disable-next-line no-cond-assign

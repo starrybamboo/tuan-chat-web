@@ -75,33 +75,30 @@ export default function CharacterDetail({
   // 更新url和avatarId,方便更改服务器数据
   const handleAvatarChange = (previewUrl: string, avatarId: number) => {
     setLocalRole(prev => ({ ...prev, avatar: previewUrl, avatarId }));
-    const cleanedRole = {
-      ...localRole,
-      name: cleanText(localRole.name),
-      description: cleanText(localRole.description),
-    };
-    cleanedRole.avatarId = avatarId;
-    cleanedRole.avatar = previewUrl;
-    updateRole(cleanedRole);
+    role.avatarId = avatarId;
+    role.avatar = previewUrl;
+    onSave(role);
+    updateRole(role);
   };
 
   return (
-    <div className={`space-y-6 transition-opacity duration-300 ease-in-out ${
+    <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${
       isTransitioning ? "opacity-50" : ""
     }`}
     >
       {/* 基础信息卡片 */}
-      <div className={`card-sm md:card bg-base-100 shadow-xl ${
+      <div className={`card bg-base-100 shadow-xl ${
         isEditing ? "ring-2 ring-primary" : ""
       }`}
       >
         <div className="card-body">
-          <div className="flex flex-col md:flex-row items-center">
+          <div className="flex flex-col md:flex-row justify-center items-center">
             <CharacterAvatar
               role={localRole}
               onchange={handleAvatarChange}
             />
-            <div className="card-sm md:card flex-1 space-y-4 min-w-0 overflow-hidden p-2">
+
+            <div className="card flex-1 space-y-4 min-w-0 overflow-hidden p-2 mt-4 md:mt-0">
               {/* <Section title="基本信息"> */}
 
               {isEditing
@@ -152,14 +149,14 @@ export default function CharacterDetail({
                   )
                 : (
                     <>
-                      <h2 className="font-semibold text-2xl md:text-3xl mt-4 text-center md:text-left">
+                      <h2 className="card-title text-3xl mt-4">
                         {localRole.name || "未命名角色"}
                       </h2>
                       <div className="divider divider-start font-bold mt-0" />
-                      <p className="text-base md:text-lg whitespace-pre-wrap break-words max-w-full overflow-hidden md:min-h-22">
+                      <p className="text-lg whitespace-pre-wrap break-words max-w-full overflow-hidden mb-16">
                         {localRole.description || "暂无描述"}
                       </p>
-                      <p className="text-xs">
+                      <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden float-left">
                         角色ID号：
                         {localRole.id}
                         <br />
@@ -202,7 +199,6 @@ export default function CharacterDetail({
                   </button>
                 )
               : (
-
                   <button
                     type="button"
                     onClick={onEdit}
@@ -219,14 +215,11 @@ export default function CharacterDetail({
                 )}
           </div>
         </div>
-
-      </div>
-      <div className="card-sm md:card bg-base-100 shadow-xl">
-        <ExpansionModule
-          roleId={localRole.id}
-        />
       </div>
 
+      <ExpansionModule
+        roleId={localRole.id}
+      />
     </div>
   );
 }

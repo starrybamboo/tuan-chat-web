@@ -327,16 +327,18 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                   onLoad={onImageLoad}
                   // className="max-w-[50vw] max-h-[70vh]"
                   // 不能用className设置, 否则会出问题, 见鬼!!!
-                  style={{
-                    maxHeight: "70vh",
-                  }}
+                  // style={{
+                  //   maxWidth: "50vw",
+                  //   maxHeight: "70vh",
+                  // }}
+                  className="max-w-full w-full object-contain"
                 />
               </ReactCrop>
             </div>
           )}
           {/* 裁剪预览和操作按钮 */}
           {!!completedCrop && (
-            <div className="w-full md:w-1/2 p-3 gap-4 flex flex-col items-center justify-center">
+            <div className="w-full md:w-1/2 p-3 gap-4">
               {
                 currentStep !== 1
                   ? (
@@ -347,8 +349,8 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                       />
                     )
                   : (
-                      <>
-                        <h2 className="text-xl font-bold">webgal渲染结果预览</h2>
+                      <div className="flex flex-col">
+                        <span className="text-center font-bold">webgal渲染结果预览</span>
                         <div className="relative w-full aspect-video ">
                           {/* 裁剪后的图像 - 左侧显示 */}
                           <canvas
@@ -366,7 +368,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                             </div>
                           </div>
                         </div>
-                      </>
+                      </div>
 
                     )
 

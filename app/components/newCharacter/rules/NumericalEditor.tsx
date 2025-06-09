@@ -242,7 +242,7 @@ export default function NumericalEditor({
         return (
           <div
             key={totalKey}
-            className={`bg-base-200 p-1 md:p-4 rounded-lg ${
+            className={`bg-base-200 p-4 rounded-lg ${
               isEditing ? "bg-base-100" : ""
             }`}
           >
@@ -264,14 +264,14 @@ export default function NumericalEditor({
             </div>
 
             {/* 网格布局 */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
               {entries.map(([key]) => {
                 const calculatedValue = calculatedConstraints[totalKey][key];
                 if (totalKey === "0") {
                   return (
                     <div key={key} className="flex flex-col gap-1 mb-2">
                       <div className="card bg-base-100 shadow-sm p-2 h-full">
-                        <div className="text-sm font-medium mb-1">{key}</div>
+                        <div className="text-sm font-medium text-primary mb-1">{key}</div>
                         <div className="text-base-content mt-0.5">
                           {typeof calculatedValue === "object" && "displayValue" in calculatedValue
                             ? calculatedValue.displayValue.toString()
@@ -292,50 +292,35 @@ export default function NumericalEditor({
                       {isEditing
                         ? (
                             <div className="flex items-center gap-1 group">
-                              <div className="hidden md:block w-full">
-                                <label className="input flex items-center gap-1 md:gap-2 w-full">
-                                  <span className="text-xs md:text-sm">{key}</span>
-                                  <div className="w-px h-4 bg-base-content/20"></div>
-                                  <input
-                                    type="text"
-                                    value={typeof calculatedValue === "object" && "displayValue" in calculatedValue
-                                      ? calculatedValue.displayValue.toString()
-                                      : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
-                                    className="grow"
-                                    disabled={!isEditing}
-                                    onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
-                                  />
-                                </label>
-                              </div>
-                              <div className="block md:hidden w-full">
-                                <fieldset className="fieldset">
-                                  <legend className="fieldset-legend text-xs">{key}</legend>
-                                  <input
-                                    type="text"
-                                    value={typeof calculatedValue === "object" && "displayValue" in calculatedValue
-                                      ? calculatedValue.displayValue.toString()
-                                      : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
-                                    className="input w-full"
-                                    disabled={!isEditing}
-                                    onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
-                                  />
-                                </fieldset>
-                              </div>
+                              <label className={`input flex items-center gap-2 w-full ${
+                                isEditing ? "bg-base-100" : ""
+                              }`}
+                              >
+                                <span className="text-sm font-medium">{key}</span>
+                                <div className="w-px h-4 bg-base-content/20"></div>
+                                <input
+                                  type="text"
+                                  value={typeof calculatedValue === "object" && "displayValue" in calculatedValue
+                                    ? calculatedValue.displayValue.toString()
+                                    : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
+                                  className="grow"
+                                  disabled={!isEditing}
+                                  onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
+                                />
+                              </label>
                             </div>
                           )
                         : (
                             <div className="card bg-base-100 shadow-sm p-2 h-full">
-                              <div className="flex items-center gap-0 md:gap-2">
-                                <div className="p-1 text-xs md:text-base md:p-2">
+                              <div className="flex items-center gap-2">
+                                <div className="text-primary p-2">
                                   {key}
                                 </div>
-                                <div className="divider divider-horizontal ml-0 mr-0 md:mr-2" />
-                                <div className="text-base-content text-xs md:text-base p-1 md:p-0">
-                                  <span>
-                                    {typeof calculatedValue === "object" && "displayValue" in calculatedValue
-                                      ? calculatedValue.displayValue.toString()
-                                      : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
-                                  </span>
+                                <div className="divider divider-horizontal ml-0" />
+                                <div className="text-base-content">
+                                  {typeof calculatedValue === "object" && "displayValue" in calculatedValue
+                                    ? calculatedValue.displayValue.toString()
+                                    : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
                                 </div>
                               </div>
                               {typeof calculatedValue === "object" && "formula" in calculatedValue && (
