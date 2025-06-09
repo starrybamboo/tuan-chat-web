@@ -15,6 +15,9 @@ export default antfu(
     ignores: [
       "public/**",
       "api/**",
+      ".github/**",
+      "**/*.md",
+      "android/**",
     ],
     plugins: {
       "@tanstack/query": pluginQuery,
@@ -52,6 +55,12 @@ export default antfu(
     files: ["api/**/*.js", "api/**/*.ts", "services/**/*.ts"],
     rules: {
       "eslint-comments/no-unlimited-disable": "off",
+    },
+  },
+  {
+    files: ["*.config.ts"],
+    rules: {
+      "unicorn/filename-case": ["off"],
     },
   },
 );

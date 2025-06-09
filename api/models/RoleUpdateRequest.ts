@@ -22,5 +22,13 @@ export type RoleUpdateRequest = {
      * 角色头像
      */
     avatarId?: number;
+    /**
+     * tts时使用的模型
+     */
+    modelName?: string;
+    /**
+     * tts时使用的角色名
+     */
+    speakerName?: string;
 };
 

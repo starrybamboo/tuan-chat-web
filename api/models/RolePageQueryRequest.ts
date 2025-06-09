@@ -7,17 +7,17 @@
  */
 export type RolePageQueryRequest = {
     /**
-     * 页面大小
-     */
-    pageSize?: number;
-    /**
-     * 页面索引（从1开始）
+     * 页码
      */
     pageNo?: number;
     /**
+     * 每页大小
+     */
+    pageSize?: number;
+    /**
      * 请求用户id
      */
-    userId?: number;
+    userId: number;
     /**
      * 角色名称，支持模糊查询
      */

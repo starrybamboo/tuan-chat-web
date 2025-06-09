@@ -1,6 +1,8 @@
 @import "tailwindcss";
-
 @plugin "daisyui";
+@plugin "daisyui" {
+  themes: all;
+}
 @plugin "daisyui/theme" {
   name: "silk";
   default: true;
@@ -17,7 +19,7 @@
 }
 
 @plugin "daisyui/theme" {
-  name: "forest";
+  name: "dark";
   default: false;
   prefersdark: true;
   color-scheme: "dark";
@@ -43,5 +45,27 @@ body {
 
   @media (prefers-color-scheme: dark) {
     color-scheme: dark;
+  }
+}
+
+body {
+  width: 100vw;
+  max-height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* 全局缩放系数变量，用于优化移动端的组件大小*/
+@media (max-width: 768px) {
+  :root {
+    font-size: 14px; /* 基础缩放 (14/16=0.875) */
+    --scale-factor: 0.875;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    font-size: 13px; /*  (13/16=0.8125) */
+    --scale-factor: 0.8125;
   }
 }

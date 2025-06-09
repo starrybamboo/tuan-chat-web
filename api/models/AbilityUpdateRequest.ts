@@ -13,10 +13,10 @@ export type AbilityUpdateRequest = {
     /**
      * 表演相关字段，不能为空或null，必须为单层
      */
-    act: Record<string, Record<string, any>>;
+    act?: Record<string, string>;
     /**
      * 能力字段，不能为空或null，必须为单层
      */
-    ability: Record<string, Record<string, any>>;
+    ability?: Record<string, number>;
 };
 

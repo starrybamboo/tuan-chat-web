@@ -2,9 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResultListRule } from '../models/ApiResultListRule';
 import type { ApiResultLong } from '../models/ApiResultLong';
-import type { ApiResultPageBaseRespRule } from '../models/ApiResultPageBaseRespRule';
+import type { ApiResultPageBaseRespRuleResponse } from '../models/ApiResultPageBaseRespRuleResponse';
 import type { ApiResultRule } from '../models/ApiResultRule';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { RuleCloneRequest } from '../models/RuleCloneRequest';
@@ -28,6 +27,29 @@ export class RuleControllerService {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/capi/rule/update',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 分页获取规则列表
+     * 分页获取规则列表，支持通过关键词搜索规则名称或描述
+     * @param requestBody
+     * @returns ApiResultPageBaseRespRuleResponse OK
+     * @throws ApiError
+     */
+    public getRulePage(
+        requestBody: RulePageRequest,
+    ): CancelablePromise<ApiResultPageBaseRespRuleResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/rule/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -76,48 +98,6 @@ export class RuleControllerService {
             url: '/capi/rule/clone',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 分页获取规则列表
-     * 分页获取规则列表，支持通过关键词搜索规则名称或描述
-     * @param request
-     * @returns ApiResultPageBaseRespRule OK
-     * @throws ApiError
-     */
-    public getRulePage(
-        request: RulePageRequest,
-    ): CancelablePromise<ApiResultPageBaseRespRule> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/capi/rule/page',
-            query: {
-                'request': request,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 获取规则列表
-     * 获取所有规则的列表
-     * @returns ApiResultListRule OK
-     * @throws ApiError
-     */
-    public getRuleList(): CancelablePromise<ApiResultListRule> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/capi/rule/list',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

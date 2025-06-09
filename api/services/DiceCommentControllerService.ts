@@ -18,7 +18,7 @@ export class DiceCommentControllerService {
     ): CancelablePromise<string> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/api/test/dice-comment',
+            url: '/ai/dice/dice-comment',
             query: {
                 'result': result,
             },

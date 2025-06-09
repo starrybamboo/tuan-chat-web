@@ -1,14 +1,16 @@
 import type { Route } from "./+types/home";
 
-import { Welcome } from "../welcome/welcome";
-
 export function meta(_args: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
+    { title: "tuan-chat" },
     { name: "description", content: "Welcome to React Router!" },
   ];
 }
 
 export default function Home() {
-  return <Welcome />;
+  return (
+    <div className="h-full bg-base-200 overflow-auto">
+      <p>欢迎来到团聚共创</p>
+    </div>
+  );
 }

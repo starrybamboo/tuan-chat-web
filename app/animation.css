@@ -1,0 +1,36 @@
+@keyframes fade-in-out {
+  0% {
+    opacity: 0%;
+    transform: translateY(20px);
+  }
+  20% {
+    opacity: 20%;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 100%;
+  }
+}
+
+@keyframes fade-out {
+  0% {
+    opacity: 100%;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0%;
+    transform: translateY(-20px);
+  }
+}
+
+.fade-in-out {
+  animation-duration: 300ms;
+  animation-name: fade-in-out;
+}
+
+.fade-out {
+  animation-duration: 300ms;
+  animation-name: fade-out;
+  animation-fill-mode: forwards;
+  animation-timing-function: ease-in-out;
+}

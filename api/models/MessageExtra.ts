@@ -2,10 +2,17 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { DiceResult } from './DiceResult';
+import type { FileMessage } from './FileMessage';
+import type { ForwardMessage } from './ForwardMessage';
+import type { ImageMessage } from './ImageMessage';
 /**
  * 不同类型消息持有的额外信息
  */
 export type MessageExtra = {
-    messageForwardDTO?: Array<number>;
+    diceResult?: DiceResult;
+    fileMessage?: FileMessage;
+    imageMessage?: ImageMessage;
+    forwardMessage?: ForwardMessage;
 };
 

@@ -87,7 +87,7 @@ export class RoleControllerService {
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public deleteRole(
+    public deleteRole2(
         roleId: Array<number>,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
@@ -96,6 +96,28 @@ export class RoleControllerService {
             query: {
                 'roleId': roleId,
             },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 分页获取角色,支持姓名模糊查询
+     * @param requestBody
+     * @returns ApiResultPageBaseRespRoleResponse OK
+     * @throws ApiError
+     */
+    public getRolesByPage(
+        requestBody: RolePageQueryRequest,
+    ): CancelablePromise<ApiResultPageBaseRespRoleResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/role/page',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -118,29 +140,6 @@ export class RoleControllerService {
             url: '/capi/role/user',
             query: {
                 'userId': userId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 分页获取角色,支持姓名模糊查询
-     * @param request
-     * @returns ApiResultPageBaseRespRoleResponse OK
-     * @throws ApiError
-     */
-    public getRolesByPage(
-        request: RolePageQueryRequest,
-    ): CancelablePromise<ApiResultPageBaseRespRoleResponse> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/capi/role/page',
-            query: {
-                'request': request,
             },
             errors: {
                 400: `Bad Request`,

@@ -7,17 +7,16 @@
  */
 export type RulePageRequest = {
     /**
-     * 页面大小
-     */
-    pageSize?: number;
-    /**
-     * 页面索引（从1开始）
+     * 页码
      */
     pageNo?: number;
     /**
-     * 搜索关键词（可选）
+     * 每页大小
+     */
+    pageSize?: number;
+    /**
+     * 搜索关键词（可选）TODO
      */
     keyword?: string;
-    ruleId: number;
 };
 

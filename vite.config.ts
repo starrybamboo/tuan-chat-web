@@ -10,7 +10,7 @@ export default defineConfig({
     reactRouter(),
     tsconfigPaths(),
   ],
-  base: "./",
+  base: "/",
   resolve: {
     alias: [
       {
@@ -19,4 +19,8 @@ export default defineConfig({
       },
     ],
   },
+  server: {
+    port: 5177,
+  },
+
 });
