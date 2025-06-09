@@ -227,7 +227,7 @@ export default function RoomSelect() {
             }
           </SideDrawerToggle>
         </div>
-        <div className="flex flex-row bg-base-100 flex-1">
+        <div className="flex flex-row bg-base-100 flex-1 overflow-auto">
           <SideDrawer sideDrawerId="room-select">
             <div className="flex flex-row bg-base-100 h-full">
               {/* 空间列表 */}
