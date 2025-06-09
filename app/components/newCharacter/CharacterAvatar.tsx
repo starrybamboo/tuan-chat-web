@@ -4,7 +4,7 @@ import type { Role } from "./types";
 import { useUploadAvatarMutation } from "@/../api/queryHooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PopWindow } from "../common/popWindow";
 import { CharacterCopper } from "./CharacterCopper";
 
@@ -20,11 +20,25 @@ export default function CharacterAvatar({ role, onchange }: {
   // head组件的迁移
   const [previewSrc, setPreviewSrc] = useState<string | null>("");
   const [roleAvatars, setRoleAvatars] = useState<RoleAvatar[]>([]);
+  const [showSprite, setShowSprite] = useState(true);
   // 弹窗的打开和关闭
   const [changeAvatarConfirmOpen, setChangeAvatarConfirmOpen] = useState<boolean>(false);
   // 删除弹窗用
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [avatarToDeleteIndex, setAvatarToDeleteIndex] = useState<number | null>(null);
+
+  // PC端默认显示立绘，移动端显示头像
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 768px)"); // md breakpoint
+    setShowSprite(mediaQuery.matches);
+
+    const handleResize = (e: MediaQueryListEvent) => {
+      setShowSprite(e.matches);
+    };
+
+    mediaQuery.addEventListener("change", handleResize);
+    return () => mediaQuery.removeEventListener("change", handleResize);
+  }, []);
 
   // 获取角色所有老头像
   useQuery({
@@ -74,7 +88,11 @@ export default function CharacterAvatar({ role, onchange }: {
     setPreviewSrc(targetAvatar.spriteUrl || avatarUrl);
     setCopperedUrl(roleAvatars[index]?.avatarUrl || "");
     setAvatarId(roleAvatars[index]?.avatarId || 0);
-    // onchange(avatarUrl, roleAvatars[index]?.avatarId || 0, false);
+    // 选中的头像移到最前面
+    const newRoleAvatars = [...roleAvatars];
+    const [selectedAvatar] = newRoleAvatars.splice(index, 1);
+    newRoleAvatars.unshift(selectedAvatar);
+    setRoleAvatars(newRoleAvatars);
   };
 
   // 删除操作处理
@@ -116,43 +134,55 @@ export default function CharacterAvatar({ role, onchange }: {
   const uniqueFileName = generateUniqueFileName(role.id);
 
   return (
-    <div className="form-control w-full max-w-xs">
-      <div className="flex flex-col items-center">
-        <div className="avatar cursor-pointer group flex items-center justify-center w-full sm:w-40 md:w-48" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
-          <div className="rounded-xl ring-primary ring-offset-base-100 w-36 sm:w-40 md:w-48 ring ring-offset-2 relative overflow-hidden">
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
-            <img
-              src={role.avatar || "./favicon.ico"}
-              alt="Character Avatar"
-              className="object-cover transform group-hover:scale-105 transition-transform duration-300"
-            />
-          </div>
+    <div className="w-2xs flex justify-center">
+      <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
+        <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
+          <img
+            src={role.avatar || "./favicon.ico"}
+            alt="Character Avatar"
+            className="object-cover transform group-hover:scale-105 transition-transform duration-300"
+          />
         </div>
-
       </div>
 
       <PopWindow isOpen={changeAvatarConfirmOpen} onClose={handleCancelChangeAvatar}>
-        <div className="h-full w-full p-4 flex flex-col">
+        <div className="h-full w-full flex flex-col">
           <div className="flex flex-col md:flex-row gap-4 min-h-0 justify-center">
             {/* 大图预览 */}
-            <div className="w-full md:w-1/2 bg-base-200 p-3 rounded-lg order-2 md:order-1">
-              <h2 className="text-xl font-bold mb-4">角色立绘</h2>
-              <div className="h-[90%] bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
+            <div className="w-full md:w-1/2 bg-base-200 p-3 rounded-lg order-1 md:order-1">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">
+                  角色
+                  {showSprite ? "立绘" : "头像"}
+                </h2>
+                <button
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => setShowSprite(!showSprite)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                  </svg>
+                  切换
+                  {showSprite ? "头像" : "立绘"}
+                </button>
+              </div>
+              <div className=" bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
                 <img
-                  src={previewSrc || "/favicon.ico"}
+                  src={showSprite ? (previewSrc || "/favicon.ico") : (copperedUrl || "/favicon.ico")}
                   alt="预览"
-                  className="w-full object-contain"
+                  className="md:max-h-[65vh] object-contain"
                 />
               </div>
             </div>
 
-            <div className="w-full md:w-1/2 p-3 order-1 md:order-2">
+            <div className="w-full md:w-1/2 p-3 order-2 md:order-2">
               {/* 头像列表区域 */}
               <h2 className="text-xl font-bold mb-4">选择头像：</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
+              <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
                 {roleAvatars.map((item, index) => (
                   <li
-                    key={item.avatarUrl}
+                    key={`${role.id}-${item.avatarUrl}`}
                     className="relative w-full max-w-[128px] flex flex-col items-center rounded-lg transition-colors"
                     onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
                   >
@@ -165,13 +195,18 @@ export default function CharacterAvatar({ role, onchange }: {
                       />
                       {/* 删除按钮  */}
                       <button
-                        className="absolute -top-2 -right-2 w-7 h-7 bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800 z-2"
+                        className="absolute -top-2 -right-2 w-5 h-5 md:w-7 md:h-7 bg-gray-700 md:bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800 z-2"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteAvatar(index);
                         }}
                       >
-                        ×
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+                          <path
+                            fill="currentColor"
+                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                          />
+                        </svg>
                       </button>
                       {/* 添加悬浮遮罩 */}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 rounded-lg"></div>
@@ -182,6 +217,7 @@ export default function CharacterAvatar({ role, onchange }: {
                     </p>
                   </li>
                 ))}
+                {/* 添加新头像 */}
                 <li className="relative w-full max-w-[128px] aspect-square flex flex-col items-center rounded-lg transition-colors">
                   <CharacterCopper
                     setDownloadUrl={() => { }}
@@ -210,12 +246,11 @@ export default function CharacterAvatar({ role, onchange }: {
                   </CharacterCopper>
                 </li>
               </div>
-
             </div>
 
             {/* 删除确认弹窗 */}
             <PopWindow isOpen={isDeleteModalOpen} onClose={cancelDeleteAvatar}>
-              <div className="card w-96">
+              <div className="card">
                 <div className="card-body items-center text-center">
                   <h2 className="card-title text-2xl font-bold">确认删除头像</h2>
                   <div className="divider"></div>
@@ -232,14 +267,14 @@ export default function CharacterAvatar({ role, onchange }: {
               </div>
             </PopWindow>
           </div>
-          <div className="card-actions justify-end">
+          <div className="absolute bottom-5 right-5 md:bottom-10 md:right-10 card-actions justify-end">
             <button
               type="submit"
               onClick={() => {
-                setChangeAvatarConfirmOpen(false);
                 onchange(copperedUrl, avatarId);
+                setChangeAvatarConfirmOpen(false);
               }}
-              className="btn btn-primary mt-2"
+              className="btn btn-primary btn-md md:btn-lg"
             >
               确认更改头像
             </button>
