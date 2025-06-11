@@ -28,7 +28,7 @@ jobs:
         with:
           host: 47.119.147.6
           username: ${{ secrets.SERVER_USERNAME }}
-          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "./build/client"
           target: "~/www/wwwroot/tuan-chat-web-test"
           overwrite: true
