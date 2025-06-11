@@ -26,14 +26,13 @@ jobs:
         run: pnpm build
 
       - name: 部署到服务器
-        uses: easingthemes/ssh-deploy@v5.0.0 # 6. 使用更新、更稳定的 v5 版本
+        uses: easingthemes/ssh-deploy@v5.0.0
         with:
-          # SSH 连接信息
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          REMOTE_HOST: "47.119.147.6"
-          REMOTE_USER: ${{ secrets.SSH_USERNAME }}
-          # 部署的源文件路径和目标路径
-          SOURCE: "./build/client/"
-          TARGET: "/www/wwwroot/tuan-chat-web-test"
+          # 错误修正：将所有参数名改为小写
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          remote_host: "47.119.147.6"
+          remote_user: ${{ secrets.SSH_USERNAME }}
+          source: "./build/client/"
+          target: "/www/wwwroot/tuan-chat-web-test"
 
 
