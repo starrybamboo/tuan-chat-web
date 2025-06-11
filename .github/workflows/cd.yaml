@@ -10,6 +10,8 @@ jobs:
     name: tuan-chat-web构建与部署
     runs-on: ubuntu-latest
     steps:
+      - run: echo ${{ secrets.SSH_USERNAME }}
+      - run: echo ${{ secrets.SSH_PRIVATE_KEY }}
       - uses: actions/checkout@v4 # 将目标分支 checkout 到运行环境
       - uses: actions/setup-node@v4 # 安装 node@20
         with:
