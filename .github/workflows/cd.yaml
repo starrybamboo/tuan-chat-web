@@ -24,13 +24,12 @@ jobs:
         run: pnpm build
 
       - name: 部署到服务器
-        uses: appleboy/scp-action@master
-        with:
-          host: 47.119.147.6
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "./build/client"
-          target: "/www/wwwroot/tuan-chat-web-test"
-          overwrite: true
+        uses: easingthemes/ssh-deploy@v2.0.7
+        env:
+          REMOTE_HOST: 47.119.147.6
+          REMOTE_USER: ${{ secrets.SSH_USERNAME }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SOURCE: "./build/client"
+          TARGET: "/www/wwwroot/tuan-chat-web-test"
 
 
