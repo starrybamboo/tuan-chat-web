@@ -24,14 +24,13 @@ jobs:
         run: pnpm build
 
       - name: 使用 rsync 部署到服务器
-        uses: burnett01/rsync-deploy@v6.0.0 # 使用专门的 rsync action
+        uses: burnett01/rsync-deployments@7.0.2 # 使用专门的 rsync action
         with:
           # rsync 的参数开关
           # -a: 归档模式，保持文件权限、所有者等信息
           # -v: 详细模式，显示传输过程
           # -z: 压缩传输
           # --delete: 删除目标目录中源目录没有的文件，保持完全同步
-          switches: -avz --delete
 
           # 源路径和目标路径
           path: ./build/client/ # 源目录
