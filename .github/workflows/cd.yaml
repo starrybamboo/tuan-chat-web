@@ -2,7 +2,7 @@ name: TuanChat 自动构建与部署
 
 on:
   push:
-    branches: [ "main", "dev/Aentro" ]
+    branches: [ "main", "dev/Aentro" ]   # 后者是测试cd流程的分支
   workflow_dispatch:  # 允许手动触发
 
 jobs:
@@ -27,7 +27,7 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: 47.119.147.6
-          username: ${{ secrets.SERVER_USERNAME }}
+          username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "./build/client"
           target: "~/www/wwwroot/tuan-chat-web-test"
