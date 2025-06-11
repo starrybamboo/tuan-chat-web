@@ -7,9 +7,12 @@ on:
 
 jobs:
   build-and-deploy:
-    name: 构建与部署
+    name: tuan-chat-web构建与部署
     runs-on: ubuntu-latest
     steps:
+      - name: install
+        run: pnpm install
+
       - name: build
         run: pnpm build
 
