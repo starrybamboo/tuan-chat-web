@@ -29,8 +29,8 @@ jobs:
         uses: appleboy/scp-action@v1
         with:
           host: 47.119.147.6
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          username: root
+          password: tuan-chat
           source: ./build/client/*
           target: /www/wwwroot/tuan-chat-web-test
 #        uses: burnett01/rsync-deployments@7.0.2 # 使用专门的 rsync action
