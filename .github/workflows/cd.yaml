@@ -23,13 +23,11 @@ jobs:
       - name: build
         run: pnpm build
 
-
-
       - name: 部署到服务器
         uses: appleboy/scp-action@v1
         with:
           host: 47.119.147.6
-          username: ${{ secrets.SSH_USERNAME }}
+          username: root
           password: ${{ secrets.SSH_PASSWORD }}
           source: ./build/client/
           target: /www/wwwroot/tuan-chat-web-test
