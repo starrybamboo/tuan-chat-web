@@ -29,8 +29,8 @@ jobs:
         uses: appleboy/scp-action@v1
         with:
           host: 47.119.147.6
-          username: root
-          password: tuan-chat
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
           source: ./build/client/
           target: /www/wwwroot/tuan-chat-web-test
           overwrite: true
