@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: "22"
       - run: npm install -g pnpm # 安装 PNPM
-      - run: pnpm install --frozen-lockfile # 根据 lock 文件安装依赖
+      - run: pnpm install
 
       - name: install
         run: pnpm install
