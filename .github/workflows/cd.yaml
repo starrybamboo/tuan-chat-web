@@ -32,8 +32,9 @@ jobs:
           username: root
           password: tuan-chat
           source: ./build/client/
-          target: /www/wwwroot/tuan-chat-web-t
+          target: /www/wwwroot/tuan-chat-web-test
           overwrite: true
+          strip_components: true
 #        uses: burnett01/rsync-deployments@7.0.2 # 使用专门的 rsync action
 #        with:
 #          # rsync 的参数开关
