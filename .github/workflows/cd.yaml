@@ -23,22 +23,31 @@ jobs:
       - name: build
         run: pnpm build
 
-      - name: 使用 rsync 部署到服务器
-        uses: burnett01/rsync-deployments@7.0.2 # 使用专门的 rsync action
+
+
+      - name: 部署到服务器
+        uses: appleboy/scp-action@v1
         with:
-          # rsync 的参数开关
-          # -a: 归档模式，保持文件权限、所有者等信息
-          # -v: 详细模式，显示传输过程
-          # -z: 压缩传输
-          # --delete: 删除目标目录中源目录没有的文件，保持完全同步
-
-          # 源路径和目标路径
-          path: ./build/client/ # 源目录
-          remote_path: /www/wwwroot/tuan-chat-web-test # 目标目录
-
-          # SSH 连接信息
-          remote_host: 47.119.147.6
-          remote_user: ${{ secrets.SSH_USERNAME }}
-          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          host: 47.119.147.6
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: ./build/client/*
+          target: /www/wwwroot/tuan-chat-web-test
+#        uses: burnett01/rsync-deployments@7.0.2 # 使用专门的 rsync action
+#        with:
+#          # rsync 的参数开关
+#          # -a: 归档模式，保持文件权限、所有者等信息
+#          # -v: 详细模式，显示传输过程
+#          # -z: 压缩传输
+#          # --delete: 删除目标目录中源目录没有的文件，保持完全同步
+#
+#          # 源路径和目标路径
+#          path: ./build/client/ # 源目录
+#          remote_path: /www/wwwroot/tuan-chat-web-test # 目标目录
+#
+#          # SSH 连接信息
+#          remote_host: 47.119.147.6
+#          remote_user: ${{ secrets.SSH_USERNAME }}
+#          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
 
