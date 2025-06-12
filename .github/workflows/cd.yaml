@@ -34,7 +34,7 @@ jobs:
           source: ./build/client/
           target: /www/wwwroot/tuan-chat-web-test
           overwrite: true
-          strip_components: true
+          strip_components: 1
 #        uses: burnett01/rsync-deployments@7.0.2 # 使用专门的 rsync action
 #        with:
 #          # rsync 的参数开关
