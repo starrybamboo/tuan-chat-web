@@ -363,7 +363,6 @@ $RECYCLE.BIN/
 /android/captures
 /android/.externalNativeBuild
 /android/.cxx
-/android/app/release
 local.properties
 /app/src/main/assets
 

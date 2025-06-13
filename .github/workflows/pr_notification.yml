@@ -2,7 +2,7 @@ name: PR Notification to Feishu
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ dev ]
     types: [opened, reopened, synchronize]
 
 jobs:
