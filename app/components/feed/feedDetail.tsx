@@ -8,8 +8,8 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import React, { useState } from "react";
 
 import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
-import { useGetFeedByIdQuery } from "../../../api/hooks/FeedQueryHooks";
 import { useGetCommentByIdQuery } from "../../../api/hooks/commentQueryHooks";
+import { useGetFeedByIdQuery } from "../../../api/hooks/FeedQueryHooks";
 
 import { CopyLinkButton } from "../common/copyLinkButton";
 import ShareToQQButton from "../common/shareToQQButton";
@@ -40,8 +40,6 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
   if (!feed) {
     return <div className="text-center p-4">内容不存在</div>;
   }
- 
-  
 
   return (
     <div
@@ -86,15 +84,17 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
 
       {/* 右侧互动按钮 */}
       <div className="absolute right-4 bottom-1/4 flex flex-col items-center space-y-6">
-        {!messageResponse?<></>:
-        <UserAvatarComponent 
-          userId={feed.userId ?? -1}
-          width={12}
-          isRounded={true}
-          withName={true}
-        >
-        </UserAvatarComponent>
-        }   
+        {!messageResponse
+          ? <></>
+          : (
+              <UserAvatarComponent
+                userId={feed.userId ?? -1}
+                width={12}
+                isRounded={true}
+                withName={true}
+              >
+              </UserAvatarComponent>
+            )}
 
         {/* 点赞按钮 */}
         <LikeIconButton targetInfo={{ targetId: feed.feedId ?? -1, targetType: "1" }}></LikeIconButton>

@@ -2,23 +2,21 @@
  * 喜欢的图标
  */
 import type { LikeRecordRequest } from "../../../api";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { toast } from "react-hot-toast";
 import { useGetCounterQuery } from "../../../api/hooks/couterQueryHooks";
 import { useIsLikedQuery, useLikeMutation, useUnlikeMutation } from "../../../api/hooks/likeQueryHooks";
-import {useGlobalContext} from "@/components/globalContextProvider";
-
 
 interface LikeIconButtonProps {
   targetInfo: LikeRecordRequest;
   className?: string;
   icon?: React.ReactNode;
 }
-export default function LikeIconButton({ targetInfo , className , icon}: LikeIconButtonProps) {
+export default function LikeIconButton({ targetInfo, className, icon }: LikeIconButtonProps) {
   const isLikedQuery = useIsLikedQuery({
     targetId: targetInfo.targetId,
     targetType: targetInfo.targetType,
   });
-
 
   const isLiked = isLikedQuery.data?.data;
   const likeCount = useGetCounterQuery({ targetId: targetInfo.targetId, targetType: Number(targetInfo.targetType) }).data?.data ?? -2;
@@ -26,18 +24,18 @@ export default function LikeIconButton({ targetInfo , className , icon}: LikeIco
   const likeMutation = useLikeMutation();
   const unlikeMutation = useUnlikeMutation();
 
-  const userId : number | null = useGlobalContext().userId;
+  const userId: number | null = useGlobalContext().userId;
   const defaultIcon = (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path
-          d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-          fill={isLiked ? "currentColor" : "none"}
+        d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+        fill={isLiked ? "currentColor" : "none"}
       />
     </svg>
-  );//没有传入icon时使用默认图标
+  );// 没有传入icon时使用默认图标
 
   const toggleLike = () => {
-    if (userId==null) {
+    if (userId == null) {
       toast.error("请先登录！");
     }
     if (isLiked) {
