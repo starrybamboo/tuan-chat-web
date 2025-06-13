@@ -1,6 +1,7 @@
 import type { RoleResponse } from "api";
 import type { Role } from "./types";
 import { tuanchat } from "@/../api/instance";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
@@ -44,7 +45,7 @@ export function Sidebar({
   const { mutate: deleteRole } = useDeleteRolesMutation();
 
   // 删除弹窗状态
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useSearchParamsState<boolean>(`deleteRoleConfirmPop`, false);
   const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
   const queryClient = useQueryClient();
   // 删除角色

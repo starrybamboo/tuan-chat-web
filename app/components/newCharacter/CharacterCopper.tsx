@@ -1,11 +1,12 @@
 // 导入必要的类型和组件
 import type { Crop, PixelCrop } from "react-image-crop";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
+
 import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
-
 import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
-import { UploadUtils } from "@/utils/UploadUtils";
 
+import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useRef, useState } from "react";
 import { centerCrop, makeAspectCrop, ReactCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
@@ -63,7 +64,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   // 上传工具实例
   const uploadUtils = new UploadUtils(2);
   // 控制弹窗的显示状态
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`characterCopperPop`, false);
 
   // 图片相关状态
   const [imgSrc, setImgSrc] = useState("");

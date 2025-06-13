@@ -1,8 +1,8 @@
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import React, { useEffect, useRef, useState } from "react";
 
 function BetterImg({ src, className, onClose }: { src: string | File | undefined; className?: string; onClose?: () => void }) {
-  const [isOpen, setIsOpen] = useState(false);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -10,6 +10,7 @@ function BetterImg({ src, className, onClose }: { src: string | File | undefined
   const imgRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imgSrc = typeof src === "string" || !src ? src : URL.createObjectURL(src);
+  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`imgPop${imgSrc}`, false);
 
   const zoom = (delta: number, mouseX: number, mouseY: number) => {
     const newScale = Math.max(0.5, Math.min(3, scale + delta));

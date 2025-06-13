@@ -4,6 +4,7 @@ import RoomWindow from "@/components/chat/roomWindow";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import SpaceWindow from "@/components/chat/spaceWindow";
 import checkBack from "@/components/common/autoContrastText";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { SideDrawer, SideDrawerToggle } from "@/components/common/sideDrawer";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
@@ -75,9 +76,9 @@ export default function RoomSelect() {
   // 创建房间
   const createRoomMutation = useCreateRoomMutation(activeSpaceId || -1);
   // 创建空间弹窗是否打开
-  const [isSpaceHandleOpen, setIsSpaceHandleOpen] = useState(false);
+  const [isSpaceHandleOpen, setIsSpaceHandleOpen] = useSearchParamsState<boolean>("addSpacePop", false);
   // 创建房间弹窗是否打开
-  const [isRoomHandleOpen, setIsRoomHandleOpen] = useState(false);
+  const [isRoomHandleOpen, setIsRoomHandleOpen] = useSearchParamsState<boolean>("addRoomPop", false);
   // 处理邀请用户uid
   const [inputUserId, setInputUserId] = useState<number>(-1);
   // 获取当前用户信息

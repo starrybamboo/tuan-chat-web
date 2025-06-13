@@ -86,7 +86,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       );
     }
     else if (message.messageType === 5) {
-      return <ForwardMessage messageList={message.extra?.forwardMessage?.messageList ?? []}></ForwardMessage>;
+      return <ForwardMessage messageResponse={chatMessageResponse}></ForwardMessage>;
     }
     return (
       <EditableField
