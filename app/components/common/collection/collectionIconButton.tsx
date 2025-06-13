@@ -1,63 +1,33 @@
 import type { CollectionCheckRequest } from "../../../../api";
-import { toast } from "react-hot-toast";
 import {
   useAddCollectionMutation,
-  useCheckUserCollectionQuery,
   useDeleteCollectionMutation,
+  useCheckUserCollectionQuery,
 } from "../../../../api/hooks/collectionQueryHooks";
+import { useGlobalContext } from "@/components/globalContextProvider";
+import { toast } from "react-hot-toast";
 
-interface CollectionIconButtonProps {
-  targetInfo: CollectionCheckRequest;
-  collectionCount?: number;
-}
+export default function CollectionIconButton({ targetInfo }: { targetInfo: CollectionCheckRequest }) {
+  const isCollectedQuery = useCheckUserCollectionQuery(targetInfo);
 
-export default function CollectionIconButtonFixed({ targetInfo, collectionCount = 0 }: CollectionIconButtonProps) {
-  // 查询是否已收藏，data 为 collectionId，未收藏为 0
-  const checkQuery = useCheckUserCollectionQuery(targetInfo);
-  const collectionId = checkQuery.data?.data ?? 0;
-  const isCollected = collectionId > 0;
+  const isCollected = isCollectedQuery.data?.data;
+  const collectionCount = targetInfo.resourceId; // 假设targetId包含收藏数
 
   const addCollectionMutation = useAddCollectionMutation();
   const deleteCollectionMutation = useDeleteCollectionMutation();
 
+  const userId:number|null=useGlobalContext().userId;
+
   const toggleCollection = () => {
-    const isLogin = Boolean(localStorage.getItem("token"));
-    if (!isLogin) {
+    // const isLogin = Boolean(localStorage.getItem("token"));
+     if (userId==null) {
       toast.error("请先登录！");
-      return;
     }
     if (isCollected) {
-      // 取消收藏
-      deleteCollectionMutation.mutate(collectionId, {
-        onSuccess: () => toast.success("已取消收藏"),
-        onError: (error: any) => {
-          toast.error(error?.response?.data?.errMsg || "取消收藏失败");
-        },
-      });
-    } else {
-      // 添加收藏
-      if (
-        typeof targetInfo.resourceId !== "number" ||
-        !targetInfo.resourceType ||
-        typeof targetInfo.resourceType !== "string" ||
-        !targetInfo.resourceType.trim()
-      ) {
-        toast.error("缺少必要参数");
-        return;
-      }
-      addCollectionMutation.mutate(
-        {
-          resourceId: targetInfo.resourceId,
-          resourceType: targetInfo.resourceType,
-          comment: "", // comment 字段必须为字符串，这里传入空字符串
-        },
-        {
-          onSuccess: () => toast.success("收藏成功！"),
-          onError: (error: any) => {
-            toast.error(error?.response?.data?.errMsg || "收藏失败，请重试！");
-          },
-        }
-      );
+      // deleteCollectionMutation.mutate(targetInfo);
+    }
+    else {
+      addCollectionMutation.mutate({ ...targetInfo, comment: "default" });
     }
   };
 
@@ -66,7 +36,6 @@ export default function CollectionIconButtonFixed({ targetInfo, collectionCount 
       onClick={toggleCollection}
       className="flex flex-col items-center"
       type="button"
-      disabled={addCollectionMutation.isPending || deleteCollectionMutation.isPending}
     >
       <div className="relative w-10 h-10">
         <div className={`absolute inset-0 ${isCollected ? "text-yellow-500" : ""}`}>
@@ -84,7 +53,7 @@ export default function CollectionIconButtonFixed({ targetInfo, collectionCount 
           </svg>
         </div>
       </div>
-      <span className="text-xs mt-1">{collectionCount + (isCollected ? 1 : 0)}</span>
+      <span className="text-xs mt-1">{isCollected ? collectionCount + 1 : collectionCount}</span>
     </button>
   );
 }
