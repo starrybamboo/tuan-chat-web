@@ -38,7 +38,7 @@ export default function CharacterMain() {
   };
 
   return (
-    <div className="drawer">
+    <div className="drawer lg:drawer-open">
       {/* 移动端悬浮按钮 */}
       <div className="lg:hidden fixed p-2 z-1">
         <label

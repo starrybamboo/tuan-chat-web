@@ -152,8 +152,6 @@ function LeftContent() {
 }
 
 function ModuleDetail() {
-  // const { id } = useParams();
-  // const { data, isSuccess } = useModuleDetailQuery(Number(id));
   const navigate = useNavigate();
 
   return (

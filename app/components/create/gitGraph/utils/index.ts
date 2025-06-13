@@ -170,6 +170,7 @@ const tooltipOption = {
   type: "tooltip",
   enable: (d: any) => d.targetType === "node",
   enterable: true,
+  position: "right",
   trigger: "hover",
   getContent: (_e: IElementEvent, node: GitNodeData[]) => {
     // let result = `<h4 class="font-[sans-serif] text-2xl">Custom Content</h4>`;
@@ -188,7 +189,8 @@ const tooltipOption = {
   },
   style: {
     ".tooltip": {
-      padding: 0,
+      "padding": 0,
+      "background-color": "transparent",
     },
   },
 };

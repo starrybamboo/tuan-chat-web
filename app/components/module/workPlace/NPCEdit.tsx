@@ -81,6 +81,7 @@ export default function CharacterDetail({ selectRole }: CharacterDetailProps) {
         setTimeout(() => {
         //   onRoleUpdate(cleanedRole);
           setIsTransitioning(false);
+          setIsEditing(false);
         }, 300);
       },
       onError: () => {
