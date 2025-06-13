@@ -3,12 +3,13 @@
  */
 
 import type { Crop, PixelCrop } from "react-image-crop";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
+
 import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
-
 import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
-import { UploadUtils } from "@/utils/UploadUtils";
 
+import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useRef, useState } from "react";
 import { centerCrop, makeAspectCrop, ReactCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
@@ -49,7 +50,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadUtils = new UploadUtils(2);
   // 控制弹窗的显示与隐藏
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useSearchParamsState("imgUploaderWithCopperPop", false);
 
   const [imgSrc, setImgSrc] = useState("");
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);

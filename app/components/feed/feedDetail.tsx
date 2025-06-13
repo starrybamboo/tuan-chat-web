@@ -2,23 +2,24 @@ import type { WheelEvent } from "react";
 import { ChatBubble } from "@/components/chat/chatBubble";
 import CollectionIconButton from "@/components/common/collection/collectionIconButton";
 import CommentPanel from "@/components/common/comment/commentPanel";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import LikeIconButton from "@/components/common/likeIconButton";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
-import React, { useState } from "react";
 
+import React from "react";
 import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
 import { useGetCommentByIdQuery } from "../../../api/hooks/commentQueryHooks";
-import { useGetFeedByIdQuery } from "../../../api/hooks/FeedQueryHooks";
 
+import { useGetFeedByIdQuery } from "../../../api/hooks/FeedQueryHooks";
 import { CopyLinkButton } from "../common/copyLinkButton";
 import ShareToQQButton from "../common/shareToQQButton";
 
 export default function FeedDetail({ feedId, handleWheel }: { feedId: number; handleWheel: (e: WheelEvent<HTMLDivElement>) => void }) {
   const feedQuery = useGetFeedByIdQuery(feedId);
   const feed = feedQuery.data;
-  const [showComments, setShowComments] = useState(false);
-  const [showShare, setShowShare] = useState(false);
+  const [showComments, setShowComments] = useSearchParamsState<boolean>(`feedShowCommentsPop${feedId}`, false);
+  const [showShare, setShowShare] = useSearchParamsState<boolean>(`feedShowSharePop${feedId}`, false);
   const getMessageQuery = useGetMessageByIdQuery(feed?.messageId ?? -1);
   const messageResponse = getMessageQuery.data;
   const commentQuery = useGetCommentByIdQuery(feed?.feedId ?? -1);

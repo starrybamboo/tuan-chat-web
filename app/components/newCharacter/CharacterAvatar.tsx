@@ -2,6 +2,7 @@
 import type { RoleAvatar } from "api";
 import type { Role } from "./types";
 import { useUploadAvatarMutation } from "@/../api/queryHooks";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useEffect, useState } from "react";
@@ -22,9 +23,9 @@ export default function CharacterAvatar({ role, onchange }: {
   const [roleAvatars, setRoleAvatars] = useState<RoleAvatar[]>([]);
   const [showSprite, setShowSprite] = useState(true);
   // 弹窗的打开和关闭
-  const [changeAvatarConfirmOpen, setChangeAvatarConfirmOpen] = useState<boolean>(false);
+  const [changeAvatarConfirmOpen, setChangeAvatarConfirmOpen] = useSearchParamsState<boolean>(`changeAvatarPop`, false);
   // 删除弹窗用
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useSearchParamsState<boolean>(`deleteAvatarPop`, false);
   const [avatarToDeleteIndex, setAvatarToDeleteIndex] = useState<number | null>(null);
 
   // PC端默认显示立绘，移动端显示头像

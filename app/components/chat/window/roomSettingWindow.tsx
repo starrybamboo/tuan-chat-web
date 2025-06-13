@@ -2,6 +2,7 @@ import { RoomContext } from "@/components/chat/roomContext";
 import RenderWindow from "@/components/chat/window/renderWindow";
 import checkBack from "@/components/common/autoContrastText";
 import ConfirmModal from "@/components/common/comfirmModel";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import {
@@ -26,7 +27,7 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
   const dissolveRoomMutation = useDissolveRoomMutation();
   const updateRoomMutation = useUpdateRoomMutation();
   // 渲染对话
-  const [isRenderWindowOpen, setIsRenderWindowOpen] = useState(false);
+  const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
 
   // 使用状态管理表单数据
   const [formData, setFormData] = useState({

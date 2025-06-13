@@ -1,8 +1,8 @@
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import EditProfileWindow from "@/components/profile/editProfileWindow";
-import { useState } from "react";
 import { useGetUerSCBalanceQuery } from "../../../api/hooks/scQueryHooks";
 
 function ProfilePage() {
@@ -11,7 +11,7 @@ function ProfilePage() {
 
   const getUserSCBalanceQuery = useGetUerSCBalanceQuery(userId);
 
-  const [isEditWindowOpen, setIsEditWindowOpen] = useState(false);
+  const [isEditWindowOpen, setIsEditWindowOpen] = useSearchParamsState<boolean>(`profileEditPop`, false);
 
   return (
     <div className="card bg-base-100 w-[max(30vw,300px)] mx-auto gap-8">

@@ -1,3 +1,4 @@
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useGlobalContext } from "@/components/globalContextProvider"; // 添加这行导入
 import { useState } from "react";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
@@ -11,7 +12,7 @@ export function UserDetail({ userId }: { userId: number }) {
   const globalContext = useGlobalContext(); // 添加这行
 
   const user = userQuery.data?.data;
-  const [isEditWindowOpen, setIsEditWindowOpen] = useState(false);
+  const [isEditWindowOpen, setIsEditWindowOpen] = useSearchParamsState<boolean>(`userEditPop${userId}`, false);
 
   // 状态颜色映射
   const activeStatus = String(user?.activeStatus).toLowerCase() as
