@@ -1,7 +1,6 @@
 # 简介
 
-这是团剧共创的前端项目。项目采用react作为框架，采用响应式界面。使用electron构建pc端的客户端，使用混合开发模式构建安卓端应用。
-
+这是团剧共创的前端项目。项目采用react作为框架，采用响应式界面设计。使用electron构建pc客户端，使用混合开发模式构建安卓客户端。基于webgal导出跑团replay。
 ## 在开始之前
 
 ### 安装依赖
@@ -65,9 +64,23 @@ pnpm lint:fix
 
 # 文件架构
 
-## ./api
+### core/\*\* ， models/\*\*，services/\*\*，
 
-是一些向后端发送请求的utils。
+这些由openApi自动生成。
+
+### useWebsocket.tsx
+
+websocket的utils
+
+### hooks/\*\* ，useQueryHooks.tsx
+
+存放react-query相关的钩子函数。
+
+如果要用react-query，请把新的钩子函数放在hooks文件夹下对应的文件内。
+
+并且**一定要注意有没有已经定义好了的钩子函数，不要重复定义！**（ctrl+shift+f全局搜索一下）
+
+并且mutation后记得invalidate对应的请求。
 
 ## ./app
 
