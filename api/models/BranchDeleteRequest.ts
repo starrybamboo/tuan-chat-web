@@ -3,11 +3,12 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 数据列表
+ * 删除分支请求
  */
-export type RuleResponse = {
-    ruleId?: number;
-    ruleName?: string;
-    ruleDescription?: string;
+export type BranchDeleteRequest = {
+    /**
+     * 分支ID
+     */
+    branchId: number;
 };
 

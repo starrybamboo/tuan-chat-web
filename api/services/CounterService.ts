@@ -3,14 +3,39 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultInteger } from '../models/ApiResultInteger';
+import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultMapLongInteger } from '../models/ApiResultMapLongInteger';
 import type { ApiResultMapStringInteger } from '../models/ApiResultMapStringInteger';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
+import type { BatchCounterQueryDTO } from '../models/BatchCounterQueryDTO';
 import type { CounterOperationDTO } from '../models/CounterOperationDTO';
+import type { UVOperationDTO } from '../models/UVOperationDTO';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class CounterService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
+    /**
+     * 记录用户访问
+     * @param requestBody
+     * @returns ApiResultLong OK
+     * @throws ApiError
+     */
+    public recordUniqueVisit(
+        requestBody: UVOperationDTO,
+    ): CancelablePromise<ApiResultLong> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/counter/uv/record',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
     /**
      * 手动触发同步到数据库
      * @returns ApiResultVoid OK
@@ -74,26 +99,41 @@ export class CounterService {
     }
     /**
      * 批量获取计数
-     * @param targetType 目标类型
-     * @param counterType 计数类型
      * @param requestBody
      * @returns ApiResultMapLongInteger OK
      * @throws ApiError
      */
     public batchGetCounter(
-        targetType: number,
-        counterType: string,
-        requestBody: Array<number>,
+        requestBody: BatchCounterQueryDTO,
     ): CancelablePromise<ApiResultMapLongInteger> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/counter/batch',
-            query: {
-                'targetType': targetType,
-                'counterType': counterType,
-            },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 获取UV统计
+     * @param dto
+     * @returns ApiResultLong OK
+     * @throws ApiError
+     */
+    public getUniqueVisitCount(
+        dto: UVOperationDTO,
+    ): CancelablePromise<ApiResultLong> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/counter/uv/get',
+            query: {
+                'dto': dto,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -114,7 +154,9 @@ export class CounterService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/counter/get',
-            query: dto,
+            query: {
+                'dto': dto,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -135,7 +177,9 @@ export class CounterService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/counter/all',
-            query: dto,
+            query: {
+                'dto': dto,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

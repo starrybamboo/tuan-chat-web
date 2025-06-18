@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ImageMessage = {
+export type SoundMessage = {
     /**
      * 大小（字节）
      */
@@ -16,16 +16,8 @@ export type ImageMessage = {
      */
     fileName: string;
     /**
-     * 是否渲染为背景
+     * 时长（秒）
      */
-    background: boolean;
-    /**
-     * 宽度（像素）
-     */
-    width: number;
-    /**
-     * 高度（像素）
-     */
-    height: number;
+    second: number;
 };
 

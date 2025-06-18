@@ -15,6 +15,10 @@ export type Room = {
      */
     parentRoomId?: number;
     /**
+     * 房间所属空间id
+     */
+    spaceId?: number;
+    /**
      * 房间类型 1游戏房间 2全员房间
      */
     roomType?: number;
@@ -35,9 +39,9 @@ export type Room = {
      */
     status?: number;
     /**
-     * 房间所属空间id
+     * 禁言状态 0未禁言 1全员禁言(裁判除外)
      */
-    spaceId?: number;
+    muteStatus?: number;
     /**
      * 其他信息
      */

@@ -22,5 +22,17 @@ export type ModuleUpdateRequest = {
      * 模组作者名字
      */
     authorName?: string;
+    /**
+     * 模组能需要花费的时间，以小时为单位
+     */
+    costTime?: number;
+    /**
+     * 模组需要人数
+     */
+    people?: number;
+    /**
+     * 模组封面
+     */
+    image?: string;
 };
 

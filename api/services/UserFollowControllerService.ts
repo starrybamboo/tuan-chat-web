@@ -138,4 +138,27 @@ export class UserFollowControllerService {
             },
         });
     }
+    /**
+     * 获取我的好友列表
+     * 获取当前用户的互相关注好友列表
+     * @param requestBody
+     * @returns ApiResultPageBaseRespUserFollowResponse OK
+     * @throws ApiError
+     */
+    public friends(
+        requestBody: PageBaseRequest,
+    ): CancelablePromise<ApiResultPageBaseRespUserFollowResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/user/friends/page',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
 }

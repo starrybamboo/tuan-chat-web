@@ -2,12 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * 数据列表
- */
-export type RuleResponse = {
-    ruleId?: number;
-    ruleName?: string;
-    ruleDescription?: string;
+export type CommitRequest = {
+    moduleId: number;
+    message: string;
 };
 

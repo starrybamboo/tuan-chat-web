@@ -27,6 +27,10 @@ export type UserRole = {
      */
     avatarId?: number;
     /**
+     * 角色状态，0正常，1删除
+     */
+    state?: number;
+    /**
      * tts时使用的模型
      */
     modelName?: string;

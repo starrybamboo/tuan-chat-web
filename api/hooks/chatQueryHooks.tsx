@@ -7,7 +7,6 @@ import type { SpaceAddRequest } from "../models/SpaceAddRequest";
 import type { SpaceOwnerTransferRequest } from "../models/SpaceOwnerTransferRequest";
 import type { PlayerRevokeRequest } from "../models/PlayerRevokeRequest";
 import type { PlayerGrantRequest } from "../models/PlayerGrantRequest";
-import type { MoveMessageRequest } from "../models/MoveMessageRequest";
 import type { ChatMessagePageRequest } from "../models/ChatMessagePageRequest";
 import type { ChatMessageRequest } from "../models/ChatMessageRequest";
 import type { RoomRoleDeleteRequest } from "../models/RoomRoleDeleteRequest";
@@ -312,19 +311,6 @@ export function useGetMsgPageQuery(requestBody: ChatMessagePageRequest) {
         queryKey: ['getMsgPage', requestBody],
         queryFn: () => tuanchat.chatController.getMsgPage(requestBody),
         staleTime: 30000 // 30秒缓存
-    });
-}
-
-/**
- * 移动消息位置
- */
-export function useMoveMessageMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: MoveMessageRequest) => tuanchat.chatController.moveMessage(req),
-        mutationKey: ['moveMessage'],
-        onSuccess: () => {
-        }
     });
 }
 

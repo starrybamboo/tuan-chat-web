@@ -3,16 +3,16 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 点赞请求参数
+ * 比较分支差异请求
  */
-export type LikeRecordRequest = {
+export type BranchDiffRequest = {
     /**
-     * 目标内容ID
+     * 源分支ID
      */
-    targetId: number;
+    sourceBranchId: number;
     /**
-     * 目标类型(1-feed, 2-post, 3-module等)
+     * 目标分支ID
      */
-    targetType: string;
+    targetBranchId: number;
 };
 

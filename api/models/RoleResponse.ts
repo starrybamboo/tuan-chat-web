@@ -9,26 +9,30 @@ export type RoleResponse = {
     /**
      * 角色id
      */
-    roleId: number;
+    roleId?: number;
     /**
      * 角色名字
      */
-    roleName: string;
+    roleName?: string;
     /**
      * 简介
      */
-    description: string;
+    description?: string;
     /**
      * 角色头像
      */
-    avatarId: number;
+    avatarId?: number;
     /**
      * tts时使用的模型
      */
-    modelName: string;
+    modelName?: string;
     /**
      * tts时使用的角色名
      */
-    speakerName: string;
+    speakerName?: string;
+    /**
+     * 属于哪个用户，0代表是全局角色
+     */
+    userId?: number;
 };
 
