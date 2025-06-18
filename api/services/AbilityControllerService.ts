@@ -6,6 +6,7 @@ import type { AbilityFieldUpdateRequest } from '../models/AbilityFieldUpdateRequ
 import type { AbilityPageRequest } from '../models/AbilityPageRequest';
 import type { AbilitySetRequest } from '../models/AbilitySetRequest';
 import type { AbilityUpdateRequest } from '../models/AbilityUpdateRequest';
+import type { ApiResultListItemResponse } from '../models/ApiResultListItemResponse';
 import type { ApiResultListRoleAbility } from '../models/ApiResultListRoleAbility';
 import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultPageBaseRespRoleAbility } from '../models/ApiResultPageBaseRespRoleAbility';
@@ -145,6 +146,81 @@ export class AbilityControllerService {
             url: '/capi/role/ability/page',
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 获取能力下的物品
+     * @param abilityId
+     * @returns ApiResultListItemResponse OK
+     * @throws ApiError
+     */
+    public getItems(
+        abilityId: number,
+    ): CancelablePromise<ApiResultListItemResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/role/ability/item',
+            query: {
+                'abilityId': abilityId,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 添加角色能力物品
+     * @param itemId
+     * @param abilityId
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public addItem(
+        itemId: number,
+        abilityId: number,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/role/ability/item',
+            query: {
+                'itemId': itemId,
+                'abilityId': abilityId,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 删除角色能力物品
+     * @param itemId
+     * @param abilityId
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public removeItem(
+        itemId: number,
+        abilityId: number,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'DELETE',
+            url: '/capi/role/ability/item',
+            query: {
+                'itemId': itemId,
+                'abilityId': abilityId,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

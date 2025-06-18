@@ -3,11 +3,12 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 数据列表
+ * 查询模组分支列表请求
  */
-export type RuleResponse = {
-    ruleId?: number;
-    ruleName?: string;
-    ruleDescription?: string;
+export type BranchListRequest = {
+    /**
+     * 模组ID
+     */
+    moduleId: number;
 };
 

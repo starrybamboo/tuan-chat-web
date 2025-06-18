@@ -3,27 +3,24 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 模组列表响应对象
+ * 暂存区响应
  */
-export type ModuleResponse = {
+export type StageResponse = {
     /**
-     * 所用的模块id
+     * 对于哪个模组的暂存区，一个user对于一个模组，只有一个暂存区
      */
     moduleId?: number;
     /**
-     * 所用的规则id
+     * 模组封面
      */
-    ruleId?: number;
+    image?: string;
     /**
      * 模组名称
      */
     moduleName?: string;
     /**
-     * 模组作者名字
+     * 模组的描述
      */
-    authorName?: string;
-    image?: string;
-    costTime?: number;
-    people?: number;
+    description?: string;
 };
 

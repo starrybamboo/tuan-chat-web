@@ -5,16 +5,40 @@
 import type { ApiResultChatMessageResponse } from '../models/ApiResultChatMessageResponse';
 import type { ApiResultCursorPageBaseResponseChatMessageResponse } from '../models/ApiResultCursorPageBaseResponseChatMessageResponse';
 import type { ApiResultListChatMessageResponse } from '../models/ApiResultListChatMessageResponse';
+import type { ApiResultListMessage } from '../models/ApiResultListMessage';
 import type { ApiResultMessage } from '../models/ApiResultMessage';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { ChatMessagePageRequest } from '../models/ChatMessagePageRequest';
 import type { ChatMessageRequest } from '../models/ChatMessageRequest';
+import type { InsertMessageRequest } from '../models/InsertMessageRequest';
 import type { Message } from '../models/Message';
-import type { MoveMessageRequest } from '../models/MoveMessageRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class ChatControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
+    /**
+     * 批量更新消息
+     * 一次性更新多条消息
+     * @param requestBody
+     * @returns ApiResultListMessage OK
+     * @throws ApiError
+     */
+    public batchUpdateMessages(
+        requestBody: Array<Message>,
+    ): CancelablePromise<ApiResultListMessage> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/capi/chat/messages/batch',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
     /**
      * 根据ID获取单条消息
      * 返回指定ID的消息详情
@@ -109,29 +133,6 @@ export class ChatControllerService {
         });
     }
     /**
-     * 移动消息位置
-     * 根据beforeMessageId和afterMessageId自动判断移动类型：当都为null时返回错误，beforeMessageId在这条消息之前的id ，就是 beforeMessageId messageId afterMessageId
-     * @param requestBody
-     * @returns ApiResultMessage OK
-     * @throws ApiError
-     */
-    public moveMessage(
-        requestBody: MoveMessageRequest,
-    ): CancelablePromise<ApiResultMessage> {
-        return this.httpRequest.request({
-            method: 'PUT',
-            url: '/capi/chat/message/move',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
      * 按页获取消息列表
      * 用的是游标翻页
      * @param requestBody
@@ -144,6 +145,29 @@ export class ChatControllerService {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/chat/message/page',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 在指定位置插入消息
+     * 根据beforeMessageId和afterMessageId确定插入位置，至少需要提供一个，KP权限才能插入消息
+     * @param requestBody
+     * @returns ApiResultMessage OK
+     * @throws ApiError
+     */
+    public insertMessage(
+        requestBody: InsertMessageRequest,
+    ): CancelablePromise<ApiResultMessage> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/chat/message/insert',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

@@ -3,16 +3,16 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 点赞请求参数
+ * 比较提交差异请求
  */
-export type LikeRecordRequest = {
+export type CommitDiffRequest = {
     /**
-     * 目标内容ID
+     * 前一个提交ID
      */
-    targetId: number;
+    formerCommitId: number;
     /**
-     * 目标类型(1-feed, 2-post, 3-module等)
+     * 当前提交ID
      */
-    targetType: string;
+    presentCommitId: number;
 };
 

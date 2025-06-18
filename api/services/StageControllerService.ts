@@ -2,143 +2,33 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResultBoolean } from '../models/ApiResultBoolean';
-import type { ApiResultListRoom } from '../models/ApiResultListRoom';
-import type { ApiResultRoom } from '../models/ApiResultRoom';
-import type { ApiResultString } from '../models/ApiResultString';
+import type { ApiResultListStageEntityResponse } from '../models/ApiResultListStageEntityResponse';
+import type { ApiResultListStageResponse } from '../models/ApiResultListStageResponse';
+import type { ApiResultLong } from '../models/ApiResultLong';
+import type { ApiResultModuleInfo } from '../models/ApiResultModuleInfo';
+import type { ApiResultStageEntityResponse } from '../models/ApiResultStageEntityResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
-import type { FightRoomAddRequest } from '../models/FightRoomAddRequest';
-import type { RoomExtraRequest } from '../models/RoomExtraRequest';
-import type { RoomExtraSetRequest } from '../models/RoomExtraSetRequest';
-import type { RoomMuteRequest } from '../models/RoomMuteRequest';
-import type { RoomUpdateRequest } from '../models/RoomUpdateRequest';
+import type { CommitRequest } from '../models/CommitRequest';
+import type { EntityAddRequest } from '../models/EntityAddRequest';
+import type { EntityRenameRequest } from '../models/EntityRenameRequest';
+import type { RoleImportRequest } from '../models/RoleImportRequest';
+import type { StageRollbackRequest } from '../models/StageRollbackRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
-export class RoomControllerService {
+export class StageControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * 更新房间禁言状态
+     * 回退文件信息
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public updateRoomMuteStatus(
-        requestBody: RoomMuteRequest,
+    public rollback(
+        requestBody: StageRollbackRequest,
     ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'PUT',
-            url: '/capi/room/mute',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 获取房间其他信息
-     * @param request
-     * @returns ApiResultString OK
-     * @throws ApiError
-     */
-    public getRoomExtra(
-        request: RoomExtraRequest,
-    ): CancelablePromise<ApiResultString> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/capi/room/extra',
-            query: {
-                'request': request,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 新增或修改房间其他信息
-     * @param requestBody
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public setRoomExtra(
-        requestBody: RoomExtraSetRequest,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'PUT',
-            url: '/capi/room/extra',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 删除房间其他信息
-     * @param requestBody
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public deleteRoomExtra(
-        requestBody: RoomExtraRequest,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'DELETE',
-            url: '/capi/room/extra',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 更新房间信息(名称、头像、描述)
-     * @param requestBody
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public updateRoom(
-        requestBody: RoomUpdateRequest,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'PUT',
-            url: '/capi/room/',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 创建战斗轮房间
-     * @param requestBody
-     * @returns ApiResultRoom OK
-     * @throws ApiError
-     */
-    public createRoom1(
-        requestBody: FightRoomAddRequest,
-    ): CancelablePromise<ApiResultRoom> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/room/fight',
+            url: '/capi/stage/rollback',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -150,20 +40,19 @@ export class RoomControllerService {
         });
     }
     /**
-     * 获取房间
-     * @param roomId
-     * @returns ApiResultRoom OK
+     * 修改实体name，效果等同于删除原实体，再添加一个只有name不同的实体
+     * @param requestBody
+     * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public getRoomInfo(
-        roomId: number,
-    ): CancelablePromise<ApiResultRoom> {
+    public rename(
+        requestBody: EntityRenameRequest,
+    ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
-            method: 'GET',
-            url: '/capi/room/{roomId}',
-            path: {
-                'roomId': roomId,
-            },
+            method: 'POST',
+            url: '/capi/stage/rename',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -173,20 +62,19 @@ export class RoomControllerService {
         });
     }
     /**
-     * 解散房间
-     * @param roomId
-     * @returns ApiResultBoolean OK
+     * 将角色导入暂存区
+     * @param requestBody
+     * @returns ApiResultStageEntityResponse OK
      * @throws ApiError
      */
-    public dissolveRoom(
-        roomId: number,
-    ): CancelablePromise<ApiResultBoolean> {
+    public importRole(
+        requestBody: RoleImportRequest,
+    ): CancelablePromise<ApiResultStageEntityResponse> {
         return this.httpRequest.request({
-            method: 'DELETE',
-            url: '/capi/room/{roomId}',
-            path: {
-                'roomId': roomId,
-            },
+            method: 'POST',
+            url: '/capi/stage/import/role',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -196,19 +84,102 @@ export class RoomControllerService {
         });
     }
     /**
-     * 获取空间下当前用户加入的所有房间
-     * @param spaceId
-     * @returns ApiResultListRoom OK
+     * @param requestBody
+     * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public getUserRooms(
-        spaceId: number,
-    ): CancelablePromise<ApiResultListRoom> {
+    public commit(
+        requestBody: CommitRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/stage/commit',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 添加实体到暂存区，或修改删除暂存区里已有的实体
+     * @param requestBody
+     * @returns ApiResultLong OK
+     * @throws ApiError
+     */
+    public add(
+        requestBody: EntityAddRequest,
+    ): CancelablePromise<ApiResultLong> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/stage/add',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 打开工作区时自动查询，显示所有自己拥有暂存区的模组（正在修改）
+     * @returns ApiResultListStageResponse OK
+     * @throws ApiError
+     */
+    public staging(): CancelablePromise<ApiResultListStageResponse> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/room/list',
+            url: '/capi/stage',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 根据stageId查询当前模组当前用户分支的最新commit详情
+     * @param moduleId
+     * @returns ApiResultModuleInfo OK
+     * @throws ApiError
+     */
+    public queryCommit(
+        moduleId: number,
+    ): CancelablePromise<ApiResultModuleInfo> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/stage/info',
             query: {
-                'spaceId': spaceId,
+                'moduleId': moduleId,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 根据暂存区id查询所有暂存实体
+     * @param moduleId
+     * @returns ApiResultListStageEntityResponse OK
+     * @throws ApiError
+     */
+    public queryEntities(
+        moduleId: number,
+    ): CancelablePromise<ApiResultListStageEntityResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/stage/change',
+            query: {
+                'moduleId': moduleId,
             },
             errors: {
                 400: `Bad Request`,

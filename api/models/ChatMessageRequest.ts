@@ -14,15 +14,15 @@ export type ChatMessageRequest = {
     /**
      * 发送者扮演的角色的id
      */
-    roleId: number;
+    roleId?: number;
     /**
      * 发送者扮演的角色的立绘id
      */
-    avatarId: number;
+    avatarId?: number;
     /**
      * 消息内容
      */
-    content: string;
+    content?: string;
     /**
      * 回复的消息id,如果没有别传就好
      */

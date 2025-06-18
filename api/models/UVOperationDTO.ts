@@ -3,16 +3,20 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 点赞请求参数
+ * UV统计操作参数
  */
-export type LikeRecordRequest = {
+export type UVOperationDTO = {
     /**
-     * 目标内容ID
+     * 目标对象ID
      */
     targetId: number;
     /**
-     * 目标类型(1-feed, 2-post, 3-module等)
+     * 目标对象类型
      */
-    targetType: string;
+    targetType: number;
+    /**
+     * 用户ID，用于UV统计
+     */
+    userId: number;
 };
 
