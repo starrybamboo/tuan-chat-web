@@ -117,7 +117,7 @@ export default function CommunityPostList() {
                       <h3 className="text-xl font-bold group-hover:text-primary transition-colors line-clamp-1">
                         {post.title || "无标题帖子"}
                       </h3>
-                      <p className="text-base-content/80 mt-2 line-clamp-3">
+                      <p className="text-base-content/80 mt-2 line-clamp-3 break-all lg:break-normal">
                         {post.content}
                       </p>
                     </div>
