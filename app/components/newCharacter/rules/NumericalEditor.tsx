@@ -271,7 +271,7 @@ export default function NumericalEditor({
                   return (
                     <div key={key} className="flex flex-col gap-1 mb-2">
                       <div className="card bg-base-100 shadow-sm p-2 h-full">
-                        <div className="text-sm font-medium text-primary mb-1">{key}</div>
+                        <div className="text-sm font-medium mb-1">{key}</div>
                         <div className="text-base-content mt-0.5">
                           {typeof calculatedValue === "object" && "displayValue" in calculatedValue
                             ? calculatedValue.displayValue.toString()
@@ -293,10 +293,7 @@ export default function NumericalEditor({
                         ? (
                             <div className="flex items-center gap-1 group">
                               <div className="hidden md:block w-full">
-                                <label className={`input flex items-center gap-1 md:gap-2 w-full ${
-                                  isEditing ? "bg-base-100" : ""
-                                }`}
-                                >
+                                <label className="input flex items-center gap-1 md:gap-2 w-full">
                                   <span className="text-xs md:text-sm">{key}</span>
                                   <div className="w-px h-4 bg-base-content/20"></div>
                                   <input
@@ -311,7 +308,7 @@ export default function NumericalEditor({
                                 </label>
                               </div>
                               <div className="block md:hidden w-full">
-                                <fieldset className="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
+                                <fieldset className="fieldset">
                                   <legend className="fieldset-legend text-xs">{key}</legend>
                                   <input
                                     type="text"
@@ -329,7 +326,7 @@ export default function NumericalEditor({
                         : (
                             <div className="card bg-base-100 shadow-sm p-2 h-full">
                               <div className="flex items-center gap-0 md:gap-2">
-                                <div className="text-primary p-1 text-xs md:text-base md:p-2">
+                                <div className="p-1 text-xs md:text-base md:p-2">
                                   {key}
                                 </div>
                                 <div className="divider divider-horizontal ml-0 mr-0 md:mr-2" />

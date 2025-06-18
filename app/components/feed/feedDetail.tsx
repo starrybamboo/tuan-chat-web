@@ -8,14 +8,21 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import React, { useState } from "react";
 
 import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
+import { useGetCommentByIdQuery } from "../../../api/hooks/commentQueryHooks";
 import { useGetFeedByIdQuery } from "../../../api/hooks/FeedQueryHooks";
+
+import { CopyLinkButton } from "../common/copyLinkButton";
+import ShareToQQButton from "../common/shareToQQButton";
 
 export default function FeedDetail({ feedId, handleWheel }: { feedId: number; handleWheel: (e: WheelEvent<HTMLDivElement>) => void }) {
   const feedQuery = useGetFeedByIdQuery(feedId);
   const feed = feedQuery.data;
   const [showComments, setShowComments] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const getMessageQuery = useGetMessageByIdQuery(feed?.messageId ?? -1);
   const messageResponse = getMessageQuery.data;
+  const commentQuery = useGetCommentByIdQuery(feed?.feedId ?? -1);
+  const commentCount = commentQuery.data?.totalChildren ?? 0;
 
   if (feedQuery.isLoading) {
     return <div className="flex justify-center items-center h-screen">加载中...</div>;
@@ -47,9 +54,24 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
         {/* 内容展示区 */}
         <div className="flex-1 flex justify-center items-center relative">
           <div className="text-center">
-            {
+            {/* {
               messageResponse && <ChatBubble chatMessageResponse={messageResponse} useChatBubbleStyle={false}></ChatBubble>
-            }
+            } */}
+            {!messageResponse
+              ? (
+                  <div>请登录后查看详细内容</div>
+                )
+              : getMessageQuery.isLoading
+                ? (
+                    <div>加载中...</div>
+                  )
+                : getMessageQuery.isError
+                  ? (
+                      <div>加载失败</div>
+                    )
+                  : (
+                      <ChatBubble chatMessageResponse={messageResponse} useChatBubbleStyle={false} />
+                    )}
           </div>
         </div>
 
@@ -62,13 +84,17 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
 
       {/* 右侧互动按钮 */}
       <div className="absolute right-4 bottom-1/4 flex flex-col items-center space-y-6">
-        <UserAvatarComponent
-          userId={feed.userId ?? -1}
-          width={12}
-          isRounded={true}
-          withName={true}
-        >
-        </UserAvatarComponent>
+        {!messageResponse
+          ? <></>
+          : (
+              <UserAvatarComponent
+                userId={feed.userId ?? -1}
+                width={12}
+                isRounded={true}
+                withName={true}
+              >
+              </UserAvatarComponent>
+            )}
 
         {/* 点赞按钮 */}
         <LikeIconButton targetInfo={{ targetId: feed.feedId ?? -1, targetType: "1" }}></LikeIconButton>
@@ -82,11 +108,11 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </div>
-          <span className="text-xs mt-1">{114}</span>
+          <span className="text-xs mt-1">{commentCount}</span>
         </button>
 
         {/* 分享按钮 */}
-        <button className="flex flex-col items-center" type="button">
+        <button onClick={() => setShowShare(!showShare)} className="flex flex-col items-center" type="button">
           <div className="w-10 h-10">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
@@ -98,25 +124,34 @@ export default function FeedDetail({ feedId, handleWheel }: { feedId: number; ha
         </button>
       </div>
 
-      {/* 底部评论区 - 弹出式 */}
-      {/* {showComments && ( */}
-      {/*  <div className="absolute inset-0 z-10 shadow-xl"> */}
-      {/*    <div className="absolute bottom-0 left-0 right-0 bg-base-100/90 rounded-t-3xl p-4 h-[70vh] flex flex-col"> */}
-      {/*      /!* 评论区标题和关闭按钮 *!/ */}
-      {/*      <div className="flex justify-end "> */}
-      {/*        <button onClick={() => setShowComments(false)} className="text-gray-400" type="button"> */}
-      {/*          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"> */}
-      {/*            <path d="M18 6L6 18M6 6l12 12" /> */}
-      {/*          </svg> */}
-      {/*        </button> */}
-      {/*      </div> */}
+      {/* 底部评论区 - 弹出式
+       {showComments && (
+        <div className="absolute inset-0 z-10 shadow-xl">
+          <div className="absolute bottom-0 left-0 right-0 bg-base-100/90 rounded-t-3xl p-4 h-[70vh] flex flex-col">
+            /!* 评论区标题和关闭按钮 *!/
+            <div className="flex justify-end ">
+              <button onClick={() => setShowComments(false)} className="text-gray-400" type="button">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-      {/*      /!* 评论列表 *!/ */}
-      {/*    </div> */}
-      {/*  </div> */}
-      {/* )} */}
+            /!* 评论列表 *!/
+          </div>
+        </div> )} */}
+      <PopWindow isOpen={showShare} onClose={() => setShowShare(false)}>
+        <div className="overflow-y-auto space-y-4 h-[40vh] w-[30vw] flex flex-col items-center justify-center">
+          <h2 className="text-xl font-bold">分享至</h2>
+          <div className="flex gap-4 mt-4">
+            <button className="btn btn-primary">社区</button>
+            <ShareToQQButton feedId={1} />
+            <CopyLinkButton />
+          </div>
+        </div>
+      </PopWindow>
       <PopWindow isOpen={showComments} onClose={() => setShowComments(false)}>
-        <div className="overflow-y-auto space-y-4 h-[80vh] w-[60vw]">
+        <div className="overflow-y-auto space-y-4 h-[80vh] w-[60vw] sm:w-[60vw]">
           <CommentPanel targetInfo={{ targetId: feed.feedId ?? -1, targetType: "1" }} className="h-full"></CommentPanel>
         </div>
       </PopWindow>

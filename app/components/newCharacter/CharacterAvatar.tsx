@@ -134,19 +134,16 @@ export default function CharacterAvatar({ role, onchange }: {
   const uniqueFileName = generateUniqueFileName(role.id);
 
   return (
-    <div className="w-full max-w-xs">
-      <div className="flex justify-center">
-        <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
-          <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative overflow-hidden">
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
-            <img
-              src={role.avatar || "./favicon.ico"}
-              alt="Character Avatar"
-              className="object-cover transform group-hover:scale-105 transition-transform duration-300"
-            />
-          </div>
+    <div className="w-2xs flex justify-center">
+      <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
+        <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
+          <img
+            src={role.avatar || "./favicon.ico"}
+            alt="Character Avatar"
+            className="object-cover transform group-hover:scale-105 transition-transform duration-300"
+          />
         </div>
-
       </div>
 
       <PopWindow isOpen={changeAvatarConfirmOpen} onClose={handleCancelChangeAvatar}>
@@ -170,11 +167,11 @@ export default function CharacterAvatar({ role, onchange }: {
                   {showSprite ? "头像" : "立绘"}
                 </button>
               </div>
-              <div className="h-[90%] bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
+              <div className=" bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
                 <img
                   src={showSprite ? (previewSrc || "/favicon.ico") : (copperedUrl || "/favicon.ico")}
                   alt="预览"
-                  className="w-full object-contain"
+                  className="md:max-h-[65vh] object-contain"
                 />
               </div>
             </div>
@@ -270,14 +267,14 @@ export default function CharacterAvatar({ role, onchange }: {
               </div>
             </PopWindow>
           </div>
-          <div className="card-actions justify-end">
+          <div className="absolute bottom-5 right-5 md:bottom-10 md:right-10 card-actions justify-end">
             <button
               type="submit"
               onClick={() => {
-                setChangeAvatarConfirmOpen(false);
                 onchange(copperedUrl, avatarId);
+                setChangeAvatarConfirmOpen(false);
               }}
-              className="btn btn-primary mt-2"
+              className="btn btn-primary btn-md md:btn-lg"
             >
               确认更改头像
             </button>

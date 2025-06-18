@@ -5,12 +5,13 @@ import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import BetterImg from "@/components/common/betterImg";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { EditableField } from "@/components/common/editableField";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetRoleQuery } from "api/queryHooks";
-import React, { use, useMemo, useState } from "react";
+import React, { use, useMemo } from "react";
 import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
 
 export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
@@ -21,8 +22,8 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId);
 
   const role = useRoleRequest.data?.data;
-  const [isExpressionChooserOpen, setIsExpressionChooserOpen] = useState(false);
-  const [isRoleChooserOpen, setIsRoleChooserOpen] = useState(false);
+  const [isExpressionChooserOpen, setIsExpressionChooserOpen] = useSearchParamsState<boolean>(`exprPop${message.messageID}`, false);
+  const [isRoleChooserOpen, setIsRoleChooserOpen] = useSearchParamsState<boolean>(`roleChoosePop${message.messageID}`, false);
 
   const updateMessageMutation = useUpdateMessageMutation();
 

@@ -1,8 +1,9 @@
 import { RoomContext } from "@/components/chat/roomContext";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { use, useState } from "react";
+import { use } from "react";
 import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
 import {
   useGetRoleAvatarQuery,
@@ -36,7 +37,7 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
   const userRole = useGetUserRolesQuery(userId);
 
   // 控制角色详情的popWindow
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`rolePop${avatarId}`, false);
   const roleAvatar = avatarQuery.data?.data;
 
   const roomContext = use(RoomContext);

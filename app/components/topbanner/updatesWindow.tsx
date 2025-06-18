@@ -1,5 +1,5 @@
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
-import { MarkDownViewer } from "@/components/common/markDownViewer";
+import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import { PopWindow } from "@/components/common/popWindow";
 
 import { useEffect, useState } from "react";

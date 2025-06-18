@@ -1,7 +1,10 @@
 import type { CollectionCheckRequest } from "../../../../api";
+import { useGlobalContext } from "@/components/globalContextProvider";
+import { toast } from "react-hot-toast";
 import {
   useAddCollectionMutation,
   useCheckUserCollectionQuery,
+  useDeleteCollectionMutation,
 } from "../../../../api/hooks/collectionQueryHooks";
 
 export default function CollectionIconButton({ targetInfo }: { targetInfo: CollectionCheckRequest }) {
@@ -11,11 +14,16 @@ export default function CollectionIconButton({ targetInfo }: { targetInfo: Colle
   const collectionCount = targetInfo.resourceId; // 假设targetId包含收藏数
 
   const addCollectionMutation = useAddCollectionMutation();
-  // const deleteCollectionMutation = useDeleteCollectionMutation();
+  const deleteCollectionMutation = useDeleteCollectionMutation();
+
+  const userId: number | null = useGlobalContext().userId;
 
   const toggleCollection = () => {
+    if (userId == null) {
+      toast.error("请先登录！");
+    }
     if (isCollected) {
-      // deleteCollectionMutation.mutate(targetInfo);
+      deleteCollectionMutation.mutate(targetInfo.resourceId);
     }
     else {
       addCollectionMutation.mutate({ ...targetInfo, comment: "default" });

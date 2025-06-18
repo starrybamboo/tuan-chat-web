@@ -13,6 +13,7 @@ import { RoomContext } from "@/components/chat/roomContext";
 import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { SideDrawer } from "@/components/common/sideDrawer";
@@ -43,9 +44,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const uploadUtils = new UploadUtils(2);
 
-  // 承载聊天记录窗口的ref
-  const chatFrameRef = useRef<HTMLDivElement>(document.createElement("div"));
-
   const [commandMode, setCommandMode] = useState<commandModeType>("none");
 
   // 聊天框中包含的图片
@@ -67,7 +65,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const roleAvatars = useMemo(() => roleAvatarQuery.data?.data ?? [], [roleAvatarQuery.data?.data]);
   const curAvatarId = roleAvatars[curAvatarIndex]?.avatarId || -1;
 
-  const [commandBrowseWindow, setCommandBrowseWindow] = useState<commandModeType>("none");
+  const [commandBrowseWindow, setCommandBrowseWindow] = useSearchParamsState<commandModeType>("commandPop", "none");
 
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(localStorage.getItem("useChatBubbleStyle") === "true");
   useEffect(() => {
@@ -104,6 +102,11 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   useEffect(() => {
     setCurRoleId(roomRolesThatUserOwn[0]?.roleId ?? -1);
   }, [roomRolesThatUserOwn]);
+
+  /**
+   * At 功能
+   */
+  // TODO
 
   /**
    *处理与组件的各种交互
@@ -239,14 +242,14 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   return (
     <RoomContext value={roomContext}>
       <div className="w-full flex gap-4">
-        <div className="flex flex-col flex-1 h-full w-full">
+        <div className="flex flex-col flex-1">
           {/* 聊天框 */}
           <div className="card bg-base-100 shadow-sm">
-            <ChatFrame useChatBubbleStyle={useChatBubbleStyle} chatFrameRef={chatFrameRef} key={roomId}></ChatFrame>
+            <ChatFrame useChatBubbleStyle={useChatBubbleStyle} key={roomId}></ChatFrame>
           </div>
           {/* 输入区域 */}
           <form className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm flex flex-col flex-1">
-            <div className="flex gap-2 relative flex-1">
+            <div className="flex gap-2 flex-1">
               {/* 表情差分展示与选择 */}
               <div className="dropdown dropdown-top flex-shrink-0">
                 <div role="button" tabIndex={0} className="">

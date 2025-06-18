@@ -1,17 +1,18 @@
 import { RoomContext } from "@/components/chat/roomContext";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { use, useState } from "react";
-import { useParams } from "react-router";
+import { use } from "react";
 
+import { useParams } from "react-router";
 import {
   useDeleteRoomMemberMutation,
   useDeleteSpaceMemberMutation,
   useGetSpaceMembersQuery,
   useRevokePlayerMutation,
   useSetPlayerMutation,
-  useTransferOwnerMutation,
+  useTransferLeader,
 } from "../../../api/hooks/chatQueryHooks";
 import {
   useGetUserInfoQuery,
@@ -40,7 +41,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
 }) {
   const userQuery = useGetUserInfoQuery(userId);
   // 控制用户详情的popWindow
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`userPop${userId}`, false);
   const { spaceId: urlSpaceId } = useParams();
   const spaceId = Number(urlSpaceId);
   const spaceMembers = useGetSpaceMembersQuery(spaceId).data?.data ?? [];
@@ -57,7 +58,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
   const mutateSpaceMember = useDeleteSpaceMemberMutation();
   const setPlayerMutation = useSetPlayerMutation();
   const revokePlayerMutation = useRevokePlayerMutation();
-  const transferOwnerMutation = useTransferOwnerMutation();
+  const transferLeader = useTransferLeader();
 
   // 是否是群主
   function isManager() {
@@ -103,9 +104,9 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
   }
 
   function handTransferRoomOwner() {
-    transferOwnerMutation.mutate({
+    transferLeader.mutate({
       spaceId,
-      newOwnerId: userId,
+      newLeaderId: userId,
     }, {
       onSettled: () => setIsOpen(false),
     });

@@ -1,13 +1,10 @@
+import type { GameInfoDto } from "@/webGAL/apis";
+
 import { terreApis } from "@/webGAL/index";
 
-type IFile = {
-  extName: string;
-  isDir: boolean;
-  name: string;
-  path: string;
-  pathFromBase?: string;
-};
-
+/**
+ * 从老前端继承下来的遗产，我不知道是什么。
+ */
 export enum DebugCommand {
   // 跳转
   JUMP,
@@ -21,6 +18,14 @@ export enum DebugCommand {
   REFETCH_TEMPLATE_FILES,
 }
 
+export type IFile = {
+  extName: string;
+  isDir: boolean;
+  name: string;
+  path: string;
+  pathFromBase?: string;
+};
+
 export type IDebugMessage = {
   event: string;
   data: {
@@ -33,72 +38,27 @@ export type IDebugMessage = {
     stageSyncMsg: any;
   };
 };
-
-type GameInfo = {
-  name: string;
-  isDir: boolean;
-  extName: string;
-  path: string;
-};
-
-// 似乎没有用？
-export async function readDir(path: string) {
-  const res = await terreApis.assetsControllerReadAssets(path);
-  const data = res.data as unknown as object;
-  if ("dirInfo" in data && data.dirInfo) {
-    const dirInfo = (data.dirInfo as IFile[]).map(item => ({
-      ...item,
-      path: `${path}/${item.name}`,
-    }));
-    const dirs = dirInfo.filter(item => item.isDir);
-    const files = dirInfo.filter(item => !item.isDir).filter(e => e.name !== ".gitkeep");
-    dirs.sort((a, b) => a.name.localeCompare(b.name));
-    files.sort((a, b) => a.name.localeCompare(b.name));
-    return [...dirs, ...files];
-  }
-  else {
-    return [];
-  }
-}
-
-// export async function uploadImage(image: Blob | string, filepath: string, filename: string) {
-//   let blob: Blob;
-//   if (image instanceof Blob) {
-//     blob = image;
-//   }
-//   else {
-//     const response = await fetch(image);
-//     if (!response.ok)
-//       throw new Error(`Failed to fetch image: ${response.statusText}`);
-//     const data = await response.blob();
-//     blob = new Blob([data], { type: "image/png" });
-//   }
-//   const file = new File([blob], filename);
-//   const formData = new FormData();
-//   formData.append("targetDirectory", filepath);
-//   formData.append("files", file);
-//
-//   const uploadResponse = await fetch(`${import.meta.env.VITE_TERRE_URL}/api/assets/upload`, {
-//     method: "POST",
-//     body: formData,
-//     // 注意：不要手动设置Content-Type头部，浏览器会自动设置正确的boundary
-//   });
-//   if (!uploadResponse.ok)
-//     throw new Error(`Upload failed: ${uploadResponse.statusText}`);
-//   return await uploadResponse.json();
-// }
-
+/**
+ * 上传文件的通用函数
+ * @param url 文件的url
+ * @param path webgal的文件目录
+ * @param fileName
+ */
 export async function uploadFile(url: string, path: string, fileName?: string | undefined): Promise<string> {
-  const response = await fetch(url);
-  if (!response.ok)
-    throw new Error(`Failed to fetch image: ${response.statusText}`);
-  const data = await response.blob();
-  const blob = new Blob([data]);
   // 如果未定义fileName，那就使用url中的fileName
   const newFileName = fileName || url.substring(url.lastIndexOf("/") + 1);
-  // 替换中文字符（webgal不支持）
   const safeFileName = newFileName.replace(/\P{ASCII}/gu, char =>
     encodeURIComponent(char).replace(/%/g, ""));
+  if (await checkFileExist(path, safeFileName)) {
+    return safeFileName;
+  }
+  console.log("上传文件", url, path, safeFileName);
+  const response = await fetch(url);
+  if (!response.ok)
+    throw new Error(`Failed to fetch file: ${response.statusText}`);
+  const data = await response.blob();
+  const blob = new Blob([data]);
+  // 替换中文字符（webgal不支持）
 
   const file = new File([blob], safeFileName);
 
@@ -119,10 +79,29 @@ export async function readTextFile(game: string, path: string): Promise<string> 
 }
 
 export async function checkGameExist(game: string): Promise<boolean> {
-  const gameList: GameInfo[] = (await terreApis.manageGameControllerGetGameList()).data as unknown as GameInfo[];
+  const gameList: GameInfoDto[] = await terreApis.manageGameControllerGetGameList();
   if (!gameList)
     return false;
   return gameList.some(item => item.name === game);
+}
+
+export async function fetchFolder(folderPath: string) {
+  const res = await terreApis.assetsControllerReadAssets(folderPath);
+  const data = res as unknown as object;
+  if ("dirInfo" in data && data.dirInfo) {
+    const dirInfo = (data.dirInfo as IFile[]).map(item => ({ ...item, path: `${folderPath}/${item.name}` }));
+    const dirs = dirInfo.filter(item => item.isDir);
+    const files = dirInfo.filter(item => !item.isDir).filter(e => e.name !== ".gitkeep");
+    return [...dirs, ...files];
+  }
+  else {
+    return [];
+  }
+}
+
+export async function checkFileExist(currentPathString: string, fileName: string): Promise<boolean> {
+  const files = await fetchFolder(currentPathString);
+  return files.some(item => item.name === fileName);
 }
 
 export function getAsyncMsg(sceneName: string, lineNumber: number): IDebugMessage {

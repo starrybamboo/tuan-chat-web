@@ -1,6 +1,10 @@
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import React, { useState } from "react";
-import { useGetUserRoomsQueries, useGetUserSpacesQuery } from "../../../../api/hooks/chatQueryHooks";
+import {
+  useGetUserRoomsQueries,
+  useGetUserSpacesQuery,
+} from "../../../../api/hooks/chatQueryHooks";
 
 function ForwardWindow({ onClickRoom, handlePublishFeed }:
 { onClickRoom: (roomId: number) => void
@@ -9,11 +13,12 @@ function ForwardWindow({ onClickRoom, handlePublishFeed }:
   const spaces = userSpacesQuery.data?.data ?? [];
   const userRoomsQueries = useGetUserRoomsQueries(spaces);
   const rooms = userRoomsQueries.map(query => query.data?.data ?? []).flat();
-  const [isOpenPublishFeedWindow, setIsOpenPublishFeedWindow] = useState(false);
+  const [isOpenPublishFeedWindow, setIsOpenPublishFeedWindow] = useSearchParamsState<boolean>(`forwardPop`, false);
   const [feedData, setFeedData] = useState({
     title: "",
     description: "",
   });
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFeedData(prev => ({
@@ -28,7 +33,10 @@ function ForwardWindow({ onClickRoom, handlePublishFeed }:
   };
   return (
     <div className="gap-2 flex flex-col items-center overflow-auto">
-      选择要转发的群组：
+      <button className="btn" type="button" onClick={() => setIsOpenPublishFeedWindow(true)}>
+        分享到社区
+      </button>
+      或者选择转发到群组：
       {
         rooms.map(room => (
           <button
@@ -47,9 +55,6 @@ function ForwardWindow({ onClickRoom, handlePublishFeed }:
           </button>
         ))
       }
-      <button className="btn" type="button" onClick={() => setIsOpenPublishFeedWindow(true)}>
-        分享到社区
-      </button>
       <PopWindow isOpen={isOpenPublishFeedWindow} onClose={() => setIsOpenPublishFeedWindow(false)}>
         <div className="p-4 w-full max-w-md">
           <h3 className="text-lg font-bold mb-4">分享到社区</h3>

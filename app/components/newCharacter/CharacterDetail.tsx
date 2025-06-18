@@ -75,14 +75,18 @@ export default function CharacterDetail({
   // 更新url和avatarId,方便更改服务器数据
   const handleAvatarChange = (previewUrl: string, avatarId: number) => {
     setLocalRole(prev => ({ ...prev, avatar: previewUrl, avatarId }));
-    role.avatarId = avatarId;
-    role.avatar = previewUrl;
-    onSave(role);
-    updateRole(role);
+    const cleanedRole = {
+      ...localRole,
+      name: cleanText(localRole.name),
+      description: cleanText(localRole.description),
+    };
+    cleanedRole.avatarId = avatarId;
+    cleanedRole.avatar = previewUrl;
+    updateRole(cleanedRole);
   };
 
   return (
-    <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${
+    <div className={`space-y-6 transition-opacity duration-300 ease-in-out ${
       isTransitioning ? "opacity-50" : ""
     }`}
     >
@@ -97,7 +101,6 @@ export default function CharacterDetail({
               role={localRole}
               onchange={handleAvatarChange}
             />
-
             <div className="card-sm md:card flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               {/* <Section title="基本信息"> */}
 
@@ -153,10 +156,10 @@ export default function CharacterDetail({
                         {localRole.name || "未命名角色"}
                       </h2>
                       <div className="divider divider-start font-bold mt-0" />
-                      <p className="text-base md:text-lg whitespace-pre-wrap break-words max-w-full overflow-hidden mb-8 md:mb-16">
+                      <p className="text-base md:text-lg whitespace-pre-wrap break-words max-w-full overflow-hidden md:min-h-22">
                         {localRole.description || "暂无描述"}
                       </p>
-                      <p className="text-xs md:text-sm text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden float-left">
+                      <p className="text-xs">
                         角色ID号：
                         {localRole.id}
                         <br />
@@ -215,11 +218,14 @@ export default function CharacterDetail({
                 )}
           </div>
         </div>
+
+      </div>
+      <div className="card-sm md:card bg-base-100 shadow-xl">
+        <ExpansionModule
+          roleId={localRole.id}
+        />
       </div>
 
-      <ExpansionModule
-        roleId={localRole.id}
-      />
     </div>
   );
 }

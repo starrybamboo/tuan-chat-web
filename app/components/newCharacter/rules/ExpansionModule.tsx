@@ -115,12 +115,14 @@ export default function ExpansionModule({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 mt-4">
       {/* 规则选择区域 */}
-      <RulesSection
-        currentRuleId={selectedRuleId}
-        onRuleChange={handleRuleChange}
-      />
+      <Section title="规则选择">
+        <RulesSection
+          currentRuleId={selectedRuleId}
+          onRuleChange={handleRuleChange}
+        />
+      </Section>
       {/* 规则详情区域 */}
       {isLoading
         ? (

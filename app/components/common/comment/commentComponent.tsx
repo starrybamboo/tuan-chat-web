@@ -2,14 +2,19 @@ import type { CommentVO } from "api";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
 import CommentPreview from "@/components/common/comment/commentPreview";
 import CommentToggle from "@/components/common/comment/CommentToggle";
+import LikeIconButton from "@/components/common/likeIconButton";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import React, { useMemo, useState } from "react";
 import { useGetCommentByIdQuery } from "../../../../api/hooks/commentQueryHooks";
 
-export default function CommentComponent({ comment, level = 1 }: { comment: number | CommentVO; level?: number }) {
+export default function CommentComponent({ comment, level = 1 }: {
+  comment: number | CommentVO; // 可以传commentVO数据或者commentId
+  level?: number;
+}) {
   const MAX_LEVEL = 4;
-
+  const userId: number | null = useGlobalContext().userId;
   const getCommentByIdQuery = useGetCommentByIdQuery(typeof comment === "number" ? comment : -1);
   const commentVO = typeof comment === "number" ? getCommentByIdQuery.data : comment;
 
@@ -25,7 +30,7 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
         {/* TODO：分页获取子消息 */}
         {
           commentVO?.children && commentVO?.children.length > 0 && (
-            <div>
+            <div className="pt-4">
               {commentVO.children.map(child => (
                 <CommentComponent key={child.commentId} comment={child} level={level + 1 > MAX_LEVEL ? 1 : level + 1} />
               ))}
@@ -51,7 +56,7 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
   if (isFolded) {
     return (
       <div
-        className="flex items-center gap-2"
+        className="flex items-center "
         onClick={(e) => {
           e.stopPropagation();
           setIsFolded(!isFolded);
@@ -65,10 +70,8 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
         </div>
         <CommentPreview commentVO={commentVO}></CommentPreview>
       </div>
-
     );
   }
-
   return (
     <div className="text-base-content">
       {/* Comment Header - User Info */}
@@ -76,15 +79,15 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
         <UserAvatarComponent userId={commentVO?.userId || -1} width={10} isRounded={true} withName={false} />
         <CommentPreview commentVO={commentVO}></CommentPreview>
       </div>
-      <div className="flex flex-col lg:flex-row">
-        <div className="divider lg:divider-horizontal divider-start hover:divider-neutral hover:font-bold" onClick={() => setIsFolded(!isFolded)}>
+      <div className="flex flex-row">
+        <div className="divider divider-horizontal divider-start hover:divider-neutral hover:font-bold ml-3 mr-3" onClick={() => setIsFolded(!isFolded)}>
           <div className="pt-3">
             <CommentToggle isFolded={isFolded} />
           </div>
         </div>
         <div>
           {/* Comment Content */}
-          <div className="prose max-w-none ">
+          <div className="prose max-w-none pl-2">
             <p>{commentVO?.content}</p>
           </div>
           {/* Comment Actions */}
@@ -99,12 +102,24 @@ export default function CommentComponent({ comment, level = 1 }: { comment: numb
               </svg>
               回复
             </button>
-            <button className="btn btn-sm btn-ghost text-base-content hover:text-primary" type="button">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-              </svg>
-              喜欢
-            </button>
+
+            <LikeIconButton
+              targetInfo={{ targetId: commentVO.commentId ?? -1, targetType: "2" }}
+              className="btn btn-sm btn-ghost text-base-content hover:text-primary"
+              icon={(
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                </svg>
+              )}
+            />
+            {Number(commentVO.userId) === userId && (
+              <button className="btn btn-sm btn-ghost text-base-content hover:text-error" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                删除
+              </button>
+            )}
           </div>
           {
             isInput && (

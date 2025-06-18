@@ -55,7 +55,7 @@ export default function Topbar() {
           {/* 导航链接 - 在移动端隐藏 */}
           <div className="hidden lg:flex gap-7">
             <a onClick={() => navigate("/feed")} className="font-normal text-base hover:underline cursor-default ">推荐</a>
-            <a onClick={() => navigate("/community")} className="font-normal text-base hover:underline cursor-default">社区</a>
+            <a onClick={() => navigate("/community/1")} className="font-normal text-base hover:underline cursor-default">社区</a>
             <a onClick={() => navigate("/chat")} className="font-normal text-base hover:underline cursor-default">游玩</a>
             <a onClick={() => navigate("/role")} className="font-normal text-base hover:underline cursor-default">角色</a>
             <a onClick={() => navigate("/module/create")} className="font-normal text-base hover:underline cursor-default">模组</a>

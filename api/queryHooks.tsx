@@ -20,6 +20,7 @@ import type { RoleAvatar } from './models/RoleAvatar';
 import type { RoleAvatarCreateRequest } from './models/RoleAvatarCreateRequest';
 import type { UserLoginRequest } from './models/UserLoginRequest';
 import type { UserRegisterRequest } from './models/UserRegisterRequest';
+import type { RolePageQueryRequest } from './models/RolePageQueryRequest'
 import type { UserRole } from './models/UserRole';
 import type { AbilitySetRequest } from "./models/AbilitySetRequest";
 import type { AbilityUpdateRequest } from "./models/AbilityUpdateRequest";
@@ -68,27 +69,11 @@ export function useGetRoleQuery(roleId: number) {
 }
 
 /**
- * 更新角色信息
- * @param onSuccess 可选的副作用回调
- */
-export function useUpdateRoleMutation(onSuccess?: () => void) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (requestBody: UserRole) => tuanchat.roleController.updateRole(requestBody),
-    mutationKey: ['updateRole'],
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['getRole', variables.roleId] });
-      queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
-      onSuccess?.();
-    }
-  });
-}
-
-/**
  * 更新角色信息（带本地角色状态）
  * @param onSave 保存成功的回调函数，接收本地角色状态
  */
 export function useUpdateRoleWithLocalMutation(onSave: (localRole: any) => void) {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["UpdateRole"],
     mutationFn: async (data: any) => {
@@ -104,6 +89,8 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: any) => void)
     },
     onSuccess: (_, variables) => {
       onSave(variables);
+      queryClient.invalidateQueries({ queryKey: ['getRole', variables.roleId] });
+      queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
     },
     onError: (error: any) => {
       console.error("Mutation failed:", error);
@@ -160,7 +147,7 @@ export function useDeleteRoleMutation(roleId: number) {
 }
 
 /**
- * 删除角色的hook
+ * 批量删除角色的hook
  * @param onSuccess 删除成功的回调函数
  * @returns 删除角色的mutation对象
  */
@@ -183,27 +170,6 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
     onError: (error) => {
       console.error("删除角色失败:", error);
     }
-  });
-}
-
-//删除角色
-export function useDeleteRole() {
-  return useMutation({
-    mutationKey: ["deleteRole"],
-    mutationFn: async (roleId: number[]) => {
-      const res = await tuanchat.roleController.deleteRole2(roleId);
-      if (res.success) {
-        console.warn("角色删除成功");
-        return res;
-      }
-      else {
-        console.error("删除角色失败");
-        return undefined;
-      }
-    },
-    onError: (error) => {
-      console.error("Mutation failed:", error);
-    },
   });
 }
 
@@ -335,103 +301,6 @@ export function useDeleteRoleAvatarMutation(roleId: number) {
   });
 }
 
-// ==================== 用户角色查询 ====================
-/**
- * 获取用户所有角色
- * @param userId 用户ID
- */
-export function useGetUserRolesQuery(userId: number) {
-  return useQuery({
-    queryKey: ['getUserRoles', userId],
-    queryFn: () => tuanchat.roleController.getUserRoles(userId),
-    staleTime: 600000 // 10分钟缓存
-  });
-}
-
-
-// 头像查询
-export function useRoleAvaters(roleId: number) {
-  const roleAvatarQuery = useQuery({
-    queryKey: ["roleAvatar", roleId],
-    queryFn: async (): Promise<string | undefined> => {
-      try {
-        const res = await tuanchat.avatarController.getRoleAvatars(roleId);
-        if (
-          res.success
-          && Array.isArray(res.data)
-          && res.data.length > 0
-          && res.data[0]?.avatarUrl !== undefined
-        ) {
-          return res.data[0].avatarUrl as string;
-        }
-        else {
-          console.warn(`角色 ${roleId} 的头像数据无效或为空`);
-          return undefined;
-        }
-      }
-      catch (error) {
-        console.error(`加载角色 ${roleId} 的头像时出错`, error);
-        return undefined;
-      }
-    },
-    enabled: !!roleId,
-  },
-  );
-  return roleAvatarQuery;
-}
-
-
-// 获取能力
-export function useRoleAbility(roleId: number) {
-  const abilityQuery = useQuery({
-    queryKey: ["ability", roleId],
-    queryFn: async (): Promise<ApiResultRoleAbility | undefined> => {
-      try {
-        const res = await tuanchat.abilityController.getRoleAbility(roleId);
-        if (
-          res.success
-          && res.data !== null
-        ) {
-          console.log(res.data);
-          return res;
-        }
-        else {
-          console.warn(`角色 ${roleId} 的能力数据无效或为空`);
-          return undefined;
-        }
-      }
-      catch (error) {
-        console.error(`加载角色 ${roleId} 的能力时出错`, error);
-        return undefined;
-      }
-    },
-    enabled: !!roleId,
-  },
-  );
-  return abilityQuery;
-}
-
-// 根据头像id获取头像
-export function useRoleAvatarQuery(avatarId: number) {
-  const avatarQuery = useQuery({
-    queryKey: ["avatar", avatarId],
-    queryFn: async (): Promise<string | undefined> => {
-      try {
-        const res = await tuanchat.avatarController.getRoleAvatar(avatarId);
-        if (
-          res.success
-          && res.data !== null
-        )
-          return res.data?.avatarUrl;
-      }
-      catch (error) {
-        console.error(`${avatarId} 的头像时出错`, error);
-      }
-    }
-  })
-  return avatarQuery.data;
-}
-
 
 /**
  * 上传头像
@@ -490,3 +359,137 @@ export function useUploadAvatarMutation() {
     },
   });
 }
+
+// 根据头像id获取头像
+export function useRoleAvatarQuery(avatarId: number) {
+  const avatarQuery = useQuery({
+    queryKey: ["avatar", avatarId],
+    queryFn: async (): Promise<string | undefined> => {
+      try {
+        const res = await tuanchat.avatarController.getRoleAvatar(avatarId);
+        if (
+          res.success
+          && res.data !== null
+        )
+          return res.data?.avatarUrl;
+      }
+      catch (error) {
+        console.error(`${avatarId} 的头像时出错`, error);
+      }
+    }
+  })
+  return avatarQuery.data;
+}
+
+// 头像查询
+export function useRoleAvaters(roleId: number) {
+  const roleAvatarQuery = useQuery({
+    queryKey: ["roleAvatar", roleId],
+    queryFn: async (): Promise<string | undefined> => {
+      try {
+        const res = await tuanchat.avatarController.getRoleAvatars(roleId);
+        if (
+          res.success
+          && Array.isArray(res.data)
+          && res.data.length > 0
+          && res.data[0]?.avatarUrl !== undefined
+        ) {
+          return res.data[0].avatarUrl as string;
+        }
+        else {
+          console.warn(`角色 ${roleId} 的头像数据无效或为空`);
+          return undefined;
+        }
+      }
+      catch (error) {
+        console.error(`加载角色 ${roleId} 的头像时出错`, error);
+        return undefined;
+      }
+    },
+    enabled: !!roleId,
+  },
+  );
+  return roleAvatarQuery;
+}
+
+// ==================== 用户角色查询 ====================
+/**
+ * 获取用户所有角色
+ * @param userId 用户ID
+ */
+export function useGetUserRolesQuery(userId: number) {
+  return useQuery({
+    queryKey: ['getUserRoles', userId],
+    queryFn: () => tuanchat.roleController.getUserRoles(userId),
+    staleTime: 600000 // 10分钟缓存
+  });
+}
+
+export function useGetUserRolesPageQuery(params: RolePageQueryRequest) {
+  return useQuery({
+    queryKey: ['getUserRolesPage', params],
+    queryFn: () => tuanchat.roleController.getRolesByPage(params),
+    staleTime: 600000
+  });
+}
+
+export function useGetInfiniteUserRolesQuery(userId: number) {
+  const PAGE_SIZE = 15;
+  return useInfiniteQuery({
+    queryKey: ["roleInfinite", userId],
+    queryFn: async ({ pageParam }: { pageParam: RolePageQueryRequest }) => {
+      const res = await tuanchat.roleController.getRolesByPage(pageParam);
+      console.log(res);
+      return res;
+    },
+    initialPageParam: { pageNo: 1, pageSize: PAGE_SIZE, userId: userId ?? -1 },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.data?.pageNo === undefined || lastPage.data?.isLast) {
+        return undefined;
+      }
+      else {
+        const param: RolePageQueryRequest = {
+          pageNo: lastPage.data.pageNo + 1,
+          pageSize: PAGE_SIZE,
+          userId: userId ?? -1,
+        };
+        return param;
+      }
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+}
+
+
+// 获取能力
+export function useRoleAbility(roleId: number) {
+  const abilityQuery = useQuery({
+    queryKey: ["ability", roleId],
+    queryFn: async (): Promise<ApiResultRoleAbility | undefined> => {
+      try {
+        const res = await tuanchat.abilityController.getRoleAbility(roleId);
+        if (
+          res.success
+          && res.data !== null
+        ) {
+          console.log(res.data);
+          return res;
+        }
+        else {
+          console.warn(`角色 ${roleId} 的能力数据无效或为空`);
+          return undefined;
+        }
+      }
+      catch (error) {
+        console.error(`加载角色 ${roleId} 的能力时出错`, error);
+        return undefined;
+      }
+    },
+    enabled: !!roleId,
+  },
+  );
+  return abilityQuery;
+}
+
+
+

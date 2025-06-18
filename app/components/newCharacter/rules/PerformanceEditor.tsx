@@ -199,8 +199,8 @@ export default function PerformanceEditor({
               ? (
             // 编辑模式下的UI
                   <div className="flex items-center gap-1">
-                    <fieldset className="fieldset relative bg-base-200 border-base-300 rounded-box w-full border p-4">
-                      <legend className="fieldset-legend text-sm font-medium">{key}</legend>
+                    <fieldset className="fieldset relative bg-base-200 border-base-300 rounded-box w-full">
+                      <legend className="fieldset-legend text-sm">{key}</legend>
                       <textarea
                         onChange={(e) => {
                           const newFields = { ...fields, [key]: e.target.value };
@@ -212,7 +212,7 @@ export default function PerformanceEditor({
                       />
                       <button
                         type="button"
-                        className="absolute -top-6 -right-3 btn btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-error hover:text-white rounded-full p-1"
+                        className="absolute -top-6 -right-3 btn btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-gray-800 hover:text-white rounded-full p-1"
                         onClick={() => handleDeleteField(key)}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
@@ -224,7 +224,6 @@ export default function PerformanceEditor({
                       </button>
                     </fieldset>
                   </div>
-
                 )
               : (
             // 非编辑模式下的UI
@@ -246,25 +245,26 @@ export default function PerformanceEditor({
       {isEditing && (
         <fieldset className="border border-base-300 rounded-lg p-4 mt-4">
           <legend className="px-2 font-bold">添加新字段</legend>
-          <div className="flex flex-col w-full gap-2">
-            <input
-              type="text"
-              placeholder="字段名称"
-              className="input input-bordered input-sm w-1/4 mt-2"
-              value={newKey}
-              onChange={e => setNewKey(e.target.value)}
-            />
+          <input
+            type="text"
+            placeholder="字段名称"
+            className="input input-bordered input-sm w-1/4 mt-2"
+            value={newKey}
+            onChange={e => setNewKey(e.target.value)}
+          />
+          <div className="relative w-full">
             <textarea
               placeholder="值"
-              className="textarea textarea-bordered textarea-sm w-full resize-none"
+              className="textarea textarea-bordered textarea-sm w-full h-30 resize-none mt-4"
               value={newValue}
               onChange={e => setNewValue(e.target.value)}
               rows={1}
             />
             <button
               type="button"
-              className="btn btn-primary btn-sm w-fit"
+              className="btn btn-sm btn-primary absolute bottom-2 right-2"
               onClick={handleAddField}
+              disabled={!newKey || !newValue}
             >
               添加字段
             </button>

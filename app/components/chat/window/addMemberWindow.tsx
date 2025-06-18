@@ -1,3 +1,4 @@
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { UserDetail } from "@/components/common/userDetail";
@@ -12,7 +13,7 @@ export default function AddMemberWindow({ handleAddMember }: { handleAddMember: 
   const friends = followingQuery.data?.data?.list?.filter(user => user.status === 2) ?? [];
   const [inputUserId, setInputUserId] = useState<number>(-1);
   const inputUserInfo = useGetUserInfoQuery(inputUserId).data?.data;
-  const [addFromIdWindow, setAddFromIdWindow] = useState(false);
+  const [addFromIdWindow, setAddFromIdWindow] = useSearchParamsState<boolean>(`addMemberPop`, false);
 
   return (
     <div className="space-y-6 p-4 overflow-auto max-h-[80vh]">

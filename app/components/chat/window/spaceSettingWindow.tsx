@@ -8,7 +8,7 @@ import {
   useDissolveSpaceMutation,
   useGetSpaceInfoQuery,
   useGetSpaceMembersQuery,
-  useTransferOwnerMutation,
+  useTransferLeader,
   useUpdateSpaceArchiveStatusMutation,
   useUpdateSpaceMutation,
 } from "api/hooks/chatQueryHooks";
@@ -22,6 +22,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const spaceId = Number(spaceContext.spaceId);
   const getSpaceInfoQuery = useGetSpaceInfoQuery(spaceId ?? -1);
   const space = getSpaceInfoQuery.data?.data;
+  const setActiveSpaceId = spaceContext.setActiveSpaceId;
 
   // 控制成员列表弹窗打开
   const [isMembersListHandleOpen, setIsMembersListHandleOpen] = useState(false);
@@ -77,7 +78,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   };
 
   // 转让空间
-  const transferOwnerMutation = useTransferOwnerMutation();
+  const transferLeader = useTransferLeader();
 
   // 当space数据加载时初始化formData
   if (space && formData.name === "" && formData.description === "" && formData.avatar === "") {
@@ -307,8 +308,9 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               dissolveSpaceMutation.mutate(spaceId, {
                 onSuccess: () => {
                   onClose();
-                  navigate("/chat");
+                  navigate("/chat", { replace: true });
                   setIsDissolveConfirmOpen(false);
+                  setActiveSpaceId(null);
                 },
               });
             }}
@@ -319,7 +321,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
             title="确认转让空间"
             message="是否确定转让空间给该用户？此操作不可逆。转让后会关闭设置窗口并自动保存数据"
             onConfirm={() => {
-              transferOwnerMutation.mutate({ spaceId, newOwnerId: transfereeId });
+              transferLeader.mutate({ spaceId, newLeaderId: transfereeId });
               handleClose();
             }}
           />
