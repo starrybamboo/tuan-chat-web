@@ -1,5 +1,6 @@
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import Pagination from "@/components/common/form/pagination";
+import IllegalURLPage from "@/components/common/illegalURLPage";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { CommunityContext } from "@/components/community/communityContext";
@@ -16,6 +17,7 @@ const PAGE_SIZE = 10;
 
 export default function CommunityPostList() {
   const communityContext = use(CommunityContext);
+
   const communityId = communityContext.communityId ?? -1;
 
   const [pageNoStr, setPageNo] = useSearchParamsState<number>("pageNo", 1);
@@ -46,6 +48,10 @@ export default function CommunityPostList() {
       },
     });
   };
+
+  if (Number.isNaN(communityId)) {
+    return (<IllegalURLPage info="您所找的社区不存在" />);
+  }
 
   return (
     <div className="space-y-8">

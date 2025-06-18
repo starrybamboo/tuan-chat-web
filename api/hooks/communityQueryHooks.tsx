@@ -148,7 +148,8 @@ export function usePageCommunityPostsQuery(requestBody: PagePostRequest) {
     return useQuery({
         queryKey: ['pageCommunityPosts', requestBody],
         queryFn: () => tuanchat.communityPost.pageCommunityPosts(requestBody),
-        staleTime: 30000 // 30秒缓存
+        staleTime: 30000, // 30秒缓存
+        enabled: requestBody.communityId > 0
     });
 }
 
