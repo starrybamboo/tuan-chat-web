@@ -1,6 +1,7 @@
 import { SpaceContext } from "@/components/chat/spaceContext";
 import checkBack from "@/components/common/autoContrastText";
 import ConfirmModal from "@/components/common/comfirmModel";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import MemberInfoComponent from "@/components/common/memberInfo";
 import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
@@ -25,7 +26,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
   const setActiveSpaceId = spaceContext.setActiveSpaceId;
 
   // 控制成员列表弹窗打开
-  const [isMembersListHandleOpen, setIsMembersListHandleOpen] = useState(false);
+  const [isMembersListHandleOpen, setIsMembersListHandleOpen] = useSearchParamsState<boolean>("memberListPop", false);
 
   // 获取规则列表
   const getRulesQuery = useGetRulePageInfiniteQuery({}, 100);

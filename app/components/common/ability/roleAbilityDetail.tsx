@@ -1,5 +1,6 @@
 import type { AbilityFieldUpdateRequest } from "../../../../api";
 import AddAbilityWindow from "@/components/common/ability/addAbilityWindow";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import React, { useState } from "react";
 import {
@@ -30,7 +31,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   const updateAbilityMutation = useUpdateRoleAbilityMutation();
   const updateKeyFieldMutation = useUpdateKeyFieldMutation();
 
-  const [isOpenAbilityWindow, setIsOpenAbilityWindow] = useState(false);
+  const [isOpenAbilityWindow, setIsOpenAbilityWindow] = useSearchParamsState<boolean>(`roleAbilityPop${roleId}`, false);
 
   // 统一处理字段更新
   const handleUpdate = (abilityId: number, type: "ability" | "act", key: string, updateValue: string, isKeyField: boolean) => {

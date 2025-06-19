@@ -1,8 +1,9 @@
 import type { ChatMessageResponse, Message } from "api";
 import { ChatBubble } from "@/components/chat/chatBubble";
 import { RoomContext } from "@/components/chat/roomContext";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
-import { use, useMemo, useState } from "react";
+import { use, useMemo } from "react";
 import { useGetRoleQuery } from "../../../api/queryHooks";
 
 function PreviewMessage({ message }: { message: Message }) {
@@ -35,14 +36,15 @@ function PreviewMessage({ message }: { message: Message }) {
   );
 }
 
-export default function ForwardMessage({ messageList }: { messageList: ChatMessageResponse[] }) {
+export default function ForwardMessage({ messageResponse }: { messageResponse: ChatMessageResponse }) {
   // 限制预览消息数为3条
+  const messageList = messageResponse.message.extra?.forwardMessage?.messageList ?? [];
   const previewMessages = messageList.slice(0, 3);
   const useChatBubbleStyle = use(RoomContext).useChatBubbleStyle;
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`forwardMegDetailPop${messageResponse.message.messageID}`, false);
   const renderedPreviewMessages = useMemo(() => {
-    return previewMessages.map((item, index) => (
-      <div key={`${item.message.messageID}_${index}`} className="bg-base-100 p-3 rounded-box shadow-sm">
+    return previewMessages.map(item => (
+      <div key={`${item.message.messageID}`} className="bg-base-100 p-3 rounded-box shadow-sm">
         <PreviewMessage message={item.message}></PreviewMessage>
       </div>
     ));

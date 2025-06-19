@@ -2,6 +2,7 @@ import type { CommentVO } from "api";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
 import CommentPreview from "@/components/common/comment/commentPreview";
 import CommentToggle from "@/components/common/comment/CommentToggle";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import LikeIconButton from "@/components/common/likeIconButton";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
@@ -21,7 +22,7 @@ export default function CommentComponent({ comment, level = 1 }: {
   const [isInput, setIsInput] = useState(false);
   const [isFolded, setIsFolded] = useState(false);
   // 评论过深时，打开一个PopWindow来显示
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`commentPop${commentVO?.commentId}`, false);
 
   const childrenComments = useMemo(() => {
     return (

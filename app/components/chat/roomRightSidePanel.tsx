@@ -4,11 +4,12 @@ import { RoomContext } from "@/components/chat/roomContext";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { Setting } from "@/icons";
-import React, { use, useMemo, useState } from "react";
+import React, { use, useMemo } from "react";
 import toast from "react-hot-toast";
 import { useAddRoomMemberMutation, useAddRoomRoleMutation, useGetRoomRoleQuery } from "../../../api/hooks/chatQueryHooks";
 import RoomSettingWindow from "./window/roomSettingWindow";
@@ -23,13 +24,13 @@ export default function RoomRightSidePanel() {
   const roomRolesQuery = useGetRoomRoleQuery(roomId);
   const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
 
-  const [isRoleHandleOpen, setIsRoleHandleOpen] = useState(false);
-  const [isMemberHandleOpen, setIsMemberHandleOpen] = useState(false);
+  const [isRoleHandleOpen, setIsRoleHandleOpen] = useSearchParamsState<boolean>("roleSettingPop", false);
+  const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>("memberSettingPop", false);
 
   const addMemberMutation = useAddRoomMemberMutation();
   const addRoleMutation = useAddRoomRoleMutation();
 
-  const [isSettingWindowOpen, setIsSettingWindowOpen] = useState(false);
+  const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
 
   const handleAddRole = async (roleId: number) => {
     addRoleMutation.mutate({

@@ -1,6 +1,12 @@
 import { Mounter } from "@/components/common/mounter";
 import React from "react";
 
+/**
+ * 关于控制popWindow开关的参数，请使用useSearchParamsState。
+ * 这样，在回退url的时候也能关闭弹窗（这主要是对移动端的优化）
+ * 另外注意的是，useParamsState中的key不要取太常规的名字（比如“pop”），
+ * 如果有两个相同key的popWindow同时被打开就会出现bug！这个key在一个页面内应该是要唯一的！
+ */
 export function PopWindow({ isOpen, children, onClose, fullScreen = false }: {
   isOpen: boolean;
   children: React.ReactNode;

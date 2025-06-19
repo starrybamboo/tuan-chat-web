@@ -140,7 +140,7 @@ web_modules/
 .env.local
 # extra
 .env.development
-.env.production
+#.env.production  //由于要自动构建
 
 
 # parcel-bundler cache (https://parceljs.org/)
