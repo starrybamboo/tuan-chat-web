@@ -127,6 +127,7 @@ function RoleList() {
     moduleId: ctx.moduleId,
   });
   const list = data?.data!.list!.map(i => i.roleResponse);
+  const isEmpty = !list || list!.length === 0;
 
   // 控制弹窗
   const [isOpen, setIsOpen] = useState(false);
@@ -200,16 +201,24 @@ function RoleList() {
 
   return (
     <Section label="角色" onClick={handleOpen}>
-      {list?.map(i => (
-        <RoleListItem
-          key={i!.roleId}
-          avatarId={i!.avatarId}
-          name={i!.roleName}
-          isSelected={currentSelectedTabId === i!.roleId.toString()}
-          onClick={() => handleClick(i!.roleId, i!.roleName)}
-          onDelete={() => deleteModuleRole({ moduleId: ctx.moduleId, roleId: i!.roleId })}
-        />
-      ))}
+      <>
+        {isEmpty
+          ? (
+              <div className="text-sm text-gray-500 px-2 py-4">
+                暂时没有人物哦
+              </div>
+            )
+          : (list?.map(i => (
+              <RoleListItem
+                key={i!.roleId}
+                avatarId={i!.avatarId}
+                name={i!.roleName}
+                isSelected={currentSelectedTabId === i!.roleId.toString()}
+                onClick={() => handleClick(i!.roleId, i!.roleName)}
+                onDelete={() => deleteModuleRole({ moduleId: ctx.moduleId, roleId: i!.roleId })}
+              />
+            )))}
+      </>
       <PopWindow isOpen={isOpen} onClose={handleClose}>
         <div className="p-4 space-y-4">
           <p className="text-xl font-bold">选择你的角色进行添加</p>

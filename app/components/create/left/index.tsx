@@ -1,7 +1,6 @@
 // import { useModuleContext } from "@/components/module/workPlace/context/ModuleContext";
 import History from "./history";
 import ModuleItems from "./moduleItems";
-import Stages from "./stages";
 
 // interface LeftContentProps {
 //   onChange?: (s: string) => void;
@@ -32,7 +31,7 @@ function LeftContent() {
         // }
       />
       <div className="tab-content bg-base-100 border-base-300 min-h-full rounded-none">
-        <Stages />
+        <ModuleItems />
       </div>
 
       <input
