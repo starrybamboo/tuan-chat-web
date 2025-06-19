@@ -3,7 +3,7 @@ import Pagination from "@/components/common/form/pagination";
 import Carousel from "@/components/module/carousel";
 import ModuleCard from "@/components/module/moduleCard";
 import UserCard from "@/components/module/userCard";
-import { useModuleListQuery } from "api/hooks/moduleQueryHooks";
+import { useModuleListQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useState } from "react";
 
 export function meta(_args: Route.MetaArgs) {

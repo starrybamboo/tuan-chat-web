@@ -1,15 +1,31 @@
-import type { ItemAddRequest, ModuleItemResponse, ModuleScene } from "api";
+import type { ItemAddRequest } from "api";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAddItemMutation, useAddSceneMutation, useCreateModuleRoleMutation, useDeleteItemMutation, useDeleteModuleRoleMutation, useDeleteSceneMutation, useModuleItemsQuery, useModuleRolesQuery, useModuleScenesQuery } from "api/hooks/moduleQueryHooks";
+import { useAddMutation, useImportRoleMutation, useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { tuanchat } from "api/instance";
 import { useCreateRoleMutation, useGetUserRolesQuery } from "api/queryHooks";
 import { use, useState } from "react";
 import WorkspaceContext from "../context/module";
+
+interface ModuleItemRequest {
+  ruleId: number; // 关联规则ID，必填
+  moduleSceneId: number;
+  name: string; // 物品名称，必填
+  description: string; // 物品描述，可为空
+  type: string; // 物品类别（例如："暂时未知"）
+  image: string; // 图片信息，可能是 base64 或路径，字符串格式
+  extra: Record<string, any>; // 扩展字段，例如：{ default: "default" }
+}
+
+interface ModuleScene {
+  moduleSceneId: number; // 场景唯一标识符（ID）
+  moduleSceneName: string; // 场景名称
+  sceneDescription?: string; // 场景描述（可选）
+}
 
 function Section({ label, children, onClick }: { label: string; children?: React.ReactNode; onClick?: () => void }) {
   return (
@@ -116,37 +132,20 @@ function RoleList() {
     });
   };
 
-  // 删除模组角色
-  const { mutate: deleteModuleRole } = useDeleteModuleRoleMutation();
-
   // 模组相关
   const ctx = use(WorkspaceContext);
-  const { data, isSuccess: _isSuccess } = useModuleRolesQuery({
-    pageNo: 1,
-    pageSize: 100,
-    moduleId: ctx.moduleId,
-  });
-  const list = data?.data!.list!.map(i => i.roleResponse);
+  const { data, isSuccess: _isSuccess } = useQueryEntitiesQuery(ctx.moduleId);
+  const list = data?.data!.filter(i => i.entityType !== "role");
   const isEmpty = !list || list!.length === 0;
 
   // 控制弹窗
   const [isOpen, setIsOpen] = useState(false);
-  const [isAddRoleOpen, setIsAddRoleOpen] = useState(false);
-  const [addRoleType, setAddRoleType] = useState<"add" | "creat">("add");
   const handleOpen = () => {
     setIsOpen(true);
   };
 
   const handleClose = () => {
     setIsOpen(false);
-  };
-
-  const handleAddRoleOpen = (type: "add" | "creat") => {
-    setIsAddRoleOpen(true);
-    setAddRoleType(type);
-  };
-  const handleAddRoleClose = () => {
-    setIsAddRoleOpen(false);
   };
 
   // 添加角色弹窗
@@ -166,37 +165,32 @@ function RoleList() {
   const myRoleList = myRoleData?.data || [];
 
   // 添加模组角色
-  const { mutate: addRole } = useCreateModuleRoleMutation();
-  const handleAddRoleSubmit = (type: number) => {
+  const { mutate: addAndDeleteRole } = useImportRoleMutation();
+  const handleAddRoleSubmit = () => {
     selectedRoleList.map((id) => {
-      addRole({
+      addAndDeleteRole({
         moduleId: ctx.moduleId,
         roleId: id,
-        type,
       });
       return id;
     });
-    handleAddRoleClose();
   };
 
   // 创建全新的模组角色
   const { mutate: createRole } = useCreateRoleMutation();
-  const handleCreateRoleSubmit = (type: number) => {
+  const handleCreateRoleSubmit = () => {
     createRole({
       roleName: "新角色",
       description: "",
     }, {
       onSuccess: (data) => {
-        addRole({
+        addAndDeleteRole({
           moduleId: ctx.moduleId,
           roleId: data as number,
-          type,
         });
         handleClick(data as number, "新角色");
       },
     });
-
-    handleAddRoleClose();
   };
 
   return (
@@ -210,12 +204,11 @@ function RoleList() {
             )
           : (list?.map(i => (
               <RoleListItem
-                key={i!.roleId}
-                avatarId={i!.avatarId}
-                name={i!.roleName}
-                isSelected={currentSelectedTabId === i!.roleId.toString()}
-                onClick={() => handleClick(i!.roleId, i!.roleName)}
-                onDelete={() => deleteModuleRole({ moduleId: ctx.moduleId, roleId: i!.roleId })}
+                key={i!.entityInfo!.roleId}
+                avatarId={i!.entityInfo!.avatarId}
+                name={i!.entityInfo!.roleName}
+                isSelected={currentSelectedTabId === i!.entityInfo!.roleId.toString()}
+                onClick={() => handleClick(i!.entityInfo!.roleId, i!.entityInfo!.roleName)}
               />
             )))}
       </>
@@ -226,10 +219,10 @@ function RoleList() {
             {myRoleList?.map(i => (
               <RoleListItem
                 key={i!.roleId}
-                avatarId={i!.avatarId}
-                name={i!.roleName}
-                isSelected={selectedRoleList.includes(i!.roleId)}
-                onClick={() => handleAddRole(i!.roleId)}
+                avatarId={i!.avatarId || 0}
+                name={i!.roleName || "角色名称未设置"}
+                isSelected={selectedRoleList.includes(i!.roleId || 0)}
+                onClick={() => handleAddRole(i!.roleId || -1)}
               />
             ))}
           </div>
@@ -238,7 +231,8 @@ function RoleList() {
               type="button"
               className="btn btn-primary btn-md"
               onClick={() => {
-                handleAddRoleOpen("creat");
+                handleCreateRoleSubmit();
+                handleClose();
               }}
               title="创建一个全新的模组角色"
             >
@@ -248,7 +242,8 @@ function RoleList() {
               type="button"
               className="btn btn-primary btn-md"
               onClick={() => {
-                handleAddRoleOpen("add");
+                handleAddRoleSubmit();
+                handleClose();
                 // 添加角色的逻辑
               }}
               title="添加角色"
@@ -257,38 +252,6 @@ function RoleList() {
             </button>
           </div>
         </div>
-        <PopWindow isOpen={isAddRoleOpen} onClose={handleAddRoleClose}>
-          <div className="card w-96">
-            <div className="card-body items-center text-center">
-              <h2 className="card-title text-2xl font-bold">确认添加角色</h2>
-              <div className="divider"></div>
-              <p className="text-lg opacity-75 mb-8">确定要添加角色的类型</p>
-            </div>
-          </div>
-          <div className="card-actions justify-center gap-6 mt-8">
-            <button
-              type="button"
-              className="btn btn-outline"
-              onClick={() => {
-                addRoleType === "add" ? handleAddRoleSubmit(1) : handleCreateRoleSubmit(1);
-                handleClose();
-              }}
-            >
-              NPC
-            </button>
-            <button
-              type="button"
-              className="btn btn-accent"
-              onClick={() => {
-                addRoleType === "add" ? handleAddRoleSubmit(0) : handleCreateRoleSubmit(0);
-                handleAddRoleClose();
-                handleClose();
-              }}
-            >
-              预设卡
-            </button>
-          </div>
-        </PopWindow>
       </PopWindow>
     </Section>
   );
@@ -300,7 +263,7 @@ function ItemListItem({
   onClick,
   onDelete,
 }: {
-  item: ModuleItemResponse;
+  item: ModuleItemRequest;
   isSelected: boolean;
   onClick: () => void;
   onDelete?: () => void;
@@ -364,22 +327,12 @@ function ItemList() {
   };
 
   const ctx = use(WorkspaceContext);
-  const { data } = useModuleItemsQuery({
-    moduleId: ctx.moduleId,
-  });
-  const { data: sceneData } = useModuleScenesQuery({
-    pageNo: 1,
-    pageSize: 100,
-    moduleId: ctx.moduleId,
-  });
-
-  // 删除物品
-  const { mutate: deleteItem } = useDeleteItemMutation();
+  const { data } = useQueryEntitiesQuery(ctx.moduleId);
 
   // 控制弹窗
   const [isOpen, setIsOpen] = useState(false);
-  // 选择场景
-  const [selectedSceneId, setSelectedSceneId] = useState<number>(0);
+  // // 选择场景
+  // const [selectedSceneId, setSelectedSceneId] = useState<number>(0);
   const handleOpen = () => {
     setIsOpen(true);
   };
@@ -396,8 +349,8 @@ function ItemList() {
       queryClient.invalidateQueries({ queryKey: ["moduleItems"] });
     },
   });
-  const { mutate: addItem } = useAddItemMutation();
-  const handleCreateItemSubmit = (moduleSceneId: number) => {
+  const { mutate: addAndDeleteItem } = useAddMutation();
+  const handleCreateItemSubmit = () => {
     const itemName = "新物品";
     createItem({
       ruleId: ctx.ruleId,
@@ -408,11 +361,14 @@ function ItemList() {
       image: "null",
     }, {
       onSuccess: ({ data: itemId }) => {
-        addItem({
+        addAndDeleteItem({
           moduleId: ctx.moduleId,
-          itemId: itemId || 0,
-          moduleSceneId,
-          name: itemName,
+          name: "新场景",
+          entityType: "item",
+          operationType: 0,
+          entityInfo: {
+            description: "新物品",
+          },
         });
         handleClick(itemId as number, itemName);
       },
@@ -420,7 +376,6 @@ function ItemList() {
   };
 
   const list = data?.data;
-  const sceneList = sceneData?.data!.list;
   const isEmpty = !list || list.length === 0;
 
   return (
@@ -435,11 +390,11 @@ function ItemList() {
           : (
               list.map(item => (
                 <ItemListItem
-                  key={item.itemId}
-                  item={item}
-                  isSelected={currentSelectedTabId === item.itemId?.toString()}
-                  onClick={() => handleClick(item.itemId!, item.name!)}
-                  onDelete={() => deleteItem({ itemIds: [item.itemId!] })}
+                  key={item.entityInfo!.itemId}
+                  item={item as ModuleItemRequest}
+                  isSelected={currentSelectedTabId === item.entityInfo!.itemId?.toString()}
+                  onClick={() => handleClick(item.entityInfo!.itemId!, item.name!)}
+                  onDelete={() => addAndDeleteItem({ operationType: 1, entityType: "item", entityInfo: item.entityInfo!, moduleId: ctx.moduleId, name: item.name! })}
                 />
               ))
             )}
@@ -448,21 +403,21 @@ function ItemList() {
         <div className="p-4 space-y-4">
           <p className="text-xl font-bold">选择添加的物品所在的场景</p>
           <div className="space-y-2">
-            {sceneList?.map(scene => (
+            {/* {sceneList?.map(scene => (
               <SceneListItem
                 key={scene.moduleSceneId}
                 scene={scene}
                 isSelected={selectedSceneId === scene.moduleSceneId}
                 onClick={() => setSelectedSceneId(scene.moduleSceneId as number)}
               />
-            ))}
+            ))} */}
           </div>
           <div className="flex justify-end space-x-2">
             <button
               type="button"
               className="btn btn-primary btn-md"
               onClick={() => {
-                handleCreateItemSubmit(selectedSceneId);
+                handleCreateItemSubmit();
                 setIsOpen(false);
               }}
               title="创建物品"
@@ -543,16 +498,18 @@ function SceneList() {
     setCurrentSelectedTabId(sceneId.toString());
   };
 
-  // 创建场景
-  const { mutate: createScene } = useAddSceneMutation();
-  // 删除场景
-  const { mutate: deleteScene } = useDeleteSceneMutation();
+  // 创建场景和删除
+  const { mutate: createAndDeleteScene } = useAddMutation();
 
   const handleAddScene = () => {
-    createScene({
+    createAndDeleteScene({
       moduleId: ctx.moduleId,
-      moduleSceneName: "新场景",
-      sceneDescription: "",
+      name: "新场景",
+      entityType: "scene",
+      operationType: 0,
+      entityInfo: {
+        description: "新场景",
+      },
     }, {
       onSuccess: (data) => {
         if (data.success) {
@@ -567,13 +524,9 @@ function SceneList() {
     });
   };
 
-  const { data } = useModuleScenesQuery({
-    pageNo: 1,
-    pageSize: 100,
-    moduleId: ctx.moduleId,
-  });
+  const { data } = useQueryEntitiesQuery(ctx.moduleId);
 
-  const list = data?.data!.list;
+  const list = data?.data?.filter(i => i!.entityType !== "scene");
 
   // 判断列表是否存在且非空
   const isEmpty = !list || list.length === 0;
@@ -589,11 +542,11 @@ function SceneList() {
               <>
                 {list?.map(scene => (
                   <SceneListItem
-                    key={scene.moduleSceneId}
-                    scene={scene}
-                    isSelected={currentSelectedTabId === scene.moduleSceneId?.toString()}
-                    onClick={() => handleClick(scene)}
-                    onDelete={() => deleteScene({ sceneIds: [scene.moduleSceneId!] })}
+                    key={scene.entityInfo!.moduleSceneId}
+                    scene={scene.entityInfo as ModuleScene}
+                    isSelected={currentSelectedTabId === scene.entityInfo!.moduleSceneId?.toString()}
+                    onClick={() => handleClick(scene as ModuleScene)}
+                    onDelete={() => createAndDeleteScene({ entityType: "scene", operationType: 1, moduleId: ctx.moduleId, name: scene.entityInfo!.moduleSceneName! })}
                   />
                 ))}
               </>

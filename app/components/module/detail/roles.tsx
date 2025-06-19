@@ -2,7 +2,7 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import {
   useModuleRoleInfoQuery,
   useModuleRolesQuery,
-} from "api/hooks/moduleQueryHooks";
+} from "api/hooks/moduleAndStageQueryHooks";
 import { useGetRoleAvatarQuery } from "api/queryHooks";
 import { useCallback, useState } from "react";
 

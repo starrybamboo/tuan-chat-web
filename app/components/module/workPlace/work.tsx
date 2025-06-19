@@ -1,7 +1,7 @@
 // Work.tsx
 import LeftContent from "@/components/create/left";
 import { ModuleProvider } from "./context/_moduleContext";
-import EditModule from "./EditModule";
+// import EditModule from "./EditModule";
 
 export default function Work() {
   return (
@@ -13,7 +13,7 @@ export default function Work() {
               <LeftContent />
             </div>
             <div className="basis-3/5">
-              <EditModule />
+              {/* <EditModule /> */}
             </div>
             <div className="bg-cyan-700 basis-1/5">
               AI 面板
