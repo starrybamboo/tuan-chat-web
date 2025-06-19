@@ -42,17 +42,17 @@ export function useIncrCounterMutation() {
  * @param counterType 计数类型
  * @param requestBody 目标ID列表
  */
-export function useBatchGetCounterQuery(
-    targetType: number,
-    counterType: string,
-    requestBody: Array<number>
-) {
-    return useQuery({
-        queryKey: ['batchGetCounter', targetType, counterType, requestBody],
-        queryFn: () => tuanchat.counter.batchGetCounter(targetType, counterType, requestBody),
-        staleTime: 300000 // 5分钟缓存
-    });
-}
+// export function useBatchGetCounterQuery(
+//     targetType: number,
+//     counterType: string,
+//     requestBody: Array<number>
+// ) {
+//     return useQuery({
+//         queryKey: ['batchGetCounter', targetType, counterType, requestBody],
+//         queryFn: () => tuanchat.counter.batchGetCounter(targetType, counterType, requestBody),
+//         staleTime: 300000 // 5分钟缓存
+//     });
+// }
 
 /**
  * 获取单个计数

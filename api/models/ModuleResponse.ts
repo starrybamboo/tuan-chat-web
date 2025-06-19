@@ -22,5 +22,8 @@ export type ModuleResponse = {
      * 模组作者名字
      */
     authorName?: string;
+    image?: string;
+    costTime?: number;
+    people?: number;
 };
 

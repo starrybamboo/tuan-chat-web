@@ -6,7 +6,7 @@ export type SpaceAddRequest = {
     /**
      * 邀请的uid列表
      */
-    userIdList: Array<number>;
+    userIdList?: Array<number>;
     /**
      * 空间名称
      */

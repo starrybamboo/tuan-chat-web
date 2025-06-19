@@ -7,12 +7,14 @@ import type { OpenAPIConfig } from './core/OpenAPI';
 import { FetchHttpRequest } from './core/FetchHttpRequest';
 import { AbilityControllerService } from './services/AbilityControllerService';
 import { AvatarControllerService } from './services/AvatarControllerService';
+import { BranchControllerService } from './services/BranchControllerService';
 import { ChatControllerService } from './services/ChatControllerService';
 import { CollectionControllerService } from './services/CollectionControllerService';
 import { CollectionListControllerService } from './services/CollectionListControllerService';
 import { CollectionListItemControllerService } from './services/CollectionListItemControllerService';
 import { CollectionTagControllerService } from './services/CollectionTagControllerService';
 import { CommentControllerService } from './services/CommentControllerService';
+import { CommitControllerService } from './services/CommitControllerService';
 import { CommunityService } from './services/CommunityService';
 import { CommunityMemberService } from './services/CommunityMemberService';
 import { CommunityPostService } from './services/CommunityPostService';
@@ -23,9 +25,6 @@ import { ImageGenerationControllerService } from './services/ImageGenerationCont
 import { ItemControllerService } from './services/ItemControllerService';
 import { LikeRecordControllerService } from './services/LikeRecordControllerService';
 import { ModuleControllerService } from './services/ModuleControllerService';
-import { ModuleItemControllerService } from './services/ModuleItemControllerService';
-import { ModuleRoleControllerService } from './services/ModuleRoleControllerService';
-import { ModuleSceneService } from './services/ModuleSceneService';
 import { OssControllerService } from './services/OssControllerService';
 import { RatingService } from './services/RatingService';
 import { RoleControllerService } from './services/RoleControllerService';
@@ -39,6 +38,7 @@ import { ScWalletsService } from './services/ScWalletsService';
 import { SpaceControllerService } from './services/SpaceControllerService';
 import { SpaceMemberControllerService } from './services/SpaceMemberControllerService';
 import { SpaceRoleControllerService } from './services/SpaceRoleControllerService';
+import { StageControllerService } from './services/StageControllerService';
 import { TtsControllerService } from './services/TtsControllerService';
 import { UserControllerService } from './services/UserControllerService';
 import { UserFollowControllerService } from './services/UserFollowControllerService';
@@ -47,12 +47,14 @@ type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class TuanChat {
     public readonly abilityController: AbilityControllerService;
     public readonly avatarController: AvatarControllerService;
+    public readonly branchController: BranchControllerService;
     public readonly chatController: ChatControllerService;
     public readonly collectionController: CollectionControllerService;
     public readonly collectionListController: CollectionListControllerService;
     public readonly collectionListItemController: CollectionListItemControllerService;
     public readonly collectionTagController: CollectionTagControllerService;
     public readonly commentController: CommentControllerService;
+    public readonly commitController: CommitControllerService;
     public readonly community: CommunityService;
     public readonly communityMember: CommunityMemberService;
     public readonly communityPost: CommunityPostService;
@@ -63,9 +65,6 @@ export class TuanChat {
     public readonly itemController: ItemControllerService;
     public readonly likeRecordController: LikeRecordControllerService;
     public readonly moduleController: ModuleControllerService;
-    public readonly moduleItemController: ModuleItemControllerService;
-    public readonly moduleRoleController: ModuleRoleControllerService;
-    public readonly moduleScene: ModuleSceneService;
     public readonly ossController: OssControllerService;
     public readonly rating: RatingService;
     public readonly roleController: RoleControllerService;
@@ -79,6 +78,7 @@ export class TuanChat {
     public readonly spaceController: SpaceControllerService;
     public readonly spaceMemberController: SpaceMemberControllerService;
     public readonly spaceRoleController: SpaceRoleControllerService;
+    public readonly stageController: StageControllerService;
     public readonly ttsController: TtsControllerService;
     public readonly userController: UserControllerService;
     public readonly userFollowController: UserFollowControllerService;
@@ -86,7 +86,7 @@ export class TuanChat {
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
         this.request = new HttpRequest({
-            BASE: config?.BASE ?? 'http://localhost:8081',
+            BASE: config?.BASE ?? 'http://39.103.58.31:8081',
             VERSION: config?.VERSION ?? '1.0',
             WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
             CREDENTIALS: config?.CREDENTIALS ?? 'include',
@@ -98,12 +98,14 @@ export class TuanChat {
         });
         this.abilityController = new AbilityControllerService(this.request);
         this.avatarController = new AvatarControllerService(this.request);
+        this.branchController = new BranchControllerService(this.request);
         this.chatController = new ChatControllerService(this.request);
         this.collectionController = new CollectionControllerService(this.request);
         this.collectionListController = new CollectionListControllerService(this.request);
         this.collectionListItemController = new CollectionListItemControllerService(this.request);
         this.collectionTagController = new CollectionTagControllerService(this.request);
         this.commentController = new CommentControllerService(this.request);
+        this.commitController = new CommitControllerService(this.request);
         this.community = new CommunityService(this.request);
         this.communityMember = new CommunityMemberService(this.request);
         this.communityPost = new CommunityPostService(this.request);
@@ -114,9 +116,6 @@ export class TuanChat {
         this.itemController = new ItemControllerService(this.request);
         this.likeRecordController = new LikeRecordControllerService(this.request);
         this.moduleController = new ModuleControllerService(this.request);
-        this.moduleItemController = new ModuleItemControllerService(this.request);
-        this.moduleRoleController = new ModuleRoleControllerService(this.request);
-        this.moduleScene = new ModuleSceneService(this.request);
         this.ossController = new OssControllerService(this.request);
         this.rating = new RatingService(this.request);
         this.roleController = new RoleControllerService(this.request);
@@ -130,9 +129,11 @@ export class TuanChat {
         this.spaceController = new SpaceControllerService(this.request);
         this.spaceMemberController = new SpaceMemberControllerService(this.request);
         this.spaceRoleController = new SpaceRoleControllerService(this.request);
+        this.stageController = new StageControllerService(this.request);
         this.ttsController = new TtsControllerService(this.request);
         this.userController = new UserControllerService(this.request);
         this.userFollowController = new UserFollowControllerService(this.request);
         this.userPreference = new UserPreferenceService(this.request);
     }
 }
+

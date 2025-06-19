@@ -58,7 +58,7 @@ export class SpaceMemberControllerService {
         });
     }
     /**
-     * 把转让裁判其他成员
+     * 把裁判转让给其他成员
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError

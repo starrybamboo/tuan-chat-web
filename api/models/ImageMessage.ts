@@ -15,6 +15,17 @@ export type ImageMessage = {
      * 文件名（带后缀）
      */
     fileName: string;
-    background?: boolean;
+    /**
+     * 是否渲染为背景
+     */
+    background: boolean;
+    /**
+     * 宽度（像素）
+     */
+    width: number;
+    /**
+     * 高度（像素）
+     */
+    height: number;
 };
 

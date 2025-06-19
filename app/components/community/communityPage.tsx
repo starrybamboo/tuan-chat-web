@@ -1,5 +1,4 @@
 import type { CommunityContextType } from "@/components/community/communityContext";
-import IllegalURLPage from "@/components/common/illegalURLPage";
 import CommunityPostDetail from "@/components/community/communitPostDetail";
 import { CommunityContext } from "@/components/community/communityContext";
 import CommunityPostList from "@/components/community/communityPostList";
@@ -19,10 +18,6 @@ export default function CommunityPage() {
   const listCommunitiesQuery = useListCommunitiesQuery();
   const communityList = listCommunitiesQuery.data?.data ?? [];
 
-  const currentCommunity = useMemo(() => {
-    return communityList.find(community => community.communityId === communityId);
-  }, [communityId, communityList]);
-
   const communityContext: CommunityContextType = useMemo(() => {
     return { communityId };
   }, [communityId]);
@@ -33,10 +28,6 @@ export default function CommunityPage() {
         <span className="loading loading-spinner loading-lg text-primary"></span>
       </div>
     );
-  }
-
-  if (!currentCommunity) {
-    return (<IllegalURLPage info="您要找的社区不存在" />);
   }
 
   return (

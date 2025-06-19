@@ -10,11 +10,34 @@ import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { FightRoomAddRequest } from '../models/FightRoomAddRequest';
 import type { RoomExtraRequest } from '../models/RoomExtraRequest';
 import type { RoomExtraSetRequest } from '../models/RoomExtraSetRequest';
+import type { RoomMuteRequest } from '../models/RoomMuteRequest';
 import type { RoomUpdateRequest } from '../models/RoomUpdateRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class RoomControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
+    /**
+     * 更新房间禁言状态
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public updateRoomMuteStatus(
+        requestBody: RoomMuteRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/capi/room/mute',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
     /**
      * 获取房间其他信息
      * @param request
@@ -27,7 +50,9 @@ export class RoomControllerService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/room/extra',
-            query: request,
+            query: {
+                'request': request,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

@@ -22,7 +22,7 @@ export class ItemControllerService {
      * @returns ApiResultItemResponse OK
      * @throws ApiError
      */
-    public getById1(
+    public getById(
         id: number,
     ): CancelablePromise<ApiResultItemResponse> {
         return this.httpRequest.request({
@@ -46,7 +46,7 @@ export class ItemControllerService {
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public updateItem1(
+    public updateItem(
         requestBody: ItemUpdateRequest,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
@@ -92,7 +92,7 @@ export class ItemControllerService {
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public deleteItem1(
+    public deleteItem(
         id: number,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
@@ -115,7 +115,7 @@ export class ItemControllerService {
      * @returns ApiResultPageBaseRespItemResponse OK
      * @throws ApiError
      */
-    public page2(
+    public page1(
         requestBody: ItemPageRequest,
     ): CancelablePromise<ApiResultPageBaseRespItemResponse> {
         return this.httpRequest.request({
