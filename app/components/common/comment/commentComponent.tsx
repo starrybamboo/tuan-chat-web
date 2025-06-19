@@ -8,7 +8,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import React, { useMemo, useState } from "react";
-import { useGetCommentByIdQuery } from "../../../../api/hooks/commentQueryHooks";
+import { useDeleteCommentMutation, useGetCommentByIdQuery } from "../../../../api/hooks/commentQueryHooks";
 
 export default function CommentComponent({ comment, level = 1 }: {
   comment: number | CommentVO; // 可以传commentVO数据或者commentId
@@ -18,15 +18,15 @@ export default function CommentComponent({ comment, level = 1 }: {
   const userId: number | null = useGlobalContext().userId;
   const getCommentByIdQuery = useGetCommentByIdQuery(typeof comment === "number" ? comment : -1);
   const commentVO = typeof comment === "number" ? getCommentByIdQuery.data : comment;
-
+  const deleteCommentMutation = useDeleteCommentMutation();
   const [isInput, setIsInput] = useState(false);
   const [isFolded, setIsFolded] = useState(false);
   // 评论过深时，打开一个PopWindow来显示
   const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`commentPop${commentVO?.commentId}`, false);
-
   const childrenComments = useMemo(() => {
     return (
       <>
+
         {/* Child Comments */}
         {/* TODO：分页获取子消息 */}
         {
@@ -48,10 +48,13 @@ export default function CommentComponent({ comment, level = 1 }: {
         }
       </>
     );
-  }, [commentVO?.children, level]);
+  }, [commentVO?.children, commentVO?.hasMore, commentVO?.totalChildren, level]);
 
   if (!commentVO) {
     return <div className="loading loading-spinner text-primary"></div>;
+  }
+  if (String(commentVO.status) !== "1") {
+    return null;
   }
 
   if (isFolded) {
@@ -112,9 +115,10 @@ export default function CommentComponent({ comment, level = 1 }: {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
                 </svg>
               )}
+              direction="row"
             />
             {Number(commentVO.userId) === userId && (
-              <button className="btn btn-sm btn-ghost text-base-content hover:text-error" type="button">
+              <button className="btn btn-sm btn-ghost text-base-content hover:text-error" type="button" onClick={() => { deleteCommentMutation.mutate(commentVO.commentId!); }}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
