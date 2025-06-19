@@ -3,6 +3,7 @@
  */
 import type { LikeRecordRequest } from "../../../api";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import React from "react";
 import { toast } from "react-hot-toast";
 import { useGetCounterQuery } from "../../../api/hooks/couterQueryHooks";
 import { useIsLikedQuery, useLikeMutation, useUnlikeMutation } from "../../../api/hooks/likeQueryHooks";
@@ -11,8 +12,9 @@ interface LikeIconButtonProps {
   targetInfo: LikeRecordRequest;
   className?: string;
   icon?: React.ReactNode;
+  direction?: "row" | "column";
 }
-export default function LikeIconButton({ targetInfo, className, icon }: LikeIconButtonProps) {
+export default function LikeIconButton({ targetInfo, className, icon, direction = "column" }: LikeIconButtonProps) {
   const isLikedQuery = useIsLikedQuery({
     targetId: targetInfo.targetId,
     targetType: targetInfo.targetType,
@@ -47,12 +49,32 @@ export default function LikeIconButton({ targetInfo, className, icon }: LikeIcon
   };
 
   return (
-    <button onClick={toggleLike} className={`flex flex-col items-center ${className}`} type="button">
-      <div className="relative w-10 h-10">
-        <div className={`absolute inset-0 ${isLiked ? "text-red-500" : ""}`}>
+    <button
+      onClick={toggleLike}
+      className={`flex flex-col items-center  ${direction === "row" ? "flex-row gap-1" : "flex-col"
+      }  ${className}`}
+      type="button"
+    >
+      {/* eslint-disable-next-line style/multiline-ternary */}
+      {direction === "row" ? (
+      // 横向：不加 relative/absolute，避免错位
+        <div className={`w-5 h-5 flex items-center justify-center ${isLiked ? "text-red-500" : ""}`}>
           {icon ?? defaultIcon}
         </div>
-      </div>
+      ) : (
+      // 竖向：保留原来的效果
+        <div className="relative w-10 h-10">
+          <div className={`absolute inset-0 ${isLiked ? "text-red-500" : ""}`}>
+            {icon ?? defaultIcon}
+          </div>
+        </div>
+      )}
+
+      {/* <div className="relative w-10 h-10"> */}
+      {/*  <div className={`absolute inset-0 ${isLiked ? "text-red-500" : ""}`}> */}
+      {/*    {icon ?? defaultIcon} */}
+      {/*  </div> */}
+      {/* </div> */}
       <span className="text-xs mt-1">{isLiked ? likeCount + 1 : likeCount}</span>
     </button>
   );
