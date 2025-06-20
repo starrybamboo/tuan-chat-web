@@ -25,6 +25,7 @@
     "ahooks": "^3.8.5",
     "daisyui": "^5.0.9",
     "isbot": "^5",
+    "openapi-typescript-codegen": "^0.29.0",
     "react": "^19.0.0",
     "react-d3-tree": "^3.6.6",
     "react-dom": "^19.0.0",
