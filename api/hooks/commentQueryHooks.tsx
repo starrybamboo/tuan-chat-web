@@ -56,3 +56,18 @@ export function useAddCommentMutation(){
         }
     })
 }
+/**
+ * 删除comment
+ */
+export function useDeleteCommentMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationKey: ["deleteComment"],
+        mutationFn: async (commentId: number) =>{
+            await tuanchat.commentController.deleteComment(commentId);
+    },
+        onSuccess:() => {
+        // 删除成功后刷新评论列表缓存
+        queryClient.invalidateQueries({ queryKey: ["pageComments"] });
+    }
+})}
