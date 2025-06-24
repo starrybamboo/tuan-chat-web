@@ -9,7 +9,7 @@ import type {
 import ChatFrame from "@/components/chat/chatFrame";
 import CommandPanel from "@/components/chat/commandPanel";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
-import { PreviewMessage } from "@/components/chat/forwardMessage";
+import RepliedMessage from "@/components/chat/repliedMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
@@ -97,6 +97,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     setReplyMessage: React.Dispatch<React.SetStateAction<Message | undefined>>;
     roomId: number;
     roomRolesThatUserOwn: any[];
+    historyMessages?: Message[];
   } => {
     return {
       roomId,
@@ -163,7 +164,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           img.onerror = () => resolve({ width: 114, height: 114 }); // 失败时使用默认值
           img.src = URL.createObjectURL(imgFiles[i]);
         });
-
+        // 如果有图片，发送独立的图片消息
         if (imgDownLoadUrl && imgDownLoadUrl !== "") {
           const messageRequest: ChatMessageRequest = {
             content: "",
@@ -184,6 +185,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       }
     }
     updateImgFiles([]);
+    // 发送文本消息
     if (inputText.trim() !== "") {
       const messageRequest: ChatMessageRequest = {
         roomId,
@@ -191,6 +193,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         content: inputText.trim(),
         avatarId: roleAvatars[curAvatarIndex].avatarId || -1,
         messageType: 1,
+        replayMessageId: replyMessage?.messageID || undefined,
         body: {},
       };
       if (isCommand(inputText)) {
@@ -328,12 +331,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     ))}
                   </div>
                 )}
+                {/* 引用的消息 */}
                 {
                   replyMessage && (
-                    <div className="flex flex-row gap-3 items-center bg-base-200 p-1 rounded-box shadow-sm text-xs opacity-50 pl-4">
-                      回复
-                      <PreviewMessage message={replyMessage} className="flex flex-row gap-3" showData={false}></PreviewMessage>
-                    </div>
+                    <RepliedMessage
+                      replyMessage={replyMessage}
+                      className="flex flex-row gap-2 items-center bg-base-200 p-1 rounded-box shadow-sm text-sm pl-2 "
+                    />
                   )
                 }
                 <textarea
