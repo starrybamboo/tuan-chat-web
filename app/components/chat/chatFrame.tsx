@@ -1,6 +1,5 @@
 import type { VirtuosoHandle } from "react-virtuoso";
 import type {
-  ChatMessagePageRequest,
   ChatMessageRequest,
   ChatMessageResponse,
   FeedRequest,
@@ -12,7 +11,6 @@ import { SpaceContext } from "@/components/chat/spaceContext";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { useInfiniteQuery } from "@tanstack/react-query";
 import React, { use, useCallback, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import {
@@ -21,7 +19,6 @@ import {
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
 import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
-import { tuanchat } from "../../../api/instance";
 
 function Header({ context }: { context: { fetchNextPage: () => void; isFetching: boolean; isAtTopRef: React.RefObject<boolean> } }) {
   return (
@@ -46,7 +43,6 @@ function ScrollSeekPlaceholder({ height }: { height: number }) {
 
 export default function ChatFrame({ useChatBubbleStyle }:
 { useChatBubbleStyle: boolean }) {
-  const PAGE_SIZE = 30; // 每页消息数量
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
@@ -55,7 +51,6 @@ export default function ChatFrame({ useChatBubbleStyle }:
   const curAvatarId = roomContext.curAvatarId ?? -1;
 
   const websocketUtils = useGlobalContext().websocketUtils;
-  const getNewMessagesByRoomId = websocketUtils.getTempMessagesByRoomId;
   const send = websocketUtils.send;
   // const hasNewMessages = websocketUtils.messagesNumber[roomId];
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
@@ -72,54 +67,13 @@ export default function ChatFrame({ useChatBubbleStyle }:
    * 分页获取消息
    * cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
    */
-  // 你说的对，我什么要这里定义一个莫名奇妙的ref呢？因为该死的virtuoso不知道为什么，里面的函数指针会会指向一个旧的fetchNextPage，并不能随着重新渲染而更新。导致里面的cursor也是旧的。
-  // 定义这个ref只是为了绕开virtuoso这个问题的hack。
-  const cursorRef = useRef<number | undefined>(undefined);
-  const messagesInfiniteQuery = useInfiniteQuery({
-    queryKey: ["getMsgPage", roomId],
-    queryFn: async ({ pageParam }) => {
-      const result = await tuanchat.chatController.getMsgPage(pageParam);
-      cursorRef.current = result.data?.cursor;
-      return result;
-    },
-    getNextPageParam: (lastPage) => {
-      if (lastPage.data === undefined || lastPage.data?.isLast) {
-        return undefined;
-      }
-      else {
-        const params: ChatMessagePageRequest = { roomId, pageSize: PAGE_SIZE, cursor: cursorRef.current };
-        return params;
-      }
-    },
-    initialPageParam: { roomId, pageSize: PAGE_SIZE, cursor: cursorRef.current } as unknown as ChatMessagePageRequest,
-    refetchOnWindowFocus: false,
-    staleTime: Infinity,
-  });
-  // const [receivedMessages, setReceivedMessages] = useState<ChatMessageResponse[]>([]);
-  // useEffect(() => {
-  //   const newMessages = getNewMessagesByRoomId(roomId, true);
-  //   if (newMessages.length > 0) {
-  //     setReceivedMessages([...receivedMessages, ...newMessages]);
-  //   }
-  // }, [hasNewMessages]);
-  const receivedMessages = getNewMessagesByRoomId(roomId, true);
-  // 合并所有分页消息 同时更新重复的消息
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    const historyMessages = (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
-    const messageMap = new Map<number, ChatMessageResponse>();
-    // 这是为了更新历史消息(ws发过来的消息有可能是带有相同的messageId的, 代表消息的更新)
-    historyMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
-    receivedMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
-
-    return Array.from(messageMap.values())
-      .sort((a, b) => a.message.position - b.message.position)
-    // 过滤掉删除的消息和不符合规则的消息
-      .filter(msg => msg.message.status !== 1);
-    // .reverse();
-  }, [receivedMessages, messagesInfiniteQuery.data?.pages]);
+    return roomContext.historyMessages ?? [];
+  }, [roomContext.historyMessages]);
+  const messagesInfiniteQuery = roomContext.messageInfiniteQuery;
   const fetchNextPage = useCallback(() => {
-    if (messagesInfiniteQuery.hasNextPage && !messagesInfiniteQuery.isFetching) {
-      messagesInfiniteQuery.fetchNextPage();
+    if (messagesInfiniteQuery?.hasNextPage && !messagesInfiniteQuery?.isFetching) {
+      messagesInfiniteQuery?.fetchNextPage();
     }
   }, [messagesInfiniteQuery]);
   /**
@@ -149,10 +103,10 @@ export default function ChatFrame({ useChatBubbleStyle }:
     updateUnreadMessagesNumber(roomId, 0);
   };
   // useEffect(() => {
-  //   if ((messageEntry?.isIntersecting) && !messagesInfiniteQuery.isFetchingNextPage) {
-  //     messagesInfiniteQuery.fetchNextPage();
+  //   if ((messageEntry?.isIntersecting) && !messagesInfiniteQuery?.isFetchingNextPage) {
+  //     messagesInfiniteQuery?.fetchNextPage();
   //   }
-  // }, [messageEntry?.isIntersecting, messagesInfiniteQuery.isFetchingNextPage]);
+  // }, [messageEntry?.isIntersecting, messagesInfiniteQuery?.isFetchingNextPage]);
   /**
    * 消息选择
    */
@@ -454,8 +408,8 @@ export default function ChatFrame({ useChatBubbleStyle }:
           overscan={2000}
           ref={virtuosoRef}
           context={{
-            fetchNextPage: () => messagesInfiniteQuery.fetchNextPage(),
-            isFetching: messagesInfiniteQuery.isFetching,
+            fetchNextPage: () => messagesInfiniteQuery?.fetchNextPage(),
+            isFetching: messagesInfiniteQuery?.isFetching || false,
             isAtTopRef: isAtBottomRef,
           }}
           itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}

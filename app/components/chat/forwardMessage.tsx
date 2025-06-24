@@ -12,9 +12,18 @@ export function PreviewMessage({ message, className, showData = true }: {
   className?: string;
   showData?: boolean;
 }) {
-  // 如果传的是id就query
-  const messageQuery = useGetMessageByIdQuery(typeof message === "number" ? message : -1);
-  const messageBody = typeof message === "number" ? messageQuery.data?.message : message;
+  const roomContext = use(RoomContext);
+
+  // 如果传的是id就从历史消息里面找，没找到就去query。如果是Message类型就直接拿来用
+  const foundMessageInHistory = typeof message === "number"
+    ? roomContext.historyMessages?.find(item => item.message.messageID === message)?.message
+    : null;
+  const messageQuery = useGetMessageByIdQuery(
+    typeof message === "number" && !foundMessageInHistory ? message : -1,
+  );
+  const messageBody = typeof message === "number"
+    ? foundMessageInHistory || messageQuery.data?.message
+    : message;
 
   const useRoleRequest = useGetRoleQuery(messageBody?.roleId ?? -1);
   const role = useRoleRequest.data?.data;
