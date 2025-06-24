@@ -92,7 +92,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       <EditableField
         content={message.content}
         handleContentUpdate={handleContentUpdate}
-        className="whitespace-pre-wrap editable-field" // 为了方便select到这个节点
+        className="whitespace-pre-wrap editable-field overflow-auto" // 为了方便select到这个节点
         canEdit={canEdit}
       >
       </EditableField>

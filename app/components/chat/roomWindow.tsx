@@ -3,11 +3,13 @@ import type { RoomContextType } from "@/components/chat/roomContext";
 
 import type {
   ChatMessageRequest,
+  Message,
   RoomMember,
 } from "../../../api";
 import ChatFrame from "@/components/chat/chatFrame";
 import CommandPanel from "@/components/chat/commandPanel";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
+import { PreviewMessage } from "@/components/chat/forwardMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
@@ -48,6 +50,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   // 聊天框中包含的图片
   const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
+  // 引用的聊天记录id
+  const [replyMessage, setReplyMessage] = useState<Message | undefined>(undefined);
 
   // 获取用户的所有角色
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
@@ -83,7 +87,17 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   }, [members, userId]);
 
   // Context
-  const roomContext: RoomContextType = useMemo((): RoomContextType => {
+  const roomContext: RoomContextType = useMemo((): {
+    spaceId: number;
+    curRoleId: number;
+    curMember: RoomMember | undefined;
+    useChatBubbleStyle: boolean;
+    curAvatarId: any;
+    roomMembers: RoomMember[];
+    setReplyMessage: React.Dispatch<React.SetStateAction<Message | undefined>>;
+    roomId: number;
+    roomRolesThatUserOwn: any[];
+  } => {
     return {
       roomId,
       roomMembers: members,
@@ -93,6 +107,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       curAvatarId: roleAvatars[curAvatarIndex]?.avatarId ?? -1,
       useChatBubbleStyle,
       spaceId,
+      setReplyMessage,
     };
   }, [curAvatarIndex, curMember, curRoleId, roomId, roomRolesThatUserOwn, members, roleAvatars, useChatBubbleStyle, spaceId]);
 
@@ -283,19 +298,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   commandMode={commandMode}
                   className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden"
                 />
-                {/* 图片显示 */}
-                {imgFiles.length > 0 && (
-                  <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
-                    {imgFiles.map((file, index) => (
-                      <BetterImg
-                        src={file}
-                        className="h-14 w-max rounded"
-                        onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
-                        key={file.name}
-                      />
-                    ))}
-                  </div>
-                )}
                 {/* text input */}
                 <div className="flex flex-row gap-2 pl-3">
                   <div className="tooltip" data-tip="浏览所有骰子命令">
@@ -313,6 +315,27 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     </CommandSolid>
                   </div>
                 </div>
+                {/* 预览要发送的图片 */}
+                {imgFiles.length > 0 && (
+                  <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
+                    {imgFiles.map((file, index) => (
+                      <BetterImg
+                        src={file}
+                        className="h-14 w-max rounded"
+                        onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
+                        key={file.name}
+                      />
+                    ))}
+                  </div>
+                )}
+                {
+                  replyMessage && (
+                    <div className="flex flex-row gap-3 items-center bg-base-200 p-1 rounded-box shadow-sm text-xs opacity-50 pl-4">
+                      回复
+                      <PreviewMessage message={replyMessage} className="flex flex-row gap-3" showData={false}></PreviewMessage>
+                    </div>
+                  )
+                }
                 <textarea
                   className="textarea chatInputTextarea w-full flex-1 min-h-[80px] max-h-[200px] resize-none border-none focus:outline-none focus:ring-0"
                   placeholder={curRoleId <= 0

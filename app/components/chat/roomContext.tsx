@@ -1,5 +1,6 @@
-import type { RoomMember, UserRole } from "../../../api";
 // src/context/chat-context.tsx
+import type React from "react";
+import type { Message, RoomMember, UserRole } from "../../../api";
 import { createContext } from "react";
 
 export interface RoomContextType {
@@ -11,6 +12,7 @@ export interface RoomContextType {
   curAvatarId?: number;
   useChatBubbleStyle: boolean;
   spaceId?: number;
+  setReplyMessage?: React.Dispatch<React.SetStateAction<Message | undefined>>;
 }
 
 export const RoomContext = createContext<RoomContextType>({
@@ -22,4 +24,5 @@ export const RoomContext = createContext<RoomContextType>({
   curRoleId: undefined,
   useChatBubbleStyle: false,
   spaceId: undefined,
+  setReplyMessage: undefined,
 });

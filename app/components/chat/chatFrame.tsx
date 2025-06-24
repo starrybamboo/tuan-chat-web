@@ -582,6 +582,16 @@ export default function ChatFrame({ useChatBubbleStyle }:
                   多选
                 </a>
               </li>
+              <li>
+                <a onClick={(e) => {
+                  e.preventDefault();
+                  roomContext.setReplyMessage && roomContext?.setReplyMessage(message?.message);
+                  closeContextMenu();
+                }}
+                >
+                  回复
+                </a>
+              </li>
               {
                 (isSelecting) && (
                   <li>
