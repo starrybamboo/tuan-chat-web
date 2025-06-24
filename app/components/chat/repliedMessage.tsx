@@ -17,10 +17,10 @@ export default function RepliedMessage({ replyMessage, className }: {
       >
         <XMarkICon className="size-4"></XMarkICon>
       </button>
-      <span className="opacity-70">回复</span>
+      <span className="opacity-60">回复</span>
       <PreviewMessage
         message={replyMessage}
-        className="flex flex-row gap-3 opacity-50"
+        className="flex flex-row gap-3 opacity-60"
         showData={false}
       >
       </PreviewMessage>
