@@ -262,6 +262,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       }
       handleTextInputChange("");
     }
+    setReplyMessage(undefined);
     // 滚动到底部, 设置异步是为了等待新消息接受并渲染好
     // setTimeout(() => {
     //   if (chatFrameRef.current) {
