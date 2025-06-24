@@ -4,31 +4,54 @@ import { RoomContext } from "@/components/chat/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { use, useMemo } from "react";
+import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../api/queryHooks";
 
-function PreviewMessage({ message }: { message: Message }) {
-  const useRoleRequest = useGetRoleQuery(message.roleId);
+export function PreviewMessage({ message, className, showData = true }: {
+  message: Message | number; // 允许message为id
+  className?: string;
+  showData?: boolean;
+}) {
+  const roomContext = use(RoomContext);
+
+  // 如果传的是id就从历史消息里面找，没找到就去query。如果是Message类型就直接拿来用
+  const foundMessageInHistory = typeof message === "number"
+    ? roomContext.historyMessages?.find(item => item.message.messageID === message)?.message
+    : null;
+  const messageQuery = useGetMessageByIdQuery(
+    typeof message === "number" && !foundMessageInHistory ? message : -1,
+  );
+  const messageBody = typeof message === "number"
+    ? foundMessageInHistory || messageQuery.data?.message
+    : message;
+
+  const useRoleRequest = useGetRoleQuery(messageBody?.roleId ?? -1);
   const role = useRoleRequest.data?.data;
-  const isTextMessage = message.messageType === 1;
+  const isTextMessage = messageBody?.messageType === 1;
   return (
-    <div>
+    <div className={className}>
       <div className="flex items-center">
-        <div className="text-sm font-semibold text-base-content">
+        <div className="text-sm text-base-content">
           {role?.roleName || "YOU_KNOW_WHO"}
         </div>
-        <div className="ml-2 text-xs text-base-content/50">
-          {message.createTime}
-        </div>
+        {
+          showData
+          && (
+            <div className="ml-2 text-xs text-base-content/50">
+              {messageBody?.createTime}
+            </div>
+          )
+        }
       </div>
 
       {isTextMessage
         ? (
-            <p className="mt-1 text-sm text-base-content break-words line-clamp-2">
-              {message.content}
+            <p className="text-sm text-base-content break-words line-clamp-1">
+              {messageBody.content}
             </p>
           )
         : (
-            <div className="mt-1 text-sm text-base-content/50">
+            <div className="text-sm text-base-content/50">
               [非文本消息]
             </div>
           )}

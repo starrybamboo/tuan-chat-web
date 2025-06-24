@@ -1,6 +1,6 @@
 import type { ChatMessageResponse, Message } from "api";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
-import ForwardMessage from "@/components/chat/forwardMessage";
+import ForwardMessage, { PreviewMessage } from "@/components/chat/forwardMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import { SpaceContext } from "@/components/chat/spaceContext";
@@ -89,13 +89,31 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       return <ForwardMessage messageResponse={chatMessageResponse}></ForwardMessage>;
     }
     return (
-      <EditableField
-        content={message.content}
-        handleContentUpdate={handleContentUpdate}
-        className="whitespace-pre-wrap editable-field" // 为了方便select到这个节点
-        canEdit={canEdit}
-      >
-      </EditableField>
+      <>
+        {
+          message.replyMessageId
+          && (
+            <div className="flex flex-row gap-2 text-sm card my-1 w-max opacity-60">
+              <span className="">| 回复</span>
+              <PreviewMessage
+                message={message.replyMessageId}
+                className="flex flex-row gap-3"
+                showData={false}
+              >
+              </PreviewMessage>
+            </div>
+          )
+        }
+
+        <EditableField
+          content={message.content}
+          handleContentUpdate={handleContentUpdate}
+          className="whitespace-pre-wrap editable-field overflow-auto" // 为了方便select到这个节点
+          canEdit={canEdit}
+        >
+        </EditableField>
+      </>
+
     );
   }, [message.content, message.extra, message.messageType]);
 
@@ -110,7 +128,6 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       if (inputElement) {
         const currentText = inputElement.value;
         const atText = `@${roleName} `;
-
         // 如果已经@过这个角色，就不再添加
         if (!currentText.includes(atText)) {
           inputElement.value = currentText + atText;
@@ -138,7 +155,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 >
                 </RoleAvatarComponent>
               </div>
-              <div className={message.messageType !== 0 ? "chat-bubble" : "chat-bubble chat-bubble-neutral"}>
+              <div className="chat-bubble">
                 {renderedContent}
               </div>
               <div className="chat-footer">

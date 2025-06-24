@@ -50,9 +50,7 @@ export class RoomControllerService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/room/extra',
-            query: {
-                'request': request,
-            },
+            query: request,
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

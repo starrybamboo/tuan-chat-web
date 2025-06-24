@@ -87,6 +87,7 @@ function ForwardWindow({ onClickRoom, handlePublishFeed }:
             <button
               className="btn btn-ghost"
               onClick={() => setIsOpenPublishFeedWindow(false)}
+              type="button"
             >
               取消
             </button>
@@ -94,6 +95,7 @@ function ForwardWindow({ onClickRoom, handlePublishFeed }:
               className="btn btn-primary"
               onClick={handleSubmit}
               disabled={!feedData.title}
+              type="button"
             >
               确认分享
             </button>

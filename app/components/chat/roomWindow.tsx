@@ -1,13 +1,20 @@
 import type { commandModeType } from "@/components/chat/commandPanel";
 import type { RoomContextType } from "@/components/chat/roomContext";
 
+import type { InfiniteData, UseInfiniteQueryResult } from "@tanstack/react-query";
+
 import type {
+  ApiResultCursorPageBaseResponseChatMessageResponse,
+  ChatMessagePageRequest,
   ChatMessageRequest,
+  ChatMessageResponse,
+  Message,
   RoomMember,
 } from "../../../api";
 import ChatFrame from "@/components/chat/chatFrame";
 import CommandPanel from "@/components/chat/commandPanel";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
+import RepliedMessage from "@/components/chat/repliedMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
@@ -21,6 +28,7 @@ import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { Bubble2, CommandSolid, DiceTwentyFacesTwenty, GalleryBroken, GirlIcon, SendIcon } from "@/icons";
 import { UploadUtils } from "@/utils/UploadUtils";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
 import { useGetMemberListQuery, useGetRoomRoleQuery, useGetSpaceInfoQuery } from "../../../api/hooks/chatQueryHooks";
@@ -30,6 +38,7 @@ import {
   useGetUserRolesQuery,
 } from "../../../api/queryHooks";
 
+const PAGE_SIZE = 30; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
   // const { spaceId: urlSpaceId } = useParams();
   // const spaceId = Number(urlSpaceId);
@@ -48,6 +57,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   // 聊天框中包含的图片
   const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
+  // 引用的聊天记录id
+  const [replyMessage, setReplyMessage] = useState<Message | undefined>(undefined);
 
   // 获取用户的所有角色
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
@@ -82,8 +93,64 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     return members.find(member => member.userId === userId);
   }, [members, userId]);
 
+  /**
+   * 获取历史消息
+   * 分页获取消息
+   * cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
+   */
+  // 你说的对，我什么要这里定义一个莫名奇妙的ref呢？因为该死的virtuoso不知道为什么，里面的函数指针会会指向一个旧的fetchNextPage，并不能随着重新渲染而更新。导致里面的cursor也是旧的。
+  // 定义这个ref只是为了绕开virtuoso这个问题的hack。
+  const cursorRef = useRef<number | undefined>(undefined);
+  const messagesInfiniteQuery = useInfiniteQuery({
+    queryKey: ["getMsgPage", roomId],
+    queryFn: async ({ pageParam }) => {
+      const result = await tuanchat.chatController.getMsgPage(pageParam);
+      cursorRef.current = result.data?.cursor;
+      return result;
+    },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.data === undefined || lastPage.data?.isLast) {
+        return undefined;
+      }
+      else {
+        const params: ChatMessagePageRequest = { roomId, pageSize: PAGE_SIZE, cursor: cursorRef.current };
+        return params;
+      }
+    },
+    initialPageParam: { roomId, pageSize: PAGE_SIZE, cursor: cursorRef.current } as unknown as ChatMessagePageRequest,
+    refetchOnWindowFocus: false,
+    staleTime: Infinity,
+  });
+  const receivedMessages = webSocketUtils.getTempMessagesByRoomId(roomId, true);
+  // 合并所有分页消息 同时更新重复的消息
+  const historyMessages: ChatMessageResponse[] = useMemo(() => {
+    const historyMessages = (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
+    const messageMap = new Map<number, ChatMessageResponse>();
+    // 这是为了更新历史消息(ws发过来的消息有可能是带有相同的messageId的, 代表消息的更新)
+    historyMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
+    receivedMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
+
+    return Array.from(messageMap.values())
+      .sort((a, b) => a.message.position - b.message.position)
+    // 过滤掉删除的消息和不符合规则的消息
+      .filter(msg => msg.message.status !== 1);
+    // .reverse();
+  }, [receivedMessages, messagesInfiniteQuery.data?.pages]);
+
   // Context
-  const roomContext: RoomContextType = useMemo((): RoomContextType => {
+  const roomContext: RoomContextType = useMemo((): {
+    spaceId: number;
+    curRoleId: number;
+    curMember: RoomMember | undefined;
+    useChatBubbleStyle: boolean;
+    curAvatarId: any;
+    roomMembers: RoomMember[];
+    setReplyMessage: React.Dispatch<React.SetStateAction<Message | undefined>>;
+    roomId: number;
+    roomRolesThatUserOwn: any[];
+    historyMessages?: ChatMessageResponse[];
+    messagesInfiniteQuery: UseInfiniteQueryResult<InfiniteData<ApiResultCursorPageBaseResponseChatMessageResponse, unknown>, Error>;
+  } => {
     return {
       roomId,
       roomMembers: members,
@@ -93,8 +160,11 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       curAvatarId: roleAvatars[curAvatarIndex]?.avatarId ?? -1,
       useChatBubbleStyle,
       spaceId,
+      setReplyMessage,
+      historyMessages,
+      messagesInfiniteQuery,
     };
-  }, [curAvatarIndex, curMember, curRoleId, roomId, roomRolesThatUserOwn, members, roleAvatars, useChatBubbleStyle, spaceId]);
+  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarIndex, useChatBubbleStyle, spaceId, historyMessages, messagesInfiniteQuery]);
 
   /**
    * 当群聊角色列表更新时, 自动设置为第一个角色
@@ -148,7 +218,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           img.onerror = () => resolve({ width: 114, height: 114 }); // 失败时使用默认值
           img.src = URL.createObjectURL(imgFiles[i]);
         });
-
+        // 如果有图片，发送独立的图片消息
         if (imgDownLoadUrl && imgDownLoadUrl !== "") {
           const messageRequest: ChatMessageRequest = {
             content: "",
@@ -169,6 +239,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       }
     }
     updateImgFiles([]);
+    // 发送文本消息
     if (inputText.trim() !== "") {
       const messageRequest: ChatMessageRequest = {
         roomId,
@@ -176,6 +247,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         content: inputText.trim(),
         avatarId: roleAvatars[curAvatarIndex].avatarId || -1,
         messageType: 1,
+        replayMessageId: replyMessage?.messageID || undefined,
         body: {},
       };
       if (isCommand(inputText)) {
@@ -190,6 +262,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       }
       handleTextInputChange("");
     }
+    setReplyMessage(undefined);
     // 滚动到底部, 设置异步是为了等待新消息接受并渲染好
     // setTimeout(() => {
     //   if (chatFrameRef.current) {
@@ -283,19 +356,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   commandMode={commandMode}
                   className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden"
                 />
-                {/* 图片显示 */}
-                {imgFiles.length > 0 && (
-                  <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
-                    {imgFiles.map((file, index) => (
-                      <BetterImg
-                        src={file}
-                        className="h-14 w-max rounded"
-                        onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
-                        key={file.name}
-                      />
-                    ))}
-                  </div>
-                )}
                 {/* text input */}
                 <div className="flex flex-row gap-2 pl-3">
                   <div className="tooltip" data-tip="浏览所有骰子命令">
@@ -313,6 +373,28 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     </CommandSolid>
                   </div>
                 </div>
+                {/* 预览要发送的图片 */}
+                {imgFiles.length > 0 && (
+                  <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
+                    {imgFiles.map((file, index) => (
+                      <BetterImg
+                        src={file}
+                        className="h-14 w-max rounded"
+                        onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
+                        key={file.name}
+                      />
+                    ))}
+                  </div>
+                )}
+                {/* 引用的消息 */}
+                {
+                  replyMessage && (
+                    <RepliedMessage
+                      replyMessage={replyMessage}
+                      className="flex flex-row gap-2 items-center bg-base-200 p-1 rounded-box shadow-sm text-sm pl-2 "
+                    />
+                  )
+                }
                 <textarea
                   className="textarea chatInputTextarea w-full flex-1 min-h-[80px] max-h-[200px] resize-none border-none focus:outline-none focus:ring-0"
                   placeholder={curRoleId <= 0
