@@ -69,3 +69,7 @@ body {
     --scale-factor: 0.8125;
   }
 }
+
+.div-textarea:empty::before {
+  content: attr(data-placeholder);
+}

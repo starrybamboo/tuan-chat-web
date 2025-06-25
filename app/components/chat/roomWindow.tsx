@@ -49,7 +49,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const webSocketUtils = globalContext.websocketUtils;
   const send = webSocketUtils.send;
 
+  const textareaRef = useRef<HTMLDivElement>(null);
   const [inputText, setInputText] = useState("");
+
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const uploadUtils = new UploadUtils(2);
 
@@ -181,7 +183,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   /**
    *处理与组件的各种交互
    */
-  const handleTextInputChange = (newInput: string) => {
+  const handleTextInputChange = (newText?: string) => {
+    const newInput = newText ?? "";
     setInputText(newInput);
     if (newInput.startsWith("%")) {
       setCommandMode("webgal");
@@ -273,7 +276,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     setIsSubmitting(false);
   };
 
-  async function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+  async function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
     // 获取剪贴板中的图片
     const items = e.clipboardData?.items;
     if (!items)
@@ -349,14 +352,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                 </ul>
               </div>
 
-              <div className="flex-1 flex flex-col min-w-0">
+              <div className="relative flex-1 flex flex-col min-w-0">
                 <CommandPanel
                   prefix={inputText}
                   handleSelectCommand={handleSelectCommand}
                   commandMode={commandMode}
-                  className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden"
+                  className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10 w-full"
                 />
-                {/* text input */}
                 <div className="flex flex-row gap-2 pl-3">
                   <div className="tooltip" data-tip="浏览所有骰子命令">
                     <DiceTwentyFacesTwenty
@@ -395,18 +397,23 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     />
                   )
                 }
-                <textarea
-                  className="textarea chatInputTextarea w-full flex-1 min-h-[80px] max-h-[200px] resize-none border-none focus:outline-none focus:ring-0"
-                  placeholder={curRoleId <= 0
-                    ? "请先在群聊里拉入你的角色，之后才能发送消息。"
-                    : (curAvatarId <= 0 ? "请给你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)")}
-                  value={inputText}
-                  onChange={e => handleTextInputChange(e.target.value)}
+                {/* 输入框 */}
+                <div
+                  className="textarea chatInputTextarea w-full flex-1 h-full overflow-auto
+                     min-h-[80px] max-h-[200px] resize-none border-none focus:outline-none focus:ring-0 overflow-auto div-textarea"
+                  ref={textareaRef}
+                  onInput={(e) => { handleTextInputChange(e.currentTarget?.textContent ?? ""); }}
                   onKeyDown={handleKeyDown}
                   onCompositionStart={() => isComposingRef.current = true}
                   onCompositionEnd={() => isComposingRef.current = false}
                   onPaste={async e => handlePaste(e)}
-                />
+                  suppressContentEditableWarning={true}
+                  contentEditable={true}
+                  data-placeholder={(curRoleId <= 0
+                    ? "请先在群聊里拉入你的角色，之后才能发送消息。"
+                    : (curAvatarId <= 0 ? "请给你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"))}
+                >
+                </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
                     {/* 角色选择器 */}
