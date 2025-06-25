@@ -1,10 +1,7 @@
 import type { commandModeType } from "@/components/chat/commandPanel";
 import type { RoomContextType } from "@/components/chat/roomContext";
 
-import type { InfiniteData, UseInfiniteQueryResult } from "@tanstack/react-query";
-
 import type {
-  ApiResultCursorPageBaseResponseChatMessageResponse,
   ChatMessagePageRequest,
   ChatMessageRequest,
   ChatMessageResponse,
@@ -153,19 +150,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   }, [receivedMessages, messagesInfiniteQuery.data?.pages]);
 
   // Context
-  const roomContext: RoomContextType = useMemo((): {
-    spaceId: number;
-    curRoleId: number;
-    curMember: RoomMember | undefined;
-    useChatBubbleStyle: boolean;
-    curAvatarId: any;
-    roomMembers: RoomMember[];
-    setReplyMessage: React.Dispatch<React.SetStateAction<Message | undefined>>;
-    roomId: number;
-    roomRolesThatUserOwn: any[];
-    historyMessages?: ChatMessageResponse[];
-    messagesInfiniteQuery: UseInfiniteQueryResult<InfiniteData<ApiResultCursorPageBaseResponseChatMessageResponse, unknown>, Error>;
-  } => {
+
+  const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {
       roomId,
       roomMembers: members,
@@ -180,7 +166,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       messagesInfiniteQuery,
     };
   }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarIndex, useChatBubbleStyle, spaceId, historyMessages, messagesInfiniteQuery]);
-
   /**
    * 当群聊角色列表更新时, 自动设置为第一个角色
    */

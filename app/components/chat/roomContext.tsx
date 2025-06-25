@@ -21,7 +21,7 @@ export interface RoomContextType {
   spaceId?: number; // 当前激活的空间ID
   setReplyMessage?: React.Dispatch<React.SetStateAction<Message | undefined>>; // 设置回复消息
   historyMessages?: ChatMessageResponse[]; // 历史消息，整合了用html请求到的消息和从websocket获取到的新消息，已按照pos进行排序
-  messageInfiniteQuery?: UseInfiniteQueryResult<InfiniteData<ApiResultCursorPageBaseResponseChatMessageResponse, unknown>, Error>;
+  messagesInfiniteQuery?: UseInfiniteQueryResult<InfiniteData<ApiResultCursorPageBaseResponseChatMessageResponse, unknown>, Error>;
   // 获取历史消息的钩子函数，由于infiniteQuery是个有状态的东西，不能重复定义，所以放在了context里面
 }
 
@@ -36,5 +36,5 @@ export const RoomContext = createContext<RoomContextType>({
   spaceId: undefined,
   setReplyMessage: undefined,
   historyMessages: [],
-  messageInfiniteQuery: undefined,
+  messagesInfiniteQuery: undefined,
 });

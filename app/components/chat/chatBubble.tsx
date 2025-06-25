@@ -189,7 +189,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 </div>
               </div>
               {/* 消息内容 */}
-              <div className="flex-1">
+              <div className="flex-1 overflow-auto">
                 {/* 角色名 */}
                 <div
                   className={`cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`}
