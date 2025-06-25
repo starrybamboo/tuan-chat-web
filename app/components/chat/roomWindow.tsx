@@ -7,6 +7,7 @@ import type {
   ChatMessageResponse,
   Message,
   RoomMember,
+  UserRole,
 } from "../../../api";
 import ChatFrame from "@/components/chat/chatFrame";
 import CommandPanel from "@/components/chat/commandPanel";
@@ -18,12 +19,14 @@ import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import { Mounter } from "@/components/common/mounter";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { SideDrawer } from "@/components/common/sideDrawer";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { Bubble2, CommandSolid, DiceTwentyFacesTwenty, GalleryBroken, GirlIcon, SendIcon } from "@/icons";
+import { getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -49,11 +52,11 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const textareaRef = useRef<HTMLDivElement>(null);
   // 在这里，由于采用了contentEditable的方法来实现输入框，本身并不具备数据的双向同步性，所以这里定义了两个set方法来控制inputText
   // 下面的set函数仅用于handleInputChange处，用于同步到state中；（如果使用第二个set函数，则会出现输入一个字符显示两个的bug）
-  const [inputText, setInputTextWithouUpdateTextArea] = useState("");
+  const [inputText, setInputTextWithoutUpdateTextArea] = useState("");
   // 如果想从外部控制输入框的内容，使用这个函数。
   const setInputText = (text: string) => {
     if (textareaRef.current) {
-      textareaRef.current.textContent = text;
+      textareaRef.current.innerHTML = text;
       // Move cursor to end
       const range = document.createRange();
       range.selectNodeContents(textareaRef.current);
@@ -177,12 +180,104 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
    * At 功能
    */
   // TODO
+  const [showAtDialog, setShowAtDialog] = useState(false);
+  const [atDialogPosition, setAtDialogPosition] = useState({ x: 0, y: 0 });
+  // const [atActiveIndex, setAtActiveIndex] = useState(0);
+  const [atSearchKey, setAtSearchKey] = useState("");
+  // const editorRangeRef = useRef(null);
+  useEffect(() => {
+    if (showAtDialog) {
+      const { x: cursorX, y: cursorY } = getSelectionCoords();
+      if (textareaRef.current) {
+        const editorWidth = textareaRef.current.offsetWidth;
+        const editorLeft = textareaRef.current.getBoundingClientRect().left;
+        const editorRight = editorLeft + editorWidth;
+        const dialogWidth = 300;
+
+        if (cursorX + dialogWidth > editorRight) {
+          setAtDialogPosition({ x: editorRight - dialogWidth, y: cursorY });
+        }
+        else {
+          setAtDialogPosition({ x: cursorX, y: cursorY });
+        }
+      }
+      else {
+        setAtDialogPosition({ x: cursorX, y: cursorY });
+      }
+    }
+  }, [showAtDialog, atSearchKey]);
+
+  // 插入@按钮到输入框的函数
+  // const insertHtmlAtCaret = useCallback((
+  //   btnElements: (HTMLButtonElement | Text)[],
+  //   selection: Selection,
+  //   range: Range,
+  // ) => {
+  //   if (selection.focusNode?.parentNode?.nodeName === "BUTTON")
+  //     return;
+  //
+  //   range.deleteContents();
+  //   const el = document.createElement("div");
+  //   btnElements.forEach(elem => el.appendChild(elem));
+  //
+  //   const frag = document.createDocumentFragment();
+  //   let node;
+  //   let lastNode;
+  //   while ((node = el.firstChild)) {
+  //     lastNode = frag.appendChild(node);
+  //   }
+  //   range.insertNode(frag);
+  //
+  //   if (lastNode) {
+  //     const newRange = range.cloneRange();
+  //     newRange.setStartAfter(lastNode);
+  //     newRange.collapse(true);
+  //     selection.removeAllRanges();
+  //     selection.addRange(newRange);
+  //   }
+  // }, []);
+  // 选择@人员
+  // const handleSelectAtPerson = useCallback((member: RoomMember) => {
+  //   setShowAtDialog(false);
+  //
+  //   if (!textareaRef.current || !editorRangeRef.current)
+  //     return;
+  //   const selection = editorRangeRef.current.selection;
+  //   const range = editorRangeRef.current.range;
+  //
+  //   if (range && selection) {
+  //     const textNode = range.endContainer;
+  //     if (textNode.nodeName === "#text") {
+  //       const textContent = textNode.textContent || "";
+  //       const expRes = /@([^@]*)$/.exec(textContent);
+  //
+  //       if (expRes && expRes.length > 1) {
+  //         range.setStart(textNode, expRes.index);
+  //         range.setEnd(textNode, expRes.index + expRes[0].length);
+  //         range.deleteContents();
+  //
+  //         const btn = document.createElement("button");
+  //         btn.dataset.person = JSON.stringify(member);
+  //         btn.textContent = `@${member.userName}`;
+  //         btn.setAttribute("style", "color:#4387f4;border:none;background:transparent;padding:0;font-size:inherit");
+  //         btn.contentEditable = "false";
+  //         btn.addEventListener("click", () => false);
+  //         btn.tabIndex = 0;
+  //
+  //         const spaceNode = document.createTextNode("\u00A0");
+  //         insertHtmlAtCaret([btn, spaceNode], selection, range);
+  //       }
+  //     }
+  //   }
+  //
+  //   setAtSearchKey("");
+  // }, []);
 
   /**
    *处理与组件的各种交互
    */
   const handleTextInputChange = (newText: string) => {
-    setInputTextWithouUpdateTextArea(newText);
+    setInputTextWithoutUpdateTextArea(newText);
   };
 
   const handleSelectCommand = (cmdName: string) => {
@@ -297,12 +392,37 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       e.preventDefault();
       handleMessageSubmit();
     }
+    if (e.key === "@") {
+      setShowAtDialog(true);
+      setAtSearchKey(inputText);
+    }
   };
 
   const handleRoleChange = (roleId: number) => {
     setCurRoleId(roleId);
     setCurAvatarIndex(0);
   };
+
+  function handleSelectAt(role: UserRole) {
+    const btn = document.createElement("button");
+    btn.dataset.person = JSON.stringify(role);
+    btn.textContent = `@${role.roleName}`;
+    btn.setAttribute(
+      "style",
+      "color:#4387f4;border:none;background:transparent;padding:0;font-size:inherit",
+    );
+    btn.contentEditable = "false";
+    // TODO
+    btn.addEventListener(
+      "click",
+      () => {
+        return false;
+      },
+      false,
+    );
+    textareaRef.current?.appendChild(btn);
+    setShowAtDialog(false);
+  }
 
   return (
     <RoomContext value={roomContext}>
@@ -409,6 +529,29 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     : (curAvatarId <= 0 ? "请给你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"))}
                 >
                 </div>
+                {showAtDialog && atDialogPosition.x > 0 && (
+                // 这里的坐标是全局的坐标，所以mount到根元素
+                  <Mounter targetId="modal-root">
+                    <div
+                      className="absolute flex flex-col card shadow-md bg-base-200 p-2"
+                      style={{ top: atDialogPosition.y + 20, left: atDialogPosition.x }}
+                    >
+                      {
+                        roomRoles.map(role => (
+                          <div
+                            className="flex flex-row items-center gap-2 hover:bg-base-300 rounded pt-1 pb-1"
+                            key={role.roleId}
+                            onClick={() => { handleSelectAt(role); }}
+                          >
+                            <RoleAvatarComponent avatarId={role.roleId ?? -1} width={8} isRounded={true} stopPopWindow={true}>
+                            </RoleAvatarComponent>
+                            {role.roleName}
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </Mounter>
+                )}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
                     {/* 角色选择器 */}
