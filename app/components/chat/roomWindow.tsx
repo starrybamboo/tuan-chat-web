@@ -50,12 +50,25 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const send = webSocketUtils.send;
 
   const textareaRef = useRef<HTMLDivElement>(null);
-  const [inputText, setInputText] = useState("");
+  // 在这里，由于采用了contentEditable的方法来实现输入框，本身并不具备数据的双向同步性，所以这里定义了两个set方法来控制inputText
+  // 下面的set函数仅用于handleInputChange处，用于同步到state中；（如果使用第二个set函数，则会出现输入一个字符显示两个的bug）
+  const [inputText, setInputTextWithouUpdateTextArea] = useState("");
+  // 如果想从外部控制输入框的内容，使用这个函数。
+  const setInputText = (text: string) => {
+    if (textareaRef.current) {
+      textareaRef.current.textContent = text;
+      // Move cursor to end
+      const range = document.createRange();
+      range.selectNodeContents(textareaRef.current);
+      range.collapse(false);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }
+  };
 
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const uploadUtils = new UploadUtils(2);
-
-  const [commandMode, setCommandMode] = useState<commandModeType>("none");
 
   // 聊天框中包含的图片
   const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
@@ -183,19 +196,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   /**
    *处理与组件的各种交互
    */
-  const handleTextInputChange = (newText?: string) => {
-    const newInput = newText ?? "";
-    setInputText(newInput);
-    if (newInput.startsWith("%")) {
-      setCommandMode("webgal");
-    }
-    else if (newInput.startsWith(".") || newInput.startsWith("。")) {
-      setCommandMode("dice");
-    }
-    else {
-      setCommandMode("none");
-    }
+  const handleTextInputChange = (newText: string) => {
+    setInputTextWithouUpdateTextArea(newText);
   };
+
   const handleSelectCommand = (cmdName: string) => {
     // 保持命令前缀格式（保留原输入的 . 或 。）
     const prefixChar = inputText[0];
@@ -356,7 +360,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                 <CommandPanel
                   prefix={inputText}
                   handleSelectCommand={handleSelectCommand}
-                  commandMode={commandMode}
+                  commandMode={
+                    inputText.startsWith("%")
+                      ? "webgal"
+                      : (inputText.startsWith(".") || inputText.startsWith("。"))
+                          ? "dice"
+                          : "none"
+                  }
                   className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10 w-full"
                 />
                 <div className="flex flex-row gap-2 pl-3">

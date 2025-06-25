@@ -72,4 +72,5 @@ body {
 
 .div-textarea:empty::before {
   content: attr(data-placeholder);
+  opacity: 0.6;
 }
