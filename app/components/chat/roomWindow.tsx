@@ -316,7 +316,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       else {
         send(messageRequest);
       }
-      handleTextInputChange("");
+      setInputText("");
     }
     setReplyMessage(undefined);
     setIsSubmitting(false);
@@ -397,17 +397,14 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     // 确保处理的是文本节点
     if (textNode.nodeType !== Node.TEXT_NODE)
       return;
-
     const text = textNode.textContent || "";
     const offset = range.startOffset;
 
     // 查找最后一个@符号
     const atIndex = Math.max(text.lastIndexOf("@", offset - 1), 0);
-
     // 替换文本为一个不可编辑的span，这样删除的时候可以整体的删除
     const beforeText = text.substring(0, atIndex);
     const afterText = text.substring(offset);
-    // 创建新元素
     const parent = textNode.parentNode;
     if (!parent)
       return;
@@ -418,10 +415,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     button.style.display = "inline-block";
     button.addEventListener("click", () => {});
 
-    // 创建新的文本节点用于后续输入
-    const newTextNode = document.createTextNode(afterText);
-
     // 替换内容
+    const newTextNode = document.createTextNode(afterText);
     textNode.textContent = beforeText;
     parent.insertBefore(button, textNode.nextSibling);
     parent.insertBefore(newTextNode, button.nextSibling);
