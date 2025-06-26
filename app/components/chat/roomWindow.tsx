@@ -182,7 +182,14 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [showAtDialog, setShowAtDialog] = useState(false);
   const [atDialogPosition, setAtDialogPosition] = useState({ x: 0, y: 0 });
   const [atSearchKey, setAtSearchKey] = useState("");
+  // 通过上下键来控制选中项
+  const [atSelectIndex, setAtSelectIndex] = useState(0);
+  // 显示atDialog的时候，初始化index
+  useEffect(() => {
+    setAtSelectIndex(0);
+  }, [showAtDialog]);
   const searchedRoles = showAtDialog ? roomRoles.filter(r => (r.roleName ?? "").includes(atSearchKey)) : [];
+  // 检测@提示框的位置
   useEffect(() => {
     if (showAtDialog) {
       const { x: cursorX, y: cursorY } = getSelectionCoords();
@@ -208,6 +215,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     if (!rangeInfo || !rangeInfo.range || !rangeInfo.selection)
       return;
     const curNode = rangeInfo.range.endContainer;
+
+    // 如果没有@符号，关闭对话框
+    if (!curNode.textContent?.includes("@")) {
+      setShowAtDialog(false);
+      setAtSearchKey("");
+      return;
+    }
     // 处理文本结尾是@人员Button并且没有任何字符的情况
     // 如果光标超出编辑器，则选中最后一个子元素
     if (curNode.nodeName === "DIV") {
@@ -220,8 +234,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         const lastChildNode: Node = notEmptyNodes[notEmptyNodes.length - 1];
         if (lastChildNode && lastChildNode?.nodeName === "BUTTON") {
           document.execCommand("insertHTML", false, "\n");
-          // rangeInfo.range.setStartBefore(lastChildNode)
-          // rangeInfo.range.setEndAfter(lastChildNode)
         }
       }
     }
@@ -350,9 +362,28 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   const isComposingRef = useRef(false);
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey && !isComposingRef.current) {
-      e.preventDefault();
-      handleMessageSubmit();
+    if (showAtDialog) {
+      switch (e.key) {
+        case "Enter": {
+          e.preventDefault();
+          handleSelectAt(searchedRoles[atSelectIndex]);
+          break;
+        }
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setAtSelectIndex(Math.max(atSelectIndex - 1, 0));
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setAtSelectIndex(Math.min(atSelectIndex + 1, searchedRoles.length - 1));
+      }
+    }
+    else {
+      if (e.key === "Enter" && !e.shiftKey && !isComposingRef.current) {
+        e.preventDefault();
+        handleMessageSubmit();
+      }
     }
   };
   const handleKeyUp = (e: React.KeyboardEvent) => {
@@ -436,7 +467,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       setInputTextWithoutUpdateTextArea(textareaRef.current.textContent || "");
     }
   }
-
   return (
     <RoomContext value={roomContext}>
       <div className="w-full flex gap-4">
@@ -544,6 +574,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     : (curAvatarId <= 0 ? "请给你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"))}
                 >
                 </div>
+                {/* at搜索框 */}
                 {showAtDialog && atDialogPosition.x > 0 && searchedRoles.length > 0 && (
                 // 这里的坐标是全局的坐标，所以mount到根元素
                   <Mounter targetId="modal-root">
@@ -552,9 +583,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       style={{ top: atDialogPosition.y - 5, left: atDialogPosition.x, transform: "translateY(-100%)" }}
                     >
                       {
-                        searchedRoles.map(role => (
+                        searchedRoles.map((role, index) => (
                           <div
-                            className="flex flex-row items-center gap-2 hover:bg-base-300 rounded pt-1 pb-1"
+                            className={`flex flex-row items-center gap-2 hover:bg-base-300 rounded pt-1 pb-1 ${index === atSelectIndex ? "bg-base-300" : ""}`}
                             key={role.roleId}
                             onClick={() => {
                               handleSelectAt(role);
