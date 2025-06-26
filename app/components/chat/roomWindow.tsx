@@ -179,9 +179,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
    * At 功能
    */
   // TODO
-  const [showAtDialog, setShowAtDialog] = useState(false);
-  const [atDialogPosition, setAtDialogPosition] = useState({ x: 0, y: 0 });
-  const [atSearchKey, setAtSearchKey] = useState("");
+  const [showAtDialog, setShowAtDialog] = useState(false); // 是否显示@弹窗
+  const [atDialogPosition, setAtDialogPosition] = useState({ x: 0, y: 0 }); // @弹窗的位置，基于屏幕坐标
+  const [atSearchKey, setAtSearchKey] = useState(""); // @弹窗的搜索关键词
   // 通过上下键来控制选中项
   const [atSelectIndex, setAtSelectIndex] = useState(0);
   // 显示atDialog的时候，初始化index
@@ -193,21 +193,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   useEffect(() => {
     if (showAtDialog) {
       const { x: cursorX, y: cursorY } = getSelectionCoords();
-      if (textareaRef.current) {
-        const editorWidth = textareaRef.current.offsetWidth;
-        const editorLeft = textareaRef.current.getBoundingClientRect().left;
-        const editorRight = editorLeft + editorWidth;
-        const dialogWidth = 300;
-        if (cursorX + dialogWidth > editorRight) {
-          setAtDialogPosition({ x: editorRight - dialogWidth, y: cursorY });
-        }
-        else {
-          setAtDialogPosition({ x: cursorX, y: cursorY });
-        }
-      }
-      else {
-        setAtDialogPosition({ x: cursorX, y: cursorY });
-      }
+      setAtDialogPosition({ x: Math.min(cursorX, screen.width - 100), y: cursorY });
     }
   }, [showAtDialog, atSearchKey]);
   const checkIsShowSelectDialog = () => {
