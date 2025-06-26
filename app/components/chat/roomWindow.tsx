@@ -560,7 +560,14 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   className="textarea chatInputTextarea w-full flex-1 h-full overflow-auto
                      min-h-[80px] max-h-[200px] resize-none border-none focus:outline-none focus:ring-0 overflow-auto div-textarea"
                   ref={textareaRef}
-                  onInput={(e) => { handleTextInputChange(e.currentTarget?.textContent ?? ""); }}
+                  onInput={(e) => {
+                    const content = e.currentTarget?.innerHTML || "";
+                    const text = content
+                      .replace(/<br\s*\/?>/gi, "\n") // 转换所有<br>为换行符
+                      .replace(/&nbsp;/g, " ") // 转换&nbsp;为普通空格
+                      .replace(/<[^>]+(>|$)/g, ""); // 移除其他HTML标签但保留文本
+                    setInputTextWithoutUpdateTextArea(text);
+                  }}
                   onKeyDown={handleKeyDown}
                   onKeyUp={handleKeyUp}
                   onMouseDown={handleMouseDown}
