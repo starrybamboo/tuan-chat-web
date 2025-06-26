@@ -53,6 +53,15 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   // 在这里，由于采用了contentEditable的方法来实现输入框，本身并不具备数据的双向同步性，所以这里定义了两个set方法来控制inputText
   // 下面的set函数仅用于handleInputChange处，用于同步到state中；（如果使用第二个set函数，则会出现输入一个字符显示两个的bug）
   const [inputText, setInputTextWithoutUpdateTextArea] = useState("");
+  // 将inputText同步到textarea中，只保留文本，并把<br>转换为换行符。
+  const syncInputText = () => {
+    const content = textareaRef.current?.innerHTML || "";
+    const text = content
+      .replace(/<br\s*\/?>/gi, "\n") // 转换所有<br>为换行符
+      .replace(/&nbsp;/g, " ") // 转换&nbsp;为普通空格
+      .replace(/<[^>]+(>|$)/g, ""); // 移除其他HTML标签但保留文本
+    setInputTextWithoutUpdateTextArea(text);
+  };
   // 如果想从外部控制输入框的内容，使用这个函数。
   const setInputText = (text: string) => {
     if (textareaRef.current) {
@@ -242,10 +251,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   /**
    *处理与组件的各种交互
    */
-  const handleTextInputChange = (newText: string) => {
-    setInputTextWithoutUpdateTextArea(newText);
-  };
-
   const handleSelectCommand = (cmdName: string) => {
     // 保持命令前缀格式（保留原输入的 . 或 。）
     const prefixChar = inputText[0];
@@ -447,10 +452,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     sel.addRange(newRange);
 
     setShowAtDialog(false);
-
-    // 更新 React 状态
+    // 这里需要把div中的文本更新到textarea中
     if (textareaRef.current) {
-      setInputTextWithoutUpdateTextArea(textareaRef.current.textContent || "");
+      syncInputText();
     }
   }
   return (
@@ -546,14 +550,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   className="textarea chatInputTextarea w-full flex-1 h-full overflow-auto
                      min-h-[80px] max-h-[200px] resize-none border-none focus:outline-none focus:ring-0 overflow-auto div-textarea"
                   ref={textareaRef}
-                  onInput={(e) => {
-                    const content = e.currentTarget?.innerHTML || "";
-                    const text = content
-                      .replace(/<br\s*\/?>/gi, "\n") // 转换所有<br>为换行符
-                      .replace(/&nbsp;/g, " ") // 转换&nbsp;为普通空格
-                      .replace(/<[^>]+(>|$)/g, ""); // 移除其他HTML标签但保留文本
-                    setInputTextWithoutUpdateTextArea(text);
-                  }}
+                  onInput={syncInputText}
                   onKeyDown={handleKeyDown}
                   onKeyUp={handleKeyUp}
                   onMouseDown={handleMouseDown}
@@ -655,7 +652,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           <CommandPanel
             prefix="."
             handleSelectCommand={(cmdName) => {
-              handleTextInputChange(`.${cmdName}`);
+              setInputText(`.${cmdName}`);
               setCommandBrowseWindow("none");
             }}
             commandMode="dice"
@@ -669,7 +666,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           <CommandPanel
             prefix="%"
             handleSelectCommand={(cmdName) => {
-              handleTextInputChange(`%${cmdName}`);
+              setInputText(`%${cmdName}`);
               setCommandBrowseWindow("none");
             }}
             commandMode="webgal"
