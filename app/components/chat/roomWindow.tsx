@@ -1,6 +1,7 @@
 import type { commandModeType } from "@/components/chat/commandPanel";
 import type { RoomContextType } from "@/components/chat/roomContext";
 
+import type { LLMProperty } from "@/components/settings/settingsPage";
 import type {
   ChatMessagePageRequest,
   ChatMessageRequest,
@@ -18,6 +19,7 @@ import { RoomContext } from "@/components/chat/roomContext";
 import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
+import { getLocalStorageValue } from "@/components/common/customHooks/useLocalStorage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { Mounter } from "@/components/common/mounter";
 import { PopWindow } from "@/components/common/popWindow";
@@ -183,11 +185,78 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   useEffect(() => {
     setCurRoleId(roomRolesThatUserOwn[0]?.roleId ?? -1);
   }, [roomRolesThatUserOwn]);
+  /**
+   * 输入框相关
+   */
+
+  /**
+   * 在当前光标位置插入节点
+   * @param node 要插入的DOM节点或字符串
+   * @param options 配置项：
+   *   - replaceSelection: 是否替换当前选区内容（默认false）
+   *   - moveCursorToEnd: 插入后是否将光标移动到节点末尾（默认false）
+   * @returns 是否插入成功
+   */
+  const insertNodeAtCursor = (
+    node: Node | string,
+    options?: {
+      replaceSelection?: boolean;
+      moveCursorToEnd?: boolean;
+    },
+  ): boolean => {
+    const { replaceSelection = false, moveCursorToEnd = false } = options || {};
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0)
+      return false;
+    const range = selection.getRangeAt(0);
+    // 替换选区内容
+    if (replaceSelection) {
+      range.deleteContents();
+    }
+
+    // 插入节点
+    const insertedNode = typeof node === "string"
+      ? document.createTextNode(node)
+      : node;
+    range.insertNode(insertedNode);
+
+    // 移动光标到节点末尾
+    if (moveCursorToEnd) {
+      const newRange = document.createRange();
+      newRange.selectNodeContents(insertedNode);
+      newRange.collapse(false); // false表示移动到末尾
+      selection.removeAllRanges();
+      selection.addRange(newRange);
+    }
+
+    return true;
+  };
+  /**
+   * 获取光标前后文本
+   * @returns { before: string; after: string } 光标前后的文本
+   */
+  const getTextAroundCursor = (): { before: string; after: string } => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0)
+      return { before: "", after: "" };
+
+    const range = selection.getRangeAt(0);
+    const node = range.startContainer;
+
+    // 只处理文本节点
+    if (node.nodeType !== Node.TEXT_NODE)
+      return { before: "", after: "" };
+
+    const text = node.textContent || "";
+    return {
+      before: text.substring(0, range.startOffset),
+      after: text.substring(range.startOffset),
+    };
+  };
 
   /**
    * At 功能
    */
-  // TODO
   const [showAtDialog, setShowAtDialog] = useState(false); // 是否显示@弹窗
   const [atDialogPosition, setAtDialogPosition] = useState({ x: 0, y: 0 }); // @弹窗的位置，基于屏幕坐标
   const [atSearchKey, setAtSearchKey] = useState(""); // @弹窗的搜索关键词
@@ -246,6 +315,113 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       }
       setAtSearchKey(keyWord);
     }
+  };
+  /**
+   * ai自动补全
+   */
+  const [LLMMessage, setLLMMessage] = useState("");
+  const isAutoCompletingRef = useRef(false);
+  const autoComplete = async () => {
+    const llmSettings = getLocalStorageValue<LLMProperty>("llmSettings", {});
+    const apiKey = llmSettings.openaiApiKey;
+    const apiUrl = llmSettings.openaiApiBaseUrl ?? "";
+    const model = llmSettings.openaiModelName;
+    if (!inputText.trim() || isAutoCompletingRef.current)
+      return;
+    isAutoCompletingRef.current = true;
+    setLLMMessage(""); // 清空之前的消息
+    const { before: beforeMessage, after: afterMessage } = getTextAroundCursor();
+    const prompt = beforeMessage === ""
+      ? `请根据以下文本内容，提供一段自然连贯的续写或灵感提示。重点关注上下文的逻辑和主题发展。只提供续写内容，不要额外解释。文本内容：${inputText}`
+      : `请根据以下文本内容，插入一段自然连贯的文本的或灵感提示。重点关注上下文的逻辑和主题发展。只提插入的内容，不要额外解释。插入点前的文本：${beforeMessage},插入点后的文本${afterMessage}`;
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{
+            role: "user",
+            content: prompt,
+          }],
+          stream: true,
+          max_tokens: 1024,
+          temperature: 0.7,
+        }),
+      });
+      if (!response.ok || !response.body) {
+        throw new Error(`API请求失败: ${response.status}`);
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullMessage = "";
+      while (true) {
+        if (!isAutoCompletingRef.current) {
+          reader.cancel();
+          setLLMMessage("");
+          break;
+        }
+        const { done, value } = await reader.read();
+        if (done)
+          break;
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n").filter(line => line.trim() !== "");
+        for (const line of lines) {
+          if (line.startsWith("data:") && line !== "data: [DONE]") {
+            try {
+              const data = JSON.parse(line.substring(5));
+              if (data.choices?.[0]?.delta?.content) {
+                fullMessage += data.choices[0].delta.content;
+                setLLMMessage(fullMessage); // 更新显示的内容
+              }
+            }
+            catch (e) {
+              console.error("解析流数据失败:", e);
+            }
+          }
+        }
+      }
+    }
+    catch (error) {
+      console.error("API请求错误:", error);
+      setLLMMessage("自动补全请求失败，请重试");
+    }
+    finally {
+      isAutoCompletingRef.current = false;
+    }
+  };
+  useEffect(() => {
+    // 创建提示文本节点
+    const hintNode = document.createElement("span");
+    hintNode.textContent = LLMMessage;
+    hintNode.className = "opacity-60";
+    hintNode.contentEditable = "false";
+    hintNode.style.pointerEvents = "none"; // 防止干扰用户输入
+    insertNodeAtCursor(hintNode);
+    // 开始输入时移除自动补全的文本
+    const handleInput = () => {
+      if (hintNode.parentNode) {
+        hintNode.parentNode.removeChild(hintNode);
+      }
+      textareaRef.current?.removeEventListener("input", handleInput);
+      isAutoCompletingRef.current = false;
+    };
+    textareaRef.current?.addEventListener("input", handleInput);
+    return () => {
+      if (hintNode.parentNode) {
+        hintNode.parentNode.removeChild(hintNode);
+      }
+      textareaRef.current?.removeEventListener("input", handleInput);
+    };
+  }, [LLMMessage]);
+
+  const insertLLMMessageIntoText = () => {
+    insertNodeAtCursor(LLMMessage, { moveCursorToEnd: true });
+    syncInputText();
+    setLLMMessage(""); // 清空补全提示
   };
 
   /**
@@ -375,6 +551,14 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         e.preventDefault();
         handleMessageSubmit();
       }
+      else if (e.altKey && e.key === "p") {
+        autoComplete();
+      }
+      else if (e.key === "Tab") {
+        e.preventDefault();
+        insertLLMMessageIntoText();
+        isAutoCompletingRef.current = false;
+      }
     }
   };
   const handleKeyUp = (e: React.KeyboardEvent) => {
@@ -430,18 +614,18 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     const parent = textNode.parentNode;
     if (!parent)
       return;
-    const button = document.createElement("span");
-    button.textContent = `@${role.roleName}`;
-    button.className = "inline text-blue-500 bg-transparent px-0 py-0 border-none";
-    button.contentEditable = "false";
-    button.style.display = "inline-block";
-    button.addEventListener("click", () => {});
+    const span = document.createElement("span");
+    span.textContent = `@${role.roleName}`;
+    span.className = "inline text-blue-500 bg-transparent px-0 py-0 border-none";
+    span.contentEditable = "false";
+    span.style.display = "inline-block";
+    span.addEventListener("click", () => {});
 
     // 替换内容
     const newTextNode = document.createTextNode(afterText);
     textNode.textContent = beforeText;
-    parent.insertBefore(button, textNode.nextSibling);
-    parent.insertBefore(newTextNode, button.nextSibling);
+    parent.insertBefore(span, textNode.nextSibling);
+    parent.insertBefore(newTextNode, span.nextSibling);
 
     // 设置光标在新文本节点开头
     const newRange = document.createRange();
