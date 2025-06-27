@@ -14,14 +14,14 @@ export default function RepliedMessage({ replyMessage, className }: {
       <button
         onClick={() => roomContext.setReplyMessage && roomContext.setReplyMessage(undefined)}
         className="size-4 opacity-70 transition-opacity hover:bg-base-300"
+        type="button"
       >
         <XMarkICon className="size-4"></XMarkICon>
       </button>
-      <span className="opacity-60">回复</span>
+      <span className="opacity-60 inline flex-shrink-0">回复</span>
       <PreviewMessage
         message={replyMessage}
-        className="flex flex-row gap-3 opacity-60"
-        showData={false}
+        className=""
       >
       </PreviewMessage>
     </div>

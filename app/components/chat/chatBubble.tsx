@@ -93,12 +93,10 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
         {
           message.replyMessageId
           && (
-            <div className="flex flex-row gap-2 text-sm card my-1 w-max opacity-60">
-              <span className="">| 回复</span>
+            <div className="flex flex-row gap-2 my-1 ">
+              <span className="opacity-60 inline flex-shrink-0 text-sm">| 回复</span>
               <PreviewMessage
                 message={message.replyMessageId}
-                className="flex flex-row gap-3"
-                showData={false}
               >
               </PreviewMessage>
             </div>
