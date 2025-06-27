@@ -108,6 +108,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
           handleContentUpdate={handleContentUpdate}
           className="whitespace-pre-wrap editable-field overflow-auto" // 为了方便select到这个节点
           canEdit={canEdit}
+          fieldId={`msg${message.messageID}`}
         >
         </EditableField>
       </>
