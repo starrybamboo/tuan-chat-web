@@ -93,12 +93,10 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
         {
           message.replyMessageId
           && (
-            <div className="flex flex-row gap-2 text-sm card my-1 w-max opacity-60">
-              <span className="">| 回复</span>
+            <div className="flex flex-row gap-2 my-1 ">
+              <span className="opacity-60 inline flex-shrink-0 text-sm">| 回复</span>
               <PreviewMessage
                 message={message.replyMessageId}
-                className="flex flex-row gap-3"
-                showData={false}
               >
               </PreviewMessage>
             </div>
@@ -110,6 +108,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
           handleContentUpdate={handleContentUpdate}
           className="whitespace-pre-wrap editable-field overflow-auto" // 为了方便select到这个节点
           canEdit={canEdit}
+          fieldId={`msg${message.messageID}`}
         >
         </EditableField>
       </>
@@ -189,7 +188,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 </div>
               </div>
               {/* 消息内容 */}
-              <div className="flex-1">
+              <div className="flex-1 overflow-auto">
                 {/* 角色名 */}
                 <div
                   className={`cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`}

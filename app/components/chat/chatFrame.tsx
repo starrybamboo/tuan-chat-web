@@ -70,12 +70,12 @@ export default function ChatFrame({ useChatBubbleStyle }:
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     return roomContext.historyMessages ?? [];
   }, [roomContext.historyMessages]);
-  const messagesInfiniteQuery = roomContext.messageInfiniteQuery;
-  const fetchNextPage = useCallback(() => {
+  const messagesInfiniteQuery = roomContext.messagesInfiniteQuery;
+  const fetchNextPage = () => {
     if (messagesInfiniteQuery?.hasNextPage && !messagesInfiniteQuery?.isFetching) {
       messagesInfiniteQuery?.fetchNextPage();
     }
-  }, [messagesInfiniteQuery]);
+  };
   /**
    * 虚拟列表
    */

@@ -7,10 +7,9 @@ import { use, useMemo } from "react";
 import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../api/queryHooks";
 
-export function PreviewMessage({ message, className, showData = true }: {
+export function PreviewMessage({ message, className }: {
   message: Message | number; // 允许message为id
   className?: string;
-  showData?: boolean;
 }) {
   const roomContext = use(RoomContext);
 
@@ -29,33 +28,11 @@ export function PreviewMessage({ message, className, showData = true }: {
   const role = useRoleRequest.data?.data;
   const isTextMessage = messageBody?.messageType === 1;
   return (
-    <div className={className}>
-      <div className="flex items-center">
-        <div className="text-sm text-base-content">
-          {role?.roleName || "YOU_KNOW_WHO"}
-        </div>
-        {
-          showData
-          && (
-            <div className="ml-2 text-xs text-base-content/50">
-              {messageBody?.createTime}
-            </div>
-          )
-        }
-      </div>
-
-      {isTextMessage
-        ? (
-            <p className="text-sm text-base-content break-words line-clamp-1">
-              {messageBody.content}
-            </p>
-          )
-        : (
-            <div className="text-sm text-base-content/50">
-              [非文本消息]
-            </div>
-          )}
-    </div>
+    <span className={`text-sm line-clamp-3 opacity-60 break-words ${className}`}>
+      {role?.roleName || "YOU_KNOW_WHO"}
+      {": "}
+      {isTextMessage ? messageBody.content : "非文本消息"}
+    </span>
   );
 }
 
@@ -67,7 +44,7 @@ export default function ForwardMessage({ messageResponse }: { messageResponse: C
   const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`forwardMegDetailPop${messageResponse.message.messageID}`, false);
   const renderedPreviewMessages = useMemo(() => {
     return previewMessages.map(item => (
-      <div key={`${item.message.messageID}`} className="bg-base-100 p-3 rounded-box shadow-sm">
+      <div key={`${item.message.messageID}`} className="bg-base-100 p-2 rounded-box shadow-sm">
         <PreviewMessage message={item.message}></PreviewMessage>
       </div>
     ));

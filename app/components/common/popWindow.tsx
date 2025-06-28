@@ -11,7 +11,8 @@ export function PopWindow({ isOpen, children, onClose, fullScreen = false }: {
   isOpen: boolean;
   children: React.ReactNode;
   onClose: () => void;
-  fullScreen?: boolean; // 开启后会变成全屏，并且只能靠右上角的关闭按钮关闭
+  /** 开启后会变成全屏，并且只能靠右上角的关闭按钮关闭 */
+  fullScreen?: boolean;
 }) {
   if (!isOpen) {
     return null;
