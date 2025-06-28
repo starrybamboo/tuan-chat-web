@@ -9,7 +9,7 @@ export function RoleDetail({ roleId }: { roleId: number }) {
   const avatarQuery = useGetRoleAvatarQuery(role?.avatarId || 0);
 
   return (
-    <div className="card bg-base-100 shadow-xl flex sm:flex-row flex-col gap-8 ">
+    <div className="card bg-base-100 flex sm:flex-row flex-col gap-8 ">
       <div className="card-body">
         {/* 角色标识部分 */}
         <div className="flex flex-col items-center gap-4">

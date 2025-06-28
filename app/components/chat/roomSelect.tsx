@@ -165,8 +165,9 @@ export default function RoomSelect() {
       isSpaceOwner: spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1),
       setActiveSpaceId,
       setActiveRoomId,
+      ruleId: spaces.find(space => space.spaceId === activeSpaceId)?.ruleId,
     };
-  }, [activeSpaceId, globalContext.userId, spaceMembersQuery.data?.data]);
+  }, [activeSpaceId, globalContext.userId, spaceMembersQuery.data?.data, spaces]);
 
   const getSpaceUnreadMessagesNumber = (spaceId: number) => {
     let result = 0;
