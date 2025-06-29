@@ -10,6 +10,12 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import React, { useMemo, useState } from "react";
 import { useDeleteCommentMutation, useGetCommentByIdQuery } from "../../../../api/hooks/commentQueryHooks";
 
+/**
+ * 评论组件，使用递归的方式渲染
+ * @param comment Comment对象
+ * @param level 最大深度，如果超过了这个深度就显示一个按钮，点击后可以以一个弹窗的形式查看更深的评论
+ * @constructor
+ */
 export default function CommentComponent({ comment, level = 1 }: {
   comment: number | CommentVO; // 可以传commentVO数据或者commentId
   level?: number;

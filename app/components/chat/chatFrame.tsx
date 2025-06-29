@@ -41,6 +41,12 @@ function ScrollSeekPlaceholder({ height }: { height: number }) {
   );
 }
 
+/**
+ * 聊天框（不带输入部分）
+ * @param useChatBubbleStyle 是否使用气泡样式
+ * @constructor
+ */
+
 export default function ChatFrame({ useChatBubbleStyle }:
 { useChatBubbleStyle: boolean }) {
   const globalContext = useGlobalContext();

@@ -34,6 +34,11 @@ export function isCommand(command: string) {
   return (trimmed.startsWith(".") || trimmed.startsWith("。"));
 }
 
+/**
+ * 命令执行器钩子函数
+ * @param roleId roleId，会根据ruleId来获取对应角色的ability值
+ * @param ruleId 规则ID，会根据ruleId来获取对应角色对应规则下的能力组
+ */
 export default function useCommandExecutor(roleId: number, ruleId: number) {
   const { spaceId: _, roomId: urlRoomId } = useParams();
   const roomId = Number(urlRoomId);

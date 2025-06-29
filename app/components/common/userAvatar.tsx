@@ -32,6 +32,14 @@ const sizeMap = {
   36: "w-36 h-36", // 144px
 } as const;
 
+/**
+ * 用户头像组件
+ * @param userId 用户ID
+ * @param width 头像宽度尺寸
+ * @param isRounded 是否显示为圆形头像（true的时候是rounded-full，false的时候是rounded）
+ * @param withName 是否显示用户名，默认为false
+ * @param stopPopWindow 是否禁用点击弹出用户详情窗口，默认为false
+ */
 export default function UserAvatarComponent({ userId, width, isRounded, withName = false, stopPopWindow = false }: {
   userId: number;
   width: keyof typeof sizeMap; // 头像的宽度

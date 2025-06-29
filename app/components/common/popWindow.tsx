@@ -6,6 +6,15 @@ import React from "react";
  * 这样，在回退url的时候也能关闭弹窗（这主要是对移动端的优化）
  * 另外注意的是，useParamsState中的key不要取太常规的名字（比如“pop”），
  * 如果有两个相同key的popWindow同时被打开就会出现bug！这个key在一个页面内应该是要唯一的！
+ * 例子：
+ * const [isOpen, setIsOpen] = useSearchParamsState<boolean>("WindowNamePop", false);
+ * ......
+ * <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>content</PopWindow>
+ * @param isOpen 控制是否开启
+ * @param children 弹窗显示的内容
+ * @param onClose 当关闭的时候的回调函数，一般类似setIsOpen(false)
+ * @param fullScreen 开启后会变成全屏，并且只能靠右上角的关闭按钮关闭
+ * @constructor
  */
 export function PopWindow({ isOpen, children, onClose, fullScreen = false }: {
   isOpen: boolean;

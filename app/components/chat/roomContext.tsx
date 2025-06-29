@@ -11,18 +11,49 @@ import type {
 import { createContext } from "react";
 
 export interface RoomContextType {
-  roomId?: number; // 当前激活的群组ID
+  /** 当前激活的群组ID */
+  roomId?: number;
+
+  /** 房间成员列表 */
   roomMembers: RoomMember[];
-  curMember?: RoomMember; // 全局登录用户对应的member
-  roomRolesThatUserOwn: UserRole[]; // 当前登录用户在这个房间里所拥有的角色
-  curRoleId?: number; // 当前选中的角色ID
-  curAvatarId?: number; // 当前选中的角色的立绘ID
-  useChatBubbleStyle: boolean; // 是否使用气泡样式
-  spaceId?: number; // 当前激活的空间ID
-  setReplyMessage?: React.Dispatch<React.SetStateAction<Message | undefined>>; // 设置回复消息
-  historyMessages?: ChatMessageResponse[]; // 历史消息，整合了用html请求到的消息和从websocket获取到的新消息，已按照pos进行排序
-  messagesInfiniteQuery?: UseInfiniteQueryResult<InfiniteData<ApiResultCursorPageBaseResponseChatMessageResponse, unknown>, Error>;
-  // 获取历史消息的钩子函数，由于infiniteQuery是个有状态的东西，不能重复定义，所以放在了context里面
+
+  /** 当前登录用户对应的成员信息 */
+  curMember?: RoomMember;
+
+  /** 当前用户在该房间拥有的角色列表 */
+  roomRolesThatUserOwn: UserRole[];
+
+  /** 当前选中的角色ID */
+  curRoleId?: number;
+
+  /** 当前选中角色的立绘ID */
+  curAvatarId?: number;
+
+  /** 是否使用气泡样式显示消息 */
+  useChatBubbleStyle: boolean;
+
+  /** 当前激活的空间ID */
+  spaceId?: number;
+
+  /** 设置回复消息的回调函数 */
+  setReplyMessage?: React.Dispatch<React.SetStateAction<Message | undefined>>;
+
+  /**
+   * 历史消息列表
+   * 包含通过HTML请求获取的消息和WebSocket接收的新消息
+   * 已按照位置(pos)排序
+   */
+  historyMessages?: ChatMessageResponse[];
+
+  /**
+   * 无限滚动查询结果
+   * 用于获取历史消息的分页数据
+   * 由于infiniteQuery是有状态的，不能重复定义，所以放在context中共享
+   */
+  messagesInfiniteQuery?: UseInfiniteQueryResult<
+    InfiniteData<ApiResultCursorPageBaseResponseChatMessageResponse, unknown>,
+    Error
+  >;
 }
 
 export const RoomContext = createContext<RoomContextType>({

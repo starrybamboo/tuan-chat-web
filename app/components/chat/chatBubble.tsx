@@ -15,7 +15,9 @@ import React, { use, useMemo } from "react";
 import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
 
 export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
+  /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
+  /** 控制是否应用气泡样式，默认为false */
   useChatBubbleStyle?: boolean;
 }) {
   const message = chatMessageResponse.message;

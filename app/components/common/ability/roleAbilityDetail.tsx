@@ -1,21 +1,18 @@
 import type { AbilityFieldUpdateRequest } from "../../../../api";
-import AddAbilityWindow from "@/components/common/ability/addAbilityWindow";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { PopWindow } from "@/components/common/popWindow";
-import React, { useState } from "react";
+import { SpaceContext } from "@/components/chat/spaceContext";
+import React, { use, useState } from "react";
 import {
   useGetRoleAbilitiesQuery,
   useUpdateKeyFieldMutation,
   useUpdateRoleAbilityMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
-import { useGetRuleDetailQueries } from "../../../../api/hooks/ruleQueryHooks";
 
 export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   const roleAbilityListQuery = useGetRoleAbilitiesQuery(roleId);
   const roleAbilityList = roleAbilityListQuery.data?.data ?? [];
-  const ruleIds = roleAbilityList?.map(ability => ability.ruleId ?? -1) ?? [];
-  const ruleQueries = useGetRuleDetailQueries(ruleIds);
-  const rules = ruleQueries.map(query => query.data?.data ?? {}) ?? [];
+
+  const spaceContext = use(SpaceContext);
+  const ability = roleAbilityList.find(ability => ability.ruleId === spaceContext.ruleId);
 
   const [editingField, setEditingField] = useState<{
     abilityId: number;
@@ -30,8 +27,6 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
   // Mutations
   const updateAbilityMutation = useUpdateRoleAbilityMutation();
   const updateKeyFieldMutation = useUpdateKeyFieldMutation();
-
-  const [isOpenAbilityWindow, setIsOpenAbilityWindow] = useSearchParamsState<boolean>(`roleAbilityPop${roleId}`, false);
 
   // 统一处理字段更新
   const handleUpdate = (abilityId: number, type: "ability" | "act", key: string, updateValue: string, isKeyField: boolean) => {
@@ -101,83 +96,68 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
         );
   };
 
+  if (!ability) {
+    return <></>;
+  }
+
   return (
-    <div className="flex flex-col gap-2 overflow-auto">
-      {roleAbilityList.map((ability, index) => {
-        return (
-          <div key={ability.abilityId} className="flex flex-col gap-1">
-            <div className="collapse collapse-plus bg-base-100 border-base-300 border w-m">
-              <input type="checkbox" />
-              <div className="collapse-title font-semibold">
-                {rules[index].ruleName ?? "未命名规则"}
-                <span className="text-xs text-gray-500">{` id:${rules[index].ruleId}`}</span>
+    <div className="flex flex-col gap-4 p-4 bg-base-100 rounded-box">
+      <div key={ability.abilityId} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 w-full">
+          {/* 角色属性部分 */}
+          <div className="card bg-base-200 p-4">
+            <h3 className="card-title text-lg font-bold mb-4">角色属性</h3>
+            <div className="flex flex-col gap-4">
+              <div className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  placeholder="属性名"
+                  className="input input-bordered flex-1"
+                  onChange={e => setEditAddKey(e.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="值"
+                  className="input input-bordered flex-1"
+                  onChange={e => setEditAddValue(e.target.value)}
+                />
+                <button
+                  className="btn btn-info"
+                  type="button"
+                  onClick={() => handleUpdate(ability.abilityId ?? -1, "ability", editAddKey, editAddValue, false)}
+                >
+                  添加属性
+                </button>
               </div>
-              <div className="collapse-content  flex flex-row gap-2 w-full">
-                <div className="flex flex-col gap-1">
-                  {/* 角色属性 */}
-                  <div className="collapse collapse-plus bg-base-100 border-base-300 border m-2 w-full">
-                    <input type="checkbox" />
-                    <div className="collapse-title font-semibold">角色属性</div>
-                    <div className="collapse-content flex flex-col gap-y-4">
-                      <div className="flex gap-3 justify-center items-center">
-                        <input
-                          type="text"
-                          placeholder="属性名"
-                          className="input"
-                          onChange={e => setEditAddKey(e.target.value)}
-                        />
-                        <input
-                          type="text"
-                          placeholder="值"
-                          className="input"
-                          onChange={e => setEditAddValue(e.target.value)}
-                        />
-                        <button className="btn-info btn " type="button" onClick={() => handleUpdate(ability.abilityId ?? -1, "ability", editAddKey, editAddValue, false)}>添加属性</button>
-                      </div>
-                      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6">
-                        {Object.entries(ability.ability ?? {}).map(([key, value]) => (
-                          <div key={key} className="break-inside-avoid mb-2 ml-1 p-2 border rounded-lg">
-                            <div className="flex justify-between">
-                              {renderEditableField(ability.abilityId ?? -1, "ability", true, key, value)}
-                              {renderEditableField(ability.abilityId ?? -1, "ability", false, key, value)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                {Object.entries(ability.ability ?? {}).map(([key, value]) => (
+                  <div key={key} className="card bg-base-100 shadow-sm p-3">
+                    <div className="flex justify-between">
+                      {renderEditableField(ability.abilityId ?? -1, "ability", true, key, value)}
+                      {renderEditableField(ability.abilityId ?? -1, "ability", false, key, value)}
                     </div>
                   </div>
-                  {/* // 角色能力 */}
-                  <div className="collapse collapse-plus bg-base-100 border-base-300 border m-2 w-full">
-                    <input type="checkbox" />
-                    <div className="collapse-title font-semibold">角色能力</div>
-                    <div className="collapse-content">
-                      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6">
-                        {Object.entries(ability.act ?? {}).map(([key, value]) => (
-                          <div
-                            key={key}
-                            className="break-inside-avoid mb-2 ml-1 p-2 border rounded-lg"
-                          >
-                            <div className="flex justify-between">
-                              {renderEditableField(ability.abilityId ?? -1, "act", true, key, value)}
-                              {renderEditableField(ability.abilityId ?? -1, "act", false, key, value)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </div>
-        );
-      })}
-      <div className="flex justify-center items-center flex-col gap-8">
-        <button className="btn" type="button" onClick={() => setIsOpenAbilityWindow(true)}>新建一个能力组</button>
+
+          {/* 角色能力部分 */}
+          <div className="card bg-base-200 p-4">
+            <h3 className="card-title text-lg font-bold mb-4">角色能力</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              {Object.entries(ability.act ?? {}).map(([key, value]) => (
+                <div key={key} className="card bg-base-100 shadow-sm p-3">
+                  <div className="flex justify-between">
+                    {renderEditableField(ability.abilityId ?? -1, "act", true, key, value)}
+                    {renderEditableField(ability.abilityId ?? -1, "act", false, key, value)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
-      <PopWindow isOpen={isOpenAbilityWindow} onClose={() => setIsOpenAbilityWindow(false)}>
-        <AddAbilityWindow roleId={roleId} onClose={() => setIsOpenAbilityWindow(false)} />
-      </PopWindow>
     </div>
   );
 }

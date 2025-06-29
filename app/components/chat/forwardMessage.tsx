@@ -7,6 +7,11 @@ import { use, useMemo } from "react";
 import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../api/queryHooks";
 
+/**
+ * 消息预览组件，用于显示消息的简要内容
+ * @param message 可以是Message对象或消息ID 如果传的是id就从历史消息里面找，没找到就去query。如果是Message类型就直接拿来用
+ * @param className 自定义样式类名
+ */
 export function PreviewMessage({ message, className }: {
   message: Message | number; // 允许message为id
   className?: string;
@@ -36,6 +41,10 @@ export function PreviewMessage({ message, className }: {
   );
 }
 
+/**
+ * 转发消息组件，显示转发消息的预览，点击查看详情。
+ * @param messageResponse 包含转发消息列表的聊天消息响应
+ */
 export default function ForwardMessage({ messageResponse }: { messageResponse: ChatMessageResponse }) {
   // 限制预览消息数为3条
   const messageList = messageResponse.message.extra?.forwardMessage?.messageList ?? [];

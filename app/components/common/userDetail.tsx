@@ -7,6 +7,10 @@ import { FollowButton } from "./Follow/FollowButton";
 import { UserFollower } from "./Follow/UserFollower";
 import { PopWindow } from "./popWindow";
 
+/**
+ * 显示用户详情界面的组件
+ * @param userId 用户ID，组件内会自动调api来获取用户信息
+ */
 export function UserDetail({ userId }: { userId: number }) {
   const userQuery = useGetUserInfoQuery(userId);
   const globalContext = useGlobalContext(); // 添加这行

@@ -29,6 +29,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { MemberSelect } from "../common/memberSelect";
 
+/**
+ * chat板块的主组件
+ */
 export default function RoomSelect() {
   const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
   const navigate = useNavigate();
@@ -165,8 +168,9 @@ export default function RoomSelect() {
       isSpaceOwner: spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1),
       setActiveSpaceId,
       setActiveRoomId,
+      ruleId: spaces.find(space => space.spaceId === activeSpaceId)?.ruleId,
     };
-  }, [activeSpaceId, globalContext.userId, spaceMembersQuery.data?.data]);
+  }, [activeSpaceId, globalContext.userId, spaceMembersQuery.data?.data, spaces]);
 
   const getSpaceUnreadMessagesNumber = (spaceId: number) => {
     let result = 0;
