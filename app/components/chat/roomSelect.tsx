@@ -29,6 +29,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { MemberSelect } from "../common/memberSelect";
 
+/**
+ * chat板块的主组件
+ */
 export default function RoomSelect() {
   const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
   const navigate = useNavigate();

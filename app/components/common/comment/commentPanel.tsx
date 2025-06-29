@@ -6,6 +6,12 @@ import CommentInputBox from "@/components/common/comment/commentInputBox";
 import { useMemo } from "react";
 import { useGetCommentPageInfiniteQuery } from "../../../../api/hooks/commentQueryHooks";
 
+/**
+ * 评论区组件
+ * @param targetInfo 用于指明是哪个 feed，post 或者 module 的评论区
+ * @param className
+ * @constructor
+ */
 export default function CommentPanel({ targetInfo, className }: { targetInfo: LikeRecordRequest; className?: string }) {
   const getCommentPageInfiniteQuery = useGetCommentPageInfiniteQuery(targetInfo);
   const comments = useMemo(() => {

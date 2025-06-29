@@ -5,9 +5,12 @@ const typeConfig = {
   4: { text: "骰娘", color: "bg-yellow-100 text-gray-800" },
 };
 
-// 怒了, 怎么memberType也可以是undefined
+/**
+ *
+ * @param memberType 对应Member里面的 memberType字段
+ */
 export function MemberTypeTag({ memberType }: {
-  memberType?: number; // 允许undefined类型
+  memberType?: number;
 }) {
   // 类型安全转换
   const validType = memberType !== undefined && [1, 2, 3, 4].includes(memberType)

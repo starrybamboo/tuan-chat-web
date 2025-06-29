@@ -2,7 +2,10 @@ import { CompassIcon, HomeIcon } from "@/icons";
 import React from "react";
 import { Link } from "react-router";
 
-// 当URL非法的时候，显示这个页面
+/**
+ * 当URL非法的时候，显示的页面
+ * @param info 错误信息
+ */
 export default function IllegalURLPage({ info }: { info: string }) {
   return (
     <div className="max-w-4xl mx-auto p-6">

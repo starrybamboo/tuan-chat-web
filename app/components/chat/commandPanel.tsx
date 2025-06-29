@@ -1,7 +1,20 @@
 import { diceCommands, webgalCommands } from "@/utils/commands";
 import React from "react";
 
+/**
+ * 定义命令面板支持的命令模式类型
+ * - 'dice': 骰子命令模式
+ * - 'webgal': WebGal命令模式
+ * - 'none': 无命令模式
+ */
 export type commandModeType = "dice" | "webgal" | "none";
+/**
+ * 命令面板组件，用于显示和选择命令建议
+ * @param prefix 当前输入的命令前缀（包含触发字符如/或.）
+ * @param handleSelectCommand 选择命令时的回调函数
+ * @param commandMode 当前命令模式，决定显示哪类命令
+ * @param suggestionNumber 显示的建议命令数量，默认为10
+ */
 
 export default function CommandPanel({ prefix, handleSelectCommand, commandMode, suggestionNumber = 10, className }: {
   prefix: string;

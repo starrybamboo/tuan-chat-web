@@ -11,6 +11,9 @@ export interface Initiative {
   value: number;
 }
 
+/**
+ * 先攻列表
+ */
 export default function InitiativeList() {
   const roomContext = use(RoomContext);
   const roomId = roomContext.roomId ?? -1;

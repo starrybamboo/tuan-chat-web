@@ -2,6 +2,11 @@ import type { CommentVO } from "api";
 import React from "react";
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 
+/**
+ * 预览评论，当评论被折叠的时候会显示这个组件
+ * @param commentVO
+ * @constructor
+ */
 export default function CommentPreview({ commentVO }: { commentVO: CommentVO }) {
   const getUserInfoQuery = useGetUserInfoQuery(commentVO.userId ?? -1);
   const user = getUserInfoQuery.data?.data;

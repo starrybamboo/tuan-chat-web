@@ -14,8 +14,6 @@ import React, { useRef, useState } from "react";
 import { centerCrop, makeAspectCrop, ReactCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 
-// This is to demonstate how to make and center a % aspect crop
-// which is a bit trickier so we use some helper functions.
 function centerAspectCrop(
   mediaWidth: number,
   mediaHeight: number,
@@ -46,6 +44,15 @@ interface ImgUploaderWithCopperProps {
   mutate?: (data: any) => void;
 }
 
+/**
+ * 图片上传组件，带裁剪
+ * @param setDownloadUrl 填写的话就会上传裁剪前的图片，并在上传完后调用
+ * @param setCopperedDownloadUrl 填写的话就会上传裁剪后的图片，并在上传后调用
+ * @param children
+ * @param fileName 上传后存在图床里面的文件名，裁剪后的图片会带-copper后缀
+ * @param mutate
+ * @constructor
+ */
 export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName, mutate }: ImgUploaderWithCopperProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadUtils = new UploadUtils(2);

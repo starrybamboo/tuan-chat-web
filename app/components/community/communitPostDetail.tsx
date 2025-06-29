@@ -3,6 +3,11 @@ import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGetPostDetailQuery } from "../../../api/hooks/communityQueryHooks";
 
+/**
+ * 点开帖子后显示的界面，显示帖子详情
+ * @param postId
+ * @constructor
+ */
 export default function CommunityPostDetail({ postId }: { postId: number }) {
   const postDetailQuery = useGetPostDetailQuery(postId);
   const post = postDetailQuery.data?.data;

@@ -1,6 +1,10 @@
 import { RoleAbilityDetail } from "@/components/common/ability/roleAbilityDetail";
 import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../api/queryHooks";
 
+/**
+ * 角色的详情界面
+ * @param roleId
+ */
 export function RoleDetail({ roleId }: { roleId: number }) {
   const roleQuery = useGetRoleQuery(roleId);
 
