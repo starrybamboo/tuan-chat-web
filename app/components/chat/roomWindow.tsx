@@ -804,7 +804,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       <label className="swap">
                         <input type="checkbox" />
                         <div className="swap-on" onClick={() => setUseChatBubbleStyle(false)}>
-                          <Bubble2 className="size-10 font-light"></Bubble2>
+                          <Bubble2 className="size-8 font-light"></Bubble2>
                         </div>
                         <div className="swap-off" onClick={() => setUseChatBubbleStyle(true)}>
                           <Bubble2 className="size-8"></Bubble2>

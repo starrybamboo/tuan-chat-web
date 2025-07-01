@@ -4,6 +4,7 @@ import RoomWindow from "@/components/chat/roomWindow";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import SpaceWindow from "@/components/chat/spaceWindow";
 import checkBack from "@/components/common/autoContrastText";
+import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { SideDrawer, SideDrawerToggle } from "@/components/common/sideDrawer";
@@ -35,22 +36,23 @@ import { MemberSelect } from "../common/memberSelect";
 export default function RoomSelect() {
   const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
   const navigate = useNavigate();
-
+  const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
   // 当前选中的空间ID
-  const [activeSpaceId, setActiveSpaceId] = useState<number | null>(urlSpaceId ? Number(urlSpaceId) : null);
+  const [activeSpaceId, setActiveSpaceId] = useState<number | null>(urlSpaceId ? Number(urlSpaceId) : (storedIds.spaceId ?? null));
   // 当前选中的房间ID
-  const [activeRoomId, setActiveRoomId] = useState<number | null>(urlRoomId ? Number(urlRoomId) : null);
+  const [activeRoomId, setActiveRoomId] = useState<number | null>(urlRoomId ? Number(urlRoomId) : (storedIds.roomId ?? null));
 
-  // 同步路由状态
+  // 同步路由状态 并存到localStorage里面
   useEffect(() => {
     const handler = setTimeout(() => {
+      setStoredChatIds({ spaceId: activeSpaceId, roomId: activeRoomId });
       if (activeSpaceId || activeRoomId) {
         const path = `/chat/${activeSpaceId || ""}/${activeRoomId || ""}`;
         navigate(path.replace(/\/+$/, ""), { replace: true });
       }
     }, 100); // 延迟 100ms
     return () => clearTimeout(handler);
-  }, [activeSpaceId, activeRoomId, navigate]);
+  }, [activeSpaceId, activeRoomId, navigate, setStoredChatIds]);
 
   // 获取用户空间列表
   const userSpacesQuery = useGetUserSpacesQuery();
