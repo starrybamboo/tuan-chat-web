@@ -93,7 +93,7 @@ export class ChatControllerService {
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public sendMessage(
+    public sendMessage1(
         requestBody: ChatMessageRequest,
     ): CancelablePromise<ApiResultVoid> {
         return this.httpRequest.request({
