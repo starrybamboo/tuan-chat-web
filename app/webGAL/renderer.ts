@@ -61,6 +61,14 @@ export class Renderer {
     // });
   }
 
+  /**
+   * 添加一段对话到webgal中
+   * @param roleName 角色名
+   * @param text 文本
+   * @param leftSpriteName 左边立绘的文件名，如果设置为 空字符串，那么会取消这个位置立绘的显示。设置为undefined，则对这个位置的立绘不做任何改变
+   * @param rightSpriteName 右边立绘的文件名，规则同上
+   * @param vocal 语音文件名
+   */
   public async addDialog(
     roleName: string,
     text: string,
@@ -68,19 +76,12 @@ export class Renderer {
     rightSpriteName?: string | undefined,
     vocal?: string | undefined,
   ): Promise<void> {
-    const spritePos = this.renderProps.spritePosition;
     if (leftSpriteName) {
-      await this.addLineToRenderer(`changeFigure:${leftSpriteName}.png -${spritePos} -next;`);
+      await this.addLineToRenderer(`changeFigure:${leftSpriteName.length > 0 ? `${leftSpriteName}.png` : ""} -left -next;`);
     }
-    else {
-      await this.addLineToRenderer(`changeFigure: -${spritePos} -next;`);
+    if (rightSpriteName) {
+      await this.addLineToRenderer(`changeFigure:${rightSpriteName.length > 0 ? `${rightSpriteName}.png` : ""} -right -next;`);
     }
-    // if (rightSpriteName) {
-    //   await this.addLineToRenderer(`changeFigure:${rightSpriteName}.png -right -next;`);
-    // }
-    // else {
-    //   await this.addLineToRenderer(`changeFigure: -right -next;`);
-    // }
     await this.addLineToRenderer(`${roleName}: ${text} ${vocal ? `-${vocal}` : ""}`);
   }
 

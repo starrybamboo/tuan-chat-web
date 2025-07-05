@@ -56,6 +56,12 @@ export class ChatRenderer {
     }
   }
 
+  /**
+   * 从avatarId获取储存在webgal引擎内的立绘名称（不带后缀）
+   * @param roleId
+   * @param avatarId
+   * @private
+   */
   private getSpriteName(roleId: number | undefined, avatarId: number | undefined): string | undefined {
     if (!roleId || !avatarId)
       return undefined;
@@ -127,11 +133,17 @@ export class ChatRenderer {
 
       // 最多生成几段音频 仅供在tts api不足的情况下进行限制
       let maxVocal = this.renderProps.useVocal ? this.MAX_VOCAL : 0;
-      // let recentMessages: (Message | undefined)[] = [undefined, undefined];
-      // let lastSpeakSide: 0 | 1 = 1;
+
+      // 立绘的状态
+      const spriteState = new Set<string>();
 
       for (const messageResponse of sortedMessages) {
         const { message } = messageResponse;
+        // 获取回复的消息
+        const repliedMessage = message.replyMessageId
+          ? messages.find(m => m.message.messageID === message.replyMessageId)?.message
+          : null;
+        // 处理背景图片的消息
         if (message.messageType === 2) {
           const imageMessage = message.extra?.imageMessage;
           if (imageMessage && imageMessage.background) {
@@ -139,11 +151,14 @@ export class ChatRenderer {
             await this.renderer.addLineToRenderer(`changeBg:${bgFileName}`);
           }
         }
+        // 处理一般的对话
         else if (message.messageType === 1) {
+          // %开头的对话意味着webgal指令，直接写入scene文件内
           if (message.content.startsWith("%")) {
             await this.renderer.addLineToRenderer(message.content.slice(1));
             continue;
           }
+          // 上传立绘，会检测是否已经上传。如果已经上传则忽略。
           await this.uploadSprite(message);
           const role = this.roleMap.get(message.roleId);
 
@@ -154,21 +169,6 @@ export class ChatRenderer {
             .replace(/:/g, "："); // 替换英文冒号为中文冒号
 
           if (role && role.roleName && message.content && message.content !== "") {
-            // 多立绘
-            // const curRoleId = message.roleId;
-            // if (curRoleId === recentMessages[0]?.roleId) {
-            //   lastSpeakSide = 0;
-            //   recentMessages = [message, recentMessages[1]];
-            // }
-            // else if (curRoleId === recentMessages[1]?.roleId) {
-            //   lastSpeakSide = 1;
-            //   recentMessages = [recentMessages[0], message];
-            // }
-            // else {
-            //   recentMessages = lastSpeakSide === 0 ? [recentMessages[0], message] : [message, recentMessages[1]];
-            //   lastSpeakSide = lastSpeakSide === 0 ? 1 : 0;
-            // }
-
             // 每80个字符分割一次
             const contentSegments = this.splitContent(processedContent);
             // 为每个分割后的段落创建对话
@@ -184,18 +184,28 @@ export class ChatRenderer {
               else {
                 vocalFileName = undefined;
               }
+
+              const messageSpriteName = this.getSpriteName(message.roleId, message.avatarId);
+              const repliedSpriteName = repliedMessage ? this.getSpriteName(repliedMessage.roleId, repliedMessage.avatarId) : undefined;
+              const noNeedChangeSprite
+                  = repliedSpriteName
+                    ? (spriteState.has(messageSpriteName || "") && spriteState.has(repliedSpriteName))
+                    : (spriteState.has(messageSpriteName || ""));
               await this.renderer.addDialog(
                 role.roleName,
                 segment, // 使用分割后的段落
-                this.getSpriteName(message.roleId, message.avatarId),
-                undefined,
-                // recentMessages[0] ? this.getSpriteName(recentMessages[0].roleId, recentMessages[0].avatarId) : undefined,
-                // recentMessages[1] ? this.getSpriteName(recentMessages[1].roleId, recentMessages[1].avatarId) : undefined,
+                noNeedChangeSprite ? undefined : messageSpriteName,
+                noNeedChangeSprite ? undefined : repliedSpriteName,
                 vocalFileName,
               );
+              if (!noNeedChangeSprite) {
+                spriteState.clear();
+                if (messageSpriteName)
+                  spriteState.add(messageSpriteName);
+                if (repliedSpriteName)
+                  spriteState.add(repliedSpriteName);
+              }
             }
-            // 每添加一条消息后进行短暂延时，避免消息处理过快
-            await new Promise(resolve => setTimeout(resolve, 15));
           }
         }
       }
