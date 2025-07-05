@@ -297,7 +297,7 @@ export function useGetAllMessageQuery(roomId: number) {
  */
 export function useSendMessageMutation(roomId: number) {
     return useMutation({
-        mutationFn: (req: ChatMessageRequest) => tuanchat.chatController.sendMessage(req),
+        mutationFn: (req: ChatMessageRequest) => tuanchat.chatController.sendMessage1(req),
         mutationKey: ['sendMessage'],
     });
 }
