@@ -1,6 +1,7 @@
+const path = require("node:path");
+const process = require("node:process");
 // 控制应用生命周期和创建原生浏览器窗口的模组
 const { app, BrowserWindow } = require("electron");
-const path = require("node:path");
 
 function createWindow() {
   // 创建浏览器窗口
@@ -31,7 +32,7 @@ function createWindow() {
     // 生产环境中要加载文件，打包的版本
     // Menu.setApplicationMenu(null)
     // 加载 index.html
-    mainWindow.loadFile(path.resolve(__dirname, "../dist/index.html")); // 新增
+    mainWindow.loadFile(path.resolve(__dirname, "../build/client/index.html")); // 新增
   }
 }
 // 这段程序将会在 Electron 结束初始化
