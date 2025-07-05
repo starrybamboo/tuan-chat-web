@@ -43,26 +43,26 @@ export default function RenderWindow() {
     <div className="card bg-base-100 shadow-md p-6 space-y-6 max-w-2xl mx-auto">
       <h2 className="text-xl font-bold text-base-content">渲染设置</h2>
 
-      <div className="form-control">
-        <label className="label">
-          <span className="label-text text-base-content pr-4">立绘位置</span>
-        </label>
-        <div className="join">
-          {(["left", "middle", "right"] as const).map(position => (
-            <input
-              key={position}
-              type="radio"
-              name="avatarPosition"
-              className="join-item btn"
-              aria-label={position}
-              checked={renderProps.spritePosition === position}
-              onChange={() => updateRenderProps((draft) => {
-                draft.spritePosition = position;
-              })}
-            />
-          ))}
-        </div>
-      </div>
+      {/* <div className="form-control"> */}
+      {/*  <label className="label"> */}
+      {/*    <span className="label-text text-base-content pr-4">立绘位置</span> */}
+      {/*  </label> */}
+      {/*  <div className="join"> */}
+      {/*    {(["left", "middle", "right"] as const).map(position => ( */}
+      {/*      <input */}
+      {/*        key={position} */}
+      {/*        type="radio" */}
+      {/*        name="avatarPosition" */}
+      {/*        className="join-item btn" */}
+      {/*        aria-label={position} */}
+      {/*        checked={renderProps.spritePosition === position} */}
+      {/*        onChange={() => updateRenderProps((draft) => { */}
+      {/*          draft.spritePosition = position; */}
+      {/*        })} */}
+      {/*      /> */}
+      {/*    ))} */}
+      {/*  </div> */}
+      {/* </div> */}
 
       <div className="form-control">
         <label className="label cursor-pointer justify-start gap-4">
