@@ -28,6 +28,7 @@ import { SideDrawer } from "@/components/common/sideDrawer";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { Bubble2, CommandSolid, DiceTwentyFacesTwenty, GalleryBroken, GirlIcon, SendIcon } from "@/icons";
+import { getImageSize } from "@/utils/getImgSize";
 import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -161,7 +162,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       .filter(msg => msg.message.status !== 1);
     // .reverse();
   }, [receivedMessages, messagesInfiniteQuery.data?.pages]);
-
   // Context
 
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
@@ -443,15 +443,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       for (let i = 0; i < imgFiles.length; i++) {
         const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
         // 获取到图片的宽高
-        const { width, height } = await new Promise<{ width: number; height: number }>((resolve) => {
-          const img = new Image();
-          img.onload = () => {
-            URL.revokeObjectURL(img.src);
-            resolve({ width: img.naturalWidth || 114, height: img.naturalHeight || 114 });
-          };
-          img.onerror = () => resolve({ width: 114, height: 114 }); // 失败时使用默认值
-          img.src = URL.createObjectURL(imgFiles[i]);
-        });
+        const { width, height } = await getImageSize(imgFiles[i]);
         // 如果有图片，发送独立的图片消息
         if (imgDownLoadUrl && imgDownLoadUrl !== "") {
           const messageRequest: ChatMessageRequest = {
@@ -732,7 +724,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                 {/* 输入框 */}
                 <div
                   className="textarea chatInputTextarea w-full flex-1 h-full overflow-auto
-                     min-h-[80px] max-h-[200px] resize-none border-none focus:outline-none focus:ring-0 overflow-auto div-textarea"
+                     min-h-[80px] resize-none border-none focus:outline-none focus:ring-0 overflow-auto div-textarea"
                   ref={textareaRef}
                   onInput={syncInputText}
                   onKeyDown={handleKeyDown}
@@ -816,7 +808,11 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     <button
                       type="button"
                       className="btn btn-primary"
-                      disabled={!(inputText.trim() || imgFiles.length) || isSubmitting}
+                      disabled={
+                        (curRoleId <= 0) // 没有选中角色
+                        || ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3) // 没有权限
+                        || (!(inputText.trim() || imgFiles.length) || isSubmitting) // 没有内容
+                      }
                       onClick={handleMessageSubmit}
                     >
                       <SendIcon className="size-6"></SendIcon>

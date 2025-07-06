@@ -159,7 +159,10 @@ export default function ChatFrame({ useChatBubbleStyle }:
       return;
     updateMessageMutation.mutate({
       ...message,
-      extra: { imageMessage: { background: !message.extra.imageMessage.background, size: message?.extra?.imageMessage.size ?? 0, fileName: message.extra.imageMessage.fileName, url: message.extra.imageMessage.url } },
+      extra: { imageMessage: {
+        ...message.extra.imageMessage,
+        background: !message.extra.imageMessage.background,
+      } },
     });
   }
   async function handlePublishFeed({ title, description }: { title: string; description: string }) {
