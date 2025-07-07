@@ -151,7 +151,6 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
    * 上传原始图片和裁剪后的图片
    */
   async function handleSubmit() {
-    setCurrentStep(1); // 复原到第一步
     setisSubmiting(true);
     if (!imgFile.current) {
       return;
