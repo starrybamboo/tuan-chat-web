@@ -198,6 +198,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
           mutate({ avatarUrl: copperedDownloadUrl, spriteUrl: downloadUrl });
         }
         setIsOpen(false);
+        setCurrentStep(1); // 复原到第一步
       }
     }
     catch (error) {
