@@ -216,6 +216,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
           }
           imgFile.current = null;
         }, 100);
+
       }
     }
     catch (error) {
