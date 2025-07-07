@@ -1,11 +1,17 @@
+import { useGlobalContext } from "@/components/globalContextProvider";
 import React, { useState } from "react";
+import { useGetUerSCBalanceQuery } from "../../../../api/hooks/scQueryHooks";
 
 interface HomeTabProps {
   userId: number;
 }
 
 const HomeTab: React.FC<HomeTabProps> = () => {
+  // 当前登录用户的userId
+  const userId = useGlobalContext().userId ?? -1;
+
   const [activeTab, setActiveTab] = useState<"likes" | "comments">("likes");
+  const getUserSCBalanceQuery = useGetUerSCBalanceQuery(userId);
 
   // DEMO: 获取用户点赞内容的 标题 - 正文
   const mockLikedPosts = [
@@ -21,6 +27,14 @@ const HomeTab: React.FC<HomeTabProps> = () => {
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
+      <div className="card-body">
+        <div className="card-title">
+          <span>SC余额</span>
+        </div>
+        <div className="card-actions justify-end">
+          <div className="badge badge-outline">{getUserSCBalanceQuery.data?.data?.balance}</div>
+        </div>
+      </div>
       <h2 className="text-2xl font-bold mb-6">
         最近点赞或评论的内容
       </h2>

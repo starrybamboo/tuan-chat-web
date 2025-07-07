@@ -1,10 +1,10 @@
 import React from "react";
 
-interface HomeTabProps {
+interface ActivitiesTabProps {
   userId: number;
 }
 
-export const ActivitiesTab: React.FC<HomeTabProps> = () => {
+export const ActivitiesTab: React.FC<ActivitiesTabProps> = () => {
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold">动态</h2>

@@ -19,6 +19,8 @@ export function UserDetail({ userId }: { userId: number }) {
   const user = userQuery.data?.data;
   const [isFFWindowOpen, setIsFFWindowOpen] = useSearchParamsState<boolean>(`userEditPop${userId}`, false);
   const [isEditWindowOpen, setIsEditWindowOpen] = useSearchParamsState<boolean>(`profileEditPop`, false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
   // 状态颜色映射
   const activeStatus = String(user?.activeStatus).toLowerCase() as
       "active" | "offline" | "busy" | "away" | undefined;
@@ -65,11 +67,14 @@ export function UserDetail({ userId }: { userId: number }) {
         {/* 头像-名字-描述 */}
         <div className="flex flex-col items-start">
           <img
-            src="https://s21.ax1x.com/2025/03/31/pEs53vD.jpg"
-            className="h-80 w-full object-cover object-center"
+            // 写死的img
+            // src="https://s21.ax1x.com/2025/03/31/pEs53vD.jpg"
+            src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzY2NiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+"
+            className="w-full object-cover object-center h-60 sm:h-60 md:h-60 lg:h-80"
             alt="用户背景"
             onError={(e) => {
-              e.currentTarget.src = "/default-background.jpg";
+              e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzY2NiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+";
+              e.currentTarget.onerror = null;
             }}
           />
           <div className="relative px-4 w-full">
@@ -98,34 +103,24 @@ export function UserDetail({ userId }: { userId: number }) {
               <div className="flex items-center">
                 {userQuery.isLoading
                   ? (
-                      <div className="skeleton h-8 w-48"></div>
+                      <div className="skeleton h-8 w-48 pr-4"></div>
                     )
                   : (
-                      <h2 className="text-2xl h-8 font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                      <h2 className="text-2xl h-8 font-bold pr-4 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                         {user?.username || "未知用户"}
                       </h2>
                     )}
+                {/* 用户状态指示小球 */}
                 {user?.activeStatus && (
                   <div className={`badge ${statusColor} ml-2`}>
                     {user.activeStatus}
                   </div>
                 )}
-              </div>
-
-              <div className="flex pb-4 pt-2">
-                {userQuery.isLoading
-                  ? (
-                      <div className="skeleton h-6 w-32 mr-6"></div>
-                    )
-                  : ( // 描述目前是写死的
-                      <p className="text-sm text-white/80 h-6 mr-6">
-                        这个人就是个杂鱼，什么也不愿意写喵~
-                      </p>
-                    )}
+                {/* 编辑按钮 */}
                 {user?.userId === globalContext.userId && (
                   <>
                     <button
-                      className="btn p-1 rounded-full w-6 h-6 flex justify-center hover:text-info transition-colors cursor-pointer duration-400"
+                      className="btn p-1 rounded-full ml-4 w-6 h-6 flex justify-center hover:text-info transition-colors cursor-pointer duration-400"
                       type="button"
                       onClick={() => setIsEditWindowOpen(true)}
                       aria-label="编辑"
@@ -147,6 +142,33 @@ export function UserDetail({ userId }: { userId: number }) {
                     </button>
                   </>
                 )}
+              </div>
+              {/* 个人描述 */}
+              <div className="flex flex-col sm:flex-row pb-4 pt-2 gap-2 sm:gap-6 w-full">
+                <div className="flex-1 min-w-0 w-full">
+                  {userQuery.isLoading
+                    ? (
+                        <div className="skeleton h-6 w-32"></div>
+                      )
+                    : (
+                        <div className="relative">
+                          <p
+                            className={`text-sm text-white/80 break-words transition-all duration-300 ${
+                              isExpanded ? "" : "line-clamp-2"
+                            }`}
+                          >
+                            这个人就是个杂鱼，什么也不愿意写喵~ 这个人就是个杂鱼，什么也不愿意写喵~
+                            这个人就是个杂鱼，什么也不愿意写喵~ 这个人就是个杂鱼，什么也不愿意写喵~
+                          </p>
+                          <button
+                            onClick={() => setIsExpanded(prev => !prev)}
+                            className="text-blue-400 text-xs mt-1 hover:underline"
+                          >
+                            {isExpanded ? "收起" : "展开"}
+                          </button>
+                        </div>
+                      )}
+                </div>
               </div>
             </div>
             {/* 右边：关注按钮 */}
