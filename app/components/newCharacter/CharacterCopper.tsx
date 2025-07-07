@@ -197,8 +197,26 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
         if (mutate !== undefined) {
           mutate({ avatarUrl: copperedDownloadUrl, spriteUrl: downloadUrl });
         }
-        setIsOpen(false);
-        setCurrentStep(1); // 复原到第一步
+        // 延迟关闭弹窗和重置状态，避免抖动
+        setTimeout(() => {
+          setIsOpen(false);
+          setCurrentStep(1);
+          setImgSrc("");
+          setCrop(undefined);
+          setCompletedCrop(undefined);
+          if (previewCanvasRef.current) {
+            const ctx = previewCanvasRef.current.getContext("2d");
+            ctx?.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
+          }
+          if (imgRef.current) {
+            imgRef.current.src = "";
+          }
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+          imgFile.current = null;
+        }, 100);
+
       }
     }
     catch (error) {
