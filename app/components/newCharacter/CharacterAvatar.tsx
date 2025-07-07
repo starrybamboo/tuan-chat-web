@@ -172,7 +172,7 @@ export default function CharacterAvatar({ role, onchange }: {
                 <img
                   src={showSprite ? (previewSrc || "/favicon.ico") : (copperedUrl || "/favicon.ico")}
                   alt="预览"
-                  className="md:max-h-[65vh] object-contain"
+                  className="md:max-h-[65vh] md:min-h-[35vh] object-contain"
                 />
               </div>
             </div>
