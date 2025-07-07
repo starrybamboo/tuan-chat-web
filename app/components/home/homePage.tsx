@@ -68,7 +68,7 @@ export default function HomePage() {
       </div>
 
       {/* Section 2: 核心理念 */}
-      <section className="py-20 px-4 bg-base-200">
+      <div className="py-20 px-4 bg-base-200">
         <div className="text-center max-w-4xl mx-auto">
           <h2 className="text-4xl font-bold mb-4">创作，本应如此</h2>
           <p className="text-lg">
@@ -117,10 +117,10 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Section 3: 功能演示 - 如何运作 */}
-      <section className="py-20 px-4">
+      <div className="py-20 px-4">
         <div className="text-center max-w-4xl mx-auto">
           <h2 className="text-4xl font-bold mb-10">一体化的创作与游玩体验</h2>
         </div>
@@ -216,20 +216,20 @@ export default function HomePage() {
             </div>
           </li>
         </ul>
-      </section>
+      </div>
 
       {/* Section 4: 使命与愿景 */}
-      <section className="py-20 px-4 bg-neutral text-neutral-content">
+      <div className="py-20 px-4 bg-neutral text-neutral-content">
         <div className="container mx-auto text-center max-w-4xl">
           <h2 className="text-4xl font-bold mb-4">我们的使命</h2>
           <p className="text-lg mb-8">
             让开源社区的理念，从程序开发走向文学创作，走向人与人之间的交往中。让开放，包容，有活力，共同创作的风气，走到更多的领域里面。
           </p>
         </div>
-      </section>
+      </div>
 
       {/* Section 5: 加入我们 (Call to Action) */}
-      <section className="py-20 px-4">
+      <div className="py-20 px-4">
         <div className="container mx-auto text-center">
           <h2 className="text-4xl font-bold">故事的序章，由你谱写</h2>
           <p className="my-4 text-lg">
@@ -248,7 +248,7 @@ export default function HomePage() {
             </a>
           </p>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

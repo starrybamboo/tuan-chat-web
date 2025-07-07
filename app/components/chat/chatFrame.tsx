@@ -362,7 +362,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
         // ref={(normalIndex === 4
         //   ? messageRef
         //   : null)}
-        className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} -my-[5px] ${isDragging ? "pointer-events-auto" : ""}\``}
+        className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} -my-[1px] ${isDragging ? "pointer-events-auto" : ""}\``}
         data-message-id={chatMessageResponse.message.messageID}
         onClick={(e) => {
           if (isSelecting || e.ctrlKey) {
@@ -453,10 +453,10 @@ export default function ChatFrame({ useChatBubbleStyle }:
    * 渲染
    */
   return (
-    <div>
+    <div className="h-full">
       {/* 这里是从下到上渲染的 */}
       <div
-        className="ml-4 overflow-y-auto h-[60vh] flex flex-col relative"
+        className="ml-4 overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
       >

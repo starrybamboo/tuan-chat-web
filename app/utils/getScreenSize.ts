@@ -9,3 +9,7 @@ export function getScreenSize(): "sm" | "md" | "lg" {
     return "md";
   return "lg";
 }
+
+export function isLgScreen() {
+  return typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
+}

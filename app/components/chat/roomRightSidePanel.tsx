@@ -56,13 +56,17 @@ export default function RoomRightSidePanel() {
     });
   }
   return (
-    <div className="flex flex-row gap-4 h-full">
-      <div className="flex flex-col gap-2 p-4 bg-base-100 rounded-box shadow-sm items-center w-full space-y-4 overflow-y-auto">
+    <div className="h-full overflow-auto">
+      <div className="flex flex-col gap-2 px-2 bg-base-100 items-center w-full space-y-4 overflow-auto">
         {
           spaceContext.isSpaceOwner
           && (
             <div className="w-full flex justify-end">
-              <Setting className="w-12 h-12 cursor-pointer hover:text-info" onClick={() => setIsSettingWindowOpen(true)}> </Setting>
+              <Setting
+                className="w-12 h-12 cursor-pointer hover:text-info"
+                onClick={() => setIsSettingWindowOpen(true)}
+              >
+              </Setting>
             </div>
           )
         }
@@ -142,17 +146,18 @@ export default function RoomRightSidePanel() {
             </div>
           ))}
         </div>
+        {/* 设置窗口 */}
+        <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
+          <RoomSettingWindow onClose={() => setIsSettingWindowOpen(false)}></RoomSettingWindow>
+        </PopWindow>
+        <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
+          <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
+        </PopWindow>
+        <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
+          <AddMemberWindow handleAddMember={handleAddMember}></AddMemberWindow>
+        </PopWindow>
       </div>
-      {/* 设置窗口 */}
-      <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
-        <RoomSettingWindow onClose={() => setIsSettingWindowOpen(false)}></RoomSettingWindow>
-      </PopWindow>
-      <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
-        <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
-      </PopWindow>
-      <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
-        <AddMemberWindow handleAddMember={handleAddMember}></AddMemberWindow>
-      </PopWindow>
     </div>
+
   );
 }
