@@ -16,7 +16,11 @@ import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import RepliedMessage from "@/components/chat/repliedMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
-import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
+import InitiativeList from "@/components/chat/sideDrawer/initiativeList";
+import RoomRoleList from "@/components/chat/sideDrawer/roomRoleList";
+import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
+import { SpaceContext } from "@/components/chat/spaceContext";
+import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import { getLocalStorageValue } from "@/components/common/customHooks/useLocalStorage";
@@ -37,12 +41,14 @@ import {
   GirlIcon,
   MemberFilled,
   SendIcon,
+  Setting,
+  SwordSwing,
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
 import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { use, useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
 import {
   useGetMemberListQuery,
@@ -58,8 +64,8 @@ import {
 
 const PAGE_SIZE = 30; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
-  // const { spaceId: urlSpaceId } = useParams();
-  // const spaceId = Number(urlSpaceId);
+  const spaceContext = use(SpaceContext);
+
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
   const room = useGetRoomInfoQuery(roomId).data?.data;
 
@@ -120,6 +126,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const curAvatarId = roleAvatars[curAvatarIndex]?.avatarId || -1;
 
   const [commandBrowseWindow, setCommandBrowseWindow] = useSearchParamsState<commandModeType>("commandPop", "none");
+  const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
+
+  const [sideDrawerState, setSideDrawerState] = useState<"none" | "user" | "role" | "initiative">("none");
 
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(localStorage.getItem("useChatBubbleStyle") === "true");
   useEffect(() => {
@@ -650,24 +659,49 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     }
   }
 
-  const [openSide, setOpenSide] = useState(false);
   return (
     <RoomContext value={roomContext}>
       <div className="flex flex-col h-full w-full shadow-sm min-h-0">
         {/* 上边的信息栏 */}
-        <div className="flex justify-between p-2 bg-base-100">
+        <div className="flex justify-between py-2 px-5 bg-base-100">
           <SideDrawerToggle htmlFor="room-select">
             <ChatBubbleEllipsesOutline className="size-7"></ChatBubbleEllipsesOutline>
           </SideDrawerToggle>
           <span className="text-center font-semibold text-lg">{room?.name}</span>
-          <div className="tooltip tooltip-bottom" data-tip="展示成员框" onClick={() => setOpenSide(!openSide)}>
-            <MemberFilled className="size-7"></MemberFilled>
+          <div className="flex gap-2">
+            <div
+              className="tooltip tooltip-bottom"
+              data-tip="展示先攻表"
+              onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}
+            >
+              <SwordSwing className="size-7"></SwordSwing>
+            </div>
+            <div
+              className="tooltip tooltip-bottom"
+              data-tip="展示成员"
+              onClick={() => setSideDrawerState(sideDrawerState === "user" ? "none" : "user")}
+            >
+              <MemberFilled className="size-7"></MemberFilled>
+            </div>
+            <div
+              className="tooltip tooltip-bottom"
+              data-tip="展示角色"
+              onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
+            >
+              <GirlIcon className="size-7"></GirlIcon>
+            </div>
+            {spaceContext.isSpaceOwner && (
+              <Setting
+                className="size-7 cursor-pointer hover:text-info"
+                onClick={() => setIsSettingWindowOpen(true)}
+              >
+              </Setting>
+            )}
           </div>
-
         </div>
         <div className="h-px bg-base-300"></div>
-        <div className="flex-1 overflow-auto w-full flex bg-base-100 min-h-0">
-          <div className="flex flex-col flex-1 h-full">
+        <div className="flex-1 w-full flex bg-base-100 overflow-auto">
+          <div className="flex flex-col flex-1 h-full overflow-auto">
             {/* 聊天框 */}
             <div className="bg-base-100 h-[70%]">
               <ChatFrame useChatBubbleStyle={useChatBubbleStyle} key={roomId}></ChatFrame>
@@ -867,9 +901,17 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               </div>
             </form>
           </div>
-          <OpenAbleDrawer isOpen={openSide}>
+          <OpenAbleDrawer isOpen={sideDrawerState === "user"} className="h-full bg-base-100">
             <div className="w-px bg-base-300"></div>
-            <RoomRightSidePanel></RoomRightSidePanel>
+            <RoomUserList></RoomUserList>
+          </OpenAbleDrawer>
+          <OpenAbleDrawer isOpen={sideDrawerState === "role"} className="h-full bg-base-100">
+            <div className="w-px bg-base-300"></div>
+            <RoomRoleList></RoomRoleList>
+          </OpenAbleDrawer>
+          <OpenAbleDrawer isOpen={sideDrawerState === "initiative"}>
+            <div className="w-px bg-base-300"></div>
+            <InitiativeList></InitiativeList>
           </OpenAbleDrawer>
         </div>
       </div>
@@ -900,6 +942,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           className="overflow-x-clip max-h-[80vh] overflow-y-auto"
         >
         </CommandPanel>
+      </PopWindow>
+      {/* 设置窗口 */}
+      <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
+        <RoomSettingWindow onClose={() => setIsSettingWindowOpen(false)}></RoomSettingWindow>
       </PopWindow>
     </RoomContext>
   );

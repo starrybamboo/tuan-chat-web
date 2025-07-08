@@ -1,4 +1,4 @@
-import SpaceRightSidePanel from "@/components/chat/spaceRightSidePanel";
+import SpaceRightSidePanel from "@/components/chat/sideDrawer/spaceRightSidePanel";
 import { SideDrawer } from "@/components/common/sideDrawer";
 import React from "react";
 

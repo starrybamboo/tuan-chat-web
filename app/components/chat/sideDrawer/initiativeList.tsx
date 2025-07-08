@@ -4,7 +4,7 @@ import { use, useState } from "react";
 import {
   useGetRoomInitiativeListQuery,
   useRoomInitiativeListMutation,
-} from "../../../api/hooks/chatQueryHooks";
+} from "../../../../api/hooks/chatQueryHooks";
 
 export interface Initiative {
   name: string;
@@ -41,9 +41,9 @@ export default function InitiativeList() {
   };
 
   return (
-    <div className="flex flex-col gap-4 w-full">
+    <div className="flex flex-col gap-4 bg-base-100">
       {/* 先攻指令列表 */}
-      <div className="space-y-2 w-full">
+      <div className="space-y-2 w-full p-2">
         {/* 添加新项的表单 */}
         <div className="flex gap-2 w-full justify-center">
           <input
@@ -110,6 +110,7 @@ export default function InitiativeList() {
           ))}
         </div>
       </div>
+      <div className="h-px bg-base-300 md:hidden"></div>
     </div>
   );
 }
