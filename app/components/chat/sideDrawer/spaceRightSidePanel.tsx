@@ -1,6 +1,4 @@
-import InitiativeList from "@/components/chat/initiativeList";
 import { MemberTypeTag } from "@/components/chat/memberTypeTag";
-import { RoomContext } from "@/components/chat/roomContext";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
@@ -9,49 +7,49 @@ import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { Setting } from "@/icons";
-import React, { use, useMemo } from "react";
-import toast from "react-hot-toast";
-import { useAddRoomMemberMutation, useAddRoomRoleMutation, useGetRoomRoleQuery } from "../../../api/hooks/chatQueryHooks";
-import RoomSettingWindow from "./window/roomSettingWindow";
+import React, { use } from "react";
+import {
+  useAddSpaceMemberMutation,
+  useAddSpaceRoleMutation,
+  useGetSpaceMembersQuery,
+  useGetSpaceRolesQuery,
+} from "../../../../api/hooks/chatQueryHooks";
+import SpaceSettingWindow from "../window/spaceSettingWindow";
 
-export default function RoomRightSidePanel() {
-  const roomContext = use(RoomContext);
+export default function SpaceRightSidePanel() {
   const spaceContext = use(SpaceContext);
-  const roomId = roomContext.roomId ?? -1;
-  const members = roomContext.roomMembers;
-  // 全局登录用户对应的member
-  const curMember = roomContext.curMember;
-  const roomRolesQuery = useGetRoomRoleQuery(roomId);
-  const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
+  const spaceId = spaceContext.spaceId ?? -1;
+  const spaceMemberQuery = useGetSpaceMembersQuery(spaceId);
+  const spaceMembers = spaceMemberQuery.data?.data ?? [];
+  const spaceRolesQuery = useGetSpaceRolesQuery(spaceId);
+  const spaceRoles = spaceRolesQuery.data?.data ?? [];
 
-  const [isRoleHandleOpen, setIsRoleHandleOpen] = useSearchParamsState<boolean>("roleSettingPop", false);
-  const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>("memberSettingPop", false);
+  const [isRoleHandleOpen, setIsRoleHandleOpen] = useSearchParamsState<boolean>(`spaceRolePop${spaceContext.spaceId}`, false);
+  const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>(`spaceUserPop${spaceContext.spaceId}`, false);
 
-  const addMemberMutation = useAddRoomMemberMutation();
-  const addRoleMutation = useAddRoomRoleMutation();
+  const addMemberMutation = useAddSpaceMemberMutation();
+  const addRoleMutation = useAddSpaceRoleMutation();
 
-  const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
+  const [isOpenSpaceSettingWindow, setIsOpenSpaceSettingWindow] = useSearchParamsState<boolean>(`spaceSettingPop${spaceContext.spaceId}`, false);
 
   const handleAddRole = async (roleId: number) => {
     addRoleMutation.mutate({
-      roomId,
+      spaceId,
       roleIdList: [roleId],
     }, {
       onSettled: () => {
         setIsRoleHandleOpen(false);
-        toast("添加角色成功");
       },
     });
   };
 
   async function handleAddMember(userId: number) {
     addMemberMutation.mutate({
-      roomId,
+      spaceId,
       userIdList: [userId],
     }, {
       onSettled: () => {
         setIsMemberHandleOpen(false);
-        toast("添加成员成功");
       },
     });
   }
@@ -59,27 +57,23 @@ export default function RoomRightSidePanel() {
     <div className="flex flex-row gap-4 h-full">
       <div className="flex flex-col gap-2 p-4 bg-base-100 rounded-box shadow-sm items-center w-full space-y-4 overflow-y-auto">
         {
-          spaceContext.isSpaceOwner
-          && (
+          spaceContext.isSpaceOwner && (
             <div className="w-full flex justify-end">
-              <Setting className="w-12 h-12 cursor-pointer hover:text-info" onClick={() => setIsSettingWindowOpen(true)}> </Setting>
+              <Setting className="w-12 h-12 cursor-pointer hover:text-info" onClick={() => setIsOpenSpaceSettingWindow(true)}> </Setting>
             </div>
           )
         }
 
-        {/* 先攻表 */}
-        <div className="divider">先攻表</div>
-        <InitiativeList></InitiativeList>
-        <div className="divider">成员与角色</div>
         {/* 群成员列表 */}
         <div className="space-y-2">
           <div className="flex flex-row justify-center items-center gap-2">
             <p className="text-center">
-              群成员-
-              {members.length}
+              空间成员-
+              {spaceMembers.length}
             </p>
             {
-              curMember?.memberType === 1
+              // TODO
+              spaceMembers.length > 0
               && (
                 <button
                   className="btn btn-dash btn-info"
@@ -91,7 +85,7 @@ export default function RoomRightSidePanel() {
               )
             }
           </div>
-          {members.map(member => (
+          {spaceMembers.map(member => (
             <div
               key={member.userId}
               className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center "
@@ -105,15 +99,15 @@ export default function RoomRightSidePanel() {
             </div>
           ))}
         </div>
-        {/* 角色列表 */}
+        角色列表
         <div className="space-y-2">
           <div className="flex flex-row justify-center items-center gap-2">
             <p className="text-center">
               角色列表-
-              <span className="text-sm">{roomRoles.length}</span>
+              <span className="text-sm">{spaceRoles.length}</span>
             </p>
             {
-              (curMember?.memberType === 1 || curMember?.memberType === 2) && (
+              (1) && (
                 <button
                   className="btn btn-dash btn-info"
                   type="button"
@@ -124,7 +118,7 @@ export default function RoomRightSidePanel() {
               )
             }
           </div>
-          {roomRoles.map(role => (
+          {spaceRoles.map(role => (
             <div
               key={role.roleId}
               className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center "
@@ -143,9 +137,8 @@ export default function RoomRightSidePanel() {
           ))}
         </div>
       </div>
-      {/* 设置窗口 */}
-      <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
-        <RoomSettingWindow onClose={() => setIsSettingWindowOpen(false)}></RoomSettingWindow>
+      <PopWindow isOpen={isOpenSpaceSettingWindow} onClose={() => setIsOpenSpaceSettingWindow(false)}>
+        <SpaceSettingWindow onClose={() => setIsOpenSpaceSettingWindow(false)}></SpaceSettingWindow>
       </PopWindow>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
         <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>

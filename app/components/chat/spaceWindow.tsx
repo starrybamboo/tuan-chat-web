@@ -1,5 +1,6 @@
-import SpaceRightSidePanel from "@/components/chat/spaceRightSidePanel";
+import SpaceRightSidePanel from "@/components/chat/sideDrawer/spaceRightSidePanel";
 import { SideDrawer } from "@/components/common/sideDrawer";
+import React from "react";
 
 export default function SpaceWindow({ spaceId }: { spaceId: number }) {
   if (!spaceId || spaceId <= 0) {
