@@ -146,7 +146,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
           (isOpen && !stopPopWindow) && (
             <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>
               <div className="items-center justify-center gap-y-4 flex flex-col">
-                <UserDetail userId={userId}></UserDetail>
+                <UserDetail userId={userId} size="compact"></UserDetail>
                 {
                   (spaceId > 0) && (
                     curUserId === userId

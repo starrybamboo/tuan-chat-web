@@ -1,6 +1,7 @@
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useGlobalContext } from "@/components/globalContextProvider"; // 添加这行导入
 import EditProfileWindow from "@/components/profile/editProfileWindow";
+import clsx from "clsx";
 import { useState } from "react";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "../../../api/queryHooks";
@@ -8,11 +9,19 @@ import { FollowButton } from "./Follow/FollowButton";
 import { UserFollower } from "./Follow/UserFollower";
 import { PopWindow } from "./popWindow";
 
+type Size = "default" | "compact";
+
+interface UserDetailProps {
+  userId: number;
+  size?: Size; // 默认为 default
+}
+
 /**
  * 显示用户详情界面的组件
  * @param userId 用户ID，组件内会自动调api来获取用户信息
+ * @param size
  */
-export function UserDetail({ userId }: { userId: number }) {
+export function UserDetail({ userId, size = "default" }: UserDetailProps) {
   const userQuery = useGetUserInfoQuery(userId);
   const globalContext = useGlobalContext(); // 添加这行
 
@@ -21,10 +30,15 @@ export function UserDetail({ userId }: { userId: number }) {
   const [isEditWindowOpen, setIsEditWindowOpen] = useSearchParamsState<boolean>(`profileEditPop`, false);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // 背景图片的大小
+  const backgroundHeightMap = {
+    compact: "h-32", // 小卡片
+    default: "h-64", // 正常卡片
+  };
+
   // 状态颜色映射
   const activeStatus = String(user?.activeStatus).toLowerCase() as
       "active" | "offline" | "busy" | "away" | undefined;
-
   const statusColor = {
     active: "badge-success",
     offline: "badge-neutral",
@@ -61,7 +75,7 @@ export function UserDetail({ userId }: { userId: number }) {
   };
 
   return (
-    <div className="card bg-base-100 relative w-full">
+    <div className="card bg-base-100 relative">
       {/* 主体 */}
       <div className="card-body">
         {/* 头像-名字-描述 */}
@@ -70,7 +84,10 @@ export function UserDetail({ userId }: { userId: number }) {
             // 未来在这里会让用户上传背景图片
             // src="https://s21.ax1x.com/2025/03/31/pEs53vD.jpg" 测试用的固定图片
             src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzY2NiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+"
-            className="w-full h-70 lg:h-70 md:h-60 sm:h-40 object-cover object-center rounded-md"
+            className={clsx(
+              "w-full object-cover object-center rounded-md",
+              backgroundHeightMap[size ?? "default"],
+            )}
             alt="用户背景"
             onError={(e) => {
               // No Image 灰色字样
@@ -80,8 +97,8 @@ export function UserDetail({ userId }: { userId: number }) {
           />
           <div className="relative px-4 w-full">
             {/* 头像 */}
-            <div className="avatar absolute -top-12 left-4">
-              <div className="rounded-full ring-4 ring-base-100 bg-base-100 w-24">
+            <div className={clsx("avatar absolute left-4", size === "compact" ? "-top-9" : "-top-12")}>
+              <div className={clsx("rounded-full ring-4 ring-base-100 bg-base-100", size === "compact" ? "w-16" : "w-24")}>
                 {userQuery.isLoading
                   ? (
                       <div className="skeleton w-24 h-24"></div>
@@ -97,7 +114,12 @@ export function UserDetail({ userId }: { userId: number }) {
             </div>
             {/* 关注按钮（仅在 sm 情况显示，浮动在头像下方） */}
             {user?.userId !== globalContext.userId && (
-              <div className="sm:hidden absolute left-6 top-[3.5rem]">
+              <div
+                className={clsx(
+                  "absolute",
+                  size === "compact" ? "block left-32 top-1" : "sm:block md:hidden left-6 top-[3.5rem]", // compact 时始终显示，否则仅在 sm 及以下显示
+                )}
+              >
                 <FollowButton userId={user?.userId || 0} />
               </div>
             )}
@@ -106,8 +128,8 @@ export function UserDetail({ userId }: { userId: number }) {
           {/* 主要信息 */}
           <div className="flex justify-between w-full">
             {/* 左边：名字和描述 */}
-            <div className="pt-2 pl-32">
-              <div className="flex items-center w-full sm:w-2/3 md:w-full lg:w-full ">
+            <div className={clsx("pt-2", size === "compact" ? "pt-14" : "pl-32")}>
+              <div className="flex items-center">
                 {userQuery.isLoading
                   ? (
                       <div className="skeleton h-8 w-48 pr-4"></div>
@@ -188,8 +210,8 @@ export function UserDetail({ userId }: { userId: number }) {
               </div>
             </div>
             {/* 右边：关注按钮（sm及以上显示） */}
-            {user?.userId !== globalContext.userId && (
-              <div className="hidden sm:flex justify-between p-4 flex-shrink-0">
+            {user?.userId !== globalContext.userId && size !== "compact" && (
+              <div className="flex justify-between p-4 flex-shrink-0 hidden md:flex">
                 <FollowButton userId={user?.userId || 0} />
               </div>
             )}
@@ -201,7 +223,7 @@ export function UserDetail({ userId }: { userId: number }) {
           <div className="flex justify-between items-start">
             {/* 左边 - ID和最后登录时间 */}
             <div className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-2 items-baseline">
-              <span className="text-base text-base-content/70 pl-8">用户ID</span>
+              <span className={clsx("text-base text-base-content/70", size === "compact" ? "" : "pl-8")}>用户ID</span>
               <span className="text-base font-mono">{userId}</span>
 
               {user?.lastLoginTime && (
@@ -213,7 +235,7 @@ export function UserDetail({ userId }: { userId: number }) {
             </div>
 
             {/* 右边 - 关注/粉丝数 */}
-            <div className="flex gap-8 pr-8">
+            <div className={clsx("flex gap-8", size === "compact" ? "" : "pr-8")}>
               <div
                 className="flex flex-col items-center hover:text-info transition-colors cursor-pointer"
                 onClick={handleFollowingClick}
