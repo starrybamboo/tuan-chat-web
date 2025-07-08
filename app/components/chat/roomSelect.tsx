@@ -216,18 +216,19 @@ export default function RoomSelect() {
 
   return (
     <SpaceContext value={spaceContext}>
-      <div className="flex flex-row bg-base-100 flex-1 overflow-auto h-full">
+      <div className="flex flex-row bg-base-100 flex-1 h-full">
         <SideDrawer sideDrawerId="room-select">
-          <div className="flex flex-row bg-base-200/40 h-full">
+          <div className="h-full flex flex-row w-max">
             {/* 空间列表 */}
-            <div className="menu flex flex-col p-3 bg-base-300/40 space-y-2 w-16 overflow-auto">
+            <div className="flex flex-col p-2 bg-base-300/40 h-full flex-wrap">
               {spaces.map(space => (
                 <div
-                  className={`rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""}`}
+                  className={`rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""} w-10 mb-2`}
                   key={space.spaceId}
+                  // style={{ writingMode: "horizontal-tb" }}
                 >
                   <button
-                    className="tooltip tooltip-right w-10 btn btn-square z-10"
+                    className="tooltip tooltip-right w-10 btn btn-square"
                     data-tip={space.name}
                     type="button"
                     onClick={() => {
@@ -239,7 +240,7 @@ export default function RoomSelect() {
                       {(() => {
                         const unreadCount = getSpaceUnreadMessagesNumber(space.spaceId ?? -1);
                         return unreadCount > 0 && (
-                          <span className="indicator-item badge badge-xs bg-error z-10">
+                          <span className="indicator-item badge badge-xs bg-error">
                             {unreadCount}
                           </span>
                         );
@@ -254,42 +255,40 @@ export default function RoomSelect() {
                   </button>
                 </div>
               ))}
-              {userInfo
-                && (
-                  <button
-                    className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10"
-                    type="button"
-                    data-tip="创建空间"
-                    onClick={() => {
-                      setIsSpaceHandleOpen(true);
-                      // 重置表单状态
-                      setspaceAvatar(String(userInfo?.avatar));
-                      setSpaceName(`${String(userInfo?.username)}的空间`);
-                      setInputUserId(-1);
-                      setSelectedRuleId(1);
-                    }}
+              <button
+                className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10 photo"
+                type="button"
+                data-tip="创建空间"
+                onClick={() => {
+                  setIsSpaceHandleOpen(true);
+                  // 重置表单状态
+                  setspaceAvatar(String(userInfo?.avatar));
+                  setSpaceName(`${String(userInfo?.username)}的空间`);
+                  setInputUserId(-1);
+                  setSelectedRuleId(1);
+                }}
+              >
+                <div className="avatar mask mask-squircle flex content-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   >
-                    <div className="avatar mask mask-squircle flex content-center">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                      </svg>
-                    </div>
-                  </button>
-                )}
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                </div>
+              </button>
             </div>
+            <div className="w-px bg-base-300"></div>
             {/* 房间列表 */}
-            <div className="flex flex-col gap-2 p-2 w-[200px] overflow-auto">
+            <div className="flex flex-col gap-2 p-2 w-[200px] overflow-auto flex-1">
               {rooms.map(room => (
                 <div key={room.roomId}>
                   {activeSpaceId === room.spaceId && (
