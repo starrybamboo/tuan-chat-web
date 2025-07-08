@@ -158,6 +158,5 @@ export default function RoomRightSidePanel() {
         </PopWindow>
       </div>
     </div>
-
   );
 }

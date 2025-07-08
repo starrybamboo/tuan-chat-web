@@ -1,7 +1,7 @@
-import { isLgScreen } from "@/utils/getScreenSize";
+import { getScreenSize } from "@/utils/getScreenSize";
 import React from "react";
 
-export function openAbleDrawer({
+export function OpenAbleDrawer({
   isOpen,
   children,
 }: {
@@ -11,12 +11,12 @@ export function openAbleDrawer({
   if (!isOpen) {
     return null;
   }
-  if (isLgScreen()) {
-    return children;
+  if (getScreenSize() === "sm") {
+    return (
+      <div className="w-full h-full absolute">
+        {children}
+      </div>
+    );
   }
-  return (
-    <div className={`side-drawer-opener ${isOpen ? "open" : ""}`}>
-      {children}
-    </div>
-  );
+  return children;
 }

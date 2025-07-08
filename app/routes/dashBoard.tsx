@@ -14,9 +14,7 @@ export default function DashBoard() {
   return (
     <div className="h-screen w-screen flex flex-col">
       <Topbar></Topbar>
-      <div className="flex-1 overflow-auto">
-        <Outlet></Outlet>
-      </div>
+      <Outlet></Outlet>
     </div>
   );
 }

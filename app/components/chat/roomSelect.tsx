@@ -288,7 +288,7 @@ export default function RoomSelect() {
             </div>
             <div className="w-px bg-base-300"></div>
             {/* 房间列表 */}
-            <div className="flex flex-col gap-2 p-2 w-[200px] overflow-auto flex-1">
+            <div className="flex flex-col gap-2 p-2 w-[200px] overflow-auto flex-1 bg-base-200/40">
               {rooms.map(room => (
                 <div key={room.roomId}>
                   {activeSpaceId === room.spaceId && (

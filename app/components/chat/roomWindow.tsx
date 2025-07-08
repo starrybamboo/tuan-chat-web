@@ -22,9 +22,10 @@ import useCommandExecutor, { isCommand } from "@/components/common/commandExecut
 import { getLocalStorageValue } from "@/components/common/customHooks/useLocalStorage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { Mounter } from "@/components/common/mounter";
+import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { SideDrawer, SideDrawerToggle } from "@/components/common/sideDrawer";
+import { SideDrawerToggle } from "@/components/common/sideDrawer";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
@@ -34,7 +35,7 @@ import {
   DiceTwentyFacesTwenty,
   GalleryBroken,
   GirlIcon,
-  MoreMenu,
+  MemberFilled,
   SendIcon,
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
@@ -648,21 +649,25 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       syncInputText();
     }
   }
+
+  const [openSide, setOpenSide] = useState(false);
   return (
     <RoomContext value={roomContext}>
-      <div className="flex flex-col h-full w-full">
+      <div className="flex flex-col h-full w-full shadow-sm min-h-0">
         {/* 上边的信息栏 */}
-        <div className="flex justify-between pl-2 pr-2 bg-base-200/40">
+        <div className="flex justify-between p-2 bg-base-100">
           <SideDrawerToggle htmlFor="room-select">
-            <ChatBubbleEllipsesOutline className="size-6"></ChatBubbleEllipsesOutline>
+            <ChatBubbleEllipsesOutline className="size-7"></ChatBubbleEllipsesOutline>
           </SideDrawerToggle>
-          <span className="text-center font-bold">{room?.name}</span>
-          <SideDrawerToggle htmlFor="room-side-drawer">
-            <MoreMenu className="size-6"></MoreMenu>
-          </SideDrawerToggle>
+          <span className="text-center font-semibold text-lg">{room?.name}</span>
+          <div className="tooltip tooltip-bottom" data-tip="展示成员框" onClick={() => setOpenSide(!openSide)}>
+            <MemberFilled className="size-7"></MemberFilled>
+          </div>
+
         </div>
-        <div className="flex-1 overflow-auto w-full flex shadow-sm bg-base-100 h-full ">
-          <div className="flex flex-col flex-1">
+        <div className="h-px bg-base-300"></div>
+        <div className="flex-1 overflow-auto w-full flex bg-base-100 min-h-0">
+          <div className="flex flex-col flex-1 h-full">
             {/* 聊天框 */}
             <div className="bg-base-100 h-[70%]">
               <ChatFrame useChatBubbleStyle={useChatBubbleStyle} key={roomId}></ChatFrame>
@@ -772,7 +777,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   </div>
                   {/* at搜索框 */}
                   {showAtDialog && atDialogPosition.x > 0 && searchedRoles.length > 0 && (
-                    // 这里的坐标是全局的坐标，所以mount到根元素
+                  // 这里的坐标是全局的坐标，所以mount到根元素
                     <Mounter targetId="modal-root">
                       <div
                         className="absolute flex flex-col card shadow-md bg-base-200 p-2"
@@ -862,10 +867,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               </div>
             </form>
           </div>
-          <SideDrawer sideDrawerId="room-side-drawer" isAtRight={true}>
+          <OpenAbleDrawer isOpen={openSide}>
             <div className="w-px bg-base-300"></div>
             <RoomRightSidePanel></RoomRightSidePanel>
-          </SideDrawer>
+          </OpenAbleDrawer>
         </div>
       </div>
       <PopWindow isOpen={commandBrowseWindow === "dice"} onClose={() => setCommandBrowseWindow("none")}>

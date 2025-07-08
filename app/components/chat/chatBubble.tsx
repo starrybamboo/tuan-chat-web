@@ -168,8 +168,6 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 </div>
                 <time className="text-xs opacity-50">
                   {message.createTime ?? ""}
-                  {` pos: ${message.position}`}
-                  {` id: ${message.messageID}`}
                 </time>
               </div>
             </div>
