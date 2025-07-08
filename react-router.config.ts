@@ -12,7 +12,6 @@ export default {
     "/create",
     "/feed",
     "/module/create",
-    "/profile",
     "/role",
     "/module/detail",
     "/collection",
