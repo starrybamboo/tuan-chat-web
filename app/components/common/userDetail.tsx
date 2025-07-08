@@ -61,18 +61,19 @@ export function UserDetail({ userId }: { userId: number }) {
   };
 
   return (
-    <div className="card bg-base-100 relative">
+    <div className="card bg-base-100 relative w-full">
       {/* 主体 */}
       <div className="card-body">
         {/* 头像-名字-描述 */}
         <div className="flex flex-col items-start">
           <img
-            // 写死的img
-            // src="https://s21.ax1x.com/2025/03/31/pEs53vD.jpg"
+            // 未来在这里会让用户上传背景图片
+            // src="https://s21.ax1x.com/2025/03/31/pEs53vD.jpg" 测试用的固定图片
             src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzY2NiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+"
-            className="w-full object-cover object-center h-60 sm:h-60 md:h-60 lg:h-80"
+            className="w-full h-70 lg:h-70 md:h-60 sm:h-40 object-cover object-center rounded-md"
             alt="用户背景"
             onError={(e) => {
+              // No Image 灰色字样
               e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzY2NiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+";
               e.currentTarget.onerror = null;
             }}
@@ -80,7 +81,7 @@ export function UserDetail({ userId }: { userId: number }) {
           <div className="relative px-4 w-full">
             {/* 头像 */}
             <div className="avatar absolute -top-12 left-4">
-              <div className="w-24 rounded-full ring-4 ring-base-100 bg-base-100">
+              <div className="rounded-full ring-4 ring-base-100 bg-base-100 w-24">
                 {userQuery.isLoading
                   ? (
                       <div className="skeleton w-24 h-24"></div>
@@ -94,26 +95,42 @@ export function UserDetail({ userId }: { userId: number }) {
                     )}
               </div>
             </div>
+            {/* 关注按钮（仅在 sm 情况显示，浮动在头像下方） */}
+            {user?.userId !== globalContext.userId && (
+              <div className="sm:hidden absolute left-6 top-[3.5rem]">
+                <FollowButton userId={user?.userId || 0} />
+              </div>
+            )}
           </div>
 
           {/* 主要信息 */}
-          <div className="flex justify-between w-full px-4">
+          <div className="flex justify-between w-full">
             {/* 左边：名字和描述 */}
             <div className="pt-2 pl-32">
-              <div className="flex items-center">
+              <div className="flex items-center w-full sm:w-2/3 md:w-full lg:w-full ">
                 {userQuery.isLoading
                   ? (
                       <div className="skeleton h-8 w-48 pr-4"></div>
                     )
                   : (
-                      <h2 className="text-2xl h-8 font-bold pr-4 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                      <h2 className="text-2xl h-8 font-bold pr-4 text-white truncate min-w-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                         {user?.username || "未知用户"}
                       </h2>
                     )}
                 {/* 用户状态指示小球 */}
-                {user?.activeStatus && (
-                  <div className={`badge ${statusColor} ml-2`}>
-                    {user.activeStatus}
+                {user?.activeStatus !== undefined && (
+                  <div className="badge flex-nowrap gap-1 rounded-full items-center ring-1 ring-white/50 px-2 py-1 text-sm min-w-fit whitespace-nowrap">
+                    <div className={`w-4 h-4 rounded-full ${statusColor.replace("badge-", "bg-")}`} />
+                    <span className="hidden sm:inline">
+                      {
+                        {
+                          active: "在线",
+                          offline: "离线",
+                          busy: "忙碌",
+                          away: "离开",
+                        }[String(user.activeStatus).toLowerCase()] || "离线"
+                      }
+                    </span>
                   </div>
                 )}
                 {/* 编辑按钮 */}
@@ -151,14 +168,13 @@ export function UserDetail({ userId }: { userId: number }) {
                         <div className="skeleton h-6 w-32"></div>
                       )
                     : (
-                        <div className="relative">
+                        <div className="">
                           <p
-                            className={`text-sm text-white/80 break-words transition-all duration-300 ${
+                            className={`text-base text-white/80 break-words transition-all duration-300 ${
                               isExpanded ? "" : "line-clamp-2"
                             }`}
                           >
-                            这个人就是个杂鱼，什么也不愿意写喵~ 这个人就是个杂鱼，什么也不愿意写喵~
-                            这个人就是个杂鱼，什么也不愿意写喵~ 这个人就是个杂鱼，什么也不愿意写喵~
+                            这个人就是个杂鱼，什么也不愿意写喵~
                           </p>
                           <button
                             onClick={() => setIsExpanded(prev => !prev)}
@@ -171,14 +187,12 @@ export function UserDetail({ userId }: { userId: number }) {
                 </div>
               </div>
             </div>
-            {/* 右边：关注按钮 */}
-            {
-              user?.userId !== globalContext.userId && (
-                <div className="flex justify-between p-4">
-                  <FollowButton userId={user?.userId || 0} />
-                </div>
-              )
-            }
+            {/* 右边：关注按钮（sm及以上显示） */}
+            {user?.userId !== globalContext.userId && (
+              <div className="hidden sm:flex justify-between p-4 flex-shrink-0">
+                <FollowButton userId={user?.userId || 0} />
+              </div>
+            )}
           </div>
         </div>
 
@@ -187,13 +201,13 @@ export function UserDetail({ userId }: { userId: number }) {
           <div className="flex justify-between items-start">
             {/* 左边 - ID和最后登录时间 */}
             <div className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-2 items-baseline">
-              <span className="text-base-content/70 pl-8">用户ID</span>
-              <span className="font-mono">{userId}</span>
+              <span className="text-base text-base-content/70 pl-8">用户ID</span>
+              <span className="text-base font-mono">{userId}</span>
 
               {user?.lastLoginTime && (
                 <>
-                  <span className="text-base-content/70 pl-8">最后登录</span>
-                  <span>{user.lastLoginTime}</span>
+                  <span className="text-base text-base-content/70 pl-8">最后登录</span>
+                  <span className="text-base font-mono">{user.lastLoginTime}</span>
                 </>
               )}
             </div>
@@ -201,7 +215,7 @@ export function UserDetail({ userId }: { userId: number }) {
             {/* 右边 - 关注/粉丝数 */}
             <div className="flex gap-8 pr-8">
               <div
-                className="place-items-center hover:text-info transition-colors cursor-pointer"
+                className="flex flex-col items-center hover:text-info transition-colors cursor-pointer"
                 onClick={handleFollowingClick}
               >
                 <div className="stat-value text-sm">{followStats.following}</div>
@@ -209,10 +223,10 @@ export function UserDetail({ userId }: { userId: number }) {
               </div>
 
               <div
-                className="place-items-center hover:text-info transition-colors cursor-pointer"
+                className="flex flex-col items-center hover:text-info transition-colors cursor-pointer"
                 onClick={handleFollowersClick}
               >
-                <div className="stat-value text-sm">{followStats.followers}</div>
+                <div className="stat-value text-sm text-center">{followStats.followers}</div>
                 <div className="stat-title text-sm">粉丝</div>
               </div>
             </div>
