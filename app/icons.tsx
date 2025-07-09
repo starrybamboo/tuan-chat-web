@@ -587,3 +587,46 @@ export function BaselineArrowBackIosNew(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function AngleDownOutline(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="m19 9l-7 7l-7-7"
+      >
+      </path>
+    </svg>
+  );
+}
+
+export function DotsHorizontalOutline(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="3"
+        d="M6 12h.01m6 0h.01m5.99 0h.01"
+      >
+      </path>
+    </svg>
+  );
+}
