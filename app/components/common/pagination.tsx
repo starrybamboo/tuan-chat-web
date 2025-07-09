@@ -29,17 +29,19 @@ const Pagination: React.FC<PaginationProps> = ({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // 统一跳转并滚动到顶部
+  // 统一跳转
   const handleChange = (page: number) => {
     onPageChange(page);
   };
 
   const displayPages = useMemo<(number | string)[]>(() => {
+    // 确保 totalPages 是有效数字
+    const validTotalPages = Math.max(1, Number(totalPages) || 1);
     const pages: (number | string)[] = [];
     const isMobile = responsive && width < 768;
 
-    if (totalPages <= (isMobile ? 5 : 9)) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (validTotalPages <= (isMobile ? 5 : 9)) {
+      return Array.from({ length: validTotalPages }, (_, i) => i + 1);
     }
 
     if (!isMobile) {
@@ -48,13 +50,13 @@ const Pagination: React.FC<PaginationProps> = ({
         // 开头
         for (let i = 1; i <= 7; i++) pages.push(i);
         pages.push("...");
-        pages.push(totalPages);
+        pages.push(validTotalPages);
       }
-      else if (currentPage >= totalPages - 4) {
+      else if (currentPage >= validTotalPages - 4) {
         // 结尾
         pages.push(1);
         pages.push("...");
-        for (let i = totalPages - 6; i <= totalPages; i++) pages.push(i);
+        for (let i = validTotalPages - 6; i <= validTotalPages; i++) pages.push(i);
       }
       else {
         // 中间
@@ -62,27 +64,32 @@ const Pagination: React.FC<PaginationProps> = ({
         pages.push("...");
         for (let i = currentPage - 2; i <= currentPage + 2; i++) pages.push(i);
         pages.push("...");
-        pages.push(totalPages);
+        pages.push(validTotalPages);
       }
     }
     else {
       // 移动端，精简显示，buffer=1
       const start = Math.max(1, currentPage - 1);
-      const end = Math.min(totalPages, currentPage + 1);
+      const end = Math.min(validTotalPages, currentPage + 1);
       pages.push(1);
       if (start > 2)
         pages.push("...");
       for (let i = start; i <= end; i++) {
-        if (i !== 1 && i !== totalPages)
+        if (i !== 1 && i !== validTotalPages)
           pages.push(i);
       }
-      if (end < totalPages - 1)
+      if (end < validTotalPages - 1)
         pages.push("...");
-      pages.push(totalPages);
+      pages.push(validTotalPages);
     }
 
     return pages;
   }, [totalPages, currentPage, width, responsive]);
+
+  // 只有在总页数大于1时才渲染分页组件
+  if (totalPages <= 1) {
+    return null;
+  }
 
   return (
     <div
