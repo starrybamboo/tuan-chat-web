@@ -293,7 +293,7 @@ export default function RoomSelect() {
             </div>
             <div className="w-px bg-base-300"></div>
             {/* 房间列表 */}
-            <div className="flex flex-col gap-2 py-2 w-[200px] md:w-full overflow-auto flex-1 bg-base-200/40 min-h-0">
+            <div className="flex flex-col gap-2 py-2 w-full md:w-[200px] overflow-auto flex-1 bg-base-200/40 min-h-0">
               <div className="self-center font-bold flex gap-2">
                 <span className="text-lg">{activeSpace?.name}</span>
                 <DotsHorizontalOutline className="size-7 hover:bg-base-300 rounded" onClick={() => { setIsShowSpacePanel(!isShowSpacePanel); }} />
