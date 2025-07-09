@@ -217,7 +217,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                     : (
                         <div className="">
                           <p
-                            className={`text-base text-white/80 break-words transition-all duration-300 ${
+                            className={`text-base text-sm break-words transition-all duration-300 ${
                               isExpanded ? "" : "line-clamp-2"
                             }`}
                           >

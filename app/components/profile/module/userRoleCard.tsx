@@ -57,7 +57,7 @@ export function UserRoleCard({ roleId }: UserRoleCardProps) {
   const avatarUrl = avatarData?.data?.avatarUrl || "/favicon.ico";
 
   return (
-    <div className="w-50 bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200">
+    <div className="w-48 bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200">
       <div className="relative h-65">
         {/* 头像区 */}
         <div className="row-start-1 row-end-1 relative">

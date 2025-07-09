@@ -1,19 +1,28 @@
+import Pagination from "@/components/common/pagination";
 import { UserRoleCard } from "@/components/profile/module/userRoleCard";
-import React from "react";
-import { useGetUserRolesQuery } from "../../../../api/queryHooks";
+import React, { useMemo, useState } from "react";
+import { useGetUserRolesPageQuery } from "../../../../api/queryHooks";
 
 export function WorksTab({ userId }: { userId: number }) {
-  const {
-    data: response,
-  } = useGetUserRolesQuery(userId);
+  const [page, setPage] = useState(1);
 
-  const roleIds = React.useMemo(() => {
-    if (!response?.success || !response.data)
-      return [];
-    // 确保每个 roleId 都是num
-    return response.data
+  const { data: response } = useGetUserRolesPageQuery({
+    userId,
+    pageNo: page,
+    pageSize: 10,
+  });
+
+  // 计算总页数
+  const totalPages = useMemo(() => {
+    if (!response?.data?.totalRecords || !response.data.pageSize)
+      return 0;
+    return Math.ceil(response.data.totalRecords / response.data.pageSize);
+  }, [response]);
+
+  const roleIds = useMemo((): number[] => {
+    return (response?.data?.list || [])
       .map(role => role.roleId)
-      .filter((id): id is number => typeof id === "number");
+      .filter((id): id is number => id !== undefined && typeof id === "number");
   }, [response]);
 
   // if (isLoading)
@@ -28,7 +37,7 @@ export function WorksTab({ userId }: { userId: number }) {
         <span className="text-gray-500">
           共
           {" "}
-          {roleIds.length}
+          {response?.data?.totalRecords}
           {" "}
           个角色
         </span>
@@ -41,14 +50,22 @@ export function WorksTab({ userId }: { userId: number }) {
             </div>
           )
         : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {roleIds.map(roleId => (
-                <UserRoleCard
-                  key={roleId}
-                  roleId={roleId}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {roleIds.map(roleId => (
+                  <UserRoleCard
+                    key={roleId}
+                    roleId={roleId}
+                  />
+                ))}
+              </div>
+              <Pagination
+                totalPages={totalPages}
+                currentPage={page}
+                onPageChange={setPage}
+                className="mt-8 items-center w-full mt-8"
+              />
+            </>
           )}
     </div>
   );
