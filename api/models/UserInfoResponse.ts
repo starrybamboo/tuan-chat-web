@@ -13,7 +13,7 @@ export type UserInfoResponse = {
      */
     avatar?: string;
     /**
-     * 1 在线 2离线
+     * active offline busy away 状态
      */
     activeStatus?: string;
     /**

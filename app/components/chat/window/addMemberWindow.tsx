@@ -68,7 +68,7 @@ export default function AddMemberWindow({ handleAddMember }: { handleAddMember: 
           {inputUserId > 0 && inputUserInfo && (
             <div className="card bg-base-100 shadow-md mt-4">
               <div className="card-body items-center text-center space-y-4">
-                <UserDetail userId={inputUserId} />
+                <UserDetail userId={inputUserId} size="compact" />
                 <button
                   className="btn btn-info"
                   type="button"

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 import { FollowButton } from "./FollowButton";
 
@@ -22,7 +23,18 @@ export function UserCard({ userId, initialStatus }: UserCardProps) {
                   <div className="skeleton w-12 h-12"></div>
                 )
               : (
-                  <img src={userInfo?.avatar || "/default-avatar.png"} alt={userInfo?.username} />
+
+                  <Link
+                    to={`/profile/${userId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <img
+                      src={userInfo?.avatar || "/default-avatar.png"}
+                      alt={userInfo?.username}
+                      className="mask mask-circle pointer"
+                    />
+                  </Link>
                 )}
           </div>
         </div>

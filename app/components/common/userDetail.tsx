@@ -3,6 +3,7 @@ import { useGlobalContext } from "@/components/globalContextProvider"; // 添加
 import EditProfileWindow from "@/components/profile/editProfileWindow";
 import clsx from "clsx";
 import { useState } from "react";
+import { Link } from "react-router";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "../../../api/queryHooks";
 import { FollowButton } from "./Follow/FollowButton";
@@ -19,7 +20,7 @@ interface UserDetailProps {
 /**
  * 显示用户详情界面的组件
  * @param userId 用户ID，组件内会自动调api来获取用户信息
- * @param size
+ * @param size 组件尺寸，分为 default 与 compact（小卡片)
  */
 export function UserDetail({ userId, size = "default" }: UserDetailProps) {
   const userQuery = useGetUserInfoQuery(userId);
@@ -104,11 +105,20 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                       <div className="skeleton w-24 h-24"></div>
                     )
                   : (
-                      <img
-                        src={user?.avatar || undefined}
-                        alt={user?.username}
-                        className="mask mask-circle"
-                      />
+                      <div className={size === "default" ? "pointer-events-none" : ""}>
+                        <Link
+                          to={`/profile/${userId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <img
+                            src={user?.avatar || undefined}
+                            alt={user?.username}
+                            className="mask mask-circle"
+                            style={{ cursor: size === "default" ? "default" : "pointer" }}
+                          />
+                        </Link>
+                      </div>
                     )}
               </div>
             </div>
@@ -136,12 +146,27 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                     )
                   : (
                       <h2 className="text-2xl h-8 font-bold pr-4 text-white truncate min-w-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                        {user?.username || "未知用户"}
+                        {size === "default"
+                          ? (
+                              user?.username || "未知用户"
+                            )
+                          : (
+                              <Link
+                                to={`/profile/${userId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:underline cursor-pointer"
+                              >
+                                {user?.username || "未知用户"}
+                              </Link>
+                            )}
                       </h2>
                     )}
                 {/* 用户状态指示小球 */}
                 {user?.activeStatus !== undefined && (
-                  <div className="badge flex-nowrap gap-1 rounded-full items-center ring-1 ring-white/50 px-2 py-1 text-sm min-w-fit whitespace-nowrap">
+                  <div
+                    className="badge flex-nowrap gap-1 rounded-full items-center ring-1 ring-white/50 px-2 py-1 text-sm min-w-fit whitespace-nowrap"
+                  >
                     <div className={`w-4 h-4 rounded-full ${statusColor.replace("badge-", "bg-")}`} />
                     <span className="hidden sm:inline">
                       {
@@ -201,6 +226,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                           <button
                             onClick={() => setIsExpanded(prev => !prev)}
                             className="text-blue-400 text-xs mt-1 hover:underline"
+                            type="button"
                           >
                             {isExpanded ? "收起" : "展开"}
                           </button>
