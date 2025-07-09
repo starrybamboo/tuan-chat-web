@@ -43,7 +43,7 @@ export default function RoomSelect() {
   // 当前激活的space对应的rooms。
   const rooms = userRoomQuery.data?.data ?? [];
   // 当前选中的房间ID，如果为null，则默认为第一个room
-  const [activeRoomId, setActiveRoomId] = useState<number | null>(urlRoomId ? Number(urlRoomId) : (storedIds.roomId ?? rooms[0].roomId ?? null));
+  const [activeRoomId, setActiveRoomId] = useState<number | null>(urlRoomId ? Number(urlRoomId) : (storedIds.roomId ?? rooms[0]?.roomId ?? null));
 
   const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState<boolean>("leftDrawer", !(urlSpaceId && urlRoomId), false);
 
