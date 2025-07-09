@@ -59,14 +59,14 @@ body {
 @media (max-width: 768px) {
   :root {
     font-size: 14px; /* 基础缩放 (14/16=0.875) */
-    --scale-factor: 0.875;
+    --scale-factor: 0.9375;
   }
 }
 
 @media (max-width: 480px) {
   :root {
     font-size: 13px; /*  (13/16=0.8125) */
-    --scale-factor: 0.8125;
+    --scale-factor: 0.875;
   }
 }
 
