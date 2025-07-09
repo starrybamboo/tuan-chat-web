@@ -44,6 +44,7 @@ import {
   SwordSwing,
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
+import { getScreenSize } from "@/utils/getScreenSize";
 import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -665,7 +666,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         <div className="flex justify-between py-2 px-5 bg-base-100">
 
           <div className="flex gap-2">
-            <BaselineArrowBackIosNew className="size-7" onClick={spaceContext.toggleLeftDrawer}></BaselineArrowBackIosNew>
+            {getScreenSize() === "sm"
+              && <BaselineArrowBackIosNew className="size-7" onClick={spaceContext.toggleLeftDrawer}></BaselineArrowBackIosNew>}
             <span className="text-center font-semibold text-lg">{room?.name}</span>
           </div>
           <div className="flex gap-2">

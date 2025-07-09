@@ -10,6 +10,7 @@ import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { getScreenSize } from "@/utils/getScreenSize";
 import {
   useCreateRoomMutation,
   useCreateSpaceMutation,
@@ -39,7 +40,7 @@ export default function RoomSelect() {
   // 当前选中的房间ID
   const [activeRoomId, setActiveRoomId] = useState<number | null>(urlRoomId ? Number(urlRoomId) : (storedIds.roomId ?? null));
 
-  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState<boolean>("leftDrawer", !(urlSpaceId && urlRoomId));
+  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState<boolean>("leftDrawer", !(urlSpaceId && urlRoomId), false);
 
   // 同步路由状态 并存到localStorage里面
   useEffect(() => {
@@ -170,7 +171,7 @@ export default function RoomSelect() {
       toggleLeftDrawer: () => { setIsOpenLeftDrawer(!isOpenLeftDrawer); },
       ruleId: spaces.find(space => space.spaceId === activeSpaceId)?.ruleId,
     };
-  }, [activeSpaceId, globalContext.userId, isOpenLeftDrawer, spaceMembersQuery.data?.data, spaces]);
+  }, [activeSpaceId, globalContext.userId, isOpenLeftDrawer, setIsOpenLeftDrawer, spaceMembersQuery.data?.data, spaces]);
 
   const getSpaceUnreadMessagesNumber = (spaceId: number) => {
     let result = 0;
@@ -220,7 +221,8 @@ export default function RoomSelect() {
   return (
     <SpaceContext value={spaceContext}>
       <div className="flex flex-row bg-base-100 flex-1 h-full">
-        <OpenAbleDrawer isOpen={isOpenLeftDrawer} className="h-full z-10 w-full bg-base-100">
+        {/* 只有小屏才允许收起侧边栏 */}
+        <OpenAbleDrawer isOpen={getScreenSize() === "sm" ? isOpenLeftDrawer : true} className="h-full z-10 w-full bg-base-100">
           <div className="h-full flex flex-row w-max">
             {/* 空间列表 */}
             <div className="flex flex-col p-2 bg-base-300/40 h-full flex-wrap">
