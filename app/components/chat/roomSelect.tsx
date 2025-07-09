@@ -42,8 +42,17 @@ export default function RoomSelect() {
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
   // 当前激活的space对应的rooms。
   const rooms = userRoomQuery.data?.data ?? [];
-  // 当前选中的房间ID，如果为null，则默认为第一个room
-  const [activeRoomId, setActiveRoomId] = useState<number | null>(urlRoomId ? Number(urlRoomId) : (storedIds.roomId ?? rooms[0]?.roomId ?? null));
+  // 获取用户空间列表
+  const userSpacesQuery = useGetUserSpacesQuery();
+  const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
+  const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
+  // 当前选中的房间ID，初始化的时候，按照路由参数，localStorage里的数据，rooms的第一个，null的优先级来初始化
+  const [activeRoomId, setActiveRoomId] = useState<number | null>(urlRoomId
+    ? Number(urlRoomId)
+    : (storedIds.roomId ?? rooms[0]?.roomId ?? null));
+  useEffect(() => {
+    setActiveRoomId(rooms[0]?.roomId ?? null);
+  }, [activeSpaceId]);
 
   const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState<boolean>("leftDrawer", !(urlSpaceId && urlRoomId), false);
 
@@ -56,10 +65,6 @@ export default function RoomSelect() {
     }
   }, [activeSpaceId, activeRoomId, navigate, setStoredChatIds]);
 
-  // 获取用户空间列表
-  const userSpacesQuery = useGetUserSpacesQuery();
-  const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
-  const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
   // 当前激活的空间对应的房间列表
   const userRoomQueries = useGetUserRoomsQueries(spaces);
   // 空间对应的房间列表
@@ -300,12 +305,12 @@ export default function RoomSelect() {
               </div>
               <div className="h-px bg-base-300"></div>
               <div className="flex flex-col gap-2 p-2 overflow-auto relative">
-                {rooms.map((room, index) => (
+                {rooms.map(room => (
                   <div key={room.roomId}>
                     {activeSpaceId === room.spaceId && (
                       <button
                         key={room.roomId}
-                        className={`btn btn-ghost flex justify-start w-full gap-2 ${(activeRoomId ? activeRoomId === room.roomId : index === 0) ? "bg-info-content/30" : ""}`}
+                        className={`btn btn-ghost flex justify-start w-full gap-2 ${activeRoomId === room.roomId ? "bg-info-content/30" : ""}`}
                         type="button"
                         onClick={() => {
                           setActiveRoomId(room.roomId ?? -1);
@@ -358,7 +363,7 @@ export default function RoomSelect() {
         {/* 聊天记录窗口，输入窗口，侧边栏 */}
         {
           activeSpaceId
-            ? <RoomWindow roomId={activeRoomId ?? rooms[0].roomId ?? -1} spaceId={activeSpaceId ?? -1} />
+            ? <RoomWindow roomId={activeRoomId ?? -1} spaceId={activeSpaceId ?? -1} />
             : (
                 <div className="flex items-center justify-center w-full h-full font-bold">
                   <span className="text-center lg:hidden">请从右侧选择房间</span>
