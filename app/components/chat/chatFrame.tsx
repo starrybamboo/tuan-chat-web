@@ -11,7 +11,7 @@ import { SpaceContext } from "@/components/chat/spaceContext";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import React, { use, useCallback, useMemo, useRef, useState } from "react";
+import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import {
   useDeleteMessageMutation,
@@ -105,9 +105,16 @@ export default function ChatFrame({ useChatBubbleStyle }:
    * scroll相关
    */
   const scrollToBottom = () => {
-    virtuosoRef?.current?.scrollToIndex(historyMessages.length - 1);
+    virtuosoRef?.current?.scrollToIndex(historyMessages.length);
     updateUnreadMessagesNumber(roomId, 0);
   };
+  useEffect(() => {
+    if (messagesInfiniteQuery?.isFetchedAfterMount) {
+      setTimeout(() => {
+        scrollToBottom();
+      }, 500);
+    }
+  }, [messagesInfiniteQuery?.isFetchedAfterMount]);
   // useEffect(() => {
   //   if ((messageEntry?.isIntersecting) && !messagesInfiniteQuery?.isFetchingNextPage) {
   //     messagesInfiniteQuery?.fetchNextPage();

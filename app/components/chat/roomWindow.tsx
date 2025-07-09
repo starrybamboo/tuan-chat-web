@@ -89,6 +89,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   };
   // 如果想从外部控制输入框的内容，使用这个函数。
   const setInputText = (text: string) => {
+    setInputTextWithoutUpdateTextArea(text);
     if (textareaRef.current) {
       textareaRef.current.innerHTML = text;
       // Move cursor to end
@@ -153,6 +154,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   // 你说的对，我什么要这里定义一个莫名奇妙的ref呢？因为该死的virtuoso不知道为什么，里面的函数指针会会指向一个旧的fetchNextPage，并不能随着重新渲染而更新。导致里面的cursor也是旧的。
   // 定义这个ref只是为了绕开virtuoso这个问题的hack。
   const cursorRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    cursorRef.current = undefined;
+  }, [spaceId]);
   const messagesInfiniteQuery = useInfiniteQuery({
     queryKey: ["getMsgPage", roomId],
     queryFn: async ({ pageParam }) => {
