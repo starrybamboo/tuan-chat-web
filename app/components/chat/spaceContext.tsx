@@ -19,6 +19,11 @@ export interface SpaceContextType {
    * 设置激活房间ID的回调函数
    */
   setActiveRoomId: (id: number | null) => void;
+
+  /**
+   * 开启左侧侧边栏的回调函数
+   */
+  toggleLeftDrawer: () => void;
 }
 
 export const SpaceContext = createContext<SpaceContextType>({
@@ -27,4 +32,5 @@ export const SpaceContext = createContext<SpaceContextType>({
   setActiveSpaceId: () => {},
   setActiveRoomId: () => {},
   ruleId: undefined,
+  toggleLeftDrawer: () => {},
 });

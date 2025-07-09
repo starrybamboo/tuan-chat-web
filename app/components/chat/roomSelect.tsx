@@ -1,15 +1,17 @@
 import type { SpaceContextType } from "@/components/chat/spaceContext";
 import type { Room } from "../../../api";
 import RoomWindow from "@/components/chat/roomWindow";
+import SpaceRightSidePanel from "@/components/chat/sideDrawer/spaceRightSidePanel";
 import { SpaceContext } from "@/components/chat/spaceContext";
-import SpaceWindow from "@/components/chat/spaceWindow";
 import checkBack from "@/components/common/autoContrastText";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
-import { SideDrawer } from "@/components/common/sideDrawer";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { DotsHorizontalOutline } from "@/icons";
+import { getScreenSize } from "@/utils/getScreenSize";
 import {
   useCreateRoomMutation,
   useCreateSpaceMutation,
@@ -36,24 +38,28 @@ export default function RoomSelect() {
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
   // 当前选中的空间ID
   const [activeSpaceId, setActiveSpaceId] = useState<number | null>(urlSpaceId ? Number(urlSpaceId) : (storedIds.spaceId ?? null));
-  // 当前选中的房间ID
-  const [activeRoomId, setActiveRoomId] = useState<number | null>(urlRoomId ? Number(urlRoomId) : (storedIds.roomId ?? null));
+  const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
+  const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
+  // 当前激活的space对应的rooms。
+  const rooms = userRoomQuery.data?.data ?? [];
+  // 当前选中的房间ID，如果为null，则默认为第一个room
+  const [activeRoomId, setActiveRoomId] = useState<number | null>(urlRoomId ? Number(urlRoomId) : (storedIds.roomId ?? rooms[0].roomId ?? null));
+
+  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState<boolean>("leftDrawer", !(urlSpaceId && urlRoomId), false);
 
   // 同步路由状态 并存到localStorage里面
   useEffect(() => {
-    const handler = setTimeout(() => {
-      setStoredChatIds({ spaceId: activeSpaceId, roomId: activeRoomId });
-      if (activeSpaceId || activeRoomId) {
-        const path = `/chat/${activeSpaceId || ""}/${activeRoomId || ""}`;
-        navigate(path.replace(/\/+$/, ""), { replace: true });
-      }
-    }, 100); // 延迟 100ms
-    return () => clearTimeout(handler);
+    setStoredChatIds({ spaceId: activeSpaceId, roomId: activeRoomId });
+    if (activeSpaceId || activeRoomId) {
+      const path = `/chat/${activeSpaceId || ""}/${activeRoomId || ""}`;
+      navigate(path.replace(/\/+$/, ""), { replace: true });
+    }
   }, [activeSpaceId, activeRoomId, navigate, setStoredChatIds]);
 
   // 获取用户空间列表
   const userSpacesQuery = useGetUserSpacesQuery();
   const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
+  const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
   // 当前激活的空间对应的房间列表
   const userRoomQueries = useGetUserRoomsQueries(spaces);
   // 空间对应的房间列表
@@ -66,11 +72,6 @@ export default function RoomSelect() {
     return result;
   }, [spaces, userRoomQueries]);
 
-  const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
-  const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
-  // 当前激活的space对应的rooms。
-  const rooms = userRoomQuery.data?.data ?? [];
-
   // 创建空间
   const createSpaceMutation = useCreateSpaceMutation();
   // 创建房间
@@ -79,6 +80,9 @@ export default function RoomSelect() {
   const [isSpaceHandleOpen, setIsSpaceHandleOpen] = useSearchParamsState<boolean>("addSpacePop", false);
   // 创建房间弹窗是否打开
   const [isRoomHandleOpen, setIsRoomHandleOpen] = useSearchParamsState<boolean>("addRoomPop", false);
+  // 是否显示space详情
+  const [isShowSpacePanel, setIsShowSpacePanel] = useState(false);
+
   // 处理邀请用户uid
   const [inputUserId, setInputUserId] = useState<number>(-1);
   // 获取当前用户信息
@@ -165,9 +169,10 @@ export default function RoomSelect() {
       isSpaceOwner: spaceMembersQuery.data?.data?.some(member => member.userId === globalContext.userId && member.memberType === 1),
       setActiveSpaceId,
       setActiveRoomId,
+      toggleLeftDrawer: () => { setIsOpenLeftDrawer(!isOpenLeftDrawer); },
       ruleId: spaces.find(space => space.spaceId === activeSpaceId)?.ruleId,
     };
-  }, [activeSpaceId, globalContext.userId, spaceMembersQuery.data?.data, spaces]);
+  }, [activeSpaceId, globalContext.userId, isOpenLeftDrawer, setIsOpenLeftDrawer, spaceMembersQuery.data?.data, spaces]);
 
   const getSpaceUnreadMessagesNumber = (spaceId: number) => {
     let result = 0;
@@ -217,15 +222,15 @@ export default function RoomSelect() {
   return (
     <SpaceContext value={spaceContext}>
       <div className="flex flex-row bg-base-100 flex-1 h-full">
-        <SideDrawer sideDrawerId="room-select">
-          <div className="h-full flex flex-row w-max">
+        {/* 只有小屏才允许收起侧边栏 */}
+        <OpenAbleDrawer isOpen={getScreenSize() === "sm" ? isOpenLeftDrawer : true} className="h-full z-10 w-full bg-base-100">
+          <div className="h-full flex flex-row w-full md:w-max">
             {/* 空间列表 */}
             <div className="flex flex-col p-2 bg-base-300/40 h-full flex-wrap">
               {spaces.map(space => (
                 <div
                   className={`rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""} w-10 mb-2`}
                   key={space.spaceId}
-                  // style={{ writingMode: "horizontal-tb" }}
                 >
                   <button
                     className="tooltip tooltip-right w-10 btn btn-square"
@@ -288,41 +293,51 @@ export default function RoomSelect() {
             </div>
             <div className="w-px bg-base-300"></div>
             {/* 房间列表 */}
-            <div className="flex flex-col gap-2 p-2 w-[200px] overflow-auto flex-1 bg-base-200/40">
-              {rooms.map(room => (
-                <div key={room.roomId}>
-                  {activeSpaceId === room.spaceId && (
-                    <button
-                      key={room.roomId}
-                      className={`btn btn-ghost flex justify-start w-full gap-2 ${activeRoomId === room.roomId ? "bg-info-content/30" : ""}`}
-                      type="button"
-                      onClick={() => setActiveRoomId(room.roomId ?? -1)}
-                    >
-                      <div className="indicator">
-                        {(activeRoomId !== room.roomId && unreadMessagesNumber[room.roomId ?? -1] > 0)
-                          && (
-                            <span
-                              className="indicator-item badge badge-xs bg-error"
-                            >
-                              {unreadMessagesNumber[room.roomId ?? -1]}
-                            </span>
-                          )}
+            <div className="flex flex-col gap-2 py-2 w-full md:w-[200px] overflow-auto flex-1 bg-base-200/40 min-h-0">
+              <div className="self-center font-bold flex gap-2">
+                <span className="text-lg">{activeSpace?.name}</span>
+                <DotsHorizontalOutline className="size-7 hover:bg-base-300 rounded" onClick={() => { setIsShowSpacePanel(!isShowSpacePanel); }} />
+              </div>
+              <div className="h-px bg-base-300"></div>
+              <div className="flex flex-col gap-2 p-2 overflow-auto relative">
+                {rooms.map((room, index) => (
+                  <div key={room.roomId}>
+                    {activeSpaceId === room.spaceId && (
+                      <button
+                        key={room.roomId}
+                        className={`btn btn-ghost flex justify-start w-full gap-2 ${(activeRoomId ? activeRoomId === room.roomId : index === 0) ? "bg-info-content/30" : ""}`}
+                        type="button"
+                        onClick={() => {
+                          setActiveRoomId(room.roomId ?? -1);
+                          setIsOpenLeftDrawer(false);
+                        }}
+                      >
+                        <div className="indicator">
+                          {(activeRoomId !== room.roomId && unreadMessagesNumber[room.roomId ?? -1] > 0)
+                            && (
+                              <span
+                                className="indicator-item badge badge-xs bg-error"
+                              >
+                                {unreadMessagesNumber[room.roomId ?? -1]}
+                              </span>
+                            )}
 
-                        <div className="avatar mask mask-squircle w-8">
-                          <img
-                            src={room.avatar}
-                            alt={room.name}
-                          />
+                          <div className="avatar mask mask-squircle w-8">
+                            <img
+                              src={room.avatar}
+                              alt={room.name}
+                            />
+                          </div>
                         </div>
-                      </div>
-                      <span className="truncate flex-1 text-left">{room.name}</span>
-                    </button>
-                  )}
-                </div>
-              ))}
+                        <span className="truncate flex-1 text-left">{room.name}</span>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
               {activeSpaceId !== null && spaceContext.isSpaceOwner && (
                 <button
-                  className="btn btn-dash btn-info flex w-full"
+                  className="btn btn-dash btn-info flex mx-2"
                   type="button"
                   onClick={() => {
                     if (activeSpaceId) {
@@ -339,18 +354,16 @@ export default function RoomSelect() {
               )}
             </div>
           </div>
-        </SideDrawer>
+        </OpenAbleDrawer>
         {/* 聊天记录窗口，输入窗口，侧边栏 */}
         {
-          activeRoomId
-            ? <RoomWindow roomId={activeRoomId} spaceId={activeSpaceId ?? -1} />
-            : (activeSpaceId
-                ? <SpaceWindow spaceId={activeSpaceId ?? -1} />
-                : (
-                    <div className="flex items-center justify-center w-full h-full font-bold">
-                      <span className="text-center lg:hidden">请从左上角选择空间或房间</span>
-                    </div>
-                  ))
+          activeSpaceId
+            ? <RoomWindow roomId={activeRoomId ?? rooms[0].roomId ?? -1} spaceId={activeSpaceId ?? -1} />
+            : (
+                <div className="flex items-center justify-center w-full h-full font-bold">
+                  <span className="text-center lg:hidden">请从右侧选择房间</span>
+                </div>
+              )
         }
 
         {/* 创建空间弹出窗口 */}
@@ -532,6 +545,9 @@ export default function RoomSelect() {
               创建房间
             </button>
           </div>
+        </PopWindow>
+        <PopWindow isOpen={isShowSpacePanel} onClose={() => setIsShowSpacePanel(false)}>
+          <SpaceRightSidePanel></SpaceRightSidePanel>
         </PopWindow>
       </div>
     </SpaceContext>
