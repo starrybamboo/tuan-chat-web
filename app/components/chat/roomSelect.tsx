@@ -224,7 +224,7 @@ export default function RoomSelect() {
       <div className="flex flex-row bg-base-100 flex-1 h-full">
         {/* 只有小屏才允许收起侧边栏 */}
         <OpenAbleDrawer isOpen={getScreenSize() === "sm" ? isOpenLeftDrawer : true} className="h-full z-10 w-full bg-base-100">
-          <div className="h-full flex flex-row w-max">
+          <div className="h-full flex flex-row w-full md:w-max">
             {/* 空间列表 */}
             <div className="flex flex-col p-2 bg-base-300/40 h-full flex-wrap">
               {spaces.map(space => (
@@ -293,7 +293,7 @@ export default function RoomSelect() {
             </div>
             <div className="w-px bg-base-300"></div>
             {/* 房间列表 */}
-            <div className="flex flex-col gap-2 py-2 w-[200px] overflow-auto flex-1 bg-base-200/40 min-h-0">
+            <div className="flex flex-col gap-2 py-2 w-[200px] md:w-full overflow-auto flex-1 bg-base-200/40 min-h-0">
               <div className="self-center font-bold flex gap-2">
                 <span className="text-lg">{activeSpace?.name}</span>
                 <DotsHorizontalOutline className="size-7 hover:bg-base-300 rounded" onClick={() => { setIsShowSpacePanel(!isShowSpacePanel); }} />
