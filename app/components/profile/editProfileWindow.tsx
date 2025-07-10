@@ -123,7 +123,7 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
               <div
                 key={errorShakeKey}
                 style={{
-                  animation: username.length > 30 ? "quick-shake 0.3s ease-in-out" : "none",
+                  animation: userDescription.length > DESCRIPTION_MAX ? "quick-shake 0.3s ease-in-out" : "none",
                 }}
                 className={`text-right text-sm overflow-hidden transition-all duration-300 ease-in-out ${
                   userDescription.length > DESCRIPTION_MAX

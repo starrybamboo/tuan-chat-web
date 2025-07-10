@@ -1,5 +1,5 @@
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { useGlobalContext } from "@/components/globalContextProvider"; // 添加这行导入
+import { useGlobalContext } from "@/components/globalContextProvider";
 import EditProfileWindow from "@/components/profile/editProfileWindow";
 import clsx from "clsx";
 import { useState } from "react";
@@ -79,29 +79,69 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
     <div className={clsx(
       "card bg-base-100 relative",
       size === "compact"
-        ? "w-80" // 标准 Tailwind 宽度值
-        : "w-full", // 限制最大宽度并居中
+        ? "w-80"
+        : "w-full",
     )}
     >
       {/* 主体 */}
       <div className="card-body">
         {/* 头像-名字-描述 */}
         <div className="flex flex-col items-start">
-          <img
-            // 未来在这里会让用户上传背景图片
-            // src="https://s21.ax1x.com/2025/03/31/pEs53vD.jpg" 测试用的固定图片
-            src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzY2NiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+"
-            className={clsx(
-              "w-full object-cover object-center rounded-md",
-              backgroundHeightMap[size ?? "default"],
-            )}
-            alt="用户背景"
-            onError={(e) => {
-              // No Image 灰色字样
-              e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzY2NiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+";
-              e.currentTarget.onerror = null;
-            }}
-          />
+          {/* 新增的包裹容器 - 关键修改 */}
+          <div className="relative rounded-md overflow-hidden w-full">
+            {/* 原图片 - 移除圆角样式 */}
+            <img
+              // 未来在这里会让用户上传背景图片
+              // src="https://s21.ax1x.com/2025/03/31/pEs53vD.jpg" // 测试用的固定图片
+              src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzY2NiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+"
+              className={clsx(
+                "w-full object-cover object-center rounded-md",
+                backgroundHeightMap[size ?? "default"],
+              )}
+              alt="用户背景"
+              onError={(e) => {
+                // No Image 灰色字样
+                e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzY2NiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+";
+                e.currentTarget.onerror = null;
+              }}
+            />
+
+            {/* 透明挖角层 */}
+            <div className="absolute bottom-0 right-0 rounded-sm
+                  border-[20px] border-transparent
+                  border-b-gray-200/30 border-r-gray-200/30"
+            />
+
+            {/* 更新按钮 */}
+            <button
+              type="button"
+              className="absolute bottom-1.5 right-1.5 p-1.5 bg-black/40 rounded-full
+               backdrop-blur-sm hover:bg-black/80 transition-colors duration-200 cursor-pointer"
+              aria-label="更新背景"
+            >
+              {/* 相机图标 - 使用Heroicons或类似图标 */}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+            </button>
+          </div>
           <div className="relative px-4 w-full">
             {/* 头像 */}
             <div className={clsx("avatar absolute left-4", size === "compact" ? "-top-9" : "-top-12")}>
