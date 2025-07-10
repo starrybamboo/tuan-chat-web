@@ -34,3 +34,22 @@
   animation-fill-mode: forwards;
   animation-timing-function: ease-in-out;
 }
+
+@keyframes shake {
+  0% {
+    transform: translateX(0);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.shake {
+  animation: shake 0.4s ease-in-out;
+}
