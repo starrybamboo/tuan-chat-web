@@ -26,9 +26,7 @@ export function WorksTab({ userId }: { userId: number }) {
   }, [response]);
 
   // if (isLoading)
-  //   return <LoadingSpinner />;
   // if (isError)
-  //   return <ErrorDisplay message={error?.toString()} />;
 
   return (
     <div className="p-12">

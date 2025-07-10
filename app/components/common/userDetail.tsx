@@ -76,7 +76,13 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
   };
 
   return (
-    <div className="card bg-base-100 relative">
+    <div className={clsx(
+      "card bg-base-100 relative",
+      size === "compact"
+        ? "w-80" // 标准 Tailwind 宽度值
+        : "w-full", // 限制最大宽度并居中
+    )}
+    >
       {/* 主体 */}
       <div className="card-body">
         {/* 头像-名字-描述 */}
@@ -99,7 +105,9 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
           <div className="relative px-4 w-full">
             {/* 头像 */}
             <div className={clsx("avatar absolute left-4", size === "compact" ? "-top-9" : "-top-12")}>
-              <div className={clsx("rounded-full ring-4 ring-base-100 bg-base-100", size === "compact" ? "w-16" : "w-24")}>
+              <div
+                className={clsx("rounded-full ring-4 ring-base-100 bg-base-100", size === "compact" ? "w-16" : "w-24")}
+              >
                 {userQuery.isLoading
                   ? (
                       <div className="skeleton w-24 h-24"></div>
@@ -145,7 +153,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                       <div className="skeleton h-8 w-48 pr-4"></div>
                     )
                   : (
-                      <h2 className="text-2xl h-8 font-bold pr-4 text-white truncate min-w-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                      <h2 className="text-2xl h-8 font-bold pr-4 truncate min-w-0 transition-all duration-300">
                         {size === "default"
                           ? (
                               user?.username || "未知用户"
@@ -208,20 +216,20 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                 )}
               </div>
               {/* 个人描述 */}
-              <div className="flex flex-col sm:flex-row pb-4 pt-2 gap-2 sm:gap-6 w-full">
+              <div className="flex flex-col sm:flex-row pb-4 pt-2 gap-2 sm:gap-6">
                 <div className="flex-1 min-w-0 w-full">
                   {userQuery.isLoading
                     ? (
                         <div className="skeleton h-6 w-32"></div>
                       )
                     : (
-                        <div className="">
+                        <div>
                           <p
-                            className={`text-base text-sm break-words transition-all duration-300 ${
+                            className={`text-base break-words transition-all duration-300 sm:text-md lg:text-sm ${
                               isExpanded ? "" : "line-clamp-2"
                             }`}
                           >
-                            这个人就是个杂鱼，什么也不愿意写喵~
+                            {user?.description ?? "这个人就是个杂鱼，什么也不愿意写喵~"}
                           </p>
                           <button
                             onClick={() => setIsExpanded(prev => !prev)}
