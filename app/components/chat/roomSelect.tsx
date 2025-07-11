@@ -298,13 +298,13 @@ export default function RoomSelect() {
             </div>
             <div className="w-px bg-base-300"></div>
             {/* 房间列表 */}
-            <div className="flex flex-col gap-2 py-2 w-full md:w-[200px] overflow-auto flex-1 bg-base-200/40 min-h-0">
+            <div className="flex flex-col gap-2 py-2 w-full md:w-[200px] h-full flex-1 bg-base-200/40 min-h-0">
               <div className="self-center font-bold flex gap-2">
                 <span className="text-lg">{activeSpace?.name}</span>
                 <DotsHorizontalOutline className="size-7 hover:bg-base-300 rounded" onClick={() => { setIsShowSpacePanel(!isShowSpacePanel); }} />
               </div>
               <div className="h-px bg-base-300"></div>
-              <div className="flex flex-col gap-2 p-2 overflow-auto relative">
+              <div className="flex flex-col gap-2 p-2 overflow-auto">
                 {rooms.map(room => (
                   <div key={room.roomId}>
                     {activeSpaceId === room.spaceId && (
@@ -357,6 +357,12 @@ export default function RoomSelect() {
                   创建房间
                 </button>
               )}
+              {
+                // 在小屏时不知道为什么底下会被吃掉一节，这是一个hack
+                getScreenSize() === "sm" && (
+                  <div className="w-full h-20"></div>
+                )
+              }
             </div>
           </div>
         </OpenAbleDrawer>

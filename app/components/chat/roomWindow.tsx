@@ -705,15 +705,15 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           </div>
         </div>
         <div className="h-px bg-base-300"></div>
-        <div className="flex-1 w-full flex bg-base-100">
-          <div className="flex flex-col flex-1 h-full">
+        <div className="flex-1 w-full flex bg-base-100 overflow-y-auto overflow-x-hidden">
+          <div className="flex flex-col flex-1 h-full overflow-y-auto overflow-x-hidden">
             {/* 聊天框 */}
             <div className="bg-base-100 h-[70%]">
               <ChatFrame useChatBubbleStyle={useChatBubbleStyle} key={roomId}></ChatFrame>
             </div>
             {/* 输入区域 */}
             <div className="h-px bg-base-300"></div>
-            <form className="mt-4 bg-base-100 p-4 rounded-lg flex flex-col flex-1 ">
+            <form className="bg-base-100 p-4 rounded-lg flex flex-col flex-1 ">
               {/* 顶部工具栏 */}
               <div className="flex gap-2 flex-1 ">
                 <div className="dropdown dropdown-top flex-shrink-0">
