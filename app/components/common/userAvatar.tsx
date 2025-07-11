@@ -128,7 +128,7 @@ export default function UserAvatarComponent({ userId, width, isRounded, withName
             src={userQuery.isPending || userQuery.error || !userQuery.data?.data?.avatar ? undefined : userQuery.data?.data?.avatar}
             alt="Avatar"
             className="hover:scale-110 transition-transform"
-            onClick={() => setIsOpen(true)}
+            onClick={() => { !stopPopWindow && setIsOpen(true); }}
           />
         </div>
       </div>

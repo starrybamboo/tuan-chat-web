@@ -112,7 +112,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
     if (messagesInfiniteQuery?.isFetchedAfterMount) {
       setTimeout(() => {
         scrollToBottom();
-      }, 500);
+      }, 1000);
     }
   }, [messagesInfiniteQuery?.isFetchedAfterMount]);
   // useEffect(() => {
@@ -434,7 +434,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
             isAtBottomRef.current = atBottom;
           }}
           atTopStateChange={(atTop) => {
-            atTop && fetchNextPage();
+            (atTop && messagesInfiniteQuery?.isFetchedAfterMount) && fetchNextPage();
             isAtTopRef.current = atTop;
           }}
           components={{
@@ -446,7 +446,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
             exit: velocity => Math.abs(velocity) < 50,
           }}
           onWheel={(e) => {
-            if (e.deltaY < 0 && isAtTopRef.current) {
+            if (e.deltaY < 0 && isAtTopRef.current && messagesInfiniteQuery?.isFetchedAfterMount) {
               fetchNextPage();
             }
           }}

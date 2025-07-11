@@ -71,17 +71,19 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
   return (
     <div className="flex flex-col items-center">
       <div className="avatar">
-        <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""} flex items-center justify-center`}>
-          {roleAvatar?.avatarUrl
+        <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""} text-center flex content-center`}>
+          {!roleAvatar?.avatarUrl
             ? (
+                <span className={`${sizeMap[width]} text-sm`}>{alt}</span>
+              )
+            : (
                 <img
                   src={roleAvatar?.avatarUrl}
                   alt={alt}
                   className="hover:scale-110 transition-transform w-full h-full object-cover"
-                  onClick={() => setIsOpen(true)}
+                  onClick={() => { !stopPopWindow && setIsOpen(true); }}
                 />
-              )
-            : (<span className="text-gray-500 text-sm text-center">{alt}</span>)}
+              )}
         </div>
       </div>
       {
