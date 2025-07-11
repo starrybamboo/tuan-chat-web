@@ -3,23 +3,31 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 新建模组请求
+ * 模组表
  */
-export type ModuleCreateRequest = {
+export type Module = {
+    /**
+     * 所用的模块id
+     */
+    moduleId?: number;
     /**
      * 所用的规则id
      */
-    ruleId: number;
+    ruleId?: number;
     /**
      * 模组名称
      */
-    moduleName: string;
+    moduleName?: string;
     /**
      * 模组的描述
      */
     description?: string;
     /**
-     * 模组作者名字
+     * 上传者
+     */
+    userId?: number;
+    /**
+     * 作者
      */
     authorName?: string;
     /**
@@ -31,6 +39,10 @@ export type ModuleCreateRequest = {
      */
     minPeople?: number;
     /**
+     * 模组封面
+     */
+    image?: string;
+    /**
      * 模组可能需要花费的时间，以小时为单位
      */
     maxTime?: number;
@@ -39,8 +51,16 @@ export type ModuleCreateRequest = {
      */
     maxPeople?: number;
     /**
-     * 模组封面
+     * 从哪个模组fork来
      */
-    image?: string;
+    parent?: string;
+    /**
+     * 创建时间
+     */
+    createTime?: string;
+    /**
+     * 修改时间
+     */
+    updateTime?: string;
 };
 

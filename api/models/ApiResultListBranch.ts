@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { CursorPageBaseResponseFeed } from './CursorPageBaseResponseFeed';
+import type { Branch } from './Branch';
 /**
  * 基础返回体
  */
-export type ApiResultCursorPageBaseResponseFeed = {
+export type ApiResultListBranch = {
     /**
      * 成功标识true or false
      */
@@ -19,6 +19,9 @@ export type ApiResultCursorPageBaseResponseFeed = {
      * 错误消息
      */
     errMsg?: string;
-    data?: CursorPageBaseResponseFeed;
+    /**
+     * 返回对象
+     */
+    data?: Array<Branch>;
 };
 

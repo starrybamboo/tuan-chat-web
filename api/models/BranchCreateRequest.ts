@@ -15,6 +15,10 @@ export type BranchCreateRequest = {
      */
     branchName: string;
     /**
+     * 从哪个分支创建，不提供则直接从main分支最新提交创建
+     */
+    baseBranchId?: number;
+    /**
      * 基于的提交ID，不提供则基于最新提交
      */
     baseCommitId?: number;

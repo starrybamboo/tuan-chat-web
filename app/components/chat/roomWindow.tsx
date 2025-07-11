@@ -481,7 +481,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             roleId: curRoleId,
             avatarId: curAvatarId,
             messageType: 2,
-            body: {
+            extra: {
               size: 0,
               url: imgDownLoadUrl,
               fileName: imgDownLoadUrl.split("/").pop() || `${roomId}-${Date.now()}`,
@@ -503,12 +503,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         avatarId: roleAvatars[curAvatarIndex].avatarId || -1,
         messageType: 1,
         replayMessageId: replyMessage?.messageID || undefined,
-        body: {},
+        extra: {},
       };
       // 如果是命令，额外发送一条消息给骰娘
       if (isCommand(inputText)) {
         const commandResult = commandExecutor(inputText);
-        messageRequest.body = {
+        messageRequest.extra = {
           result: commandResult,
         };
         tuanchat.chatController.sendMessageAiResponse(messageRequest);

@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ModuleResponse } from './ModuleResponse';
+import type { Module } from './Module';
 /**
  * 基础翻页返回
  */
-export type PageBaseRespModuleResponse = {
+export type PageBaseRespModule = {
     /**
      * 当前页数
      */
@@ -26,6 +26,6 @@ export type PageBaseRespModuleResponse = {
     /**
      * 数据列表
      */
-    list?: Array<ModuleResponse>;
+    list?: Array<Module>;
 };
 
