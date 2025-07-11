@@ -33,12 +33,13 @@ const sizeMap = {
  * @param withTitle 是否显示头像对应的标题（并非roleName）
  * @param stopPopWindow 是否禁用点击弹出角色详情窗口，默认为false
  */
-export default function RoleAvatarComponent({ avatarId, width, isRounded, withTitle = false, stopPopWindow = false }: {
+export default function RoleAvatarComponent({ avatarId, width, isRounded, withTitle = false, stopPopWindow = false, alt = "avatar" }: {
   avatarId: number;
   width: keyof typeof sizeMap; // 头像的宽度
   isRounded: boolean; // 是否是圆的
   withTitle?: boolean; // 是否在下方显示标题
   stopPopWindow?: boolean; // 点击后是否会产生roleDetail弹窗
+  alt?: string;
 }) {
   const avatarQuery = useGetRoleAvatarQuery(avatarId);
   const userId = useGlobalContext().userId ?? -1;
@@ -70,13 +71,17 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
   return (
     <div className="flex flex-col items-center">
       <div className="avatar">
-        <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""}`}>
-          <img
-            src={avatarQuery.isPending || avatarQuery.error || !avatarQuery.data?.data?.avatarUrl ? undefined : roleAvatar?.avatarUrl}
-            alt="Avatar"
-            className="hover:scale-110 transition-transform"
-            onClick={() => setIsOpen(true)}
-          />
+        <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""} flex items-center justify-center`}>
+          {roleAvatar?.avatarUrl
+            ? (
+                <img
+                  src={roleAvatar?.avatarUrl}
+                  alt={alt}
+                  className="hover:scale-110 transition-transform w-full h-full object-cover"
+                  onClick={() => setIsOpen(true)}
+                />
+              )
+            : (<span className="text-gray-500 text-sm text-center">{alt}</span>)}
         </div>
       </div>
       {

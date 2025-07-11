@@ -668,7 +668,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       <div className="flex flex-col h-full w-full shadow-sm min-h-0">
         {/* 上边的信息栏 */}
         <div className="flex justify-between py-2 px-5 bg-base-100">
-
           <div className="flex gap-2">
             {getScreenSize() === "sm"
               && <BaselineArrowBackIosNew className="size-7" onClick={spaceContext.toggleLeftDrawer}></BaselineArrowBackIosNew>}
@@ -706,8 +705,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           </div>
         </div>
         <div className="h-px bg-base-300"></div>
-        <div className="flex-1 w-full flex bg-base-100 overflow-auto">
-          <div className="flex flex-col flex-1 h-full overflow-auto">
+        <div className="flex-1 w-full flex bg-base-100">
+          <div className="flex flex-col flex-1 h-full">
             {/* 聊天框 */}
             <div className="bg-base-100 h-[70%]">
               <ChatFrame useChatBubbleStyle={useChatBubbleStyle} key={roomId}></ChatFrame>
@@ -729,6 +728,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                         isRounded={true}
                         withTitle={false}
                         stopPopWindow={true}
+                        alt="无可用头像"
                       />
                       <div className="text-sm whitespace-nowrap">
                         {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
@@ -757,7 +757,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     }
                     className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10 w-full"
                   />
-                  <div className="flex px-3 justify-between overflow-hidden">
+                  <div className="flex pl-3 pr-6 justify-between ">
                     <div className="flex gap-2">
                       {/* 角色选择器 */}
                       <div className="dropdown dropdown-top">
