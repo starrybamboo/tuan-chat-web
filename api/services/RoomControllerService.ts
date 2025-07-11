@@ -40,17 +40,22 @@ export class RoomControllerService {
     }
     /**
      * 获取房间其他信息
-     * @param request
+     * @param roomId
+     * @param key
      * @returns ApiResultString OK
      * @throws ApiError
      */
     public getRoomExtra(
-        request: RoomExtraRequest,
+        roomId: number,
+        key: string,
     ): CancelablePromise<ApiResultString> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/room/extra',
-            query: request,
+            query: {
+                'roomId': roomId,
+                'key': key,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

@@ -149,7 +149,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
       content: "",
       avatarId: curAvatarId,
       messageType: 5,
-      body: {
+      extra: {
         messageList: forwardMessages,
       },
     };
@@ -179,7 +179,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
       roleId: curRoleId,
       avatarId: curAvatarId,
       content: "转发了以下消息到社区",
-      body: {},
+      extra: {},
     }, { onSuccess: () => { sendMessageMutation.mutate(constructForwardRequest(roomId)); } });
     const feedRequest: FeedRequest = {
       messageId: selectedMessageIds.values().next().value,
@@ -434,7 +434,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
             isAtBottomRef.current = atBottom;
           }}
           atTopStateChange={(atTop) => {
-            (atTop && messagesInfiniteQuery?.isFetchedAfterMount) && fetchNextPage();
+            (atTop) && fetchNextPage();
             isAtTopRef.current = atTop;
           }}
           components={{
@@ -446,7 +446,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
             exit: velocity => Math.abs(velocity) < 50,
           }}
           onWheel={(e) => {
-            if (e.deltaY < 0 && isAtTopRef.current && messagesInfiniteQuery?.isFetchedAfterMount) {
+            if (e.deltaY < 0 && isAtTopRef.current) {
               fetchNextPage();
             }
           }}

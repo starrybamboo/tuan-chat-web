@@ -2,8 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type RoleImportRequest = {
-    roleId: number;
-    stageId: number;
+export type ImportFromModuleRequest = {
+    /**
+     * 模组版本对应的 commit id
+     */
+    commitId: number;
 };
 

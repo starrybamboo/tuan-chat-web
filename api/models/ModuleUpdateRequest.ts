@@ -23,13 +23,21 @@ export type ModuleUpdateRequest = {
      */
     authorName?: string;
     /**
-     * 模组能需要花费的时间，以小时为单位
+     * 模组可能需要花费的时间，以小时为单位
      */
-    costTime?: number;
+    minTime?: number;
     /**
      * 模组需要人数
      */
-    people?: number;
+    minPeople?: number;
+    /**
+     * 模组可能需要花费的时间，以小时为单位
+     */
+    maxTime?: number;
+    /**
+     * 模组需要人数
+     */
+    maxPeople?: number;
     /**
      * 模组封面
      */
