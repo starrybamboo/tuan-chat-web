@@ -56,7 +56,7 @@ export function WorksTab({ userId }: { userId: number }) {
                       <div className="w-full h-full bg-gray-200"></div>
                     </div>
                     {/* 描述区域 */}
-                    <div className="p-2 space-y-2">
+                    <div className="p-4 space-y-2">
                       {/* 角色名称 */}
                       <div className="bg-gray-200 h-4 rounded-full w-4/5"></div>
                       {/* 描述 */}

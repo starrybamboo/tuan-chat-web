@@ -38,7 +38,7 @@ function ProfilePage({ userId }: Props) {
           <a
             key={tab.id}
             role="tab"
-            className={`tab h-full md:w-30 ${activeTab === tab.id ? "tab-active" : ""}`}
+            className={`tab h-full md:w-35 text-primary ${activeTab === tab.id ? "tab-active" : ""}`}
             onClick={() => {
               setActiveTab(tab.id);
               scrollToTop();
