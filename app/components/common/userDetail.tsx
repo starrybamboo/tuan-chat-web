@@ -34,8 +34,8 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
 
   // 背景图片的大小
   const backgroundHeightMap = {
-    compact: "h-32", // 小卡片
-    default: "h-64", // 正常卡片
+    compact: "h-40 scale-150", // 小卡片
+    default: "h-64 ", // 正常卡片
   };
 
   // 状态颜色映射
@@ -80,7 +80,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
     <div className={clsx(
       "card bg-base-100 relative",
       size === "compact"
-        ? "w-80"
+        ? "w-90"
         : "w-full",
     )}
     >
@@ -96,7 +96,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
               // src="https://s21.ax1x.com/2025/03/31/pEs53vD.jpg" // 测试用的固定图片
               src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzY2NiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+"
               className={clsx(
-                "w-full object-cover object-center rounded-md",
+                "w-full object-cover object-center rounded-md scale-170 sm:scale-150 md:scale-130 lg:scale-100",
                 backgroundHeightMap[size ?? "default"],
               )}
               alt="用户背景"
@@ -120,7 +120,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                backdrop-blur-sm hover:bg-black/80 transition-colors duration-200 cursor-pointer"
               aria-label="更新背景"
             >
-              {/* 相机图标 - 使用 Heroicons 或类似图标 */}
+              {/* 相机图标 - 使用 Heroicons 图标 */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-4 w-4 text-white"
@@ -176,7 +176,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
               <div
                 className={clsx(
                   "absolute",
-                  size === "compact" ? "block left-32 top-1" : "sm:block md:hidden left-6 top-[3.5rem]", // compact 时始终显示，否则仅在 sm 及以下显示
+                  size === "compact" ? "block left-38 top-1" : "sm:block md:hidden left-6 top-[3.5rem]", // compact 时始终显示，否则仅在 sm 及以下显示
                 )}
               >
                 <FollowButton userId={user?.userId || 0} />
@@ -214,7 +214,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                 {/* 用户状态指示小球 */}
                 {user?.activeStatus !== undefined && (
                   <div
-                    className="badge flex-nowrap gap-1 rounded-full items-center ring-1 ring-white/50 px-2 py-1 text-sm min-w-fit whitespace-nowrap"
+                    className="badge flex-nowrap gap-1 rounded-full items-center ring-1 ring-white/50 px-2 py-1 text-sm min-w-fit whitespace-nowrap transition-all duration-300"
                   >
                     <div className={`w-4 h-4 rounded-full ${statusColor.replace("badge-", "bg-")}`} />
                     <span className="hidden sm:inline">
@@ -233,7 +233,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                 {user?.userId === globalContext.userId && (
                   <>
                     <button
-                      className="btn p-1 rounded-full ml-4 w-6 h-6 flex justify-center hover:text-info transition-colors cursor-pointer duration-400"
+                      className="btn p-1 rounded-full ml-4 w-6 h-6 flex justify-center hover:text-info transition-colors cursor-pointer"
                       type="button"
                       onClick={() => setIsEditWindowOpen(true)}
                       aria-label="编辑"

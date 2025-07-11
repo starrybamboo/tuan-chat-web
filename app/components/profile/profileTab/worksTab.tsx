@@ -49,6 +49,7 @@ export function WorksTab({ userId }: { userId: number }) {
           )
         : (
             <>
+              {/* 根据roleId获取而生成的角色卡片 */}
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {roleIds.map(roleId => (
                   <UserRoleCard
@@ -57,6 +58,7 @@ export function WorksTab({ userId }: { userId: number }) {
                   />
                 ))}
               </div>
+              {/* 分页组件 如果总页数在0-1就不显示 */}
               <Pagination
                 totalPages={totalPages}
                 currentPage={page}
