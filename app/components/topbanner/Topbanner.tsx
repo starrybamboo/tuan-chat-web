@@ -83,14 +83,19 @@ export default function Topbar() {
                     </svg>
                   </div>
                   <ul tabIndex={0} className="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-52">
-                    <li><a onClick={() => navigate("/profile")}>个人中心</a></li>
-                    <li><a onClick={() => navigate("/settings")}>设置</a></li>
                     <li>
-                      <a onClick={() => {
-                        localStorage.removeItem("token");
-                        queryClient.invalidateQueries({ queryKey: ["authStatus"] });
-                        window.location.reload();
-                      }}
+                      <a onClick={() => navigate(`/profile/${userId}`)}>个人中心</a>
+                    </li>
+                    <li>
+                      <a onClick={() => navigate("/settings")}>设置</a>
+                    </li>
+                    <li>
+                      <a
+                        onClick={() => {
+                          localStorage.removeItem("token");
+                          queryClient.invalidateQueries({ queryKey: ["authStatus"] });
+                          window.location.reload();
+                        }}
                       >
                         退出登录
                       </a>

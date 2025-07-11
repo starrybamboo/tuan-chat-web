@@ -13,12 +13,21 @@ export type UserInfoResponse = {
      */
     avatar?: string;
     /**
-     * 1 在线 2离线
+     * 用户的当前状态 active offline busy away
      */
     activeStatus?: string;
     /**
-     * 最后一次上下线时间
+     * 最后一次下线时间
      */
     lastLoginTime?: string;
+    /**
+     * 用户的个人描述
+     */
+    description?: string,
+    /**
+     * 用户背景图url
+     */
+    backgroundUrl?: string,
+    gender?: string,
 };
 
