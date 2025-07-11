@@ -36,19 +36,17 @@
 }
 
 @keyframes quick-shake {
-  0% {
-    transform: translateX(0);
-  }
-  60% {
-    transform: translateX(-4px);
-  }
-  80% {
-    transform: translateX(4px);
-  }
+  0%,
   100% {
     transform: translateX(0);
   }
-}
-.quick-shake {
-  animation: quick-shake 0.4s ease-in-out;
+  25% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
 }

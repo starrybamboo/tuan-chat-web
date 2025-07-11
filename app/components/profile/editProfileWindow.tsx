@@ -69,20 +69,25 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
             </ImgUploaderWithCopper>
             {/* 用户名称 */}
             <div className="w-full max-w-xs flex gap-2 flex-col">
-              <div className="label">
-                <span className="label-text text-lg font-semibold">修改昵称</span>
+              <label htmlFor="userName" className="label cursor-pointer">
+                <span className="text-lg font-semibold">修改昵称</span>
                 <input
+                  id="userName"
                   type="text"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   placeholder="请输入新昵称"
-                  className="input input-bordered input-lg w-full focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className={`input input-bordered input-lg w-full transition-all duration-200 ${
+                    username.length > 30
+                      ? "border-error focus:border-primary"
+                      : "focus:border-primary"
+                  }`}
                 />
-              </div>
+              </label>
               <div
                 key={errorShakeKey}
                 style={{
-                  animation: username.length > 30 ? "quick-shake 0.3s ease-in-out" : "none",
+                  animation: username.length > 30 ? "quick-shake 0.4s ease-in-out" : "none",
                 }}
                 className={`text-right text-sm overflow-hidden transition-all duration-300 ease-in-out ${
                   username.length > 30
@@ -97,7 +102,7 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
             <div className="w-full max-w-xs flex flex-col gap-1">
               {/* 改为垂直布局 */}
               <label htmlFor="userDescription" className="label cursor-pointer">
-                <span className="label-text text-lg font-medium">修改描述</span>
+                <span className="text-lg font-semibold">修改描述</span>
               </label>
               <textarea
                 id="userDescription"
@@ -105,7 +110,11 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
                 value={userDescription}
                 onChange={e => setUserDescription(e.target.value)}
                 placeholder={`请输入新描述（建议不超过 ${DESCRIPTION_MAX} 字）`}
-                className="textarea textarea-bordered w-full min-h-24 max-h-48 resize-none focus:ring-2 focus:ring-primary focus:border-transparent" // 优化样式类
+                className={`textarea textarea-bordered w-full h-24 resize-none transition-all duration-200 ${
+                  userDescription.length > DESCRIPTION_MAX
+                    ? "border-error focus:border-primary"
+                    : "focus:border-primary"
+                }`}
                 rows={4}
                 aria-label="用户描述输入框"
               />
@@ -123,7 +132,7 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
               <div
                 key={errorShakeKey}
                 style={{
-                  animation: userDescription.length > DESCRIPTION_MAX ? "quick-shake 0.3s ease-in-out" : "none",
+                  animation: userDescription.length > DESCRIPTION_MAX ? "quick-shake 0.4s ease-in-out" : "none",
                 }}
                 className={`text-right text-sm overflow-hidden transition-all duration-300 ease-in-out ${
                   userDescription.length > DESCRIPTION_MAX
