@@ -19,8 +19,9 @@ interface UserDetailProps {
 
 /**
  * 显示用户详情界面的组件
- * @param userId 用户ID，组件内会自动调api来获取用户信息
- * @param size 组件尺寸，分为 default 与 compact（小卡片)
+ * @param {object} props - 组件属性
+ * @param {string} props.userId - 用户ID，组件内会自动调api来获取用户信息
+ * @param {"default" | "compact"} [props.size] - 组件尺寸，分为 `default` 与 `compact`（小卡片）
  */
 export function UserDetail({ userId, size = "default" }: UserDetailProps) {
   const userQuery = useGetUserInfoQuery(userId);
@@ -119,7 +120,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                backdrop-blur-sm hover:bg-black/80 transition-colors duration-200 cursor-pointer"
               aria-label="更新背景"
             >
-              {/* 相机图标 - 使用Heroicons或类似图标 */}
+              {/* 相机图标 - 使用 Heroicons 或类似图标 */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 className="h-4 w-4 text-white"

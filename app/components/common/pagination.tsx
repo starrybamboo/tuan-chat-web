@@ -102,13 +102,24 @@ const Pagination: React.FC<PaginationProps> = ({
     >
       {showNavigation && (
         <button
-          className="join-item btn"
+          className="join-item btn btn-square"
           onClick={() => handleChange(Math.max(1, currentPage - 1))}
           type="button"
           disabled={currentPage === 1}
           aria-label="上一页"
         >
-          ‹
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         </button>
       )}
 
@@ -116,7 +127,8 @@ const Pagination: React.FC<PaginationProps> = ({
         const isEllipsis = page === "...";
         return (
           <button
-            key={`${page}-${idx}`}
+            key={page}
+            type="button"
             className={`join-item btn btn-square ${
               page === currentPage ? "btn-active bg-success" : ""
             } ${isEllipsis ? "cursor-pointer" : ""}`}
@@ -144,12 +156,24 @@ const Pagination: React.FC<PaginationProps> = ({
 
       {showNavigation && (
         <button
-          className="join-item btn"
+          type="button"
+          className="join-item btn btn-square"
           onClick={() => handleChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages}
           aria-label="下一页"
         >
-          ›
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <path d="M9 6l6 6-6 6" />
+          </svg>
         </button>
       )}
     </div>
