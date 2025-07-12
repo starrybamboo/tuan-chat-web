@@ -47,9 +47,11 @@ export default function RoomSelect() {
   const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
   // 当前选中的房间ID，初始化的时候，按照路由参数，localStorage里的数据，rooms的第一个，null的优先级来初始化
-  const [activeRoomId, setActiveRoomId] = useState<number | null>(urlRoomId
-    ? Number(urlRoomId)
-    : (storedIds.roomId ?? rooms[0]?.roomId ?? null));
+  const [activeRoomId, setActiveRoomId] = useState<number | null>(urlSpaceId
+    ? (urlRoomId
+        ? Number(urlRoomId)
+        : (storedIds.roomId ?? rooms[0]?.roomId ?? null))
+    : null);
   useEffect(() => {
     setActiveRoomId(rooms[0]?.roomId ?? null);
   }, [activeSpaceId]);
@@ -59,7 +61,7 @@ export default function RoomSelect() {
   // 同步路由状态 并存到localStorage里面
   useEffect(() => {
     setStoredChatIds({ spaceId: activeSpaceId, roomId: activeRoomId });
-    if (activeSpaceId || activeRoomId) {
+    if (activeSpaceId) {
       const path = `/chat/${activeSpaceId || ""}/${activeRoomId || ""}`;
       navigate(path.replace(/\/+$/, ""), { replace: true });
     }
