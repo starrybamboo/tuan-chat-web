@@ -531,3 +531,41 @@ export function XMarkICon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function EmojiIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2M8.5 11A1.5 1.5 0 1 1 10 9.5A1.5 1.5 0 0 1 8.5 11m7 0A1.5 1.5 0 1 1 17 9.5A1.5 1.5 0 0 1 15.5 11M12 17.5c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5"
+      />
+    </svg>
+  );
+}
+
+export function ChevronRight(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M9 18l6-6l-6-6"
+      />
+    </svg>
+  );
+}
