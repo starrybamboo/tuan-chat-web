@@ -17,6 +17,7 @@ export interface SceneNodeProps {
 }
 
 export const SceneNode: React.FC<SceneNodeProps> = ({ data, size }) => {
+  const [isHovered, setIsHovered] = React.useState(false);
   const imageMap: Record<string, string> = {
     node1: 教室,
     node2: 办公室,
@@ -43,9 +44,16 @@ export const SceneNode: React.FC<SceneNodeProps> = ({ data, size }) => {
     document.body.style.cursor = "";
   };
 
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsHovered(true);
+  };
+
   const handleMouseLeave = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setIsHovered(false);
   };
 
   return (
@@ -53,18 +61,20 @@ export const SceneNode: React.FC<SceneNodeProps> = ({ data, size }) => {
       className={`scene-node flex flex-col items-center justify-center relative cursor-pointer transition-all duration-300 ease-in-out select-none overflow-hidden bg-white rounded-lg border-4 ${
         isSelected
           ? "border-blue-500 shadow-blue-500/50"
-          : "border-gray-300"
+          : "border-blue-300"
       }`}
       style={{
         width: size[0],
         height: size[1],
         touchAction: "none",
-        // 选中时放大效果
-        transform: `scale(${isSelected ? 1.05 : 1})`,
+        // 选中时放大效果，悬浮时稍微放大
+        transform: `scale(${isSelected ? 1.05 : (isHovered ? 1.05 : 1)})`,
         boxShadow: isSelected
           ? "0 0 16px rgba(71, 89, 255, 0.8)"
-          : "0 2px 8px rgba(0, 0, 0, 0.1)",
-        zIndex: isSelected ? 5 : 1,
+          : isHovered
+            ? "0 4px 12px rgba(0, 0, 0, 0.15)"
+            : "0 2px 8px rgba(0, 0, 0, 0.1)",
+        zIndex: isSelected ? 5 : (isHovered ? 3 : 1),
       }}
       // 禁用拖拽相关事件
       onDragStart={handlePreventDefault}
@@ -72,6 +82,7 @@ export const SceneNode: React.FC<SceneNodeProps> = ({ data, size }) => {
       onDragOver={handlePreventDefault}
       onDragEnd={handlePreventDefault}
       // 添加鼠标事件处理
+      onMouseEnter={handleMouseEnter}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
     >
