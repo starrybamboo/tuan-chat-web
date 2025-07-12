@@ -11,7 +11,7 @@ import { SpaceContext } from "@/components/chat/spaceContext";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import React, { use, useCallback, useMemo, useRef, useState } from "react";
+import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import {
   useDeleteMessageMutation,
@@ -105,9 +105,16 @@ export default function ChatFrame({ useChatBubbleStyle }:
    * scroll相关
    */
   const scrollToBottom = () => {
-    virtuosoRef?.current?.scrollToIndex(historyMessages.length - 1);
+    virtuosoRef?.current?.scrollToIndex(historyMessages.length);
     updateUnreadMessagesNumber(roomId, 0);
   };
+  useEffect(() => {
+    if (messagesInfiniteQuery?.isFetchedAfterMount) {
+      setTimeout(() => {
+        scrollToBottom();
+      }, 1000);
+    }
+  }, [messagesInfiniteQuery?.isFetchedAfterMount]);
   // useEffect(() => {
   //   if ((messageEntry?.isIntersecting) && !messagesInfiniteQuery?.isFetchingNextPage) {
   //     messagesInfiniteQuery?.fetchNextPage();
@@ -142,7 +149,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
       content: "",
       avatarId: curAvatarId,
       messageType: 5,
-      body: {
+      extra: {
         messageList: forwardMessages,
       },
     };
@@ -159,7 +166,10 @@ export default function ChatFrame({ useChatBubbleStyle }:
       return;
     updateMessageMutation.mutate({
       ...message,
-      extra: { imageMessage: { background: !message.extra.imageMessage.background, size: message?.extra?.imageMessage.size ?? 0, fileName: message.extra.imageMessage.fileName, url: message.extra.imageMessage.url } },
+      extra: { imageMessage: {
+        ...message.extra.imageMessage,
+        background: !message.extra.imageMessage.background,
+      } },
     });
   }
   async function handlePublishFeed({ title, description }: { title: string; description: string }) {
@@ -169,7 +179,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
       roleId: curRoleId,
       avatarId: curAvatarId,
       content: "转发了以下消息到社区",
-      body: {},
+      extra: {},
     }, { onSuccess: () => { sendMessageMutation.mutate(constructForwardRequest(roomId)); } });
     const feedRequest: FeedRequest = {
       messageId: selectedMessageIds.values().next().value,
@@ -359,7 +369,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
         // ref={(normalIndex === 4
         //   ? messageRef
         //   : null)}
-        className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} -my-[5px] ${isDragging ? "pointer-events-auto" : ""}\``}
+        className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} -my-[1px] ${isDragging ? "pointer-events-auto" : ""}\``}
         data-message-id={chatMessageResponse.message.messageID}
         onClick={(e) => {
           if (isSelecting || e.ctrlKey) {
@@ -424,7 +434,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
             isAtBottomRef.current = atBottom;
           }}
           atTopStateChange={(atTop) => {
-            atTop && fetchNextPage();
+            (atTop) && fetchNextPage();
             isAtTopRef.current = atTop;
           }}
           components={{
@@ -450,10 +460,10 @@ export default function ChatFrame({ useChatBubbleStyle }:
    * 渲染
    */
   return (
-    <div>
+    <div className="h-full">
       {/* 这里是从下到上渲染的 */}
       <div
-        className="ml-4 overflow-y-auto h-[60vh] flex flex-col relative"
+        className="ml-4 overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
       >

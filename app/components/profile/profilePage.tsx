@@ -1,34 +1,60 @@
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { PopWindow } from "@/components/common/popWindow";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import EditProfileWindow from "@/components/profile/editProfileWindow";
-import { useGetUerSCBalanceQuery } from "../../../api/hooks/scQueryHooks";
+import { useState } from "react";
+import ActivitiesTab from "./profileTab/activitiesTab";
+import HomeTab from "./profileTab/homeTab";
+import WorksTab from "./profileTab/worksTab";
 
-function ProfilePage() {
+interface Props {
+  userId?: number; // 可选
+}
+
+function ProfilePage({ userId }: Props) {
   // 当前登录用户的userId
-  const userId = useGlobalContext().userId ?? -1;
+  const currentUserId = useGlobalContext().userId ?? -1;
+  const finalUserId = userId ?? currentUserId;
+  const [activeTab, setActiveTab] = useState(0);
 
-  const getUserSCBalanceQuery = useGetUerSCBalanceQuery(userId);
-
-  const [isEditWindowOpen, setIsEditWindowOpen] = useSearchParamsState<boolean>(`profileEditPop`, false);
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+  // 导航栏的对应
+  const TABS = [
+    { id: 0, name: "个人主页", component: <HomeTab userId={finalUserId} /> },
+    { id: 1, name: "跑团动态", component: <ActivitiesTab userId={finalUserId} /> },
+    { id: 2, name: "作品", component: <WorksTab userId={finalUserId} /> },
+  ];
 
   return (
-    <div className="card bg-base-100 w-[max(30vw,300px)] mx-auto gap-8">
-      <UserDetail userId={userId}></UserDetail>
-      <button className="btn btn-info w-max mx-auto" type="button" onClick={() => setIsEditWindowOpen(true)}>修改资料</button>
-      <div className="card-body">
-        <div className="card-title">
-          <span>SC余额</span>
-        </div>
-        <div className="card-actions justify-end">
-          <div className="badge badge-outline">{getUserSCBalanceQuery.data?.data?.balance}</div>
-        </div>
+    <div className="card bg-base-100 mb-50 mx-auto ">
+      {/* 用户基本信息 */}
+      <UserDetail userId={finalUserId}></UserDetail>
+      {/* 导航栏 */}
+      <div role="tablist" className="tabs tabs-lift h-15 pl-6">
+        {TABS.map(tab => (
+          <a
+            key={tab.id}
+            role="tab"
+            className={`tab h-full md:w-35 text-primary ${activeTab === tab.id ? "tab-active" : ""}`}
+            onClick={() => {
+              setActiveTab(tab.id);
+              scrollToTop();
+            }}
+          >
+            {tab.name}
+          </a>
+        ))}
       </div>
-      <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}>
-        <EditProfileWindow onClose={() => setIsEditWindowOpen(false)}></EditProfileWindow>
-      </PopWindow>
+
+      {/* 当前激活的标签内容 */}
+      <div>
+        {TABS.find(tab => tab.id === activeTab)?.component}
+      </div>
     </div>
+
   );
 }
 

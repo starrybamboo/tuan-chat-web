@@ -1,7 +1,11 @@
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
+import { useMediaQuery } from "@uidotdev/usehooks";
 
 export default function ThemeSwitch() {
-  const [isDarkMode, setIsDarkMode] = useLocalStorage("isDarkMode", false);
+  // 是否反转浏览器的暗亮模式，存到localstorage中
+  const [reverseDarkMode, setIsDarkMode] = useLocalStorage("reverseDarkMode", false);
+  // 浏览器的暗亮模式
+  const prefersIsDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
 
   return (
     <label className="swap swap-rotate w-8 h-8">
@@ -9,14 +13,14 @@ export default function ThemeSwitch() {
       <input
         type="checkbox"
         className="theme-controller"
-        value="dark"
-        checked={isDarkMode}
-        onChange={() => { setIsDarkMode(!isDarkMode); }}
+        value={prefersIsDarkMode ? "silk" : "forest"}
+        checked={reverseDarkMode}
+        onChange={() => { setIsDarkMode(!reverseDarkMode); }}
       />
 
       {/* sun icon */}
       <svg
-        className="swap-on w-8 h-8 fill-current"
+        className={`${prefersIsDarkMode ? "swap-off" : "swap-on"} w-8 h-8 fill-current`}
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
       >
@@ -27,7 +31,7 @@ export default function ThemeSwitch() {
 
       {/* moon icon */}
       <svg
-        className="swap-off w-8 h-8 fill-current"
+        className={`${prefersIsDarkMode ? "swap-on" : "swap-off"} w-8 h-8 fill-current`}
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
       >

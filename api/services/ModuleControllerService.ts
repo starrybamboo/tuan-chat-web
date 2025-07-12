@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultLong } from '../models/ApiResultLong';
-import type { ApiResultPageBaseRespModuleResponse } from '../models/ApiResultPageBaseRespModuleResponse';
+import type { ApiResultPageBaseRespModule } from '../models/ApiResultPageBaseRespModule';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { ModuleCreateRequest } from '../models/ModuleCreateRequest';
 import type { ModulePageRequest } from '../models/ModulePageRequest';
@@ -62,12 +62,12 @@ export class ModuleControllerService {
      * 获取一个跑团的剧本列表
      * 分页获取一个跑团的剧本列表,可以根据ruleId分页
      * @param requestBody
-     * @returns ApiResultPageBaseRespModuleResponse OK
+     * @returns ApiResultPageBaseRespModule OK
      * @throws ApiError
      */
     public page(
         requestBody: ModulePageRequest,
-    ): CancelablePromise<ApiResultPageBaseRespModuleResponse> {
+    ): CancelablePromise<ApiResultPageBaseRespModule> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/module/page',

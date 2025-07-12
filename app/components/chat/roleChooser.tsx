@@ -18,6 +18,11 @@ export default function RoleChooser({
   return (
     <div className={className}>
       {
+        roomContext.roomRolesThatUserOwn.length === 0 && (
+          <div className="">无可用角色</div>
+        )
+      }
+      {
         // 仅显示角色列表里面有的角色
         roomContext.roomRolesThatUserOwn.map(role => (
           <li

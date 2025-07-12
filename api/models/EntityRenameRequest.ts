@@ -9,7 +9,7 @@ export type EntityRenameRequest = {
     /**
      * 模组ID
      */
-    moduleId: number;
+    stageId: number;
     oldName: string;
     newName: string;
     /**

@@ -532,6 +532,105 @@ export function XMarkICon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function MemberFilled(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M3.5 7a5 5 0 1 1 10 0a5 5 0 0 1-10 0M5 14a5 5 0 0 0-5 5v2h17v-2a5 5 0 0 0-5-5zm19 7h-5v-2c0-1.959-.804-3.73-2.1-5H19a5 5 0 0 1 5 5zm-8.5-9a5 5 0 0 1-1.786-.329A6.97 6.97 0 0 0 15.5 7a6.97 6.97 0 0 0-1.787-4.671A5 5 0 1 1 15.5 12"
+      >
+      </path>
+    </svg>
+  );
+}
+
+export function SwordSwing(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 512 512"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        d="M255.999 42.667c37.609 0 72.944 9.731 103.626 26.814l-56.664 15.454l-73.449 88.139q-1.014-1.062-2.058-2.106c-43.584-43.585-111.239-48.43-160.176-14.536C103.05 88.772 174.14 42.667 256 42.667m150.298 152.329l34.217-125.463l-125.462 34.217l-147.049 176.459l-21.878-21.879l-30.17 30.17l37.711 37.711l-49.292 49.292c-14.234-3.801-30.05-.118-41.218 11.049c-16.662 16.662-16.662 43.677 0 60.34c16.663 16.662 43.678 16.662 60.34 0c11.168-11.167 14.85-26.985 11.049-41.22l49.291-49.291l37.713 37.714l30.17-30.17l-21.88-21.881zm-37.63-24.181L207.772 304.894l-2.618-2.619L339.233 141.38l40.472-11.037z"
+        clipRule="evenodd"
+      >
+      </path>
+    </svg>
+  );
+}
+
+export function BaselineArrowBackIosNew(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M17.77 3.77L16 2L6 12l10 10l1.77-1.77L9.54 12z"
+      >
+      </path>
+    </svg>
+  );
+}
+
+export function AngleDownOutline(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="m19 9l-7 7l-7-7"
+      >
+      </path>
+    </svg>
+  );
+}
+
+export function DotsHorizontalOutline(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="3"
+        d="M6 12h.01m6 0h.01m5.99 0h.01"
+      >
+      </path>
+    </svg>
+  );
+}
+
 export function EmojiIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg

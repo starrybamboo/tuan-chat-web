@@ -16,35 +16,58 @@ import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import RepliedMessage from "@/components/chat/repliedMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
-import RoomRightSidePanel from "@/components/chat/roomRightSidePanel";
+import InitiativeList from "@/components/chat/sideDrawer/initiativeList";
+import RoomRoleList from "@/components/chat/sideDrawer/roomRoleList";
+import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
+import { SpaceContext } from "@/components/chat/spaceContext";
+import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import { getLocalStorageValue } from "@/components/common/customHooks/useLocalStorage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { Mounter } from "@/components/common/mounter";
+import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { SideDrawer } from "@/components/common/sideDrawer";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { Bubble2, CommandSolid, DiceTwentyFacesTwenty, GalleryBroken, GirlIcon, SendIcon } from "@/icons";
+import {
+  BaselineArrowBackIosNew,
+  Bubble2,
+  CommandSolid,
+  DiceTwentyFacesTwenty,
+  GalleryBroken,
+  GirlIcon,
+  MemberFilled,
+  SendIcon,
+  Setting,
+  SwordSwing,
+} from "@/icons";
+import { getImageSize } from "@/utils/getImgSize";
+import { getScreenSize } from "@/utils/getScreenSize";
 import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { use, useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
-import { useGetMemberListQuery, useGetRoomRoleQuery, useGetSpaceInfoQuery } from "../../../api/hooks/chatQueryHooks";
+import {
+  useGetMemberListQuery,
+  useGetRoomInfoQuery,
+  useGetRoomRoleQuery,
+  useGetSpaceInfoQuery,
+} from "../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../api/instance";
 import {
   useGetRoleAvatarsQuery,
   useGetUserRolesQuery,
 } from "../../../api/queryHooks";
 
-const PAGE_SIZE = 30; // 每页消息数量
+const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
-  // const { spaceId: urlSpaceId } = useParams();
-  // const spaceId = Number(urlSpaceId);
+  const spaceContext = use(SpaceContext);
+
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
+  const room = useGetRoomInfoQuery(roomId).data?.data;
 
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
@@ -66,6 +89,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   };
   // 如果想从外部控制输入框的内容，使用这个函数。
   const setInputText = (text: string) => {
+    setInputTextWithoutUpdateTextArea(text);
     if (textareaRef.current) {
       textareaRef.current.innerHTML = text;
       // Move cursor to end
@@ -103,6 +127,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const curAvatarId = roleAvatars[curAvatarIndex]?.avatarId || -1;
 
   const [commandBrowseWindow, setCommandBrowseWindow] = useSearchParamsState<commandModeType>("commandPop", "none");
+  const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
+
+  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "initiative">("rightSideDrawer", "none");
 
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(localStorage.getItem("useChatBubbleStyle") === "true");
   useEffect(() => {
@@ -127,6 +154,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   // 你说的对，我什么要这里定义一个莫名奇妙的ref呢？因为该死的virtuoso不知道为什么，里面的函数指针会会指向一个旧的fetchNextPage，并不能随着重新渲染而更新。导致里面的cursor也是旧的。
   // 定义这个ref只是为了绕开virtuoso这个问题的hack。
   const cursorRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    cursorRef.current = undefined;
+  }, [spaceId]);
   const messagesInfiniteQuery = useInfiniteQuery({
     queryKey: ["getMsgPage", roomId],
     queryFn: async ({ pageParam }) => {
@@ -161,7 +191,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       .filter(msg => msg.message.status !== 1);
     // .reverse();
   }, [receivedMessages, messagesInfiniteQuery.data?.pages]);
-
   // Context
 
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
@@ -443,15 +472,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       for (let i = 0; i < imgFiles.length; i++) {
         const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
         // 获取到图片的宽高
-        const { width, height } = await new Promise<{ width: number; height: number }>((resolve) => {
-          const img = new Image();
-          img.onload = () => {
-            URL.revokeObjectURL(img.src);
-            resolve({ width: img.naturalWidth || 114, height: img.naturalHeight || 114 });
-          };
-          img.onerror = () => resolve({ width: 114, height: 114 }); // 失败时使用默认值
-          img.src = URL.createObjectURL(imgFiles[i]);
-        });
+        const { width, height } = await getImageSize(imgFiles[i]);
         // 如果有图片，发送独立的图片消息
         if (imgDownLoadUrl && imgDownLoadUrl !== "") {
           const messageRequest: ChatMessageRequest = {
@@ -460,7 +481,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             roleId: curRoleId,
             avatarId: curAvatarId,
             messageType: 2,
-            body: {
+            extra: {
               size: 0,
               url: imgDownLoadUrl,
               fileName: imgDownLoadUrl.split("/").pop() || `${roomId}-${Date.now()}`,
@@ -482,12 +503,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         avatarId: roleAvatars[curAvatarIndex].avatarId || -1,
         messageType: 1,
         replayMessageId: replyMessage?.messageID || undefined,
-        body: {},
+        extra: {},
       };
       // 如果是命令，额外发送一条消息给骰娘
       if (isCommand(inputText)) {
         const commandResult = commandExecutor(inputText);
-        messageRequest.body = {
+        messageRequest.extra = {
           result: commandResult,
         };
         tuanchat.chatController.sendMessageAiResponse(messageRequest);
@@ -641,225 +662,294 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       syncInputText();
     }
   }
+
   return (
     <RoomContext value={roomContext}>
-      <div className="w-full flex gap-4">
-        <div className="flex flex-col flex-1">
-          {/* 聊天框 */}
-          <div className="card bg-base-100 shadow-sm">
-            <ChatFrame useChatBubbleStyle={useChatBubbleStyle} key={roomId}></ChatFrame>
+      <div className="flex flex-col h-full w-full shadow-sm min-h-0">
+        {/* 上边的信息栏 */}
+        <div className="flex justify-between py-2 px-5 bg-base-100">
+          <div className="flex gap-2">
+            {getScreenSize() === "sm"
+              && <BaselineArrowBackIosNew className="size-7" onClick={spaceContext.toggleLeftDrawer}></BaselineArrowBackIosNew>}
+            <span className="text-center font-semibold text-lg">{room?.name}</span>
           </div>
-          {/* 输入区域 */}
-          <form className="mt-4 bg-base-100 p-4 rounded-lg shadow-sm flex flex-col flex-1">
-            <div className="flex gap-2 flex-1">
-              {/* 表情差分展示与选择 */}
-              <div className="dropdown dropdown-top flex-shrink-0">
-                <div role="button" tabIndex={0} className="">
-                  <div className="tooltip flex justify-center flex-col items-center space-y-2" data-tip="切换表情差分">
-                    <RoleAvatarComponent
-                      avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
-                      width={32}
-                      isRounded={true}
-                      withTitle={false}
-                      stopPopWindow={true}
-                    />
-                    <div className="text-sm whitespace-nowrap">
-                      {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
-                    </div>
-                  </div>
-                </div>
-                {/* 表情差分选择器 */}
-                <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm">
-                  <ExpressionChooser
-                    roleId={curRoleId}
-                    handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}
-                  >
-                  </ExpressionChooser>
-                </ul>
-              </div>
-
-              <div className="relative flex-1 flex flex-col min-w-0">
-                <CommandPanel
-                  prefix={inputText}
-                  handleSelectCommand={handleSelectCommand}
-                  commandMode={
-                    inputText.startsWith("%")
-                      ? "webgal"
-                      : (inputText.startsWith(".") || inputText.startsWith("。"))
-                          ? "dice"
-                          : "none"
-                  }
-                  className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10 w-full"
-                />
-                <div className="flex flex-row gap-2 pl-3">
-                  <div className="tooltip" data-tip="浏览所有骰子命令">
-                    <DiceTwentyFacesTwenty
-                      className="w-6 h-6 cursor-pointer hover:text-info"
-                      onClick={() => setCommandBrowseWindow("dice")}
-                    >
-                    </DiceTwentyFacesTwenty>
-                  </div>
-                  <div className="tooltip" data-tip="浏览常用webgal命令">
-                    <CommandSolid
-                      className="w-6 h-6 cursor-pointer hover:text-info"
-                      onClick={() => setCommandBrowseWindow("webgal")}
-                    >
-                    </CommandSolid>
-                  </div>
-                </div>
-                {/* 预览要发送的图片 */}
-                {imgFiles.length > 0 && (
-                  <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
-                    {imgFiles.map((file, index) => (
-                      <BetterImg
-                        src={file}
-                        className="h-14 w-max rounded"
-                        onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
-                        key={file.name}
-                      />
-                    ))}
-                  </div>
-                )}
-                {/* 引用的消息 */}
-                {
-                  replyMessage && (
-                    <RepliedMessage
-                      replyMessage={replyMessage}
-                      className="flex flex-row gap-2 items-center bg-base-200 p-1 rounded-box shadow-sm text-sm pl-2"
-                    />
-                  )
-                }
-                {/* 输入框 */}
-                <div
-                  className="textarea chatInputTextarea w-full flex-1 h-full overflow-auto
-                     min-h-[80px] max-h-[200px] resize-none border-none focus:outline-none focus:ring-0 overflow-auto div-textarea"
-                  ref={textareaRef}
-                  onInput={syncInputText}
-                  onKeyDown={handleKeyDown}
-                  onKeyUp={handleKeyUp}
-                  onMouseDown={handleMouseDown}
-                  onCompositionStart={() => isComposingRef.current = true}
-                  onCompositionEnd={() => isComposingRef.current = false}
-                  onPaste={async e => handlePaste(e)}
-                  suppressContentEditableWarning={true}
-                  contentEditable={true}
-                  data-placeholder={(curRoleId <= 0
-                    ? "请先在群聊里拉入你的角色，之后才能发送消息。"
-                    : (curAvatarId <= 0 ? "请给你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"))}
-                >
-                </div>
-                {/* at搜索框 */}
-                {showAtDialog && atDialogPosition.x > 0 && searchedRoles.length > 0 && (
-                // 这里的坐标是全局的坐标，所以mount到根元素
-                  <Mounter targetId="modal-root">
-                    <div
-                      className="absolute flex flex-col card shadow-md bg-base-200 p-2"
-                      style={{ top: atDialogPosition.y - 5, left: atDialogPosition.x, transform: "translateY(-100%)" }}
-                    >
-                      {
-                        searchedRoles.map((role, index) => (
-                          <div
-                            className={`flex flex-row items-center gap-2 hover:bg-base-300 rounded pt-1 pb-1 ${index === atSelectIndex ? "bg-base-300" : ""}`}
-                            key={role.roleId}
-                            onClick={() => {
-                              handleSelectAt(role);
-                            }}
-                            onMouseDown={e => e.preventDefault()}
-                          >
-                            <RoleAvatarComponent avatarId={role.avatarId ?? -1} width={8} isRounded={true} stopPopWindow={true}>
-                            </RoleAvatarComponent>
-                            {role.roleName}
-                          </div>
-                        ))
-                      }
-                    </div>
-                  </Mounter>
-                )}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    {/* 角色选择器 */}
-                    <div className="dropdown dropdown-top">
-                      <div className="tooltip" data-tip="切换角色">
-                        <GirlIcon className="size-8 hover:text-info" tabIndex={0} role="button"></GirlIcon>
-                      </div>
-                      <ul
-                        tabIndex={0}
-                        className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
-                      >
-                        <RoleChooser handleRoleChange={handleRoleChange}></RoleChooser>
-                      </ul>
-                    </div>
-                    <ImgUploader setImg={newImg => updateImgFiles((draft) => {
-                      draft.push(newImg);
-                    })}
-                    >
-                      <div className="tooltip" data-tip="发送图片">
-                        <GalleryBroken className="size-8 cursor-pointer hover:text-info"></GalleryBroken>
-                      </div>
-                    </ImgUploader>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <div className="tooltip" data-tip="切换聊天气泡风格">
-                      <label className="swap">
-                        <input type="checkbox" />
-                        <div className="swap-on" onClick={() => setUseChatBubbleStyle(false)}>
-                          <Bubble2 className="size-8 font-light"></Bubble2>
-                        </div>
-                        <div className="swap-off" onClick={() => setUseChatBubbleStyle(true)}>
-                          <Bubble2 className="size-8"></Bubble2>
-                        </div>
-                      </label>
-                    </div>
-
-                    {/* send button */}
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      disabled={!(inputText.trim() || imgFiles.length) || isSubmitting}
-                      onClick={handleMessageSubmit}
-                    >
-                      <SendIcon className="size-6"></SendIcon>
-                    </button>
-                  </div>
-                </div>
-              </div>
+          <div className="flex gap-2">
+            <div
+              className="tooltip tooltip-bottom"
+              data-tip="展示先攻表"
+              onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}
+            >
+              <SwordSwing className="size-7"></SwordSwing>
             </div>
-          </form>
+            <div
+              className="tooltip tooltip-bottom"
+              data-tip="展示成员"
+              onClick={() => setSideDrawerState(sideDrawerState === "user" ? "none" : "user")}
+            >
+              <MemberFilled className="size-7"></MemberFilled>
+            </div>
+            <div
+              className="tooltip tooltip-bottom"
+              data-tip="展示角色"
+              onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
+            >
+              <GirlIcon className="size-7"></GirlIcon>
+            </div>
+            {spaceContext.isSpaceOwner && (
+              <Setting
+                className="size-7 cursor-pointer hover:text-info"
+                onClick={() => setIsSettingWindowOpen(true)}
+              >
+              </Setting>
+            )}
+          </div>
         </div>
-        <SideDrawer sideDrawerId="room-side-drawer" isAtRight={true}>
-          <RoomRightSidePanel></RoomRightSidePanel>
-        </SideDrawer>
+        <div className="h-px bg-base-300"></div>
+        <div className="flex-1 w-full flex bg-base-100 overflow-y-auto overflow-x-hidden relative">
+          <div className="flex flex-col flex-1 h-full overflow-y-auto overflow-x-hidden">
+            {/* 聊天框 */}
+            <div className="bg-base-100 h-[70%]">
+              <ChatFrame useChatBubbleStyle={useChatBubbleStyle} key={roomId}></ChatFrame>
+            </div>
+            {/* 输入区域 */}
+            <div className="h-px bg-base-300"></div>
+            <form className="bg-base-100 p-4 rounded-lg flex flex-col flex-1 ">
+              {/* 顶部工具栏 */}
+              <div className="flex gap-2 flex-1 ">
+                <div className="dropdown dropdown-top flex-shrink-0">
+                  <div role="button" tabIndex={0} className="">
+                    <div
+                      className="tooltip flex justify-center flex-col items-center space-y-2"
+                      data-tip="切换表情差分"
+                    >
+                      <RoleAvatarComponent
+                        avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
+                        width={32}
+                        isRounded={true}
+                        withTitle={false}
+                        stopPopWindow={true}
+                        alt="无可用头像"
+                      />
+                      <div className="text-sm whitespace-nowrap">
+                        {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
+                      </div>
+                    </div>
+                  </div>
+                  {/* 表情差分展示与选择 */}
+                  <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm">
+                    <ExpressionChooser
+                      roleId={curRoleId}
+                      handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}
+                    >
+                    </ExpressionChooser>
+                  </ul>
+                </div>
+                <div className="relative flex-1 flex flex-col min-w-0">
+                  <CommandPanel
+                    prefix={inputText}
+                    handleSelectCommand={handleSelectCommand}
+                    commandMode={
+                      inputText.startsWith("%")
+                        ? "webgal"
+                        : (inputText.startsWith(".") || inputText.startsWith("。"))
+                            ? "dice"
+                            : "none"
+                    }
+                    className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10 w-full"
+                  />
+                  <div className="flex pl-3 pr-6 justify-between ">
+                    <div className="flex gap-2">
+                      {/* 角色选择器 */}
+                      <div className="dropdown dropdown-top">
+                        <div className="tooltip" data-tip="切换角色">
+                          <GirlIcon className="size-8 hover:text-info" tabIndex={0} role="button"></GirlIcon>
+                        </div>
+                        <ul
+                          tabIndex={0}
+                          className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
+                        >
+                          <RoleChooser handleRoleChange={handleRoleChange}></RoleChooser>
+                        </ul>
+                      </div>
+                      <ImgUploader setImg={newImg => updateImgFiles((draft) => {
+                        draft.push(newImg);
+                      })}
+                      >
+                        <div className="tooltip" data-tip="发送图片">
+                          <GalleryBroken className="size-8 cursor-pointer hover:text-info"></GalleryBroken>
+                        </div>
+                      </ImgUploader>
+                      <div className="tooltip" data-tip="浏览所有骰子命令">
+                        <DiceTwentyFacesTwenty
+                          className="size-8 cursor-pointer hover:text-info"
+                          onClick={() => setCommandBrowseWindow("dice")}
+                        >
+                        </DiceTwentyFacesTwenty>
+                      </div>
+                      <div className="tooltip" data-tip="浏览常用webgal命令">
+                        <CommandSolid
+                          className="size-8 cursor-pointer hover:text-info"
+                          onClick={() => setCommandBrowseWindow("webgal")}
+                        >
+                        </CommandSolid>
+                      </div>
+                    </div>
+                    <div className="tooltip " data-tip="切换聊天气泡风格">
+                      <Bubble2
+                        className="size-8 font-light"
+                        onClick={() => setUseChatBubbleStyle(!useChatBubbleStyle)}
+                      >
+                      </Bubble2>
+                    </div>
+                  </div>
+                  {/* 预览要发送的图片 */}
+                  {imgFiles.length > 0 && (
+                    <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
+                      {imgFiles.map((file, index) => (
+                        <BetterImg
+                          src={file}
+                          className="h-14 w-max rounded"
+                          onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
+                          key={file.name}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {/* 引用的消息 */}
+                  {
+                    replyMessage && (
+                      <RepliedMessage
+                        replyMessage={replyMessage}
+                        className="flex flex-row gap-2 items-center bg-base-200 p-1 rounded-box shadow-sm text-sm pl-2"
+                      />
+                    )
+                  }
+                  {/* 输入框 */}
+                  <div
+                    className="textarea chatInputTextarea w-full flex-1 h-full overflow-auto
+                     min-h-[80px] resize-none border-none focus:outline-none focus:ring-0 overflow-auto div-textarea"
+                    ref={textareaRef}
+                    onInput={syncInputText}
+                    onKeyDown={handleKeyDown}
+                    onKeyUp={handleKeyUp}
+                    onMouseDown={handleMouseDown}
+                    onCompositionStart={() => isComposingRef.current = true}
+                    onCompositionEnd={() => isComposingRef.current = false}
+                    onPaste={async e => handlePaste(e)}
+                    suppressContentEditableWarning={true}
+                    contentEditable={true}
+                    data-placeholder={(curRoleId <= 0
+                      ? "请先在群聊里拉入你的角色，之后才能发送消息。"
+                      : (curAvatarId <= 0 ? "请给你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"))}
+                  >
+                  </div>
+                  {/* at搜索框 */}
+                  {showAtDialog && atDialogPosition.x > 0 && searchedRoles.length > 0 && (
+                  // 这里的坐标是全局的坐标，所以mount到根元素
+                    <Mounter targetId="modal-root">
+                      <div
+                        className="absolute flex flex-col card shadow-md bg-base-200 p-2"
+                        style={{
+                          top: atDialogPosition.y - 5,
+                          left: atDialogPosition.x,
+                          transform: "translateY(-100%)",
+                        }}
+                      >
+                        {
+                          searchedRoles.map((role, index) => (
+                            <div
+                              className={`flex flex-row items-center gap-2 hover:bg-base-300 rounded pt-1 pb-1 ${index === atSelectIndex ? "bg-base-300" : ""}`}
+                              key={role.roleId}
+                              onClick={() => {
+                                handleSelectAt(role);
+                              }}
+                              onMouseDown={e => e.preventDefault()}
+                            >
+                              <RoleAvatarComponent
+                                avatarId={role.avatarId ?? -1}
+                                width={8}
+                                isRounded={true}
+                                stopPopWindow={true}
+                              >
+                              </RoleAvatarComponent>
+                              {role.roleName}
+                            </div>
+                          ))
+                        }
+                      </div>
+                    </Mounter>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                    </div>
 
-        <PopWindow isOpen={commandBrowseWindow === "dice"} onClose={() => setCommandBrowseWindow("none")}>
-          <span className="text-center text-lg font-semibold">浏览所有骰子命令</span>
-          <CommandPanel
-            prefix="."
-            handleSelectCommand={(cmdName) => {
-              setInputText(`.${cmdName}`);
-              setCommandBrowseWindow("none");
-            }}
-            commandMode="dice"
-            suggestionNumber={10000}
-            className="overflow-x-clip max-h-[80vh] overflow-y-auto"
-          >
-          </CommandPanel>
-        </PopWindow>
-        <PopWindow isOpen={commandBrowseWindow === "webgal"} onClose={() => setCommandBrowseWindow("none")}>
-          <span className="text-center text-lg font-semibold">浏览常见webgal命令</span>
-          <CommandPanel
-            prefix="%"
-            handleSelectCommand={(cmdName) => {
-              setInputText(`%${cmdName}`);
-              setCommandBrowseWindow("none");
-            }}
-            commandMode="webgal"
-            suggestionNumber={10000}
-            className="overflow-x-clip max-h-[80vh] overflow-y-auto"
-          >
-          </CommandPanel>
-        </PopWindow>
+                    <div className="flex gap-2">
+
+                      {/* send button */}
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={
+                          (curRoleId <= 0) // 没有选中角色
+                          || ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3) // 没有权限
+                          || (!(inputText.trim() || imgFiles.length) || isSubmitting) // 没有内容
+                        }
+                        onClick={handleMessageSubmit}
+                      >
+                        <SendIcon className="size-6"></SendIcon>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+          <OpenAbleDrawer isOpen={sideDrawerState === "user"} className="h-full bg-base-100 overflow-auto">
+            <div className="w-px bg-base-300"></div>
+            <RoomUserList></RoomUserList>
+          </OpenAbleDrawer>
+          <OpenAbleDrawer isOpen={sideDrawerState === "role"} className="h-full bg-base-100 overflow-auto">
+            <div className="w-px bg-base-300"></div>
+            <RoomRoleList></RoomRoleList>
+          </OpenAbleDrawer>
+          <OpenAbleDrawer isOpen={sideDrawerState === "initiative"} className="max-h-full overflow-auto">
+            <div className="w-px bg-base-300"></div>
+            <InitiativeList></InitiativeList>
+          </OpenAbleDrawer>
+        </div>
       </div>
+      <PopWindow isOpen={commandBrowseWindow === "dice"} onClose={() => setCommandBrowseWindow("none")}>
+        <span className="text-center text-lg font-semibold">浏览所有骰子命令</span>
+        <CommandPanel
+          prefix="."
+          handleSelectCommand={(cmdName) => {
+            setInputText(`.${cmdName}`);
+            setCommandBrowseWindow("none");
+          }}
+          commandMode="dice"
+          suggestionNumber={10000}
+          className="overflow-x-clip max-h-[80vh] overflow-y-auto"
+        >
+        </CommandPanel>
+      </PopWindow>
+      <PopWindow isOpen={commandBrowseWindow === "webgal"} onClose={() => setCommandBrowseWindow("none")}>
+        <span className="text-center text-lg font-semibold">浏览常见webgal命令</span>
+        <CommandPanel
+          prefix="%"
+          handleSelectCommand={(cmdName) => {
+            setInputText(`%${cmdName}`);
+            setCommandBrowseWindow("none");
+          }}
+          commandMode="webgal"
+          suggestionNumber={10000}
+          className="overflow-x-clip max-h-[80vh] overflow-y-auto"
+        >
+        </CommandPanel>
+      </PopWindow>
+      {/* 设置窗口 */}
+      <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
+        <RoomSettingWindow onClose={() => setIsSettingWindowOpen(false)}></RoomSettingWindow>
+      </PopWindow>
     </RoomContext>
   );
 }

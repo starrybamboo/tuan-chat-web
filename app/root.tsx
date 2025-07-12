@@ -46,7 +46,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient(
+  {
+    defaultOptions: {
+      queries: {
+        retry: 2, // 请求失败重试次数
+      },
+    },
+  },
+);
 
 export default function App() {
   return (

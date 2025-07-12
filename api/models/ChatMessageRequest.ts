@@ -30,6 +30,6 @@ export type ChatMessageRequest = {
     /**
      * 消息内容，类型不同传值不同.
      */
-    body: Record<string, any>;
+    extra: Record<string, any>;
 };
 

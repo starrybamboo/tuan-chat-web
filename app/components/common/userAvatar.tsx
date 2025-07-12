@@ -138,7 +138,7 @@ export default function UserAvatarComponent({
             src={userQuery.isPending || userQuery.error || !userQuery.data?.data?.avatar ? undefined : userQuery.data?.data?.avatar}
             alt="Avatar"
             className="hover:scale-110 transition-transform"
-            onClick={() => setIsOpen(true)}
+            onClick={() => { !stopPopWindow && setIsOpen(true); }}
           />
         </div>
       </div>
@@ -156,7 +156,7 @@ export default function UserAvatarComponent({
           (isOpen && !stopPopWindow) && (
             <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>
               <div className="items-center justify-center gap-y-4 flex flex-col">
-                <UserDetail userId={userId}></UserDetail>
+                <UserDetail userId={userId} size="compact"></UserDetail>
                 {
                   (spaceId > 0) && (
                     curUserId === userId

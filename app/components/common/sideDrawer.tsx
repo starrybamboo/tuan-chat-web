@@ -1,10 +1,7 @@
 import { Mounter } from "@/components/common/mounter";
+import { isLgScreen } from "@/utils/getScreenSize";
 // 检测屏幕尺寸
 import React from "react";
-
-function isLgScreen() {
-  return typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
-}
 
 /**
  * 侧边抽屉组件
