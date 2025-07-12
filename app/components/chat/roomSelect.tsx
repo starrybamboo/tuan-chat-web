@@ -47,9 +47,11 @@ export default function RoomSelect() {
   const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
   // 当前选中的房间ID，初始化的时候，按照路由参数，localStorage里的数据，rooms的第一个，null的优先级来初始化
-  const [activeRoomId, setActiveRoomId] = useState<number | null>(urlRoomId
-    ? Number(urlRoomId)
-    : (storedIds.roomId ?? rooms[0]?.roomId ?? null));
+  const [activeRoomId, setActiveRoomId] = useState<number | null>(urlSpaceId
+    ? (urlRoomId
+        ? Number(urlRoomId)
+        : (storedIds.roomId ?? rooms[0]?.roomId ?? null))
+    : null);
   useEffect(() => {
     setActiveRoomId(rooms[0]?.roomId ?? null);
   }, [activeSpaceId]);
@@ -59,7 +61,7 @@ export default function RoomSelect() {
   // 同步路由状态 并存到localStorage里面
   useEffect(() => {
     setStoredChatIds({ spaceId: activeSpaceId, roomId: activeRoomId });
-    if (activeSpaceId || activeRoomId) {
+    if (activeSpaceId) {
       const path = `/chat/${activeSpaceId || ""}/${activeRoomId || ""}`;
       navigate(path.replace(/\/+$/, ""), { replace: true });
     }
@@ -226,7 +228,7 @@ export default function RoomSelect() {
 
   return (
     <SpaceContext value={spaceContext}>
-      <div className="flex flex-row bg-base-100 flex-1 h-full">
+      <div className="flex flex-row bg-base-100 flex-1 h-full relative">
         {/* 只有小屏才允许收起侧边栏 */}
         <OpenAbleDrawer isOpen={getScreenSize() === "sm" ? isOpenLeftDrawer : true} className="h-full z-10 w-full bg-base-100">
           <div className="h-full flex flex-row w-full md:w-max">
@@ -299,10 +301,15 @@ export default function RoomSelect() {
             <div className="w-px bg-base-300"></div>
             {/* 房间列表 */}
             <div className="flex flex-col gap-2 py-2 w-full md:w-[200px] h-full flex-1 bg-base-200/40 min-h-0">
-              <div className="self-center font-bold flex gap-2">
-                <span className="text-lg">{activeSpace?.name}</span>
-                <DotsHorizontalOutline className="size-7 hover:bg-base-300 rounded" onClick={() => { setIsShowSpacePanel(!isShowSpacePanel); }} />
-              </div>
+              {
+                activeSpaceId && (
+                  <div className="self-center font-bold flex gap-2">
+                    <span className="text-lg">{activeSpace?.name}</span>
+                    <DotsHorizontalOutline className="size-7 hover:bg-base-300 rounded" onClick={() => { setIsShowSpacePanel(!isShowSpacePanel); }} />
+                  </div>
+                )
+              }
+
               <div className="h-px bg-base-300"></div>
               <div className="flex flex-col gap-2 p-2 overflow-auto">
                 {rooms.map(room => (
@@ -357,12 +364,6 @@ export default function RoomSelect() {
                   创建房间
                 </button>
               )}
-              {
-                // 在小屏时不知道为什么底下会被吃掉一节，这是一个hack
-                getScreenSize() === "sm" && (
-                  <div className="w-full h-20"></div>
-                )
-              }
             </div>
           </div>
         </OpenAbleDrawer>

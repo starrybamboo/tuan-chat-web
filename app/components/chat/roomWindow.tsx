@@ -62,7 +62,7 @@ import {
   useGetUserRolesQuery,
 } from "../../../api/queryHooks";
 
-const PAGE_SIZE = 30; // 每页消息数量
+const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
   const spaceContext = use(SpaceContext);
 
@@ -705,7 +705,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           </div>
         </div>
         <div className="h-px bg-base-300"></div>
-        <div className="flex-1 w-full flex bg-base-100 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 w-full flex bg-base-100 overflow-y-auto overflow-x-hidden relative">
           <div className="flex flex-col flex-1 h-full overflow-y-auto overflow-x-hidden">
             {/* 聊天框 */}
             <div className="bg-base-100 h-[70%]">
@@ -904,15 +904,15 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               </div>
             </form>
           </div>
-          <OpenAbleDrawer isOpen={sideDrawerState === "user"} className="h-full bg-base-100">
+          <OpenAbleDrawer isOpen={sideDrawerState === "user"} className="h-full bg-base-100 overflow-auto">
             <div className="w-px bg-base-300"></div>
             <RoomUserList></RoomUserList>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "role"} className="h-full bg-base-100">
+          <OpenAbleDrawer isOpen={sideDrawerState === "role"} className="h-full bg-base-100 overflow-auto">
             <div className="w-px bg-base-300"></div>
             <RoomRoleList></RoomRoleList>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "initiative"}>
+          <OpenAbleDrawer isOpen={sideDrawerState === "initiative"} className="max-h-full overflow-auto">
             <div className="w-px bg-base-300"></div>
             <InitiativeList></InitiativeList>
           </OpenAbleDrawer>
