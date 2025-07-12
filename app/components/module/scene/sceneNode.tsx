@@ -52,7 +52,7 @@ export const SceneNode: React.FC<SceneNodeProps> = ({ data, size }) => {
     <div
       className={`scene-node flex flex-col items-center justify-center relative cursor-pointer transition-all duration-300 ease-in-out select-none overflow-hidden bg-white rounded-lg border-4 ${
         isSelected
-          ? "border-red-500 shadow-red-500/50"
+          ? "border-blue-500 shadow-blue-500/50"
           : "border-gray-300"
       }`}
       style={{
@@ -62,7 +62,7 @@ export const SceneNode: React.FC<SceneNodeProps> = ({ data, size }) => {
         // 选中时放大效果
         transform: `scale(${isSelected ? 1.05 : 1})`,
         boxShadow: isSelected
-          ? "0 0 16px rgba(255, 71, 87, 0.8)"
+          ? "0 0 16px rgba(71, 89, 255, 0.8)"
           : "0 2px 8px rgba(0, 0, 0, 0.1)",
         zIndex: isSelected ? 5 : 1,
       }}
@@ -78,23 +78,26 @@ export const SceneNode: React.FC<SceneNodeProps> = ({ data, size }) => {
       <img
         src={imageSrc}
         alt={data.scene}
-        className="w-full object-cover select-none pointer-events-none"
-        style={{
-          height: "80%",
-        }}
+        className="w-full h-full object-cover select-none pointer-events-none"
         // 禁用图片拖拽
         draggable={false}
         onDragStart={handlePreventDefault}
         onContextMenu={handlePreventDefault} // 禁用右键菜单
       />
-      <div
-        className="w-full flex items-center justify-center text-xl font-bold text-gray-800 select-none"
-        style={{
-          height: "20%",
-          background: "rgba(255,255,255,0.9)",
-        }}
-      >
-        {data.scene}
+      {/* 悬浮的场景名称，带有渐变遮罩 */}
+      <div className="absolute bottom-0 left-0 right-0">
+        {/* 白色渐变遮罩 */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to top, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.5) 70%, transparent 100%)",
+          }}
+        />
+        {/* 场景名称文字 */}
+        <div className="relative z-10 flex items-center justify-center text-xl font-bold text-gray-800 select-none py-1">
+          {data.scene}
+        </div>
       </div>
     </div>
   );

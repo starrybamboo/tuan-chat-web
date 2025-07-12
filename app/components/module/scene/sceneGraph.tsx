@@ -12,6 +12,33 @@ register(ExtensionCategory.NODE, "react-node", ReactNode);
 export function SceneDemo() {
   const graphRef = useRef<any>(null);
 
+  const data = { // 节点 数据
+    nodes: [
+      {
+        id: "node1",
+        scene: "教室",
+      },
+      {
+        id: "node2",
+        scene: "办公室",
+      },
+      {
+        id: "node3",
+        scene: "操场",
+      },
+      {
+        id: "node4",
+        scene: "天台",
+      },
+    ],
+    // 边 数据
+    edges: [
+      { source: "node1", target: "node2" },
+      { source: "node2", target: "node3" },
+      { source: "node3", target: "node4" },
+    ],
+  };
+
   // 添加全局鼠标事件监听器来确保拖拽正确结束
   React.useEffect(() => {
     const handleGlobalMouseUp = () => {
@@ -49,36 +76,12 @@ export function SceneDemo() {
           ref={graphRef}
           id="my-graphin-demo"
           className="my-graphin-container w-full h-full"
-          style={{ backgroundColor: "#ffe364ff" }}
           options={{
           // 数据
-            data: {
-            // 节点 数据
-              nodes: [
-                {
-                  id: "node1",
-                  scene: "教室",
-                },
-                {
-                  id: "node2",
-                  scene: "办公室",
-                },
-                {
-                  id: "node3",
-                  scene: "操场",
-                },
-                {
-                  id: "node4",
-                  scene: "天台",
-                },
-              ],
-              // 边 数据
-              edges: [
-                { source: "node1", target: "node2" },
-                { source: "node2", target: "node3" },
-                { source: "node3", target: "node4" },
-              ],
-            },
+            data,
+            // 视图配置
+            autoFit: "view",
+            zoom: 0.7, // 设置初始缩放级别（0.7 = 70%）
             // 节点
             node: {
               type: "react-node",
@@ -96,8 +99,10 @@ export function SceneDemo() {
               type: "line",
               style: {
                 endArrow: true,
+                endArrowSize: 20, // 增加箭头大小
                 stroke: "#545872",
                 lineWidth: 4,
+                zIndex: 10, // 提高边的层级，使箭头显示在节点上方
                 // 设置边的连接策略
                 sourceAnchor: 1, // 从源节点的右边中点发出 (索引1)
                 targetAnchor: 0, // 指向目标节点的左边中点 (索引0)
@@ -125,6 +130,15 @@ export function SceneDemo() {
                 fixed: false,
               },
               "click-select",
+            ],
+            plugins: [
+              {
+                type: "grid-line",
+                key: "my-grid-line", // 指定唯一标识符，便于后续动态更新
+                size: 20,
+                stroke: "#0001",
+                follow: true,
+              },
             ],
           }}
         >
