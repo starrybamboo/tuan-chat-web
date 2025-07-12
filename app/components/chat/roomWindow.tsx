@@ -904,15 +904,15 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               </div>
             </form>
           </div>
-          <OpenAbleDrawer isOpen={sideDrawerState === "user"} className="h-full bg-base-100">
+          <OpenAbleDrawer isOpen={sideDrawerState === "user"} className="h-full bg-base-100 overflow-auto">
             <div className="w-px bg-base-300"></div>
             <RoomUserList></RoomUserList>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "role"} className="h-full bg-base-100">
+          <OpenAbleDrawer isOpen={sideDrawerState === "role"} className="h-full bg-base-100 overflow-auto">
             <div className="w-px bg-base-300"></div>
             <RoomRoleList></RoomRoleList>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "initiative"}>
+          <OpenAbleDrawer isOpen={sideDrawerState === "initiative"} className="max-h-full overflow-auto">
             <div className="w-px bg-base-300"></div>
             <InitiativeList></InitiativeList>
           </OpenAbleDrawer>

@@ -22,7 +22,7 @@ export function OpenAbleDrawer({
   }
   if (getScreenSize() === "sm") {
     return (
-      <div className={`w-full absolute ${className}`}>
+      <div className={`w-full relative ${className}`}>
         {children}
       </div>
     );

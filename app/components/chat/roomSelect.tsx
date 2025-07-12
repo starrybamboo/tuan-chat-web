@@ -357,12 +357,6 @@ export default function RoomSelect() {
                   创建房间
                 </button>
               )}
-              {
-                // 在小屏时不知道为什么底下会被吃掉一节，这是一个hack
-                getScreenSize() === "sm" && (
-                  <div className="w-full h-20"></div>
-                )
-              }
             </div>
           </div>
         </OpenAbleDrawer>
