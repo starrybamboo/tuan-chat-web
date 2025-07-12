@@ -40,16 +40,26 @@ const sizeMap = {
  * @param withName 是否显示用户名，默认为false
  * @param stopPopWindow 是否禁用点击弹出用户详情窗口，默认为false
  */
-export default function UserAvatarComponent({ userId, width, isRounded, withName = false, stopPopWindow = false }: {
+export default function UserAvatarComponent({
+  userId,
+  width,
+  isRounded,
+  withName = false,
+  stopPopWindow = false,
+  uniqueKey,
+}: {
   userId: number;
   width: keyof typeof sizeMap; // 头像的宽度
   isRounded: boolean; // 是否是圆的
   withName?: boolean; // 是否显示名字
   stopPopWindow?: boolean; // 点击后是否会产生userDetail弹窗
+  uniqueKey?: string; // 用于控制弹窗的唯一key，默认是userId
 }) {
   const userQuery = useGetUserInfoQuery(userId);
   // 控制用户详情的popWindow
-  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`userPop${userId}`, false);
+  const popWindowKey = uniqueKey ? `userPop${uniqueKey}` : `userPop${userId}`;
+
+  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(popWindowKey, false);
   const { spaceId: urlSpaceId } = useParams();
   const spaceId = Number(urlSpaceId);
   const spaceMembers = useGetSpaceMembersQuery(spaceId).data?.data ?? [];
