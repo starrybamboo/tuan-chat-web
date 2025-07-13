@@ -13,28 +13,28 @@ type CarouselProps = CarouselItemProps;
 function CarouselItem({ img, alt, isActive = false }: CarouselItemProps) {
   return (
     <div
-      className={`flex-shrink-0 px-4 transition-all duration-500 ease-in-out ${
-        isActive ? "w-2/5" : "w-1/5"
+      className={`flex-shrink-0 px-4 transition-all duration-700 ease-out ${
+        isActive ? "w-1/3" : "w-1/4"
       }`}
     >
       <div
-        className={`shadow-lg bg-gray-100 cursor-pointer relative group/item overflow-hidden transition-all duration-500 ease-in-out ${
+        className={`shadow-lg bg-gray-100 cursor-pointer relative group/item overflow-hidden transition-all duration-700 ease-out ${
           isActive
-            ? "aspect-[4/5]"
-            : "aspect-square"
+            ? "aspect-square z-10 origin-bottom"
+            : "aspect-square origin-bottom"
         }`}
       >
         <img
           src={img}
           alt={alt}
-          className={`w-full h-full object-cover transition-all duration-500 ease-in-out ${
+          className={`w-full h-full object-cover transition-all duration-700 ease-out ${
             isActive
               ? "scale-105 group-hover/item:scale-110"
               : "scale-100 group-hover/item:scale-105"
           }`}
         />
         {/* 悬浮时的白色遮罩 */}
-        <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300"></div>
+        <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/item:opacity-100 transition-opacity duration-500"></div>
       </div>
     </div>
   );
@@ -147,10 +147,11 @@ function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
     }
     // 我们希望第二张图（位置1）是活跃的
     // 当前的布局应该是：[currentIndex, currentIndex+1(活跃), currentIndex+2, currentIndex+3]
+    // 非活跃图片宽度为30%（3/10），活跃图片宽度为33.33%（1/3）
     // 所以我们需要向左偏移让 currentIndex 成为第一张图
     const offset = currentIndex;
-    // 每个位置的基础宽度是20%
-    return -(offset * 20);
+    // 每个位置的基础宽度是30%，额外向左平移10%
+    return -(offset * 25) - 10;
   }, [currentIndex, items.length]);
 
   if (items.length === 0) {
@@ -162,11 +163,11 @@ function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
   }
 
   return (
-    <div className={`relative group ${className}`}>
+    <div className={`relative group ${className}`} style={{ height: "400px" }}>
       {/* 轮播图容器 */}
-      <div className="overflow-hidden">
+      <div className="overflow-visible h-full flex items-end">
         <div
-          className={`flex ${isTransitioning ? "transition-transform duration-500 ease-in-out" : ""}`}
+          className={`flex items-end w-full ${isTransitioning ? "transition-transform duration-700 ease-out" : ""}`}
           style={{ transform: `translateX(${translateX}%)` }}
         >
           {extendedItems.map((item, index) => {
