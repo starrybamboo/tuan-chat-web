@@ -1,13 +1,12 @@
 // Work.tsx
 import LeftContent from "@/components/create/left";
-import { SceneDemo } from "../scene/sceneGraph";
+// import { SceneDemo } from "../scene/sceneGraph";
 import { ModuleProvider } from "./context/_moduleContext";
 import EditModule from "./EditModule";
 
 export default function Work() {
   return (
     <ModuleProvider>
-      <SceneDemo />
       <div className="min-h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)] bg-base-200">
         <div className="w-full h-full flex flex-col">
           <div className="flex flex-grow">
