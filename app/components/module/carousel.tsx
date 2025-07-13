@@ -151,7 +151,7 @@ function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
     // 所以我们需要向左偏移让 currentIndex 成为第一张图
     const offset = currentIndex;
     // 每个位置的基础宽度是30%，额外向左平移10%
-    return -(offset * 25) - 10;
+    return -(offset * 25) - 5;
   }, [currentIndex, items.length]);
 
   if (items.length === 0) {
@@ -163,7 +163,7 @@ function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
   }
 
   return (
-    <div className={`relative group ${className}`} style={{ height: "400px" }}>
+    <div className={`relative group ${className}`} style={{ height: "33.33vw" }}>
       {/* 轮播图容器 */}
       <div className="overflow-visible h-full flex items-end">
         <div
