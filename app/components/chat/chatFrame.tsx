@@ -20,7 +20,13 @@ import {
 } from "../../../api/hooks/chatQueryHooks";
 import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
 
-function Header({ context }: { context: { fetchNextPage: () => void; isFetching: boolean; isAtTopRef: React.RefObject<boolean> } }) {
+function Header({ context }: { context:
+{
+  fetchNextPage: () => void;
+  isFetching: boolean;
+  isAtTopRef:
+  React.RefObject<boolean>;
+}; }) {
   return (
     <div className="text-center">
       {
@@ -57,7 +63,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
   const curAvatarId = roomContext.curAvatarId ?? -1;
 
   const websocketUtils = useGlobalContext().websocketUtils;
-  const send = websocketUtils.send;
+  const send = (message: ChatMessageRequest) => websocketUtils.send({ type: 3, data: message });
   // const hasNewMessages = websocketUtils.messagesNumber[roomId];
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
 

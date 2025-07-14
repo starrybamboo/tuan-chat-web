@@ -1,5 +1,5 @@
-import { MemberTypeTag } from "@/components/chat/memberTypeTag";
 import { RoomContext } from "@/components/chat/roomContext";
+import { MemberTypeTag } from "@/components/chat/smallComponents/memberTypeTag";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";

@@ -97,7 +97,7 @@ export default function RoomSelect() {
   const getUserInfo = useGetUserInfoQuery(Number(globalContext.userId));
   const userInfo = getUserInfo.data?.data;
   // 创建空间的头像
-  const [spaceAvatar, setspaceAvatar] = useState<string>(String(userInfo?.avatar));
+  const [spaceAvatar, setSpaceAvatar] = useState<string>(String(userInfo?.avatar));
   // 创建空间的名称
   const [spaceName, setSpaceName] = useState<string>(`${String(userInfo?.username)}的空间`);
   // 创建房间的头像
@@ -274,7 +274,7 @@ export default function RoomSelect() {
                 onClick={() => {
                   setIsSpaceHandleOpen(true);
                   // 重置表单状态
-                  setspaceAvatar(String(userInfo?.avatar));
+                  setSpaceAvatar(String(userInfo?.avatar));
                   setSpaceName(`${String(userInfo?.username)}的空间`);
                   setInputUserId(-1);
                   setSelectedRuleId(1);
@@ -387,7 +387,7 @@ export default function RoomSelect() {
             <div className="flex justify-center mb-6">
               <ImgUploaderWithCopper
                 setCopperedDownloadUrl={(url) => {
-                  setspaceAvatar(url);
+                  setSpaceAvatar(url);
                 }}
                 fileName={`new-space-avatar-${Date.now()}`}
               >
