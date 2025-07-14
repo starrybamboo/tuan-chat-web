@@ -266,94 +266,6 @@ export default function ModuleHome() {
     },
   ];
 
-  const _imageCards = useMemo(() => [
-    {
-      id: "module-1",
-      title: "校园生活模组",
-      image: 教室图片,
-      content: "体验真实的校园生活，包含课堂互动、社团活动和校园探索等丰富内容。",
-      type: "mixed" as const,
-    },
-    {
-      id: "module-2",
-      title: "运动竞技模组",
-      image: 操场图片,
-      content: "参与各种体育竞技活动，挑战自我极限，享受运动带来的快乐与成就感。",
-      type: "mixed" as const,
-    },
-    {
-      id: "module-3",
-      title: "职场模拟模组",
-      image: 办公室图片,
-      content: "模拟真实职场环境，学习职业技能，体验不同行业的工作流程和挑战。",
-      type: "mixed" as const,
-    },
-    {
-      id: "module-4",
-      title: "社交互动模组",
-      image: 天台图片,
-      content: "在轻松的环境中与他人互动交流，建立友谊，分享生活中的点点滴滴。",
-      type: "mixed" as const,
-    },
-    {
-      id: "module-5",
-      title: "探险解谜模组",
-      image: 楼道图片,
-      content: "在神秘的环境中探索未知，解决各种谜题，发现隐藏的秘密和宝藏。",
-      type: "mixed" as const,
-    },
-    {
-      id: "module-6",
-      title: "创意建造模组",
-      image: 教室图片,
-      content: "发挥无限创意，自由建造和设计，打造属于自己的独特世界空间。",
-      type: "mixed" as const,
-    },
-    {
-      id: "module-7",
-      title: "角色扮演模组",
-      image: 办公室图片,
-      content: "扮演不同角色，体验多样人生，在虚拟世界中实现各种可能性。",
-      type: "mixed" as const,
-    },
-    {
-      id: "module-8",
-      title: "策略经营模组",
-      image: 天台图片,
-      content: "运用策略思维，经营管理各种资源，在竞争中获得成功和发展。",
-      type: "mixed" as const,
-    },
-    // 添加更多模组以展示分页功能
-    {
-      id: "module-9",
-      title: "科幻冒险模组",
-      image: 教室图片,
-      content: "探索未来世界的科技奇迹，在星际间展开惊心动魄的冒险旅程。",
-      type: "mixed" as const,
-    },
-    {
-      id: "module-10",
-      title: "奇幻魔法模组",
-      image: 楼道图片,
-      content: "在充满魔法的奇幻世界中，学习咒语、探索秘境、对抗邪恶势力。",
-      type: "mixed" as const,
-    },
-    {
-      id: "module-11",
-      title: "历史战争模组",
-      image: 操场图片,
-      content: "重现历史上的经典战役，体验战略指挥和战术博弈的乐趣。",
-      type: "mixed" as const,
-    },
-    {
-      id: "module-12",
-      title: "现代都市模组",
-      image: 办公室图片,
-      content: "在繁华的现代都市中生活，体验都市人的酸甜苦辣和人生百态。",
-      type: "mixed" as const,
-    },
-  ], []);
-
   // 计算分页数据 - 使用 API 数据
   const moduleData = ModuleList.data?.data;
   const totalPages = moduleData?.totalRecords ? Math.ceil(moduleData.totalRecords / itemsPerPage) : 1;
@@ -389,7 +301,29 @@ export default function ModuleHome() {
   };
 
   return (
-    <div className="bg-base-100">
+    <div className="bg-base-100 relative">
+      {/* 创建模组按钮 - 右上角绝对定位 */}
+      <button
+        type="button"
+        className="cursor-pointer fixed top-30 right-10 z-50 flex items-center gap-4 px-4 py-4 border-4 border-black bg-transparent text-black hover:bg-black hover:text-white transition-all duration-300 font-bold text-xl"
+        onClick={() => navigate("/module/create")}
+      >
+        <span>创建模组</span>
+        <svg
+          className="w-8 h-8"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5l7 7-7 7"
+          />
+        </svg>
+      </button>
       {/* <div className="fixed top-0 left-0 right-0 z-50 mt-32 ml-8">
         <span className="text-4xl font-black px-8 bg-info py-6 rounded-lg">模组首页</span>
       </div> */}
@@ -496,41 +430,6 @@ export default function ModuleHome() {
             </div>
           )}
         </div>
-
-        {/* 纯图片卡片 */}
-        {/* <ModuleHomeCardContainer title="视觉画廊">
-          <ContentCard
-            image="https://img.daisyui.com/images/stock/photo-1625726411847-8cbb60cc71e6.webp"
-            type="image"
-            size="lg"
-            onClick={() => {
-              // 处理图片点击事件
-              window.location.href = "/gallery";
-            }}
-          />
-          <ContentCard
-            title="纯文本内容"
-            content="这是一个纯文本卡片的示例。它展示了如何在没有图片的情况下呈现内容，适合显示重要的文字信息、公告或者简介等。"
-            type="text"
-            size="md"
-            theme="primary"
-          />
-          <ContentCard
-            image="https://img.daisyui.com/images/stock/photo-1609621838510-5ad474b7d25d.webp"
-            type="image"
-            size="md"
-            onClick={() => {
-              window.location.href = "/gallery/2";
-            }}
-          />
-          <ContentCard
-            title="社区动态"
-            content="关注最新的社区动态和更新，了解平台的发展方向和新功能发布。与其他创作者保持联系，共同成长。"
-            type="text"
-            size="md"
-            theme="primary"
-          />
-        </ModuleHomeCardContainer> */}
       </div>
     </div>
   );
