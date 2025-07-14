@@ -171,7 +171,7 @@ function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
   }
 
   return (
-    <div className={`relative group ${className}`} style={{ height: "33.33vw" }}>
+    <div className={`relative group ${className}`} style={{ height: "30vw" }}>
       {/* 轮播图容器 */}
       <div className="overflow-visible h-full flex items-end">
         <div
