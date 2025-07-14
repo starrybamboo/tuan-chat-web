@@ -48,9 +48,10 @@ function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
   interval?: number;
 }) {
   const [currentIndex, setCurrentIndex] = useState(4); // 从真实数据的开始位置开始
-  const [isTransitioning, setIsTransitioning] = useState(true);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isTransitioning] = useState(true);
+  const [isManualControl, setIsManualControl] = useState(false); // 是否为手动控制状态
   const autoPlayTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const resumeAutoPlayTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 为了实现无缝循环，在数组前后各添加一组图片
   const extendedItems = React.useMemo(() => {
@@ -71,7 +72,7 @@ function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
 
   // 自动播放功能
   useEffect(() => {
-    if (!autoPlay || items.length <= 1) {
+    if (!autoPlay || items.length <= 1 || isManualControl) {
       return;
     }
 
@@ -81,63 +82,72 @@ function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
     }
 
     autoPlayTimerRef.current = setInterval(() => {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex((prev) => {
+        const nextIndex = prev + 1;
+        // 处理右侧克隆区域跳转 - 使用延迟跳转
+        if (nextIndex >= items.length + 4) {
+          return 4;
+        }
+        return nextIndex;
+      });
     }, interval);
 
     return () => {
       if (autoPlayTimerRef.current) {
         clearInterval(autoPlayTimerRef.current);
       }
-    };
-  }, [autoPlay, interval, items.length, currentIndex]); // 添加 currentIndex 依赖
-
-  // 处理无缝循环的索引重置
-  useEffect(() => {
-    if (items.length === 0)
-      return;
-
-    // 清除之前的定时器
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    // 当到达克隆区域时，需要无缝跳转
-    if (currentIndex >= items.length + 4) {
-      // 到达右侧克隆区域，跳转到真实数据开始
-      timeoutRef.current = setTimeout(() => {
-        setIsTransitioning(false);
-        setCurrentIndex(4);
-        // 立即恢复动画
-        const restoreTimeout = setTimeout(() => setIsTransitioning(true), 50);
-        return () => clearTimeout(restoreTimeout);
-      }, 500);
-    }
-    else if (currentIndex < 4) {
-      // 到达左侧克隆区域，跳转到真实数据末尾
-      timeoutRef.current = setTimeout(() => {
-        setIsTransitioning(false);
-        setCurrentIndex(items.length + 3);
-        // 立即恢复动画
-        const restoreTimeout = setTimeout(() => setIsTransitioning(true), 50);
-        return () => clearTimeout(restoreTimeout);
-      }, 500);
-    }
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+      if (resumeAutoPlayTimerRef.current) {
+        clearTimeout(resumeAutoPlayTimerRef.current);
       }
     };
-  }, [currentIndex, items.length]);
+  }, [autoPlay, interval, items.length, isManualControl]);
+
+  // 处理手动操作
+  const handleManualOperation = () => {
+    // 清空所有计时器
+    if (autoPlayTimerRef.current) {
+      clearInterval(autoPlayTimerRef.current);
+      autoPlayTimerRef.current = null;
+    }
+    if (resumeAutoPlayTimerRef.current) {
+      clearTimeout(resumeAutoPlayTimerRef.current);
+    }
+    // 设置为手动控制状态
+    setIsManualControl(true);
+    // 3秒后恢复自动播放
+    resumeAutoPlayTimerRef.current = setTimeout(() => {
+      setIsManualControl(false);
+    }, 3000);
+  };
 
   // 向前切换
   const handlePrevious = () => {
-    setCurrentIndex(prev => prev - 1);
+    // 处理手动操作
+    handleManualOperation();
+    setCurrentIndex((prev) => {
+      const nextIndex = prev - 1;
+      // 处理左侧克隆区域跳转 - 直接跳转，避免动画重复
+      if (nextIndex < 4) {
+        // 直接跳转到真实数据末尾，不播放到克隆区
+        return items.length + 3;
+      }
+      return nextIndex;
+    });
   };
 
   // 向后切换
   const handleNext = () => {
-    setCurrentIndex(prev => prev + 1);
+    // 处理手动操作
+    handleManualOperation();
+    setCurrentIndex((prev) => {
+      const nextIndex = prev + 1;
+      // 处理右侧克隆区域跳转 - 直接跳转，避免动画重复
+      if (nextIndex >= items.length + 4) {
+        // 直接跳转到真实数据开始，不播放到克隆区
+        return 4;
+      }
+      return nextIndex;
+    });
   };
 
   // 计算偏移量（需要根据活跃项调整）
@@ -147,10 +157,8 @@ function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
     }
     // 我们希望第二张图（位置1）是活跃的
     // 当前的布局应该是：[currentIndex, currentIndex+1(活跃), currentIndex+2, currentIndex+3]
-    // 非活跃图片宽度为30%（3/10），活跃图片宽度为33.33%（1/3）
     // 所以我们需要向左偏移让 currentIndex 成为第一张图
     const offset = currentIndex;
-    // 每个位置的基础宽度是30%，额外向左平移10%
     return -(offset * 25) - 5;
   }, [currentIndex, items.length]);
 
@@ -206,7 +214,11 @@ function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
             {items.map((item, index) => (
               <button
                 key={`indicator-${item.img}`}
-                onClick={() => setCurrentIndex(index + 4)} // +4 因为真实数据从索引4开始
+                onClick={() => {
+                  // 处理手动操作
+                  handleManualOperation();
+                  setCurrentIndex(index + 4); // +4 因为真实数据从索引4开始
+                }}
                 type="button"
                 className={`w-2 h-2 transition-all duration-300 cursor-pointer ${
                   (currentIndex - 4) % items.length === index % items.length
