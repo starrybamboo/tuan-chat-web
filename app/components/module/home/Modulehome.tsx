@@ -1,4 +1,5 @@
-import React from "react";
+import Pagination from "@/components/common/pagination";
+import React, { useMemo, useState } from "react";
 import Carousel from "../carousel";
 
 // 导入本地图片
@@ -131,6 +132,10 @@ export function ModuleHomeCardContainer({
 
 // 示例使用的模块首页组件
 export default function ModuleHome() {
+  // 分页状态管理
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8; // 每页显示8个模组
+
   // 轮播图数据 - 五张图片实现循环显示
   const heroImages = [
     {
@@ -197,7 +202,7 @@ export default function ModuleHome() {
     },
   ];
 
-  const imageCards = [
+  const imageCards = useMemo(() => [
     {
       id: "module-1",
       title: "校园生活模组",
@@ -254,7 +259,53 @@ export default function ModuleHome() {
       content: "运用策略思维，经营管理各种资源，在竞争中获得成功和发展。",
       type: "mixed" as const,
     },
-  ];
+    // 添加更多模组以展示分页功能
+    {
+      id: "module-9",
+      title: "科幻冒险模组",
+      image: 教室图片,
+      content: "探索未来世界的科技奇迹，在星际间展开惊心动魄的冒险旅程。",
+      type: "mixed" as const,
+    },
+    {
+      id: "module-10",
+      title: "奇幻魔法模组",
+      image: 楼道图片,
+      content: "在充满魔法的奇幻世界中，学习咒语、探索秘境、对抗邪恶势力。",
+      type: "mixed" as const,
+    },
+    {
+      id: "module-11",
+      title: "历史战争模组",
+      image: 操场图片,
+      content: "重现历史上的经典战役，体验战略指挥和战术博弈的乐趣。",
+      type: "mixed" as const,
+    },
+    {
+      id: "module-12",
+      title: "现代都市模组",
+      image: 办公室图片,
+      content: "在繁华的现代都市中生活，体验都市人的酸甜苦辣和人生百态。",
+      type: "mixed" as const,
+    },
+  ], []);
+
+  // 计算分页数据
+  const totalPages = Math.ceil(imageCards.length / itemsPerPage);
+  const currentItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return imageCards.slice(startIndex, startIndex + itemsPerPage);
+  }, [currentPage, itemsPerPage, imageCards]);
+
+  // 处理页面变化
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // 滚动到精选内容区域
+    const element = document.getElementById("featured-content");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   return (
     <div className="bg-base-100">
@@ -291,21 +342,35 @@ export default function ModuleHome() {
         </ModuleHomeCardContainer>
 
         {/* 图片卡片区域 */}
-        <ModuleHomeCardContainer title="精选内容" className="mb-12 mt-16">
-          {imageCards.map(card => (
-            <ContentCard
-              key={card.id}
-              title={card.title}
-              image={card.image}
-              content={card.content}
-              type={card.type}
-              onClick={() => {
-                // 处理卡片点击事件
-                window.location.href = `/module/${card.id}`;
-              }}
-            />
-          ))}
-        </ModuleHomeCardContainer>
+        <div id="featured-content">
+          <ModuleHomeCardContainer title="精选内容" className="mb-12 mt-16">
+            {currentItems.map(card => (
+              <ContentCard
+                key={card.id}
+                title={card.title}
+                image={card.image}
+                content={card.content}
+                type={card.type}
+                onClick={() => {
+                  // 处理卡片点击事件
+                  window.location.href = `/module/${card.id}`;
+                }}
+              />
+            ))}
+          </ModuleHomeCardContainer>
+          {/* 分页组件 */}
+          {totalPages > 1 && (
+            <div className="mt-8 mb-12 flex justify-center">
+              <Pagination
+                totalPages={totalPages}
+                currentPage={currentPage}
+                onPageChange={handlePageChange}
+                showNavigation={true}
+                responsive={true}
+              />
+            </div>
+          )}
+        </div>
 
         {/* 纯图片卡片 */}
         {/* <ModuleHomeCardContainer title="视觉画廊">
