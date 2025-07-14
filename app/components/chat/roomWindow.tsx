@@ -180,7 +180,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     refetchOnWindowFocus: false,
     staleTime: Infinity,
   });
-  const receivedMessages = webSocketUtils.getTempMessagesByRoomId(roomId, true);
+  const receivedMessages = useMemo(() => webSocketUtils.receivedMessages[roomId] ?? [], [roomId, webSocketUtils.receivedMessages]);
   // 合并所有分页消息 同时更新重复的消息
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     const historyMessages = (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
