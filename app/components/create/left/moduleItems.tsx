@@ -116,7 +116,7 @@ function RoleListItem(
   );
 }
 
-function RoleList() {
+function RoleList({ stageId }: { stageId: number }) {
   const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
   const queryClient = useQueryClient();
   const userId = useGlobalContext().userId ?? -1;
@@ -169,7 +169,7 @@ function RoleList() {
   const handleAddRoleSubmit = () => {
     selectedRoleList.map((id) => {
       addAndDeleteRole({
-        moduleId: ctx.moduleId,
+        stageId,
         roleId: id,
       });
       return id;
@@ -185,7 +185,7 @@ function RoleList() {
     }, {
       onSuccess: (data) => {
         addAndDeleteRole({
-          moduleId: ctx.moduleId,
+          stageId,
           roleId: data as number,
         });
         handleClick(data as number, "新角色");
@@ -313,7 +313,7 @@ function ItemListItem({
 }
 
 // 可能用得上
-function ItemList() {
+function ItemList({ stageId }: { stageId: number }) {
   const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
   const queryClient = useQueryClient();
 
@@ -362,7 +362,7 @@ function ItemList() {
     }, {
       onSuccess: ({ data: itemId }) => {
         addAndDeleteItem({
-          moduleId: ctx.moduleId,
+          stageId,
           name: "新场景",
           entityType: "item",
           operationType: 0,
@@ -394,7 +394,7 @@ function ItemList() {
                   item={item as ModuleItemRequest}
                   isSelected={currentSelectedTabId === item.entityInfo!.itemId?.toString()}
                   onClick={() => handleClick(item.entityInfo!.itemId!, item.name!)}
-                  onDelete={() => addAndDeleteItem({ operationType: 1, entityType: "item", entityInfo: item.entityInfo!, moduleId: ctx.moduleId, name: item.name! })}
+                  onDelete={() => addAndDeleteItem({ operationType: 1, entityType: "item", entityInfo: item.entityInfo!, stageId, name: item.name! })}
                 />
               ))
             )}
@@ -483,7 +483,7 @@ function SceneListItem({
   );
 }
 
-function SceneList() {
+function SceneList({ stageId }: { stageId: number }) {
   const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
   const ctx = use(WorkspaceContext);
   const handleClick = (scene: ModuleScene) => {
@@ -503,7 +503,7 @@ function SceneList() {
 
   const handleAddScene = () => {
     createAndDeleteScene({
-      moduleId: ctx.moduleId,
+      stageId,
       name: "新场景",
       entityType: "scene",
       operationType: 0,
@@ -546,7 +546,7 @@ function SceneList() {
                     scene={scene.entityInfo as ModuleScene}
                     isSelected={currentSelectedTabId === scene.entityInfo!.moduleSceneId?.toString()}
                     onClick={() => handleClick(scene as ModuleScene)}
-                    onDelete={() => createAndDeleteScene({ entityType: "scene", operationType: 1, moduleId: ctx.moduleId, name: scene.entityInfo!.moduleSceneName! })}
+                    onDelete={() => createAndDeleteScene({ entityType: "scene", operationType: 1, stageId, name: scene.entityInfo!.moduleSceneName! })}
                   />
                 ))}
               </>
@@ -557,15 +557,12 @@ function SceneList() {
 }
 
 // const sections = ["角色", "物品", "场景"];
-function ModuleItems() {
+function ModuleItems({ stageId }: { stageId: number }) {
   return (
     <div className="w-full h-full">
-      <RoleList />
-      <ItemList />
-      <SceneList />
-      {/* {sections.map((i) => {
-        return <Section key={i} label={i}></Section>;
-      })} */}
+      <RoleList stageId={stageId} />
+      <ItemList stageId={stageId} />
+      <SceneList stageId={stageId} />
     </div>
   );
 }

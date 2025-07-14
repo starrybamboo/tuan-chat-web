@@ -1,4 +1,7 @@
+import type { StageResponse } from "api";
+import { useStagingQuery } from "api/hooks/moduleAndStageQueryHooks";
 // import { useModuleContext } from "@/components/module/workPlace/context/ModuleContext";
+import { useEffect, useState } from "react";
 import History from "./history";
 import ModuleItems from "./moduleItems";
 
@@ -6,6 +9,14 @@ import ModuleItems from "./moduleItems";
 //   onChange?: (s: string) => void;
 // }
 function LeftContent() {
+  const [moduleArray, setModuleArray] = useState<StageResponse[]>([]);
+  const [editingStageId, setEditingStageId] = useState<number>(0);
+  const { data: stagingData } = useStagingQuery();
+  useEffect(() => {
+    setModuleArray(stagingData?.data ?? []);
+    setEditingStageId(moduleArray[0]?.stageId ?? 0);
+  }, []);
+
   return (
     <div className="tabs tabs-lift h-full">
       <input
@@ -16,7 +27,7 @@ function LeftContent() {
         defaultChecked
       />
       <div className="tab-content bg-base-100 border-base-300 min-h-full">
-        <ModuleItems />
+        {/* <ModuleItems /> */}
       </div>
 
       <input
@@ -31,7 +42,7 @@ function LeftContent() {
         // }
       />
       <div className="tab-content bg-base-100 border-base-300 min-h-full rounded-none">
-        <ModuleItems />
+        <ModuleItems stageId={editingStageId} />
       </div>
 
       <input

@@ -87,19 +87,19 @@ export function useCommitMutation() {
 }
 
 // 查询最新提交的修改
-export function useQueryCommitQuery(moduleId: number) {
+export function useQueryCommitQuery(stageId: number) {
     return useQuery({
-        queryKey: ['queryCommit', moduleId],
-        queryFn: () => tuanchat.stageController.queryCommit(moduleId),
+        queryKey: ['queryCommit', stageId],
+        queryFn: () => tuanchat.stageController.queryCommit(stageId),
         staleTime: 300000 // 5分钟缓存
     });
 }
 
 // 查询所有的实体
-export function useQueryEntitiesQuery(moduleId: number) {
+export function useQueryEntitiesQuery(stageId: number) {
     return useQuery({
-        queryKey: ['queryEntities', moduleId],
-        queryFn: () => tuanchat.stageController.queryEntities(moduleId),
+        queryKey: ['queryEntities', stageId],
+        queryFn: () => tuanchat.stageController.queryEntities(stageId),
         staleTime: 300000 // 5分钟缓存
     });
 }
