@@ -6,11 +6,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import {useCallback, useEffect, useRef, useState} from "react";
 import { useImmer } from "use-immer";
 
-// type WsMessageType =
-//     | 2 // 心跳
-//     | 3 // 聊天消息
-//     | 4 // 聊天消息同步
-
+/**
+ * 成员的输入状态（不包含roomId）
+ * @param userId
+ * @param status
+ */
+export interface ChatStatus {
+  userId: number;
+  status: number;
+}
 interface WsMessage<T> {
   type: number;
   data?: T;
@@ -41,6 +45,8 @@ export function useWebSocket() {
 
   // 新消息数记录，用于显示红点
   const [unreadMessagesNumber, setUnreadMessagesNumber] = useState<Record<number, number>>({});
+
+  const [typingStatus, updateTypingStatus] = useImmer<Record<number, ChatStatus[]>>({});
 
   const token = getLocalStorageValue<number>("token", -1);
   // 配置参数
@@ -80,32 +86,61 @@ export function useWebSocket() {
 
       wsRef.current.onmessage = (event) => {
         try {
-          const message: WsMessage<ChatMessageResponse> = JSON.parse(event.data);
+          const message: WsMessage<any> = JSON.parse(event.data);
           console.log("Received message:", JSON.stringify(message));
           switch (message.type) {
-            case 3:
-            case 4:{
-              message.data && handleChatMessage(message.data);
-              break;
-            }
-            case 11:{
-              queryClient.invalidateQueries({ queryKey: ["getSpaceMemberList"] });
-              queryClient.invalidateQueries({ queryKey: ["getRoomMemberList"] });
-              break;
-            }
-            case 12:{
-              queryClient.invalidateQueries({ queryKey: ["spaceRole"] });
-              queryClient.invalidateQueries({ queryKey: ["roomRole"] });
-              break;
-            }
-            case 14:{
+            case 1:{  // 私聊新消息
               queryClient.invalidateQueries({ queryKey: ["getUserSpaces"] });
               queryClient.invalidateQueries({ queryKey: ["getUserRooms"] });
               break;
             }
-            case 15:{
+            case 4:{ // 群聊新消息
+              message.data && handleChatMessage(message.data as ChatMessageResponse);
+              break;
+            }
+            case 11:{ // 成员变动
+              queryClient.invalidateQueries({ queryKey: ["getSpaceMemberList"] });
+              queryClient.invalidateQueries({ queryKey: ["getRoomMemberList"] });
+              break;
+            }
+            case 12:{ // 角色变动
+              queryClient.invalidateQueries({ queryKey: ["spaceRole"] });
+              queryClient.invalidateQueries({ queryKey: ["roomRole"] });
+              break;
+            }
+            case 14:{ // 房间解散
+              queryClient.invalidateQueries({ queryKey: ["getUserSpaces"] });
+              queryClient.invalidateQueries({ queryKey: ["getUserRooms"] });
+              break;
+            }
+            case 15:{ // 房间extra变动
               queryClient.invalidateQueries({queryKey: ['getRoomExtra'],});
               queryClient.invalidateQueries({queryKey: ['getRoomInitiativeList'],});
+              break;
+            }
+            case 16: { // 房间禁言状态变动
+              const { roomId } = message.data;
+              queryClient.invalidateQueries({ queryKey: ['getRoomExtra', roomId] });
+              queryClient.invalidateQueries({ queryKey: ['getRoomInfo', roomId] });
+              break;
+            }
+            case 17: { // 成员的发言状态变动
+              const chatStatusEvent: ChatStatusEvent = message.data;
+              const {roomId, userId, status} = chatStatusEvent
+              updateTypingStatus(draft => {
+                if (!draft[roomId]) draft[roomId] = [];
+                const userIndex = draft[roomId].findIndex(u => u.userId === userId);
+                if (status === 0) { // 代表Idle，去除
+                  if (userIndex !== -1) draft[roomId].splice(userIndex, 1);
+                } else {
+                  if (userIndex !== -1) draft[roomId][userIndex].status = status;
+                  else draft[roomId].push({ userId, status });
+                }
+              });
+              break;
+            }
+            case 100: { // Token invalidated
+              // TODO
             }
           }
         }
