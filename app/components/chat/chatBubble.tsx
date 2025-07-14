@@ -203,7 +203,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 </div>
                 {renderedContent}
                 {/* 时间 */}
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400 pt-1">
                   {message.createTime ?? ""}
                 </div>
               </div>
