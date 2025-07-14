@@ -91,8 +91,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
         case "ra": return handleRc(args);
         case "ri": return handleRi(args);
         case "sc": return handleSc(args);
-        case "ti": return handleTi(args);
-        case "li": return handleLi(args);
         default: return `未知命令 ${cmdPart}`;
       }
     }
