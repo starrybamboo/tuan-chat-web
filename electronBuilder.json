@@ -1,8 +1,0 @@
-{
-  "productName": "团剧共创",
-  "files": ["./electron/main.js", "./dist"],
-  "extraFiles": ["./videos", "./cvideo"],
-  "directories": {
-    "output": "./buileder"
-  }
-}

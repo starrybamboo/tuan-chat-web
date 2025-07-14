@@ -7,8 +7,9 @@ import React, { useMemo } from "react";
 import { Link, useParams } from "react-router";
 import { useListCommunitiesQuery } from "../../../api/hooks/communityQueryHooks";
 
-// Custom SVG icons
-
+/**
+ * 社区界面
+ */
 export default function CommunityPage() {
   const { communityId: urlCommunityId, postId: urlPostId } = useParams();
   const communityId = Number(urlCommunityId);

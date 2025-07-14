@@ -25,12 +25,21 @@ const sizeMap = {
   36: "w-36 h-36", // 144px
 } as const;
 
-export default function RoleAvatarComponent({ avatarId, width, isRounded, withTitle, stopPopWindow = false }: {
+/**
+ * 用户头像组件
+ * @param userId 头像ID
+ * @param width 头像宽度尺寸
+ * @param isRounded 是否显示为圆形头像（true的时候是rounded-full，false的时候是rounded）
+ * @param withTitle 是否显示头像对应的标题（并非roleName）
+ * @param stopPopWindow 是否禁用点击弹出角色详情窗口，默认为false
+ */
+export default function RoleAvatarComponent({ avatarId, width, isRounded, withTitle = false, stopPopWindow = false, alt = "avatar" }: {
   avatarId: number;
   width: keyof typeof sizeMap; // 头像的宽度
   isRounded: boolean; // 是否是圆的
-  withTitle: boolean; // 是否在下方显示标题
+  withTitle?: boolean; // 是否在下方显示标题
   stopPopWindow?: boolean; // 点击后是否会产生roleDetail弹窗
+  alt?: string;
 }) {
   const avatarQuery = useGetRoleAvatarQuery(avatarId);
   const userId = useGlobalContext().userId ?? -1;
@@ -62,13 +71,19 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
   return (
     <div className="flex flex-col items-center">
       <div className="avatar">
-        <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""}`}>
-          <img
-            src={avatarQuery.isPending || avatarQuery.error || !avatarQuery.data?.data?.avatarUrl ? undefined : roleAvatar?.avatarUrl}
-            alt="Avatar"
-            className="hover:scale-110 transition-transform"
-            onClick={() => setIsOpen(true)}
-          />
+        <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""} text-center flex content-center`}>
+          {!roleAvatar?.avatarUrl
+            ? (
+                <span className={`${sizeMap[width]} text-sm`}>{alt}</span>
+              )
+            : (
+                <img
+                  src={roleAvatar?.avatarUrl}
+                  alt={alt}
+                  className="hover:scale-110 transition-transform w-full h-full object-cover"
+                  onClick={() => { !stopPopWindow && setIsOpen(true); }}
+                />
+              )}
         </div>
       </div>
       {

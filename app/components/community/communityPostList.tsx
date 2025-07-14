@@ -15,6 +15,10 @@ import {
 
 const PAGE_SIZE = 10;
 
+/**
+ * 社区帖子列表
+ * @constructor
+ */
 export default function CommunityPostList() {
   const communityContext = use(CommunityContext);
 

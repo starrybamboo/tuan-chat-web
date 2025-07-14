@@ -1,4 +1,5 @@
 import type { Route } from "./+types/home";
+import HomePage from "@/components/home/homePage";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -10,7 +11,7 @@ export function meta(_args: Route.MetaArgs) {
 export default function Home() {
   return (
     <div className="h-full bg-base-200 overflow-auto">
-      <p>欢迎来到团聚共创</p>
+      <HomePage></HomePage>
     </div>
   );
 }

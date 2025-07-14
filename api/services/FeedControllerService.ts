@@ -2,9 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResultCursorPageBaseResponseFeed } from '../models/ApiResultCursorPageBaseResponseFeed';
+import type { ApiResultCursorPageBaseResponseFeedWithStatsResponse } from '../models/ApiResultCursorPageBaseResponseFeedWithStatsResponse';
 import type { ApiResultFeed } from '../models/ApiResultFeed';
-import type { ApiResultMapStringInteger } from '../models/ApiResultMapStringInteger';
+import type { ApiResultFeedStatsResponse } from '../models/ApiResultFeedStatsResponse';
+import type { ApiResultFeedWithStatsResponse } from '../models/ApiResultFeedWithStatsResponse';
+import type { ApiResultMapLongFeedStatsResponse } from '../models/ApiResultMapLongFeedStatsResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { FeedPageRequest } from '../models/FeedPageRequest';
 import type { FeedRequest } from '../models/FeedRequest';
@@ -12,29 +14,6 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class FeedControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
-    /**
-     * 根据ID获取Feed
-     * @param feedId
-     * @returns ApiResultFeed OK
-     * @throws ApiError
-     */
-    public getFeedById(
-        feedId: number,
-    ): CancelablePromise<ApiResultFeed> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/capi/feed',
-            query: {
-                'feedId': feedId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
     /**
      * 修改Feed
      * @param requestBody
@@ -103,15 +82,37 @@ export class FeedControllerService {
         });
     }
     /**
+     * 批量获取Feed统计信息
+     * @param requestBody
+     * @returns ApiResultMapLongFeedStatsResponse OK
+     * @throws ApiError
+     */
+    public batchGetFeedStats(
+        requestBody: Array<number>,
+    ): CancelablePromise<ApiResultMapLongFeedStatsResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/feed/stats/batch',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
      * 分页查询Feed列表
      * 使用游标翻页
      * @param requestBody
-     * @returns ApiResultCursorPageBaseResponseFeed OK
+     * @returns ApiResultCursorPageBaseResponseFeedWithStatsResponse OK
      * @throws ApiError
      */
     public pageFeed(
         requestBody: FeedPageRequest,
-    ): CancelablePromise<ApiResultCursorPageBaseResponseFeed> {
+    ): CancelablePromise<ApiResultCursorPageBaseResponseFeedWithStatsResponse> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/feed/page',
@@ -127,17 +128,39 @@ export class FeedControllerService {
     }
     /**
      * 获取Feed统计信息
-     * 获取指定Feed的点赞数、评论数和收藏数
      * @param feedId
-     * @returns ApiResultMapStringInteger OK
+     * @returns ApiResultFeedStatsResponse OK
      * @throws ApiError
      */
     public getFeedStats(
         feedId: number,
-    ): CancelablePromise<ApiResultMapStringInteger> {
+    ): CancelablePromise<ApiResultFeedStatsResponse> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/feed/stats',
+            query: {
+                'feedId': feedId,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 根据ID获取Feed详情
+     * @param feedId
+     * @returns ApiResultFeedWithStatsResponse OK
+     * @throws ApiError
+     */
+    public getFeedById(
+        feedId: number,
+    ): CancelablePromise<ApiResultFeedWithStatsResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/feed/detail',
             query: {
                 'feedId': feedId,
             },

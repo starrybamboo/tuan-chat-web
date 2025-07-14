@@ -36,6 +36,11 @@ interface StoredPost {
   content?: string;
 }
 
+/**
+ * 帖子编辑器，也就是一个markdown编辑器
+ * @param onClose 关闭的时候的回调函数
+ * @constructor
+ */
 export default function PostWriter({ onClose }: { onClose?: () => void }) {
   const communityContext = use(CommunityContext);
   const communityId = communityContext.communityId ?? -1;

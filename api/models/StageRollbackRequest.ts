@@ -9,7 +9,7 @@ export type StageRollbackRequest = {
     /**
      * ID
      */
-    moduleId: number;
+    stageId: number;
     /**
      * 以name唯一标识一个实体，就像文件名标识一个文件
      */

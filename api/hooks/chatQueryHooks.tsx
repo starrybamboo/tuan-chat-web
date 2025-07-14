@@ -21,7 +21,7 @@ import type { SpaceRoleAddRequest } from "../models/SpaceRoleAddRequest";
 import type { RoomExtraRequest } from "../models/RoomExtraRequest";
 import type { RoomExtraSetRequest } from "../models/RoomExtraSetRequest";
 import type { FightRoomAddRequest } from "../models/FightRoomAddRequest";
-import type { Initiative } from "@/components/chat/initiativeList";
+import type { Initiative } from "@/components/chat/sideDrawer/initiativeList";
 import type { SpaceArchiveRequest } from "api/models/SpaceArchiveRequest";
 import type { LeaderTransferRequest } from "api/models/LeaderTransferRequest";
 
@@ -297,7 +297,7 @@ export function useGetAllMessageQuery(roomId: number) {
  */
 export function useSendMessageMutation(roomId: number) {
     return useMutation({
-        mutationFn: (req: ChatMessageRequest) => tuanchat.chatController.sendMessage(req),
+        mutationFn: (req: ChatMessageRequest) => tuanchat.chatController.sendMessage1(req),
         mutationKey: ['sendMessage'],
     });
 }

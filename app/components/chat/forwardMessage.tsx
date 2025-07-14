@@ -4,38 +4,47 @@ import { RoomContext } from "@/components/chat/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { use, useMemo } from "react";
+import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../api/queryHooks";
 
-function PreviewMessage({ message }: { message: Message }) {
-  const useRoleRequest = useGetRoleQuery(message.roleId);
-  const role = useRoleRequest.data?.data;
-  const isTextMessage = message.messageType === 1;
-  return (
-    <div>
-      <div className="flex items-center">
-        <div className="text-sm font-semibold text-base-content">
-          {role?.roleName || "YOU_KNOW_WHO"}
-        </div>
-        <div className="ml-2 text-xs text-base-content/50">
-          {message.createTime}
-        </div>
-      </div>
+/**
+ * 消息预览组件，用于显示消息的简要内容
+ * @param message 可以是Message对象或消息ID 如果传的是id就从历史消息里面找，没找到就去query。如果是Message类型就直接拿来用
+ * @param className 自定义样式类名
+ */
+export function PreviewMessage({ message, className }: {
+  message: Message | number; // 允许message为id
+  className?: string;
+}) {
+  const roomContext = use(RoomContext);
 
-      {isTextMessage
-        ? (
-            <p className="mt-1 text-sm text-base-content break-words line-clamp-2">
-              {message.content}
-            </p>
-          )
-        : (
-            <div className="mt-1 text-sm text-base-content/50">
-              [非文本消息]
-            </div>
-          )}
-    </div>
+  // 如果传的是id就从历史消息里面找，没找到就去query。如果是Message类型就直接拿来用
+  const foundMessageInHistory = typeof message === "number"
+    ? roomContext.historyMessages?.find(item => item.message.messageID === message)?.message
+    : null;
+  const messageQuery = useGetMessageByIdQuery(
+    typeof message === "number" && !foundMessageInHistory ? message : -1,
+  );
+  const messageBody = typeof message === "number"
+    ? foundMessageInHistory || messageQuery.data?.message
+    : message;
+
+  const useRoleRequest = useGetRoleQuery(messageBody?.roleId ?? -1);
+  const role = useRoleRequest.data?.data;
+  const isTextMessage = messageBody?.messageType === 1;
+  return (
+    <span className={`text-sm line-clamp-3 opacity-60 break-words ${className}`}>
+      {role?.roleName || "YOU_KNOW_WHO"}
+      {": "}
+      {isTextMessage ? messageBody.content : "非文本消息"}
+    </span>
   );
 }
 
+/**
+ * 转发消息组件，显示转发消息的预览，点击查看详情。
+ * @param messageResponse 包含转发消息列表的聊天消息响应
+ */
 export default function ForwardMessage({ messageResponse }: { messageResponse: ChatMessageResponse }) {
   // 限制预览消息数为3条
   const messageList = messageResponse.message.extra?.forwardMessage?.messageList ?? [];
@@ -44,7 +53,7 @@ export default function ForwardMessage({ messageResponse }: { messageResponse: C
   const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`forwardMegDetailPop${messageResponse.message.messageID}`, false);
   const renderedPreviewMessages = useMemo(() => {
     return previewMessages.map(item => (
-      <div key={`${item.message.messageID}`} className="bg-base-100 p-3 rounded-box shadow-sm">
+      <div key={`${item.message.messageID}`} className="bg-base-100 p-2 rounded-box shadow-sm">
         <PreviewMessage message={item.message}></PreviewMessage>
       </div>
     ));

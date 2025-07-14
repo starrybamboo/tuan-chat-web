@@ -55,6 +55,12 @@ const MARKDOWN_STYLES = `
   [&_input]:text-gray-900 [&_input]:dark:text-gray-100
 `;
 
+/**
+ * 嵌入markdown渲染器中的组件
+ * @param type 媒体类型
+ * @param src 对于bilibili与youtube，src为视频id，对于pdf，src为pdf链接
+ * @constructor
+ */
 function MediaEmbed({ type, src }: { type: string; src: string }) {
   switch (type) {
     case "bilibili":
@@ -107,6 +113,11 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
   }
 }
 
+/**
+ * markdown渲染器，很简单，传一个string就可以用
+ * @param content markdown内容
+ * @constructor
+ */
 export function MarkDownViewer({ content }: { content: string }) {
   return (
     <div className={`prose max-w-none ${MARKDOWN_STYLES}`}>

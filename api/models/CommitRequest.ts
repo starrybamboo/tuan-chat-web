@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CommitRequest = {
-    moduleId: number;
+    stageId: number;
     message: string;
 };
 

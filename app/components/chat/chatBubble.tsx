@@ -1,6 +1,6 @@
 import type { ChatMessageResponse, Message } from "api";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
-import ForwardMessage from "@/components/chat/forwardMessage";
+import ForwardMessage, { PreviewMessage } from "@/components/chat/forwardMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import { SpaceContext } from "@/components/chat/spaceContext";
@@ -15,7 +15,9 @@ import React, { use, useMemo } from "react";
 import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
 
 export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
+  /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
+  /** 控制是否应用气泡样式，默认为false */
   useChatBubbleStyle?: boolean;
 }) {
   const message = chatMessageResponse.message;
@@ -89,13 +91,30 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       return <ForwardMessage messageResponse={chatMessageResponse}></ForwardMessage>;
     }
     return (
-      <EditableField
-        content={message.content}
-        handleContentUpdate={handleContentUpdate}
-        className="whitespace-pre-wrap editable-field" // 为了方便select到这个节点
-        canEdit={canEdit}
-      >
-      </EditableField>
+      <>
+        {
+          message.replyMessageId
+          && (
+            <div className="flex flex-row gap-2 my-1 ">
+              <span className="opacity-60 inline flex-shrink-0 text-sm">| 回复</span>
+              <PreviewMessage
+                message={message.replyMessageId}
+              >
+              </PreviewMessage>
+            </div>
+          )
+        }
+
+        <EditableField
+          content={message.content}
+          handleContentUpdate={handleContentUpdate}
+          className="whitespace-pre-wrap editable-field overflow-auto" // 为了方便select到这个节点
+          canEdit={canEdit}
+          fieldId={`msg${message.messageID}`}
+        >
+        </EditableField>
+      </>
+
     );
   }, [message.content, message.extra, message.messageType]);
 
@@ -110,7 +129,6 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       if (inputElement) {
         const currentText = inputElement.value;
         const atText = `@${roleName} `;
-
         // 如果已经@过这个角色，就不再添加
         if (!currentText.includes(atText)) {
           inputElement.value = currentText + atText;
@@ -138,7 +156,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 >
                 </RoleAvatarComponent>
               </div>
-              <div className={message.messageType !== 0 ? "chat-bubble" : "chat-bubble chat-bubble-neutral"}>
+              <div className="chat-bubble">
                 {renderedContent}
               </div>
               <div className="chat-footer">
@@ -150,8 +168,6 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 </div>
                 <time className="text-xs opacity-50">
                   {message.createTime ?? ""}
-                  {` pos: ${message.position}`}
-                  {` id: ${message.messageID}`}
                 </time>
               </div>
             </div>
@@ -172,7 +188,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 </div>
               </div>
               {/* 消息内容 */}
-              <div className="flex-1">
+              <div className="flex-1 overflow-auto">
                 {/* 角色名 */}
                 <div
                   className={`cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`}

@@ -11,7 +11,12 @@ interface ImgUploaderProps {
   children: React.ReactNode;
 }
 
-// 图片上传组件
+/**
+ * 图片上传组件
+ * @param setImg 当图片上传成功时调用的函数
+ * @param children
+ * @constructor
+ */
 export function ImgUploader({ setImg, children }: ImgUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 

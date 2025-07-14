@@ -2,6 +2,12 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import { PopWindow } from "@/components/common/popWindow";
 import React, { useEffect, useRef, useState } from "react";
 
+/**
+ * 更好的img组件，点击可以显示大图，大图状态下可以缩放。
+ * @param src 图片源，可以是url，也可以是一个File对象
+ * @param className
+ * @param onClose 可选的回调函数，如果填写了该回调函数，那么图片左上角会出现一个关闭按钮，点击后调用onClose回调函数。
+ */
 function BetterImg({ src, className, onClose }: { src: string | File | undefined; className?: string; onClose?: () => void }) {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });

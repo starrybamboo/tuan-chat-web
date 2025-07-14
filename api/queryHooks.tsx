@@ -89,6 +89,7 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: any) => void)
     },
     onSuccess: (_, variables) => {
       onSave(variables);
+      queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
       queryClient.invalidateQueries({ queryKey: ['getRole', variables.roleId] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
     },
@@ -121,6 +122,7 @@ export function useCreateRoleMutation() {
       }
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
       queryClient.invalidateQueries({ queryKey: ['getRole'] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
     },
@@ -140,6 +142,7 @@ export function useDeleteRoleMutation(roleId: number) {
     mutationFn: () => tuanchat.roleController.deleteRole2([roleId]),
     mutationKey: ['deleteRole', roleId],
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
       queryClient.invalidateQueries({ queryKey: ['getRole', roleId] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
     }
@@ -164,6 +167,7 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
       return res;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
       queryClient.invalidateQueries({ queryKey: ['getRole'] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
     },
