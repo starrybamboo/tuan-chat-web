@@ -39,7 +39,7 @@ export default function Topbar() {
               <li><a onClick={() => navigate("/community/1")}>社区</a></li>
               <li><a onClick={() => navigate("/chat")}>游玩</a></li>
               <li><a onClick={() => navigate("/role")}>角色</a></li>
-              <li><a onClick={() => navigate("/module/create")}>模组</a></li>
+              <li><a onClick={() => navigate("/module")}>模组</a></li>
               <li><a onClick={() => navigate("/create")}>创作</a></li>
               <li><a onClick={() => navigate("/collection")}>收藏</a></li>
             </ul>
@@ -58,7 +58,7 @@ export default function Topbar() {
             <a onClick={() => navigate("/community/1")} className="font-normal text-base hover:underline cursor-default">社区</a>
             <a onClick={() => navigate("/chat")} className="font-normal text-base hover:underline cursor-default">游玩</a>
             <a onClick={() => navigate("/role")} className="font-normal text-base hover:underline cursor-default">角色</a>
-            <a onClick={() => navigate("/module/create")} className="font-normal text-base hover:underline cursor-default">模组</a>
+            <a onClick={() => navigate("/module")} className="font-normal text-base hover:underline cursor-default">模组</a>
             <a onClick={() => navigate("/create")} className="font-normal text-base hover:underline cursor-default">创作</a>
             <a onClick={() => navigate("/collection")} className="font-normal text-base hover:underline cursor-default">收藏</a>
           </div>

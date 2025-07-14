@@ -155,7 +155,7 @@ function ModuleDetail() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)] bg-base-100 overflow-x-hidden">
+    <div className="bg-base-100">
       <div className="mx-auto max-w-[1380px] px-4 py-[10px]">
         <div className="w-full mb-8">
           <div

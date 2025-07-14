@@ -257,7 +257,7 @@ export default function ModuleHome() {
   ];
 
   return (
-    <div className="min-h-screen bg-base-100">
+    <div className="bg-base-100">
       {/* <div className="fixed top-0 left-0 right-0 z-50 mt-32 ml-8">
         <span className="text-4xl font-black px-8 bg-info py-6 rounded-lg">模组首页</span>
       </div> */}
