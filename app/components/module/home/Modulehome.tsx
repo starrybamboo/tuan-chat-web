@@ -199,31 +199,59 @@ export default function ModuleHome() {
 
   const imageCards = [
     {
-      id: "image-1",
-      title: "探索无限可能",
+      id: "module-1",
+      title: "校园生活模组",
       image: 教室图片,
-      content: "每个模组都是一个独特的世界，等待着玩家去探索和体验。",
+      content: "体验真实的校园生活，包含课堂互动、社团活动和校园探索等丰富内容。",
       type: "mixed" as const,
     },
     {
-      id: "image-2",
-      title: "精彩瞬间",
+      id: "module-2",
+      title: "运动竞技模组",
       image: 操场图片,
-      content: "记录下那些难忘的游戏时光，分享给更多的朋友。",
+      content: "参与各种体育竞技活动，挑战自我极限，享受运动带来的快乐与成就感。",
       type: "mixed" as const,
     },
     {
-      id: "image-3",
-      title: "创意设计",
+      id: "module-3",
+      title: "职场模拟模组",
       image: 办公室图片,
-      content: "从概念到实现，见证创意如何转化为令人惊叹的视觉作品。",
+      content: "模拟真实职场环境，学习职业技能，体验不同行业的工作流程和挑战。",
       type: "mixed" as const,
     },
     {
-      id: "image-4",
-      title: "团队合作",
+      id: "module-4",
+      title: "社交互动模组",
       image: 天台图片,
-      content: "与全球顶尖的创作者合作，共同打造下一代的游戏体验。",
+      content: "在轻松的环境中与他人互动交流，建立友谊，分享生活中的点点滴滴。",
+      type: "mixed" as const,
+    },
+    {
+      id: "module-5",
+      title: "探险解谜模组",
+      image: 楼道图片,
+      content: "在神秘的环境中探索未知，解决各种谜题，发现隐藏的秘密和宝藏。",
+      type: "mixed" as const,
+    },
+    {
+      id: "module-6",
+      title: "创意建造模组",
+      image: 教室图片,
+      content: "发挥无限创意，自由建造和设计，打造属于自己的独特世界空间。",
+      type: "mixed" as const,
+    },
+    {
+      id: "module-7",
+      title: "角色扮演模组",
+      image: 办公室图片,
+      content: "扮演不同角色，体验多样人生，在虚拟世界中实现各种可能性。",
+      type: "mixed" as const,
+    },
+    {
+      id: "module-8",
+      title: "策略经营模组",
+      image: 天台图片,
+      content: "运用策略思维，经营管理各种资源，在竞争中获得成功和发展。",
       type: "mixed" as const,
     },
   ];
@@ -233,20 +261,18 @@ export default function ModuleHome() {
       {/* <div className="fixed top-0 left-0 right-0 z-50 mt-32 ml-8">
         <span className="text-4xl font-black px-8 bg-info py-6 rounded-lg">模组首页</span>
       </div> */}
+      {/* 轮播图区域 */}
+      {/* 四图并排轮播图区域 */}
+      <div className="w-full py-16 bg-base-200 relative">
+        <Carousel
+          items={heroImages}
+          className="w-full"
+          autoPlay={true}
+          interval={4000}
+        />
+      </div>
       {/* 其他内容区域 */}
       <div className="p-8">
-
-        {/* 轮播图区域 */}
-        {/* 四图并排轮播图区域 */}
-        <div className="w-full mb-16">
-          <Carousel
-            items={heroImages}
-            className="w-full"
-            autoPlay={true}
-            interval={4000}
-          />
-        </div>
-
         {/* 文本卡片区域 */}
         <ModuleHomeCardContainer title="" className="mb-12">
           {textCards.map(card => (
