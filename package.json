@@ -24,6 +24,8 @@
   },
   "dependencies": {
     "@antv/g6": "^5.0.46",
+    "@antv/g6-extension-react": "^0.2.4",
+    "@antv/graphin": "^3.0.5",
     "@react-router/node": "^7.4.1",
     "@react-router/serve": "^7.4.1",
     "@tanstack/react-query": "^5.69.0",
