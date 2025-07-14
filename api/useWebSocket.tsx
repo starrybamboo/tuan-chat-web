@@ -6,11 +6,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import {useCallback, useEffect, useRef, useState} from "react";
 import { useImmer } from "use-immer";
 import {useGlobalContext} from "@/components/globalContextProvider";
+import {uploadFile} from "@/webGAL/fileOperator";
 
 /**
  * 成员的输入状态（不包含roomId）
  * @param userId
- * @param status
+ * @param status (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离)
  */
 export interface ChatStatus {
   userId: number;
@@ -24,21 +25,23 @@ interface WsMessage<T> {
 /**
  * WebSocket工具接口定义
  * @property connect 连接WebSocket
- * @property send 发送消息
+ * @property send 发送消息 发送聊天消息到指定房间(type: 3) 聊天状态控制 (type: 4)
  * @property isConnected 检查连接状态
  * @property receivedMessages 已接收的群聊消息，使用方法：receivedMessages[roomId]
  * @property receivedDirectMessages 已接收的私聊消息，使用方法：receivedDirectMessages[userId]
  * @property unreadMessagesNumber 未读消息数量（群聊部分）
  * @property updateUnreadMessagesNumber 更新未读消息数量 （群聊部分）
+ * @property chatStatus 成员的输入状态 (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离), 默认为1 (空闲）
  */
 export interface WebsocketUtils {
   connect: () => void;
-  send: (request: any) => void;
+  send: (request: WsMessage<any>) => void;
   isConnected: () => boolean;
   receivedMessages: Record<number, ChatMessageResponse[]>;
   receivedDirectMessages: Record<number, DirectMessageEvent[]>;
   unreadMessagesNumber: Record<number, number>; // 存储未读消息数
   updateUnreadMessagesNumber: (roomId: number, newNumber: number,) => void;
+  chatStatus: Record<number, ChatStatus[]>;
 }
 
 const WS_URL = import.meta.env.VITE_API_WS_URL;
@@ -59,7 +62,7 @@ export function useWebSocket() {
   // 新消息数记录，用于显示红点
   const [unreadMessagesNumber, setUnreadMessagesNumber] = useState<Record<number, number>>({});
   // 输入状态, 按照roomId进行分组
-  const [typingStatus, updateTypingStatus] = useImmer<Record<number, ChatStatus[]>>({});
+  const [chatStatus, updateChatStatus] = useImmer<Record<number, ChatStatus[]>>({});
 
   const token = getLocalStorageValue<number>("token", -1);
   // 配置参数
@@ -158,18 +161,7 @@ export function useWebSocket() {
         break;
       }
       case 17: { // 成员的发言状态变动
-        const chatStatusEvent: ChatStatusEvent = message.data;
-        const {roomId, userId, status} = chatStatusEvent
-        updateTypingStatus(draft => {
-          if (!draft[roomId]) draft[roomId] = [];
-          const userIndex = draft[roomId].findIndex(u => u.userId === userId);
-          if (status === 0) { // 代表Idle，去除
-            if (userIndex !== -1) draft[roomId].splice(userIndex, 1);
-          } else {
-            if (userIndex !== -1) draft[roomId][userIndex].status = status;
-            else draft[roomId].push({ userId, status });
-          }
-        });
+        handleChatStatusChange(message.data as ChatStatusEvent)
         break;
       }
       case 100: { // Token invalidated
@@ -194,7 +186,7 @@ export function useWebSocket() {
           [roomId]: (prev[roomId] || 0) + 1,
         }));
       }
-
+      // 把接受消息放到接收消息缓存列表里面
       updateReceivedMessages((draft) => {
         if (roomId in draft) {
           // 查找已存在消息的索引
@@ -213,6 +205,17 @@ export function useWebSocket() {
           draft[roomId] = [chatMessageResponse];
         }
       });
+      // 更新发送用户的输入状态
+      updateChatStatus(draft => {
+        if(draft[roomId]){
+          const existingIndex = draft[roomId].findIndex(
+            statue => chatMessageResponse.message.userId === statue.userId,
+          );
+          if (existingIndex !== -1){
+            draft[roomId][existingIndex].status = 1;
+          }
+        }
+      })
     }
   };
   /**
@@ -242,7 +245,22 @@ export function useWebSocket() {
     })
     console.log(receivedDirectMessages)
   };
-
+  /**
+   * 处理群聊成员状态变动
+   */
+  const handleChatStatusChange = (chatStatusEvent: ChatStatusEvent) => {
+    const {roomId, userId, status} = chatStatusEvent
+    updateChatStatus(draft => {
+      if (!draft[roomId]) draft[roomId] = [];
+      const userIndex = draft[roomId].findIndex(u => u.userId === userId);
+      if (status === 0) { // 代表Idle，去除
+        if (userIndex !== -1) draft[roomId].splice(userIndex, 1);
+      } else {
+        if (userIndex !== -1) draft[roomId][userIndex].status = status;
+        else draft[roomId].push({ userId, status });
+      }
+    });
+  }
   /**
    * 心跳逻辑
    */
@@ -261,9 +279,11 @@ export function useWebSocket() {
 
   /**
    * 发送消息给后端
-   * @param request
+   * @param request 要发送的对象
+   * 发送聊天消息到指定房间(type: 3)
+   * 聊天状态控制 (type: 4)
    */
-  async function send(request: ChatMessageRequest) {
+  async function send(request: WsMessage<any>) {
     if (!isConnected) {
       connect()
     }
@@ -272,17 +292,7 @@ export function useWebSocket() {
         break;
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    try {
-      const message: WsMessage<ChatMessageRequest> = {
-        type: 3, // 聊天消息类型
-        data: request,
-      };
-      wsRef?.current?.send(JSON.stringify(message));
-      console.log("Sent message:", JSON.stringify(message));
-    }
-    catch (e) {
-      console.error("Message Serialization Failed:", e);
-    }
+    wsRef?.current?.send(JSON.stringify(request));
   }
 
   /**
@@ -306,6 +316,7 @@ export function useWebSocket() {
     receivedDirectMessages,
     unreadMessagesNumber,
     updateUnreadMessagesNumber,
+    chatStatus,
   };
   return webSocketUtils;
 }

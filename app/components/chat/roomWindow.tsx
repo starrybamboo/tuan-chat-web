@@ -75,7 +75,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
   const webSocketUtils = globalContext.websocketUtils;
-  const send = webSocketUtils.send;
+  const send = (message: ChatMessageRequest) => webSocketUtils.send({ type: 3, data: message });
 
   const textareaRef = useRef<HTMLDivElement>(null);
   // 在这里，由于采用了contentEditable的方法来实现输入框，本身并不具备数据的双向同步性，所以这里定义了两个set方法来控制inputText
@@ -194,7 +194,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       .filter(msg => msg.message.status !== 1);
     // .reverse();
   }, [receivedMessages, messagesInfiniteQuery.data?.pages]);
-  // Context
 
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {
@@ -459,6 +458,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   /**
    *处理与组件的各种交互
    */
+
   const handleSelectCommand = (cmdName: string) => {
     // 保持命令前缀格式（保留原输入的 . 或 。）
     const prefixChar = inputText[0];
@@ -466,7 +466,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const disableSendMessage = (curRoleId <= 0) // 没有选中角色
+    || ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3) // 没有权限
+    || (!(inputText.trim() || imgFiles.length) || isSubmitting); // 没有内容
   const handleMessageSubmit = async () => {
+    if (disableSendMessage)
+      return;
     setIsSubmitting(true);
     if (!inputText.trim() && !imgFiles.length) {
       return;
@@ -913,11 +918,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       <button
                         type="button"
                         className="btn btn-primary"
-                        disabled={
-                          (curRoleId <= 0) // 没有选中角色
-                          || ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3) // 没有权限
-                          || (!(inputText.trim() || imgFiles.length) || isSubmitting) // 没有内容
-                        }
+                        disabled={disableSendMessage}
                         onClick={handleMessageSubmit}
                       >
                         <SendIcon className="size-6"></SendIcon>

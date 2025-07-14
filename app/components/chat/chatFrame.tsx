@@ -57,7 +57,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
   const curAvatarId = roomContext.curAvatarId ?? -1;
 
   const websocketUtils = useGlobalContext().websocketUtils;
-  const send = websocketUtils.send;
+  const send = (message: ChatMessageRequest) => websocketUtils.send({ type: 3, data: message });
   // const hasNewMessages = websocketUtils.messagesNumber[roomId];
   const [isForwardWindowOpen, setIsForwardWindowOpen] = useState(false);
 
