@@ -77,13 +77,18 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       });
     }
   }
+  const imgMsg = message.extra?.imageMessage;
 
   const renderedContent = useMemo(() => {
     if (message.messageType === 2) {
       return (
         <div>
-          <BetterImg src={message.extra?.imageMessage?.url || message.extra?.fileMessage?.url} className="max-h-[40vh]" />
-          {message.extra?.imageMessage?.background && <div className="text-xs text-gray-500 dark:text-gray-400">已设置为背景</div>}
+          <BetterImg
+            src={imgMsg?.url || message.extra?.fileMessage?.url}
+            size={{ width: imgMsg?.width, height: imgMsg?.height }}
+            className="max-h-[40vh]"
+          />
+          {imgMsg?.background && <div className="text-xs text-gray-500 dark:text-gray-400">已设置为背景</div>}
         </div>
       );
     }
@@ -198,7 +203,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 </div>
                 {renderedContent}
                 {/* 时间 */}
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400 pt-1">
                   {message.createTime ?? ""}
                 </div>
               </div>

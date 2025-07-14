@@ -16,7 +16,7 @@ export default function RoleChooser({
 }) {
   const roomContext = use(RoomContext);
   return (
-    <div className={className}>
+    <div className={`${className} max-h-[30vh]`}>
       {
         roomContext.roomRolesThatUserOwn.length === 0 && (
           <div className="">无可用角色</div>
@@ -28,7 +28,7 @@ export default function RoleChooser({
           <li
             key={role.roleId}
             onClick={() => handleRoleChange(role.roleId)}
-            className="flex, flex-row list-none"
+            className="flex flex-row list-none"
           >
             <div className="w-full">
               <RoleAvatarComponent
