@@ -12,6 +12,8 @@ import {
 import { useGetRoleQuery } from "../../../api/queryHooks";
 // type DiceResult = { x: number; y: number; rolls: number[]; total: number };
 
+import { roll } from "./dice";
+
 // 属性名中英文对照表
 const ABILITY_MAP: { [key: string]: string } = {
   str: "力量",
@@ -86,6 +88,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
         case "set": return handleSet(args);
         case "st": return handleSt(args);
         case "rc": return handleRc(args);
+        case "ra": return handleRc(args);
         case "ri": return handleRi(args);
         case "sc": return handleSc(args);
         default: return `未知命令 ${cmdPart}`;
@@ -112,111 +115,11 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     return handleRoll(["d", ...args]);
   }
 
-  function parseDices(input: string): Array<{ sign: number; x: number; y: number }> {
-    // 处理空输入使用默认骰子
-    if (input.trim() === "") {
-      if (!defaultDice)
-        throw new Error("未设置默认骰子");
-      return [{ sign: 1, x: 1, y: defaultDice.current }];
-    }
-    // 使用正则拆分带符号的表达式
-    const segments = input.split(/(?=[+-])/g);
-    const parsedSegments = [];
-    for (const segment of segments) {
-      let sign = 1;
-      let diceExpr = segment;
-      // 解析符号
-      if (diceExpr.startsWith("+")) {
-        diceExpr = diceExpr.slice(1);
-      }
-      else if (diceExpr.startsWith("-")) {
-        sign = -1;
-        diceExpr = diceExpr.slice(1);
-      }
-      // 解析单个骰子
-      const { x, y } = parseSingleDice(diceExpr);
-      parsedSegments.push({ sign, x, y });
-    }
-    return parsedSegments;
-  }
-  /** 解析一个骰子 */
-  function parseSingleDice(input: string): { x: number; y: number } {
-    // 处理默认骰子情况
-    if (input === "d" || input === "") {
-      if (!defaultDice)
-        throw new Error("未设置默认骰子");
-      return { x: 1, y: defaultDice.current };
-    }
-
-    const num = Number(input);
-    if (!Number.isNaN(num)) {
-      return { x: Math.abs(num), y: 1 }; // 固定值视为1面骰子
-    }
-
-    // 分割d前后的数字
-    const dIndex = input.indexOf("d");
-    const hasD = dIndex !== -1;
-
-    const xPart = hasD ? input.slice(0, dIndex) : input;
-    const yPart = hasD ? input.slice(dIndex + 1) : "";
-
-    // 解析x值
-    const x = xPart ? Number.parseInt(xPart) : 1;
-    if (Number.isNaN(x) || x < 1)
-      throw new Error(`无效的骰子数量: ${xPart}`);
-
-    // 解析y值
-    const y = yPart ? Number.parseInt(yPart) : defaultDice.current;
-    if (Number.isNaN(y) || y < 1) {
-      throw new Error(`无效的骰子面数: ${yPart || "未指定"}`);
-    }
-
-    return { x, y };
-  }
   function handleRoll(args: string[]) {
     const input = args.join("");
     try {
-      const diceSegments = parseDices(input);
-      const segmentResults = [];
-
-      // 计算每个骰子段的结果
-      // 如果是一面骰, 那么直接放入结果
-      for (const { sign, x, y } of diceSegments) {
-        const rolls = (y !== 1)
-          ? Array.from({ length: x }, () => rollDice(y))
-          : [x];
-        const segmentValue = rolls.reduce((sum, val) => sum + val, 0) * sign;
-        segmentResults.push({ sign, rolls, segmentValue });
-      }
-      // 计算总和
-      const total = segmentResults.reduce((sum, r) => sum + r.segmentValue, 0);
-      // 构建展示表达式
-      const expressionParts = [];
-      const diceNotationParts = [];
-      for (let i = 0; i < segmentResults.length; i++) {
-        const { sign, rolls } = segmentResults[i];
-        const { x, y } = diceSegments[i];
-        const isFirst = i === 0;
-        const notation = (y === 1)
-          ? `${sign === -1 ? "-" : (isFirst ? "" : "+")}${x}`
-          : `${sign === -1 ? "-" : (isFirst ? "" : "+")}${x}D${y}`;
-        diceNotationParts.push(notation);
-
-        // 结果展示部分
-        const rollSum = rolls.reduce((a, b) => a + b, 0);
-        if (isFirst) {
-          expressionParts.push(rolls.length > 1 ? `${rolls.join("+")}` : `${rollSum}`);
-        }
-        else {
-          const operator = sign === 1 ? "+" : "-";
-          expressionParts.push(
-            rolls.length > 1
-              ? `${operator}(${rolls.join("+")})`
-              : `${operator}${rollSum}`,
-          );
-        }
-      }
-      return { result: `掷骰结果：${expressionParts.join("")}=${total}   (${diceNotationParts.join("")})`, total };
+      const diceResult = roll(input);
+      return { result: `掷骰结果：${input} = ${diceResult}`, total: diceResult };
     }
     catch (error) {
       return { result: `错误：${error ?? "未知错误"}`, total: undefined };
@@ -250,6 +153,30 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     const ability: { [key: string]: number } = {};
     // 使用正则匹配所有属性+数值的组合
     const matches = input.matchAll(/(\D+)(\d+)/g);
+
+    // st show 实现，目前仍使用聊天文本返回结果
+    // TODO 添加弹出窗口响应`st show`的属性展示
+    if (args[0]?.toLowerCase() === "show") {
+      if (!curAbility?.ability) {
+        return "未设置角色属性";
+      }
+
+      const showProps = args.slice(1).filter(arg => arg.trim() !== "");
+      if (showProps.length === 0) {
+        return "请指定要展示的属性";
+      }
+
+      const result: string[] = [];
+      for (const prop of showProps) {
+        const normalizedKey = prop.toLowerCase();
+        const key = ABILITY_MAP[normalizedKey] || prop;
+        const value = curAbility.ability[key] ?? 0; // 修改这里，添加默认值0
+
+        result.push(`${key}: ${value}`);
+      }
+
+      return `${role?.roleName || "当前角色"}的属性展示：\n${result.join("\n")}`;
+    }
 
     for (const match of matches) {
       const rawKey = match[1].trim();
