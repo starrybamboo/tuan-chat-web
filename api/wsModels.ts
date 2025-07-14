@@ -6,7 +6,7 @@
  * 客户端发送给服务端的聊天状态变更请求。
  * Corresponds to message type 4.
  */
-interface ChatStatusRequest {
+export interface ChatStatusRequest {
     roomId: number;  // 目标房间ID
     userId: number;  // 发送状态变更的用户ID
     status: number;  // 新的聊天状态码 (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离)
@@ -21,7 +21,7 @@ interface ChatStatusRequest {
  * 服务端推送的私聊消息事件。
  * Corresponds to message type 1.
  */
-interface DirectMessageEvent {
+export interface DirectMessageEvent {
     messageId: number;      // 消息的唯一ID
     senderId: number;       // 发送者ID
     receiverId: number;     // 接收者ID
@@ -37,7 +37,7 @@ interface DirectMessageEvent {
  * 房间成员变动事件。
  * Corresponds to message type 11.
  */
-interface MemberChangeEvent {
+export interface MemberChangeEvent {
     roomId: number;         // 房间ID
     userIds: number[];      // 变动的用户ID列表
     changeType: number;     // 变动类型 (1:加入, 2:移除, 3:权限更新)
@@ -49,7 +49,7 @@ interface MemberChangeEvent {
  * 房间角色变动事件。
  * Corresponds to message type 12.
  */
-interface RoleChangeEvent {
+export interface RoleChangeEvent {
     roleIds: number[];      // 变动的角色ID列表
     roomId: number;         // 房间ID
     changeType: number;     // 变动类型 (1:加入, 2:移除)
@@ -59,7 +59,7 @@ interface RoleChangeEvent {
  * 房间解散事件。
  * Corresponds to message type 14.
  */
-interface RoomDisbandEvent {
+export interface RoomDisbandEvent {
     roomId: number; // 被解散的房间ID
 }
 
@@ -68,7 +68,7 @@ interface RoomDisbandEvent {
  * 房间扩展信息(extra)变动事件。
  * Corresponds to message type 15.
  */
-interface RoomExtraChangeEvent {
+export interface RoomExtraChangeEvent {
     roomId: number; // 房间ID
     type: number;   // 变更类型 (1:更新/新增, 2:删除)
     key: string;    // 变更内容的键名
@@ -79,7 +79,7 @@ interface RoomExtraChangeEvent {
  * 房间禁言状态变动事件。
  * Corresponds to message type 16.
  */
-interface RoomMuteEvent {
+export interface RoomMuteEvent {
     roomId: number; // 房间ID
     status: number; // 禁言状态 (0:未禁言, 1:全员禁言)
 }
@@ -89,10 +89,11 @@ interface RoomMuteEvent {
  * 服务端推送给客户端的成员聊天状态变更事件。
  * Corresponds to message type 17.
  */
-interface ChatStatusEvent {
+export type ChatStatusType = "idle" | "wait" | "input" | "leave";
+export interface ChatStatusEvent {
     roomId: number;  // 状态变更发生的房间ID
     userId: number;  // 状态变更的成员ID
-    status: number;  // 该成员的最新聊天状态码 (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离)
+    status: ChatStatusType ;
 }
 
 
@@ -100,6 +101,6 @@ interface ChatStatusEvent {
  * Token失效通知事件，客户端收到后需要重新登录。
  * Corresponds to message type 100.
  */
-interface TokenInvalidEvent {
+export interface TokenInvalidEvent {
     data: null; // data 字段为 null
 }

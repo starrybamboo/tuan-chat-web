@@ -20,7 +20,13 @@ import {
 } from "../../../api/hooks/chatQueryHooks";
 import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
 
-function Header({ context }: { context: { fetchNextPage: () => void; isFetching: boolean; isAtTopRef: React.RefObject<boolean> } }) {
+function Header({ context }: { context:
+{
+  fetchNextPage: () => void;
+  isFetching: boolean;
+  isAtTopRef:
+  React.RefObject<boolean>;
+}; }) {
   return (
     <div className="text-center">
       {

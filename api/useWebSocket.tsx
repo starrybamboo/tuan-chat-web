@@ -7,6 +7,8 @@ import {useCallback, useEffect, useRef, useState} from "react";
 import { useImmer } from "use-immer";
 import {useGlobalContext} from "@/components/globalContextProvider";
 import {uploadFile} from "@/webGAL/fileOperator";
+import message from "@/components/common/message/message";
+import type {ChatStatusEvent, ChatStatusType, DirectMessageEvent} from "./wsModels";
 
 /**
  * 成员的输入状态（不包含roomId）
@@ -15,7 +17,7 @@ import {uploadFile} from "@/webGAL/fileOperator";
  */
 export interface ChatStatus {
   userId: number;
-  status: number;
+  status: ChatStatusType;
 }
 interface WsMessage<T> {
   type: number;
@@ -23,7 +25,6 @@ interface WsMessage<T> {
 }
 
 /**
- * WebSocket工具接口定义
  * @property connect 连接WebSocket
  * @property send 发送消息 发送聊天消息到指定房间(type: 3) 聊天状态控制 (type: 4)
  * @property isConnected 检查连接状态
@@ -32,6 +33,7 @@ interface WsMessage<T> {
  * @property unreadMessagesNumber 未读消息数量（群聊部分）
  * @property updateUnreadMessagesNumber 更新未读消息数量 （群聊部分）
  * @property chatStatus 成员的输入状态 (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离), 默认为1 (空闲）
+ * @property updateChatStatus 成员的输入状态 (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离), 默认为1 (空闲）
  */
 export interface WebsocketUtils {
   connect: () => void;
@@ -42,6 +44,7 @@ export interface WebsocketUtils {
   unreadMessagesNumber: Record<number, number>; // 存储未读消息数
   updateUnreadMessagesNumber: (roomId: number, newNumber: number,) => void;
   chatStatus: Record<number, ChatStatus[]>;
+  updateChatStatus: (chatStatusEvent:ChatStatusEvent)=> void;
 }
 
 const WS_URL = import.meta.env.VITE_API_WS_URL;
@@ -206,16 +209,7 @@ export function useWebSocket() {
         }
       });
       // 更新发送用户的输入状态
-      updateChatStatus(draft => {
-        if(draft[roomId]){
-          const existingIndex = draft[roomId].findIndex(
-            statue => chatMessageResponse.message.userId === statue.userId,
-          );
-          if (existingIndex !== -1){
-            draft[roomId][existingIndex].status = 1;
-          }
-        }
-      })
+      handleChatStatusChange({roomId, userId:chatMessageResponse.message.userId, status:"idle"})
     }
   };
   /**
@@ -253,7 +247,7 @@ export function useWebSocket() {
     updateChatStatus(draft => {
       if (!draft[roomId]) draft[roomId] = [];
       const userIndex = draft[roomId].findIndex(u => u.userId === userId);
-      if (status === 0) { // 代表Idle，去除
+      if (status === "idle") { // 代表Idle，去除
         if (userIndex !== -1) draft[roomId].splice(userIndex, 1);
       } else {
         if (userIndex !== -1) draft[roomId][userIndex].status = status;
@@ -287,6 +281,7 @@ export function useWebSocket() {
     if (!isConnected) {
       connect()
     }
+    console.log("发送消息: ",request);
     for (let i = 0; i < 1000; i++) {
       if (wsRef.current?.readyState === WebSocket.OPEN)
         break;
@@ -317,6 +312,7 @@ export function useWebSocket() {
     unreadMessagesNumber,
     updateUnreadMessagesNumber,
     chatStatus,
+    updateChatStatus: handleChatStatusChange,
   };
   return webSocketUtils;
 }

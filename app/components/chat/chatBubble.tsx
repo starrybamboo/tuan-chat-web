@@ -229,7 +229,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               <div className="flex flex-col items-center gap-4">
                 <div>选择新的角色</div>
                 <RoleChooser
-                  handleRoleChange={handleRoleChange}
+                  handleRoleChange={role => handleRoleChange(role.roleId)}
                   className=" menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
                 >
                 </RoleChooser>
