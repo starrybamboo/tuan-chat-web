@@ -1,6 +1,7 @@
 import Pagination from "@/components/common/pagination";
 import { useModuleListQuery } from "api/hooks/moduleQueryHooks";
 import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import Carousel from "../carousel";
 
 // 导入本地图片
@@ -189,6 +190,7 @@ export function ModuleHomeCardContainer({
 
 // 示例使用的模块首页组件
 export default function ModuleHome() {
+  const navigate = useNavigate();
   // 分页状态管理
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // 每页显示8个模组
@@ -414,7 +416,7 @@ export default function ModuleHome() {
               theme={card.theme}
               onClick={() => {
                 // 处理卡片点击事件
-                window.location.href = `/module/${card.id}`;
+                navigate(`/module/${card.id}`);
               }}
             />
           ))}
@@ -422,7 +424,7 @@ export default function ModuleHome() {
 
         {/* 图片卡片区域 */}
         <div id="featured-content">
-          <ModuleHomeCardContainer title="精选内容" className="mb-12 mt-16">
+          <ModuleHomeCardContainer title="全部模组" className="mb-12 mt-16">
             {(() => {
               if (ModuleList.isLoading) {
                 return Array.from({ length: 8 }, (_, index) => (
@@ -474,8 +476,8 @@ export default function ModuleHome() {
                   minTime={card.minTime}
                   maxTime={card.maxTime}
                   onClick={() => {
-                    // 处理卡片点击事件
-                    window.location.href = `/module/${card.moduleId}`;
+                    // 处理卡片点击事件，跳转到模组详情页面
+                    navigate(`/module/detail/${card.moduleId}`);
                   }}
                 />
               ));

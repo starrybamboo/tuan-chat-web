@@ -1,6 +1,6 @@
 import TitleBar from "@/components/module/common/titleBar";
 import Rules from "@/components/module/detail/roles";
-import { useLocation, useNavigate } from "react-router";
+import { useNavigate, useParams } from "react-router";
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
@@ -71,8 +71,8 @@ function Author() {
 }
 
 function LeftContent() {
-  const location = useLocation();
-  const moduleId = location.pathname.split("/").pop();
+  const params = useParams();
+  const moduleId = params.id;
 
   const data = {
     image: "https://imagebucket-1322308688.cos.ap-tokyo.myqcloud.com/picnia/image/65d2fa0e1c42c75df8dd3713.jpg",

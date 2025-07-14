@@ -7,6 +7,7 @@ import type { ItemsGetRequest } from "../models/ItemsGetRequest";
 import type { ModulePageRequest } from "../models/ModulePageRequest";
 import type { ModuleCreateRequest } from "../models/ModuleCreateRequest";
 import type { ModuleUpdateRequest } from "../models/ModuleUpdateRequest";
+import type { ApiResultModuleInfo } from "../models/ApiResultModuleInfo";
 
 //========================item (物品相关) ==================================
 /**
@@ -126,6 +127,32 @@ export function useModuleListQuery(requestBody: ModulePageRequest) {
     return useQuery({
         queryKey: ['moduleList', requestBody],
         queryFn: () => tuanchat.moduleController.page(requestBody),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
+//========================commit (提交相关) ==================================
+
+/**
+ * 获取模组信息
+ */
+export function useModuleInfoQuery(moduleId: number, branchId?: number) {
+    return useQuery({
+        queryKey: ['moduleInfo', moduleId, branchId],
+        queryFn: () => tuanchat.commitController.getModuleInfo(moduleId, branchId),
+        enabled: !!moduleId,
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
+/**
+ * 根据提交ID获取模组信息
+ */
+export function useModuleInfoByCommitIdQuery(commitId: number) {
+    return useQuery({
+        queryKey: ['moduleInfoByCommitId', commitId],
+        queryFn: () => tuanchat.commitController.getModuleInfoByCommitId(commitId),
+        enabled: !!commitId,
         staleTime: 300000 // 5分钟缓存
     });
 }
