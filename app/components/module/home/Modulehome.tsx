@@ -1,4 +1,5 @@
 import Pagination from "@/components/common/pagination";
+import { useModuleListQuery } from "api/hooks/moduleQueryHooks";
 import React, { useMemo, useState } from "react";
 import Carousel from "../carousel";
 
@@ -30,6 +31,13 @@ interface ContentCardProps {
   size?: "sm" | "md" | "lg";
   // 背景色主题
   theme?: "default" | "primary" | "secondary" | "accent";
+  // 模块相关信息
+  authorName?: string;
+  createTime?: string;
+  minPeople?: number;
+  maxPeople?: number;
+  minTime?: number;
+  maxTime?: number;
 }
 
 // 主要的内容卡片组件
@@ -43,6 +51,12 @@ export function ContentCard({
   type = "mixed",
   size = "md",
   theme = "default",
+  authorName,
+  createTime,
+  minPeople,
+  maxPeople,
+  minTime,
+  maxTime,
 }: ContentCardProps) {
   // 根据大小设置基础样式
   const sizeClasses = {
@@ -79,7 +93,50 @@ export function ContentCard({
             className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-110 rounded-none"
           />
           {/* 悬浮时的遮罩 */}
-          <div className="absolute inset-0 bg-base-200 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+          <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-40 transition-opacity duration-300"></div>
+          {/* 悬浮时显示的模块详细信息 */}
+          {authorName && (
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end items-start text-black space-y-1">
+              <div className="flex items-center text-sm">
+                <span className="font-semibold">作者：</span>
+                <span className="ml-1">{authorName}</span>
+              </div>
+              {(minPeople || maxPeople) && (
+                <div className="flex items-center text-sm">
+                  <span className="font-semibold">人数：</span>
+                  <span className="ml-1">
+                    {minPeople && maxPeople
+                      ? `${minPeople}-${maxPeople}人`
+                      : minPeople
+                        ? `${minPeople}+人`
+                        : maxPeople
+                          ? `最多${maxPeople}人`
+                          : ""}
+                  </span>
+                </div>
+              )}
+              {(minTime || maxTime) && (
+                <div className="flex items-center text-sm">
+                  <span className="font-semibold">时长：</span>
+                  <span className="ml-1">
+                    {minTime && maxTime
+                      ? `${Math.floor(minTime / 60)}-${Math.floor(maxTime / 60)}分钟`
+                      : minTime
+                        ? `${Math.floor(minTime / 60)}+分钟`
+                        : maxTime
+                          ? `最长${Math.floor(maxTime / 60)}分钟`
+                          : ""}
+                  </span>
+                </div>
+              )}
+              {createTime && (
+                <div className="flex items-center text-sm">
+                  <span className="font-semibold">创建：</span>
+                  <span className="ml-1">{new Date(createTime).toLocaleDateString()}</span>
+                </div>
+              )}
+            </div>
+          )}
         </figure>
       )}
 
@@ -135,6 +192,11 @@ export default function ModuleHome() {
   // 分页状态管理
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // 每页显示8个模组
+
+  const ModuleList = useModuleListQuery({
+    pageNo: currentPage,
+    pageSize: itemsPerPage,
+  });
 
   // 轮播图数据 - 五张图片实现循环显示
   const heroImages = [
@@ -202,7 +264,7 @@ export default function ModuleHome() {
     },
   ];
 
-  const imageCards = useMemo(() => [
+  const _imageCards = useMemo(() => [
     {
       id: "module-1",
       title: "校园生活模组",
@@ -290,12 +352,29 @@ export default function ModuleHome() {
     },
   ], []);
 
-  // 计算分页数据
-  const totalPages = Math.ceil(imageCards.length / itemsPerPage);
+  // 计算分页数据 - 使用 API 数据
+  const moduleData = ModuleList.data?.data;
+  const totalPages = moduleData?.totalRecords ? Math.ceil(moduleData.totalRecords / itemsPerPage) : 1;
   const currentItems = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return imageCards.slice(startIndex, startIndex + itemsPerPage);
-  }, [currentPage, itemsPerPage, imageCards]);
+    if (!moduleData?.list) {
+      return [];
+    }
+    // 将 API 数据转换为 ContentCard 所需的格式
+    return moduleData.list.map((module: any) => ({
+      id: `module-${module.moduleId}`,
+      title: module.moduleName,
+      image: module.image || 教室图片, // 如果没有图片则使用默认图片
+      content: module.description,
+      type: "mixed" as const,
+      authorName: module.authorName,
+      moduleId: module.moduleId,
+      createTime: module.createTime,
+      minPeople: module.minPeople,
+      maxPeople: module.maxPeople,
+      minTime: module.minTime,
+      maxTime: module.maxTime,
+    }));
+  }, [moduleData]);
 
   // 处理页面变化
   const handlePageChange = (page: number) => {
@@ -344,22 +423,66 @@ export default function ModuleHome() {
         {/* 图片卡片区域 */}
         <div id="featured-content">
           <ModuleHomeCardContainer title="精选内容" className="mb-12 mt-16">
-            {currentItems.map(card => (
-              <ContentCard
-                key={card.id}
-                title={card.title}
-                image={card.image}
-                content={card.content}
-                type={card.type}
-                onClick={() => {
-                  // 处理卡片点击事件
-                  window.location.href = `/module/${card.id}`;
-                }}
-              />
-            ))}
+            {(() => {
+              if (ModuleList.isLoading) {
+                return Array.from({ length: 8 }, (_, index) => (
+                  <div key={`loading-skeleton-${index}-${Math.random()}`} className="animate-pulse">
+                    <div className="bg-base-300 aspect-square rounded-none mb-4"></div>
+                    <div className="h-4 bg-base-300 rounded mb-2"></div>
+                    <div className="h-3 bg-base-300 rounded mb-1"></div>
+                    <div className="h-3 bg-base-300 rounded w-2/3"></div>
+                  </div>
+                ));
+              }
+
+              if (ModuleList.isError) {
+                return (
+                  <div className="col-span-full flex flex-col items-center justify-center py-12">
+                    <div className="text-error text-lg mb-2">加载失败</div>
+                    <div className="text-base-content/60 text-sm mb-4">请稍后再试</div>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => ModuleList.refetch()}
+                    >
+                      重新加载
+                    </button>
+                  </div>
+                );
+              }
+
+              if (currentItems.length === 0) {
+                return (
+                  <div className="col-span-full flex flex-col items-center justify-center py-12">
+                    <div className="text-base-content/60 text-lg mb-2">暂无模组数据</div>
+                    <div className="text-base-content/40 text-sm">快来创建第一个模组吧！</div>
+                  </div>
+                );
+              }
+
+              return currentItems.map(card => (
+                <ContentCard
+                  key={card.id}
+                  title={card.title}
+                  image={card.image}
+                  content={card.content}
+                  type={card.type}
+                  authorName={card.authorName}
+                  createTime={card.createTime}
+                  minPeople={card.minPeople}
+                  maxPeople={card.maxPeople}
+                  minTime={card.minTime}
+                  maxTime={card.maxTime}
+                  onClick={() => {
+                    // 处理卡片点击事件
+                    window.location.href = `/module/${card.moduleId}`;
+                  }}
+                />
+              ));
+            })()}
           </ModuleHomeCardContainer>
           {/* 分页组件 */}
-          {totalPages > 1 && (
+          {!ModuleList.isLoading && !ModuleList.isError && totalPages > 1 && (
             <div className="mt-8 mb-12 flex justify-center">
               <Pagination
                 totalPages={totalPages}
