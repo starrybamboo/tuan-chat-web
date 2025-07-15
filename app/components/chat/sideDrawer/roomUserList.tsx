@@ -1,5 +1,5 @@
-import { MemberTypeTag } from "@/components/chat/memberTypeTag";
 import { RoomContext } from "@/components/chat/roomContext";
+import { MemberTypeTag } from "@/components/chat/smallComponents/memberTypeTag";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
@@ -32,7 +32,7 @@ export default function RoomUserList() {
   return (
     <div className="space-y-2 p-2 overflow-auto items-center flex flex-col">
       {/* 群成员列表 */}
-      <div className="flex flex-row justify-center items-center gap-2">
+      <div className="flex flex-row justify-center items-center gap-2 min-w-60">
         <p className="text-center">
           群成员-
           {members.length}

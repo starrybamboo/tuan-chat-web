@@ -18,6 +18,7 @@ export default function Create() {
   const contextValue = useMemo(() => ({
     // moduleId: location.pathname.split("/").pop()!,
     moduleId: 23,
+    ruleId: 1,
   }), []);
 
   return (

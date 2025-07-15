@@ -51,14 +51,14 @@ export default function InitiativeList() {
             placeholder="角色名"
             value={newItem.name}
             onChange={e => setNewItem({ ...newItem, name: e.target.value })}
-            className="input input-bordered w-24"
+            className="input input-bordered w-20"
           />
           <input
             type="number"
             placeholder="先攻"
             value={newItem.value}
             onChange={e => setNewItem({ ...newItem, value: e.target.value })}
-            className="input input-bordered w-24"
+            className="input input-bordered w-20"
           />
           <button
             onClick={handleAdd}

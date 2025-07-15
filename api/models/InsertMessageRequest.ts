@@ -21,7 +21,7 @@ export type InsertMessageRequest = {
     /**
      * 消息体
      */
-    body?: Record<string, any>;
+    extra?: Record<string, any>;
     /**
      * 角色ID
      */

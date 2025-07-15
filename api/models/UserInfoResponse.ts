@@ -13,12 +13,24 @@ export type UserInfoResponse = {
      */
     avatar?: string;
     /**
-     * 1 在线 2离线
+     * 1 在线 0 离线
      */
     activeStatus?: string;
     /**
      * 最后一次上下线时间
      */
     lastLoginTime?: string;
+    /**
+     * 用户描述信息,个人签名
+     */
+    description?: string;
+    /**
+     * 用户背景图的url
+     */
+    backgroundUrl?: string;
+    /**
+     * 性别: 隐藏(null) 男 女
+     */
+    gender?: string;
 };
 

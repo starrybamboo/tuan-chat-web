@@ -7,6 +7,7 @@ import type { ApiResultListSpace } from '../models/ApiResultListSpace';
 import type { ApiResultRoom } from '../models/ApiResultRoom';
 import type { ApiResultSpace } from '../models/ApiResultSpace';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
+import type { ImportFromModuleRequest } from '../models/ImportFromModuleRequest';
 import type { RoomAddRequest } from '../models/RoomAddRequest';
 import type { SpaceAddRequest } from '../models/SpaceAddRequest';
 import type { SpaceArchiveRequest } from '../models/SpaceArchiveRequest';
@@ -116,6 +117,28 @@ export class SpaceControllerService {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/space/room',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 从模组导入群聊
+     * @param requestBody
+     * @returns ApiResultSpace OK
+     * @throws ApiError
+     */
+    public importFromModule(
+        requestBody: ImportFromModuleRequest,
+    ): CancelablePromise<ApiResultSpace> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/space/import',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
