@@ -220,9 +220,14 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
    * @const
    */
   function handleRc(args: string[]): string {
-    const [attr] = args;
+    let [attr] = args;
+    // 补丁：添加对于英文简写属性不可读的临时解决方案
+    // TODO 后续添加更健壮的属性解析方案
     if (!attr)
       throw new Error("缺少技能名称");
+    if (ABILITY_MAP[attr.toLowerCase()]) {
+      attr = ABILITY_MAP[attr.toLowerCase()];
+    }
     if (!curAbility?.ability)
       throw new Error(`未设置 ${attr} 属性值`);
 
