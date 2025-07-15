@@ -8,6 +8,11 @@ import type { ModulePageRequest } from "../models/ModulePageRequest";
 import type { ModuleCreateRequest } from "../models/ModuleCreateRequest";
 import type { ModuleUpdateRequest } from "../models/ModuleUpdateRequest";
 import type { ApiResultModuleInfo } from "../models/ApiResultModuleInfo";
+import type { EntityAddRequest } from "api/models/EntityAddRequest";
+import type { EntityRenameRequest } from "api/models/EntityRenameRequest";
+import type { RoleImportRequest } from "api/models/RoleImportRequest";
+import type { CommitRequest } from "api/models/CommitRequest";
+import type { StageRollbackRequest } from "api/models/StageRollbackRequest";
 
 //========================item (物品相关) ==================================
 /**
