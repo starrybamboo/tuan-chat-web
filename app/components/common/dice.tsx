@@ -88,8 +88,31 @@ function d(a: number, b: number, totalRolls: number): [number, number] {
 }
 
 function preprocessDiceExpr(expr: string, dice_size: number = 100): string {
+  // 只转换PrecedenceTable中出现的运算符
+  const operatorMap: Record<string, string> = {
+    "（": "(",
+    "）": ")",
+    "【": "(",
+    "】": ")",
+    "｛": "(",
+    "｝": ")",
+    "「": "(",
+    "」": ")",
+    "『": "(",
+    "』": ")",
+    "：": "/",
+    ":": "/",
+    "＋": "+",
+    "－": "-",
+    "＊": "*",
+    "／": "/",
+  };
+
   let processed = "";
   let i = 0;
+
+  // 先转换中文运算符为半角运算符
+  expr = expr.split("").map(c => operatorMap[c] || c).join("");
 
   while (i < expr.length) {
     const current = expr[i];
