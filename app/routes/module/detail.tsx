@@ -103,7 +103,7 @@ function MainContent() {
 
   return (
     <div className="flex-grow">
-      <div className="flex bg-base-100 gap-10 mt-20 mb-24">
+      <div className="flex bg-transparent gap-10 mt-20 mb-24">
 
         <div className="w-1/2 flex items-center justify-center">
           <img
@@ -115,13 +115,13 @@ function MainContent() {
         <div className="w-1/2 flex flex-col justify-between gap-4">
           <div className="flex-1 flex flex-col justify-center">
             {/* 模组名称 */}
-            <h1 className="text-5xl mb-2 font-bold text-primary">
+            <h1 className="text-5xl mb-2 font-bold text-white">
               {data.moduleName}
             </h1>
 
             <div className="divider m-0" />
             {/* 模组简介 */}
-            <p className="text-base font-semibold tracking-wide leading-relaxed mt-2">
+            <p className="text-base font-semibold tracking-wide leading-relaxed mt-2 text-white">
               {data.description}
             </p>
           </div>
@@ -156,9 +156,38 @@ function MainContent() {
 export default function ModuleDetail() {
   // const navigate = useNavigate();
 
+  const data = {
+    moduleId: 1,
+    ruleId: 1,
+    moduleName: "格黑娜的期末考题是征服世界?!",
+    description: "在格黑娜期末考试前夕, 考试BD的内容突然变为：「本次期末考内容——72小时内征服基沃托斯！及格线为占领3个学区！」。实际上这是「色彩」残余势力对BD的控制（黑幕可替换为联邦学生会长的压力测试/千年学院的AI病毒等）。",
+    userId: 10020,
+    authorName: "糖糖糖糖",
+    minTime: 3,
+    maxTime: 4,
+    minPeople: 3,
+    maxPeople: 4,
+    parent: "coc7th",
+    image: "https://imagebucket-1322308688.cos.ap-tokyo.myqcloud.com/picnia/image/65d2fa0e1c42c75df8dd3713.jpg",
+    createTime: "2025-04-30T19:44:19.123Z",
+    updateTime: "2025-04-30T19:44:19.123Z",
+  };
+
   return (
-    <div className="bg-base-100">
-      <div className="mx-auto max-w-6xl px-4 py-4">
+    <div className="bg-base-100 relative">
+      {/* 背景层 - 使用封面图的高斯模糊和遮罩，覆盖整个页面宽度 */}
+      <div
+        className="absolute top-0 left-0 w-full h-96 bg-cover bg-center z-0"
+        style={{
+          backgroundImage: `url(${data.image})`,
+          filter: "blur(12px)",
+        }}
+      />
+      <div
+        className="absolute top-0 left-0 w-full h-98 bg-black/40 z-0"
+      />
+
+      <div className="mx-auto max-w-6xl px-4 py-4 relative z-10">
         <div className="flex gap-8">
           {/* 主要内容区域 */}
           <MainContent />
