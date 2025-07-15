@@ -14,7 +14,6 @@ import type { ChatMessagePageRequest } from './models/ChatMessagePageRequest';
 import type { ChatMessageRequest } from './models/ChatMessageRequest';
 import type { RoomAddRequest } from './models/RoomAddRequest';
 
-import type { MoveMessageRequest } from './models/MoveMessageRequest';
 // import type { RoleAbilityTable } from './models/RoleAbilityTable';
 import type { RoleAvatar } from './models/RoleAvatar';
 import type { RoleAvatarCreateRequest } from './models/RoleAvatarCreateRequest';

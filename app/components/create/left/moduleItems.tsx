@@ -1,25 +1,13 @@
-import type { ItemAddRequest } from "api";
+import type { StageEntityResponse } from "api";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAddMutation, useImportRoleMutation, useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
-import { tuanchat } from "api/instance";
 import { useCreateRoleMutation, useGetUserRolesQuery } from "api/queryHooks";
-import { use, useState } from "react";
-import WorkspaceContext from "../context/module";
-
-interface ModuleItemRequest {
-  ruleId: number; // 关联规则ID，必填
-  moduleSceneId: number;
-  name: string; // 物品名称，必填
-  description: string; // 物品描述，可为空
-  type: string; // 物品类别（例如："暂时未知"）
-  image: string; // 图片信息，可能是 base64 或路径，字符串格式
-  extra: Record<string, any>; // 扩展字段，例如：{ default: "default" }
-}
+import { useState } from "react";
 
 interface ModuleScene {
   moduleSceneId: number; // 场景唯一标识符（ID）
@@ -69,7 +57,7 @@ function RoleListItem(
     avatarId: number;
     name: string;
     isSelected: boolean;
-    onClick: () => void;
+    onClick?: () => void;
     onDelete?: () => void;
   },
 ) {
@@ -117,7 +105,7 @@ function RoleListItem(
 }
 
 function RoleList({ stageId }: { stageId: number }) {
-  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
+  const { pushModuleTabItem, setCurrentSelectedTabId } = useModuleContext();
   const queryClient = useQueryClient();
   const userId = useGlobalContext().userId ?? -1;
   const handleClick = (roleId: number, roleName: string) => {
@@ -133,9 +121,8 @@ function RoleList({ stageId }: { stageId: number }) {
   };
 
   // 模组相关
-  const ctx = use(WorkspaceContext);
-  const { data, isSuccess: _isSuccess } = useQueryEntitiesQuery(ctx.moduleId);
-  const list = data?.data!.filter(i => i.entityType !== "role");
+  const { data, isSuccess: _isSuccess } = useQueryEntitiesQuery(stageId);
+  const list = data?.data!.filter(i => i.entityType === "role");
   const isEmpty = !list || list!.length === 0;
 
   // 控制弹窗
@@ -204,11 +191,12 @@ function RoleList({ stageId }: { stageId: number }) {
             )
           : (list?.map(i => (
               <RoleListItem
-                key={i!.entityInfo!.roleId}
-                avatarId={i!.entityInfo!.avatarId}
-                name={i!.entityInfo!.roleName}
-                isSelected={currentSelectedTabId === i!.entityInfo!.roleId.toString()}
-                onClick={() => handleClick(i!.entityInfo!.roleId, i!.entityInfo!.roleName)}
+                key={i!.entityInfo!.roleId ?? i!.name ?? 0}
+                avatarId={i!.entityInfo!.avatarId ?? 0}
+                name={i!.name || "未命名"}
+                isSelected={false}
+                // isSelected={currentSelectedTabId === i!.entityInfo!.roleId.toString()}
+                // onClick={() => handleClick(i!.entityInfo!.roleId, i!.entityInfo!.roleName)}
               />
             )))}
       </>
@@ -263,7 +251,7 @@ function ItemListItem({
   onClick,
   onDelete,
 }: {
-  item: ModuleItemRequest;
+  item: StageEntityResponse;
   isSelected: boolean;
   onClick: () => void;
   onDelete?: () => void;
@@ -276,10 +264,10 @@ function ItemListItem({
       {/* 左侧内容 */}
       <div className="flex items-center gap-2">
         <p className="self-baseline font-medium">{item.name}</p>
-        {item.moduleSceneId && (
+        {item.entityInfo && item.entityInfo.moduleSceneId && (
           <p className="text-xs text-gray-500 truncate">
             场景ID:
-            {item.moduleSceneId}
+            {item.entityInfo.moduleSceneId}
           </p>
         )}
       </div>
@@ -312,10 +300,10 @@ function ItemListItem({
   );
 }
 
-// 可能用得上
+// 物品列表
 function ItemList({ stageId }: { stageId: number }) {
   const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient();
 
   const handleClick = (itemId: number, itemName: string) => {
     pushModuleTabItem({
@@ -326,8 +314,7 @@ function ItemList({ stageId }: { stageId: number }) {
     setCurrentSelectedTabId(itemId.toString());
   };
 
-  const ctx = use(WorkspaceContext);
-  const { data } = useQueryEntitiesQuery(ctx.moduleId);
+  const { data } = useQueryEntitiesQuery(stageId);
 
   // 控制弹窗
   const [isOpen, setIsOpen] = useState(false);
@@ -342,40 +329,19 @@ function ItemList({ stageId }: { stageId: number }) {
   };
 
   // 创建物品并添加物品
-  const { mutate: createItem } = useMutation({
-    mutationKey: ["createItem"],
-    mutationFn: async (req: ItemAddRequest) => await tuanchat.itemController.addItem1(req),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["moduleItems"] });
-    },
-  });
   const { mutate: addAndDeleteItem } = useAddMutation();
   const handleCreateItemSubmit = () => {
-    const itemName = "新物品";
-    createItem({
-      ruleId: ctx.ruleId,
-      name: itemName,
-      description: "新物品",
-      extra: { default: "default" },
-      type: "暂时未知",
-      image: "null",
-    }, {
-      onSuccess: ({ data: itemId }) => {
-        addAndDeleteItem({
-          stageId,
-          name: "新场景",
-          entityType: "item",
-          operationType: 0,
-          entityInfo: {
-            description: "新物品",
-          },
-        });
-        handleClick(itemId as number, itemName);
+    addAndDeleteItem({
+      stageId,
+      name: "新物品",
+      entityType: "item",
+      operationType: 0,
+      entityInfo: {
       },
     });
   };
 
-  const list = data?.data;
+  const list = data?.data?.filter(i => i.entityType === "item");
   const isEmpty = !list || list.length === 0;
 
   return (
@@ -391,7 +357,7 @@ function ItemList({ stageId }: { stageId: number }) {
               list.map(item => (
                 <ItemListItem
                   key={item.entityInfo!.itemId}
-                  item={item as ModuleItemRequest}
+                  item={item}
                   isSelected={currentSelectedTabId === item.entityInfo!.itemId?.toString()}
                   onClick={() => handleClick(item.entityInfo!.itemId!, item.name!)}
                   onDelete={() => addAndDeleteItem({ operationType: 1, entityType: "item", entityInfo: item.entityInfo!, stageId, name: item.name! })}
@@ -437,7 +403,7 @@ function SceneListItem({
   onClick,
   onDelete,
 }: {
-  scene: ModuleScene;
+  scene: StageEntityResponse;
   isSelected: boolean;
   onClick: () => void;
   onDelete?: () => void;
@@ -449,9 +415,9 @@ function SceneListItem({
     >
       {/* 左侧内容 */}
       <div className="flex items-center gap-2">
-        <p className="self-baseline font-medium">{scene.moduleSceneName}</p>
-        {scene.sceneDescription && (
-          <p className="text-xs text-gray-500 truncate">{scene.sceneDescription}</p>
+        <p className="self-baseline font-medium">{scene.name}</p>
+        {scene.entityInfo && (
+          <p className="text-xs text-gray-500 truncate">{scene.entityInfo.description}</p>
         )}
       </div>
 
@@ -485,7 +451,6 @@ function SceneListItem({
 
 function SceneList({ stageId }: { stageId: number }) {
   const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
-  const ctx = use(WorkspaceContext);
   const handleClick = (scene: ModuleScene) => {
     const sceneId = scene.moduleSceneId!;
     const sceneName = scene.moduleSceneName!;
@@ -524,9 +489,9 @@ function SceneList({ stageId }: { stageId: number }) {
     });
   };
 
-  const { data } = useQueryEntitiesQuery(ctx.moduleId);
+  const { data } = useQueryEntitiesQuery(stageId);
 
-  const list = data?.data?.filter(i => i!.entityType !== "scene");
+  const list = data?.data?.filter(i => i!.entityType === "scene");
 
   // 判断列表是否存在且非空
   const isEmpty = !list || list.length === 0;
@@ -543,7 +508,7 @@ function SceneList({ stageId }: { stageId: number }) {
                 {list?.map(scene => (
                   <SceneListItem
                     key={scene.entityInfo!.moduleSceneId}
-                    scene={scene.entityInfo as ModuleScene}
+                    scene={scene}
                     isSelected={currentSelectedTabId === scene.entityInfo!.moduleSceneId?.toString()}
                     onClick={() => handleClick(scene as ModuleScene)}
                     onDelete={() => createAndDeleteScene({ entityType: "scene", operationType: 1, stageId, name: scene.entityInfo!.moduleSceneName! })}
@@ -559,10 +524,20 @@ function SceneList({ stageId }: { stageId: number }) {
 // const sections = ["角色", "物品", "场景"];
 function ModuleItems({ stageId }: { stageId: number }) {
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full flex flex-col">
       <RoleList stageId={stageId} />
       <ItemList stageId={stageId} />
       <SceneList stageId={stageId} />
+      <div className="flex w-full">
+        <details className="dropdown flex-1">
+          <summary className="btn m-1 bg-primary text-primary-content">切换分支</summary>
+          <ul className="menu dropdown-content bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm">
+            <li><a>Item 1</a></li>
+            <li><a>Item 2</a></li>
+          </ul>
+        </details>
+        <button className="btn btn-primary btn-md m-1 flex-1" type="button">提交</button>
+      </div>
     </div>
   );
 }

@@ -35,6 +35,7 @@ export function useAddModuleMutation() {
         mutationKey: ['addModule'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['moduleList'] });
+            queryClient.invalidateQueries({ queryKey: ['staging'] });
         }
     });
 }
