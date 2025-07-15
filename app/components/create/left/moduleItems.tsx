@@ -1,9 +1,10 @@
-import type { ModuleItemResponse, ModuleScene } from "api";
+import type { ItemResponse } from "api/models/ItemResponse";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { getEntityListByType } from "@/components/module/detail/moduleUtils";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAddSceneMutation, useModuleItemsQuery, useModuleRolesQuery, useModuleScenesQuery } from "api/hooks/moduleQueryHooks";
+import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import { use } from "react";
 import WorkspaceContext from "../context/module";
 
@@ -86,22 +87,21 @@ function RoleList() {
   };
 
   const ctx = use(WorkspaceContext);
-  const { data, isSuccess: _isSuccess } = useModuleRolesQuery({
-    pageNo: 1,
-    pageSize: 100,
-    moduleId: ctx.moduleId,
-  });
-  const list = data?.data!.list!.map(i => i.roleResponse);
+  const { data: moduleInfo, isSuccess: _isSuccess } = useModuleInfoQuery(ctx.moduleId);
+
+  // 从模组信息中获取角色列表
+  const roleList = getEntityListByType(moduleInfo, "role");
+  const list = roleList.map(entity => entity.entityInfo);
 
   return (
     <Section label="角色">
-      {list?.map(i => (
+      {list?.map(roleInfo => (
         <RoleListItem
-          key={i!.roleId}
-          avatarId={i!.avatarId}
-          name={i!.roleName}
-          isSelected={currentSelectedTabId === i!.roleId.toString()}
-          onClick={() => handleClick(i!.roleId, i!.roleName)}
+          key={roleInfo!.roleId}
+          avatarId={roleInfo!.avatarId}
+          name={roleInfo!.roleName}
+          isSelected={currentSelectedTabId === roleInfo!.roleId.toString()}
+          onClick={() => handleClick(roleInfo!.roleId, roleInfo!.roleName)}
         />
       ))}
     </Section>
@@ -110,7 +110,7 @@ function RoleList() {
 
 function ItemListItem(
   { item, isSelected, onClick }: {
-    item: ModuleItemResponse;
+    item: ItemResponse;
     isSelected: boolean;
     onClick: () => void;
   },
@@ -124,11 +124,10 @@ function ItemListItem(
       {/* 物品名称 */}
       <p className="self-baseline font-medium">{item.name}</p>
 
-      {/* 可选：显示物品所在场景ID 或 提示 */}
-      {item.moduleSceneId && (
+      {/* 可选：显示物品描述 */}
+      {item.description && (
         <p className="text-xs text-gray-500">
-          场景ID:
-          {item.moduleSceneId}
+          {item.description}
         </p>
       )}
     </div>
@@ -139,7 +138,7 @@ function ItemListItem(
 function ItemList() {
   const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
 
-  const handleClick = (item: ModuleItemResponse) => {
+  const handleClick = (item: ItemResponse) => {
     const itemId = item.itemId!;
     const itemName = item.name!;
 
@@ -152,11 +151,11 @@ function ItemList() {
   };
 
   const ctx = use(WorkspaceContext);
-  const { data } = useModuleItemsQuery({
-    moduleId: ctx.moduleId,
-  });
+  const { data: moduleInfo } = useModuleInfoQuery(ctx.moduleId);
 
-  const list = data?.data;
+  // 从模组信息中获取物品列表
+  const itemList = getEntityListByType(moduleInfo, "item");
+  const list = itemList.map(entity => entity.entityInfo);
   const isEmpty = !list || list.length === 0;
 
   return (
@@ -169,14 +168,19 @@ function ItemList() {
               </div>
             )
           : (
-              list.map(item => (
-                <ItemListItem
-                  key={item.itemId}
-                  item={item}
-                  isSelected={currentSelectedTabId === item.itemId?.toString()}
-                  onClick={() => handleClick(item)}
-                />
-              ))
+              list.map((item) => {
+                if (!item) {
+                  return null;
+                }
+                return (
+                  <ItemListItem
+                    key={item.itemId}
+                    item={item as ItemResponse}
+                    isSelected={currentSelectedTabId === item.itemId?.toString()}
+                    onClick={() => handleClick(item as ItemResponse)}
+                  />
+                );
+              })
             )}
       </>
     </Section>
@@ -185,7 +189,7 @@ function ItemList() {
 
 function SceneListItem(
   { scene, isSelected, onClick }: {
-    scene: ModuleScene; // 使用 ModuleScene 类型
+    scene: any; // 使用 any 类型，因为没有具体的场景类型定义
     isSelected: boolean;
     onClick: () => void;
   },
@@ -208,7 +212,7 @@ function SceneListItem(
 function SceneList() {
   const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
   const ctx = use(WorkspaceContext);
-  const handleClick = (scene: ModuleScene) => {
+  const handleClick = (scene: any) => {
     const sceneId = scene.moduleSceneId!;
     const sceneName = scene.moduleSceneName!;
 
@@ -220,34 +224,16 @@ function SceneList() {
     setCurrentSelectedTabId(sceneId.toString());
   };
 
-  const { mutate: createScene } = useAddSceneMutation();
-
   const handleAddScene = () => {
-    createScene({
-      moduleId: ctx.moduleId,
-      moduleSceneName: "新场景",
-      sceneDescription: "",
-    }, {
-      onSuccess: (data) => {
-        if (data.success) {
-          pushModuleTabItem({
-            id: data?.data?.toString() as string,
-            label: "新场景",
-            type: ModuleItemEnum.SCENE,
-          });
-          setCurrentSelectedTabId(data?.data?.toString() as string);
-        }
-      },
-    });
+    // TODO: 实现添加场景功能
+    // console.log("添加场景功能待实现");
   };
 
-  const { data } = useModuleScenesQuery({
-    pageNo: 1,
-    pageSize: 100,
-    moduleId: ctx.moduleId,
-  });
+  const { data: moduleInfo } = useModuleInfoQuery(ctx.moduleId);
 
-  const list = data?.data!.list;
+  // 从模组信息中获取场景列表
+  const sceneList = getEntityListByType(moduleInfo, "scene");
+  const list = sceneList.map(entity => entity.entityInfo);
 
   // 判断列表是否存在且非空
   const isEmpty = !list || list.length === 0;
@@ -261,14 +247,19 @@ function SceneList() {
             )
           : (
               <>
-                {list?.map(scene => (
-                  <SceneListItem
-                    key={scene.moduleSceneId}
-                    scene={scene}
-                    isSelected={currentSelectedTabId === scene.moduleSceneId?.toString()}
-                    onClick={() => handleClick(scene)}
-                  />
-                ))}
+                {list?.map((scene) => {
+                  if (!scene) {
+                    return null;
+                  }
+                  return (
+                    <SceneListItem
+                      key={scene.moduleSceneId}
+                      scene={scene}
+                      isSelected={currentSelectedTabId === scene.moduleSceneId?.toString()}
+                      onClick={() => handleClick(scene)}
+                    />
+                  );
+                })}
               </>
             )}
       </Section>
