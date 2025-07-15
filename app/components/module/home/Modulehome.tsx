@@ -310,7 +310,7 @@ export default function ModuleHome() {
         onClick={() => navigate("/module/create")}
       >
         {/* 从左往右的黑色背景遮罩 */}
-        <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
+        <div className="absolute inset-0 bg-orange-300 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
 
         {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
         <span className="relative z-10 group-hover:text-white transition-colors duration-300">创建模组</span>
