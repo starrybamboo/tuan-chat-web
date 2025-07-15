@@ -1,17 +1,21 @@
+import type { UserRole } from "../../../api";
 import { RoomContext } from "@/components/chat/roomContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { use } from "react";
 
 /**
  * 角色选择器组件，用于在聊天中选择不同的角色
- * @param handleRoleChange 角色变更时的回调函数，接收角色ID作为参数
+ * @param handleRoleChange 角色变更时的回调函数
+ * @param roles 如果指定，就会使用这里的角色作为显示的列表，否则使用roomContext.roomRolesThatUserOwn
  * @param className 自定义样式类名
  */
 export default function RoleChooser({
   handleRoleChange,
+  roles,
   className,
 }: {
-  handleRoleChange: (roleId: number) => void;
+  handleRoleChange: (roleId: UserRole) => void;
+  roles?: UserRole[];
   className?: string;
 }) {
   const roomContext = use(RoomContext);
@@ -24,10 +28,10 @@ export default function RoleChooser({
       }
       {
         // 仅显示角色列表里面有的角色
-        roomContext.roomRolesThatUserOwn.map(role => (
+        (roles || roomContext.roomRolesThatUserOwn).map(role => (
           <li
             key={role.roleId}
-            onClick={() => handleRoleChange(role.roleId)}
+            onClick={() => handleRoleChange(role)}
             className="flex flex-row list-none"
           >
             <div className="w-full">

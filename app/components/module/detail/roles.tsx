@@ -1,10 +1,8 @@
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import {
-  useModuleRoleInfoQuery,
-  useModuleRolesQuery,
-} from "api/hooks/moduleAndStageQueryHooks";
+import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import { useGetRoleAvatarQuery } from "api/queryHooks";
 import { useCallback, useState } from "react";
+import { getEntityListByType } from "./moduleUtils";
 
 function RoleAvatar(
   { roleId, avatarId, onChange }: {
@@ -41,11 +39,12 @@ function RoleAvatar(
 function RoleDetail(
   { moduleId, roleId }: { moduleId: number; roleId: number },
 ) {
-  const { data: roleData, isPending: isRolePending } = useModuleRoleInfoQuery(
-    moduleId,
-    roleId,
-  );
-  const avatarId = roleData?.data?.roleResponse?.avatarId;
+  const { data: moduleInfo, isPending: isModulePending } = useModuleInfoQuery(moduleId);
+  // 从模组信息中获取所有角色
+  const roleList = getEntityListByType(moduleInfo, "role");
+  // 根据 roleId 找到对应的角色
+  const roleData = roleList.find(role => role.entityInfo?.roleId === roleId);
+  const avatarId = roleData?.entityInfo?.avatarId;
   const { data: avatarData, isPending: isAvatarPending }
     = useGetRoleAvatarQuery(avatarId!);
 
@@ -57,10 +56,10 @@ function RoleDetail(
     );
   }
 
-  const roleInfo = roleData?.data?.roleResponse;
+  const roleInfo = roleData?.entityInfo;
 
   return (
-    (!isRolePending && !isAvatarPending)
+    (!isModulePending && !isAvatarPending && roleInfo)
       ? (
           <div className="h-full w-full flex gap-2">
             {/* 立绘部分 */}
@@ -113,11 +112,10 @@ function RoleDetail(
 
 function Roles({ moduleId }: { moduleId: number }) {
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
-  const { data: allRoles, isLoading: _allRolesLoading } = useModuleRolesQuery({
-    moduleId,
-    pageNo: 1,
-    pageSize: 100,
-  });
+  const { data: moduleInfo, isLoading: _isModuleLoading } = useModuleInfoQuery(moduleId);
+
+  // 从模组信息中获取所有角色
+  const roleList = getEntityListByType(moduleInfo, "role");
 
   const setRoleId = useCallback((roleId: number) => {
     setSelectedRoleId(roleId);
@@ -126,13 +124,14 @@ function Roles({ moduleId }: { moduleId: number }) {
   return (
     <div className="flex w-full min-h-128 bg-base-200">
       <div className="basis-92 shrink-0 flex flex-wrap p-2 gap-2 h-fit">
-        {allRoles
-          ? allRoles.data!.list!.map((i) => {
-              const roleId = i.roleResponse!.roleId;
-              const avatarId = i.roleResponse!.avatarId;
+        {roleList.length > 0
+          ? roleList.map((roleEntity) => {
+              const roleInfo = roleEntity.entityInfo;
+              const roleId = roleInfo?.roleId;
+              const avatarId = roleInfo?.avatarId;
               return (
                 <RoleAvatar
-                  key={i.roleResponse?.roleId}
+                  key={roleId}
                   roleId={roleId!}
                   avatarId={avatarId!}
                   onChange={setRoleId}

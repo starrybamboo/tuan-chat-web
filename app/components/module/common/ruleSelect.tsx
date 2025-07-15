@@ -1,6 +1,6 @@
 import ScrollList from "@/components/common/list/scrollList";
 import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 // 定义渲染组件
 const RuleListItem: React.FC<{ item: ModifiedRuleItem }> = ({ item }) => (
@@ -12,9 +12,9 @@ const RuleListItem: React.FC<{ item: ModifiedRuleItem }> = ({ item }) => (
 
 // 定义列表项类型
 interface RuleItem {
-  ruleId: number;
-  ruleName: string;
-  ruleDescription: string;
+  ruleId?: number;
+  ruleName?: string;
+  ruleDescription?: string;
 }
 
 interface ModifiedRuleItem {
@@ -31,7 +31,6 @@ function RuleSelect({ className, onRuleSelect }: { className?: string; onRuleSel
   const [keyword, setKeyword] = useState("");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectRuleId, setSelectRuleId] = useState<number | string | null>(null);
-  const [cachedRuleData, setCachedRuleData] = useState<ModifiedRuleItem[]>([]);
 
   const { data, isLoading, isSuccess } = useGetRulePageInfiniteQuery({
     pageNo,
@@ -46,18 +45,20 @@ function RuleSelect({ className, onRuleSelect }: { className?: string; onRuleSel
     }
   }
 
-  // 监听数据变化并更新缓存
-  useEffect(() => {
+  // 直接处理数据转换而不缓存
+  const processedRuleData: ModifiedRuleItem[] = (() => {
     if (!isLoading && isSuccess && data) {
       const items: RuleItem[] = data.pages[0].data?.list || [];
-      const newRuleData = items.map(i => ({
-        id: i.ruleId,
-        ruleName: i.ruleName,
-        ruleDescription: i.ruleDescription,
-      })) as ModifiedRuleItem[];
-      setCachedRuleData(newRuleData);
+      return items
+        .filter(i => i.ruleId != null && i.ruleName != null && i.ruleDescription != null)
+        .map(i => ({
+          id: i.ruleId!,
+          ruleName: i.ruleName!,
+          ruleDescription: i.ruleDescription!,
+        }));
     }
-  }, [data, isLoading, isSuccess]);
+    return [];
+  })();
 
   return (
     <div
@@ -83,7 +84,7 @@ function RuleSelect({ className, onRuleSelect }: { className?: string; onRuleSel
         </label>
       </div>
       <ScrollList<ModifiedRuleItem>
-        items={cachedRuleData}
+        items={processedRuleData}
         RenderItem={RuleListItem}
         selectedId={selectRuleId}
         onSelect={(id) => {
