@@ -282,7 +282,7 @@ export function evaluate(
 
     // 构建展开表达式
     expanded = expanded.replace(/(\d*)d(\d+)/g, () => {
-      return expandedParts.pop() || "$&";
+      return expandedParts.shift() || "(略)";
     });
 
     return { result: finalResult, expanded };
