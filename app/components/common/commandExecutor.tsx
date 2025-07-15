@@ -366,12 +366,12 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
 
     // 大成功判定
     if (roll <= 5) {
-      actualLoss = Math.max(...failureLoss.possibleValues); // 大失败时失去最大san值
+      actualLoss = Math.min(...failureLoss.possibleValues); // 大成功时失去最小san值
       result = "大成功";
     }
     // 大失败判定
     else if (roll >= 96) {
-      actualLoss = Math.max(...successLoss.possibleValues); // 大成功时失去最小san值
+      actualLoss = Math.max(...successLoss.possibleValues); // 大失败时失去最大san值
       result = "大失败";
     }
     // 普通成功
