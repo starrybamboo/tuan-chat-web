@@ -1,5 +1,5 @@
 // import type { ModuleItemResponse } from "api/models/ModuleItemResponse";
-// import { useUpdateItemMutation } from "api/hooks/moduleQueryHooks";
+// import { useUpdateItemMutation } from "api/hooks/moduleAndStageQueryHooks";
 // import { useEffect, useState } from "react";
 
 // interface ItemEditProps {

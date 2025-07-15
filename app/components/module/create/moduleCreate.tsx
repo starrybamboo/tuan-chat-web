@@ -2,7 +2,7 @@ import type { SubmitHandler } from "react-hook-form";
 import TInput from "@/components/common/form/input";
 import TTextArea from "@/components/common/form/textarea";
 import message from "@/components/common/message/message";
-import { useAddModuleMutation } from "api/hooks/moduleQueryHooks";
+import { useAddModuleMutation } from "api/hooks/moduleAndStageQueryHooks";
 import { Controller, useForm } from "react-hook-form";
 import RuleSelect from "../common/ruleSelect";
 

@@ -14,7 +14,6 @@ import type { ChatMessagePageRequest } from './models/ChatMessagePageRequest';
 import type { ChatMessageRequest } from './models/ChatMessageRequest';
 import type { RoomAddRequest } from './models/RoomAddRequest';
 
-import type { MoveMessageRequest } from './models/MoveMessageRequest';
 // import type { RoleAbilityTable } from './models/RoleAbilityTable';
 import type { RoleAvatar } from './models/RoleAvatar';
 import type { RoleAvatarCreateRequest } from './models/RoleAvatarCreateRequest';
@@ -50,7 +49,8 @@ import {
   type RoomMemberDeleteRequest,
   type SpaceUpdateRequest,
   type LikeRecordRequest,
-  LikeRecordControllerService, type CommentPageRequest, type CommentAddRequest
+  LikeRecordControllerService, type CommentPageRequest, type CommentAddRequest,
+  type RoleCreateRequest
 } from "api";
 
 // ==================== 角色管理 ====================
@@ -110,8 +110,8 @@ export function useCreateRoleMutation() {
   
   return useMutation({
     mutationKey: ["createRole"],
-    mutationFn: async () => {
-      const res = await tuanchat.roleController.createRole({});
+    mutationFn: async(req: RoleCreateRequest) => {
+      const res = await tuanchat.roleController.createRole(req);
       if (res.success) {
         console.warn("角色创建成功");
         return res.data;
