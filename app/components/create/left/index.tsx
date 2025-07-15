@@ -1,5 +1,5 @@
 import type { StageResponse } from "api";
-import { useStagingQuery } from "api/hooks/moduleAndStageQueryHooks";
+import { useStagingQuery } from "api/hooks/moduleQueryHooks";
 // import { useModuleContext } from "@/components/module/workPlace/context/ModuleContext";
 import { useEffect, useState } from "react";
 import History from "./history";

@@ -5,7 +5,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAddMutation, useImportRoleMutation, useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
+import { useAddMutation, useImportRoleMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useCreateRoleMutation, useGetUserRolesQuery } from "api/queryHooks";
 import { useState } from "react";
 
