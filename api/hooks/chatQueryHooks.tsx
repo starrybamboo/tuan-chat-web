@@ -521,7 +521,7 @@ export function useGetMessageByIdQuery(messageId: number) {
 export function useGetRoomExtraQuery(request: RoomExtraRequest) {
     return useQuery({
         queryKey: ['getRoomExtra', request],
-        queryFn: () => tuanchat.roomController.getRoomExtra(request),
+        queryFn: () => tuanchat.roomController.getRoomExtra(request.roomId,request.key),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -546,7 +546,7 @@ export function useSetRoomExtraMutation() {
 export function useGetRoomInitiativeListQuery(roomId: number) {
     return useQuery({
         queryFn: async () => {
-            const response = await tuanchat.roomController.getRoomExtra({roomId, key: "initiativeList"})
+            const response = await tuanchat.roomController.getRoomExtra(roomId,"initiativeList")
             let list: Initiative[] = [];
             try {
                 list = JSON.parse(response.data || "[]") as Initiative[];

@@ -10,6 +10,7 @@ import type {
   RoomMember,
   UserRole,
 } from "../../../api";
+import type { ChatStatusEvent } from "../../../api/wsModels";
 import ChatFrame from "@/components/chat/chatFrame";
 import CommandPanel from "@/components/chat/commandPanel";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
@@ -19,11 +20,13 @@ import { RoomContext } from "@/components/chat/roomContext";
 import InitiativeList from "@/components/chat/sideDrawer/initiativeList";
 import RoomRoleList from "@/components/chat/sideDrawer/roomRoleList";
 import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
+import UserIdToName from "@/components/chat/smallComponents/userIdToName";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
 import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
-import { getLocalStorageValue } from "@/components/common/customHooks/useLocalStorage";
+import { getLocalStorageValue, useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { Mounter } from "@/components/common/mounter";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
@@ -34,14 +37,16 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   BaselineArrowBackIosNew,
   Bubble2,
-  CommandSolid,
-  DiceTwentyFacesTwenty,
+  CommandLine,
+  EmojiIconWhite,
   GalleryBroken,
   GirlIcon,
-  MemberFilled,
+  HexagonDice,
+  MemberIcon,
   SendIcon,
   Setting,
   SwordSwing,
+  UserSyncOnlineInPerson,
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -62,7 +67,7 @@ import {
   useGetUserRolesQuery,
 } from "../../../api/queryHooks";
 
-const PAGE_SIZE = 30; // 每页消息数量
+const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
   const spaceContext = use(SpaceContext);
 
@@ -72,7 +77,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
   const webSocketUtils = globalContext.websocketUtils;
-  const send = webSocketUtils.send;
+  const send = (message: ChatMessageRequest) => webSocketUtils.send({ type: 3, data: message }); // 发送群聊消息
 
   const textareaRef = useRef<HTMLDivElement>(null);
   // 在这里，由于采用了contentEditable的方法来实现输入框，本身并不具备数据的双向同步性，所以这里定义了两个set方法来控制inputText
@@ -131,10 +136,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "initiative">("rightSideDrawer", "none");
 
-  const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(localStorage.getItem("useChatBubbleStyle") === "true");
-  useEffect(() => {
-    localStorage.setItem("useChatBubbleStyle", useChatBubbleStyle.toString());
-  }, [useChatBubbleStyle]);
+  const [useChatBubbleStyle, setUseChatBubbleStyle] = useLocalStorage("useChatBubbleStyle", true);
 
   // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(roomId);
@@ -173,11 +175,11 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         return params;
       }
     },
-    initialPageParam: { roomId, pageSize: PAGE_SIZE, cursor: cursorRef.current } as unknown as ChatMessagePageRequest,
+    initialPageParam: { roomId, pageSize: PAGE_SIZE, cursor: undefined } as unknown as ChatMessagePageRequest,
     refetchOnWindowFocus: false,
     staleTime: Infinity,
   });
-  const receivedMessages = webSocketUtils.getTempMessagesByRoomId(roomId, true);
+  const receivedMessages = useMemo(() => webSocketUtils.receivedMessages[roomId] ?? [], [roomId, webSocketUtils.receivedMessages]);
   // 合并所有分页消息 同时更新重复的消息
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     const historyMessages = (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
@@ -191,7 +193,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       .filter(msg => msg.message.status !== 1);
     // .reverse();
   }, [receivedMessages, messagesInfiniteQuery.data?.pages]);
-  // Context
 
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {
@@ -214,6 +215,45 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   useEffect(() => {
     setCurRoleId(roomRolesThatUserOwn[0]?.roleId ?? -1);
   }, [roomRolesThatUserOwn]);
+  /**
+   * 输入状态部分
+   */
+  const roomChatStatues = webSocketUtils.chatStatus[roomId] ?? [];
+  const myStatue = roomChatStatues.find(s => s.userId === userId)?.status ?? "idle";
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // 当输入框内容发生变动的时候，将自身的状态改变为输入状态
+  useEffect(() => {
+    if (!userId)
+      return;
+
+    const chatStatusEvent: ChatStatusEvent = {
+      roomId,
+      status: "input",
+      userId,
+    };
+
+    // 清除计时器
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    // 10秒后，将自身状态改变为静止状态
+    typingTimeoutRef.current = setTimeout(() => {
+      webSocketUtils.updateChatStatus({ ...chatStatusEvent, status: "idle" } as ChatStatusEvent);
+      webSocketUtils.send({ type: 4, data: { ...chatStatusEvent, status: "idle" } as ChatStatusEvent });
+    }, 10000);
+    // 如果已经是在输入状态或者在等待中，不改变状态
+    if (myStatue === "input" || myStatue === "wait" || !userId || roomId <= 0 || inputText.length === 0)
+      return;
+    webSocketUtils.updateChatStatus(chatStatusEvent);
+    webSocketUtils.send({ type: 4, data: chatStatusEvent });
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [inputText]);
+  //
+
   /**
    * 输入框相关
    */
@@ -456,6 +496,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   /**
    *处理与组件的各种交互
    */
+
   const handleSelectCommand = (cmdName: string) => {
     // 保持命令前缀格式（保留原输入的 . 或 。）
     const prefixChar = inputText[0];
@@ -463,7 +504,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const disableSendMessage = (curRoleId <= 0) // 没有选中角色
+    || ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3) // 没有权限
+    || (!(inputText.trim() || imgFiles.length) || isSubmitting); // 没有内容
   const handleMessageSubmit = async () => {
+    if (disableSendMessage)
+      return;
     setIsSubmitting(true);
     if (!inputText.trim() && !imgFiles.length) {
       return;
@@ -615,6 +661,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     setCurAvatarIndex(0);
   };
 
+  /**
+   * 处理@选人
+   * @param role 要@的对象
+   */
   function handleSelectAt(role: UserRole) {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0)
@@ -671,7 +721,19 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           <div className="flex gap-2">
             {getScreenSize() === "sm"
               && <BaselineArrowBackIosNew className="size-7" onClick={spaceContext.toggleLeftDrawer}></BaselineArrowBackIosNew>}
-            <span className="text-center font-semibold text-lg">{room?.name}</span>
+            <span className="text-center font-semibold text-lg line-clamp-1">{room?.name}</span>
+          </div>
+          <div className="line-clamp-1 flex-shrink-0">
+            {
+              roomChatStatues
+                .filter(status => status.status === "input" && status.userId !== userId)
+                .map((status, index) => (
+                  <span key={status.userId}>
+                    <UserIdToName userId={status.userId} className="text-info"></UserIdToName>
+                    {index === roomChatStatues.length - 1 ? " 正在输入..." : ", "}
+                  </span>
+                ))
+            }
           </div>
           <div className="flex gap-2">
             <div
@@ -686,7 +748,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               data-tip="展示成员"
               onClick={() => setSideDrawerState(sideDrawerState === "user" ? "none" : "user")}
             >
-              <MemberFilled className="size-7"></MemberFilled>
+              <MemberIcon className="size-7"></MemberIcon>
             </div>
             <div
               className="tooltip tooltip-bottom"
@@ -705,7 +767,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           </div>
         </div>
         <div className="h-px bg-base-300"></div>
-        <div className="flex-1 w-full flex bg-base-100 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 w-full flex bg-base-100 overflow-y-auto overflow-x-hidden relative">
           <div className="flex flex-col flex-1 h-full overflow-y-auto overflow-x-hidden">
             {/* 聊天框 */}
             <div className="bg-base-100 h-[70%]">
@@ -724,7 +786,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     >
                       <RoleAvatarComponent
                         avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
-                        width={32}
+                        width={getScreenSize() === "sm" ? 16 : 24}
                         isRounded={true}
                         withTitle={false}
                         stopPopWindow={true}
@@ -759,44 +821,65 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   />
                   <div className="flex pl-3 pr-6 justify-between ">
                     <div className="flex gap-2">
-                      {/* 角色选择器 */}
+                      {/* 切换角色 */}
                       <div className="dropdown dropdown-top">
                         <div className="tooltip" data-tip="切换角色">
-                          <GirlIcon className="size-8 hover:text-info" tabIndex={0} role="button"></GirlIcon>
+                          <UserSyncOnlineInPerson className="size-7 hover:text-info" tabIndex={1} role="button"></UserSyncOnlineInPerson>
                         </div>
                         <ul
-                          tabIndex={0}
+                          tabIndex={1}
                           className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
                         >
-                          <RoleChooser handleRoleChange={handleRoleChange}></RoleChooser>
+                          <RoleChooser handleRoleChange={role => handleRoleChange(role.roleId)}></RoleChooser>
                         </ul>
                       </div>
+                      {/* 发送表情 */}
+                      <div className="dropdown dropdown-top">
+                        <div role="button" tabIndex={2} className="">
+                          <div
+                            className="tooltip"
+                            data-tip="发送表情"
+                          >
+                            <EmojiIconWhite className="size-7 hover:text-info"></EmojiIconWhite>
+                          </div>
+                        </div>
+                        <ul
+                          tabIndex={2}
+                          className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
+                        >
+                          <EmojiWindow onChoose={() => {
+                          }}
+                          >
+                          </EmojiWindow>
+                        </ul>
+                      </div>
+                      {/* 发送图片 */}
                       <ImgUploader setImg={newImg => updateImgFiles((draft) => {
                         draft.push(newImg);
                       })}
                       >
                         <div className="tooltip" data-tip="发送图片">
-                          <GalleryBroken className="size-8 cursor-pointer hover:text-info"></GalleryBroken>
+                          <GalleryBroken className="size-7 cursor-pointer hover:text-info"></GalleryBroken>
                         </div>
                       </ImgUploader>
                       <div className="tooltip" data-tip="浏览所有骰子命令">
-                        <DiceTwentyFacesTwenty
-                          className="size-8 cursor-pointer hover:text-info"
+                        <HexagonDice
+                          className="size-7 cursor-pointer hover:text-info"
                           onClick={() => setCommandBrowseWindow("dice")}
                         >
-                        </DiceTwentyFacesTwenty>
+                        </HexagonDice>
                       </div>
                       <div className="tooltip" data-tip="浏览常用webgal命令">
-                        <CommandSolid
-                          className="size-8 cursor-pointer hover:text-info"
+                        <CommandLine
+                          className="size-7 cursor-pointer hover:text-info"
                           onClick={() => setCommandBrowseWindow("webgal")}
                         >
-                        </CommandSolid>
+                        </CommandLine>
                       </div>
                     </div>
                     <div className="tooltip " data-tip="切换聊天气泡风格">
                       <Bubble2
-                        className="size-8 font-light"
+                        className="size-7 font-light"
                         onClick={() => setUseChatBubbleStyle(!useChatBubbleStyle)}
                       >
                       </Bubble2>
@@ -848,7 +931,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   // 这里的坐标是全局的坐标，所以mount到根元素
                     <Mounter targetId="modal-root">
                       <div
-                        className="absolute flex flex-col card shadow-md bg-base-200 p-2"
+                        className="absolute flex flex-col card shadow-md bg-base-100 p-2 gap-2  max-h-[30vh] overflow-auto"
                         style={{
                           top: atDialogPosition.y - 5,
                           left: atDialogPosition.x,
@@ -860,9 +943,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                             <div
                               className={`flex flex-row items-center gap-2 hover:bg-base-300 rounded pt-1 pb-1 ${index === atSelectIndex ? "bg-base-300" : ""}`}
                               key={role.roleId}
-                              onClick={() => {
-                                handleSelectAt(role);
-                              }}
+                              onClick={() => { handleSelectAt(role); }}
                               onMouseDown={e => e.preventDefault()}
                             >
                               <RoleAvatarComponent
@@ -889,11 +970,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       <button
                         type="button"
                         className="btn btn-primary"
-                        disabled={
-                          (curRoleId <= 0) // 没有选中角色
-                          || ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3) // 没有权限
-                          || (!(inputText.trim() || imgFiles.length) || isSubmitting) // 没有内容
-                        }
+                        disabled={disableSendMessage}
                         onClick={handleMessageSubmit}
                       >
                         <SendIcon className="size-6"></SendIcon>
@@ -904,15 +981,15 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               </div>
             </form>
           </div>
-          <OpenAbleDrawer isOpen={sideDrawerState === "user"} className="h-full bg-base-100">
+          <OpenAbleDrawer isOpen={sideDrawerState === "user"} className="h-full bg-base-100 overflow-auto">
             <div className="w-px bg-base-300"></div>
             <RoomUserList></RoomUserList>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "role"} className="h-full bg-base-100">
+          <OpenAbleDrawer isOpen={sideDrawerState === "role"} className="h-full bg-base-100 overflow-auto">
             <div className="w-px bg-base-300"></div>
             <RoomRoleList></RoomRoleList>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "initiative"}>
+          <OpenAbleDrawer isOpen={sideDrawerState === "initiative"} className="max-h-full overflow-auto">
             <div className="w-px bg-base-300"></div>
             <InitiativeList></InitiativeList>
           </OpenAbleDrawer>

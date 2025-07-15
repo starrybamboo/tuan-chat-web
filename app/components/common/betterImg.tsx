@@ -7,8 +7,15 @@ import React, { useEffect, useRef, useState } from "react";
  * @param src 图片源，可以是url，也可以是一个File对象
  * @param className
  * @param onClose 可选的回调函数，如果填写了该回调函数，那么图片左上角会出现一个关闭按钮，点击后调用onClose回调函数。
+ * @param size 图片的尺寸，用于优化加载体验
  */
-function BetterImg({ src, className, onClose }: { src: string | File | undefined; className?: string; onClose?: () => void }) {
+function BetterImg({ src, className, onClose, size }:
+{
+  src: string | File | undefined;
+  className?: string;
+  onClose?: () => void;
+  size?: { width?: number; height?: number };
+}) {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -148,6 +155,8 @@ function BetterImg({ src, className, onClose }: { src: string | File | undefined
               src={imgSrc}
               className="max-h-[70vh] max-w-[70vw]"
               alt="img"
+              width={size?.width}
+              height={size?.height}
             />
           </div>
         </div>

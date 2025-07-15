@@ -1,4 +1,4 @@
-import { MemberTypeTag } from "@/components/chat/memberTypeTag";
+import { MemberTypeTag } from "@/components/chat/smallComponents/memberTypeTag";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";

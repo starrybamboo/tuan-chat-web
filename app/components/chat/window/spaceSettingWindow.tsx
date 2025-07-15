@@ -309,6 +309,9 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               dissolveSpaceMutation.mutate(spaceId, {
                 onSuccess: () => {
                   onClose();
+                  if (typeof window !== "undefined") {
+                    localStorage.removeItem("storedChatIds");
+                  }
                   navigate("/chat", { replace: true });
                   setIsDissolveConfirmOpen(false);
                   setActiveSpaceId(null);

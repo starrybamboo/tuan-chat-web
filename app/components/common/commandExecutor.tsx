@@ -12,6 +12,8 @@ import {
 import { useGetRoleQuery } from "../../../api/queryHooks";
 // type DiceResult = { x: number; y: number; rolls: number[]; total: number };
 
+import { roll } from "./dice";
+
 // 属性名中英文对照表
 const ABILITY_MAP: { [key: string]: string } = {
   str: "力量",
@@ -86,8 +88,11 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
         case "set": return handleSet(args);
         case "st": return handleSt(args);
         case "rc": return handleRc(args);
+        case "ra": return handleRc(args);
         case "ri": return handleRi(args);
         case "sc": return handleSc(args);
+        case "ti": return handleTi(args);
+        case "li": return handleLi(args);
         default: return `未知命令 ${cmdPart}`;
       }
     }
@@ -112,111 +117,11 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     return handleRoll(["d", ...args]);
   }
 
-  function parseDices(input: string): Array<{ sign: number; x: number; y: number }> {
-    // 处理空输入使用默认骰子
-    if (input.trim() === "") {
-      if (!defaultDice)
-        throw new Error("未设置默认骰子");
-      return [{ sign: 1, x: 1, y: defaultDice.current }];
-    }
-    // 使用正则拆分带符号的表达式
-    const segments = input.split(/(?=[+-])/g);
-    const parsedSegments = [];
-    for (const segment of segments) {
-      let sign = 1;
-      let diceExpr = segment;
-      // 解析符号
-      if (diceExpr.startsWith("+")) {
-        diceExpr = diceExpr.slice(1);
-      }
-      else if (diceExpr.startsWith("-")) {
-        sign = -1;
-        diceExpr = diceExpr.slice(1);
-      }
-      // 解析单个骰子
-      const { x, y } = parseSingleDice(diceExpr);
-      parsedSegments.push({ sign, x, y });
-    }
-    return parsedSegments;
-  }
-  /** 解析一个骰子 */
-  function parseSingleDice(input: string): { x: number; y: number } {
-    // 处理默认骰子情况
-    if (input === "d" || input === "") {
-      if (!defaultDice)
-        throw new Error("未设置默认骰子");
-      return { x: 1, y: defaultDice.current };
-    }
-
-    const num = Number(input);
-    if (!Number.isNaN(num)) {
-      return { x: Math.abs(num), y: 1 }; // 固定值视为1面骰子
-    }
-
-    // 分割d前后的数字
-    const dIndex = input.indexOf("d");
-    const hasD = dIndex !== -1;
-
-    const xPart = hasD ? input.slice(0, dIndex) : input;
-    const yPart = hasD ? input.slice(dIndex + 1) : "";
-
-    // 解析x值
-    const x = xPart ? Number.parseInt(xPart) : 1;
-    if (Number.isNaN(x) || x < 1)
-      throw new Error(`无效的骰子数量: ${xPart}`);
-
-    // 解析y值
-    const y = yPart ? Number.parseInt(yPart) : defaultDice.current;
-    if (Number.isNaN(y) || y < 1) {
-      throw new Error(`无效的骰子面数: ${yPart || "未指定"}`);
-    }
-
-    return { x, y };
-  }
   function handleRoll(args: string[]) {
     const input = args.join("");
     try {
-      const diceSegments = parseDices(input);
-      const segmentResults = [];
-
-      // 计算每个骰子段的结果
-      // 如果是一面骰, 那么直接放入结果
-      for (const { sign, x, y } of diceSegments) {
-        const rolls = (y !== 1)
-          ? Array.from({ length: x }, () => rollDice(y))
-          : [x];
-        const segmentValue = rolls.reduce((sum, val) => sum + val, 0) * sign;
-        segmentResults.push({ sign, rolls, segmentValue });
-      }
-      // 计算总和
-      const total = segmentResults.reduce((sum, r) => sum + r.segmentValue, 0);
-      // 构建展示表达式
-      const expressionParts = [];
-      const diceNotationParts = [];
-      for (let i = 0; i < segmentResults.length; i++) {
-        const { sign, rolls } = segmentResults[i];
-        const { x, y } = diceSegments[i];
-        const isFirst = i === 0;
-        const notation = (y === 1)
-          ? `${sign === -1 ? "-" : (isFirst ? "" : "+")}${x}`
-          : `${sign === -1 ? "-" : (isFirst ? "" : "+")}${x}D${y}`;
-        diceNotationParts.push(notation);
-
-        // 结果展示部分
-        const rollSum = rolls.reduce((a, b) => a + b, 0);
-        if (isFirst) {
-          expressionParts.push(rolls.length > 1 ? `${rolls.join("+")}` : `${rollSum}`);
-        }
-        else {
-          const operator = sign === 1 ? "+" : "-";
-          expressionParts.push(
-            rolls.length > 1
-              ? `${operator}(${rolls.join("+")})`
-              : `${operator}${rollSum}`,
-          );
-        }
-      }
-      return { result: `掷骰结果：${expressionParts.join("")}=${total}   (${diceNotationParts.join("")})`, total };
+      const diceResult = roll(input);
+      return { result: `掷骰结果：${input} = ${diceResult}`, total: diceResult };
     }
     catch (error) {
       return { result: `错误：${error ?? "未知错误"}`, total: undefined };
@@ -250,6 +155,30 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     const ability: { [key: string]: number } = {};
     // 使用正则匹配所有属性+数值的组合
     const matches = input.matchAll(/(\D+)(\d+)/g);
+
+    // st show 实现，目前仍使用聊天文本返回结果
+    // TODO 添加弹出窗口响应`st show`的属性展示
+    if (args[0]?.toLowerCase() === "show") {
+      if (!curAbility?.ability) {
+        return "未设置角色属性";
+      }
+
+      const showProps = args.slice(1).filter(arg => arg.trim() !== "");
+      if (showProps.length === 0) {
+        return "请指定要展示的属性";
+      }
+
+      const result: string[] = [];
+      for (const prop of showProps) {
+        const normalizedKey = prop.toLowerCase();
+        const key = ABILITY_MAP[normalizedKey] || prop;
+        const value = curAbility.ability[key] ?? 0; // 修改这里，添加默认值0
+
+        result.push(`${key}: ${value}`);
+      }
+
+      return `${role?.roleName || "当前角色"}的属性展示：\n${result.join("\n")}`;
+    }
 
     for (const match of matches) {
       const rawKey = match[1].trim();
@@ -291,9 +220,14 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
    * @const
    */
   function handleRc(args: string[]): string {
-    const [attr] = args;
+    let [attr] = args;
+    // 补丁：添加对于英文简写属性不可读的临时解决方案
+    // TODO 后续添加更健壮的属性解析方案
     if (!attr)
       throw new Error("缺少技能名称");
+    if (ABILITY_MAP[attr.toLowerCase()]) {
+      attr = ABILITY_MAP[attr.toLowerCase()];
+    }
     if (!curAbility?.ability)
       throw new Error(`未设置 ${attr} 属性值`);
 
@@ -439,12 +373,12 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
 
     // 大成功判定
     if (roll <= 5) {
-      actualLoss = Math.max(...failureLoss.possibleValues); // 大失败时失去最大san值
+      actualLoss = Math.min(...failureLoss.possibleValues); // 大成功时失去最小san值
       result = "大成功";
     }
     // 大失败判定
     else if (roll >= 96) {
-      actualLoss = Math.max(...successLoss.possibleValues); // 大成功时失去最小san值
+      actualLoss = Math.max(...successLoss.possibleValues); // 大失败时失去最大san值
       result = "大失败";
     }
     // 普通成功
@@ -488,6 +422,49 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     return `理智检定：D100=${roll}/${currentSan} ${result}\n`
       + `损失san值：${actualLoss}\n`
       + `当前san值：${newSan}`;
+  }
+  /**
+   * 抽取疯狂发作的临时症状
+   * 格式: .ti
+   */
+  function handleTi(_args: string[]): string {
+    const boutsOfMadnessForRealTimeList = [
+      { name: "失忆", desc: "调查员对自己上一次抵达安全的场所后发生的事一无所知。在其看来上一刻他还在吃着早餐，而下一刻就已经身处怪物面前。" },
+      { name: "假性残疾", desc: "调查员陷入因心理作用引起的失明、耳聋或肢体失能中。" },
+      { name: "暴力倾向", desc: "调查员沉浸于狂怒，开始对四周的一切施加失控的暴力与破坏行为，无论敌友。" },
+      { name: "偏执妄想", desc: "调查员陷入严重的偏执妄想之中。所有人都正在与他为敌！没人值得信任！他正在被窥视着，有人背叛了他，他所看见的皆是虚伪的幻象。" },
+      { name: "人际依赖", desc: "浏览调查员􀀀景故事的“重要之人”条目。调查员会将当前场景中的另一人误当做他的重要之人。调查员将依照他与重要之人之间关系的性质行事。" },
+      { name: "昏厥", desc: "调查员会立即昏倒" },
+      { name: "惊慌逃窜", desc: "调查员会无法自制地用一切可能的方法远远逃开，即使这意味着他需要开走唯一的一辆车并抛下其他所有人。" },
+      { name: "歇斯底里", desc: "调查员情不自禁地开始狂笑、哭泣、尖叫，等等。" },
+      { name: "恐惧症", desc: "调查员患上一项新的恐惧症。掷1D100并查阅表9：范例恐惧症，或由守秘人选择一项。即使引发这些恐惧症的源头并不在身边，调查员仍会在疯狂发作期间想象那些东西正在那里。" },
+      { name: "躁狂症", desc: "调查员患上一项新的躁狂症。掷1D100 并查阅表10：范例躁狂症，或由守秘人选择一项。调查员会在疯狂发作期间中沉浸在他新的躁狂症中。" },
+    ];
+    const res = boutsOfMadnessForRealTimeList[rollDice(boutsOfMadnessForRealTimeList.length) - 1];
+    const timeOfDuration = rollDice(10);
+    return `疯狂发作-即时症状：\n${res.name}\n持续时间：${timeOfDuration}轮\n${res.desc}`;
+  }
+
+  /**
+   * 抽取疯狂发作的总结症状
+   * 格式:.li
+   */
+  function handleLi(_args: string[]): string {
+    const boutsOfMadnessForSummaryList = [
+      { name: "失忆", desc: "调查员恢复神志时身处陌生地点，连自己是谁都不记得。记忆会随时间流逝逐渐恢复。" },
+      { name: "被劫", desc: "调查员恢复神志时，财物已遭人打劫，但没有受到人身伤害。如果其携带着宝贵之物（参考调查员背景故事），进行一次幸运检定决定它是否被盗。其他所有值钱的物品都会自动丢失。" },
+      { name: "遍体鳞伤", desc: "调查员恢复神志时，遍体鳞伤，浑身淤青。生命值降低至疯狂前的一半，但这不会造成重伤。调查员的财物没有被劫走。这些伤害如何造成由守秘人决定。" },
+      { name: "暴力", desc: "调查员的情绪在暴力和破坏的冲动中爆发。调查员恢复神志时可能记得自己做过的事，也可能不记得。调查员对谁、对什么东西施以暴力，是杀死还是仅仅造成伤害，这些都由守秘人决定。" },
+      { name: "思想与信念", desc: "浏览调查员背景故事的“思想与信念”条目。调查员选择其中一项，将它以极端、疯魔、形之于色的方式展现出来。例如，信仰宗教的人后来可能在地铁上大声宣讲福音。" },
+      { name: "重要之人", desc: "浏览调查员背景故事的“重要之人”条目，及其重要的原因。在略过的时间中，调查员会尽一切努力接近重要之人，并以某种行动展现他们之间的关系。" },
+      { name: "被收容", desc: "调查员恢复神志时身处精神病房或者警局拘留室当中。调查员会逐渐回想起他们身处此地的原因。" },
+      { name: "惊慌逃窜", desc: "调查员恢复神志时已经身处很远的地方，可能在荒野中迷失了方向，或是正坐在火车或长途巴士上。" },
+      { name: "恐惧症", desc: "调查员患上一项新的恐惧症。掷1D100并查阅表9：范例恐惧症，或由守秘人选择一项。即使引发这些恐惧症的源头并不在身边，调查员仍会在疯狂发作期间想象那些东西正在那里。" },
+      { name: "躁狂症", desc: "调查员患上一项新的躁狂症。掷1D100 并查阅表10：范例躁狂症，或由守秘人选择一项。调查员会在疯狂发作期间中沉浸在他新的躁狂症中。" },
+    ];
+    const res = boutsOfMadnessForSummaryList[rollDice(boutsOfMadnessForSummaryList.length) - 1];
+    const timeOfDuration = rollDice(10);
+    return `疯狂发作-总结症状：\n${res.name}\n已略过时间：${timeOfDuration}小时\n${res.desc}`;
   }
 
   /**
