@@ -83,23 +83,35 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
 
     try {
       switch (cmdPart) {
-        case "r": return handleRoll(args).result;
-        case "rd": return handleRd(args).result;
-        case "set": return handleSet(args);
-        case "st": return handleSt(args);
-        case "rc": return handleRc(args);
-        case "ra": return handleRc(args);
-        case "ri": return handleRi(args);
-        case "sc": return handleSc(args);
-        case "ti": return handleTi(args);
-        case "li": return handleLi(args);
-        default: return `未知命令 ${cmdPart}`;
+        case "r":
+          return handleRoll(args).result;
+        case "rd":
+          return handleRd(args).result;
+        case "set":
+          return handleSet(args);
+        case "st":
+          return handleSt(args);
+        case "rc":
+          return handleRc(args);
+        case "ra":
+          return handleRc(args);
+        case "ri":
+          return handleRi(args);
+        case "sc":
+          return handleSc(args);
+        case "ti":
+          return handleTi(args);
+        case "li":
+          return handleLi(args);
+        default:
+          return `未知命令 ${cmdPart}`;
       }
     }
     catch (e) {
       return `执行错误：${e instanceof Error ? e.message : String(e)}`;
     }
   }
+
   /**
    *解析骰子表达式
    * @const
@@ -122,6 +134,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     try {
       const diceResult = roll(input);
       return { result: `掷骰结果：${input} = ${diceResult.expanded} = ${diceResult.result}`, total: diceResult.result };
+    }
     catch (error) {
       return { result: `错误：${error ?? "未知错误"}`, total: undefined };
     }
@@ -271,6 +284,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
 
     return `${attr}检定：D100=${roll}/${value} ${result}`;
   }
+
   /**
    *先攻 args[0] 如果不能被解析成骰子表达式，则视为角色名；args[1]在args[0]为角色名的时候可以作为骰子表达式
    */
@@ -310,6 +324,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     }
     return `${name}的先攻更新为${initiative}`;
   }
+
   // 解析Ri命令下的特殊骰子表达式
   function handleRiExpression(arg: string) {
     if (arg.startsWith("+")) {
@@ -330,7 +345,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
       return handleRoll([arg]).total;
     }
   }
-
   /**
    * 处理理智检定指令
    * 格式: .sc[成功损失]/[失败损失] ([当前san值])
@@ -426,22 +440,41 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     }
     return res;
   }
+
   /**
    * 抽取疯狂发作的临时症状
    * 格式: .ti
    */
   function handleTi(_args: string[]): string {
     const boutsOfMadnessForRealTimeList = [
-      { name: "失忆", desc: "调查员对自己上一次抵达安全的场所后发生的事一无所知。在其看来上一刻他还在吃着早餐，而下一刻就已经身处怪物面前。" },
+      {
+        name: "失忆",
+        desc: "调查员对自己上一次抵达安全的场所后发生的事一无所知。在其看来上一刻他还在吃着早餐，而下一刻就已经身处怪物面前。",
+      },
       { name: "假性残疾", desc: "调查员陷入因心理作用引起的失明、耳聋或肢体失能中。" },
       { name: "暴力倾向", desc: "调查员沉浸于狂怒，开始对四周的一切施加失控的暴力与破坏行为，无论敌友。" },
-      { name: "偏执妄想", desc: "调查员陷入严重的偏执妄想之中。所有人都正在与他为敌！没人值得信任！他正在被窥视着，有人背叛了他，他所看见的皆是虚伪的幻象。" },
-      { name: "人际依赖", desc: "浏览调查员􀀀景故事的“重要之人”条目。调查员会将当前场景中的另一人误当做他的重要之人。调查员将依照他与重要之人之间关系的性质行事。" },
+      {
+        name: "偏执妄想",
+        desc: "调查员陷入严重的偏执妄想之中。所有人都正在与他为敌！没人值得信任！他正在被窥视着，有人背叛了他，他所看见的皆是虚伪的幻象。",
+      },
+      {
+        name: "人际依赖",
+        desc: "浏览调查员􀀀景故事的“重要之人”条目。调查员会将当前场景中的另一人误当做他的重要之人。调查员将依照他与重要之人之间关系的性质行事。",
+      },
       { name: "昏厥", desc: "调查员会立即昏倒" },
-      { name: "惊慌逃窜", desc: "调查员会无法自制地用一切可能的方法远远逃开，即使这意味着他需要开走唯一的一辆车并抛下其他所有人。" },
+      {
+        name: "惊慌逃窜",
+        desc: "调查员会无法自制地用一切可能的方法远远逃开，即使这意味着他需要开走唯一的一辆车并抛下其他所有人。",
+      },
       { name: "歇斯底里", desc: "调查员情不自禁地开始狂笑、哭泣、尖叫，等等。" },
-      { name: "恐惧症", desc: "调查员患上一项新的恐惧症。掷1D100并查阅表9：范例恐惧症，或由守秘人选择一项。即使引发这些恐惧症的源头并不在身边，调查员仍会在疯狂发作期间想象那些东西正在那里。" },
-      { name: "躁狂症", desc: "调查员患上一项新的躁狂症。掷1D100 并查阅表10：范例躁狂症，或由守秘人选择一项。调查员会在疯狂发作期间中沉浸在他新的躁狂症中。" },
+      {
+        name: "恐惧症",
+        desc: "调查员患上一项新的恐惧症。掷1D100并查阅表9：范例恐惧症，或由守秘人选择一项。即使引发这些恐惧症的源头并不在身边，调查员仍会在疯狂发作期间想象那些东西正在那里。",
+      },
+      {
+        name: "躁狂症",
+        desc: "调查员患上一项新的躁狂症。掷1D100 并查阅表10：范例躁狂症，或由守秘人选择一项。调查员会在疯狂发作期间中沉浸在他新的躁狂症中。",
+      },
     ];
     const res = boutsOfMadnessForRealTimeList[rollDice(boutsOfMadnessForRealTimeList.length) - 1];
     const timeOfDuration = rollDice(10);
@@ -455,15 +488,39 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
   function handleLi(_args: string[]): string {
     const boutsOfMadnessForSummaryList = [
       { name: "失忆", desc: "调查员恢复神志时身处陌生地点，连自己是谁都不记得。记忆会随时间流逝逐渐恢复。" },
-      { name: "被劫", desc: "调查员恢复神志时，财物已遭人打劫，但没有受到人身伤害。如果其携带着宝贵之物（参考调查员背景故事），进行一次幸运检定决定它是否被盗。其他所有值钱的物品都会自动丢失。" },
-      { name: "遍体鳞伤", desc: "调查员恢复神志时，遍体鳞伤，浑身淤青。生命值降低至疯狂前的一半，但这不会造成重伤。调查员的财物没有被劫走。这些伤害如何造成由守秘人决定。" },
-      { name: "暴力", desc: "调查员的情绪在暴力和破坏的冲动中爆发。调查员恢复神志时可能记得自己做过的事，也可能不记得。调查员对谁、对什么东西施以暴力，是杀死还是仅仅造成伤害，这些都由守秘人决定。" },
-      { name: "思想与信念", desc: "浏览调查员背景故事的“思想与信念”条目。调查员选择其中一项，将它以极端、疯魔、形之于色的方式展现出来。例如，信仰宗教的人后来可能在地铁上大声宣讲福音。" },
-      { name: "重要之人", desc: "浏览调查员背景故事的“重要之人”条目，及其重要的原因。在略过的时间中，调查员会尽一切努力接近重要之人，并以某种行动展现他们之间的关系。" },
+      {
+        name: "被劫",
+        desc: "调查员恢复神志时，财物已遭人打劫，但没有受到人身伤害。如果其携带着宝贵之物（参考调查员背景故事），进行一次幸运检定决定它是否被盗。其他所有值钱的物品都会自动丢失。",
+      },
+      {
+        name: "遍体鳞伤",
+        desc: "调查员恢复神志时，遍体鳞伤，浑身淤青。生命值降低至疯狂前的一半，但这不会造成重伤。调查员的财物没有被劫走。这些伤害如何造成由守秘人决定。",
+      },
+      {
+        name: "暴力",
+        desc: "调查员的情绪在暴力和破坏的冲动中爆发。调查员恢复神志时可能记得自己做过的事，也可能不记得。调查员对谁、对什么东西施以暴力，是杀死还是仅仅造成伤害，这些都由守秘人决定。",
+      },
+      {
+        name: "思想与信念",
+        desc: "浏览调查员背景故事的“思想与信念”条目。调查员选择其中一项，将它以极端、疯魔、形之于色的方式展现出来。例如，信仰宗教的人后来可能在地铁上大声宣讲福音。",
+      },
+      {
+        name: "重要之人",
+        desc: "浏览调查员背景故事的“重要之人”条目，及其重要的原因。在略过的时间中，调查员会尽一切努力接近重要之人，并以某种行动展现他们之间的关系。",
+      },
       { name: "被收容", desc: "调查员恢复神志时身处精神病房或者警局拘留室当中。调查员会逐渐回想起他们身处此地的原因。" },
-      { name: "惊慌逃窜", desc: "调查员恢复神志时已经身处很远的地方，可能在荒野中迷失了方向，或是正坐在火车或长途巴士上。" },
-      { name: "恐惧症", desc: "调查员患上一项新的恐惧症。掷1D100并查阅表9：范例恐惧症，或由守秘人选择一项。即使引发这些恐惧症的源头并不在身边，调查员仍会在疯狂发作期间想象那些东西正在那里。" },
-      { name: "躁狂症", desc: "调查员患上一项新的躁狂症。掷1D100 并查阅表10：范例躁狂症，或由守秘人选择一项。调查员会在疯狂发作期间中沉浸在他新的躁狂症中。" },
+      {
+        name: "惊慌逃窜",
+        desc: "调查员恢复神志时已经身处很远的地方，可能在荒野中迷失了方向，或是正坐在火车或长途巴士上。",
+      },
+      {
+        name: "恐惧症",
+        desc: "调查员患上一项新的恐惧症。掷1D100并查阅表9：范例恐惧症，或由守秘人选择一项。即使引发这些恐惧症的源头并不在身边，调查员仍会在疯狂发作期间想象那些东西正在那里。",
+      },
+      {
+        name: "躁狂症",
+        desc: "调查员患上一项新的躁狂症。掷1D100 并查阅表10：范例躁狂症，或由守秘人选择一项。调查员会在疯狂发作期间中沉浸在他新的躁狂症中。",
+      },
     ];
     const res = boutsOfMadnessForSummaryList[rollDice(boutsOfMadnessForSummaryList.length) - 1];
     const timeOfDuration = rollDice(10);
@@ -509,6 +566,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
       possibleValues,
     };
   }
+
   function rollDice(sides: number): number {
     return Math.floor(Math.random() * sides) + 1;
   }
