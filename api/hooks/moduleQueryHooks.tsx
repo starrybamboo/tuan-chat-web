@@ -156,3 +156,20 @@ export function useModuleInfoByCommitIdQuery(commitId: number) {
         staleTime: 300000 // 5分钟缓存
     });
 }
+
+/**
+ * 获取单个模组的基本信息（通过列表查询筛选）
+ */
+export function useModuleDetailQuery(moduleId: number) {
+    const { data: listData, ...rest } = useModuleListQuery({
+        pageNo: 1,
+        pageSize: 100,
+    });
+    
+    const moduleDetail = listData?.data?.list?.find((module: any) => module.moduleId === moduleId);
+    
+    return {
+        data: moduleDetail ? { data: moduleDetail } : undefined,
+        ...rest
+    };
+}

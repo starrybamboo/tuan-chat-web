@@ -1,7 +1,8 @@
-import type { ModuleScene } from "api";
 import type { SVGProps } from "react";
 import type { ModuleTabItem, RoleModuleItem } from "./context/types";
+import { getEntityListByType } from "@/components/module/detail/moduleUtils";
 import { useQuery } from "@tanstack/react-query";
+import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import { tuanchat } from "api/instance";
 import { useEffect, useRef } from "react";
 import { useModuleContext } from "./context/_moduleContext";
@@ -127,13 +128,15 @@ function SceneModuleTabItem({
     }
   }, [isSelected]);
 
-  // 请求场景数据
-  const { data, isPending } = useQuery({
-    queryKey: ["scene", id],
-    queryFn: () => tuanchat.moduleScene.getSceneById(Number(id)),
-  });
-
-  const scene = data?.data || ({} as ModuleScene); // 根据实际类型调整
+  // 获取 moduleId（这里硬编码为23，实际应该从上下文或路由参数获取）
+  const moduleId = 23;
+  // 使用 useModuleInfoQuery 获取模组信息
+  const { data: moduleInfo, isPending } = useModuleInfoQuery(moduleId);
+  // 从模组信息中获取场景列表
+  const sceneList = getEntityListByType(moduleInfo, "scene");
+  // 根据场景ID找到对应的场景数据
+  const sceneData = sceneList.find(entity => entity.name === id);
+  const scene = sceneData?.entityInfo || ({} as any);
 
   return (
     <>
