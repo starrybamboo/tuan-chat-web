@@ -2,7 +2,6 @@ import Pagination from "@/components/common/pagination";
 import { useModuleListQuery } from "api/hooks/moduleQueryHooks";
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import Carousel from "../carousel";
 
 // 导入本地图片
 import 办公室图片 from "../scene/images/办公室.jpg";
@@ -10,6 +9,8 @@ import 天台图片 from "../scene/images/天台.jpg";
 import 操场图片 from "../scene/images/操场.jpg";
 import 教室图片 from "../scene/images/教室.jpg";
 import 楼道图片 from "../scene/images/楼道.jpg";
+
+import Carousel from "./carousel";
 
 // 卡片内容类型定义
 interface ContentCardProps {
@@ -193,7 +194,7 @@ export default function ModuleHome() {
   const navigate = useNavigate();
   // 分页状态管理
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8; // 每页显示8个模组
+  const itemsPerPage = 16; // 每页显示16个模组
 
   const ModuleList = useModuleListQuery({
     pageNo: currentPage,
@@ -305,12 +306,16 @@ export default function ModuleHome() {
       {/* 创建模组按钮 - 右上角绝对定位 */}
       <button
         type="button"
-        className="cursor-pointer fixed top-30 right-10 z-50 flex items-center gap-4 px-4 py-4 border-4 border-black bg-transparent text-black hover:bg-black hover:text-white transition-all duration-300 font-bold text-xl"
+        className="cursor-pointer fixed top-30 right-16 z-50 flex items-center px-4 py-4 border-4 border-black bg-transparent text-black font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white"
         onClick={() => navigate("/module/create")}
       >
-        <span>创建模组</span>
+        {/* 从左往右的黑色背景遮罩 */}
+        <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
+
+        {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
+        <span className="relative z-10 group-hover:text-white transition-colors duration-300">创建模组</span>
         <svg
-          className="w-8 h-8"
+          className="w-8 h-8 relative z-10 group-hover:text-white transition-colors duration-300"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
