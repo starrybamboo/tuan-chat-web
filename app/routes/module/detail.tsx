@@ -40,7 +40,7 @@ function Author() {
   };
 
   return (
-    <div className="card bg-base-200 shadow-xl w-full">
+    <div className="card bg-base-200 w-full mb-8">
       <div className="card-body p-4">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
@@ -50,18 +50,14 @@ function Author() {
               <p className="text-sm text-base-content/80">{data.description}</p>
             </div>
             <div className="divider divider-horizontal m-0" />
-            <button type="button" className="btn btn-info rounded-md">
+            <button type="button" className="btn btn-outline btn-ghost rounded-md">
               关注
             </button>
             <div className="flex gap-4 items-center justify-end flex-1">
-
-              <button type="button" className="btn btn-info rounded-md">
+              <button type="button" className="btn btn-outline  btn-ghost rounded-md">
                 分支
               </button>
-              <button type="button" className="btn btn-info rounded-md">
-                应用
-              </button>
-              <button type="button" className="btn btn-info rounded-md">
+              <button type="button" className="btn btn-outline btn-ghost rounded-md">
                 克隆
               </button>
             </div>
@@ -103,7 +99,7 @@ function MainContent() {
 
   return (
     <div className="flex-grow">
-      <div className="flex bg-transparent gap-10 mt-20 mb-24">
+      <div className="flex bg-transparent gap-10 mt-20">
 
         <div className="w-1/2 flex items-center justify-center">
           <img
@@ -144,9 +140,35 @@ function MainContent() {
           </div>
         </div>
       </div>
+      {/* 应用按钮行 - 占据mb-24的空间 */}
+      <div className="flex justify-end items-center mt-6 mb-6">
+        <button
+          type="button"
+          className="cursor-pointer z-50 relative flex items-center px-4 py-4 border-4 border-primary bg-transparent text-black font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white"
+        >
+          <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
+
+          {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
+          <span className="relative z-10 text-primary group-hover:text-white transition-colors duration-300">应用至群聊</span>
+          <svg
+            className="w-8 h-8 relative z-10 text-primary group-hover:text-white transition-colors duration-300"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </button>
+      </div>
       <div className="rounded-md overflow-hidden mb-64">
         <Author />
-        <TitleBar label="人物" className="rounded-none" />
+        <TitleBar label="人物" className="rounded-none " />
         <Rules moduleId={Number(moduleId!)} />
       </div>
     </div>
@@ -174,9 +196,9 @@ export default function ModuleDetail() {
   };
 
   return (
-    <div className="bg-base-100 relative overflow-hidden">
+    <div className="bg-base-100 relative">
       {/* 背景层容器 - 限制模糊效果范围 */}
-      <div className="absolute top-0 left-0 w-full h-96 overflow-hidden z-0">
+      <div className="absolute top-0 left-0 w-full h-100 overflow-hidden z-0">
         {/* 背景图 - 使用封面图的高斯模糊，稍微放大以避免边缘透明 */}
         <div
           className="absolute -top-6 -left-6 w-[calc(100%+48px)] h-[calc(100%+48px)] bg-cover bg-center"
