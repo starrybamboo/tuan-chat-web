@@ -32,7 +32,7 @@ export default function RoomUserList() {
   return (
     <div className="space-y-2 p-2 overflow-auto items-center flex flex-col">
       {/* 群成员列表 */}
-      <div className="flex flex-row justify-center items-center gap-2">
+      <div className="flex flex-row justify-center items-center gap-2 min-w-60">
         <p className="text-center">
           群成员-
           {members.length}

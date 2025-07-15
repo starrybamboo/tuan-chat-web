@@ -108,23 +108,20 @@ export function GirlIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 64 64"
+      viewBox="0 0 24 24"
       width="1em"
       height="1em"
       {...props}
     >
-      <path
-        fill="currentColor"
-        d="M62 37.504c0-1.877-.893-3.766-2.613-4.768c.391-1.949.678-4.204.678-6.734C60.064 15.001 52.205 2 32 2C11.793 2 3.936 15.001 3.936 26.002c0 2.529.287 4.783.678 6.732C2.891 33.736 2 35.627 2 37.504c0 2.102 1.125 4.211 3.277 5.078c-2.347 4.422-3.338 10.773-.886 15.254c1.061 1.939 10.699 8.119 13.9.342c3.66 1.736 8.209 2.828 13.709 2.828s10.047-1.092 13.707-2.828c3.203 7.777 12.84 1.598 13.902-.342c2.449-4.48 1.459-10.83-.889-15.254c2.153-.867 3.28-2.975 3.28-5.078M32.01 6c14.799 0 24.668 8.001 24.668 18.002c0 0-2.961-15.001-24.668-15.001S6.354 24.002 6.354 24.002C6.354 14.001 17.209 6 32.01 6m23.541 35.004v1c0 7.061-7.307 17.002-23.551 17.002c-16.246 0-23.553-9.941-23.553-17.002v-1H7.48c-2.449 0-3.545-1.758-3.545-3.5s1.096-3.5 3.545-3.5h.184l.172-.07c.092-.037 8.426-3.567 8.336-13.917c9.475 9.174 34.137 10.723 39.379 10.952v3.036h.969c2.447 0 3.545 1.758 3.545 3.5s-1.098 3.5-3.545 3.5h-.969z"
-      >
-      </path>
-      <circle cx="44.5" cy="36.504" r="5" fill="currentColor"></circle>
-      <circle cx="19.5" cy="36.504" r="5" fill="currentColor"></circle>
-      <path
-        fill="currentColor"
-        d="M40.09 48.131c-5.215 3.6-11 3.578-16.182 0c-.621-.432-1.184.314-.762 1.006c1.576 2.572 4.768 4.867 8.852 4.867c4.086 0 7.277-2.295 8.854-4.867c.425-.692-.137-1.438-.762-1.006"
-      >
-      </path>
+      <g fill="currentColor">
+        <path d="M10 12a1 1 0 1 1-2 0a1 1 0 0 1 2 0m5 1a1 1 0 1 0 0-2a1 1 0 0 0 0 2"></path>
+        <path
+          fillRule="evenodd"
+          d="M12.024 2H12C6.477 2 2 6.477 2 12s4.477 10 10 10s10-4.477 10-10c0-5.258-4.058-9.568-9.212-9.97v-.002A10 10 0 0 0 12.025 2M12 20a8 8 0 0 0 7.742-10.022a10.02 10.02 0 0 1-8.981-4.376a7.98 7.98 0 0 1-5.692 2.4A8 8 0 0 0 12 20m-.021-16h.045z"
+          clipRule="evenodd"
+        >
+        </path>
+      </g>
     </svg>
   );
 }
@@ -532,7 +529,7 @@ export function XMarkICon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-export function MemberFilled(props: SVGProps<SVGSVGElement>) {
+export function MemberIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -543,7 +540,7 @@ export function MemberFilled(props: SVGProps<SVGSVGElement>) {
     >
       <path
         fill="currentColor"
-        d="M3.5 7a5 5 0 1 1 10 0a5 5 0 0 1-10 0M5 14a5 5 0 0 0-5 5v2h17v-2a5 5 0 0 0-5-5zm19 7h-5v-2c0-1.959-.804-3.73-2.1-5H19a5 5 0 0 1 5 5zm-8.5-9a5 5 0 0 1-1.786-.329A6.97 6.97 0 0 0 15.5 7a6.97 6.97 0 0 0-1.787-4.671A5 5 0 1 1 15.5 12"
+        d="M5.5 7a3 3 0 1 1 6 0a3 3 0 0 1-6 0m3-5a5 5 0 1 0 0 10a5 5 0 0 0 0-10m7 0h-1v2h1a3 3 0 1 1 0 6h-1v2h1a5 5 0 0 0 0-10M0 19a5 5 0 0 1 5-5h7a5 5 0 0 1 5 5v2h-2v-2a3 3 0 0 0-3-3H5a3 3 0 0 0-3 3v2H0zm24 0a5 5 0 0 0-5-5h-1v2h1a3 3 0 0 1 3 3v2h2z"
       >
       </path>
     </svg>
@@ -665,6 +662,132 @@ export function ChevronRight(props: SVGProps<SVGSVGElement>) {
         strokeWidth="2"
         d="M9 18l6-6l-6-6"
       />
+    </svg>
+  );
+}
+
+export function EmojiIconWhite(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 2048 2048"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M640 896q-27 0-50-10t-40-27t-28-41t-10-50q0-27 10-50t27-40t41-28t50-10q27 0 50 10t40 27t28 41t10 50q0 27-10 50t-27 40t-41 28t-50 10m768 0q-27 0-50-10t-40-27t-28-41t-10-50q0-27 10-50t27-40t41-28t50-10q27 0 50 10t40 27t28 41t10 50q0 27-10 50t-27 40t-41 28t-50 10M1024 0q141 0 272 36t245 103t207 160t160 208t103 245t37 272q0 141-36 272t-103 245t-160 207t-208 160t-245 103t-272 37q-141 0-272-36t-245-103t-207-160t-160-208t-103-244t-37-273q0-141 36-272t103-245t160-207t208-160T751 37t273-37m0 1920q123 0 237-32t214-90t182-141t140-181t91-214t32-238q0-123-32-237t-90-214t-141-182t-181-140t-214-91t-238-32q-123 0-237 32t-214 90t-182 141t-140 181t-91 214t-32 238q0 123 32 237t90 214t141 182t181 140t214 91t238 32m0-384q73 0 141-20t128-57t106-90t81-118l115 58q-41 81-101 147t-134 112t-159 71t-177 25t-177-25t-159-71t-134-112t-101-147l115-58q33 65 80 118t107 90t127 57t142 20"
+      >
+      </path>
+    </svg>
+  );
+}
+
+export function HexagonDice(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <g
+        fill="none"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      >
+        <path
+          strokeLinecap="round"
+          d="M11.7 1.173a.6.6 0 0 1 .6 0l8.926 5.154a.6.6 0 0 1 .3.52v10.307a.6.6 0 0 1-.3.52L12.3 22.826a.6.6 0 0 1-.6 0l-8.926-5.154a.6.6 0 0 1-.3-.52V6.847a.6.6 0 0 1 .3-.52z"
+        >
+        </path>
+        <path strokeLinecap="round" d="M17 15H7l5-8z"></path>
+        <path d="M2.5 6.5L12 7m-9.5-.5L7 15m14.5-8.5L17 15m4.5-8.5L12 7V1m9.5 16.5L17 15M2.5 17.5L7 15m0 0l5 8l5-8"></path>
+      </g>
+    </svg>
+  );
+}
+
+export function CommandLine(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+        d="m6.75 7.5l3 2.25l-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25"
+      >
+      </path>
+    </svg>
+  );
+}
+
+export function AppUsersRoles(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 32 32"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M19.307 3.21a2.91 2.91 0 1 0-.223 1.94a11.64 11.64 0 0 1 8.232 7.049l1.775-.698a13.58 13.58 0 0 0-9.784-8.291m-2.822 1.638a.97.97 0 1 1 0-1.939a.97.97 0 0 1 0 1.94m-4.267.805l-.717-1.774a13.58 13.58 0 0 0-8.291 9.784a2.91 2.91 0 1 0 1.94.223a11.64 11.64 0 0 1 7.068-8.233m-8.34 11.802a.97.97 0 1 1 0-1.94a.97.97 0 0 1 0 1.94m12.607 8.727a2.91 2.91 0 0 0-2.599 1.62a11.64 11.64 0 0 1-8.233-7.05l-1.774.717a13.58 13.58 0 0 0 9.813 8.291a2.91 2.91 0 1 0 2.793-3.578m0 3.879a.97.97 0 1 1 0-1.94a.97.97 0 0 1 0 1.94M32 16.485a2.91 2.91 0 1 0-4.199 2.599a11.64 11.64 0 0 1-7.05 8.232l.718 1.775a13.58 13.58 0 0 0 8.291-9.813A2.91 2.91 0 0 0 32 16.485m-2.91.97a.97.97 0 1 1 0-1.94a.97.97 0 0 1 0 1.94"
+      >
+      </path>
+      <path
+        fill="currentColor"
+        d="M19.19 16.35a3.879 3.879 0 1 0-5.42 0a4.85 4.85 0 0 0-2.134 4.014v1.939h9.697v-1.94a4.85 4.85 0 0 0-2.143-4.014m-4.645-2.774a1.94 1.94 0 1 1 3.88 0a1.94 1.94 0 0 1-3.88 0m-.97 6.788a2.91 2.91 0 1 1 5.819 0z"
+        className="ouiIcon__fillSecondary"
+      >
+      </path>
+    </svg>
+  );
+}
+
+export function UserSyncOnlineInPerson(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 14 14"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <g fill="none" stroke="currentColor">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M2.04 13.448v-2.48h2.48"
+        >
+        </path>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M13.339 5.815a6.449 6.449 0 0 1-11.3 5.308M.661 8.185a6.449 6.449 0 0 1 11.3-5.308"
+        >
+        </path>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M11.96.552v2.48H9.48"
+        >
+        </path>
+        <path d="M5.75 5.25a1.25 1.25 0 1 0 2.5 0a1.25 1.25 0 1 0-2.5 0"></path>
+        <path strokeLinecap="round" d="M4.708 9.5a2.5 2.5 0 0 1 4.584 0"></path>
+      </g>
     </svg>
   );
 }
