@@ -121,8 +121,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     const input = args.join("");
     try {
       const diceResult = roll(input);
-      return { result: `掷骰结果：${input} = ${diceResult.expanded} = ${diceResult}`, total: diceResult.result };
-    }
+      return { result: `掷骰结果：${input} = ${diceResult.expanded} = ${diceResult.result}`, total: diceResult.result };
     catch (error) {
       return { result: `错误：${error ?? "未知错误"}`, total: undefined };
     }
@@ -419,9 +418,13 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     }
 
     // 构建返回信息
-    return `理智检定：D100=${roll}/${currentSan} ${result}\n`
+    let res: string = `理智检定：D100=${roll}/${currentSan} ${result}\n`
       + `损失san值：${actualLoss}\n`
       + `当前san值：${newSan}`;
+    if (actualLoss >= 5) {
+      res += `\n注意：单次失去理智值达到5点，请进行智力检定，若检定成功角色将陷入疯狂。疯狂后请使用\`.ti\`或\`.li\`指令抽取临时症状或总结症状。`;
+    }
+    return res;
   }
   /**
    * 抽取疯狂发作的临时症状
