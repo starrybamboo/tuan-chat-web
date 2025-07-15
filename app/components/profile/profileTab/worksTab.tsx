@@ -122,7 +122,7 @@ export function WorksTab({ userId }: { userId: number }) {
                         totalPages={totalPages}
                         currentPage={page}
                         onPageChange={setPage}
-                        className="mt-8 items-center w-full mt-8"
+                        className="mt-8 items-center w-full"
                       />
                     </>
                   )}

@@ -26,7 +26,7 @@ const HomeTab: React.FC<HomeTabProps> = () => {
   ];
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
+    <div className="p-8 max-w-5xl mx-auto">
       <div className="card-body">
         <div className="card-title gap-16">
           <span>SC余额</span>

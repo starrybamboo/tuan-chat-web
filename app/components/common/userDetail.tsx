@@ -194,7 +194,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                       <div className="skeleton h-8 w-48 pr-4"></div>
                     )
                   : (
-                      <h2 className="text-2xl h-8 font-bold pr-4 truncate min-w-0 transition-all duration-300">
+                      <h2 className="text-2xl w-50 sm:w-50 md:w-80 lg:w-auto h-8 font-bold pr-4 truncate transition-all duration-300">
                         {size === "default"
                           ? (
                               user?.username || "未知用户"
@@ -214,7 +214,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                 {/* 用户状态指示小球 */}
                 {user?.activeStatus !== undefined && (
                   <div
-                    className="badge flex-nowrap gap-1 rounded-full items-center ring-1 ring-white/50 px-2 py-1 text-sm min-w-fit whitespace-nowrap transition-all duration-300"
+                    className="badge flex-nowrap gap-0 rounded-full ring-1 ring-white/50 px-1 text-sm whitespace-nowrap transition-all duration-300"
                   >
                     <div className={`w-4 h-4 rounded-full ${statusColor.replace("badge-", "bg-")}`} />
                     <span className="hidden sm:inline">
@@ -231,62 +231,58 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                 )}
                 {/* 编辑按钮 */}
                 {user?.userId === globalContext.userId && (
-                  <>
-                    <button
-                      className="btn p-1 rounded-full ml-4 w-6 h-6 flex justify-center hover:text-info transition-colors cursor-pointer"
-                      type="button"
-                      onClick={() => setIsEditWindowOpen(true)}
-                      aria-label="编辑"
+                  <button
+                    className="btn p-1 rounded-full ml-2 w-6 h-6 flex justify-center hover:text-info transition-colors cursor-pointer"
+                    type="button"
+                    onClick={() => setIsEditWindowOpen(true)}
+                    aria-label="编辑"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-8 w-8"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-8 w-8"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                        />
-                      </svg>
-                    </button>
-                  </>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                      />
+                    </svg>
+                  </button>
                 )}
               </div>
               {/* 个人描述 */}
-              <div className="flex flex-col sm:flex-row pb-4 pt-2 gap-2 sm:gap-6">
-                <div className="flex-1 min-w-0 w-full">
-                  {userQuery.isLoading
-                    ? (
-                        <div className="skeleton h-6 w-32"></div>
-                      )
-                    : (
-                        <div>
-                          <p
-                            className={`text-base break-words transition-all duration-300 sm:text-md lg:text-sm ${
-                              isExpanded ? "" : "line-clamp-2"
-                            }`}
-                          >
-                            {user?.description ?? "这个人就是个杂鱼，什么也不愿意写喵~"}
-                          </p>
-                          <button
-                            onClick={() => setIsExpanded(prev => !prev)}
-                            className="text-blue-400 text-xs mt-1 hover:underline"
-                            type="button"
-                          >
-                            {isExpanded ? "收起" : "展开"}
-                          </button>
-                        </div>
-                      )}
-                </div>
+              <div className="py-2">
+                {userQuery.isLoading
+                  ? (
+                      <div className="skeleton h-6 w-32"></div>
+                    )
+                  : (
+                      <div>
+                        <p
+                          className={`text-base break-words sm:text-md lg:text-sm mr-4 ${
+                            isExpanded ? "" : "line-clamp-2"
+                          }`}
+                        >
+                          {user?.description ?? "这个人就是个杂鱼，什么也不愿意写喵~"}
+                        </p>
+                        <button
+                          onClick={() => setIsExpanded(prev => !prev)}
+                          className="text-blue-400 text-xs mt-1 hover:underline"
+                          type="button"
+                        >
+                          {isExpanded ? "收起" : "展开"}
+                        </button>
+                      </div>
+                    )}
               </div>
             </div>
             {/* 右边：关注按钮（sm及以上显示） */}
             {user?.userId !== globalContext.userId && size !== "compact" && (
-              <div className="flex justify-between p-4 flex-shrink-0 hidden md:flex">
+              <div className="justify-between p-4 flex-shrink-0 hidden md:flex">
                 <FollowButton userId={user?.userId || 0} />
               </div>
             )}

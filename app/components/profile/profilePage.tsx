@@ -33,19 +33,33 @@ function ProfilePage({ userId }: Props) {
       {/* 用户基本信息 */}
       <UserDetail userId={finalUserId}></UserDetail>
       {/* 导航栏 */}
-      <div role="tablist" className="tabs tabs-lift h-15 pl-6">
+      <div
+        role="tablist"
+        className="flex border-b pl-10"
+      >
         {TABS.map(tab => (
-          <a
+          <button
             key={tab.id}
             role="tab"
-            className={`tab h-full md:w-35 text-primary ${activeTab === tab.id ? "tab-active" : ""}`}
+            type="button"
+            className={`
+              px-6 py-4 text-lg font-medium relative
+              transition-colors duration-200 cursor-pointer
+              ${activeTab === tab.id
+            ? "text-cyan-300"
+            : "text-cyan-700 hover:text-cyan-500"
+          }
+            `}
             onClick={() => {
               setActiveTab(tab.id);
               scrollToTop();
             }}
           >
             {tab.name}
-          </a>
+            {activeTab === tab.id && (
+              <div className="absolute bottom-0 left-2 right-2 h-1 bg-cyan-400 rounded-t-full" />
+            )}
+          </button>
         ))}
       </div>
 
