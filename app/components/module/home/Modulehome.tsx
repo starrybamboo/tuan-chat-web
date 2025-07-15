@@ -192,17 +192,9 @@ export function ModuleHomeCardContainer({
 // 示例使用的模块首页组件
 export default function ModuleHome() {
   const navigate = useNavigate();
-  // 分页状态管理
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 16; // 每页显示16个模组
-
-  const ModuleList = useModuleListQuery({
-    pageNo: currentPage,
-    pageSize: itemsPerPage,
-  });
 
   // 轮播图数据 - 五张图片实现循环显示
-  const heroImages = [
+  const heroImages = useMemo(() => [
     {
       img: 教室图片,
       alt: "教室场景",
@@ -233,7 +225,26 @@ export default function ModuleHome() {
       title: "创新突破",
       description: "突破传统界限，创造前所未有的游戏体验",
     },
-  ];
+  ], []);
+
+  // 分页状态管理
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 16; // 每页显示16个模组
+
+  // 当前活跃的背景图片状态
+  const [activeBackgroundImage, setActiveBackgroundImage] = useState<string>(
+    heroImages.length > 0 ? heroImages[0].img : "",
+  );
+
+  // 处理轮播图活跃项变化的回调函数
+  const handleActiveImageChange = (activeItem: any) => {
+    setActiveBackgroundImage(activeItem.img);
+  };
+
+  const ModuleList = useModuleListQuery({
+    pageNo: currentPage,
+    pageSize: itemsPerPage,
+  });
 
   // 示例数据
   const textCards = [
@@ -306,16 +317,16 @@ export default function ModuleHome() {
       {/* 创建模组按钮 - 右上角绝对定位 */}
       <button
         type="button"
-        className="cursor-pointer fixed top-30 right-16 z-50 flex items-center px-4 py-4 border-4 border-black bg-transparent text-black font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white"
+        className="cursor-pointer fixed top-30 right-16 z-50 flex items-center px-4 py-4 border-4 border-primary bg-transparent text-black font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white"
         onClick={() => navigate("/module/create")}
       >
         {/* 从左往右的黑色背景遮罩 */}
-        <div className="absolute inset-0 bg-orange-300 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
+        <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
 
         {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
-        <span className="relative z-10 group-hover:text-white transition-colors duration-300">创建模组</span>
+        <span className="relative z-10 text-primary group-hover:text-white transition-colors duration-300">创建模组</span>
         <svg
-          className="w-8 h-8 relative z-10 group-hover:text-white transition-colors duration-300"
+          className="w-8 h-8 relative z-10 text-primary group-hover:text-white transition-colors duration-300"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -334,13 +345,31 @@ export default function ModuleHome() {
       </div> */}
       {/* 轮播图区域 */}
       {/* 四图并排轮播图区域 */}
-      <div className="w-full py-16 bg-base-200 relative">
-        <Carousel
-          items={heroImages}
-          className="w-full"
-          autoPlay={true}
-          interval={4000}
-        />
+      <div className="w-full py-16 bg-base-200 relative overflow-hidden">
+        {/* 背景层容器 - 限制模糊效果范围 */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+          {/* 动态背景图 - 使用当前活跃图片的高斯模糊 */}
+          <div
+            className="absolute -top-6 -left-6 w-[calc(100%+48px)] h-[calc(100%+48px)] bg-cover bg-center transition-all duration-700 ease-out"
+            style={{
+              backgroundImage: `url(${activeBackgroundImage || heroImages[0]?.img})`,
+              filter: "blur(20px)",
+            }}
+          />
+          {/* 遮罩层 */}
+          <div className="absolute top-0 left-0 w-full h-full bg-black/10" />
+        </div>
+
+        {/* 轮播图内容 */}
+        <div className="relative z-10">
+          <Carousel
+            items={heroImages}
+            className="w-full"
+            autoPlay={true}
+            interval={4000}
+            onActiveChange={handleActiveImageChange}
+          />
+        </div>
       </div>
       {/* 其他内容区域 */}
       <div className="p-8">

@@ -174,18 +174,20 @@ export default function ModuleDetail() {
   };
 
   return (
-    <div className="bg-base-100 relative">
-      {/* 背景层 - 使用封面图的高斯模糊和遮罩，覆盖整个页面宽度 */}
-      <div
-        className="absolute top-0 left-0 w-full h-96 bg-cover bg-center z-0"
-        style={{
-          backgroundImage: `url(${data.image})`,
-          filter: "blur(12px)",
-        }}
-      />
-      <div
-        className="absolute top-0 left-0 w-full h-98 bg-black/40 z-0"
-      />
+    <div className="bg-base-100 relative overflow-hidden">
+      {/* 背景层容器 - 限制模糊效果范围 */}
+      <div className="absolute top-0 left-0 w-full h-96 overflow-hidden z-0">
+        {/* 背景图 - 使用封面图的高斯模糊，稍微放大以避免边缘透明 */}
+        <div
+          className="absolute -top-6 -left-6 w-[calc(100%+48px)] h-[calc(100%+48px)] bg-cover bg-center"
+          style={{
+            backgroundImage: `url(${data.image})`,
+            filter: "blur(12px)",
+          }}
+        />
+        {/* 遮罩层 */}
+        <div className="absolute top-0 left-0 w-full h-full bg-black/40" />
+      </div>
 
       <div className="mx-auto max-w-6xl px-4 py-4 relative z-10">
         <div className="flex gap-8">

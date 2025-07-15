@@ -41,11 +41,12 @@ function CarouselItem({ img, alt, isActive = false }: CarouselItemProps) {
 }
 
 // 四图并排轮播组件
-function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
+function Carousel({ items, className, autoPlay = true, interval = 4000, onActiveChange }: {
   items: CarouselProps[];
   className?: string;
   autoPlay?: boolean;
   interval?: number;
+  onActiveChange?: (activeItem: CarouselProps, activeIndex: number) => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(4); // 从真实数据的开始位置开始
   const [isTransitioning] = useState(true);
@@ -69,6 +70,16 @@ function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
     // 在前面添加最后4张，在后面添加前4张，实现无缝循环
     return [...items.slice(-4), ...items, ...items.slice(0, 4)];
   }, [items]);
+
+  // 当前活跃项变化时调用回调函数
+  useEffect(() => {
+    if (onActiveChange && items.length > 0) {
+      // 计算当前活跃项的真实索引（活跃项相对于 currentIndex 的位置是 +1）
+      const activeRealIndex = (currentIndex - 4 + 1) % items.length;
+      const activeItem = items[activeRealIndex];
+      onActiveChange(activeItem, activeRealIndex);
+    }
+  }, [currentIndex, items, onActiveChange]);
 
   // 自动播放功能
   useEffect(() => {
