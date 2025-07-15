@@ -121,7 +121,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     const input = args.join("");
     try {
       const diceResult = roll(input);
-      return { result: `掷骰结果：${input} = ${diceResult}`, total: diceResult };
+      return { result: `掷骰结果：${input} = ${diceResult.expanded} = ${diceResult}`, total: diceResult.result };
     }
     catch (error) {
       return { result: `错误：${error ?? "未知错误"}`, total: undefined };
