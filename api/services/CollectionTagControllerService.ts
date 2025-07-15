@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
 import type { ApiResultCollectionTag } from '../models/ApiResultCollectionTag';
+import type { ApiResultInteger } from '../models/ApiResultInteger';
 import type { ApiResultListCollectionTag } from '../models/ApiResultListCollectionTag';
 import type { ApiResultListString } from '../models/ApiResultListString';
 import type { CollectionTagAddRequest } from '../models/CollectionTagAddRequest';
@@ -88,6 +89,29 @@ export class CollectionTagControllerService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/collection/tag/user',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 获取标签使用次数
+     * @param tagName
+     * @returns ApiResultInteger OK
+     * @throws ApiError
+     */
+    public getTagUsageCount(
+        tagName: string,
+    ): CancelablePromise<ApiResultInteger> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/collection/tag/usage',
+            query: {
+                'tagName': tagName,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

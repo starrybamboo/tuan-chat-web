@@ -4,9 +4,12 @@
 /* eslint-disable */
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
 import type { ApiResultCommentVO } from '../models/ApiResultCommentVO';
+import type { ApiResultInteger } from '../models/ApiResultInteger';
 import type { ApiResultListCommentVO } from '../models/ApiResultListCommentVO';
 import type { ApiResultLong } from '../models/ApiResultLong';
+import type { ApiResultMapLongInteger } from '../models/ApiResultMapLongInteger';
 import type { CommentAddRequest } from '../models/CommentAddRequest';
+import type { CommentCountRequest } from '../models/CommentCountRequest';
 import type { CommentPageRequest } from '../models/CommentPageRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
@@ -98,6 +101,54 @@ export class CommentControllerService {
             url: '/capi/comment/page',
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 批量获取评论数量
+     * @param requestBody
+     * @returns ApiResultMapLongInteger OK
+     * @throws ApiError
+     */
+    public batchGetCommentCount(
+        requestBody: CommentCountRequest,
+    ): CancelablePromise<ApiResultMapLongInteger> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/comment/count/batch',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 获取评论数量
+     * @param targetId
+     * @param targetType
+     * @returns ApiResultInteger OK
+     * @throws ApiError
+     */
+    public getCommentCount(
+        targetId: number,
+        targetType: string,
+    ): CancelablePromise<ApiResultInteger> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/comment/count',
+            query: {
+                'targetId': targetId,
+                'targetType': targetType,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

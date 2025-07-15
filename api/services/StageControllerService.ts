@@ -2,12 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ApiResultListBranch } from '../models/ApiResultListBranch';
 import type { ApiResultListStageEntityResponse } from '../models/ApiResultListStageEntityResponse';
 import type { ApiResultListStageResponse } from '../models/ApiResultListStageResponse';
 import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultModuleInfo } from '../models/ApiResultModuleInfo';
 import type { ApiResultStageEntityResponse } from '../models/ApiResultStageEntityResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
+import type { BranchSwitchRequest } from '../models/BranchSwitchRequest';
 import type { CommitRequest } from '../models/CommitRequest';
 import type { EntityAddRequest } from '../models/EntityAddRequest';
 import type { EntityRenameRequest } from '../models/EntityRenameRequest';
@@ -17,6 +19,28 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class StageControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
+    /**
+     * 切换当前分支，要求暂存区为空
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public switchBranch(
+        requestBody: BranchSwitchRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/stage/switch',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
     /**
      * 回退文件信息
      * @param requestBody
@@ -145,18 +169,18 @@ export class StageControllerService {
     }
     /**
      * 根据stageId查询当前模组当前用户分支的最新commit详情
-     * @param moduleId
+     * @param stageId
      * @returns ApiResultModuleInfo OK
      * @throws ApiError
      */
     public queryCommit(
-        moduleId: number,
+        stageId: number,
     ): CancelablePromise<ApiResultModuleInfo> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/stage/info',
             query: {
-                'moduleId': moduleId,
+                'stageId': stageId,
             },
             errors: {
                 400: `Bad Request`,
@@ -168,18 +192,41 @@ export class StageControllerService {
     }
     /**
      * 根据暂存区id查询所有暂存实体
-     * @param moduleId
+     * @param stageId
      * @returns ApiResultListStageEntityResponse OK
      * @throws ApiError
      */
     public queryEntities(
-        moduleId: number,
+        stageId: number,
     ): CancelablePromise<ApiResultListStageEntityResponse> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/stage/change',
             query: {
-                'moduleId': moduleId,
+                'stageId': stageId,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 根据暂存区Id获取相应的所有分支
+     * @param stageId
+     * @returns ApiResultListBranch OK
+     * @throws ApiError
+     */
+    public branches(
+        stageId: number,
+    ): CancelablePromise<ApiResultListBranch> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/stage/branches',
+            query: {
+                'stageId': stageId,
             },
             errors: {
                 400: `Bad Request`,

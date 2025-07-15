@@ -25,6 +25,6 @@ export type MessageDirectSendRequest = {
     /**
      * 扩展信息
      */
-    extra?: Record<string, any>;
+    extra: Record<string, any>;
 };
 

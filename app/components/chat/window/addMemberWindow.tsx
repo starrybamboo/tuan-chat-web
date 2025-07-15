@@ -1,13 +1,16 @@
+import { RoomContext } from "@/components/chat/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import React, { useState } from "react";
+import React, { use, useState } from "react";
 import { useGetUserFollowingsQuery } from "../../../../api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 
 export default function AddMemberWindow({ handleAddMember }: { handleAddMember: (userId: number) => void }) {
+  const roomContext = use(RoomContext);
+  const roomMembers = roomContext.roomMembers; // 用户已加进去的角色
   const globalContext = useGlobalContext();
   const followingQuery = useGetUserFollowingsQuery(globalContext.userId ?? -1, { pageNo: 1, pageSize: 100 });
   const friends = followingQuery.data?.data?.list?.filter(user => user.status === 2) ?? [];
@@ -35,13 +38,27 @@ export default function AddMemberWindow({ handleAddMember }: { handleAddMember: 
                     isRounded={true}
                     withName={true}
                   />
-                  <button
-                    className="btn btn-sm btn-info mt-2"
-                    type="button"
-                    onClick={() => handleAddMember(friend.userId ?? -1)}
-                  >
-                    添加
-                  </button>
+                  {
+                    roomMembers.find(member => member.userId === friend.userId)
+                      ? (
+                          <button
+                            className="btn btn-sm btn-info mt-2"
+                            type="button"
+                            disabled={true}
+                          >
+                            已加入
+                          </button>
+                        )
+                      : (
+                          <button
+                            className="btn btn-sm btn-info mt-2"
+                            type="button"
+                            onClick={() => handleAddMember(friend.userId ?? -1)}
+                          >
+                            添加
+                          </button>
+                        )
+                  }
                 </div>
               </div>
             )
@@ -68,7 +85,7 @@ export default function AddMemberWindow({ handleAddMember }: { handleAddMember: 
           {inputUserId > 0 && inputUserInfo && (
             <div className="card bg-base-100 shadow-md mt-4">
               <div className="card-body items-center text-center space-y-4">
-                <UserDetail userId={inputUserId} />
+                <UserDetail userId={inputUserId} size="compact" />
                 <button
                   className="btn btn-info"
                   type="button"
