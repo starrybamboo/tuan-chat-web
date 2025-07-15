@@ -1,6 +1,8 @@
 import TitleBar from "@/components/module/common/titleBar";
 import Rules from "@/components/module/detail/roles";
-import { useParams } from "react-router";
+import { useUserFollowMutation, useUserIsFollowedQuery, useUserUnfollowMutation } from "api/hooks/userFollowQueryHooks";
+import { useGetUserInfoQuery } from "api/queryHooks";
+import { useLocation, useParams } from "react-router";
 
 // function Info({ label, value }: { label: string; value: string }) {
 //   return (
@@ -31,12 +33,37 @@ import { useParams } from "react-router";
 //   );
 // }
 
-function Author() {
-  // const { data, isSuccess } = useAuthordQuery(authordId);
+function Author({ userId }: { userId?: number }) {
+  // 获取用户信息
+  const { data: userInfoData, isLoading: userInfoLoading } = useGetUserInfoQuery(userId || 0);
+
+  // 关注相关hooks
+  const followMutation = useUserFollowMutation();
+  const unfollowMutation = useUserUnfollowMutation();
+  const { data: isFollowedData } = useUserIsFollowedQuery(userId || 0);
+
+  const isFollowed = isFollowedData?.data || false;
+  const isLoading = followMutation.isPending || unfollowMutation.isPending;
+
+  // 处理关注/取消关注
+  const handleFollowClick = () => {
+    if (!userId)
+      return;
+
+    if (isFollowed) {
+      unfollowMutation.mutate(userId);
+    }
+    else {
+      followMutation.mutate(userId);
+    }
+  };
+
+  // 使用API获取的数据或默认数据
+  const userData = userInfoData?.data;
   const data = {
-    name: "糖糖糖糖",
-    avatar: "http://39.103.58.31:9000/avatar/emoji/userId-10020-coppered_1746242587555.webp",
-    description: "欢迎关注我!",
+    name: userData?.username || "未知用户",
+    avatar: userData?.avatar || "favicon.ico",
+    description: userData?.description || "暂无简介",
   };
 
   return (
@@ -44,14 +71,42 @@ function Author() {
       <div className="card-body p-4">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
-            <img className="w-16 h-16 rounded-full object-cover" src={data.avatar} />
+            {userInfoLoading
+              ? (
+                  <div className="skeleton w-16 h-16 rounded-full"></div>
+                )
+              : (
+                  <img className="w-16 h-16 rounded-full object-cover" src={data.avatar} />
+                )}
             <div className="flex flex-col justify-between">
-              <h3 className="card-title text-lg">{data.name}</h3>
-              <p className="text-sm text-base-content/80">{data.description}</p>
+              {userInfoLoading
+                ? (
+                    <>
+                      <div className="skeleton h-6 w-24 mb-2"></div>
+                      <div className="skeleton h-4 w-32"></div>
+                    </>
+                  )
+                : (
+                    <>
+                      <h3 className="card-title text-lg">{data.name}</h3>
+                      <p className="text-sm text-base-content/80">{data.description}</p>
+                    </>
+                  )}
             </div>
             <div className="divider divider-horizontal m-0" />
-            <button type="button" className="btn btn-outline btn-ghost rounded-md">
-              关注
+            <button
+              type="button"
+              className={`btn rounded-md ${isFollowed ? "btn-success" : "btn-outline btn-ghost"}`}
+              onClick={handleFollowClick}
+              disabled={isLoading || !userId}
+            >
+              {isLoading
+                ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  )
+                : (
+                    isFollowed ? "已关注" : "关注"
+                  )}
             </button>
             <div className="flex gap-4 items-center justify-end flex-1">
               <button type="button" className="btn btn-outline  btn-ghost rounded-md">
@@ -70,9 +125,12 @@ function Author() {
 
 function MainContent() {
   const params = useParams();
+  const location = useLocation();
   const moduleId = params.id;
 
-  const data = {
+  // 优先使用从路由状态传递的数据，如果没有则使用默认数据
+  const passedData = location.state?.moduleData;
+  const data = passedData || {
     moduleId: 1,
     ruleId: 1,
     moduleName: "格黑娜的期末考题是征服世界?!",
@@ -89,13 +147,31 @@ function MainContent() {
     updateTime: "2025-04-30T19:44:19.123Z",
   };
 
+  // 构建信息数组，只包含有数据的字段
   const infos = [
-    { label: "规则", value: data.parent },
-    { label: "玩家人数", value: `${data.minPeople}-${data.maxPeople}` },
-    { label: "游戏时间", value: `${data.minTime}-${data.maxTime}小时` },
-    { label: "作者", value: data.authorName },
-    { label: "最后更新", value: new Date(data.updateTime).toLocaleString("zh-CN") },
-  ];
+    data.parent && { label: "Forked By", value: data.parent },
+    (data.minPeople || data.maxPeople) && {
+      label: "玩家人数",
+      value: data.minPeople && data.maxPeople
+        ? `${data.minPeople}-${data.maxPeople}人`
+        : data.minPeople
+          ? `${data.minPeople}+人`
+          : `最多${data.maxPeople}人`,
+    },
+    (data.minTime || data.maxTime) && {
+      label: "游戏时间",
+      value: data.minTime && data.maxTime
+        ? `${data.minTime}-${data.maxTime}小时`
+        : data.minTime
+          ? `${data.minTime}+小时`
+          : `最长${data.maxTime}小时`,
+    },
+    data.authorName && { label: "作者", value: data.authorName },
+    data.userId && { label: "上传者ID", value: data.userId.toString() },
+    data.ruleId && { label: "规则ID", value: data.ruleId.toString() },
+    data.createTime && { label: "创建时间", value: new Date(data.createTime).toLocaleDateString("zh-CN") },
+    data.updateTime && { label: "最后更新", value: new Date(data.updateTime).toLocaleString("zh-CN") },
+  ].filter(Boolean); // 过滤掉 falsy 值
 
   return (
     <div className="flex-grow">
@@ -117,27 +193,29 @@ function MainContent() {
 
             <div className="divider m-0" />
             {/* 模组简介 */}
-            <p className="text-base font-semibold tracking-wide leading-relaxed mt-2 text-white">
+            <p className="text-base font-semibold tracking-wide leading-relaxed mt-2 text-white line-clamp-4">
               {data.description}
             </p>
           </div>
           {/* 其他的模组信息 - 显示在右侧底部 */}
-          <div className="flex border-2 border-base-300 p-4 gap-4">
-            {/* 字段名列 */}
-            <div className="flex flex-col gap-2">
-              {infos.map(info => (
-                <h3 key={`label-${info.label}`} className="text-base text-primary">{info.label}</h3>
-              ))}
+          {infos.length > 0 && (
+            <div className="flex border-2 border-base-300 p-4 gap-4 bg-base-100">
+              {/* 字段名列 */}
+              <div className="flex flex-col gap-2">
+                {infos.map(info => (
+                  <h3 key={`label-${info.label}`} className="text-base text-primary">{info.label}</h3>
+                ))}
+              </div>
+              {/* 竖直分隔线 */}
+              <div className="divider divider-horizontal m-0" />
+              {/* 字段值列 */}
+              <div className="flex flex-col gap-2">
+                {infos.map(info => (
+                  <h4 key={`value-${info.label}`} className="text-base text-primary">{info.value}</h4>
+                ))}
+              </div>
             </div>
-            {/* 竖直分隔线 */}
-            <div className="divider divider-horizontal m-0" />
-            {/* 字段值列 */}
-            <div className="flex flex-col gap-2">
-              {infos.map(info => (
-                <h4 key={`value-${info.label}`} className="text-base text-primary">{info.value}</h4>
-              ))}
-            </div>
-          </div>
+          )}
         </div>
       </div>
       {/* 应用按钮行 - 占据mb-24的空间 */}
@@ -167,7 +245,7 @@ function MainContent() {
         </button>
       </div>
       <div className="rounded-md overflow-hidden mb-64">
-        <Author />
+        <Author userId={data.userId} />
         <TitleBar label="人物" className="rounded-none " />
         <Rules moduleId={Number(moduleId!)} />
       </div>
@@ -177,8 +255,11 @@ function MainContent() {
 
 export default function ModuleDetail() {
   // const navigate = useNavigate();
+  const location = useLocation();
 
-  const data = {
+  // 优先使用从路由状态传递的数据，如果没有则使用默认数据
+  const passedData = location.state?.moduleData;
+  const data = passedData || {
     moduleId: 1,
     ruleId: 1,
     moduleName: "格黑娜的期末考题是征服世界?!",
@@ -215,12 +296,6 @@ export default function ModuleDetail() {
         <div className="flex gap-8">
           {/* 主要内容区域 */}
           <MainContent />
-          {/* 右侧作者信息卡片 */}
-          {/* <div className="w-72 shrink-0 mt-[calc(var(--spacing)*14)]">
-            <div className="sticky top-4">
-              <Author />
-            </div>
-          </div> */}
         </div>
       </div>
     </div>

@@ -294,11 +294,15 @@ export default function ModuleHome() {
       type: "mixed" as const,
       authorName: module.authorName,
       moduleId: module.moduleId,
+      ruleId: module.ruleId, // 所用的规则id
+      userId: module.userId, // 上传者
       createTime: module.createTime,
+      updateTime: module.updateTime, // 修改时间
       minPeople: module.minPeople,
       maxPeople: module.maxPeople,
       minTime: module.minTime,
       maxTime: module.maxTime,
+      parent: module.parent, // 从哪个模组fork来
     }));
   }, [moduleData]);
 
@@ -444,8 +448,27 @@ export default function ModuleHome() {
                   minTime={card.minTime}
                   maxTime={card.maxTime}
                   onClick={() => {
-                    // 处理卡片点击事件，跳转到模组详情页面
-                    navigate(`/module/detail/${card.moduleId}`);
+                    // 处理卡片点击事件，跳转到模组详情页面并传递数据
+                    navigate(`/module/detail/${card.moduleId}`, {
+                      state: {
+                        moduleData: {
+                          moduleId: card.moduleId,
+                          ruleId: card.ruleId, // 所用的规则id
+                          moduleName: card.title,
+                          description: card.content,
+                          userId: card.userId, // 上传者
+                          authorName: card.authorName, // 作者
+                          image: card.image, // 模组封面
+                          createTime: card.createTime, // 创建时间
+                          updateTime: card.updateTime, // 修改时间
+                          minPeople: card.minPeople, // 模组需要人数
+                          maxPeople: card.maxPeople,
+                          minTime: card.minTime, // 模组可能需要花费时间
+                          maxTime: card.maxTime,
+                          parent: card.parent, // 从哪个模组fork来
+                        },
+                      },
+                    });
                   }}
                 />
               ));
