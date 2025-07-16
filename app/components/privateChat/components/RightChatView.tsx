@@ -28,10 +28,13 @@ export default function RightChatView(
   const [messageInput, setMessageInput] = useState("");
   // 与当前联系人的历史消息
   const directMessageQuery = useGetMessageDirectPageQuery(currentContactUserId, 15);
-  // 与当前联系人，从 WebSocket 接收到的实时消息
+
+  // 从 WebSocket 接收到的实时消息
   const receivedMessages = useMemo(() => {
-    return webSocketUtils.receivedDirectMessages[userId] || [];
-  }, [webSocketUtils.receivedDirectMessages, userId]);
+    const userMessages = webSocketUtils.receivedDirectMessages[userId] || []; // senderId 为 userId
+    const contactUserMessages = webSocketUtils.receivedDirectMessages[currentContactUserId] || []; // senderId 为 currentContactUserId
+    return [...userMessages, ...contactUserMessages];
+  }, [webSocketUtils.receivedDirectMessages, userId, currentContactUserId]);
 
   // 合并历史消息和实时消息
   const allMessages = useMemo(() => {
