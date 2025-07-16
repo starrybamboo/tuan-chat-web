@@ -3,6 +3,7 @@ import type { MessageDirectPageRequest } from "api/models/MessageDirectPageReque
 import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
 import type { MessageDirectSendRequest } from "api/models/MessageDirectSendRequest";
 import { tuanchat } from "../instance";
+import { useMemo } from "react";
 
 
 /**
@@ -14,7 +15,6 @@ export function useGetMessageDirectPageQuery(targetUserId: number, pageSize: num
     pageSize,
     targetUserId
   }
-
   // 创建这样的层次结构：
   // directMessages
   //   └── 10008 (targetUserId)
@@ -26,7 +26,7 @@ export function useGetMessageDirectPageQuery(targetUserId: number, pageSize: num
       return tuanchat.messageDirectController.getMessagePage(pageParam);
     },
     getNextPageParam: (lastPage) => {
-      if (lastPage.data?.isLast === false && lastPage.data?.cursor) {
+      if (!lastPage.data?.isLast && lastPage.data?.cursor) {
         const nextQueryParam: MessageDirectPageRequest = {
           cursor: lastPage.data.cursor,
           pageSize,
@@ -41,12 +41,22 @@ export function useGetMessageDirectPageQuery(targetUserId: number, pageSize: num
     staleTime: Infinity,  // 永不过期，使过了很长时间，也不会因为数据过期而自动重新查询
   });
 
+  // 基于服务器返回的 isLast 字段
+  const isLastPage = useMemo(() => {
+    const pages = infiniteQuery.data?.pages;
+    if (!pages || pages.length === 0) return true;
+    const lastPage = pages[pages.length - 1];
+    return lastPage.data?.isLast === true;
+  }, [infiniteQuery.data?.pages]);
+
   return {
     historyMessages: infiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? [],
     isLoading: infiniteQuery.isLoading,
     hasNextPage: infiniteQuery.hasNextPage,
     fetchNextPage: infiniteQuery.fetchNextPage,
+    isFetchingNextPage: infiniteQuery.isFetchingNextPage,
     refetch: infiniteQuery.refetch,
+    isLastPage
   }
 }
 

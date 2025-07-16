@@ -27,7 +27,7 @@ export default function PrivateChatPage() {
   }));
 
   // 从 URL 获取当前选中的联系人
-  const currentContactUserId = Number.parseInt(urlTargetUserId || "-1");
+  const currentContactUserId = urlTargetUserId ? Number.parseInt(urlTargetUserId) : null;
 
   return (
     <div className="flex flex-row h-full">
