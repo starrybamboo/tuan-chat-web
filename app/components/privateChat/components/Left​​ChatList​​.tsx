@@ -102,7 +102,7 @@ function mapFriendInfos(friends: { userId: number; status: number }[], latestMes
     return {
       userId: friend.userId,
       status: friend.status,
-      latestMessage: latestMessage ? String(latestMessage.content) : "暂无消息",
+      latestMessage: latestMessage ? String(latestMessage.content) : "",
       latestMessageTime: latestMessage ? latestMessage.createTime : undefined,
     };
   });

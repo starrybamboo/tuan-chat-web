@@ -33,9 +33,18 @@ export default function RightChatView(
   const directMessageQuery = useGetMessageDirectPageQuery(currentContactUserId || -1, PAGE_SIZE);
   // 从 WebSocket 接收到的实时消息
   const receivedMessages = useMemo(() => {
+    if (!currentContactUserId)
+      return [];
     const userMessages = webSocketUtils.receivedDirectMessages[userId] || []; // senderId 为 userId
-    const contactUserMessages = webSocketUtils.receivedDirectMessages[currentContactUserId || -1] || []; // senderId 为 currentContactUserId
-    return [...userMessages, ...contactUserMessages];
+    const contactUserMessages = webSocketUtils.receivedDirectMessages[currentContactUserId] || []; // senderId 为 currentContactUserId
+    // 筛选出与当前联系人相关的消息
+    const filteredUserMessages = userMessages.filter(msg =>
+      msg.receiverId === currentContactUserId, // 用户发给当前联系人的消息
+    );
+    const filteredContactMessages = contactUserMessages.filter(msg =>
+      msg.senderId === currentContactUserId && msg.receiverId === userId, // 当前联系人发给用户的消息
+    );
+    return [...filteredUserMessages, ...filteredContactMessages];
   }, [webSocketUtils.receivedDirectMessages, userId, currentContactUserId]);
 
   // 合并历史消息和实时消息
@@ -54,10 +63,8 @@ export default function RightChatView(
       messageType: 1,
       extra: {},
     };
-    send(sendMessage);
-    setMessageInput("");
-    // 当消息发送到服务器后，服务器会通过 WebSocket 广播给所有在线用户
-    // 包括发送者自己也会收到这条消息的回显，无需主动refetch
+    send(sendMessage); // 当消息发送到服务器后，服务器会通过 WebSocket 广播给所有在线用户
+    setMessageInput(""); // 包括发送者自己也会收到这条消息的回显，无需主动refetch
   };
 
   // 滚动相关
@@ -70,7 +77,6 @@ export default function RightChatView(
   const checkIfAtBottom = () => {
     if (!scrollContainerRef.current)
       return;
-
     const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
     const atBottom = scrollHeight - scrollTop - clientHeight < 100; // 100px容差
     setIsAtBottom(atBottom);
@@ -131,6 +137,7 @@ export default function RightChatView(
           <MoreMenu className="size-6 cursor-pointer rotate-90" />
         </span>
       </div>
+
       {/* 聊天消息区域 */}
       <div
         ref={scrollContainerRef}
@@ -168,7 +175,7 @@ export default function RightChatView(
                   msg.senderId === userId
                     ? (
                         <div key={msg.messageId} className="flex items-start justify-end gap-2">
-                          <div className="bg-info p-2 rounded-lg">
+                          <div className="bg-info text-info-content p-2 rounded-lg">
                             {msg.content}
                           </div>
                           <UserAvatarComponent
@@ -187,7 +194,7 @@ export default function RightChatView(
                             isRounded={true}
                             uniqueKey={`${msg.senderId}${msg.messageId}`}
                           />
-                          <div className="bg-base-300 p-2 rounded-lg">
+                          <div className="bg-base-300 text-base-content p-2 rounded-lg">
                             {msg.content}
                           </div>
                         </div>
@@ -203,6 +210,7 @@ export default function RightChatView(
               </div>
             )}
       </div>
+
       {/* 输入区域 */}
       <MessageInput
         currentContactUserId={currentContactUserId}
