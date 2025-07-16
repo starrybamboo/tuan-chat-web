@@ -53,14 +53,14 @@ export function useGetMessageDirectPageQuery(targetUserId: number, pageSize: num
 
 /** 
  * 查询与多个人的私聊消息
- * @param  - 
+ * @param friends - 好友列表，包含 userId 和 status
  */
 export function useGetMessageDirectPageQueries(friends: { userId: number, status: number }[]) {
   return useQueries({
     queries: friends.map((friend) => ({
-      queryKey: ["getMessageDirectPage", { cursor: 99, pageSize: 1, targetUserId: friend.userId }],
+      queryKey: ["getMessageDirectPage", { cursor: undefined, pageSize: 1, targetUserId: friend.userId }],
       queryFn: () => tuanchat.messageDirectController.getMessagePage({
-        cursor: 99,
+        cursor: undefined,
         pageSize: 1,
         targetUserId: friend.userId
       }),
