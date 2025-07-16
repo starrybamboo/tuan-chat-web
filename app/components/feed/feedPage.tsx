@@ -171,14 +171,24 @@ export default function FeedPage() {
         <div className="justify-center space-x-10 pb-4">
           <button
             type="button"
-            className="btn btn-circle bg-amber-50 shadow-xl flex-1 "
-            onClick={() => { }}
+            className="btn btn-circle bg-amber-50 dark:bg-slate-700 text-black dark:text-white shadow-xl flex-1
+             transform transition duration-700 ease-in-out hover:scale-110 hover:brightness-90 dark:hover:brightness-110"
+            onClick={() => {
+              // 打开发布面板
+            }}
           >
-            ＋
+            <span
+              className="absolute inset-0 flex items-center justify-center transform transition duration-700 ease-in-out hover:rotate-[90deg] will-change-transform"
+            >
+              ＋
+            </span>
           </button>
           <button
             type="button"
-            className="btn btn-circle bg-amber-50 shadow-xl flex-1"
+            className={`btn btn-circle bg-amber-50 dark:bg-slate-700 text-black dark:text-white shadow-xl flex-1
+  transform transition duration-300 ease-in-out
+  hover:rotate-[9deg] hover:scale-110 hover:brightness-90 dark:hover:brightness-110`}
+
             onClick={() => feedInfiniteQuery.refetch()}
           >
             ↻
@@ -186,6 +196,11 @@ export default function FeedPage() {
         </div>
       </div>
 
+      <button
+        className="bg-amber-50 dark:bg-slate-700 text-black dark:text-white p-4 rounded"
+      >
+        测试按钮
+      </button>
       {/* 中间分隔线 */}
       <div className="w-0.5 bg-base-300"></div>
 
