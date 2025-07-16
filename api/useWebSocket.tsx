@@ -230,7 +230,7 @@ export function useWebSocket() {
           draft[channelId][existingIndex] = message;
         }
         else {
-          draft[channelId].push();
+          draft[channelId].push(message);
         }
       }
       else {
