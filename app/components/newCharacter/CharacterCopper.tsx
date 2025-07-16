@@ -52,13 +52,17 @@ interface ImgUploaderWithCopperProps {
   fileName: string;
   // 数据更新回调函数
   mutate?: (data: any) => void;
+  // 外层div的className
+  wrapperClassName?: string;
+  // 内层div的className
+  triggerClassName?: string;
 }
 
 /**
  * 带裁剪功能的图片上传组件
  * 支持图片上传、预览、裁剪和保存功能
  */
-export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName, mutate }: ImgUploaderWithCopperProps) {
+export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName, mutate, triggerClassName, wrapperClassName }: ImgUploaderWithCopperProps) {
   // 文件输入框引用
   const fileInputRef = useRef<HTMLInputElement>(null);
   // 上传工具实例
@@ -80,7 +84,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   const [isSubmiting, setisSubmiting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   // 移除未使用的状态
-  // const [firstStepImage, setFirstStepImage] = useState<File | null>(null);
+  // const [firstStepImage, FirstStepImage] = useState<File | null>(null);
 
   /**
    * 图片加载完成后的处理函数
@@ -292,7 +296,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   }
 
   return (
-    <div>
+    <div className={wrapperClassName || ""}>
       {/* 隐藏的文件输入框 */}
       <input
         type="file"
@@ -302,7 +306,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
         accept="image/*"
       />
       {/* 触发文件选择的容器 */}
-      <div onClick={() => fileInputRef.current?.click()}>
+      <div className={triggerClassName || ""} onClick={() => fileInputRef.current?.click()}>
         {children}
       </div>
       {/* 裁剪弹窗 */}
