@@ -5,6 +5,7 @@ import { PopWindow } from "@/components/common/popWindow";
 
 import { UserDetail } from "@/components/common/userDetail";
 import TitleBar from "@/components/module/common/titleBar";
+import Items from "@/components/module/detail/items";
 import Roles from "@/components/module/detail/roles";
 import { useGetUserInfoQuery } from "api/queryHooks";
 import { useCallback, useState } from "react";
@@ -200,6 +201,8 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
         <Author userId={moduleData.userId} />
         <TitleBar label="人物" className="rounded-none " />
         <Roles moduleId={Number(moduleId!)} />
+        <TitleBar label="物品" className="rounded-none " />
+        <Items moduleId={Number(moduleId!)} />
       </div>
     </div>
   );
