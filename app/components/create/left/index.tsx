@@ -1,4 +1,5 @@
 import type { StageResponse } from "api";
+import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { useStagingQuery } from "api/hooks/moduleQueryHooks";
 // import { useModuleContext } from "@/components/module/workPlace/context/ModuleContext";
 import { useEffect, useState } from "react";
@@ -11,6 +12,7 @@ import ModuleItems from "./moduleItems";
 function LeftContent() {
   const [moduleArray, setModuleArray] = useState<StageResponse[]>([]);
   const [editingStageId, setEditingStageId] = useState<number>(0);
+  const { setStageId } = useModuleContext();
   const { data: stagingData, isSuccess } = useStagingQuery();
   useEffect(() => {
     if (isSuccess && stagingData.data!.length > 0) {
@@ -71,7 +73,15 @@ function LeftContent() {
         <ul className="menu dropdown-content bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm">
           {moduleArray.map((item: StageResponse) => (
             <li key={item.stageId}>
-              <a onClick={() => handleModuleChange(item.stageId as number)} className={`${editingStageId === item.stageId ? "bg-primary text-primary-content" : ""}`}>{item.moduleName || "未命名"}</a>
+              <a
+                onClick={() => {
+                  handleModuleChange(item.stageId as number);
+                  setStageId(item.stageId as number);
+                }}
+                className={`${editingStageId === item.stageId ? "bg-primary text-primary-content" : ""}`}
+              >
+                {item.moduleName || "未命名"}
+              </a>
             </li>
           )) }
         </ul>

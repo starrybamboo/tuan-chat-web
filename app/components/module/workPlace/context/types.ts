@@ -1,6 +1,8 @@
 export type ModuleContextType = {
   moduleTabItems: ModuleTabItem[];
   currentSelectedTabId: string | null;
+  stageId: number | null;
+  setStageId: (id: number) => void;
   setCurrentSelectedTabId: (itemId: string) => void;
   pushModuleTabItem: (item: ModuleTabItem) => void;
   removeModuleTabItem: (id: string) => void;

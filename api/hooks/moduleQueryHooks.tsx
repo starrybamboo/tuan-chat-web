@@ -238,8 +238,8 @@ export function useImportRoleMutation() {
     return useMutation({
         mutationFn: (req: RoleImportRequest) => tuanchat.stageController.importRole(req),
         mutationKey: ['importRole'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['staging'] });
+        onSuccess: (data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
         }
     });
 }
@@ -262,8 +262,8 @@ export function useAddMutation() {
     return useMutation({
         mutationFn: (req: EntityAddRequest) => tuanchat.stageController.add(req),
         mutationKey: ['addEntity'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['staging'] });
+        onSuccess: (data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
         }
     });
 }
