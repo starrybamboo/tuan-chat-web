@@ -216,7 +216,7 @@ export function useWebSocket() {
    * 处理私聊消息
    */
   const handleDirectChatMessage = (message: DirectMessageEvent) => {
-    const {receiverId,senderId} = message;
+    let {receiverId, senderId} = message;
     const channelId = globalContext.userId === senderId ? receiverId : senderId; // 如果是自己发的私聊消息，则channelId为接收者Id
     updateReceivedDirectMessages((draft)=>{
       // 去重，比如撤回操作就会出现相同消息id的情况。
