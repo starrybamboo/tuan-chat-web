@@ -5,12 +5,13 @@ function TitleBar({
 }: {
   label: string;
   className?: string;
-  varient?: "primary" | "secondary" | "accent";
+  varient?: "primary" | "secondary" | "accent" | "info";
 }) {
   const varientType = {
-    primary: "bg-primary text-primary-content",
+    primary: "bg-primary/85 text-primary",
     secondary: "bg-secondary text-secondary-content",
-    accent: "bg-accent text-accent-content",
+    accent: "bg-accent/85 text-accent-content",
+    info: "bg-info text-info-content",
   };
 
   return (
