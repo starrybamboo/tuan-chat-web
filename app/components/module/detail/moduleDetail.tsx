@@ -199,9 +199,9 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
       </div>
       <div className="rounded-md overflow-hidden mb-64">
         <Author userId={moduleData.userId} />
-        <TitleBar label="人物" className="rounded-none " />
+        <TitleBar label="角色" className="rounded-none" varient="accent" />
         <Roles moduleId={Number(moduleId!)} />
-        <TitleBar label="物品" className="rounded-none " />
+        <TitleBar label="物品" className="rounded-none mt-10" varient="accent" />
         <Items moduleId={Number(moduleId!)} />
       </div>
     </div>
