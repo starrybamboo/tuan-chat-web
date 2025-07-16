@@ -1,5 +1,7 @@
 import { SideDrawer } from "@/components/common/sideDrawer";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetMessageDirectPageQueries } from "api/hooks/MessageDirectQueryHooks";
+import { useEffect, useMemo } from "react";
 import FriendItem from "./FriendItem";
 
 interface contactInfo {
@@ -23,6 +25,17 @@ export default function LeftChatList({
   const friendInfos = mapFriendInfos(friends, latestMessages);
   // 根据最新消息时间排序好友列表
   const sortedFriendInfos = sortFriendInfos(friendInfos);
+
+  // 未读消息提醒
+  const websocketUtils = useGlobalContext().websocketUtils;
+  const unreadMessagesNumber = websocketUtils.unreadMessagesNumber;
+  const totalUnreadMessages = useMemo(() => {
+    return Object.values(unreadMessagesNumber).reduce((sum, count) => sum + count, 0);
+  }, [unreadMessagesNumber]);
+  // 在标签页中显示未读消息
+  useEffect(() => {
+    alertUnreadMessagesCountInTag(totalUnreadMessages);
+  }, [totalUnreadMessages]);
 
   return (
     <SideDrawer sideDrawerId="private-chat">
@@ -105,4 +118,18 @@ function sortFriendInfos(friendInfos: contactInfo[]): contactInfo[] {
     }
     return 1;
   });
+}
+
+function alertUnreadMessagesCountInTag(totalUnreadMessages: number) {
+  const originalTitle = document.title.replace(/^\d+条新消息-/, ""); // 清除已有前缀
+  if (totalUnreadMessages > 0) {
+    document.title = `${totalUnreadMessages}条新消息-${originalTitle}`;
+    console.warn(`当前有 ${totalUnreadMessages} 条新消息`);
+  }
+  else {
+    document.title = originalTitle;
+  }
+  return () => {
+    document.title = originalTitle;
+  };
 }
