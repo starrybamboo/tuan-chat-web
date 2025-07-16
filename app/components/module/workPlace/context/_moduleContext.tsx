@@ -6,10 +6,15 @@ const ModuleContext = createContext<ModuleContextType | null>(null);
 export function ModuleProvider({ children }: { children: React.ReactNode }) {
   const [moduleTabItems, updateModuleTabItems] = useImmer<ModuleTabItem[]>([]);
   const [currentSelectedTabId, _setCurrentSelectedTabId] = useState<string | null>(null);
+  const [stageId, _setStageId] = useState<number | null>(null);
 
   const moduleContextValue: ModuleContextType = useMemo(() => ({
     moduleTabItems,
     currentSelectedTabId,
+    stageId,
+    setStageId(id) {
+      _setStageId(id);
+    },
     setCurrentSelectedTabId(item) {
       _setCurrentSelectedTabId(item);
     },
@@ -39,7 +44,7 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
         });
       }
     },
-  }), [moduleTabItems, updateModuleTabItems, currentSelectedTabId]);
+  }), [moduleTabItems, currentSelectedTabId, stageId, updateModuleTabItems]);
 
   return (
     <ModuleContext
