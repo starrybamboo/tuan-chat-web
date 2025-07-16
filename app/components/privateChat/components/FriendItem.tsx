@@ -1,26 +1,27 @@
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGetUserInfoQuery } from "api/queryHooks";
+import { useNavigate } from "react-router";
 
 export default function FriendItem({
   id,
-  currentTargetUserId,
+  currentContactUserId,
   latestMessage,
-  handleContactClick,
 }: {
   id: number;
-  currentTargetUserId: number | null;
+  currentContactUserId: number | null;
   latestMessage?: string; // 可选的最新消息
-  handleContactClick: (contactId: number) => void;
 }) {
-// 获取好友信息
   const userInfoQuery = useGetUserInfoQuery(id);
   const userInfo = userInfoQuery.data?.data;
+  const navigate = useNavigate();
 
   return (
     <div
       className={`h-16 w-full border-b border-base-300 flex items-center gap-4 px-4 hover:bg-base-200 cursor-pointer transition-colors 
-                ${currentTargetUserId === id ? "bg-base-200" : ""}`}
-      onClick={() => handleContactClick(id)}
+                ${currentContactUserId === id ? "bg-base-200" : ""}`}
+      onClick={() => {
+        navigate(`/privatechat/${id}`);
+      }}
     >
       <UserAvatarComponent
         userId={id}

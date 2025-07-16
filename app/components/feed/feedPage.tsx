@@ -196,11 +196,6 @@ export default function FeedPage() {
         </div>
       </div>
 
-      <button
-        className="bg-amber-50 dark:bg-slate-700 text-black dark:text-white p-4 rounded"
-      >
-        测试按钮
-      </button>
       {/* 中间分隔线 */}
       <div className="w-0.5 bg-base-300"></div>
 
