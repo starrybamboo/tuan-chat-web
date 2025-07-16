@@ -6,16 +6,17 @@ import type {
 import { SideDrawerToggle } from "@/components/common/sideDrawer";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { ChevronRight, EmojiIcon, Image2Fill, MoreMenu } from "@/icons";
+import { ChevronRight, MoreMenu } from "@/icons";
 import { useGetMessageDirectPageQuery } from "api/hooks/MessageDirectQueryHooks";
 import { useGetUserInfoQuery } from "api/queryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
+import MessageInput from "./MessageInput";
 
 export default function RightChatView(
   {
     currentContactUserId,
   }: {
-    currentContactUserId: number;
+    currentContactUserId: number | null;
   },
 ) {
   const globalContext = useGlobalContext();
@@ -29,11 +30,11 @@ export default function RightChatView(
   // 用户输入
   const [messageInput, setMessageInput] = useState("");
   // 与当前联系人的历史消息
-  const directMessageQuery = useGetMessageDirectPageQuery(currentContactUserId, PAGE_SIZE);
+  const directMessageQuery = useGetMessageDirectPageQuery(currentContactUserId || -1, PAGE_SIZE);
   // 从 WebSocket 接收到的实时消息
   const receivedMessages = useMemo(() => {
     const userMessages = webSocketUtils.receivedDirectMessages[userId] || []; // senderId 为 userId
-    const contactUserMessages = webSocketUtils.receivedDirectMessages[currentContactUserId] || []; // senderId 为 currentContactUserId
+    const contactUserMessages = webSocketUtils.receivedDirectMessages[currentContactUserId || -1] || []; // senderId 为 currentContactUserId
     return [...userMessages, ...contactUserMessages];
   }, [webSocketUtils.receivedDirectMessages, userId, currentContactUserId]);
 
@@ -203,31 +204,12 @@ export default function RightChatView(
             )}
       </div>
       {/* 输入区域 */}
-      {currentContactUserId && (
-        <div className="h-36 w-full border-t border-base-300 flex flex-col px-6 pt-4 pb-2">
-          <div className="flex-1 w-full">
-            <textarea
-              className="w-full h-full resize-none px-2 py-1 rounded-lg focus:outline-none"
-              placeholder="请输入消息内容..."
-              onChange={e => setMessageInput(e.target.value)}
-              value={messageInput}
-            />
-          </div>
-          <div className="h-12 w-full flex items-center justify-between px-2">
-            <div className="h-full flex items-center gap-4">
-              <EmojiIcon className="size-6 cursor-pointer hover:text-blue-500 transition-colors" />
-              <Image2Fill className="size-6 cursor-pointer hover:text-blue-500 transition-colors" />
-            </div>
-            <button
-              type="button"
-              className="btn btn-info"
-              onClick={handleSendMessage}
-            >
-              发送
-            </button>
-          </div>
-        </div>
-      )}
+      <MessageInput
+        currentContactUserId={currentContactUserId}
+        setMessageInput={setMessageInput}
+        messageInput={messageInput}
+        handleSendMessage={handleSendMessage}
+      />
     </div>
   );
 }
