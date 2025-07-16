@@ -21,7 +21,7 @@ export default function LikeIconButton({ targetInfo, className, icon, direction 
   });
 
   const isLiked = isLikedQuery.data?.data;
-  const likeCount = useGetCounterQuery({ targetId: targetInfo.targetId, targetType: Number(targetInfo.targetType) }).data?.data ?? -2;
+  const likeCount = useGetCounterQuery({ targetId: targetInfo.targetId, targetType: Number(targetInfo.targetType) }).data?.data ?? 0;
 
   const likeMutation = useLikeMutation();
   const unlikeMutation = useUnlikeMutation();
