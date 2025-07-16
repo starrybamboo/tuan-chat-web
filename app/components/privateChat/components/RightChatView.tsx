@@ -1,45 +1,59 @@
+import type { DirectMessageEvent } from "api/wsModels";
+import type {
+  MessageDirectResponse,
+  MessageDirectSendRequest,
+} from "../../../../api";
 import { SideDrawerToggle } from "@/components/common/sideDrawer";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ChevronRight, EmojiIcon, Image2Fill, MoreMenu } from "@/icons";
-import { useGetMessageDirectPageQuery, useSendMessageDirectMutation } from "api/hooks/MessageDirectQueryHooks";
-import { useState } from "react";
+import { useGetMessageDirectPageQuery } from "api/hooks/MessageDirectQueryHooks";
+import { useGetUserInfoQuery } from "api/queryHooks";
+import { useMemo, useState } from "react";
 
 export default function RightChatView(
   {
     currentContactUserId,
-    currentContact,
-    currentContactUserInfo,
   }: {
     currentContactUserId: number;
-    currentContact: any; // 当前联系人信息
-    currentContactUserInfo: any; // 当前联系人用户信息
   },
 ) {
   const globalContext = useGlobalContext();
-  const userId = globalContext.userId;
-  // 用户输入信息
+  const userId = globalContext.userId || -1;
+  const webSocketUtils = globalContext.websocketUtils;
+
+  // 当前联系人信息
+  const currentContactUserInfo = useGetUserInfoQuery(currentContactUserId || -1).data?.data;
+  // 用户输入
   const [messageInput, setMessageInput] = useState("");
+  // 与当前联系人的历史消息
+  const directMessageQuery = useGetMessageDirectPageQuery(currentContactUserId, 15);
+  // 与当前联系人，从 WebSocket 接收到的实时消息
+  const receivedMessages = useMemo(() => {
+    return webSocketUtils.receivedDirectMessages[userId] || [];
+  }, [webSocketUtils.receivedDirectMessages, userId]);
 
-  // 获取与当前联系人的私聊消息
-  const directMessageQuery = useGetMessageDirectPageQuery(currentContactUserId, 5);
+  // 合并历史消息和实时消息
+  const allMessages = useMemo(() => {
+    return mergeMessages(directMessageQuery.historyMessages, receivedMessages);
+  }, [directMessageQuery.historyMessages, receivedMessages]);
+
   // 发送私聊消息
-  const sendMessageDirectMutation = useSendMessageDirectMutation();
-
+  const send = (message: MessageDirectSendRequest) => webSocketUtils.send({ type: 5, data: message }); // 私聊消息发送
   function handleSendMessage() {
     if (messageInput.trim() === "")
       return;
-    sendMessageDirectMutation.mutate({
+    const sendMessage: MessageDirectSendRequest = {
       receiverId: currentContactUserId || -1,
       content: messageInput,
       messageType: 1,
       extra: {},
-    }, {
-      onSettled: () => {
-        setMessageInput("");
-        directMessageQuery.refetch();
-      },
-    });
+    };
+    send(sendMessage);
+    setMessageInput("");
+    // 当消息发送到服务器后，服务器会通过 WebSocket 广播给所有在线用户
+    // 包括发送者自己也会收到这条消息的回显
+    // 无需主动refetch;
   }
 
   return (
@@ -50,7 +64,7 @@ export default function RightChatView(
           <ChevronRight className="size-6" />
         </SideDrawerToggle>
         <span className="absolute left-1/2 transform -translate-x-1/2">
-          {currentContact ? `${currentContactUserInfo?.username}` : "选择联系人"}
+          {currentContactUserInfo ? `${currentContactUserInfo.username}` : "选择联系人"}
         </span>
         <span className="absolute right-0 transform -translate-x-4">
           <MoreMenu className="size-6 cursor-pointer rotate-90" />
@@ -61,7 +75,7 @@ export default function RightChatView(
         {currentContactUserId
           ? (
               <div className="space-y-4">
-                {directMessageQuery.historyMessages.slice().reverse().map(msg => (
+                {allMessages.map(msg => (
                   msg.senderId === userId
                     ? (
                         <div key={msg.messageId} className="flex items-start justify-end gap-2">
@@ -126,4 +140,18 @@ export default function RightChatView(
       )}
     </div>
   );
+}
+
+function mergeMessages(historyMessages: MessageDirectResponse[], receivedMessages: DirectMessageEvent[]) {
+  const messageMap = new Map<number, MessageDirectResponse>();
+
+  historyMessages.forEach(msg => messageMap.set(msg.messageId || 0, msg));
+  receivedMessages.forEach(msg => messageMap.set(msg.messageId, msg));
+
+  // 按消息位置排序，确保消息显示顺序正确
+  const allMessages = Array.from(messageMap.values())
+    .sort((a, b) => (a.messageId ?? 0) - (b.messageId ?? 0))
+    .filter(msg => msg.status !== 1);
+
+  return allMessages;
 }
