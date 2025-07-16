@@ -21,14 +21,15 @@ export default function RightChatView(
   const globalContext = useGlobalContext();
   const userId = globalContext.userId || -1;
   const webSocketUtils = globalContext.websocketUtils;
+  const WEBSOCKET_TYPE = 5; // WebSocket 消息类型
+  const PAGE_SIZE = 30; // 每页消息数量
 
   // 当前联系人信息
   const currentContactUserInfo = useGetUserInfoQuery(currentContactUserId || -1).data?.data;
   // 用户输入
   const [messageInput, setMessageInput] = useState("");
   // 与当前联系人的历史消息
-  const directMessageQuery = useGetMessageDirectPageQuery(currentContactUserId, 15);
-
+  const directMessageQuery = useGetMessageDirectPageQuery(currentContactUserId, PAGE_SIZE);
   // 从 WebSocket 接收到的实时消息
   const receivedMessages = useMemo(() => {
     const userMessages = webSocketUtils.receivedDirectMessages[userId] || []; // senderId 为 userId
@@ -42,7 +43,7 @@ export default function RightChatView(
   }, [directMessageQuery.historyMessages, receivedMessages]);
 
   // 发送私聊消息相关
-  const send = (message: MessageDirectSendRequest) => webSocketUtils.send({ type: 5, data: message }); // 私聊消息发送
+  const send = (message: MessageDirectSendRequest) => webSocketUtils.send({ type: WEBSOCKET_TYPE, data: message }); // 私聊消息发送
   const handleSendMessage = () => {
     if (messageInput.trim() === "")
       return;
@@ -110,6 +111,11 @@ export default function RightChatView(
 
   // 如果有新消息且不在底部，显示滚动到底部按钮
 
+  // 加载更多历史消息
+  const loadMoreMessages = () => {
+    directMessageQuery.fetchNextPage();
+  };
+
   return (
     <div className="flex-1 bg-base-100 border-l border-base-300 flex flex-col">
       {/* 聊天顶部栏 */}
@@ -133,6 +139,30 @@ export default function RightChatView(
           ? (
               // 会溢出的消息列表容器
               <div className="space-y-4">
+                {/* 加载更多按钮 */}
+                {!directMessageQuery.isLastPage && (
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => loadMoreMessages()}
+                      disabled={directMessageQuery.isFetchingNextPage}
+                      className="btn btn-sm btn-ghost"
+                    >
+                      {directMessageQuery.isFetchingNextPage
+                        ? (
+                            <>
+                              <span className="loading loading-spinner loading-sm"></span>
+                              加载中...
+                            </>
+                          )
+                        : (
+                            "加载更多历史消息"
+                          )}
+                    </button>
+                  </div>
+                )}
+
+                {/* 消息列表项 */}
                 {allMessages.map(msg => (
                   msg.senderId === userId
                     ? (
