@@ -40,7 +40,7 @@ export default function PrivateChatPage() {
   const allReceivedMessages = useMemo(() => {
     const allMessages: DirectMessageEvent[] = [];
     Object.entries(webSocketUtils.receivedDirectMessages).forEach(([senderId, messages]) => {
-      messages.forEach(msg => {
+      messages.forEach((msg) => {
         if (msg.receiverId === userId || msg.senderId === userId) {
           allMessages.push(msg);
         }
@@ -48,7 +48,6 @@ export default function PrivateChatPage() {
     });
     return allMessages;
   }, [webSocketUtils.receivedDirectMessages, userId]);
-
 
   // 与当前联系人的历史消息
   const directMessageQuery = useGetMessageDirectPageQuery(currentContactUserId || -1, PAGE_SIZE);
