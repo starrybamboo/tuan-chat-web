@@ -49,8 +49,16 @@ export function useGetMessageDirectPageQuery(targetUserId: number, pageSize: num
     return lastPage.data?.isLast === true;
   }, [infiniteQuery.data?.pages]);
 
+  // 处理历史消息
+  const historyMessages = useMemo(() => {
+    const pages = infiniteQuery.data?.pages;
+    if (!pages) return [];
+    // 创建新数组，不修改原数组
+    return [...pages].reverse().flatMap(p => p.data?.list ?? []);
+  }, [infiniteQuery.data?.pages]);
+
   return {
-    historyMessages: infiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? [],
+    historyMessages,
     isLoading: infiniteQuery.isLoading,
     hasNextPage: infiniteQuery.hasNextPage,
     fetchNextPage: infiniteQuery.fetchNextPage,
