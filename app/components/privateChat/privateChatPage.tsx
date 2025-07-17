@@ -30,8 +30,8 @@ export default function PrivateChatPage() {
 
   // 好友列表
   const followingQuery = useGetUserFollowingsQuery(userId ?? -1, { pageNo: 1, pageSize: 100 });
-  const friends = followingQuery.data?.data?.list?.filter((user) => user.status === 2) ?? [];
-  const mappedFriends = friends.map((friend) => ({
+  const friends = followingQuery.data?.data?.list?.filter(user => user.status === 2) ?? [];
+  const mappedFriends = friends.map(friend => ({
     userId: friend.userId || -1,
     status: friend.status || 0,
   }));
@@ -60,10 +60,10 @@ export default function PrivateChatPage() {
     const userMessages = webSocketUtils.receivedDirectMessages[userId] || []; // senderId 为 userId
     const contactUserMessages = webSocketUtils.receivedDirectMessages[currentContactUserId] || []; // senderId 为 currentContactUserId
     // 筛选出与当前联系人相关的消息
-    const filteredUserMessages = userMessages.filter((msg) =>
+    const filteredUserMessages = userMessages.filter(msg =>
       msg.receiverId === currentContactUserId, // 用户发给当前联系人的消息
     );
-    const filteredContactMessages = contactUserMessages.filter((msg) =>
+    const filteredContactMessages = contactUserMessages.filter(msg =>
       msg.senderId === currentContactUserId && msg.receiverId === userId, // 当前联系人发给用户的消息
     );
     return [...filteredUserMessages, ...filteredContactMessages];
