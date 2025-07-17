@@ -13,12 +13,12 @@ type CarouselProps = CarouselItemProps;
 function CarouselItem({ img, alt, isActive = false }: CarouselItemProps) {
   return (
     <div
-      className={`flex-shrink-0 px-4 transition-all duration-700 ease-out ${
+      className={`flex-shrink-0 px-4 transition-transform duration-700 ease-out ${
         isActive ? "w-1/3" : "w-1/4"
       }`}
     >
       <div
-        className={`shadow-lg bg-gray-100 cursor-pointer relative group/item overflow-hidden transition-all duration-700 ease-out ${
+        className={`shadow-lg bg-gray-100 cursor-pointer relative group/item overflow-hidden transition-transform duration-700 ease-out ${
           isActive
             ? "aspect-square z-10 origin-bottom"
             : "aspect-square origin-bottom"
@@ -27,11 +27,12 @@ function CarouselItem({ img, alt, isActive = false }: CarouselItemProps) {
         <img
           src={img}
           alt={alt}
-          className={`w-full h-full object-cover transition-all duration-700 ease-out ${
+          className={`w-full h-full object-cover transition-transform duration-700 ease-out ${
             isActive
               ? "scale-105 group-hover/item:scale-110"
               : "scale-100 group-hover/item:scale-105"
           }`}
+          style={{ willChange: "transform" }}
         />
         {/* 悬浮时的白色遮罩 */}
         <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/item:opacity-100 transition-opacity duration-500"></div>

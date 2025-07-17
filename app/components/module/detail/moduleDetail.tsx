@@ -1,15 +1,15 @@
 import type { ModuleData } from "./constants";
-
 import { FollowButton } from "@/components/common/Follow/FollowButton";
 import { PopWindow } from "@/components/common/popWindow";
-
 import { UserDetail } from "@/components/common/userDetail";
+
 import TitleBar from "@/components/module/common/titleBar";
 import Items from "@/components/module/detail/items";
 import Roles from "@/components/module/detail/roles";
 import { useGetUserInfoQuery } from "api/queryHooks";
 import { useCallback, useState } from "react";
 import { useParams } from "react-router";
+import NewSceneGraph from "../scene/react flow/newSceneGraph";
 
 function Author({ userId }: { userId?: number }) {
   // 弹窗状态
@@ -197,9 +197,11 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
           </svg>
         </button>
       </div>
-      <div className="rounded-md overflow-hidden mb-64">
+      <div className="rounded-md overflow-hidden mb-32">
         <Author userId={moduleData.userId} />
-        <TitleBar label="角色" className="rounded-none" varient="accent" />
+        <TitleBar label="场景" className="rounded-none" varient="accent" />
+        <NewSceneGraph />
+        <TitleBar label="角色" className="rounded-none mt-10" varient="accent" />
         <Roles moduleId={Number(moduleId!)} />
         <TitleBar label="物品" className="rounded-none mt-10" varient="accent" />
         <Items moduleId={Number(moduleId!)} />
