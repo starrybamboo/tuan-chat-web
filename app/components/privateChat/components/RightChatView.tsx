@@ -1,4 +1,4 @@
-import type { DirectMessageEvent } from "api/wsModels";
+import type { useGetMessageDirectPageQuery } from "api/hooks/MessageDirectQueryHooks";
 import type {
   MessageDirectResponse,
   MessageDirectSendRequest,
@@ -7,50 +7,30 @@ import { SideDrawerToggle } from "@/components/common/sideDrawer";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ChevronRight, MoreMenu } from "@/icons";
-import { useGetMessageDirectPageQuery } from "api/hooks/MessageDirectQueryHooks";
 import { useGetUserInfoQuery } from "api/queryHooks";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MessageInput from "./MessageInput";
 
 export default function RightChatView(
   {
     currentContactUserId,
+    allMessages,
+    directMessageQuery,
   }: {
     currentContactUserId: number | null;
+    allMessages: MessageDirectResponse[];
+    directMessageQuery: ReturnType<typeof useGetMessageDirectPageQuery>;
   },
 ) {
   const globalContext = useGlobalContext();
   const userId = globalContext.userId || -1;
   const webSocketUtils = globalContext.websocketUtils;
   const WEBSOCKET_TYPE = 5; // WebSocket 消息类型
-  const PAGE_SIZE = 30; // 每页消息数量
 
   // 当前联系人信息
   const currentContactUserInfo = useGetUserInfoQuery(currentContactUserId || -1).data?.data;
   // 用户输入
   const [messageInput, setMessageInput] = useState("");
-  // 与当前联系人的历史消息
-  const directMessageQuery = useGetMessageDirectPageQuery(currentContactUserId || -1, PAGE_SIZE);
-  // 从 WebSocket 接收到的实时消息
-  const receivedMessages = useMemo(() => {
-    if (!currentContactUserId)
-      return [];
-    const userMessages = webSocketUtils.receivedDirectMessages[userId] || []; // senderId 为 userId
-    const contactUserMessages = webSocketUtils.receivedDirectMessages[currentContactUserId] || []; // senderId 为 currentContactUserId
-    // 筛选出与当前联系人相关的消息
-    const filteredUserMessages = userMessages.filter(msg =>
-      msg.receiverId === currentContactUserId, // 用户发给当前联系人的消息
-    );
-    const filteredContactMessages = contactUserMessages.filter(msg =>
-      msg.senderId === currentContactUserId && msg.receiverId === userId, // 当前联系人发给用户的消息
-    );
-    return [...filteredUserMessages, ...filteredContactMessages];
-  }, [webSocketUtils.receivedDirectMessages, userId, currentContactUserId]);
-
-  // 合并历史消息和实时消息
-  const allMessages = useMemo(() => {
-    return mergeMessages(directMessageQuery.historyMessages, receivedMessages);
-  }, [directMessageQuery.historyMessages, receivedMessages]);
 
   // 发送私聊消息相关
   const send = (message: MessageDirectSendRequest) => webSocketUtils.send({ type: WEBSOCKET_TYPE, data: message }); // 私聊消息发送
@@ -71,9 +51,9 @@ export default function RightChatView(
   const messagesLatestRef = useRef<HTMLDivElement>(null); // 用于滚动到最新消息的引用
   const scrollContainerRef = useRef<HTMLDivElement>(null); // 控制消息列表滚动行为的容器
   // const [showScrollToBottom, setShowScrollToBottom] = useState(false); // 是否显示滚动到底部按钮
-  const [isAtBottom, setIsAtBottom] = useState(true); // 是否在底部
+  const [isAtBottom, setIsAtBottom] = useState(false); // 是否在底部
 
-  // 检查是否在底部
+  // 检查是否在底部并处理未读消息
   const checkIfAtBottom = () => {
     if (!scrollContainerRef.current)
       return;
@@ -220,18 +200,4 @@ export default function RightChatView(
       />
     </div>
   );
-}
-
-function mergeMessages(historyMessages: MessageDirectResponse[], receivedMessages: DirectMessageEvent[]) {
-  const messageMap = new Map<number, MessageDirectResponse>();
-
-  historyMessages.forEach(msg => messageMap.set(msg.messageId || 0, msg));
-  receivedMessages.forEach(msg => messageMap.set(msg.messageId, msg));
-
-  // 按消息位置排序，确保消息显示顺序正确
-  const allMessages = Array.from(messageMap.values())
-    .sort((a, b) => (a.messageId ?? 0) - (b.messageId ?? 0))
-    .filter(msg => msg.status !== 1);
-
-  return allMessages;
 }
