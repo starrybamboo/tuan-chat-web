@@ -82,9 +82,7 @@ export function useGetMessageDirectPageQueries(friends: { userId: number, status
         pageSize: 1,
         targetUserId: friend.userId
       }),
-      refetchInterval: 10000, // 每10秒轮询一次
-      refetchIntervalInBackground: false, // 只在页面活跃时轮询
-      staleTime: 300000, // 5分钟缓存
+      staleTime: Infinity, // 永不过期
     })),
   });
 }

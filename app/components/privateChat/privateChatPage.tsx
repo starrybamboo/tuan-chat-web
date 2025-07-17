@@ -36,11 +36,25 @@ export default function PrivateChatPage() {
     status: friend.status || 0,
   }));
 
+  // 计算所有好友的从 WebSocket 接收到的实时消息
+  const allReceivedMessages = useMemo(() => {
+    const allMessages: DirectMessageEvent[] = [];
+    Object.entries(webSocketUtils.receivedDirectMessages).forEach(([senderId, messages]) => {
+      messages.forEach(msg => {
+        if (msg.receiverId === userId || msg.senderId === userId) {
+          allMessages.push(msg);
+        }
+      });
+    });
+    return allMessages;
+  }, [webSocketUtils.receivedDirectMessages, userId]);
+
+
   // 与当前联系人的历史消息
   const directMessageQuery = useGetMessageDirectPageQuery(currentContactUserId || -1, PAGE_SIZE);
 
-  // 从 WebSocket 接收到的实时消息
-  const receivedMessages = useMemo(() => {
+  // 当前选中联系人从 WebSocket 接收到的实时消息
+  const currentContactMessages = useMemo(() => {
     if (!currentContactUserId)
       return [];
     const userMessages = webSocketUtils.receivedDirectMessages[userId] || []; // senderId 为 userId
@@ -57,8 +71,8 @@ export default function PrivateChatPage() {
 
   // 合并历史消息和实时消息
   const allMessages = useMemo(() => {
-    return mergeMessages(directMessageQuery.historyMessages, receivedMessages);
-  }, [directMessageQuery.historyMessages, receivedMessages]);
+    return mergeMessages(directMessageQuery.historyMessages, currentContactMessages);
+  }, [directMessageQuery.historyMessages, currentContactMessages]);
 
   return (
     <div className="flex flex-row h-full">
@@ -66,6 +80,7 @@ export default function PrivateChatPage() {
       <LeftChatList
         currentContactUserId={currentContactUserId}
         friends={mappedFriends}
+        allReceivedMessages={allReceivedMessages}
       />
       {/* 右侧聊天窗口 */}
       <RightChatView
@@ -77,11 +92,11 @@ export default function PrivateChatPage() {
   );
 }
 
-function mergeMessages(historyMessages: MessageDirectResponse[], receivedMessages: DirectMessageEvent[]) {
+function mergeMessages(historyMessages: MessageDirectResponse[], currentContactMessages: DirectMessageEvent[]) {
   const messageMap = new Map<number, MessageDirectResponse>();
 
   historyMessages.forEach(msg => messageMap.set(msg.messageId || 0, msg));
-  receivedMessages.forEach(msg => messageMap.set(msg.messageId, msg));
+  currentContactMessages.forEach(msg => messageMap.set(msg.messageId, msg));
 
   // 按消息位置排序，确保消息显示顺序正确
   const allMessages = Array.from(messageMap.values())

@@ -14,15 +14,22 @@ interface contactInfo {
 export default function LeftChatList({
   currentContactUserId,
   friends,
+  allReceivedMessages,
 }: {
   currentContactUserId: number | null;
   friends: { userId: number; status: number }[];
+    allReceivedMessages: { senderId: number; receiverId: number; content: string; createTime: string }[];
 }) {
   // 获取每个好友的最新私聊消息
   const messageQueries = useGetMessageDirectPageQueries(friends);
   const latestMessages = messageQueries.map(query => query.data?.data?.list?.[0] || null);
+  // 合并messageQueries的latestMessages消息和allReceivedMessages
+  const mergedLatestMessages = useMemo(() => {
+    return mergeLatestMessages(latestMessages, allReceivedMessages);
+  }, [latestMessages, allReceivedMessages]);
+  console.warn("Merged Latest Messages:", mergedLatestMessages);
   // 将好友信息和最新消息合并
-  const friendInfos = mapFriendInfos(friends, latestMessages);
+  const friendInfos = mapFriendInfos(friends, mergedLatestMessages);
   // 根据最新消息时间排序好友列表
   const sortedFriendInfos = sortFriendInfos(friendInfos);
 
@@ -96,8 +103,8 @@ export default function LeftChatList({
 }
 
 function mapFriendInfos(friends: { userId: number; status: number }[], latestMessages: any[]): contactInfo[] {
-  return friends.map((friend, index) => {
-    const latestMessage = latestMessages[index];
+  return friends.map((friend) => {
+    const latestMessage = latestMessages.find(msg => msg && (msg.senderId === friend.userId || msg.receiverId === friend.userId));
     return {
       userId: friend.userId,
       status: friend.status,
@@ -135,4 +142,37 @@ function updateUnreadMessagesCountInTag(totalUnreadMessages: number) {
   return () => {
     document.title = originalTitle;
   };
+}
+
+function mergeLatestMessages(latestMessages: any[], allReceivedMessages: any[]) {
+  const messageMap = new Map<number, any>();
+  latestMessages.forEach(msg => {
+    if (msg) { // 确保 msg 不为 null
+      messageMap.set(msg.messageId, msg);
+    }
+  });
+  console.warn("All Received Messages:", allReceivedMessages);
+  allReceivedMessages.forEach(msg => {
+    const sameMessageId = findSameTwoContacter(msg);
+    if (sameMessageId) {
+      messageMap.set(sameMessageId, msg);
+    }
+  });
+  return Array.from(messageMap.values());
+
+  // 查找是否有可以覆盖的消息记录，覆盖为最新消息
+  function findSameTwoContacter(msg: any) {
+    for (const [messageId, message] of messageMap) {
+      const msgTime = new Date(msg.createTime);
+      const messageTime = new Date(message.createTime);
+
+      if (message.senderId === msg.senderId && message.receiverId === msg.receiverId && msgTime > messageTime) {
+        return messageId;
+      }
+      else if (message.receiverId === msg.senderId && message.senderId === msg.receiverId && msgTime > messageTime) {
+        return messageId;
+      }
+    }
+    return null;
+  }
 }
