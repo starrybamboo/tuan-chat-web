@@ -1,6 +1,6 @@
 import Pagination from "@/components/common/pagination";
 import { useModuleListQuery } from "api/hooks/moduleQueryHooks";
-import React, { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
 // 导入本地图片
@@ -231,7 +231,7 @@ export default function ModuleHome() {
 
   // 分页状态管理
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 16; // 每页显示16个模组
+  const itemsPerPage = 12; // 每页显示16个模组
 
   // 当前活跃的背景图片状态
   const [activeBackgroundImage, setActiveBackgroundImage] = useState<string>(
@@ -308,6 +308,33 @@ export default function ModuleHome() {
     }));
   }, [moduleData]);
 
+  const [imagesReady, setImagesReady] = useState(false);
+
+  function preloadImages(urls: string[]): Promise<void> {
+    return Promise.all(
+      urls.map(
+        url =>
+          new Promise<void>((resolve) => {
+            const img = new Image();
+            img.src = url;
+            img.onload = () => resolve();
+            img.onerror = () => {
+              console.error(`图片加载失败: ${url}`);
+              resolve(); // 失败也当加载完处理，防止卡死
+            };
+          }),
+      ),
+    ).then(() => {});
+  }
+
+  useEffect(() => {
+    if (ModuleList.isSuccess && currentItems.length > 0) {
+      const imageUrls = currentItems.map(item => item.image);
+      preloadImages(imageUrls).then(() => {
+        setImagesReady(true);
+      });
+    }
+  }, [ModuleList.isSuccess, currentItems]);
   // 处理页面变化
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -396,7 +423,7 @@ export default function ModuleHome() {
         <div id="featured-content">
           <ModuleHomeCardContainer title="全部模组" className="mb-12 mt-16">
             {(() => {
-              if (ModuleList.isLoading) {
+              if (ModuleList.isLoading || !imagesReady) {
                 return Array.from({ length: 8 }, (_, index) => (
                   <div key={`loading-skeleton-${index}-${Math.random()}`} className="animate-pulse">
                     <div className="bg-base-300 aspect-square rounded-none mb-4"></div>
