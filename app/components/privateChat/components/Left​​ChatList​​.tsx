@@ -18,7 +18,7 @@ export default function LeftChatList({
 }: {
   currentContactUserId: number | null;
   friends: { userId: number; status: number }[];
-    allReceivedMessages: { senderId: number; receiverId: number; content: string; createTime: string }[];
+  allReceivedMessages: { senderId: number; receiverId: number; content: string; createTime: string }[];
 }) {
   // 获取每个好友的最新私聊消息
   const messageQueries = useGetMessageDirectPageQueries(friends);
@@ -146,13 +146,13 @@ function updateUnreadMessagesCountInTag(totalUnreadMessages: number) {
 
 function mergeLatestMessages(latestMessages: any[], allReceivedMessages: any[]) {
   const messageMap = new Map<number, any>();
-  latestMessages.forEach(msg => {
+  latestMessages.forEach((msg) => {
     if (msg) { // 确保 msg 不为 null
       messageMap.set(msg.messageId, msg);
     }
   });
   console.warn("All Received Messages:", allReceivedMessages);
-  allReceivedMessages.forEach(msg => {
+  allReceivedMessages.forEach((msg) => {
     const sameMessageId = findSameTwoContacter(msg);
     if (sameMessageId) {
       messageMap.set(sameMessageId, msg);
