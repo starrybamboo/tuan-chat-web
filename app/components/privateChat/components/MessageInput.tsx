@@ -60,6 +60,7 @@ export default function MessageInput({
             placeholder="输入消息内容，按 Enter 发送，Shift+Enter 换行"
             onChange={e => setMessageInput(e.target.value)}
             value={messageInput}
+            onKeyDown={handleKeyDown}
           />
         </div>
         <div className="h-12 w-full flex items-center justify-between px-2">
