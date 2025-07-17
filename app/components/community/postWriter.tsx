@@ -1,6 +1,5 @@
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
-import { CommunityContext } from "@/components/community/communityContext";
 import {
   BaselineCode,
   BaselineFormatBold,
@@ -18,8 +17,7 @@ import {
 } from "@/icons";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { useDebounce } from "ahooks";
-import React, { use, useEffect, useMemo, useRef, useState } from "react";
-import { usePublishPostMutation } from "../../../api/hooks/communityQueryHooks";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type MarkdownFormatType =
   | "strong" | "em" | "code" | "blockquote" | "codeBlock"
@@ -30,22 +28,23 @@ type MarkdownFormatType =
   | "bilibili" | "youtube" |
   "detail";
 
-// save editing post
-interface StoredPost {
+export interface StoredPost {
   title?: string;
   content?: string;
 }
 
 /**
  * 帖子编辑器，也就是一个markdown编辑器
- * @param onClose 关闭的时候的回调函数
+ * @param onClose 关闭窗口的时候的回调函数
+ * @param onSubmit 提交按钮的回调函数，异步执行, 传入帖子的标题和内容。如果发送成功，返回true，否则返回false。
  * @constructor
  */
-export default function PostWriter({ onClose }: { onClose?: () => void }) {
-  const communityContext = use(CommunityContext);
-  const communityId = communityContext.communityId ?? -1;
-  const publishPostMutation = usePublishPostMutation();
-  const isPublishing = publishPostMutation.isPending;
+export default function PostWriter({ onClose, onSubmit }:
+{
+  onClose?: () => void;
+  onSubmit: (post: StoredPost) => Promise<boolean>;
+}) {
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const uploadUtils = new UploadUtils(2);
@@ -210,28 +209,18 @@ export default function PostWriter({ onClose }: { onClose?: () => void }) {
       }
     }
   };
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!title.trim() || !content.trim())
+    setIsPublishing(true);
+    const isSuccess = await onSubmit({ title, content });
+    setIsPublishing(false);
+    if (!isSuccess)
       return;
-
-    publishPostMutation.mutate(
-      {
-        communityId,
-        title: title.trim(),
-        content: content.trim(),
-      },
-      {
-        onSuccess: () => {
-          setTitle("");
-          setContent("");
-          if (onClose) {
-            onClose();
-          }
-        },
-      },
-    );
+    setTitle("");
+    setContent("");
+    if (onClose) {
+      onClose();
+    }
   };
 
   return (
