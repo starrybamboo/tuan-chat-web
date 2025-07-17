@@ -49,8 +49,16 @@ export function useGetMessageDirectPageQuery(targetUserId: number, pageSize: num
     return lastPage.data?.isLast === true;
   }, [infiniteQuery.data?.pages]);
 
+  // 处理历史消息
+  const historyMessages = useMemo(() => {
+    const pages = infiniteQuery.data?.pages;
+    if (!pages) return [];
+    // 创建新数组，不修改原数组
+    return [...pages].reverse().flatMap(p => p.data?.list ?? []);
+  }, [infiniteQuery.data?.pages]);
+
   return {
-    historyMessages: infiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? [],
+    historyMessages,
     isLoading: infiniteQuery.isLoading,
     hasNextPage: infiniteQuery.hasNextPage,
     fetchNextPage: infiniteQuery.fetchNextPage,
@@ -74,9 +82,7 @@ export function useGetMessageDirectPageQueries(friends: { userId: number, status
         pageSize: 1,
         targetUserId: friend.userId
       }),
-      refetchInterval: 10000, // 每10秒轮询一次
-      refetchIntervalInBackground: false, // 只在页面活跃时轮询
-      staleTime: 300000, // 5分钟缓存
+      staleTime: Infinity, // 永不过期
     })),
   });
 }

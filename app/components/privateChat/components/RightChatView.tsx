@@ -132,7 +132,7 @@ export default function RightChatView(
                   <div className="flex justify-center">
                     <button
                       type="button"
-                      onClick={() => loadMoreMessages()}
+                      onClick={loadMoreMessages}
                       disabled={directMessageQuery.isFetchingNextPage}
                       className="btn btn-sm btn-ghost"
                     >

@@ -1,6 +1,6 @@
 import type { ChatMessageRequest } from "./models/ChatMessageRequest";
 import type { ChatMessageResponse } from "./models/ChatMessageResponse";
-import { getLocalStorageValue } from "@/components/common/customHooks/useLocalStorage";
+import { getLocalStorageValue, useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { formatLocalDateTime } from "@/utils/dataUtil";
 import { useQueryClient } from "@tanstack/react-query";
 import {useCallback, useEffect, useRef, useState} from "react";
@@ -69,9 +69,11 @@ export function useWebSocket() {
   // 输入状态, 按照roomId进行分组
   const [chatStatus, updateChatStatus] = useImmer<Record<number, ChatStatus[]>>({});
 
-  // 私聊新消息数记录
-  const [unreadDirectMessagesNumber, setUnreadDirectMessagesNumber] = useState<Record<number, number>>({});
-
+  // 私聊新消息数记录（从localStorage中读取）
+  const [unreadDirectMessagesNumber, setUnreadDirectMessagesNumber] = useLocalStorage<Record<number, number>>(
+    `unreadDirectMessages_${globalContext.userId}`,
+    {}
+  );
   const token = getLocalStorageValue<number>("token", -1);
   // 配置参数
   const HEARTBEAT_INTERVAL = 25000;
