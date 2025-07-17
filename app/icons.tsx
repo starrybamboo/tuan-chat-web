@@ -683,6 +683,7 @@ export function EmojiIconWhite(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
 export function CommentOutline(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -700,6 +701,7 @@ export function CommentOutline(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
 export function EllipsisVertical(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -737,7 +739,10 @@ export function HexagonDice(props: SVGProps<SVGSVGElement>) {
         >
         </path>
         <path strokeLinecap="round" d="M17 15H7l5-8z"></path>
-        <path d="M2.5 6.5L12 7m-9.5-.5L7 15m14.5-8.5L17 15m4.5-8.5L12 7V1m9.5 16.5L17 15M2.5 17.5L7 15m0 0l5 8l5-8"></path>
+        <path
+          d="M2.5 6.5L12 7m-9.5-.5L7 15m14.5-8.5L17 15m4.5-8.5L12 7V1m9.5 16.5L17 15M2.5 17.5L7 15m0 0l5 8l5-8"
+        >
+        </path>
       </g>
     </svg>
   );
@@ -820,6 +825,24 @@ export function UserSyncOnlineInPerson(props: SVGProps<SVGSVGElement>) {
         <path d="M5.75 5.25a1.25 1.25 0 1 0 2.5 0a1.25 1.25 0 1 0-2.5 0"></path>
         <path strokeLinecap="round" d="M4.708 9.5a2.5 2.5 0 0 1 4.584 0"></path>
       </g>
+    </svg>
+  );
+}
+
+export function DraggableIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M8.5 7a1.5 1.5 0 1 0 0-3a1.5 1.5 0 0 0 0 3m0 6.5a1.5 1.5 0 1 0 0-3a1.5 1.5 0 0 0 0 3m1.5 5a1.5 1.5 0 1 1-3 0a1.5 1.5 0 0 1 3 0M15.5 7a1.5 1.5 0 1 0 0-3a1.5 1.5 0 0 0 0 3m1.5 5a1.5 1.5 0 1 1-3 0a1.5 1.5 0 0 1 3 0m-1.5 8a1.5 1.5 0 1 0 0-3a1.5 1.5 0 0 0 0 3"
+      >
+      </path>
     </svg>
   );
 }
