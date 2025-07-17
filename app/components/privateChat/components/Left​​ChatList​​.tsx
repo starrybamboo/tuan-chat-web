@@ -28,13 +28,12 @@ export default function LeftChatList({
 
   // 未读消息提醒
   const websocketUtils = useGlobalContext().websocketUtils;
-  const unreadMessagesNumber = websocketUtils.unreadMessagesNumber;
   const totalUnreadMessages = useMemo(() => {
-    return Object.values(unreadMessagesNumber).reduce((sum, count) => sum + count, 0);
-  }, [unreadMessagesNumber]);
-  // 在标签页中显示未读消息
+    return Object.values(websocketUtils.unreadDirectMessagesNumber).reduce((sum, count) => sum + count, 0);
+  }, [websocketUtils.unreadDirectMessagesNumber]);
+  // 在标签页中显示未读消息或删除未读消息
   useEffect(() => {
-    alertUnreadMessagesCountInTag(totalUnreadMessages);
+    updateUnreadMessagesCountInTag(totalUnreadMessages);
   }, [totalUnreadMessages]);
 
   return (
@@ -120,11 +119,15 @@ function sortFriendInfos(friendInfos: contactInfo[]): contactInfo[] {
   });
 }
 
-function alertUnreadMessagesCountInTag(totalUnreadMessages: number) {
+function updateUnreadMessagesCountInTag(totalUnreadMessages: number) {
+  // 如果不是私聊页
+  if (window.location.pathname !== "/privatechat") {
+    return;
+  }
+
   const originalTitle = document.title.replace(/^\d+条新消息-/, ""); // 清除已有前缀
   if (totalUnreadMessages > 0) {
     document.title = `${totalUnreadMessages}条新消息-${originalTitle}`;
-    console.warn(`当前有 ${totalUnreadMessages} 条新消息`);
   }
   else {
     document.title = originalTitle;
