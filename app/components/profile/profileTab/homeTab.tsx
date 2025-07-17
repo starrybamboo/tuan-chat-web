@@ -1,100 +1,93 @@
 import { useGlobalContext } from "@/components/globalContextProvider";
-import React, { useState } from "react";
-import { useGetUerSCBalanceQuery } from "../../../../api/hooks/scQueryHooks";
+import React from "react";
+import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 
 interface HomeTabProps {
   userId: number;
 }
 
-const HomeTab: React.FC<HomeTabProps> = () => {
-  // 当前登录用户的userId
-  const userId = useGlobalContext().userId ?? -1;
-
-  const [activeTab, setActiveTab] = useState<"likes" | "comments">("likes");
-  const getUserSCBalanceQuery = useGetUerSCBalanceQuery(userId);
-
-  // DEMO: 获取用户点赞内容的 标题 - 正文
-  const mockLikedPosts = [
-    { id: "1", title: "标题111", content: "正文正文正文正文正文正文正文正文正文正文正文正文正文正文", date: "2025-05-15" },
-    { id: "2", title: "标题222", content: "内容内容内容内容内容内容内容内容内容内容内容内容内容内容", date: "2025-05-10" },
-  ];
-
-  // DEMO: 获取用户评论 标题 - 评论 - 日期（按日期排序，按热度排序）
-  const mockComments = [
-    { id: "c1", title: "标题1", content: "奇奇怪怪的内容", date: "2025-05-16" },
-    { id: "c2", title: "标题2", content: "香香甜甜小蛋糕", date: "2025-05-11" },
-  ];
+export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
+  const userQuery = useGetUserInfoQuery(userId);
+  useGlobalContext();
+  const user = userQuery.data?.data;
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="card-body">
-        <div className="card-title gap-16">
-          <span>SC余额</span>
-          <div className="badge badge-outline">{getUserSCBalanceQuery.data?.data?.balance}</div>
+    <div className="bg-gray-100 max-w-7xl mx-auto p-4 flex">
+      <div className="w-full max-w-1/4 flex flex-col md:flex-row py-8">
+        <div className="flex flex-col items-center rounded-2xl p-6">
+          {/* 头像 */}
+          <div className="md:48 lg:w-54 mb-4">
+            {userQuery?.isLoading
+              ? (
+                  <div className="skeleton w-full h-full rounded-full"></div>
+                )
+              : (
+                  <div className="pointer-events-none w-full h-full">
+                    <img
+                      src={user?.avatar || undefined}
+                      alt={user?.username}
+                      className="mask mask-circle w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+          </div>
+
+          {/* 用户名 */}
+          <div className="flex items-center">
+            {userQuery.isLoading
+              ? (
+                  <div className="skeleton h-8 w-48 pr-4"></div>
+                )
+              : (
+                  <h2 className="text-2xl font-bold h-8  transition-all duration-300
+               overflow-hidden text-ellipsis whitespace-nowrap"
+                  >
+                    {user?.username || "未知用户"}
+                  </h2>
+                )}
+          </div>
+          <p className="text-gray-500 text-sm mb-2">@github</p>
+
+          {/* 简介 */}
+          <p className="text-center text-sm text-gray-700 dark:text-gray-300 mt-2">
+            GitHub mascot and software enthusiast.
+          </p>
+
+          {/* 信息列表 */}
+          <div className="mt-4 space-y-2 text-sm w-full text-gray-700 dark:text-gray-300">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4" />
+              <span>San Francisco</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4" />
+              <span>GitHub</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4" />
+              <a
+                href="https://github.blog"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                github.blog
+              </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4" />
+              <span>
+                <strong>300</strong>
+                {" "}
+                followers
+              </span>
+            </div>
+          </div>
         </div>
       </div>
-      <h2 className="text-2xl font-bold mb-6">
-        最近点赞或评论的内容
-      </h2>
 
-      {/* Tab Navigation */}
-      <div className="flex border-b mb-6">
-        <button
-          type="button"
-          className={`py-2 px-4 font-medium ${activeTab === "likes" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500"}`}
-          onClick={() => setActiveTab("likes")}
-        >
-          点赞内容
-        </button>
-        <button
-          type="button"
-          className={`py-2 px-4 font-medium ${activeTab === "comments" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500"}`}
-          onClick={() => setActiveTab("comments")}
-        >
-          评论内容
-        </button>
-      </div>
-
-      {/* 点赞和评论内容 */}
-      <div className="space-y-4">
-        {activeTab === "likes"
-          ? (
-              <>
-                {/* 只展示10条 */}
-                <h3 className="text-xl font-semibold mb-4">点赞的内容</h3>
-                {mockLikedPosts.slice(0, 10).map(post => (
-                  <div key={post.id} className="p-4 border rounded-lg cursor-pointer">
-                    <h4 className="font-medium text-lg">{post.title}</h4>
-                    <p className="text-gray-600 my-2">{post.content}</p>
-                    <div className="flex justify-between items-center text-sm text-gray-500">
-                      <span>
-                        Post ID:
-                        {post.id}
-                      </span>
-                      <span>{post.date}</span>
-                    </div>
-                  </div>
-                ))}
-              </>
-            )
-          : (
-              <>
-                {/* 只展示10条 */}
-                <h3 className="text-xl font-semibold mb-4">发表的评论</h3>
-                {mockComments.slice(0, 10).map(comment => (
-                  <div key={comment.id} className="p-4 border rounded-lg cursor-pointer">
-                    <p className="text-gray-600 my-2">{comment.content}</p>
-                    <div className="flex justify-between items-center text-sm text-gray-500">
-                      <span>
-                        Comment ID:
-                        {comment.id}
-                      </span>
-                      <span>{comment.date}</span>
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
+      <div className="flex-1 bg-white rounded-xl shadow-md p-4">
+        new
       </div>
     </div>
   );

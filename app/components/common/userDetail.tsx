@@ -1,8 +1,7 @@
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import EditProfileWindow from "@/components/profile/editProfileWindow";
-import clsx from "clsx";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "../../../api/queryHooks";
@@ -25,19 +24,12 @@ interface UserDetailProps {
  */
 export function UserDetail({ userId, size = "default" }: UserDetailProps) {
   const userQuery = useGetUserInfoQuery(userId);
-  const globalContext = useGlobalContext(); // 添加这行
+  const globalContext = useGlobalContext();
 
   const user = userQuery.data?.data;
   const [isFFWindowOpen, setIsFFWindowOpen] = useSearchParamsState<boolean>(`userEditPop${userId}`, false);
   const [isEditWindowOpen, setIsEditWindowOpen] = useSearchParamsState<boolean>(`profileEditPop`, false);
-  const [isSmallMenuOpen, setIsSmallMenuOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  // 背景图片的大小
-  const backgroundHeightMap = {
-    compact: "h-40 scale-150", // 小卡片
-    default: "h-64 ", // 正常卡片
-  };
 
   // 状态颜色映射
   const activeStatus = String(user?.activeStatus).toLowerCase() as
@@ -76,34 +68,8 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
     setRelationTab("followers"); // 使用 setState 来更新值
     setIsFFWindowOpen(true);
   };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current?.contains(event.target as Node)) {
-        setIsSmallMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const handleReport = () => {
-
-  };
-
-  const handleBlockUser = () => {
-  };
-
   return (
-    <div className={clsx(
-      "card bg-base-100 relative",
-      size === "compact"
-        ? "w-90"
-        : "w-full",
-    )}
-    >
+    <div className="card bg-base-100 relative w-90">
       {/* 主体 */}
       <div className="card-body">
         {/* 头像-名字-描述 */}
@@ -114,10 +80,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
               // 未来在这里会让用户上传背景图片
               // src="https://s21.ax1x.com/2025/03/31/pEs53vD.jpg" // 测试用的固定图片
               src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzY2NiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+"
-              className={clsx(
-                "w-full object-cover object-center rounded-md scale-170 sm:scale-150 md:scale-130 lg:scale-100",
-                backgroundHeightMap[size ?? "default"],
-              )}
+              className="w-full object-cover object-center rounded-md scale-170 sm:scale-150 md:scale-130 lg:scale-100 h-40 scale-150"
               alt="用户背景"
               onError={(e) => {
                 // No Image 灰色字样
@@ -164,9 +127,9 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
           </div>
           <div className="relative px-4 w-full">
             {/* 头像 */}
-            <div className={clsx("avatar absolute left-4", size === "compact" ? "-top-9" : "-top-12")}>
+            <div className="avatar absolute left-4 -top-9">
               <div
-                className={clsx("rounded-full ring-4 ring-base-100 bg-base-100", size === "compact" ? "w-16" : "w-24")}
+                className="rounded-full ring-4 ring-base-100 bg-base-100 w-16"
               >
                 {userQuery.isLoading
                   ? (
@@ -201,7 +164,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
           {/* 主要信息 */}
           <div className="flex justify-between w-full pl-2">
             {/* 左边：名字和描述 */}
-            <div className={clsx("pt-2", size === "compact" ? "pt-14" : "pl-32")}>
+            <div className="pt-14">
               <div className="flex items-center">
                 {userQuery.isLoading
                   ? (
@@ -280,81 +243,6 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
         <div className="relative pl-8">
           <div className="flex">
             {/* 左边 - 功能组件（关注，私信等等） */}
-            {size === "default" && user?.userId !== globalContext.userId
-              && (
-                <div className="flex items-center w-full gap-4">
-                  {/* 关注按钮 */}
-                  <div className="flex-shrink-0 pb-2">
-                    <FollowButton userId={user?.userId || 0} />
-                  </div>
-
-                  {/* 私信按钮 */}
-                  <Link to={`/privatechat/${userId}`} className="flex-shrink-0">
-                    <button
-                      type="button"
-                      className="btn flex items-center justify-center space-x-1 px-4 border border-gray-300 rounded-3 xl hover:text-primary transition-colors h-8 cursor-pointer"
-                    >
-                      <svg aria-label="私信" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="flex-shrink-0">
-                        <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">
-                          <rect width="20" height="16" x="2" y="4" rx="2"></rect>
-                          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
-                        </g>
-                      </svg>
-                      <span className="text-sm">私信</span>
-                    </button>
-                  </Link>
-
-                  {/* 三点菜单 */}
-                  <div className="relative rounded-full" ref={menuRef}>
-                    <button
-                      type="button"
-                      className="btn px-2 py-0.5 h-8 w-auto flex items-center justify-center border border-gray-300 hover:text-primary transition-colors cursor-pointer"
-                      onClick={() => setIsSmallMenuOpen(!isSmallMenuOpen)}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                        <circle cx="11" cy="10" r="1"></circle>
-                        <circle cx="11" cy="5" r="1"></circle>
-                        <circle cx="11" cy="15" r="1"></circle>
-                      </svg>
-                    </button>
-
-                    {isSmallMenuOpen && (
-                      <div className="absolute left-0 bottom-10 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
-                        <button
-                          type="button"
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                          onClick={() => {
-                            handleBlockUser();
-                            setIsSmallMenuOpen(false);
-                          }}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
-                          </svg>
-                          加入黑名单
-                        </button>
-                        <button
-                          type="button"
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                          onClick={() => {
-                            handleReport();
-                            setIsSmallMenuOpen(false);
-                          }}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                            <line x1="12" y1="9" x2="12" y2="13"></line>
-                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                          </svg>
-                          举报
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
             {size === "default" && user?.userId === globalContext.userId && (
               <button
                 className="btn flex border border-gray-300 hover:text-primary transition-colors h-8 cursor-pointer"

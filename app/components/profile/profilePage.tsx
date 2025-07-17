@@ -1,4 +1,3 @@
-import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useState } from "react";
 import ActivitiesTab from "./profileTab/activitiesTab";
@@ -10,7 +9,6 @@ interface Props {
 }
 
 function ProfilePage({ userId }: Props) {
-  // 当前登录用户的userId
   const currentUserId = useGlobalContext().userId ?? -1;
   const finalUserId = userId ?? currentUserId;
   const [activeTab, setActiveTab] = useState(0);
@@ -29,9 +27,8 @@ function ProfilePage({ userId }: Props) {
   ];
 
   return (
+  // currentUserId !== globalContext.userId
     <div className="card bg-base-100 mb-50 mx-auto ">
-      {/* 用户基本信息 */}
-      <UserDetail userId={finalUserId}></UserDetail>
       {/* 导航栏 */}
       <div
         role="tablist"
