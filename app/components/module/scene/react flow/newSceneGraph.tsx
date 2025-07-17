@@ -12,6 +12,7 @@ import dagre from "dagre";
 import { useCallback, useEffect, useMemo } from "react";
 import { useParams } from "react-router";
 import { getEnhancedSceneList } from "../../detail/moduleUtils";
+import 教室图片 from "../scene/images/教室.webp";
 import SceneNode from "./NewSceneNode";
 import "@xyflow/react/dist/style.css";
 
@@ -46,7 +47,7 @@ export default function NewSceneGraph() {
         position: { x: 0, y: 0 }, // 先占位，后续用 dagre 计算
         data: {
           label: sceneName,
-          imgUrl: sceneData?.entityInfo?.image || `/app/components/module/scene/images/教室.webp`,
+          imgUrl: sceneData?.entityInfo?.image || 教室图片,
           sceneItems: sceneData?.sceneItems || [],
           sceneRoles: sceneData?.sceneRoles || [],
           description: sceneData?.entityInfo?.sceneDescription || "",
