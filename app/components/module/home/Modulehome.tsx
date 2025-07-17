@@ -59,7 +59,8 @@ export function ContentCard({
   maxPeople,
   minTime,
   maxTime,
-}: ContentCardProps) {
+  imageOnLoad,
+}: ContentCardProps & { imageOnLoad?: () => void }) {
   // 根据大小设置基础样式
   const sizeClasses = {
     sm: "text-sm",
@@ -93,6 +94,7 @@ export function ContentCard({
             src={image}
             alt={imageAlt || title || "Content image"}
             className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-110 rounded-none"
+            onLoad={imageOnLoad}
           />
           {/* 悬浮时的遮罩 */}
           <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-40 transition-opacity duration-300"></div>
@@ -386,10 +388,6 @@ export default function ModuleHome() {
               content={card.content}
               type={card.type}
               theme={card.theme}
-              onClick={() => {
-                // 处理卡片点击事件
-                navigate(`/module/${card.id}`);
-              }}
             />
           ))}
         </ModuleHomeCardContainer>
