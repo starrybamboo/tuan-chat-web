@@ -338,6 +338,7 @@ export default function ModuleHome() {
   // 处理页面变化
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    setImagesReady(false); // 关键：每次数据变化先重置
     // 滚动到精选内容区域
     const element = document.getElementById("featured-content");
     if (element) {
