@@ -142,16 +142,6 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
               呜呜…太多的话我装不下啦///
             </div>
           </div>
-
-          {/* 详细信息, 暂时没有 */}
-          {/* <div className="divider w-full"></div> */}
-          {/* 用户ID没有必要在这里显示，注释掉了 */}
-          {/* <div className="space-y-2 w-full max-w-xs"> */}
-          {/*  <div className="flex justify-between"> */}
-          {/*    <span className="text-base-content/70">用户ID</span> */}
-          {/*    <span className="font-mono">{userId}</span> */}
-          {/*  </div> */}
-          {/* </div> */}
           <div className="flex items-center gap-4 mt-4">
             <button onClick={handleSave} className="btn btn-info px-8" type="button">
               保存

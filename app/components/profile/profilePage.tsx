@@ -44,10 +44,10 @@ function ProfilePage({ userId }: Props) {
             type="button"
             className={`
               px-6 py-4 text-lg font-medium relative
-              transition-colors duration-200 cursor-pointer
+              transition-all duration-300 ease-out cursor-pointer
               ${activeTab === tab.id
-            ? "text-cyan-300"
-            : "text-cyan-700 hover:text-cyan-500"
+            ? "text-indigo-700"
+            : "text-indigo-300 hover:text-indigo-500"
           }
             `}
             onClick={() => {
@@ -57,7 +57,7 @@ function ProfilePage({ userId }: Props) {
           >
             {tab.name}
             {activeTab === tab.id && (
-              <div className="absolute bottom-0 left-2 right-2 h-1 bg-cyan-400 rounded-t-full" />
+              <div className="absolute bottom-0 left-1/5 right-1/5 h-1.5 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-t-full transform " />
             )}
           </button>
         ))}

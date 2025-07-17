@@ -2,7 +2,7 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import { useGlobalContext } from "@/components/globalContextProvider";
 import EditProfileWindow from "@/components/profile/editProfileWindow";
 import clsx from "clsx";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "../../../api/queryHooks";
@@ -30,8 +30,9 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
   const user = userQuery.data?.data;
   const [isFFWindowOpen, setIsFFWindowOpen] = useSearchParamsState<boolean>(`userEditPop${userId}`, false);
   const [isEditWindowOpen, setIsEditWindowOpen] = useSearchParamsState<boolean>(`profileEditPop`, false);
+  const [isSmallMenuOpen, setIsSmallMenuOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-
+  const menuRef = useRef<HTMLDivElement | null>(null);
   // 背景图片的大小
   const backgroundHeightMap = {
     compact: "h-40 scale-150", // 小卡片
@@ -76,6 +77,25 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
     setIsFFWindowOpen(true);
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current?.contains(event.target as Node)) {
+        setIsSmallMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleReport = () => {
+
+  };
+
+  const handleBlockUser = () => {
+  };
+
   return (
     <div className={clsx(
       "card bg-base-100 relative",
@@ -88,7 +108,6 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
       <div className="card-body">
         {/* 头像-名字-描述 */}
         <div className="flex flex-col items-start">
-          {/* 新增的包裹容器 - 关键修改 */}
           <div className="relative rounded-md overflow-hidden w-full">
             {/* 原图片 - 移除圆角样式 */}
             <img
@@ -113,7 +132,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                   border-b-gray-200/30 border-r-gray-200/30"
             />
 
-            {/* 更新按钮 */}
+            {/* 更新背景按钮 */}
             <button
               type="button"
               className="absolute bottom-1.5 right-1.5 p-1.5 bg-black/40 rounded-full
@@ -172,20 +191,15 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
               </div>
             </div>
             {/* 关注按钮（仅在 sm 情况显示，浮动在头像下方） */}
-            {user?.userId !== globalContext.userId && (
-              <div
-                className={clsx(
-                  "absolute",
-                  size === "compact" ? "block left-38 top-1" : "sm:block md:hidden left-6 top-[3.5rem]", // compact 时始终显示，否则仅在 sm 及以下显示
-                )}
-              >
+            {user?.userId !== globalContext.userId && size === "compact" && (
+              <div className="absolute block left-38 top-1">
                 <FollowButton userId={user?.userId || 0} />
               </div>
             )}
           </div>
 
           {/* 主要信息 */}
-          <div className="flex justify-between w-full">
+          <div className="flex justify-between w-full pl-2">
             {/* 左边：名字和描述 */}
             <div className={clsx("pt-2", size === "compact" ? "pt-14" : "pl-32")}>
               <div className="flex items-center">
@@ -194,7 +208,10 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                       <div className="skeleton h-8 w-48 pr-4"></div>
                     )
                   : (
-                      <h2 className="text-2xl w-50 sm:w-50 md:w-80 lg:w-auto h-8 font-bold pr-4 truncate transition-all duration-300">
+                      <h2 className="text-2xl font-bold h-8 pr-4 transition-all duration-300
+               max-w-2/5 sm:max-w-2/5 md:max-w-3/5
+               overflow-hidden text-ellipsis whitespace-nowrap"
+                      >
                         {size === "default"
                           ? (
                               user?.username || "未知用户"
@@ -229,30 +246,6 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                     </span>
                   </div>
                 )}
-                {/* 编辑按钮 */}
-                {user?.userId === globalContext.userId && (
-                  <button
-                    className="btn p-1 rounded-full ml-2 w-6 h-6 flex justify-center hover:text-info transition-colors cursor-pointer"
-                    type="button"
-                    onClick={() => setIsEditWindowOpen(true)}
-                    aria-label="编辑"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-8 w-8"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                      />
-                    </svg>
-                  </button>
-                )}
               </div>
               {/* 个人描述 */}
               <div className="py-2">
@@ -280,33 +273,116 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                     )}
               </div>
             </div>
-            {/* 右边：关注按钮（sm及以上显示） */}
-            {user?.userId !== globalContext.userId && size !== "compact" && (
-              <div className="justify-between p-4 flex-shrink-0 hidden md:flex">
-                <FollowButton userId={user?.userId || 0} />
-              </div>
-            )}
           </div>
         </div>
 
         {/* 次要信息 */}
-        <div className="relative">
-          <div className="flex justify-between items-start">
-            {/* 左边 - ID和最后登录时间 */}
-            <div className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-2 items-baseline">
-              <span className={clsx("text-base text-base-content/70", size === "compact" ? "" : "pl-8")}>用户ID</span>
-              <span className="text-base font-mono">{userId}</span>
+        <div className="relative pl-8">
+          <div className="flex">
+            {/* 左边 - 功能组件（关注，私信等等） */}
+            {size === "default" && user?.userId !== globalContext.userId
+              && (
+                <div className="flex items-center w-full gap-4">
+                  {/* 关注按钮 */}
+                  <div className="flex-shrink-0 pb-2">
+                    <FollowButton userId={user?.userId || 0} />
+                  </div>
 
-              {user?.lastLoginTime && (
-                <>
-                  <span className="text-base text-base-content/70 pl-8">最后登录</span>
-                  <span className="text-base font-mono">{user.lastLoginTime}</span>
-                </>
+                  {/* 私信按钮 */}
+                  <Link to={`/privatechat/${userId}`} className="flex-shrink-0">
+                    <button
+                      type="button"
+                      className="btn flex items-center justify-center space-x-1 px-4 border border-gray-300 rounded-3 xl hover:text-primary transition-colors h-8 cursor-pointer"
+                    >
+                      <svg aria-label="私信" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="flex-shrink-0">
+                        <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">
+                          <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                        </g>
+                      </svg>
+                      <span className="text-sm">私信</span>
+                    </button>
+                  </Link>
+
+                  {/* 三点菜单 */}
+                  <div className="relative rounded-full" ref={menuRef}>
+                    <button
+                      type="button"
+                      className="btn px-2 py-0.5 h-8 w-auto flex items-center justify-center border border-gray-300 hover:text-primary transition-colors cursor-pointer"
+                      onClick={() => setIsSmallMenuOpen(!isSmallMenuOpen)}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                        <circle cx="11" cy="10" r="1"></circle>
+                        <circle cx="11" cy="5" r="1"></circle>
+                        <circle cx="11" cy="15" r="1"></circle>
+                      </svg>
+                    </button>
+
+                    {isSmallMenuOpen && (
+                      <div className="absolute left-0 bottom-10 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                        <button
+                          type="button"
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                          onClick={() => {
+                            handleBlockUser();
+                            setIsSmallMenuOpen(false);
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                          </svg>
+                          加入黑名单
+                        </button>
+                        <button
+                          type="button"
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                          onClick={() => {
+                            handleReport();
+                            setIsSmallMenuOpen(false);
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                          </svg>
+                          举报
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
-            </div>
+
+            {size === "default" && user?.userId === globalContext.userId && (
+              <button
+                className="btn flex border border-gray-300 hover:text-primary transition-colors h-8 cursor-pointer"
+                type="button"
+                onClick={() => setIsEditWindowOpen(true)}
+                aria-label="编辑"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                  />
+                </svg>
+                <span className="text-sm">编辑</span>
+              </button>
+            )}
 
             {/* 右边 - 关注/粉丝数 */}
-            <div className={clsx("flex gap-8", size === "compact" ? "" : "pr-8")}>
+            <div className="flex gap-8 justify-items-end ml-auto">
               <div
                 className="flex flex-col items-center hover:text-info transition-colors cursor-pointer"
                 onClick={handleFollowingClick}
@@ -325,6 +401,22 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
             </div>
           </div>
         </div>
+        {size === "compact" && user?.userId !== globalContext.userId && (
+          <Link to={`/privatechat/${userId}`} className="flex-shrink-0">
+            <button
+              type="button"
+              className="btn flex items-center justify-center w-full border border-gray-300 rounded-3 xl hover:text-primary transition-colors h-8 cursor-pointer"
+            >
+              <svg aria-label="私信" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="flex-shrink-0">
+                <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">
+                  <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                </g>
+              </svg>
+              <span className="text-sm">私信</span>
+            </button>
+          </Link>
+        )}
 
         {/* 加载错误处理 */}
         {userQuery.isError && (
@@ -346,7 +438,6 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
           </div>
         )}
       </div>
-
       {/* 相关的弹窗组件 */}
       <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}>
         <EditProfileWindow onClose={() => setIsEditWindowOpen(false)}></EditProfileWindow>
