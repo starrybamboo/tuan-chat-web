@@ -197,7 +197,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
           </svg>
         </button>
       </div>
-      <div className="rounded-md overflow-hidden mb-64">
+      <div className="rounded-md overflow-hidden mb-32">
         <Author userId={moduleData.userId} />
         <TitleBar label="场景" className="rounded-none" varient="accent" />
         <NewSceneGraph />

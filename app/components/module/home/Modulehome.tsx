@@ -4,11 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
 // 导入本地图片
-import 办公室图片 from "../scene/images/办公室.jpg";
-import 天台图片 from "../scene/images/天台.jpg";
-import 操场图片 from "../scene/images/操场.jpg";
-import 教室图片 from "../scene/images/教室.jpg";
-import 楼道图片 from "../scene/images/楼道.jpg";
+import 办公室图片 from "../scene/images/办公室.webp";
+import 天台图片 from "../scene/images/天台.webp";
+import 操场图片 from "../scene/images/操场.webp";
+import 教室图片 from "../scene/images/教室.webp";
+import 楼道图片 from "../scene/images/楼道.webp";
 
 import Carousel from "./carousel";
 

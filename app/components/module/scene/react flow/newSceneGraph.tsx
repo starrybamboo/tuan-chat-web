@@ -46,7 +46,7 @@ export default function NewSceneGraph() {
         position: { x: 0, y: 0 }, // 先占位，后续用 dagre 计算
         data: {
           label: sceneName,
-          imgUrl: sceneData?.entityInfo?.image || `/app/components/module/scene/images/教室.jpg`,
+          imgUrl: sceneData?.entityInfo?.image || `/app/components/module/scene/images/教室.webp`,
           sceneItems: sceneData?.sceneItems || [],
           sceneRoles: sceneData?.sceneRoles || [],
           description: sceneData?.entityInfo?.sceneDescription || "",
