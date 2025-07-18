@@ -3,15 +3,60 @@ import { FollowButton } from "@/components/common/Follow/FollowButton";
 import { PopWindow } from "@/components/common/popWindow";
 import { UserDetail } from "@/components/common/userDetail";
 
+import { useGlobalContext } from "@/components/globalContextProvider";
 import TitleBar from "@/components/module/common/titleBar";
 import Items from "@/components/module/detail/items";
 import Roles from "@/components/module/detail/roles";
+// import { useAddModuleMutation, useAddMutation, useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import { useGetUserInfoQuery } from "api/queryHooks";
 import { useCallback, useState } from "react";
 import { useParams } from "react-router";
 import NewSceneGraph from "../scene/react flow/newSceneGraph";
 
 function Author({ userId }: { userId?: number }) {
+  // 获取全局用户ID
+  const { userId: contextUserId } = useGlobalContext();
+  // const addModuleMutation = useAddModuleMutation();
+  // const addEntityMutation = useAddMutation();
+  // const navigate = useNavigate();
+
+  // const clone = async () => {
+  //   try {
+  //     // 1. 创建模组，修正所有 number/null 字段类型
+  //     const createParams = {
+  //       ...moduleData,
+  //       authorName: moduleData.authorName ?? undefined,
+  //       minTime: moduleData.minTime ?? undefined,
+  //       maxTime: moduleData.maxTime ?? undefined,
+  //       minPeople: moduleData.minPeople ?? undefined,
+  //       maxPeople: moduleData.maxPeople ?? undefined,
+  //     };
+  //     const addRes = await addModuleMutation.mutateAsync(createParams);
+  //     const stageId = addRes.data?.stageId;
+  //     if (!stageId)
+  //       return;
+
+  //     // 2. 获取模组信息
+  //     const infoRes = await useModuleInfoQuery(moduleData.id).refetch();
+  //     const entities = infoRes.data?.data?.entities?.map((e) => {
+  //       const { ModuleMap, ...rest } = e;
+  //       return rest;
+  //     }) || [];
+
+  //     // 3. 添加实体到新 stage
+  //     for (const entity of entities) {
+  //       await addEntityMutation.mutateAsync({ ...entity, stageId });
+  //     }
+
+  //     // 4. 跳转到工作区并传递 stageId
+  //     navigate("/create", { state: { stageId } });
+  //   }
+  //   catch (err) {
+  //   // 错误处理
+  //     console.error("克隆失败", err);
+  //   }
+  // };
+
   // 弹窗状态
   const [isUserCardOpen, setIsUserCardOpen] = useState(false);
 
@@ -72,7 +117,8 @@ function Author({ userId }: { userId?: number }) {
                     )}
               </div>
               <div className="divider divider-horizontal m-0" />
-              {userId && <FollowButton userId={userId} />}
+              {/* 只有userId不等于当前context中的ID时才渲染FollowButton */}
+              {userId && userId !== contextUserId && <FollowButton userId={userId} />}
               <div className="flex gap-4 items-center justify-end flex-1">
                 <button type="button" className="btn btn-outline  btn-ghost rounded-md">
                   分支
