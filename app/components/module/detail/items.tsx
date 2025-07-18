@@ -243,7 +243,7 @@ export default function Items({ moduleId }: { moduleId: number }) {
   }, [selectFirstItem]);
 
   return (
-    <div className="flex w-full min-h-128 bg-base-200">
+    <div className="flex w-full flex-col max-w-screen md:flex-row md:min-h-128 bg-base-200">
       {/* 左侧物品列表 */}
       <div className="basis-92 shrink-0 bg-base-200 max-h-128 overflow-y-auto">
         {itemList.length > 0

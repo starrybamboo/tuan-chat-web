@@ -13,9 +13,9 @@ type CarouselProps = CarouselItemProps;
 function CarouselItem({ img, alt, isActive = false }: CarouselItemProps) {
   return (
     <div
-      className={`flex-shrink-0 px-4 transition-transform duration-700 ease-out ${
-        isActive ? "w-1/3" : "w-1/4"
-      }`}
+      className={`flex-shrink-0 px-1 md:px-4 transition-transform duration-700 ease-out 
+        ${isActive ? "w-[60vw] md:w-1/3" : "w-[40vw] md:w-1/4"}
+      `}
     >
       <div
         className={`shadow-lg bg-gray-100 cursor-pointer relative group/item overflow-hidden transition-transform duration-700 ease-out ${
@@ -167,9 +167,12 @@ function Carousel({ items, className, autoPlay = true, interval = 4000, onActive
     if (items.length === 0) {
       return 0;
     }
-    // 我们希望第二张图（位置1）是活跃的
-    // 当前的布局应该是：[currentIndex, currentIndex+1(活跃), currentIndex+2, currentIndex+3]
-    // 所以我们需要向左偏移让 currentIndex 成为第一张图
+    // 移动端只显示一张活跃图居中，两侧露出一点
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      // 活跃图宽度60vw，两侧各20vw，偏移让活跃图居中
+      return -(currentIndex * 40) - 20;
+    }
+    // 大屏仍按原逻辑
     const offset = currentIndex;
     return -(offset * 25) - 5;
   }, [currentIndex, items.length]);
@@ -183,7 +186,10 @@ function Carousel({ items, className, autoPlay = true, interval = 4000, onActive
   }
 
   return (
-    <div className={`relative group ${className}`} style={{ height: "30vw" }}>
+    <div
+      className={`relative group ${className}`}
+      style={{ height: window.innerWidth < 768 ? "50vw" : "30vw" }}
+    >
       {/* 轮播图容器 */}
       <div className="overflow-visible h-full flex items-end">
         <div

@@ -60,10 +60,12 @@ export default function NewSceneGraph() {
       };
     });
 
-    // 使用 dagre 进行分层布局
+    // 根据屏幕宽度动态设置分层方向
+    const isSmallScreen = typeof window !== "undefined" ? window.innerWidth < 768 : false;
+    const rankdir = isSmallScreen ? "TB" : "LR"; // TB: 垂直分层，LR: 水平分层
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
-    dagreGraph.setGraph({ rankdir: "LR", nodesep: 60, ranksep: 120 }); // LR: 水平分层
+    dagreGraph.setGraph({ rankdir, nodesep: 60, ranksep: 120 });
 
     nodes.forEach((node) => {
       dagreGraph.setNode(node.id, { width: 200, height: 120 });
@@ -151,15 +153,6 @@ export default function NewSceneGraph() {
     // Node dragged
   }, []);
 
-  // 添加成功生成节点时的调试信息
-  if (nodes.length > 0 && !isLoading) {
-    console.warn("✅ Nodes generated successfully:", {
-      nodesCount: nodes.length,
-      edgesCount: edges.length,
-      firstNode: nodes[0],
-    });
-  }
-
   // 添加加载和错误状态处理
   if (isLoading) {
     return (
@@ -190,7 +183,7 @@ export default function NewSceneGraph() {
   }
 
   return (
-    <div style={{ height: "50vh" }}>
+    <div className="max-w-screen" style={{ height: "50vh" }}>
       <ReactFlow
         key={`reactflow-${nodes.length}-${edges.length}`}
         nodes={nodes}
