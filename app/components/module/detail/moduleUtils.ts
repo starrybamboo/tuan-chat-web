@@ -1,7 +1,6 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 
 // 根据类型过滤实体数据的函数
-// 根据类型过滤实体数据的函数
 export function getEntityListByType(
   moduleInfo: any,
   type: "item" | "role" | "scene",
