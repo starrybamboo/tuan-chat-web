@@ -15,8 +15,8 @@ export default function MessageInput({
   setMessageInput: (value: string) => void;
   messageInput: string;
   handleSendMessage: () => void | Promise<void>;
-  imgFiles: File[];
-  updateImgFiles: (recipe: (draft: File[]) => void) => void;
+  imgFiles: File[]; // 预览的图片文件列表
+  updateImgFiles: (recipe: (draft: File[]) => void) => void; // 更新图片文件列表的函数
 }) {
   /**
    * 文本消息发送
@@ -28,15 +28,6 @@ export default function MessageInput({
       handleSendMessage();
     }
   };
-
-  // 上传表情
-
-  // 获取表情列表
-
-  /**
-   * 图片上传
-   */
-  // 图片文件状态现在通过 props 传递
 
   if (!currentContactUserId) {
     return null;
