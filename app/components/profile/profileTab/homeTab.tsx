@@ -1,6 +1,7 @@
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { FollowButton } from "@/components/common/Follow/FollowButton";
 import { UserFollower } from "@/components/common/Follow/UserFollower";
+import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import EditProfileWindow from "@/components/profile/editProfileWindow";
@@ -73,12 +74,12 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
   return (
     <div className="max-w-7xl mx-auto p-4 flex transition-all duration-300">
       <div className="w-full max-w-1/4 flex flex-col md:flex-row py-8">
-        <div className="flex flex-col items-center rounded-2xl p-6">
+        <div className="flex flex-col items-center rounded-2xl p-4">
           {/* 头像 */}
-          <div className="md:48 lg:w-54 mb-4">
+          <div className="sm:w-40 md:w-48 lg:w-54">
             {userQuery?.isLoading
               ? (
-                  <div className="skeleton w-full h-full rounded-full"></div>
+                  <div className="skeleton md:w-48 md:h-48 lg:w-54 lg:h-54 rounded-full"></div>
                 )
               : (
                   <div className="pointer-events-none w-full h-full">
@@ -92,10 +93,10 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
           </div>
 
           {/* 用户名 */}
-          <div className="flex items-center">
+          <div className="self-start">
             {userQuery.isLoading
               ? (
-                  <div className="skeleton h-8 w-48 pr-4"></div>
+                  <div className="skeleton h-8 w-48"></div>
                 )
               : (
                   <h2 className="text-2xl font-bold h-8 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -105,7 +106,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
           </div>
 
           {/* 简介 */}
-          <p className="text-center text-sm mt-2">
+          <p className="text-sm">
             <div className="py-2">
               {userQuery.isLoading
                 ? (
@@ -132,17 +133,17 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             </div>
           </p>
           {/* 关注 - 粉丝数 */}
-          <div className="flex gap-8 justify-items-end ml-auto mb-4">
+          <div className="flex gap-8 justify-center">
             <div
-              className="flex flex-col items-center hover:text-info transition-colors cursor-pointer"
+              className="flex flex-row gap-4 items-center hover:text-info transition-colors cursor-pointer"
               onClick={handleFollowingClick}
             >
               <div className="stat-value text-sm">{followStats.following}</div>
               <div className="stat-title text-sm">关注</div>
             </div>
-
+            <span className="border-l"></span>
             <div
-              className="flex flex-col items-center hover:text-info transition-colors cursor-pointer"
+              className="flex flex-row gap-4 items-center hover:text-info transition-colors cursor-pointer"
               onClick={handleFollowersClick}
             >
               <div className="stat-value text-sm text-center">{followStats.followers}</div>
@@ -150,55 +151,54 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             </div>
           </div>
 
-          {user?.userId === loginUserId
-            ? (
-                <button
-                  className="btn flex w-full mt-4 border border-gray-300 hover:text-primary transition-colors h-8 cursor-pointer"
-                  type="button"
-                  onClick={() => setIsEditWindowOpen(true)}
-                  aria-label="编辑"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path
-                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                    />
-                  </svg>
-                  <span className="text-sm">编辑个人资料</span>
-                </button>
-              )
-            : (
-                <div className="flex-col w-full">
-                  <FollowButton
-                    userId={user?.userId || 0}
-                    className="w-full"
-                  />
-                  <Link to={`/privatechat/${userId}`} className="flex w-full flex-shrink-0 mt-4">
-                    <button
-                      type="button"
-                      className="btn flex border w-full border-gray-300 rounded-3 hover:text-primary transition-colors h-8 cursor-pointer"
-                    >
-                      <svg aria-label="私信" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="flex-shrink-0">
-                        <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">
-                          <rect width="20" height="16" x="2" y="4" rx="2"></rect>
-                          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
-                        </g>
-                      </svg>
-                      <span className="text-sm">私信</span>
-                    </button>
-                  </Link>
-                </div>
+          {!userQuery.isLoading && user?.userId === loginUserId && (
+            <button
+              className="btn flex w-full mt-4 border border-gray-300 hover:text-primary transition-colors h-8 cursor-pointer"
+              type="button"
+              onClick={() => setIsEditWindowOpen(true)}
+              aria-label="编辑"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
+              <span className="text-sm">编辑个人资料</span>
+            </button>
+          )}
 
-              )}
+          {!userQuery.isLoading && user?.userId !== loginUserId && (
+            <div className="flex-col w-full">
+              <FollowButton
+                userId={user?.userId || 0}
+                className="w-full"
+              />
+              <Link to={`/privatechat/${userId}`} className="flex w-full flex-shrink-0 mt-4">
+                <button
+                  type="button"
+                  className="btn flex border w-full border-gray-300 rounded-3 hover:text-primary transition-colors h-8 cursor-pointer"
+                >
+                  <svg aria-label="私信" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="flex-shrink-0">
+                    <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">
+                      <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                    </g>
+                  </svg>
+                  <span className="text-sm">私信</span>
+                </button>
+              </Link>
+            </div>
+          )}
           {/* 信息列表 */}
           <div className="mt-4 space-y-2 text-sm w-full text-gray-700 dark:text-gray-300">
             <div className="flex items-center gap-2">
@@ -298,7 +298,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                 </div>
               </div>
             </div>
-
             {/* 右侧 - 勋章展示 */}
             <div className="lg:col-span-1">
               <div className="bg-indigo-50 rounded-xl p-5 h-full">
@@ -350,6 +349,13 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
               </div>
             </div>
           </div>
+          <div className="p-2 border-b border-primary"></div>
+          {/* 测试用 */}
+          {userId === 10013 && (
+            <div className="border-primary">
+              <MarkDownViewer content={"## Hi👋 I'm Ita_Hloks😋\n\nThis is my **ProfilePage**.\n\nFollow Hloks Nya!"}></MarkDownViewer>
+            </div>
+          )}
           {/* SC余额 - 特殊展示 */}
           {/* dark:from-gray-800 dark:to-gray-900 */}
           {loginUserId === userId && (
