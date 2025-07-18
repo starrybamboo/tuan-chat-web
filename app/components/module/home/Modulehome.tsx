@@ -231,7 +231,7 @@ export default function ModuleHome() {
 
   // 分页状态管理
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12; // 每页显示16个模组
+  const itemsPerPage = 12; // 每页显示12个模组
 
   // 当前活跃的背景图片状态
   const [activeBackgroundImage, setActiveBackgroundImage] = useState<string>(
