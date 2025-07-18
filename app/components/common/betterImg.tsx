@@ -103,7 +103,7 @@ function BetterImg({ src, className, onClose, size }:
 
   return (
     <div>
-      <div className="relative inline-block group">
+      <div className="relative group">
         <img
           ref={imgRef}
           src={imgSrc}
@@ -155,7 +155,7 @@ function BetterImg({ src, className, onClose, size }:
           >
             <img
               src={imgSrc}
-              className="max-h-[70vh] max-w-[70vw]"
+              className="max-h-[70vh] max-w-[70vw] object-contain"
               alt="img"
               width={size?.width}
               height={size?.height}
