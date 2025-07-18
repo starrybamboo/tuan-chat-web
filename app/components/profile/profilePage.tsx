@@ -27,7 +27,6 @@ function ProfilePage({ userId }: Props) {
   ];
 
   return (
-  // currentUserId !== globalContext.userId
     <div className="card bg-base-100 mb-50 mx-auto ">
       {/* 导航栏 */}
       <div

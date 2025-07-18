@@ -9,22 +9,18 @@ import { FollowButton } from "./Follow/FollowButton";
 import { UserFollower } from "./Follow/UserFollower";
 import { PopWindow } from "./popWindow";
 
-type Size = "default" | "compact";
-
 interface UserDetailProps {
   userId: number;
-  size?: Size; // 默认为 default
 }
 
 /**
  * 显示用户详情界面的组件
  * @param {object} props - 组件属性
  * @param {string} props.userId - 用户ID，组件内会自动调api来获取用户信息
- * @param {"default" | "compact"} [props.size] - 组件尺寸，分为 `default` 与 `compact`（小卡片）
  */
-export function UserDetail({ userId, size = "default" }: UserDetailProps) {
+export function UserDetail({ userId }: UserDetailProps) {
   const userQuery = useGetUserInfoQuery(userId);
-  const globalContext = useGlobalContext();
+  const loginUserId = useGlobalContext().userId ?? -1;
 
   const user = userQuery.data?.data;
   const [isFFWindowOpen, setIsFFWindowOpen] = useSearchParamsState<boolean>(`userEditPop${userId}`, false);
@@ -80,7 +76,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
               // 未来在这里会让用户上传背景图片
               // src="https://s21.ax1x.com/2025/03/31/pEs53vD.jpg" // 测试用的固定图片
               src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzY2NiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+"
-              className="w-full object-cover object-center rounded-md scale-170 sm:scale-150 md:scale-130 lg:scale-100 h-40 scale-150"
+              className="w-full object-cover object-center rounded-md sm:scale-150 md:scale-130 lg:scale-100 h-40 scale-150"
               alt="用户背景"
               onError={(e) => {
                 // No Image 灰色字样
@@ -136,7 +132,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                       <div className="skeleton w-24 h-24"></div>
                     )
                   : (
-                      <div className={size === "default" ? "pointer-events-none" : ""}>
+                      <div className="pointer-events-none">
                         <Link
                           to={`/profile/${userId}`}
                           target="_blank"
@@ -146,7 +142,6 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                             src={user?.avatar || undefined}
                             alt={user?.username}
                             className="mask mask-circle"
-                            style={{ cursor: size === "default" ? "default" : "pointer" }}
                           />
                         </Link>
                       </div>
@@ -154,7 +149,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
               </div>
             </div>
             {/* 关注按钮（仅在 sm 情况显示，浮动在头像下方） */}
-            {user?.userId !== globalContext.userId && size === "compact" && (
+            {user?.userId !== loginUserId && (
               <div className="absolute block left-38 top-1">
                 <FollowButton userId={user?.userId || 0} />
               </div>
@@ -175,20 +170,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
                max-w-2/5 sm:max-w-2/5 md:max-w-3/5
                overflow-hidden text-ellipsis whitespace-nowrap"
                       >
-                        {size === "default"
-                          ? (
-                              user?.username || "未知用户"
-                            )
-                          : (
-                              <Link
-                                to={`/profile/${userId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:underline cursor-pointer"
-                              >
-                                {user?.username || "未知用户"}
-                              </Link>
-                            )}
+                        {user?.username || "未知用户"}
                       </h2>
                     )}
                 {/* 用户状态指示小球 */}
@@ -243,7 +225,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
         <div className="relative pl-8">
           <div className="flex">
             {/* 左边 - 功能组件（关注，私信等等） */}
-            {size === "default" && user?.userId === globalContext.userId && (
+            {user?.userId === loginUserId && (
               <button
                 className="btn flex border border-gray-300 hover:text-primary transition-colors h-8 cursor-pointer"
                 type="button"
@@ -289,7 +271,7 @@ export function UserDetail({ userId, size = "default" }: UserDetailProps) {
             </div>
           </div>
         </div>
-        {size === "compact" && user?.userId !== globalContext.userId && (
+        {user?.userId !== loginUserId && (
           <Link to={`/privatechat/${userId}`} className="flex-shrink-0">
             <button
               type="button"

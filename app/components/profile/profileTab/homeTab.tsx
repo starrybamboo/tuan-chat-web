@@ -1,4 +1,9 @@
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import { UserFollower } from "@/components/common/Follow/UserFollower";
+import { PopWindow } from "@/components/common/popWindow";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import React, { useState } from "react";
+import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../../api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 
 interface HomeTabProps {
@@ -9,7 +14,39 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
   const userQuery = useGetUserInfoQuery(userId);
   const [expandedMedals, setExpandedMedals] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const loginUserId = useGlobalContext().userId ?? -1;
   const user = userQuery.data?.data;
+  const [isFFWindowOpen, setIsFFWindowOpen] = useSearchParamsState<boolean>(`userEditPop${userId}`, false);
+  // const [isEditWindowOpen, setIsEditWindowOpen] = useSearchParamsState<boolean>(`profileEditPop`, false);
+  const [relationTab, setRelationTab] = useState<"following" | "followers">("following");
+
+  const followingsQuery = useGetUserFollowingsQuery(userId, {
+    pageNo: 1,
+    pageSize: 16,
+  });
+
+  const followersQuery = useGetUserFollowersQuery(userId, {
+    pageNo: 1,
+    pageSize: 16,
+  });
+
+  const followStats = {
+    following: followingsQuery.data?.data?.totalRecords || 0,
+    followers: followersQuery.data?.data?.totalRecords || 0,
+  };
+
+  // 在点击处理器中
+  const handleFollowingClick = () => {
+    setRelationTab("following"); // 使用 setState 来更新值
+    setIsFFWindowOpen(true);
+  };
+
+  const handleFollowersClick = () => {
+    setRelationTab("followers"); // 使用 setState 来更新值
+    setIsFFWindowOpen(true);
+  };
+
+  // 用于测试的，写死的数据
   const userProfile = {
     lastLoginTime: "2025-07-15 21:34",
     rating: 4.7,
@@ -20,7 +57,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
     medals: [
       { id: 1, name: "Your Story", desc: "首次设计了一个模组", date: "2025-07-21" },
       { id: 2, name: "神秘观测者", desc: "围观了一场跑团超过2个小时", date: "2025-06-15" },
-      { id: 3, name: "始作俑者", desc: "第一次担任kp并且结团时无一生还", date: "2025-05-28" },
+      { id: 3, name: "始作俑者", desc: "担任kp并且结团时无一生还", date: "2025-05-28" },
       { id: 4, name: "模组大师", desc: "设计了5个以上模组", date: "2025-04-12" },
       { id: 5, name: "团本收割机", desc: "完成10次以上跑团", date: "2025-03-22" },
       { id: 6, name: "守秘人", desc: "担任KP超过10次", date: "2025-02-18" },
@@ -91,6 +128,24 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                   )}
             </div>
           </p>
+          {/* 关注 - 粉丝数 */}
+          <div className="flex gap-8 justify-items-end ml-auto">
+            <div
+              className="flex flex-col items-center hover:text-info transition-colors cursor-pointer"
+              onClick={handleFollowingClick}
+            >
+              <div className="stat-value text-sm">{followStats.following}</div>
+              <div className="stat-title text-sm">关注</div>
+            </div>
+
+            <div
+              className="flex flex-col items-center hover:text-info transition-colors cursor-pointer"
+              onClick={handleFollowersClick}
+            >
+              <div className="stat-value text-sm text-center">{followStats.followers}</div>
+              <div className="stat-title text-sm">粉丝</div>
+            </div>
+          </div>
 
           {/* 信息列表 */}
           <div className="mt-4 space-y-2 text-sm w-full text-gray-700 dark:text-gray-300">
@@ -243,35 +298,50 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
               </div>
             </div>
           </div>
-
           {/* SC余额 - 特殊展示 */}
-          <div className="mt-8 rounded-xl p-5 shadow-lg relative overflow-hidden bg-gradient-to-r from-purple-500 to-indigo-600 dark:from-gray-800 dark:to-gray-900 ">
-            {/* 装饰性背景元素 */}
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-indigo-500/20"></div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-300/10 rounded-full transform translate-x-1/2 -translate-y-1/2"></div>
+          {/* dark:from-gray-800 dark:to-gray-900 */}
+          {loginUserId === userId && (
+            <div className="mt-8 rounded-xl p-5 shadow-lg opacity-90 relative overflow-hidden bg-gradient-to-r from-purple-500 to-indigo-600 ">
+              {/* 装饰性背景元素 */}
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-indigo-500/20"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-300/10 rounded-full transform translate-x-1/2 -translate-y-1/2"></div>
 
-            <div className="relative z-10 flex justify-between items-center">
-              <div>
-                <p className="text-purple-200 text-sm">游戏货币余额</p>
-                <h3 className="text-2xl font-bold text-white mt-1">SC 点数</h3>
+              <div className="relative z-10 flex justify-between items-center">
+                <div>
+                  <p className="text-purple-200 text-sm">游戏货币余额</p>
+                  <h3 className="text-2xl font-bold text-white mt-1">SC 点数</h3>
+                </div>
+                <div className="flex items-baseline">
+                  <span className="text-4xl md:text-5xl font-bold text-white">{userProfile.scBalance}</span>
+                  <span className="text-xl text-purple-200 ml-2">SC</span>
+                </div>
               </div>
-              <div className="flex items-baseline">
-                <span className="text-4xl md:text-5xl font-bold text-white">{userProfile.scBalance}</span>
-                <span className="text-xl text-purple-200 ml-2">SC</span>
+
+              <div className="relative z-10 mt-4 flex space-x-3">
+                <button type="button" className="flex-1 bg-white text-indigo-600 font-medium py-2 px-4 rounded-lg hover:bg-indigo-50 transition-colors">
+                  充值
+                </button>
+                <button type="button" className="flex-1 bg-indigo-800 text-white font-medium py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
+                  兑换
+                </button>
               </div>
             </div>
-
-            <div className="relative z-10 mt-4 flex space-x-3">
-              <button type="button" className="flex-1 bg-white text-indigo-600 font-medium py-2 px-4 rounded-lg hover:bg-indigo-50 transition-colors">
-                充值
-              </button>
-              <button type="button" className="flex-1 bg-indigo-800 text-white font-medium py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
-                兑换
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
+      {/* <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}> */}
+      {/*  <EditProfileWindow onClose={() => setIsEditWindowOpen(false)}></EditProfileWindow> */}
+      {/* </PopWindow> */}
+      <PopWindow
+        isOpen={isFFWindowOpen}
+        onClose={() => {
+          setIsFFWindowOpen(false);
+          followingsQuery.refetch();
+          followersQuery.refetch();
+        }}
+      >
+        <UserFollower activeTab={relationTab} userId={userId}></UserFollower>
+      </PopWindow>
     </div>
   );
 };
