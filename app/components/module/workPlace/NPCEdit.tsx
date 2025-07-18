@@ -1,4 +1,5 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
+import { CharacterCopper } from "@/components/newCharacter/CharacterCopper";
 import { useAddMutation, useRenameMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useState } from "react";
 import { useModuleContext } from "./context/_moduleContext";
@@ -61,9 +62,24 @@ export default function NPCEdit({ role }: NPCEditProps) {
     setIsEditing(false);
   };
 
-  // 头像变更（仅本地）
+  const generateUniqueFileName = (name: string): string => {
+    const timestamp = Date.now();
+    return `avatarModule-${name}-${timestamp}`;
+  };
+
+  // 生成唯一文件名
+  const uniqueFileName = generateUniqueFileName(role.name!);
+
   const handleAvatarChange = (avatar: string) => {
-    setLocalRole(prev => ({ ...prev, avatar }));
+    const updatedRole = { ...localRole, avatar };
+    setLocalRole(updatedRole);
+    updateRole({
+      stageId: stageId as number,
+      entityType: "role",
+      entityInfo: updatedRole, // 使用新创建的updatedRole而不是localRole
+      operationType: 0,
+      name: role.name!,
+    });
   };
 
   return (
@@ -75,22 +91,18 @@ export default function NPCEdit({ role }: NPCEditProps) {
         <div className="card-body">
           <div className="flex items-center gap-8">
             {/* 头像 */}
-            <div>
-              <img
-                src={localRole.avatar || ""}
-                alt="角色头像"
-                className="w-24 h-24 rounded-full object-cover border"
-              />
-              {isEditing && (
-                <input
-                  type="text"
-                  value={localRole.avatar || ""}
-                  onChange={e => handleAvatarChange(e.target.value)}
-                  placeholder="头像URL"
-                  className="input input-bordered w-full mt-2"
-                />
-              )}
-            </div>
+            <CharacterCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleAvatarChange} fileName={uniqueFileName}>
+              <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
+                <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
+                  <img
+                    src={localRole.avatar || "./favicon.ico"}
+                    alt="Character Avatar"
+                    className="object-cover transform group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+              </div>
+            </CharacterCopper>
             {/* 右侧内容 */}
             <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               {isEditing

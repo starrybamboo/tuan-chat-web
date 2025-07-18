@@ -311,13 +311,15 @@ function ItemListItem({
     >
       {/* 左侧内容 */}
       <div className="flex items-center gap-2">
-        <p className="self-baseline font-medium">{item.name}</p>
-        {item.entityInfo && item.entityInfo.moduleSceneId && (
-          <p className="text-xs text-gray-500 truncate">
-            场景ID:
-            {item.entityInfo.moduleSceneId}
-          </p>
-        )}
+        <img
+          src={item.entityInfo!.image || "./favicon.ico"}
+          alt="item"
+          style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
+        />
+        <div className="flex flex-col">
+          <p className="self-baseline font-medium">{item.name}</p>
+          <p className="text-xs text-gray-500 self-baseline mt-0.5">{item.entityInfo!.description}</p>
+        </div>
       </div>
 
       {/* 右侧按钮 */}
@@ -387,6 +389,7 @@ function ItemList({ stageId }: { stageId: number }) {
       entityInfo: {
         tip: "悄悄地告诉kp",
         description: "新物品です", // 描述
+        image: "./favicon.ico",
       },
     });
   };
@@ -469,10 +472,15 @@ function SceneListItem({
     >
       {/* 左侧内容 */}
       <div className="flex items-center gap-2">
-        <p className="self-baseline font-medium">{scene.name}</p>
-        {scene.entityInfo && (
-          <p className="text-xs text-gray-500 truncate">{scene.entityInfo.description}</p>
-        )}
+        <img
+          src={scene.entityInfo!.image || "./favicon.ico"}
+          alt="scene"
+          style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
+        />
+        <div className="flex flex-col">
+          <p className="self-baseline font-medium">{scene.name}</p>
+          <p className="text-xs text-gray-500 self-baseline mt-0.5">{scene.entityInfo!.sceneDescription}</p>
+        </div>
       </div>
 
       {/* 右侧按钮 */}
@@ -529,6 +537,7 @@ function SceneList({ stageId }: { stageId: number }) {
       entityInfo: {
         tip: "给予的提示",
         sceneDescription: "新场景です", // 场景描述（可选）
+        image: "./favicon.ico",
       },
     });
   };

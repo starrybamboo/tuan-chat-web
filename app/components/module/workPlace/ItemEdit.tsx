@@ -1,4 +1,5 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
+import { CharacterCopper } from "@/components/newCharacter/CharacterCopper";
 import { useAddMutation, useRenameMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useState } from "react";
 import { useModuleContext } from "./context/_moduleContext";
@@ -29,20 +30,8 @@ export default function ItemEdit({ item }: ItemEditProps) {
   const { mutate: updateItem } = useAddMutation();
   const { mutate: renameItem } = useRenameMutation();
 
-  // 干净的文本
-  //   const cleanText = (text: string) => {
-  //     if (!text)
-  //       return "";
-  //     return text
-  //       .replace(/\r\n/g, "\n")
-  //       .replace(/ {2,}/g, " ")
-  //       .replace(/\n{2,}/g, "\n")
-  //       .replace(/\s+$/g, "");
-  //   };
-
   const handleSave = () => {
     setIsTransitioning(true);
-    // 这里只做本地保存，不调接口
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
@@ -60,83 +49,117 @@ export default function ItemEdit({ item }: ItemEditProps) {
     setIsEditing(false);
   };
 
+  const generateUniqueFileName = (name: string): string => {
+    const timestamp = Date.now();
+    return `itemModule-${name}-${timestamp}`;
+  };
+
+  const uniqueFileName = generateUniqueFileName(item.name!);
+
+  const handleImageChange = (image: string) => {
+    const updatedItem = { ...localItem, image };
+    setLocalItem(updatedItem);
+    updateItem({
+      stageId: stageId as number,
+      entityType: "item",
+      entityInfo: updatedItem,
+      operationType: 0,
+      name: item.name!,
+    });
+  };
+
   return (
-    <div
-      className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}
-    >
+    <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
       {/* 物品信息卡片 */}
       <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
         <div className="card-body">
-          <div className="flex flex-col gap-4">
-            {isEditing
-              ? (
-                  <>
-                    <div>
-                      <label className="label">
-                        <span className="label-text font-bold">物品名称</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={name || ""}
-                        onChange={e => setName(e.target.value)}
-                        placeholder="请输入物品名称"
-                        className="input input-bordered w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="label">
-                        <span className="label-text font-bold">物品描述（玩家可见）</span>
-                      </label>
-                      <textarea
-                        value={localItem.description || ""}
-                        onChange={e => setLocalItem(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="可以直接展示给玩家的描述"
-                        className="textarea textarea-bordered w-full h-24 resize-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="label">
-                        <span className="label-text font-bold">提示（仅KP可见）</span>
-                      </label>
-                      <textarea
-                        value={localItem.tip || ""}
-                        onChange={(e) => {
-                          setLocalItem(prev => ({ ...prev, tip: e.target.value }));
-                          setCharCount(e.target.value.length);
-                        }}
-                        placeholder="对KP的提醒（检定，PL需要做什么来获得线索）"
-                        className="textarea textarea-bordered w-full h-24 resize-none"
-                      />
-                      <div className="text-right mt-1">
-                        <span
-                          className={`text-sm font-bold ${charCount > MAX_TIP_LENGTH
-                            ? "text-error"
-                            : "text-base-content/70"
-                          }`}
-                        >
-                          {charCount}
-                          /
-                          {MAX_TIP_LENGTH}
-                          {charCount > MAX_TIP_LENGTH && (
-                            <span className="ml-2">(已超出字数上限)</span>
-                          )}
-                        </span>
+          <div className="flex items-center gap-8">
+            {/* 图片 */}
+            <CharacterCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleImageChange} fileName={uniqueFileName}>
+              <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
+                <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
+                  <img
+                    src={localItem.image || "./favicon.ico"}
+                    alt="Item Image"
+                    className="object-cover transform group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+              </div>
+            </CharacterCopper>
+
+            {/* 右侧内容 */}
+            <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
+              {isEditing
+                ? (
+                    <>
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-bold">物品名称</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={name || ""}
+                          onChange={e => setName(e.target.value)}
+                          placeholder="请输入物品名称"
+                          className="input input-bordered w-full"
+                        />
                       </div>
-                    </div>
-                  </>
-                )
-              : (
-                  <>
-                    <h2 className="card-title text-2xl">{ name || "未命名物品"}</h2>
-                    <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden">
-                      {localItem.description || "暂无描述"}
-                    </p>
-                    <p className="text-base-content/70 italic whitespace-pre-wrap break-words max-w-full overflow-hidden">
-                      提示：
-                      {localItem.tip || "暂无提示"}
-                    </p>
-                  </>
-                )}
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-bold">物品描述（玩家可见）</span>
+                        </label>
+                        <textarea
+                          value={localItem.description || ""}
+                          onChange={e => setLocalItem(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="可以直接展示给玩家的描述"
+                          className="textarea textarea-bordered w-full h-24 resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-bold">提示（仅KP可见）</span>
+                        </label>
+                        <textarea
+                          value={localItem.tip || ""}
+                          onChange={(e) => {
+                            setLocalItem(prev => ({ ...prev, tip: e.target.value }));
+                            setCharCount(e.target.value.length);
+                          }}
+                          placeholder="对KP的提醒（检定，PL需要做什么来获得线索）"
+                          className="textarea textarea-bordered w-full h-24 resize-none"
+                        />
+                        <div className="text-right mt-1">
+                          <span
+                            className={`text-sm font-bold ${charCount > MAX_TIP_LENGTH
+                              ? "text-error"
+                              : "text-base-content/70"
+                            }`}
+                          >
+                            {charCount}
+                            /
+                            {MAX_TIP_LENGTH}
+                            {charCount > MAX_TIP_LENGTH && (
+                              <span className="ml-2">(已超出字数上限)</span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  )
+                : (
+                    <>
+                      <h2 className="card-title text-2xl">{name || "未命名物品"}</h2>
+                      <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden">
+                        {localItem.description || "暂无描述"}
+                      </p>
+                      <p className="text-base-content/70 italic whitespace-pre-wrap break-words max-w-full overflow-hidden">
+                        提示：
+                        {localItem.tip || "暂无提示"}
+                      </p>
+                    </>
+                  )}
+            </div>
           </div>
           {/* 操作按钮 */}
           <div className="card-actions justify-end">
