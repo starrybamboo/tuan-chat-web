@@ -1,4 +1,5 @@
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useState } from "react";
 import { Link } from "react-router";
@@ -24,16 +25,6 @@ export function UserDetail({ userId }: UserDetailProps) {
   const user = userQuery.data?.data;
   const [isFFWindowOpen, setIsFFWindowOpen] = useSearchParamsState<boolean>(`userEditPop${userId}`, false);
   const [isExpanded, setIsExpanded] = useState(false);
-
-  // 状态颜色映射
-  const activeStatus = String(user?.activeStatus).toLowerCase() as
-      "active" | "offline" | "busy" | "away" | undefined;
-  const statusColor = {
-    active: "badge-success",
-    offline: "badge-neutral",
-    busy: "badge-warning",
-    away: "badge-accent",
-  }[activeStatus ?? "offline"] || "badge-neutral";
 
   const [relationTab, setRelationTab] = useState<"following" | "followers">("following");
 
@@ -171,24 +162,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                         {user?.username || "未知用户"}
                       </h2>
                     )}
-                {/* 用户状态指示小球 */}
-                {user?.activeStatus !== undefined && (
-                  <div
-                    className="badge flex-nowrap gap-0 rounded-full ring-1 ring-white/50 px-1 text-sm whitespace-nowrap transition-all duration-300"
-                  >
-                    <div className={`w-4 h-4 rounded-full ${statusColor.replace("badge-", "bg-")}`} />
-                    {/* <span className="hidden sm:inline"> */}
-                    {/*  { */}
-                    {/*    { */}
-                    {/*      active: "在线", */}
-                    {/*      offline: "离线", */}
-                    {/*      busy: "忙碌", */}
-                    {/*      away: "离开", */}
-                    {/*    }[String(user.activeStatus).toLowerCase()] || "离线" */}
-                    {/*  } */}
-                    {/* </span> */}
-                  </div>
-                )}
+                <UserStatusDot status={user?.activeStatus}></UserStatusDot>
               </div>
               {/* 个人描述 */}
               <div className="py-2">

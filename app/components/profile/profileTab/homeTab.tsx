@@ -3,6 +3,7 @@ import { FollowButton } from "@/components/common/Follow/FollowButton";
 import { UserFollower } from "@/components/common/Follow/UserFollower";
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import { PopWindow } from "@/components/common/popWindow";
+import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import EditProfileWindow from "@/components/profile/editProfileWindow";
 import React, { useState } from "react";
@@ -82,11 +83,17 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                   <div className="skeleton md:w-48 md:h-48 lg:w-54 lg:h-54 rounded-full"></div>
                 )
               : (
-                  <div className="pointer-events-none w-full h-full">
+                  <div className="pointer-events-none w-full h-full relative">
                     <img
                       src={user?.avatar || undefined}
                       alt={user?.username}
                       className="mask mask-circle w-full h-full object-cover"
+                    />
+                    <UserStatusDot
+                      status={user?.activeStatus}
+                      size="lg"
+                      editable={true}
+                      className="absolute border-4 border-white  bottom-5 right-5 transform translate-x-1/4 translate-y-1/4"
                     />
                   </div>
                 )}
@@ -310,6 +317,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                   </h2>
                   {userProfile.medals.length > 6 && (
                     <button
+                      type="button"
                       onClick={() => setExpandedMedals(!expandedMedals)}
                       className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 transition-colors"
                     >
