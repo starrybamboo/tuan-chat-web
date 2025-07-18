@@ -25,7 +25,7 @@ export default function RightChatView(
   const globalContext = useGlobalContext();
   const userId = globalContext.userId || -1;
   const webSocketUtils = globalContext.websocketUtils;
-  const WEBSOCKET_TYPE = 5; // WebSocket 消息类型
+  const WEBSOCKET_TYPE = 5; // WebSocket 私聊消息类型
 
   // 当前联系人信息
   const currentContactUserInfo = useGetUserInfoQuery(currentContactUserId || -1).data?.data;
