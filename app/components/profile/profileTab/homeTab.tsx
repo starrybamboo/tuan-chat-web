@@ -73,11 +73,112 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
   const visibleMedals = expandedMedals ? userProfile.medals : userProfile.medals.slice(0, 6);
 
   return (
-    <div className="max-w-7xl mx-auto p-4 flex transition-all duration-300">
-      <div className="w-full max-w-1/4 flex flex-col md:flex-row py-8">
-        <div className="flex flex-col items-center rounded-2xl p-4">
+    <div className="max-w-7xl mx-auto p-4 transition-all duration-300 md:flex">
+      {/* 在 md 及以上屏幕显示侧边栏布局，在 md 以下显示顶部栏布局 */}
+      <div className="w-full flex flex-col md:max-w-1/4 py-4 md:py-8">
+        {/* 小屏幕布局 - 顶部栏样式 */}
+        <div className="md:hidden flex flex-row items-center justify-between p-4 bg-base-200 rounded-2xl">
+          {/* 头像和用户名 */}
+          <div className="flex gap-4">
+            <div className="w-16 h-16">
+              {userQuery?.isLoading
+                ? (
+                    <div className="skeleton w-16 h-16 rounded-full"></div>
+                  )
+                : (
+                    <div className="pointer-events-none relative">
+                      <img
+                        src={user?.avatar || undefined}
+                        alt={user?.username}
+                        className="mask mask-circle w-16 h-16 object-cover"
+                      />
+                      <UserStatusDot
+                        status={user?.activeStatus}
+                        size="sm"
+                        editable={true}
+                        className="absolute border-2 border-white bottom-1 right-1"
+                      />
+                    </div>
+                  )}
+            </div>
+            <div>
+              {userQuery.isLoading
+                ? (
+                    <div className="skeleton h-6 w-32"></div>
+                  )
+                : (
+                    <>
+                      <h2 className="text-lg font-bold overflow-hidden text-ellipsis whitespace-nowrap">
+                        {user?.username || "未知用户"}
+                      </h2>
+                      <div className="w-40">
+                        <p className={`text-base break-words ${isExpanded ? "" : "line-clamp-2"}`}>
+                          {user?.description || "这个人就是个杂鱼，什么也不愿意写喵~"}
+                        </p>
+                        {user?.description && user.description.length > 80 && (
+                          <button
+                            onClick={() => setIsExpanded(prev => !prev)}
+                            className="text-blue-400 text-xs mt-1 hover:underline"
+                            type="button"
+                          >
+                            {isExpanded ? "收起" : "展开"}
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
+            </div>
+          </div>
+
+          {/* 小屏幕操作按钮 */}
+          {!userQuery.isLoading && (
+            <div className="flex gap-2">
+              {user?.userId === loginUserId
+                ? (
+                    <button
+                      className="btn btn-sm btn-ghost"
+                      onClick={() => setIsEditWindowOpen(true)}
+                      aria-label="编辑"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  )
+                : (
+                    <>
+                      <FollowButton userId={user?.userId || 0} />
+                      <Link to={`/privatechat/${userId}`} className="btn btn-sm btn-ghost">
+                        <svg width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                          <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">
+                            <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                          </g>
+                        </svg>
+                      </Link>
+                    </>
+                  )}
+            </div>
+          )}
+        </div>
+
+        {/* 关注粉丝统计 - 小屏幕显示在顶部栏下方 */}
+        <div className="md:hidden flex justify-center gap-8 py-3 rounded-2xl mt-2">
+          <div className="flex flex-row gap-2 items-center hover:text-info transition-colors cursor-pointer" onClick={handleFollowingClick}>
+            <div className="stat-value text-sm">{followStats.following}</div>
+            <div className="stat-title text-sm">关注</div>
+          </div>
+          <span className="border-l"></span>
+          <div className="flex flex-row gap-2 items-center hover:text-info transition-colors cursor-pointer" onClick={handleFollowersClick}>
+            <div className="stat-value text-sm">{followStats.followers}</div>
+            <div className="stat-title text-sm">粉丝</div>
+          </div>
+        </div>
+
+        {/* 大屏幕布局 - 侧边栏样式 */}
+        <div className="hidden md:flex flex-col items-center rounded-2xl p-2">
           {/* 头像 */}
-          <div className="sm:w-40 md:w-48 lg:w-54">
+          <div className="md:w-46 lg:w-54">
             {userQuery?.isLoading
               ? (
                   <div className="skeleton md:w-48 md:h-48 lg:w-54 lg:h-54 rounded-full"></div>
@@ -93,7 +194,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                       status={user?.activeStatus}
                       size="lg"
                       editable={true}
-                      className="absolute border-4 border-white  bottom-5 right-5 transform translate-x-1/4 translate-y-1/4"
+                      className="absolute border-4 border-white bottom-4 right-4 "
                     />
                   </div>
                 )}
@@ -113,21 +214,17 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
           </div>
 
           {/* 简介 */}
-          <p className="text-sm">
-            <div className="py-2">
-              {userQuery.isLoading
-                ? (
-                    <div className="skeleton h-6 w-32"></div>
-                  )
-                : (
-                    <div>
-                      <p
-                        className={`text-base break-words sm:text-md lg:text-sm mr-4 ${
-                          isExpanded ? "" : "line-clamp-2"
-                        }`}
-                      >
-                        {user?.description ?? "这个人就是个杂鱼，什么也不愿意写喵~"}
-                      </p>
+          <div className="w-full mt-4">
+            {userQuery.isLoading
+              ? (
+                  <div className="skeleton h-6 w-full"></div>
+                )
+              : (
+                  <div>
+                    <p className={`text-base break-words ${isExpanded ? "" : "line-clamp-2"}`}>
+                      {user?.description || "这个人就是个杂鱼，什么也不愿意写喵~"}
+                    </p>
+                    {user?.description && user.description.length > 80 && (
                       <button
                         onClick={() => setIsExpanded(prev => !prev)}
                         className="text-blue-400 text-xs mt-1 hover:underline"
@@ -135,29 +232,25 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                       >
                         {isExpanded ? "收起" : "展开"}
                       </button>
-                    </div>
-                  )}
-            </div>
-          </p>
-          {/* 关注 - 粉丝数 */}
-          <div className="flex gap-8 justify-center">
-            <div
-              className="flex flex-row gap-4 items-center hover:text-info transition-colors cursor-pointer"
-              onClick={handleFollowingClick}
-            >
+                    )}
+                  </div>
+                )}
+          </div>
+
+          {/* 关注粉丝统计 - 大屏幕显示在简介下方 */}
+          <div className="flex gap-8 justify-center w-full mt-4">
+            <div className="flex flex-row gap-2 items-center hover:text-info transition-colors cursor-pointer" onClick={handleFollowingClick}>
               <div className="stat-value text-sm">{followStats.following}</div>
               <div className="stat-title text-sm">关注</div>
             </div>
             <span className="border-l"></span>
-            <div
-              className="flex flex-row gap-4 items-center hover:text-info transition-colors cursor-pointer"
-              onClick={handleFollowersClick}
-            >
-              <div className="stat-value text-sm text-center">{followStats.followers}</div>
+            <div className="flex flex-row gap-2 items-center hover:text-info transition-colors cursor-pointer" onClick={handleFollowersClick}>
+              <div className="stat-value text-sm">{followStats.followers}</div>
               <div className="stat-title text-sm">粉丝</div>
             </div>
           </div>
 
+          {/* 操作按钮 - 大屏幕 */}
           {!userQuery.isLoading && user?.userId === loginUserId && (
             <button
               className="btn flex w-full mt-4 border border-gray-300 hover:text-primary transition-colors h-8 cursor-pointer"
@@ -165,31 +258,16 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
               onClick={() => setIsEditWindowOpen(true)}
               aria-label="编辑"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path
-                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                />
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
               <span className="text-sm">编辑个人资料</span>
             </button>
           )}
 
           {!userQuery.isLoading && user?.userId !== loginUserId && (
-            <div className="flex-col w-full">
-              <FollowButton
-                userId={user?.userId || 0}
-                className="w-full"
-              />
+            <div className="flex-col w-full mt-4">
+              <FollowButton userId={user?.userId || 0} className="w-full" />
               <Link to={`/privatechat/${userId}`} className="flex w-full flex-shrink-0 mt-4">
                 <button
                   type="button"
@@ -206,12 +284,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
               </Link>
             </div>
           )}
-          {/* 信息列表 */}
-          <div className="mt-4 space-y-2 text-sm w-full text-gray-700 dark:text-gray-300">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4" />
-            </div>
-          </div>
         </div>
       </div>
       {/* 右侧 - 真正的主页 */}
@@ -244,10 +316,10 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 ">
             {/* 左侧 - 基本信息 */}
             <div className="lg:col-span-2">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3">
                 {/* 综合评价 */}
                 <div className="rounded-xl p-5">
                   <p className="text-sm">综合评价</p>
@@ -281,32 +353,30 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                   </div>
                   <div className="mt-2 text-xs">最近：2025-07-12</div>
                 </div>
-
-                {/* 模组创作 */}
-                <div className="rounded-xl p-5 md:col-span-3">
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm">模组创作</p>
-                    <span className="text-sm text-indigo-600 font-medium">查看详情</span>
+              </div>
+              <div className="rounded-xl p-5 col-span-3">
+                <div className="flex justify-between items-center">
+                  <p className="text-sm">模组创作</p>
+                  <span className="text-sm text-indigo-600 font-medium">查看详情</span>
+                </div>
+                <div className="mt-3 flex gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-indigo-600">3</div>
+                    <div className="text-sm mt-1">原创模组</div>
                   </div>
-                  <div className="mt-3 flex gap-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-indigo-600">3</div>
-                      <div className="text-sm mt-1">原创模组</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-indigo-600">12</div>
-                      <div className="text-sm mt-1">改编模组</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-indigo-600">1927</div>
-                      <div className="text-sm mt-1">被收藏数量</div>
-                    </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-indigo-600">12</div>
+                    <div className="text-sm mt-1">改编模组</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-indigo-600">1927</div>
+                    <div className="text-sm mt-1">被收藏数量</div>
                   </div>
                 </div>
               </div>
             </div>
             {/* 右侧 - 勋章展示 */}
-            <div className="lg:col-span-1">
+            <div className="md:col-span-2 lg:col-span-1">
               <div className="bg-indigo-50 rounded-xl p-5 h-full">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-bold text-indigo-800 flex items-center">
