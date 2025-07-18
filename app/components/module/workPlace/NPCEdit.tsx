@@ -1,142 +1,112 @@
-import type { Role } from "@/components/newCharacter/types";
-import CharacterAvatar from "@/components/newCharacter/CharacterAvatar";
-import ExpansionModule from "@/components/newCharacter/rules/ExpansionModule";
-import { useMutation } from "@tanstack/react-query";
-import { tuanchat } from "api/instance";
+import type { StageEntityResponse } from "api/models/StageEntityResponse";
+import { useAddMutation, useRenameMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useState } from "react";
+import { useModuleContext } from "./context/_moduleContext";
 
-interface CharacterDetailProps {
-  selectRole: Role;
-  // onRoleUpdate: (updatedRole: RoleResponse) => void;
+interface NPCEditProps {
+  role: StageEntityResponse;
 }
 
-/**
- * 角色详情组件
- */
-export default function CharacterDetail({ selectRole }: CharacterDetailProps) {
-  // 初始化角色数据
-  const [localRole, setLocalRole] = useState<Role>(selectRole);
-  // 编辑状态
-  const [isEditing, setIsEditing] = useState(false);
-  // 编辑状态过渡
-  const [isTransitioning, setIsTransitioning] = useState(false);
+export default function NPCEdit({ role }: NPCEditProps) {
+  // entityInfo 结构见后端定义
+  const entityInfo = role.entityInfo || {};
+  const { stageId, removeModuleTabItem } = useModuleContext();
 
-  // 字数统计状态
-  const [charCount, setCharCount] = useState(selectRole.description?.length || 0);
-  // 描述的最大储存量
+  // 本地状态
+  const [localRole, setLocalRole] = useState({ ...entityInfo });
+  const [name, setName] = useState(role.name);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [charCount, setCharCount] = useState(entityInfo.description?.length || 0);
   const MAX_DESCRIPTION_LENGTH = 140;
 
-  // 当角色变化时，更新本地状态和字数统计
   useEffect(() => {
-    setLocalRole(selectRole);
-    setCharCount(selectRole.description?.length || 0);
-  }, [selectRole]);
+    setLocalRole({ ...entityInfo, name: role.name });
+    setCharCount(entityInfo.description?.length || 0);
+    setName(role.name);
+  }, [role]);
 
-  // 发送post数据部分,保存角色数据
-  const { mutate: updateRole } = useMutation({
-    mutationKey: ["UpdateRole"],
-    mutationFn: async (data: Role) => {
-      const updateRes = await tuanchat.roleController.updateRole({
-        roleId: data.id,
-        roleName: data.name,
-        description: data.description,
-        avatarId: data.avatarId,
-      });
-      return updateRes;
-    },
-    // onSuccess: (data) => {
-    //   if (data.success) {
-    //     onRoleUpdate(localRole);
-    //   }
-    // },
-    onError: (error: any) => {
-      console.error("Mutation failed:", error);
-      if (error.response && error.response.data) {
-        console.error("Server response:", error.response.data);
-      }
-    },
-  });
+  // 接入接口
+  const { mutate: updateRole } = useAddMutation();
+  const { mutate: renameRole } = useRenameMutation();
 
   // 干净的文本
-  const cleanText = (text: string) => {
-    if (!text)
-      return "";
-    return text
-      .replace(/\r\n/g, "\n") // 替换Windows换行符为Unix换行符
-      .replace(/ {2,}/g, " ") // 压缩多个空格为单个空格
-      .replace(/\n{2,}/g, "\n") // 压缩多个换行为单个换行
-      .replace(/\s+$/g, ""); // 移除末尾空格
-  };
+  // const cleanText = (text: string) => {
+  //   if (!text)
+  //     return "";
+  //   return text
+  //     .replace(/\r\n/g, "\n")
+  //     .replace(/ {2,}/g, " ")
+  //     .replace(/\n{2,}/g, "\n")
+  //     .replace(/\s+$/g, "");
+  // };
 
   const handleSave = () => {
     setIsTransitioning(true);
-    const cleanedRole: Role = {
-      ...localRole,
-      name: cleanText(localRole.name),
-      description: cleanText(localRole.description),
-    };
-
-    updateRole(cleanedRole, {
-      onSuccess: () => {
-        setTimeout(() => {
-        //   onRoleUpdate(cleanedRole);
-          setIsTransitioning(false);
-          setIsEditing(false);
-        }, 300);
-      },
-      onError: () => {
-        setIsTransitioning(false);
-      },
-    });
+    // 这里只做本地保存，不调接口
+    setTimeout(() => {
+      setIsTransitioning(false);
+      setIsEditing(false);
+      updateRole({ stageId: stageId as number, entityType: "role", entityInfo: localRole, operationType: 0, name: role.name! });
+      if (name !== role.name) {
+        removeModuleTabItem(role.createTime! + role.name);
+        renameRole({ stageId: stageId as number, entityType: "role", oldName: role.name!, newName: name! });
+      }
+    }, 300);
   };
 
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
+  const handleEdit = () => setIsEditing(true);
   const handleCancel = () => {
-    setLocalRole(selectRole);
+    setLocalRole({ ...entityInfo, name: role.name! });
     setIsEditing(false);
   };
 
-  const handleAvatarChange = (previewUrl: string, avatarId: number) => {
-    setLocalRole(prev => ({ ...prev, avatarId }));
+  // 头像变更（仅本地）
+  const handleAvatarChange = (avatar: string) => {
+    setLocalRole(prev => ({ ...prev, avatar }));
   };
 
   return (
     <div
-      className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""
-      }`}
+      className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}
     >
       {/* 基础信息卡片 */}
-      <div
-        className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}
-      >
+      <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
         <div className="card-body">
           <div className="flex items-center gap-8">
-            <CharacterAvatar
-              role={localRole}
-              onchange={handleAvatarChange}
-            />
-
+            {/* 头像 */}
+            <div>
+              <img
+                src={localRole.avatar || ""}
+                alt="角色头像"
+                className="w-24 h-24 rounded-full object-cover border"
+              />
+              {isEditing && (
+                <input
+                  type="text"
+                  value={localRole.avatar || ""}
+                  onChange={e => handleAvatarChange(e.target.value)}
+                  placeholder="头像URL"
+                  className="input input-bordered w-full mt-2"
+                />
+              )}
+            </div>
+            {/* 右侧内容 */}
             <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               {isEditing
                 ? (
                     <>
-                      <p>
-                        角色ID号：
-                        {localRole.id}
-                      </p>
+                      <p>角色名：</p>
                       <input
                         type="text"
-                        value={localRole.name}
-                        onChange={e =>
-                          setLocalRole(prev => ({ ...prev, roleName: e.target.value }))}
-                        placeholder="角色名称"
+                        value={name || ""}
+                        onChange={e => setName(e.target.value)}
+                        placeholder="角色名"
                         className="input input-bordered w-full text-lg font-bold"
                       />
+                      <p>简介：</p>
                       <textarea
-                        value={localRole.description}
+                        value={localRole.description || ""}
                         onChange={(e) => {
                           setLocalRole(prev => ({ ...prev, description: e.target.value }));
                           setCharCount(e.target.value.length);
@@ -159,32 +129,41 @@ export default function CharacterDetail({ selectRole }: CharacterDetailProps) {
                           )}
                         </span>
                       </div>
+                      <p>模型名：</p>
+                      <input
+                        type="text"
+                        value={localRole.modelName || ""}
+                        onChange={e => setLocalRole(prev => ({ ...prev, modelName: e.target.value }))}
+                        placeholder="模型名"
+                        className="input input-bordered w-full"
+                      />
+                      <p>类型（0=NPC, 1=预设卡）：</p>
+                      <input
+                        type="number"
+                        value={localRole.type ?? ""}
+                        onChange={e => setLocalRole(prev => ({ ...prev, type: Number(e.target.value) }))}
+                        placeholder="类型"
+                        className="input input-bordered w-full"
+                      />
                     </>
                   )
                 : (
                     <>
-                      <h2 className="card-title text-2xl">
-                        {localRole.name || "未命名角色"}
-                      </h2>
-                      <p>
-                        角色ID号：
-                        {localRole.id}
-                      </p>
+                      <h2 className="card-title text-2xl">{role.name || "未命名角色"}</h2>
                       <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden">
                         {localRole.description || "暂无描述"}
                       </p>
-                      <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden float-right">
+                      <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden">
                         采用模型：
-                        {localRole.modelName || "暂无描述"}
+                        {localRole.modelName || "暂无"}
                         <br />
-                        语音来源：
-                        {localRole.speakerName || "暂无描述"}
+                        类型：
+                        {localRole.type === 0 ? "NPC" : localRole.type === 1 ? "预设卡" : "未知"}
                       </p>
                     </>
                   )}
             </div>
           </div>
-
           {/* 操作按钮 */}
           <div className="card-actions justify-end">
             {isEditing
@@ -203,12 +182,7 @@ export default function CharacterDetail({ selectRole }: CharacterDetailProps) {
                         : (
                             <span className="flex items-center gap-1">
                               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                <path
-                                  d="M20 6L9 17l-5-5"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                />
+                                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                               </svg>
                               保存
                             </span>
@@ -231,16 +205,8 @@ export default function CharacterDetail({ selectRole }: CharacterDetailProps) {
                   >
                     <span className="flex items-center gap-1">
                       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        />
-                        <path
-                          d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        />
+                        <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                        <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
                       </svg>
                       编辑
                     </span>
@@ -249,10 +215,6 @@ export default function CharacterDetail({ selectRole }: CharacterDetailProps) {
           </div>
         </div>
       </div>
-
-      <ExpansionModule
-        roleId={localRole.id}
-      />
     </div>
   );
 }
