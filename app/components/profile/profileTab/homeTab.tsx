@@ -1,8 +1,11 @@
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import { FollowButton } from "@/components/common/Follow/FollowButton";
 import { UserFollower } from "@/components/common/Follow/UserFollower";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import EditProfileWindow from "@/components/profile/editProfileWindow";
 import React, { useState } from "react";
+import { Link } from "react-router";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../../api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 
@@ -17,7 +20,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
   const loginUserId = useGlobalContext().userId ?? -1;
   const user = userQuery.data?.data;
   const [isFFWindowOpen, setIsFFWindowOpen] = useSearchParamsState<boolean>(`userEditPop${userId}`, false);
-  // const [isEditWindowOpen, setIsEditWindowOpen] = useSearchParamsState<boolean>(`profileEditPop`, false);
+  const [isEditWindowOpen, setIsEditWindowOpen] = useSearchParamsState<boolean>(`profileEditPop`, false);
   const [relationTab, setRelationTab] = useState<"following" | "followers">("following");
 
   const followingsQuery = useGetUserFollowingsQuery(userId, {
@@ -129,7 +132,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             </div>
           </p>
           {/* 关注 - 粉丝数 */}
-          <div className="flex gap-8 justify-items-end ml-auto">
+          <div className="flex gap-8 justify-items-end ml-auto mb-4">
             <div
               className="flex flex-col items-center hover:text-info transition-colors cursor-pointer"
               onClick={handleFollowingClick}
@@ -147,6 +150,55 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             </div>
           </div>
 
+          {user?.userId === loginUserId
+            ? (
+                <button
+                  className="btn flex w-full mt-4 border border-gray-300 hover:text-primary transition-colors h-8 cursor-pointer"
+                  type="button"
+                  onClick={() => setIsEditWindowOpen(true)}
+                  aria-label="编辑"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path
+                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                    />
+                  </svg>
+                  <span className="text-sm">编辑个人资料</span>
+                </button>
+              )
+            : (
+                <div className="flex-col w-full">
+                  <FollowButton
+                    userId={user?.userId || 0}
+                    className="w-full"
+                  />
+                  <Link to={`/privatechat/${userId}`} className="flex w-full flex-shrink-0 mt-4">
+                    <button
+                      type="button"
+                      className="btn flex border w-full border-gray-300 rounded-3 hover:text-primary transition-colors h-8 cursor-pointer"
+                    >
+                      <svg aria-label="私信" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="flex-shrink-0">
+                        <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">
+                          <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                        </g>
+                      </svg>
+                      <span className="text-sm">私信</span>
+                    </button>
+                  </Link>
+                </div>
+
+              )}
           {/* 信息列表 */}
           <div className="mt-4 space-y-2 text-sm w-full text-gray-700 dark:text-gray-300">
             <div className="flex items-center gap-2">
@@ -155,7 +207,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
           </div>
         </div>
       </div>
-
+      {/* 右侧 - 真正的主页 */}
       <div className="flex-1 rounded-xl shadow-md">
         <div className="p-6">
           {/* 用户ID和登录时间 - 紧凑布局 */}
@@ -329,9 +381,9 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
           )}
         </div>
       </div>
-      {/* <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}> */}
-      {/*  <EditProfileWindow onClose={() => setIsEditWindowOpen(false)}></EditProfileWindow> */}
-      {/* </PopWindow> */}
+      <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}>
+        <EditProfileWindow onClose={() => setIsEditWindowOpen(false)}></EditProfileWindow>
+      </PopWindow>
       <PopWindow
         isOpen={isFFWindowOpen}
         onClose={() => {

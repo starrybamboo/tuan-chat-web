@@ -4,9 +4,10 @@ interface FollowButtonProps {
   userId: number;
   status?: number;
   onStatusChange?: (newStatus: number) => void;
+  className?: string;
 }
 
-export function FollowButton({ userId, status, onStatusChange }: FollowButtonProps) {
+export function FollowButton({ userId, status, onStatusChange, className = "" }: FollowButtonProps) {
   const { mutate: followUser } = useUserFollowMutation();
   const { mutate: unfollowUser } = useUserUnfollowMutation();
   const { data: isFollowedData } = useUserIsFollowedQuery(userId);
@@ -28,7 +29,7 @@ export function FollowButton({ userId, status, onStatusChange }: FollowButtonPro
   return (
     <button
       type="button"
-      className={`btn btn-sm mt-2 w-20 ${currentStatus === 0 ? "btn-info" : "btn-info btn-soft"}`}
+      className={`btn btn-sm mt-2 w-20 ${currentStatus === 0 ? "btn-info" : "btn-info btn-soft"} ${className}`}
       onClick={handleClick}
     >
       {currentStatus === 0 ? "关注" : currentStatus === 1 ? "已关注" : "互相关注"}

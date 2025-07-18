@@ -1,6 +1,5 @@
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import EditProfileWindow from "@/components/profile/editProfileWindow";
 import { useState } from "react";
 import { Link } from "react-router";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
@@ -24,7 +23,6 @@ export function UserDetail({ userId }: UserDetailProps) {
 
   const user = userQuery.data?.data;
   const [isFFWindowOpen, setIsFFWindowOpen] = useSearchParamsState<boolean>(`userEditPop${userId}`, false);
-  const [isEditWindowOpen, setIsEditWindowOpen] = useSearchParamsState<boolean>(`profileEditPop`, false);
   const [isExpanded, setIsExpanded] = useState(false);
 
   // 状态颜色映射
@@ -148,7 +146,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                     )}
               </div>
             </div>
-            {/* 关注按钮（仅在 sm 情况显示，浮动在头像下方） */}
+            {/* 关注按钮（头像右侧） */}
             {user?.userId !== loginUserId && (
               <div className="absolute block left-38 top-1">
                 <FollowButton userId={user?.userId || 0} />
@@ -158,7 +156,7 @@ export function UserDetail({ userId }: UserDetailProps) {
 
           {/* 主要信息 */}
           <div className="flex justify-between w-full pl-2">
-            {/* 左边：名字和描述 */}
+            {/* 名字和描述 */}
             <div className="pt-14">
               <div className="flex items-center">
                 {userQuery.isLoading
@@ -179,16 +177,16 @@ export function UserDetail({ userId }: UserDetailProps) {
                     className="badge flex-nowrap gap-0 rounded-full ring-1 ring-white/50 px-1 text-sm whitespace-nowrap transition-all duration-300"
                   >
                     <div className={`w-4 h-4 rounded-full ${statusColor.replace("badge-", "bg-")}`} />
-                    <span className="hidden sm:inline">
-                      {
-                        {
-                          active: "在线",
-                          offline: "离线",
-                          busy: "忙碌",
-                          away: "离开",
-                        }[String(user.activeStatus).toLowerCase()] || "离线"
-                      }
-                    </span>
+                    {/* <span className="hidden sm:inline"> */}
+                    {/*  { */}
+                    {/*    { */}
+                    {/*      active: "在线", */}
+                    {/*      offline: "离线", */}
+                    {/*      busy: "忙碌", */}
+                    {/*      away: "离开", */}
+                    {/*    }[String(user.activeStatus).toLowerCase()] || "离线" */}
+                    {/*  } */}
+                    {/* </span> */}
                   </div>
                 )}
               </div>
@@ -224,34 +222,7 @@ export function UserDetail({ userId }: UserDetailProps) {
         {/* 次要信息 */}
         <div className="relative pl-8">
           <div className="flex">
-            {/* 左边 - 功能组件（关注，私信等等） */}
-            {user?.userId === loginUserId && (
-              <button
-                className="btn flex border border-gray-300 hover:text-primary transition-colors h-8 cursor-pointer"
-                type="button"
-                onClick={() => setIsEditWindowOpen(true)}
-                aria-label="编辑"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path
-                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                  />
-                </svg>
-                <span className="text-sm">编辑</span>
-              </button>
-            )}
-
-            {/* 右边 - 关注/粉丝数 */}
+            {/* 关注/粉丝数 */}
             <div className="flex gap-8 justify-items-end ml-auto">
               <div
                 className="flex flex-col items-center hover:text-info transition-colors cursor-pointer"
@@ -309,9 +280,6 @@ export function UserDetail({ userId }: UserDetailProps) {
         )}
       </div>
       {/* 相关的弹窗组件 */}
-      <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}>
-        <EditProfileWindow onClose={() => setIsEditWindowOpen(false)}></EditProfileWindow>
-      </PopWindow>
       <PopWindow
         isOpen={isFFWindowOpen}
         onClose={() => {
