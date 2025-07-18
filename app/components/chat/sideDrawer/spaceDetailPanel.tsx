@@ -2,11 +2,12 @@ import { MemberTypeTag } from "@/components/chat/smallComponents/memberTypeTag";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
+import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import UserAvatarComponent from "@/components/common/userAvatar";
-import { Setting } from "@/icons";
+import { GirlIcon, MemberIcon, Setting } from "@/icons";
 import React, { use } from "react";
 import {
   useAddSpaceMemberMutation,
@@ -14,9 +15,8 @@ import {
   useGetSpaceMembersQuery,
   useGetSpaceRolesQuery,
 } from "../../../../api/hooks/chatQueryHooks";
-import SpaceSettingWindow from "../window/spaceSettingWindow";
 
-export default function SpaceRightSidePanel() {
+export default function SpaceDetailPanel() {
   const spaceContext = use(SpaceContext);
   const spaceId = spaceContext.spaceId ?? -1;
   const spaceMemberQuery = useGetSpaceMembersQuery(spaceId);
@@ -24,13 +24,14 @@ export default function SpaceRightSidePanel() {
   const spaceRolesQuery = useGetSpaceRolesQuery(spaceId);
   const spaceRoles = spaceRolesQuery.data?.data ?? [];
 
+  // 是否显示space详情
+  const [_, setIsShowSpacePanel] = useSearchParamsState<boolean>("spaceDetailPop", false);
+
   const [isRoleHandleOpen, setIsRoleHandleOpen] = useSearchParamsState<boolean>(`spaceRolePop${spaceContext.spaceId}`, false);
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>(`spaceUserPop${spaceContext.spaceId}`, false);
 
   const addMemberMutation = useAddSpaceMemberMutation();
   const addRoleMutation = useAddSpaceRoleMutation();
-
-  const [isOpenSpaceSettingWindow, setIsOpenSpaceSettingWindow] = useSearchParamsState<boolean>(`spaceSettingPop${spaceContext.spaceId}`, false);
 
   const handleAddRole = async (roleId: number) => {
     addRoleMutation.mutate({
@@ -55,24 +56,21 @@ export default function SpaceRightSidePanel() {
   }
   return (
     <div className="flex flex-row gap-4 h-full">
-      <div className="flex flex-col gap-2 p-4 bg-base-100 rounded-box shadow-sm items-center w-full space-y-4 overflow-y-auto">
-        {
-          spaceContext.isSpaceOwner && (
-            <div className="w-full flex justify-end">
-              <Setting className="w-12 h-12 cursor-pointer hover:text-info" onClick={() => setIsOpenSpaceSettingWindow(true)}> </Setting>
-            </div>
-          )
-        }
-
+      {/* name of each tab group should be unique */}
+      <div className="tabs tabs-lift h-full">
         {/* 群成员列表 */}
-        <div className="space-y-2">
-          <div className="flex flex-row justify-center items-center gap-2">
-            <p className="text-center">
+        <label className="tab">
+          <input type="radio" name="my_tabs_4" defaultChecked />
+          <MemberIcon className="size-4"></MemberIcon>
+          群成员
+        </label>
+        <div className="tab-content space-y-2">
+          <div className="flex flex-row justify-center items-center gap-2 px-4">
+            <p>
               空间成员-
               {spaceMembers.length}
             </p>
             {
-              // TODO
               spaceMembers.length > 0
               && (
                 <button
@@ -88,7 +86,7 @@ export default function SpaceRightSidePanel() {
           {spaceMembers.map(member => (
             <div
               key={member.userId}
-              className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center "
+              className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg items-center "
             >
               {/* 成员列表 */}
               <UserAvatarComponent userId={member.userId ?? 0} width={8} isRounded={true} withName={true}>
@@ -99,10 +97,15 @@ export default function SpaceRightSidePanel() {
             </div>
           ))}
         </div>
-        角色列表
-        <div className="space-y-2">
-          <div className="flex flex-row justify-center items-center gap-2">
-            <p className="text-center">
+        {/* 角色列表 */}
+        <label className="tab">
+          <input type="radio" name="my_tabs_4" />
+          <GirlIcon className="size-4"></GirlIcon>
+          角色
+        </label>
+        <div className="tab-content space-y-2">
+          <div className="flex flex-row justify-center items-center gap-2 px-4">
+            <p>
               角色列表-
               <span className="text-sm">{spaceRoles.length}</span>
             </p>
@@ -121,7 +124,7 @@ export default function SpaceRightSidePanel() {
           {spaceRoles.map(role => (
             <div
               key={role.roleId}
-              className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center "
+              className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg items-center "
             >
               {/* role列表 */}
               <RoleAvatarComponent
@@ -136,10 +139,22 @@ export default function SpaceRightSidePanel() {
             </div>
           ))}
         </div>
+        {/* 设置窗口 */}
+        {
+          spaceContext.isSpaceOwner && (
+            <>
+              <label className="tab">
+                <input type="radio" name="my_tabs_4" />
+                <Setting className="size-4"></Setting>
+                设置
+              </label>
+              <div className="tab-content">
+                <SpaceSettingWindow onClose={() => { setIsShowSpacePanel(false); }}></SpaceSettingWindow>
+              </div>
+            </>
+          )
+        }
       </div>
-      <PopWindow isOpen={isOpenSpaceSettingWindow} onClose={() => setIsOpenSpaceSettingWindow(false)}>
-        <SpaceSettingWindow onClose={() => setIsOpenSpaceSettingWindow(false)}></SpaceSettingWindow>
-      </PopWindow>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
         <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
       </PopWindow>
