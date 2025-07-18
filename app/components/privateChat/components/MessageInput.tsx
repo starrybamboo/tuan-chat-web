@@ -8,11 +8,15 @@ export default function MessageInput({
   setMessageInput,
   messageInput,
   handleSendMessage,
+  imgFiles,
+  updateImgFiles,
 }: {
   currentContactUserId: number | null;
   setMessageInput: (value: string) => void;
   messageInput: string;
-  handleSendMessage: () => void;
+  handleSendMessage: () => void | Promise<void>;
+  imgFiles: File[];
+  updateImgFiles: (recipe: (draft: File[]) => void) => void;
 }) {
   /**
    * 文本消息发送
@@ -32,8 +36,7 @@ export default function MessageInput({
   /**
    * 图片上传
    */
-  // 聊天框中包含的图片
-  const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
+  // 图片文件状态现在通过 props 传递
 
   if (!currentContactUserId) {
     return null;

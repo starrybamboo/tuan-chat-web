@@ -3,12 +3,16 @@ import type {
   MessageDirectResponse,
   MessageDirectSendRequest,
 } from "../../../../api";
+import BetterImg from "@/components/common/betterImg";
 import { SideDrawerToggle } from "@/components/common/sideDrawer";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ChevronRight, MoreMenu } from "@/icons";
+import { getImageSize } from "@/utils/getImgSize";
+import { UploadUtils } from "@/utils/UploadUtils";
 import { useGetUserInfoQuery } from "api/queryHooks";
 import { useEffect, useRef, useState } from "react";
+import { useImmer } from "use-immer";
 import MessageInput from "./MessageInput";
 
 export default function RightChatView(
@@ -26,25 +30,64 @@ export default function RightChatView(
   const userId = globalContext.userId || -1;
   const webSocketUtils = globalContext.websocketUtils;
   const WEBSOCKET_TYPE = 5; // WebSocket 私聊消息类型
+  const uploadUtils = new UploadUtils(2);
 
   // 当前联系人信息
   const currentContactUserInfo = useGetUserInfoQuery(currentContactUserId || -1).data?.data;
   // 用户输入
   const [messageInput, setMessageInput] = useState("");
+  // 聊天框中包含的图片
+  const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
+  // 发送状态
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 发送私聊消息相关
   const send = (message: MessageDirectSendRequest) => webSocketUtils.send({ type: WEBSOCKET_TYPE, data: message }); // 私聊消息发送
-  const handleSendMessage = () => {
-    if (messageInput.trim() === "")
+  const handleSendMessage = async () => {
+    if ((!messageInput.trim() && imgFiles.length === 0) || isSubmitting || !currentContactUserId)
       return;
-    const sendMessage: MessageDirectSendRequest = {
-      receiverId: currentContactUserId || -1,
-      content: messageInput,
-      messageType: 1,
-      extra: {},
-    };
-    send(sendMessage); // 当消息发送到服务器后，服务器会通过 WebSocket 广播给所有在线用户
-    setMessageInput(""); // 包括发送者自己也会收到这条消息的回显，无需主动refetch
+
+    setIsSubmitting(true);
+
+    // 发送图片消息
+    if (imgFiles.length > 0) {
+      for (let i = 0; i < imgFiles.length; i++) {
+        const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
+        // 获取到图片的宽高
+        const { width, height } = await getImageSize(imgFiles[i]);
+        // 如果有图片，发送独立的图片消息
+        if (imgDownLoadUrl && imgDownLoadUrl !== "") {
+          const imageMessage: MessageDirectSendRequest = {
+            receiverId: currentContactUserId,
+            content: "",
+            messageType: 2, // 图片消息类型
+            extra: {
+              size: 0,
+              url: imgDownLoadUrl,
+              fileName: imgDownLoadUrl.split("/").pop() || `${userId}-${Date.now()}`,
+              width,
+              height,
+            },
+          };
+          send(imageMessage);
+        }
+      }
+    }
+    updateImgFiles([]);
+
+    // 发送文本消息
+    if (messageInput.trim() !== "") {
+      const sendMessage: MessageDirectSendRequest = {
+        receiverId: currentContactUserId,
+        content: messageInput,
+        messageType: 1,
+        extra: {},
+      };
+      send(sendMessage); // 当消息发送到服务器后，服务器会通过 WebSocket 广播给所有在线用户
+      setMessageInput(""); // 包括发送者自己也会收到这条消息的回显，无需主动refetch
+    }
+
+    setIsSubmitting(false);
   };
 
   // 滚动相关
@@ -103,6 +146,47 @@ export default function RightChatView(
     directMessageQuery.fetchNextPage();
   };
 
+  // 渲染消息内容（文本或图片）
+  const renderMessageContent = (msg: MessageDirectResponse) => {
+    if (msg.messageType === 2) {
+      // 图片消息
+      const imgData = msg.extra?.imageMessage;
+      return (
+        <div>
+          <BetterImg
+            src={imgData?.url}
+            size={{ width: imgData?.width, height: imgData?.height }}
+            className="max-h-[40vh] max-w-[300px] rounded-lg"
+          />
+        </div>
+      );
+    }
+    else {
+      // 文本消息
+      return (
+        <div className="whitespace-pre-wrap break-words">
+          {msg.content}
+        </div>
+      );
+    }
+  };
+
+  // 获取消息气泡的样式类，图片消息需要特殊处理
+  const getMessageBubbleClass = (msg: MessageDirectResponse, isOwn: boolean) => {
+    const baseClass = isOwn
+      ? "bg-info text-info-content rounded-lg max-w-[70%]"
+      : "bg-base-300 text-base-content rounded-lg max-w-[70%]";
+
+    if (msg.messageType === 2) {
+      // 图片消息减少内边距
+      return `${baseClass} px-2 pt-2`;
+    }
+    else {
+      // 文本消息正常内边距
+      return `${baseClass} p-2`;
+    }
+  };
+
   return (
     <div className="flex-1 bg-base-100 border-l border-base-300 flex flex-col">
       {/* 聊天顶部栏 */}
@@ -155,8 +239,8 @@ export default function RightChatView(
                   msg.senderId === userId
                     ? (
                         <div key={msg.messageId} className="flex items-start justify-end gap-2">
-                          <div className="bg-info text-info-content p-2 rounded-lg">
-                            {msg.content}
+                          <div className={getMessageBubbleClass(msg, true)}>
+                            {renderMessageContent(msg)}
                           </div>
                           <UserAvatarComponent
                             userId={msg.senderId || -1}
@@ -174,8 +258,8 @@ export default function RightChatView(
                             isRounded={true}
                             uniqueKey={`${msg.senderId}${msg.messageId}`}
                           />
-                          <div className="bg-base-300 text-base-content p-2 rounded-lg">
-                            {msg.content}
+                          <div className={getMessageBubbleClass(msg, false)}>
+                            {renderMessageContent(msg)}
                           </div>
                         </div>
                       )
@@ -197,6 +281,8 @@ export default function RightChatView(
         setMessageInput={setMessageInput}
         messageInput={messageInput}
         handleSendMessage={handleSendMessage}
+        imgFiles={imgFiles}
+        updateImgFiles={updateImgFiles}
       />
     </div>
   );
