@@ -231,7 +231,7 @@ export default function ModuleHome() {
 
   // 分页状态管理
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12; // 每页显示16个模组
+  const itemsPerPage = 12; // 每页显示12个模组
 
   // 当前活跃的背景图片状态
   const [activeBackgroundImage, setActiveBackgroundImage] = useState<string>(
@@ -348,10 +348,12 @@ export default function ModuleHome() {
 
   return (
     <div className="bg-base-100 relative">
-      {/* 创建模组按钮 - 右上角绝对定位 */}
+      {/* 创建模组按钮 - 响应式：大屏右上角固定，移动端底部悬浮 */}
       <button
         type="button"
-        className="cursor-pointer fixed top-30 right-16 z-50 flex items-center px-4 py-4 border-4 border-primary bg-transparent text-black font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white"
+        className="cursor-pointer fixed z-50 flex items-center justify-center px-3 py-2 border-2 border-primary bg-base-200 font-bold text-base overflow-hidden group transition-all duration-300 hover:border-white
+        left-1/2 -translate-x-1/2 bottom-4 w-[90vw] max-w-xs rounded-full shadow-lg
+        md:bg-transparent md:px-4 md:py-4 md:border-4 md:text-xl md:left-auto md:right-16 md:top-30 md:bottom-auto md:w-auto md:max-w-none md:rounded-none md:shadow-none md:translate-x-0"
         onClick={() => navigate("/module/create")}
       >
         {/* 从左往右的黑色背景遮罩 */}
@@ -381,7 +383,7 @@ export default function ModuleHome() {
       {/* 四图并排轮播图区域 */}
       <div className="w-full py-16 bg-base-200 relative overflow-hidden">
         {/* 背景层容器 - 限制模糊效果范围 */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+        <div className="hidden md:block absolute top-0 left-0 w-full h-full overflow-hidden z-0">
           {/* 动态背景图 - 使用当前活跃图片的高斯模糊 */}
           <div
             className="absolute -top-6 -left-6 w-[calc(100%+48px)] h-[calc(100%+48px)] bg-cover bg-center transition-all duration-700 ease-out"

@@ -6,6 +6,9 @@ import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useEffect, useRef } from "react";
 import { useModuleContext } from "./context/_moduleContext";
 import { ModuleItemEnum } from "./context/types";
+import ItemEdit from "./ItemEdit";
+import NPCEdit from "./NPCEdit";
+import SceneEdit from "./SceneEdit";
 
 export function BaselineClose(props: SVGProps<SVGSVGElement>) {
   return (
@@ -33,7 +36,7 @@ function RoleModuleTabItem({
   onCloseClick,
 }: {
   roleModuleItem: RoleModuleItem;
-  role?: StageEntityResponse;
+  role: StageEntityResponse;
   isSelected: boolean;
   onTabClick: (id: string) => void;
   onCloseClick: (id: string) => void;
@@ -75,7 +78,7 @@ function RoleModuleTabItem({
         {label}
       </label>
       <div className="tab-content h-fit! bg-base-100 border-base-300 p-6">
-        <div>null</div>
+        <NPCEdit role={role} />
       </div>
     </>
   );
@@ -89,7 +92,7 @@ function ItemModuleTabItem({
   onCloseClick,
 }: {
   itemModuleItem: ItemModuleItem;
-  item: StageEntityResponse; // 这里用 any，实际可替换为具体类型
+  item: StageEntityResponse;
   isSelected: boolean;
   onTabClick: (id: string) => void;
   onCloseClick: (id: string) => void;
@@ -130,7 +133,7 @@ function ItemModuleTabItem({
         {label}
       </label>
       <div className="tab-content h-fit! bg-base-100 border-base-300 p-6">
-        {/* 这里可替换为具体的 ItemEdit 组件 */}
+        <ItemEdit item={item} />
       </div>
     </>
   );
@@ -151,7 +154,6 @@ function SceneModuleTabItem({
 }) {
   const { id, label } = sceneModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
-  console.warn(scene);
 
   useEffect(() => {
     if (isSelected && inputRef.current) {
@@ -187,8 +189,7 @@ function SceneModuleTabItem({
       </label>
       <div className="tab-content bg-base-100 border-base-300 p-6">
         {/* 这里可替换为具体的 SceneEdit 组件 */}
-        {/* <SceneEdit selectedScene={scene} /> */}
-        {/* <div>{ scene.name }</div> */}
+        <SceneEdit scene={scene} />
       </div>
     </>
   );
@@ -207,7 +208,7 @@ export default function EditModule() {
     item.type === ModuleItemEnum.ITEM,
   );
   const { data: moduleInfo } = useQueryEntitiesQuery(stageId as number);
-  const allLists = getAllEntityLists(moduleInfo);
+  const allLists = getAllEntityLists(moduleInfo?.data);
 
   return (
     <div className="h-screen p-4 overflow-y-scroll">

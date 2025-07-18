@@ -8,12 +8,15 @@ import React, { useEffect, useRef, useState } from "react";
  * @param className
  * @param onClose 可选的回调函数，如果填写了该回调函数，那么图片左上角会出现一个关闭按钮，点击后调用onClose回调函数。
  * @param size 图片的尺寸，用于优化加载体验
+ * @param popWindowKey 弹窗的searchParam key。如果同一页面会出现多个同一url的图片时，需要指定
  */
-function BetterImg({ src, className, onClose, size, transparent = true }: {
+
+function BetterImg({ src, className, onClose, size, popWindowKey, transparent = true }: {
   src: string | File | undefined;
   className?: string;
   onClose?: () => void;
   size?: { width?: number; height?: number };
+  popWindowKey?: string;
   transparent?: boolean;
 }) {
   const [scale, setScale] = useState(1);
@@ -23,7 +26,7 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
   const imgRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imgSrc = typeof src === "string" || !src ? src : URL.createObjectURL(src);
-  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`imgPop${imgSrc}`, false);
+  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(popWindowKey || `imgPop${imgSrc}`, false);
 
   const zoom = (delta: number, mouseX: number, mouseY: number) => {
     const newScale = Math.max(0.5, Math.min(3, scale + delta));
@@ -117,11 +120,13 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
 
   return (
     <div>
-      <div className="relative inline-block group">
+      <div className="relative group">
         <img
           ref={imgRef}
           src={imgSrc}
-          className={`hover:scale-101 ${className} cursor-zoom-in`}
+          width={size?.width}
+          height={size?.height}
+          className={`hover:scale-101 ${className} cursor-zoom-in w-full object-contain`}
           alt="img"
           onClick={() => setIsOpen(true)}
         />
@@ -170,7 +175,7 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
           >
             <img
               src={imgSrc}
-              className="max-h-[70vh] max-w-[70vw]"
+              className="max-h-[70vh] max-w-[70vw] object-contain"
               alt="img"
               width={size?.width}
               height={size?.height}

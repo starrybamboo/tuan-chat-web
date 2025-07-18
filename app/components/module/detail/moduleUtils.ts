@@ -2,11 +2,15 @@ import type { StageEntityResponse } from "api/models/StageEntityResponse";
 
 // 根据类型过滤实体数据的函数
 export function getEntityListByType(
-  moduleInfo: any,
+  moduleInfo: StageEntityResponse[] | undefined,
   type: "item" | "role" | "scene",
 ): StageEntityResponse[] {
-  const responses = moduleInfo?.data?.responses || [];
-  return responses.filter((entity: StageEntityResponse) => entity.entityType === type);
+  if (!moduleInfo) {
+    return [];
+  }
+  else {
+    return moduleInfo.filter(entity => entity.entityType === type);
+  }
 }
 
 // 扩展场景实体，添加物品和角色信息

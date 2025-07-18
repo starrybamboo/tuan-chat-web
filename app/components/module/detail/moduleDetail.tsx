@@ -3,15 +3,60 @@ import { FollowButton } from "@/components/common/Follow/FollowButton";
 import { PopWindow } from "@/components/common/popWindow";
 import { UserDetail } from "@/components/common/userDetail";
 
+import { useGlobalContext } from "@/components/globalContextProvider";
 import TitleBar from "@/components/module/common/titleBar";
 import Items from "@/components/module/detail/items";
 import Roles from "@/components/module/detail/roles";
+// import { useAddModuleMutation, useAddMutation, useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import { useGetUserInfoQuery } from "api/queryHooks";
 import { useCallback, useState } from "react";
 import { useParams } from "react-router";
 import NewSceneGraph from "../scene/react flow/newSceneGraph";
 
 function Author({ userId }: { userId?: number }) {
+  // 获取全局用户ID
+  const { userId: contextUserId } = useGlobalContext();
+  // const addModuleMutation = useAddModuleMutation();
+  // const addEntityMutation = useAddMutation();
+  // const navigate = useNavigate();
+
+  // const clone = async () => {
+  //   try {
+  //     // 1. 创建模组，修正所有 number/null 字段类型
+  //     const createParams = {
+  //       ...moduleData,
+  //       authorName: moduleData.authorName ?? undefined,
+  //       minTime: moduleData.minTime ?? undefined,
+  //       maxTime: moduleData.maxTime ?? undefined,
+  //       minPeople: moduleData.minPeople ?? undefined,
+  //       maxPeople: moduleData.maxPeople ?? undefined,
+  //     };
+  //     const addRes = await addModuleMutation.mutateAsync(createParams);
+  //     const stageId = addRes.data?.stageId;
+  //     if (!stageId)
+  //       return;
+
+  //     // 2. 获取模组信息
+  //     const infoRes = await useModuleInfoQuery(moduleData.id).refetch();
+  //     const entities = infoRes.data?.data?.entities?.map((e) => {
+  //       const { ModuleMap, ...rest } = e;
+  //       return rest;
+  //     }) || [];
+
+  //     // 3. 添加实体到新 stage
+  //     for (const entity of entities) {
+  //       await addEntityMutation.mutateAsync({ ...entity, stageId });
+  //     }
+
+  //     // 4. 跳转到工作区并传递 stageId
+  //     navigate("/create", { state: { stageId } });
+  //   }
+  //   catch (err) {
+  //   // 错误处理
+  //     console.error("克隆失败", err);
+  //   }
+  // };
+
   // 弹窗状态
   const [isUserCardOpen, setIsUserCardOpen] = useState(false);
 
@@ -43,7 +88,7 @@ function Author({ userId }: { userId?: number }) {
       <div className="card bg-base-200 w-full mb-8">
         <div className="card-body p-4">
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col md:flex-row items-center gap-4">
               {userInfoLoading
                 ? (
                     <div className="skeleton w-16 h-16 rounded-full"></div>
@@ -71,8 +116,9 @@ function Author({ userId }: { userId?: number }) {
                       </>
                     )}
               </div>
-              <div className="divider divider-horizontal m-0" />
-              {userId && <FollowButton userId={userId} />}
+              <div className="divider md:divider-horizontal m-0" />
+              {/* 只有userId不等于当前context中的ID时才渲染FollowButton */}
+              {userId && userId !== contextUserId && <FollowButton userId={userId} />}
               <div className="flex gap-4 items-center justify-end flex-1">
                 <button type="button" className="btn btn-outline  btn-ghost rounded-md">
                   分支
@@ -128,25 +174,25 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
 
   return (
     <div className="flex-grow">
-      <div className="flex bg-transparent gap-10 mt-20">
+      <div className="flex flex-col md:flex-row bg-transparent gap-10 mt-2 md:mt-20">
 
-        <div className="w-1/2 flex items-center justify-center">
+        <div className="w-full md:w-1/2 flex items-center justify-center">
           <img
             className="aspect-square object-cover w-full"
             src={moduleData.image}
           />
         </div>
 
-        <div className="w-1/2 flex flex-col justify-between gap-4">
+        <div className="w-full md:w-1/2 flex flex-col justify-between gap-4">
           <div className="flex-1 flex flex-col justify-center">
             {/* 模组名称 */}
-            <h1 className="text-5xl mb-2 font-bold text-white">
+            <h1 className="text-5xl mb-2 font-bold text-primary md:text-white">
               {moduleData.moduleName}
             </h1>
 
             <div className="divider m-0" />
             {/* 模组简介 */}
-            <p className="text-base font-semibold tracking-wide leading-relaxed mt-2 text-white line-clamp-4">
+            <p className="text-base font-semibold tracking-wide leading-relaxed mt-2 text-primary md:text-white line-clamp-4">
               {moduleData.description}
             </p>
           </div>
@@ -172,7 +218,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
         </div>
       </div>
       {/* 应用按钮行 - 占据mb-24的空间 */}
-      <div className="flex justify-end items-center mt-6 mb-6">
+      <div className="flex justify-center md:justify-end items-center mt-6 mb-6">
         <button
           type="button"
           className="cursor-pointer z-50 relative flex items-center px-4 py-4 border-4 border-primary bg-transparent text-black font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white"
@@ -213,8 +259,8 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
 export default function ModuleDetailComponent({ moduleData }: { moduleData: ModuleData }) {
   return (
     <div className="bg-base-100 relative">
-      {/* 背景层容器 - 限制模糊效果范围 */}
-      <div className="absolute top-0 left-0 w-full h-100 overflow-hidden z-0">
+      {/* 背景层容器 - 限制模糊效果范围，仅在大屏显示 */}
+      <div className="hidden lg:block absolute top-0 left-0 w-full h-100 overflow-hidden z-0">
         {/* 背景图 - 使用封面图的高斯模糊，稍微放大以避免边缘透明 */}
         <div
           className="absolute -top-6 -left-6 w-[calc(100%+48px)] h-[calc(100%+48px)] bg-cover bg-center"

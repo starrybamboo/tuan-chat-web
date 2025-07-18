@@ -18,6 +18,7 @@ function LeftContent() {
     if (isSuccess && stagingData.data!.length > 0) {
       setModuleArray(stagingData.data!);
       setEditingStageId(moduleArray[0]?.stageId ?? 0);
+      setStageId(moduleArray[0]?.stageId ?? 0);
     }
   }, [isSuccess, moduleArray, stagingData]);
 
