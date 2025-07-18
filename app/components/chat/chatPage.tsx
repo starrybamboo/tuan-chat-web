@@ -1,7 +1,7 @@
 import type { SpaceContextType } from "@/components/chat/spaceContext";
 import type { Room } from "../../../api";
 import RoomWindow from "@/components/chat/roomWindow";
-import SpaceRightSidePanel from "@/components/chat/sideDrawer/spaceRightSidePanel";
+import SpaceDetailPanel from "@/components/chat/sideDrawer/spaceDetailPanel";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import checkBack from "@/components/common/autoContrastText";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
@@ -88,7 +88,7 @@ export default function ChatPage() {
   // 创建房间弹窗是否打开
   const [isRoomHandleOpen, setIsRoomHandleOpen] = useSearchParamsState<boolean>("addRoomPop", false);
   // 是否显示space详情
-  const [isShowSpacePanel, setIsShowSpacePanel] = useState(false);
+  const [isShowSpacePanel, setIsShowSpacePanel] = useSearchParamsState<boolean>("spaceDetailPop", false);
 
   // 处理邀请用户uid
   const [inputUserId, setInputUserId] = useState<number>(-1);
@@ -559,7 +559,7 @@ export default function ChatPage() {
           </div>
         </PopWindow>
         <PopWindow isOpen={isShowSpacePanel} onClose={() => setIsShowSpacePanel(false)}>
-          <SpaceRightSidePanel></SpaceRightSidePanel>
+          <SpaceDetailPanel></SpaceDetailPanel>
         </PopWindow>
       </div>
     </SpaceContext>
