@@ -1,8 +1,9 @@
 import type { ChatMessageResponse, Message } from "api";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
-import ForwardMessage, { PreviewMessage } from "@/components/chat/forwardMessage";
+import ForwardMessage from "@/components/chat/forwardMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
+import { PreviewMessage } from "@/components/chat/smallComponents/previewMessage";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import BetterImg from "@/components/common/betterImg";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
@@ -86,7 +87,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
           <BetterImg
             src={imgMsg?.url || message.extra?.fileMessage?.url}
             size={{ width: imgMsg?.width, height: imgMsg?.height }}
-            className="max-h-[40vh]"
+            className="max-h-[40vh] w-full"
           />
           {imgMsg?.background && <div className="text-xs text-gray-500 dark:text-gray-400">已设置为背景</div>}
         </div>
