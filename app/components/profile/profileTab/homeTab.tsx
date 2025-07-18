@@ -4,6 +4,7 @@ import { UserFollower } from "@/components/common/Follow/UserFollower";
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import { PopWindow } from "@/components/common/popWindow";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
+import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import EditProfileWindow from "@/components/profile/editProfileWindow";
 import React, { useState } from "react";
@@ -287,7 +288,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
         </div>
       </div>
       {/* 右侧 - 真正的主页 */}
-      <div className="flex-1 rounded-xl shadow-md">
+      <div className="flex-1 rounded-xl shadow-md lg:m-4">
         <div className="p-6">
           {/* 用户ID和登录时间 - 紧凑布局 */}
           <div className="flex flex-wrap items-center gap-4 md:gap-8 mb-6">
@@ -302,18 +303,8 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
           </div>
 
           {/* 用户标签 */}
-          <div className="mb-8">
-            <p className=" text-sm mb-2">玩家标签</p>
-            <div className="flex flex-wrap gap-2 cursor-default">
-              {userProfile.tags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center bg-indigo-50 text-indigo-700 rounded-full px-3 py-1 text-sm font-medium transition-all hover:bg-indigo-100 hover:scale-105"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
+          <div className="mb-4">
+            <TagManagement />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 ">
@@ -431,7 +422,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
           {/* 测试用 */}
           {userId === 10013 && (
             <div className="border-primary">
-              <MarkDownViewer content={"## Hi👋 I'm Ita_Hloks😋\n\nThis is my **ProfilePage**.\n\nFollow Hloks Nya!"}></MarkDownViewer>
+              <MarkDownViewer content={"## Hi👋 I'm Ita_Hloks😋\n\nThis is my **ProfilePage**.\n\nFollow Hloks Nya! Thanks Follow Hloks Nya!\n\n`isEven(null) === true`"}></MarkDownViewer>
             </div>
           )}
           {/* SC余额 - 特殊展示 */}
