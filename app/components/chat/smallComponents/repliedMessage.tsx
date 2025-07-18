@@ -1,6 +1,5 @@
 import type { Message } from "../../../../api";
 import { RoomContext } from "@/components/chat/roomContext";
-import BetterImg from "@/components/common/betterImg";
 import { XMarkICon } from "@/icons";
 import React, { use } from "react";
 import { useGetRoleQuery } from "../../../../api/queryHooks";
@@ -18,21 +17,45 @@ export default function RepliedMessage({ replyMessage, className }: {
   const roomContext = use(RoomContext);
   const role = useGetRoleQuery(replyMessage.roleId).data?.data;
   const isTextMessage = replyMessage.messageType === 1;
+  const scrollToGivenMessage = roomContext.scrollToGivenMessage;
+  const imgMsg = replyMessage.extra?.imageMessage;
   return (
-    <div className={className}>
+    <div className={className} onClick={() => scrollToGivenMessage && scrollToGivenMessage(replyMessage.messageID)}>
       <button
-        onClick={() => roomContext.setReplyMessage && roomContext.setReplyMessage(undefined)}
+        onClick={(e) => {
+          e.stopPropagation();
+          roomContext.setReplyMessage && roomContext.setReplyMessage(undefined);
+        }}
         className="size-4 opacity-70 transition-opacity hover:bg-base-300"
         type="button"
       >
         <XMarkICon className="size-4"></XMarkICon>
       </button>
       <span className="opacity-60 inline flex-shrink-0">回复</span>
-      <span className="text-sm line-clamp-3 opacity-60 break-words flex flex-col">
-        {role?.roleName || "YOU_KNOW_WHO"}
-        {": "}
-        {isTextMessage ? replyMessage.content : <BetterImg src={replyMessage.extra?.imageMessage?.url} className="size-15" />}
-      </span>
+      {
+        isTextMessage
+          ? (
+              <span className="text-sm line-clamp-3 opacity-60 break-words">
+                {role?.roleName || "YOU_KNOW_WHO"}
+                {": "}
+                {replyMessage.content}
+              </span>
+            )
+          : (
+              <span className="text-sm line-clamp-3 opacity-60 break-words flex flex-row items-center">
+                {role?.roleName || "YOU_KNOW_WHO"}
+                {": "}
+                <img
+                  src={replyMessage.extra?.imageMessage?.url}
+                  className="size-15 object-contain"
+                  alt="img"
+                  width={imgMsg?.width}
+                  height={imgMsg?.height}
+                />
+              </span>
+            )
+      }
+
     </div>
   );
 }

@@ -21,6 +21,7 @@ import {
 } from "../../../api/hooks/chatQueryHooks";
 import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
 
+export const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
 function Header({ context }: { context:
 {
   fetchNextPage: () => void;
@@ -51,11 +52,11 @@ function ScrollSeekPlaceholder({ height }: { height: number }) {
 /**
  * 聊天框（不带输入部分）
  * @param useChatBubbleStyle 是否使用气泡样式
+ * @param virtuosoRef 虚拟列表的ref
  * @constructor
  */
-
-export default function ChatFrame({ useChatBubbleStyle }:
-{ useChatBubbleStyle: boolean }) {
+export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
+{ useChatBubbleStyle: boolean; virtuosoRef: React.RefObject<VirtuosoHandle | null> }) {
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
@@ -92,13 +93,14 @@ export default function ChatFrame({ useChatBubbleStyle }:
   /**
    * 虚拟列表
    */
-  const virtuosoRef = useRef<VirtuosoHandle>(null);
   // 虚拟列表的index到historyMessage中的index的转换
-  const INDEX_SHIFTER = 100000;
   const isAtBottomRef = useRef(true);
   const isAtTopRef = useRef(false);
-  const virtuosoIndexToNormalIndex = (virtuosoIndex: number) => {
-    return historyMessages.length + virtuosoIndex - INDEX_SHIFTER;
+  const virtuosoIndexToMessageIndex = (virtuosoIndex: number) => {
+    return historyMessages.length + virtuosoIndex - CHAT_VIRTUOSO_INDEX_SHIFTER;
+  };
+  const messageIndexToVirtuosoIndex = (messageIndex: number) => {
+    return messageIndex - historyMessages.length + CHAT_VIRTUOSO_INDEX_SHIFTER;
   };
   /**
    * 新消息提醒
@@ -112,7 +114,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
    * scroll相关
    */
   const scrollToBottom = () => {
-    virtuosoRef?.current?.scrollToIndex(historyMessages.length);
+    virtuosoRef?.current?.scrollToIndex(messageIndexToVirtuosoIndex(historyMessages.length - 1));
     updateUnreadMessagesNumber(roomId, 0);
   };
   useEffect(() => {
@@ -121,7 +123,8 @@ export default function ChatFrame({ useChatBubbleStyle }:
         scrollToBottom();
       }, 1000);
     }
-  }, [messagesInfiniteQuery?.isFetchedAfterMount]);
+  }, [messagesInfiniteQuery?.isFetchedAfterMount, roomId]);
+
   /**
    * 消息选择
    */
@@ -364,7 +367,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
   const renderMessage = (index: number, chatMessageResponse: ChatMessageResponse) => {
     const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageID);
     const draggable = spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId;
-    const indexInHistoryMessages = virtuosoIndexToNormalIndex(index);
+    const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
     return ((
       <div
         key={chatMessageResponse.message.messageID}
@@ -449,7 +452,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
         <div className="h-full flex-1">
           <Virtuoso
             data={historyMessages}
-            firstItemIndex={INDEX_SHIFTER - historyMessages.length} // 使用这个技巧来在react-virtuoso中实现反向无限滚动
+            firstItemIndex={CHAT_VIRTUOSO_INDEX_SHIFTER - historyMessages.length} // 使用这个技巧来在react-virtuoso中实现反向无限滚动
             initialTopMostItemIndex={historyMessages.length - 1}
             // alignToBottom
             followOutput={true}

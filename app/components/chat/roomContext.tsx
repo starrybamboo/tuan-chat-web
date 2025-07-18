@@ -54,6 +54,11 @@ export interface RoomContextType {
     InfiniteData<ApiResultCursorPageBaseResponseChatMessageResponse, unknown>,
     Error
   >;
+  /**
+   * 滚动到指定消息
+   * @param messageId 消息ID
+   */
+  scrollToGivenMessage?: (messageId: number) => void;
 }
 
 export const RoomContext = createContext<RoomContextType>({
@@ -68,4 +73,5 @@ export const RoomContext = createContext<RoomContextType>({
   setReplyMessage: undefined,
   historyMessages: [],
   messagesInfiniteQuery: undefined,
+  scrollToGivenMessage: undefined,
 });

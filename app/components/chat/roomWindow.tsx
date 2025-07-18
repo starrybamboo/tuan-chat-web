@@ -2,6 +2,7 @@ import type { commandModeType } from "@/components/chat/commandPanel";
 import type { RoomContextType } from "@/components/chat/roomContext";
 
 import type { LLMProperty } from "@/components/settings/settingsPage";
+import type { VirtuosoHandle } from "react-virtuoso";
 import type {
   ChatMessagePageRequest,
   ChatMessageRequest,
@@ -53,7 +54,7 @@ import { getScreenSize } from "@/utils/getScreenSize";
 import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import React, { use, useEffect, useMemo, useRef, useState } from "react";
+import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
 import {
   useGetMemberListQuery,
@@ -197,6 +198,14 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     // .reverse();
   }, [receivedMessages, messagesInfiniteQuery.data?.pages]);
 
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const scrollToGivenMessage = useCallback((messageId: number) => {
+    const messageIndex = historyMessages.findIndex(m => m.message.messageID === messageId);
+    if (messageIndex >= 0) {
+      virtuosoRef.current?.scrollToIndex(messageIndex);
+    }
+  }, [historyMessages]);
+
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
     return {
       roomId,
@@ -210,8 +219,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       setReplyMessage,
       historyMessages,
       messagesInfiniteQuery,
+      scrollToGivenMessage,
     };
-  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarIndex, useChatBubbleStyle, spaceId, historyMessages, messagesInfiniteQuery]);
+  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarIndex, useChatBubbleStyle, spaceId, historyMessages, messagesInfiniteQuery, scrollToGivenMessage]);
   /**
    * 当群聊角色列表更新时, 自动设置为第一个角色
    */
@@ -773,14 +783,14 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         <div className="flex-1 w-full flex bg-base-100 overflow-y-auto overflow-x-hidden relative">
           <div className="flex flex-col flex-1 h-full overflow-y-auto overflow-x-hidden">
             {/* 聊天框 */}
-            <div className="bg-base-100 h-[70%]">
-              <ChatFrame useChatBubbleStyle={useChatBubbleStyle} key={roomId}></ChatFrame>
+            <div className="bg-base-100 h-[70%] flex-shrink-0">
+              <ChatFrame useChatBubbleStyle={useChatBubbleStyle} key={roomId} virtuosoRef={virtuosoRef}></ChatFrame>
             </div>
             {/* 输入区域 */}
             <div className="h-px bg-base-300"></div>
             <form className="bg-base-100 p-4 rounded-lg flex flex-col flex-1 ">
-              {/* 顶部工具栏 */}
               <div className="flex gap-2 flex-1 ">
+                {/* 顶部工具栏 */}
                 <div className="dropdown dropdown-top flex-shrink-0">
                   <div role="button" tabIndex={0} className="">
                     <div
@@ -912,8 +922,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   }
                   {/* 输入框 */}
                   <div
-                    className="textarea chatInputTextarea w-full flex-1 h-full overflow-auto
-                     min-h-[80px] resize-none border-none focus:outline-none focus:ring-0 overflow-auto div-textarea"
+                    className="textarea chatInputTextarea w-full flex-1 overflow-auto
+                     min-h-[80px] resize-none border-none focus:outline-none focus:ring-0 div-textarea"
                     ref={textareaRef}
                     onInput={syncInputText}
                     onKeyDown={handleKeyDown}
