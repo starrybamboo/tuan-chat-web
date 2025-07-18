@@ -92,7 +92,7 @@ function ItemModuleTabItem({
   onCloseClick,
 }: {
   itemModuleItem: ItemModuleItem;
-  item: StageEntityResponse; // 这里用 any，实际可替换为具体类型
+  item: StageEntityResponse;
   isSelected: boolean;
   onTabClick: (id: string) => void;
   onCloseClick: (id: string) => void;
