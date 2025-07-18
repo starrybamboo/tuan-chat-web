@@ -750,21 +750,21 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           </div>
           <div className="flex gap-2">
             <div
-              className="tooltip tooltip-bottom"
+              className="tooltip tooltip-bottom hover:text-info"
               data-tip="展示先攻表"
               onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}
             >
               <SwordSwing className="size-7"></SwordSwing>
             </div>
             <div
-              className="tooltip tooltip-bottom"
+              className="tooltip tooltip-bottom hover:text-info"
               data-tip="展示成员"
               onClick={() => setSideDrawerState(sideDrawerState === "user" ? "none" : "user")}
             >
               <MemberIcon className="size-7"></MemberIcon>
             </div>
             <div
-              className="tooltip tooltip-bottom"
+              className="tooltip tooltip-bottom hover:text-info"
               data-tip="展示角色"
               onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
             >
@@ -853,7 +853,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                             className="tooltip"
                             data-tip="发送表情"
                           >
-                            <EmojiIconWhite className="size-7 hover:text-info"></EmojiIconWhite>
+                            <EmojiIconWhite className="size-7 jump_icon"></EmojiIconWhite>
                           </div>
                         </div>
                         <ul
@@ -872,19 +872,19 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       })}
                       >
                         <div className="tooltip" data-tip="发送图片">
-                          <GalleryBroken className="size-7 cursor-pointer hover:text-info"></GalleryBroken>
+                          <GalleryBroken className="size-7 cursor-pointer jump_icon"></GalleryBroken>
                         </div>
                       </ImgUploader>
                       <div className="tooltip" data-tip="浏览所有骰子命令">
                         <HexagonDice
-                          className="size-7 cursor-pointer hover:text-info"
+                          className="size-7 cursor-pointer jump_icon"
                           onClick={() => setCommandBrowseWindow("dice")}
                         >
                         </HexagonDice>
                       </div>
                       <div className="tooltip" data-tip="浏览常用webgal命令">
                         <CommandLine
-                          className="size-7 cursor-pointer hover:text-info"
+                          className="size-7 cursor-pointer jump_icon"
                           onClick={() => setCommandBrowseWindow("webgal")}
                         >
                         </CommandLine>
@@ -892,7 +892,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     </div>
                     <div className="tooltip " data-tip="切换聊天气泡风格">
                       <Bubble2
-                        className="size-7 font-light"
+                        className="size-7 font-light jump_icon"
                         onClick={() => setUseChatBubbleStyle(!useChatBubbleStyle)}
                       >
                       </Bubble2>

@@ -55,7 +55,6 @@ export default function RepliedMessage({ replyMessage, className }: {
               </span>
             )
       }
-
     </div>
   );
 }
