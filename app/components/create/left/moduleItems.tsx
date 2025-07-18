@@ -141,15 +141,15 @@ function MyRoleListItem({ avatarId, name, description, isSelected, onClick }: {
 }
 
 function RoleList({ stageId }: { stageId: number }) {
-  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
+  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem } = useModuleContext();
   const userId = useGlobalContext().userId ?? -1;
   const handleClick = (role: StageEntityResponse) => {
     pushModuleTabItem({
-      id: role.createTime!,
+      id: role.createTime! + role.name!,
       label: role.name!,
       type: ModuleItemEnum.ROLE,
     });
-    setCurrentSelectedTabId(role.createTime!);
+    setCurrentSelectedTabId(role.createTime! + role.name!);
   };
 
   // 模组相关
@@ -232,14 +232,17 @@ function RoleList({ stageId }: { stageId: number }) {
                 key={i!.entityInfo!.roleId ?? i!.name ?? 0}
                 role={i!}
                 name={i!.name || "未命名"}
-                onDelete={() => deleteRole({
-                  operationType: 1,
-                  entityType: "role",
-                  entityInfo: i.entityInfo,
-                  stageId,
-                  name: i.name as string,
-                })}
-                isSelected={currentSelectedTabId === i!.createTime!}
+                onDelete={() => {
+                  removeModuleTabItem(i.createTime! + i.name);
+                  deleteRole({
+                    operationType: 1,
+                    entityType: "role",
+                    entityInfo: i.entityInfo,
+                    stageId,
+                    name: i.name as string,
+                  });
+                }}
+                isSelected={currentSelectedTabId === (i!.createTime! + i!.name)}
                 onClick={() => handleClick(i!)}
               />
             )))}
@@ -347,16 +350,16 @@ function ItemListItem({
 
 // 物品列表
 function ItemList({ stageId }: { stageId: number }) {
-  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
+  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem } = useModuleContext();
   // const queryClient = useQueryClient();
 
   const handleClick = (item: StageEntityResponse) => {
     pushModuleTabItem({
-      id: item.createTime!,
+      id: item.createTime! + item.name!,
       label: item.name!,
       type: ModuleItemEnum.ITEM,
     });
-    setCurrentSelectedTabId(item.createTime!);
+    setCurrentSelectedTabId(item.createTime! + item.name!);
   };
 
   const { data } = useQueryEntitiesQuery(stageId);
@@ -406,9 +409,12 @@ function ItemList({ stageId }: { stageId: number }) {
                 <ItemListItem
                   key={item.entityInfo!.itemId}
                   item={item}
-                  isSelected={currentSelectedTabId === item.createTime!}
+                  isSelected={currentSelectedTabId === item.createTime! + item.name}
                   onClick={() => handleClick(item)}
-                  onDelete={() => addAndDeleteItem({ operationType: 1, entityType: "item", entityInfo: item.entityInfo!, stageId, name: item.name! })}
+                  onDelete={() => {
+                    removeModuleTabItem(item.createTime! + item.name);
+                    addAndDeleteItem({ operationType: 1, entityType: "item", entityInfo: item.entityInfo!, stageId, name: item.name! });
+                  }}
                 />
               ))
             )}
@@ -421,8 +427,8 @@ function ItemList({ stageId }: { stageId: number }) {
               <SceneListItem
                 key={scene.entityInfo!.sceneId}
                 scene={scene}
-                isSelected={selectedSceneId === scene.entityInfo!.tip}
-                onClick={() => setSelectedSceneId(scene.entityInfo!.tip)}
+                isSelected={selectedSceneId === scene.createTime! + scene.name}
+                onClick={() => setSelectedSceneId(scene.createTime! + scene.name)}
               />
             ))}
           </div>
@@ -498,9 +504,9 @@ function SceneListItem({
 }
 
 function SceneList({ stageId }: { stageId: number }) {
-  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
+  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem } = useModuleContext();
   const handleClick = (scene: StageEntityResponse) => {
-    const sceneId = scene.createTime!;
+    const sceneId = scene.createTime! + scene.name;
     const sceneName = scene.name!;
 
     pushModuleTabItem({
@@ -508,7 +514,7 @@ function SceneList({ stageId }: { stageId: number }) {
       label: sceneName,
       type: ModuleItemEnum.SCENE,
     });
-    setCurrentSelectedTabId(sceneId.toString());
+    setCurrentSelectedTabId(sceneId);
   };
 
   // 创建场景和删除
@@ -523,17 +529,6 @@ function SceneList({ stageId }: { stageId: number }) {
       entityInfo: {
         tip: "给予的提示",
         sceneDescription: "新场景です", // 场景描述（可选）
-      },
-    }, {
-      onSuccess: (data) => {
-        if (data.success) {
-          pushModuleTabItem({
-            id: data?.data?.toString() as string,
-            label: "新场景",
-            type: ModuleItemEnum.SCENE,
-          });
-          setCurrentSelectedTabId(data?.data?.toString() as string);
-        }
       },
     });
   };
@@ -558,9 +553,12 @@ function SceneList({ stageId }: { stageId: number }) {
                   <SceneListItem
                     key={scene.entityInfo!.moduleSceneId}
                     scene={scene}
-                    isSelected={currentSelectedTabId === scene.createTime!}
+                    isSelected={currentSelectedTabId === scene.createTime! + scene.name}
                     onClick={() => handleClick(scene)}
-                    onDelete={() => createAndDeleteScene({ entityType: "scene", operationType: 1, stageId, name: scene.name! })}
+                    onDelete={() => {
+                      removeModuleTabItem(scene.createTime! + scene.name);
+                      createAndDeleteScene({ entityType: "scene", operationType: 1, stageId, name: scene.name! });
+                    }}
                   />
                 ))}
               </>
