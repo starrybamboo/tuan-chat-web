@@ -107,6 +107,8 @@ function BetterImg({ src, className, onClose, size }:
         <img
           ref={imgRef}
           src={imgSrc}
+          width={size?.width}
+          height={size?.height}
           className={`hover:scale-101 ${className} cursor-zoom-in`}
           alt="img"
           onClick={() => setIsOpen(true)}

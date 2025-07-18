@@ -14,12 +14,12 @@ import type { ChatStatusEvent } from "../../../api/wsModels";
 import ChatFrame from "@/components/chat/chatFrame";
 import CommandPanel from "@/components/chat/commandPanel";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
-import RepliedMessage from "@/components/chat/repliedMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import InitiativeList from "@/components/chat/sideDrawer/initiativeList";
 import RoomRoleList from "@/components/chat/sideDrawer/roomRoleList";
 import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
+import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
 import UserIdToName from "@/components/chat/smallComponents/userIdToName";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
@@ -114,6 +114,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
   // 引用的聊天记录id
   const [replyMessage, setReplyMessage] = useState<Message | undefined>(undefined);
+  useEffect(() => {
+    setReplyMessage(undefined);
+  }, [roomId]);
 
   // 获取用户的所有角色
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);

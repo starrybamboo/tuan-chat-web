@@ -1,8 +1,9 @@
-import type { Message } from "../../../api";
-import { PreviewMessage } from "@/components/chat/forwardMessage";
+import type { Message } from "../../../../api";
 import { RoomContext } from "@/components/chat/roomContext";
+import BetterImg from "@/components/common/betterImg";
 import { XMarkICon } from "@/icons";
 import React, { use } from "react";
+import { useGetRoleQuery } from "../../../../api/queryHooks";
 
 /**
  * 回复的消息
@@ -11,10 +12,12 @@ import React, { use } from "react";
  * @constructor
  */
 export default function RepliedMessage({ replyMessage, className }: {
-  replyMessage: Message | number; // 允许message为id)
+  replyMessage: Message;
   className?: string;
 }) {
   const roomContext = use(RoomContext);
+  const role = useGetRoleQuery(replyMessage.roleId).data?.data;
+  const isTextMessage = replyMessage.messageType === 1;
   return (
     <div className={className}>
       <button
@@ -25,11 +28,11 @@ export default function RepliedMessage({ replyMessage, className }: {
         <XMarkICon className="size-4"></XMarkICon>
       </button>
       <span className="opacity-60 inline flex-shrink-0">回复</span>
-      <PreviewMessage
-        message={replyMessage}
-        className=""
-      >
-      </PreviewMessage>
+      <span className="text-sm line-clamp-3 opacity-60 break-words flex flex-col">
+        {role?.roleName || "YOU_KNOW_WHO"}
+        {": "}
+        {isTextMessage ? replyMessage.content : <BetterImg src={replyMessage.extra?.imageMessage?.url} className="size-15" />}
+      </span>
     </div>
   );
 }

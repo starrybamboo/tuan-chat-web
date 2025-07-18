@@ -32,7 +32,7 @@ import { MemberSelect } from "../common/memberSelect";
 /**
  * chat板块的主组件
  */
-export default function RoomSelect() {
+export default function ChatPage() {
   const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
   const navigate = useNavigate();
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
@@ -41,7 +41,7 @@ export default function RoomSelect() {
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
   // 当前激活的space对应的rooms。
-  const rooms = userRoomQuery.data?.data ?? [];
+  const rooms = useMemo(() => userRoomQuery.data?.data ?? [], [userRoomQuery.data?.data]);
   // 获取用户空间列表
   const userSpacesQuery = useGetUserSpacesQuery();
   const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
@@ -54,7 +54,7 @@ export default function RoomSelect() {
     : null);
   useEffect(() => {
     setActiveRoomId(rooms[0]?.roomId ?? null);
-  }, [activeSpaceId]);
+  }, [activeSpaceId, rooms]);
 
   const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState<boolean>("leftDrawer", !(urlSpaceId && urlRoomId), false);
 
