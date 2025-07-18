@@ -3,6 +3,7 @@ import { useModuleContext } from "@/components/module/workPlace/context/_moduleC
 import { ChevronDown, Search } from "@/icons";
 import { useStagingQuery } from "api/hooks/moduleQueryHooks";
 import { useCallback, useMemo, useState } from "react";
+import ModuleListItem from "./moduleListItem";
 
 export default function TopBar() {
   const [editingStageId, setEditingStageId] = useState<number>(0);
@@ -79,22 +80,19 @@ export default function TopBar() {
           </div>
           <div className="divider my-0!" />
 
-          {moduleArray.map((item: StageResponse) => (
-            <li key={item.stageId}>
-              <a
-                onClick={() => {
-                  handleModuleChange(item.stageId as number);
-                }}
-                className={`${
-                  actualEditingStageId === item.stageId
-                    ? "bg-primary text-primary-content"
-                    : ""
-                }`}
-              >
-                {item.moduleName || "未命名"}
-              </a>
-            </li>
-          ))}
+          <div className="max-h-96 overflow-y-auto">
+            {moduleArray.map((item: StageResponse) => (
+              <div key={item.stageId} className="p-2">
+                <ModuleListItem
+                  item={item}
+                  isSelected={actualEditingStageId === item.stageId}
+                  onClick={() => {
+                    handleModuleChange(item.stageId as number);
+                  }}
+                />
+              </div>
+            ))}
+          </div>
         </ul>
       </details>
     </div>
