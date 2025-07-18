@@ -13,12 +13,12 @@ type CarouselProps = CarouselItemProps;
 function CarouselItem({ img, alt, isActive = false }: CarouselItemProps) {
   return (
     <div
-      className={`flex-shrink-0 px-4 transition-all duration-700 ease-out ${
-        isActive ? "w-1/3" : "w-1/4"
-      }`}
+      className={`flex-shrink-0 px-1 md:px-4 transition-transform duration-700 ease-out 
+        ${isActive ? "w-[60vw] md:w-1/3" : "w-[40vw] md:w-1/4"}
+      `}
     >
       <div
-        className={`shadow-lg bg-gray-100 cursor-pointer relative group/item overflow-hidden transition-all duration-700 ease-out ${
+        className={`shadow-lg bg-gray-100 cursor-pointer relative group/item overflow-hidden transition-transform duration-700 ease-out ${
           isActive
             ? "aspect-square z-10 origin-bottom"
             : "aspect-square origin-bottom"
@@ -27,11 +27,12 @@ function CarouselItem({ img, alt, isActive = false }: CarouselItemProps) {
         <img
           src={img}
           alt={alt}
-          className={`w-full h-full object-cover transition-all duration-700 ease-out ${
+          className={`w-full h-full object-cover transition-transform duration-700 ease-out ${
             isActive
               ? "scale-105 group-hover/item:scale-110"
               : "scale-100 group-hover/item:scale-105"
           }`}
+          style={{ willChange: "transform" }}
         />
         {/* 悬浮时的白色遮罩 */}
         <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/item:opacity-100 transition-opacity duration-500"></div>
@@ -41,11 +42,12 @@ function CarouselItem({ img, alt, isActive = false }: CarouselItemProps) {
 }
 
 // 四图并排轮播组件
-function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
+function Carousel({ items, className, autoPlay = true, interval = 4000, onActiveChange }: {
   items: CarouselProps[];
   className?: string;
   autoPlay?: boolean;
   interval?: number;
+  onActiveChange?: (activeItem: CarouselProps, activeIndex: number) => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(4); // 从真实数据的开始位置开始
   const [isTransitioning] = useState(true);
@@ -69,6 +71,16 @@ function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
     // 在前面添加最后4张，在后面添加前4张，实现无缝循环
     return [...items.slice(-4), ...items, ...items.slice(0, 4)];
   }, [items]);
+
+  // 当前活跃项变化时调用回调函数
+  useEffect(() => {
+    if (onActiveChange && items.length > 0) {
+      // 计算当前活跃项的真实索引（活跃项相对于 currentIndex 的位置是 +1）
+      const activeRealIndex = (currentIndex - 4 + 1) % items.length;
+      const activeItem = items[activeRealIndex];
+      onActiveChange(activeItem, activeRealIndex);
+    }
+  }, [currentIndex, items, onActiveChange]);
 
   // 自动播放功能
   useEffect(() => {
@@ -155,9 +167,12 @@ function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
     if (items.length === 0) {
       return 0;
     }
-    // 我们希望第二张图（位置1）是活跃的
-    // 当前的布局应该是：[currentIndex, currentIndex+1(活跃), currentIndex+2, currentIndex+3]
-    // 所以我们需要向左偏移让 currentIndex 成为第一张图
+    // 移动端只显示一张活跃图居中，两侧露出一点
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      // 活跃图宽度60vw，两侧各20vw，偏移让活跃图居中
+      return -(currentIndex * 40) - 20;
+    }
+    // 大屏仍按原逻辑
     const offset = currentIndex;
     return -(offset * 25) - 5;
   }, [currentIndex, items.length]);
@@ -171,7 +186,10 @@ function Carousel({ items, className, autoPlay = true, interval = 4000 }: {
   }
 
   return (
-    <div className={`relative group ${className}`} style={{ height: "30vw" }}>
+    <div
+      className={`relative group ${className}`}
+      style={{ height: window.innerWidth < 768 ? "50vw" : "30vw" }}
+    >
       {/* 轮播图容器 */}
       <div className="overflow-visible h-full flex items-end">
         <div

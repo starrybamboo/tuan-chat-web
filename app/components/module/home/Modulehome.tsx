@@ -1,15 +1,16 @@
 import Pagination from "@/components/common/pagination";
 import { useModuleListQuery } from "api/hooks/moduleQueryHooks";
-import React, { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import Carousel from "../carousel";
 
 // 导入本地图片
-import 办公室图片 from "../scene/images/办公室.jpg";
-import 天台图片 from "../scene/images/天台.jpg";
-import 操场图片 from "../scene/images/操场.jpg";
-import 教室图片 from "../scene/images/教室.jpg";
-import 楼道图片 from "../scene/images/楼道.jpg";
+import 办公室图片 from "../scene/images/办公室.webp";
+import 天台图片 from "../scene/images/天台.webp";
+import 操场图片 from "../scene/images/操场.webp";
+import 教室图片 from "../scene/images/教室.webp";
+import 楼道图片 from "../scene/images/楼道.webp";
+
+import Carousel from "./carousel";
 
 // 卡片内容类型定义
 interface ContentCardProps {
@@ -58,7 +59,8 @@ export function ContentCard({
   maxPeople,
   minTime,
   maxTime,
-}: ContentCardProps) {
+  imageOnLoad,
+}: ContentCardProps & { imageOnLoad?: () => void }) {
   // 根据大小设置基础样式
   const sizeClasses = {
     sm: "text-sm",
@@ -92,6 +94,7 @@ export function ContentCard({
             src={image}
             alt={imageAlt || title || "Content image"}
             className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-110 rounded-none"
+            onLoad={imageOnLoad}
           />
           {/* 悬浮时的遮罩 */}
           <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-40 transition-opacity duration-300"></div>
@@ -191,17 +194,9 @@ export function ModuleHomeCardContainer({
 // 示例使用的模块首页组件
 export default function ModuleHome() {
   const navigate = useNavigate();
-  // 分页状态管理
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8; // 每页显示8个模组
-
-  const ModuleList = useModuleListQuery({
-    pageNo: currentPage,
-    pageSize: itemsPerPage,
-  });
 
   // 轮播图数据 - 五张图片实现循环显示
-  const heroImages = [
+  const heroImages = useMemo(() => [
     {
       img: 教室图片,
       alt: "教室场景",
@@ -232,7 +227,26 @@ export default function ModuleHome() {
       title: "创新突破",
       description: "突破传统界限，创造前所未有的游戏体验",
     },
-  ];
+  ], []);
+
+  // 分页状态管理
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12; // 每页显示12个模组
+
+  // 当前活跃的背景图片状态
+  const [activeBackgroundImage, setActiveBackgroundImage] = useState<string>(
+    heroImages.length > 0 ? heroImages[0].img : "",
+  );
+
+  // 处理轮播图活跃项变化的回调函数
+  const handleActiveImageChange = (activeItem: any) => {
+    setActiveBackgroundImage(activeItem.img);
+  };
+
+  const ModuleList = useModuleListQuery({
+    pageNo: currentPage,
+    pageSize: itemsPerPage,
+  });
 
   // 示例数据
   const textCards = [
@@ -282,17 +296,49 @@ export default function ModuleHome() {
       type: "mixed" as const,
       authorName: module.authorName,
       moduleId: module.moduleId,
+      ruleId: module.ruleId, // 所用的规则id
+      userId: module.userId, // 上传者
       createTime: module.createTime,
+      updateTime: module.updateTime, // 修改时间
       minPeople: module.minPeople,
       maxPeople: module.maxPeople,
       minTime: module.minTime,
       maxTime: module.maxTime,
+      parent: module.parent, // 从哪个模组fork来
     }));
   }, [moduleData]);
 
+  const [imagesReady, setImagesReady] = useState(false);
+
+  function preloadImages(urls: string[]): Promise<void> {
+    return Promise.all(
+      urls.map(
+        url =>
+          new Promise<void>((resolve) => {
+            const img = new Image();
+            img.src = url;
+            img.onload = () => resolve();
+            img.onerror = () => {
+              console.error(`图片加载失败: ${url}`);
+              resolve(); // 失败也当加载完处理，防止卡死
+            };
+          }),
+      ),
+    ).then(() => {});
+  }
+
+  useEffect(() => {
+    if (ModuleList.isSuccess && currentItems.length > 0) {
+      const imageUrls = currentItems.map(item => item.image);
+      preloadImages(imageUrls).then(() => {
+        setImagesReady(true);
+      });
+    }
+  }, [ModuleList.isSuccess, currentItems]);
   // 处理页面变化
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    setImagesReady(false); // 关键：每次数据变化先重置
     // 滚动到精选内容区域
     const element = document.getElementById("featured-content");
     if (element) {
@@ -302,15 +348,21 @@ export default function ModuleHome() {
 
   return (
     <div className="bg-base-100 relative">
-      {/* 创建模组按钮 - 右上角绝对定位 */}
+      {/* 创建模组按钮 - 响应式：大屏右上角固定，移动端底部悬浮 */}
       <button
         type="button"
-        className="cursor-pointer fixed top-30 right-10 z-50 flex items-center gap-4 px-4 py-4 border-4 border-black bg-transparent text-black hover:bg-black hover:text-white transition-all duration-300 font-bold text-xl"
+        className="cursor-pointer fixed z-50 flex items-center justify-center px-3 py-2 border-2 border-primary bg-base-200 font-bold text-base overflow-hidden group transition-all duration-300 hover:border-white
+        left-1/2 -translate-x-1/2 bottom-4 w-[90vw] max-w-xs rounded-full shadow-lg
+        md:bg-transparent md:px-4 md:py-4 md:border-4 md:text-xl md:left-auto md:right-16 md:top-30 md:bottom-auto md:w-auto md:max-w-none md:rounded-none md:shadow-none md:translate-x-0"
         onClick={() => navigate("/module/create")}
       >
-        <span>创建模组</span>
+        {/* 从左往右的黑色背景遮罩 */}
+        <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
+
+        {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
+        <span className="relative z-10 text-primary group-hover:text-white transition-colors duration-300">创建模组</span>
         <svg
-          className="w-8 h-8"
+          className="w-8 h-8 relative z-10 text-primary group-hover:text-white transition-colors duration-300"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -329,13 +381,31 @@ export default function ModuleHome() {
       </div> */}
       {/* 轮播图区域 */}
       {/* 四图并排轮播图区域 */}
-      <div className="w-full py-16 bg-base-200 relative">
-        <Carousel
-          items={heroImages}
-          className="w-full"
-          autoPlay={true}
-          interval={4000}
-        />
+      <div className="w-full py-16 bg-base-200 relative overflow-hidden">
+        {/* 背景层容器 - 限制模糊效果范围 */}
+        <div className="hidden md:block absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+          {/* 动态背景图 - 使用当前活跃图片的高斯模糊 */}
+          <div
+            className="absolute -top-6 -left-6 w-[calc(100%+48px)] h-[calc(100%+48px)] bg-cover bg-center transition-all duration-700 ease-out"
+            style={{
+              backgroundImage: `url(${activeBackgroundImage || heroImages[0]?.img})`,
+              filter: "blur(20px)",
+            }}
+          />
+          {/* 遮罩层 */}
+          <div className="absolute top-0 left-0 w-full h-full bg-black/10" />
+        </div>
+
+        {/* 轮播图内容 */}
+        <div className="relative z-10">
+          <Carousel
+            items={heroImages}
+            className="w-full"
+            autoPlay={true}
+            interval={4000}
+            onActiveChange={handleActiveImageChange}
+          />
+        </div>
       </div>
       {/* 其他内容区域 */}
       <div className="p-8">
@@ -348,10 +418,6 @@ export default function ModuleHome() {
               content={card.content}
               type={card.type}
               theme={card.theme}
-              onClick={() => {
-                // 处理卡片点击事件
-                navigate(`/module/${card.id}`);
-              }}
             />
           ))}
         </ModuleHomeCardContainer>
@@ -360,7 +426,7 @@ export default function ModuleHome() {
         <div id="featured-content">
           <ModuleHomeCardContainer title="全部模组" className="mb-12 mt-16">
             {(() => {
-              if (ModuleList.isLoading) {
+              if (ModuleList.isLoading || !imagesReady) {
                 return Array.from({ length: 8 }, (_, index) => (
                   <div key={`loading-skeleton-${index}-${Math.random()}`} className="animate-pulse">
                     <div className="bg-base-300 aspect-square rounded-none mb-4"></div>
@@ -410,8 +476,27 @@ export default function ModuleHome() {
                   minTime={card.minTime}
                   maxTime={card.maxTime}
                   onClick={() => {
-                    // 处理卡片点击事件，跳转到模组详情页面
-                    navigate(`/module/detail/${card.moduleId}`);
+                    // 处理卡片点击事件，跳转到模组详情页面并传递数据
+                    navigate(`/module/detail/${card.moduleId}`, {
+                      state: {
+                        moduleData: {
+                          moduleId: card.moduleId,
+                          ruleId: card.ruleId, // 所用的规则id
+                          moduleName: card.title,
+                          description: card.content,
+                          userId: card.userId, // 上传者
+                          authorName: card.authorName, // 作者
+                          image: card.image, // 模组封面
+                          createTime: card.createTime, // 创建时间
+                          updateTime: card.updateTime, // 修改时间
+                          minPeople: card.minPeople, // 模组需要人数
+                          maxPeople: card.maxPeople,
+                          minTime: card.minTime, // 模组可能需要花费时间
+                          maxTime: card.maxTime,
+                          parent: card.parent, // 从哪个模组fork来
+                        },
+                      },
+                    });
                   }}
                 />
               ));
