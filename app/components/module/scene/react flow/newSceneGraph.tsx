@@ -12,7 +12,7 @@ import dagre from "dagre";
 import { useCallback, useEffect, useMemo } from "react";
 import { useParams } from "react-router";
 import { getEnhancedSceneList } from "../../detail/moduleUtils";
-import 教室图片 from "../scene/images/教室.webp";
+import 教室图片 from "../images/教室.webp";
 import SceneNode from "./NewSceneNode";
 import "@xyflow/react/dist/style.css";
 
