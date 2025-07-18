@@ -41,9 +41,6 @@ export default function RightChatView(
     currentContactUserId,
   });
 
-  // 发送私聊消息相关
-  // 消息发送逻辑已经移到 usePrivateMessageSender hook 中
-
   // 滚动相关
   const messagesLatestRef = useRef<HTMLDivElement>(null); // 用于滚动到最新消息的引用
   const scrollContainerRef = useRef<HTMLDivElement>(null); // 控制消息列表滚动行为的容器
@@ -99,8 +96,6 @@ export default function RightChatView(
   const loadMoreMessages = () => {
     directMessageQuery.fetchNextPage();
   };
-
-  // 消息渲染逻辑已经移到 MessageBubble 组件中
 
   return (
     <div className="flex-1 bg-base-100 border-l border-base-300 flex flex-col">
