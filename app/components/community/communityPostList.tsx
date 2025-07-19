@@ -1,11 +1,11 @@
-import type { StoredPost } from "@/components/community/postWriter";
+import type { StoredPost } from "@/components/community/postEditor";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import Pagination from "@/components/common/form/pagination";
 import IllegalURLPage from "@/components/common/illegalURLPage";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { CommunityContext } from "@/components/community/communityContext";
-import PostWriter from "@/components/community/postWriter";
+import PostEditor from "@/components/community/postEditor";
 import React, { use } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
@@ -261,7 +261,7 @@ export default function CommunityPostList() {
         onClose={() => setIsPublishWindowOpen(false)}
         fullScreen
       >
-        <PostWriter
+        <PostEditor
           onClose={() => setIsPublishWindowOpen(false)}
           onSubmit={handlePublishPost}
         />
