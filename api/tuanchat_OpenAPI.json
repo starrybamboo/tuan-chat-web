@@ -15230,7 +15230,7 @@
   },
   "components": {
     "schemas": {
-      "ApiResultVoid": {
+      "ApiResult": {
         "required": [
           "success"
         ],
@@ -15256,7 +15256,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResult": {
+      "ApiResultVoid": {
         "required": [
           "success"
         ],
@@ -15429,6 +15429,10 @@
           "gender": {
             "type": "string",
             "description": "性别: 隐藏(null) 男 女"
+          },
+          "readMe": {
+            "type": "string",
+            "description": "用户的README"
           }
         }
       },
@@ -21114,14 +21118,14 @@
             "description": "情感差分类型",
             "example": "开朗",
             "enum": [
-              "开朗",
-              "满足",
-              "沉思",
-              "悲伤",
-              "调皮",
-              "哭泣",
-              "愤怒",
-              "嫉妒"
+              "cheerful",
+              "satisfied",
+              "thoughtful",
+              "sad",
+              "playful",
+              "crying",
+              "angry",
+              "jealous"
             ]
           }
         },
