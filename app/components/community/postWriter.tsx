@@ -81,7 +81,7 @@ export default function PostWriter({ onClose, onSubmit }:
               required
             />
           </div>
-          <MarkdownEditor onChange={(value) => { setContent(value); }}></MarkdownEditor>
+          <MarkdownEditor onChange={(value) => { setContent(value); }} className="flex-1"></MarkdownEditor>
           <div className="flex justify-end">
             <button
               type="submit"

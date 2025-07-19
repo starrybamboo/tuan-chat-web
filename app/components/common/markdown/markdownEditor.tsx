@@ -196,7 +196,7 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
     }
   };
   return (
-    <div className={`grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1${className}`}>
+    <div className={`grid grid-cols-1 lg:grid-cols-2 gap-4 ${className}`}>
       {/* 编辑器 */}
       <div className="space-y-2 flex flex-col">
         {/* 操作按钮栏 */}
