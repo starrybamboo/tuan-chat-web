@@ -1,16 +1,18 @@
+import type { StoredPost } from "@/components/community/postEditor";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import Pagination from "@/components/common/form/pagination";
 import IllegalURLPage from "@/components/common/illegalURLPage";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { CommunityContext } from "@/components/community/communityContext";
-import PostWriter from "@/components/community/postWriter";
-import { use } from "react";
+import PostEditor from "@/components/community/postEditor";
+import React, { use } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import {
   useDeletePostMutation,
   usePageCommunityPostsQuery,
+  usePublishPostMutation,
 } from "../../../api/hooks/communityQueryHooks";
 
 const PAGE_SIZE = 10;
@@ -51,6 +53,26 @@ export default function CommunityPostList() {
         pageCommunityPostsQuery.refetch();
       },
     });
+  };
+
+  const publishPostMutation = usePublishPostMutation();
+  const handlePublishPost = async (post: StoredPost) => {
+    const { title, content } = post;
+    if (!title?.trim() || !content?.trim()) {
+      return false;
+    }
+    try {
+      await publishPostMutation.mutateAsync({
+        communityId,
+        title: title.trim(),
+        content: content.trim(),
+      });
+      return true;
+    }
+    catch (error) {
+      toast.error(`发布帖子失败, ${error}`);
+      return false;
+    }
   };
 
   if (Number.isNaN(communityId)) {
@@ -239,7 +261,10 @@ export default function CommunityPostList() {
         onClose={() => setIsPublishWindowOpen(false)}
         fullScreen
       >
-        <PostWriter onClose={() => setIsPublishWindowOpen(false)} />
+        <PostEditor
+          onClose={() => setIsPublishWindowOpen(false)}
+          onSubmit={handlePublishPost}
+        />
       </PopWindow>
     </div>
   );

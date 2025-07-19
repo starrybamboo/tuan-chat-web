@@ -11,6 +11,12 @@ importers:
       '@antv/g6':
         specifier: ^5.0.46
         version: 5.0.46(workerize-loader@2.0.2(webpack@5.99.8))
+      '@antv/g6-extension-react':
+        specifier: ^0.2.4
+        version: 0.2.4(@antv/g6@5.0.46(workerize-loader@2.0.2(webpack@5.99.8)))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@antv/graphin':
+        specifier: ^3.0.5
+        version: 3.0.5(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(workerize-loader@2.0.2(webpack@5.99.8))
       '@react-router/node':
         specifier: ^7.4.1
         version: 7.4.1(react-router@7.4.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(typescript@5.8.2)
@@ -29,12 +35,18 @@ importers:
       '@uidotdev/usehooks':
         specifier: ^2.4.1
         version: 2.4.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@xyflow/react':
+        specifier: ^12.8.2
+        version: 12.8.2(@types/react@19.0.12)(immer@10.1.1)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       ahooks:
         specifier: ^3.8.5
         version: 3.8.5(react@19.0.0)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      dagre:
+        specifier: ^0.8.5
+        version: 0.8.5
       daisyui:
         specifier: ^5.0.9
         version: 5.0.9
@@ -224,17 +236,29 @@ packages:
   '@antv/g-camera-api@2.0.35':
     resolution: {integrity: sha512-z4WKmB6yN2fFi9EnapjuHbFVF0ilhMrWo2eZCxYXcb0dV5MiflU/WZi/bjs4WqVMJPNtYKx+yZhTyROncEiglw==}
 
+  '@antv/g-camera-api@2.0.38':
+    resolution: {integrity: sha512-BgFkUMcTO06Oz37Z+hVqxATwdWFE5DfBgMKlFaMwKKF/8n+7eNhlif1KBfcf2rEfGijS0FD0ZGKCr9uJ06+GIg==}
+
   '@antv/g-canvas@2.0.40':
     resolution: {integrity: sha512-Starh5g+ydOFKzfK/GpwnLwz+o6UZNHkyWBXdHx2ax/AJWHVXwjyCadt/6kkc2non0ts2ow/hpJaW7X3dgdDxQ==}
 
   '@antv/g-dom-mutation-observer-api@2.0.32':
     resolution: {integrity: sha512-50r7en1+doUtR9uXmFJk8YtENQ/+DFcj2g3a4XKu9xp58kmF2qBgtdst9n1deqGcL5s0ufX/Ck9rUhtHwka+Ow==}
 
+  '@antv/g-dom-mutation-observer-api@2.0.35':
+    resolution: {integrity: sha512-bAl3ViXDHvLEbGvGZwZBg4gpoNjUTwVQ3XTmRAkymkFGkUy+KV0ZwFdqEegP25TQGPl85er/hB6MCu6Yt58AJA==}
+
   '@antv/g-lite@2.2.16':
     resolution: {integrity: sha512-473r6S5srkxUiUxI3ZkrM74HMkgyO9+2HR1xtJ75yDOOuT8F6osdXDgy0Or5cWqOlsVjiN3L3DaPnQLHlUGO5A==}
 
+  '@antv/g-lite@2.2.19':
+    resolution: {integrity: sha512-QfxZsbLGTSGL18NgSOAVQURXC3xMXbmmS125EF7/vCzW2Lw2nF5I8k0KW4N09ty+/FtVpSESJX652g2phIvd5g==}
+
   '@antv/g-math@3.0.0':
     resolution: {integrity: sha512-AkmiNIEL1vgqTPeGY2wtsMdBBqKFwF7SKSgs+D1iOS/rqYMsXdhp/HvtuQ5tx/HdawE/ZzTiicIYopc520ADZw==}
+
+  '@antv/g-math@3.0.1':
+    resolution: {integrity: sha512-FvkDBNRpj+HsLINunrL2PW0OlG368MlpHuihbxleuajGim5kra8tgISwCLmAf8Yz2b1CgZ9PvpohqiLzHS7HLg==}
 
   '@antv/g-plugin-canvas-path-generator@2.1.16':
     resolution: {integrity: sha512-E3/HUzWRv1/5QyKHLcXIgFJff0JBxDHz4NfHwYp6IOy5P/A1mbISsUjwafSl8JIVqx0J81CzgqpwU7pWHeXlaQ==}
@@ -248,6 +272,9 @@ packages:
   '@antv/g-plugin-dom-interaction@2.1.21':
     resolution: {integrity: sha512-Vm8yeNjZ2aNgNH3LwDRExRChpuVv0Wv2zOblUGy5rgyRIh2Fkm8R89pKLmd3GlLo4AF1ZqAGWHiY2WOeMHEEIA==}
 
+  '@antv/g-plugin-dom-interaction@2.1.24':
+    resolution: {integrity: sha512-1IrsUp2k+4oi2brVNstgxoisdwcdwqSNdEYJBDtVP1Bv5KZabKSs9lxlkxVR0DTb8BJtWBi80gmKQFIJ8znofQ==}
+
   '@antv/g-plugin-dragndrop@2.0.32':
     resolution: {integrity: sha512-0Y9S/jx6Z7O3hEQhqrXGWNIcV1dBoRpokSP9gIMqTxOjCLzVUFYv8pFoI+Uyeow6PAWe+gdBQu+EJgVi223lJQ==}
 
@@ -257,14 +284,42 @@ packages:
   '@antv/g-plugin-image-loader@2.1.19':
     resolution: {integrity: sha512-ZjNs08RkzdDMLlEWGabJG1Lu1Q71afStSlhcIRhrDOLB4tH0UdYlq/f72tlzJ6KjtLnril/xQH3D7znPlfAoig==}
 
+  '@antv/g-plugin-svg-picker@2.0.38':
+    resolution: {integrity: sha512-9XuT3VRFtUrdhMYmib7uB/sjXG9orQ7yGzIwYp+mCI734mnmJApOrB+J3UcSt3s+1PAIcABQkHT1MRxFII2w7w==}
+
+  '@antv/g-plugin-svg-renderer@2.2.20':
+    resolution: {integrity: sha512-HjLyQMcMm/kRVhwkmdEkWGGZAHUhIuyztOzO0dzWucfGqXsusNZvKHpiWUMl3DBm6ID6qziYCRw5IIpqlsh3Jw==}
+
+  '@antv/g-svg@2.0.38':
+    resolution: {integrity: sha512-S11RB+4Yh3nel+wHChcbB4TlaJFyKl4gP9sUUgUzwgWiAFNxiHU4fM3+sb3f4AQyToIZZd1sqH0TscQ3psX5Yg==}
+
   '@antv/g-web-animations-api@2.1.21':
     resolution: {integrity: sha512-EkIjeEH3QzHkDJn3sz1Mk83PqVQXGe5440mJV42QmnxuFuFcxGVJMi9vS8Te7kCUJl4eSb/eqnNi5AWfDMWm+w==}
+
+  '@antv/g-web-animations-api@2.1.25':
+    resolution: {integrity: sha512-xljNU+mDsdaDr+DwP77te2ZkNLcLiwuwppwXuRRpv/wVxUue726c/QbfYj/wMwJoBcOEtl/5hjAks/+gdvr3ag==}
+
+  '@antv/g6-extension-react@0.2.4':
+    resolution: {integrity: sha512-oE/yWrR7HLSU63vls+Re6ioICXEZ6ko4zmy9ypsjSXFdOHuWukS78qHyy7/hyjG5Ym2teGws3vcmSGYEjYbKMA==}
+    peerDependencies:
+      '@antv/g6': ^5.0.49
+      react: '>=16.8'
+      react-dom: '>=16.8'
 
   '@antv/g6@5.0.46':
     resolution: {integrity: sha512-GPQkvDVbo/MABKf9yhFGkdDHLjuxOGfroHmw7AxdXptSr19//LYZTsoucSIBXwjOmfLTtMR0RP/i2rRWNjgyuA==}
 
   '@antv/g@6.1.21':
     resolution: {integrity: sha512-3cWmsY1bYwDmVzsFmBeqN1tWVt+3JaWL6Uu54C1oF7qn1VXXa3V3KuXGEYCxuei8E8BMriN3D7fZosY5d+MQqw==}
+
+  '@antv/g@6.1.25':
+    resolution: {integrity: sha512-qkXztWRVYQDl/x3tlA9Oww5DwaBCDDYXq6Wai9jfO8TZeIV3T8Dbw5eG/M115doyHX2vIVRkrE6+xiFe5weIHQ==}
+
+  '@antv/graphin@3.0.5':
+    resolution: {integrity: sha512-V/j8R8Ty44wUqxVIYLdpPuIO8WWCTIVq1eBJg5YRunL5t5o5qAFpC/qkQxslbBMWyKdIH0oWBnvHA74riGi7cw==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.1.0
+      react-dom: ^18.0.0 || ^19.1.0
 
   '@antv/graphlib@2.0.4':
     resolution: {integrity: sha512-zc/5oQlsdk42Z0ib1mGklwzhJ5vczLFiPa1v7DgJkTbgJ2YxRh9xdarf86zI49sKVJmgbweRpJs7Nu5bIiwv4w==}
@@ -1641,6 +1696,9 @@ packages:
   '@types/d3-dispatch@3.0.6':
     resolution: {integrity: sha512-4fvZhzMeeuBJYZXRXrRIQnvUYfyXwYmLsdiN7XXmVNQKKw1cM8a5WdID0g1hVFZDqT9ZqZEY5pD44p24VS7iZQ==}
 
+  '@types/d3-drag@3.0.7':
+    resolution: {integrity: sha512-HE3jVKlzU9AaMazNufooRJ5ZpWmLIoc90A37WU2JMmeq28w1FQqCZswHZ3xR+SuxYftzHq6WU6KJHvqxKzTxxQ==}
+
   '@types/d3-dsv@3.0.7':
     resolution: {integrity: sha512-n6QBF9/+XASqcKK6waudgL0pf/S5XHPPI8APyMLLUHd8NqouBGLsU8MgtO7NINGtPBtk9Kko/W4ea0oAspwh9g==}
 
@@ -1683,6 +1741,9 @@ packages:
   '@types/d3-scale@4.0.9':
     resolution: {integrity: sha512-dLmtwB8zkAeO/juAMfnV+sItKjlsw2lKdZVVy6LRr0cBmegxSABiLEpGVmSJJ8O08i4+sGR6qQtb6WtuwJdvVw==}
 
+  '@types/d3-selection@3.0.11':
+    resolution: {integrity: sha512-bhAXu23DJWsrI45xafYpkQ4NtcKMwWnAC/vKrd2l+nxMFuvOT3XMYTIj2opv8vq8AO5Yh7Qac/nSeP/3zjTK0w==}
+
   '@types/d3-shape@3.1.7':
     resolution: {integrity: sha512-VLvUQ33C+3J+8p+Daf+nYSOsjB4GXp19/S/aGo60m9h1v6XaxjiT82lKVWJCfzhtuZ3yD7i/TPeC/fuKLLOSmg==}
 
@@ -1691,6 +1752,12 @@ packages:
 
   '@types/d3-timer@3.0.2':
     resolution: {integrity: sha512-Ps3T8E8dZDam6fUyNiMkekK3XUsaUEik+idO9/YjPtfj2qruF8tFBXS7XhtE4iIXBLxhmLjP3SXpLhVf21I9Lw==}
+
+  '@types/d3-transition@3.0.9':
+    resolution: {integrity: sha512-uZS5shfxzO3rGlu0cC3bjmMFKsXv+SmZZcgp0KD22ts4uGXp5EVYGzu/0YdwZeKmddhcAccYtREJKkPfXkZuCg==}
+
+  '@types/d3-zoom@3.0.8':
+    resolution: {integrity: sha512-iqMC4/YlFCSlO8+2Ii1GGGliCAY4XdeG748w5vQUbevlbDu0zSjH/+jojorQVBK/se0j6DUFNPBGSqD3YWYnDw==}
 
   '@types/debug@4.1.12':
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
@@ -1978,6 +2045,15 @@ packages:
 
   '@xtuc/long@4.2.2':
     resolution: {integrity: sha512-NuHqBY1PB/D8xU6s/thBgOAiAP7HOYDQ32+BFZILJ8ivkUkAHQnWfn6WhL79Owj1qmUnoN/YPhktdIoucipkAQ==}
+
+  '@xyflow/react@12.8.2':
+    resolution: {integrity: sha512-VifLpxOy74ck283NQOtBn1e8igmB7xo7ADDKxyBHkKd8IKpyr16TgaYOhzqVwNMdB4NT+m++zfkic530L+gEXw==}
+    peerDependencies:
+      react: '>=17'
+      react-dom: '>=17'
+
+  '@xyflow/system@0.0.66':
+    resolution: {integrity: sha512-TTxESDwPsATnuDMUeYYtKe4wt9v8bRO29dgYBhR8HyhSCzipnAdIL/1CDfFd+WqS1srVreo24u6zZeVIDk4r3Q==}
 
   abbrev@1.1.1:
     resolution: {integrity: sha512-nne9/IiQ/hzIhY6pdDnbBtz7DjPTKrY00P/zvPSm5pOFkl6xuGrGnXn/VtTNNfNtAfZ9/1RtehkszU9qcTii0Q==}
@@ -2342,6 +2418,9 @@ packages:
   ci-info@4.2.0:
     resolution: {integrity: sha512-cYY9mypksY8NRqgDB1XD1RiJL338v/551niynFTGkZOO2LHuB2OmOYxDIe/ttN9AHwrqdum1360G3ald0W9kCg==}
     engines: {node: '>=8'}
+
+  classcat@5.0.5:
+    resolution: {integrity: sha512-JhZUT7JFcQy/EzW605k/ktHtncoo9vnyW/2GspNYwFlN1C/WmjuV/xtS04e9SOkL2sTdw0VAZ2UGCcQ9lR6p6w==}
 
   classnames@2.5.1:
     resolution: {integrity: sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==}
@@ -5805,6 +5884,11 @@ packages:
       '@types/react':
         optional: true
 
+  use-sync-external-store@1.5.0:
+    resolution: {integrity: sha512-Rb46I4cGGVBmjamjphe8L/UnvJD+uPPtTkNvX5mZgqdbavhI4EbgIWJiIHXJ8bc/i9EQGPRh4DwEURJ552Do0A==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   utf8-byte-length@1.0.5:
     resolution: {integrity: sha512-Xn0w3MtiQ6zoz2vFyUVruaCL53O/DwUvkEeOvj+uulMm0BkUGYWmBYVyElqZaSLhY6ZD0ulfU3aBra2aVT4xfA==}
 
@@ -6071,6 +6155,21 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
+  zustand@4.5.7:
+    resolution: {integrity: sha512-CHOUy7mu3lbD6o6LJLfllpjkzhHXSBlX8B9+qPddUsIfeF5S/UZ5q0kmCsnRqT1UHFQZchNFDDzMbQsuesHWlw==}
+    engines: {node: '>=12.7.0'}
+    peerDependencies:
+      '@types/react': '>=16.8'
+      immer: '>=9.0.6'
+      react: '>=16.8'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      immer:
+        optional: true
+      react:
+        optional: true
+
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
@@ -6162,6 +6261,14 @@ snapshots:
       gl-matrix: 3.4.3
       tslib: 2.8.1
 
+  '@antv/g-camera-api@2.0.38':
+    dependencies:
+      '@antv/g-lite': 2.2.19
+      '@antv/util': 3.3.10
+      '@babel/runtime': 7.26.10
+      gl-matrix: 3.4.3
+      tslib: 2.8.1
+
   '@antv/g-canvas@2.0.40':
     dependencies:
       '@antv/g-lite': 2.2.16
@@ -6180,6 +6287,11 @@ snapshots:
       '@antv/g-lite': 2.2.16
       '@babel/runtime': 7.26.10
 
+  '@antv/g-dom-mutation-observer-api@2.0.35':
+    dependencies:
+      '@antv/g-lite': 2.2.19
+      '@babel/runtime': 7.26.10
+
   '@antv/g-lite@2.2.16':
     dependencies:
       '@antv/g-math': 3.0.0
@@ -6191,9 +6303,27 @@ snapshots:
       rbush: 3.0.1
       tslib: 2.8.1
 
+  '@antv/g-lite@2.2.19':
+    dependencies:
+      '@antv/g-math': 3.0.1
+      '@antv/util': 3.3.10
+      '@antv/vendor': 1.0.11
+      '@babel/runtime': 7.26.10
+      eventemitter3: 5.0.1
+      gl-matrix: 3.4.3
+      rbush: 3.0.1
+      tslib: 2.8.1
+
   '@antv/g-math@3.0.0':
     dependencies:
       '@antv/util': 3.3.10
+      gl-matrix: 3.4.3
+      tslib: 2.8.1
+
+  '@antv/g-math@3.0.1':
+    dependencies:
+      '@antv/util': 3.3.10
+      '@babel/runtime': 7.26.10
       gl-matrix: 3.4.3
       tslib: 2.8.1
 
@@ -6233,6 +6363,12 @@ snapshots:
       '@babel/runtime': 7.26.10
       tslib: 2.8.1
 
+  '@antv/g-plugin-dom-interaction@2.1.24':
+    dependencies:
+      '@antv/g-lite': 2.2.19
+      '@babel/runtime': 7.26.10
+      tslib: 2.8.1
+
   '@antv/g-plugin-dragndrop@2.0.32':
     dependencies:
       '@antv/g-lite': 2.2.16
@@ -6256,12 +6392,52 @@ snapshots:
       gl-matrix: 3.4.3
       tslib: 2.8.1
 
+  '@antv/g-plugin-svg-picker@2.0.38':
+    dependencies:
+      '@antv/g-lite': 2.2.19
+      '@antv/g-plugin-svg-renderer': 2.2.20
+      '@babel/runtime': 7.26.10
+      tslib: 2.8.1
+
+  '@antv/g-plugin-svg-renderer@2.2.20':
+    dependencies:
+      '@antv/g-lite': 2.2.19
+      '@antv/util': 3.3.10
+      '@babel/runtime': 7.26.10
+      gl-matrix: 3.4.3
+      tslib: 2.8.1
+
+  '@antv/g-svg@2.0.38':
+    dependencies:
+      '@antv/g-lite': 2.2.19
+      '@antv/g-plugin-dom-interaction': 2.1.24
+      '@antv/g-plugin-svg-picker': 2.0.38
+      '@antv/g-plugin-svg-renderer': 2.2.20
+      '@antv/util': 3.3.10
+      '@babel/runtime': 7.26.10
+      tslib: 2.8.1
+
   '@antv/g-web-animations-api@2.1.21':
     dependencies:
       '@antv/g-lite': 2.2.16
       '@antv/util': 3.3.10
       '@babel/runtime': 7.26.10
       tslib: 2.8.1
+
+  '@antv/g-web-animations-api@2.1.25':
+    dependencies:
+      '@antv/g-lite': 2.2.19
+      '@antv/util': 3.3.10
+      '@babel/runtime': 7.26.10
+      tslib: 2.8.1
+
+  '@antv/g6-extension-react@0.2.4(@antv/g6@5.0.46(workerize-loader@2.0.2(webpack@5.99.8)))(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+    dependencies:
+      '@antv/g': 6.1.25
+      '@antv/g-svg': 2.0.38
+      '@antv/g6': 5.0.46(workerize-loader@2.0.2(webpack@5.99.8))
+      react: 19.0.0
+      react-dom: 19.0.0(react@19.0.0)
 
   '@antv/g6@5.0.46(workerize-loader@2.0.2(webpack@5.99.8))':
     dependencies:
@@ -6286,6 +6462,22 @@ snapshots:
       '@antv/g-lite': 2.2.16
       '@antv/g-web-animations-api': 2.1.21
       '@babel/runtime': 7.26.10
+
+  '@antv/g@6.1.25':
+    dependencies:
+      '@antv/g-camera-api': 2.0.38
+      '@antv/g-dom-mutation-observer-api': 2.0.35
+      '@antv/g-lite': 2.2.19
+      '@antv/g-web-animations-api': 2.1.25
+      '@babel/runtime': 7.26.10
+
+  '@antv/graphin@3.0.5(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(workerize-loader@2.0.2(webpack@5.99.8))':
+    dependencies:
+      '@antv/g6': 5.0.46(workerize-loader@2.0.2(webpack@5.99.8))
+      react: 19.0.0
+      react-dom: 19.0.0(react@19.0.0)
+    transitivePeerDependencies:
+      - workerize-loader
 
   '@antv/graphlib@2.0.4':
     dependencies:
@@ -7798,6 +7990,10 @@ snapshots:
 
   '@types/d3-dispatch@3.0.6': {}
 
+  '@types/d3-drag@3.0.7':
+    dependencies:
+      '@types/d3-selection': 3.0.11
+
   '@types/d3-dsv@3.0.7': {}
 
   '@types/d3-ease@3.0.2': {}
@@ -7834,6 +8030,8 @@ snapshots:
     dependencies:
       '@types/d3-time': 3.0.4
 
+  '@types/d3-selection@3.0.11': {}
+
   '@types/d3-shape@3.1.7':
     dependencies:
       '@types/d3-path': 3.1.1
@@ -7841,6 +8039,15 @@ snapshots:
   '@types/d3-time@3.0.4': {}
 
   '@types/d3-timer@3.0.2': {}
+
+  '@types/d3-transition@3.0.9':
+    dependencies:
+      '@types/d3-selection': 3.0.11
+
+  '@types/d3-zoom@3.0.8':
+    dependencies:
+      '@types/d3-interpolate': 3.0.4
+      '@types/d3-selection': 3.0.11
 
   '@types/debug@4.1.12':
     dependencies:
@@ -8183,6 +8390,29 @@ snapshots:
   '@xtuc/ieee754@1.2.0': {}
 
   '@xtuc/long@4.2.2': {}
+
+  '@xyflow/react@12.8.2(@types/react@19.0.12)(immer@10.1.1)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+    dependencies:
+      '@xyflow/system': 0.0.66
+      classcat: 5.0.5
+      react: 19.0.0
+      react-dom: 19.0.0(react@19.0.0)
+      zustand: 4.5.7(@types/react@19.0.12)(immer@10.1.1)(react@19.0.0)
+    transitivePeerDependencies:
+      - '@types/react'
+      - immer
+
+  '@xyflow/system@0.0.66':
+    dependencies:
+      '@types/d3-drag': 3.0.7
+      '@types/d3-interpolate': 3.0.4
+      '@types/d3-selection': 3.0.11
+      '@types/d3-transition': 3.0.9
+      '@types/d3-zoom': 3.0.8
+      d3-drag: 3.0.0
+      d3-interpolate: 3.0.1
+      d3-selection: 3.0.0
+      d3-zoom: 3.0.0
 
   abbrev@1.1.1: {}
 
@@ -8635,6 +8865,8 @@ snapshots:
   ci-info@3.9.0: {}
 
   ci-info@4.2.0: {}
+
+  classcat@5.0.5: {}
 
   classnames@2.5.1: {}
 
@@ -12871,6 +13103,10 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.0.12
 
+  use-sync-external-store@1.5.0(react@19.0.0):
+    dependencies:
+      react: 19.0.0
+
   utf8-byte-length@1.0.5: {}
 
   util-deprecate@1.0.2: {}
@@ -13145,5 +13381,13 @@ snapshots:
       fd-slicer: 1.1.0
 
   yocto-queue@0.1.0: {}
+
+  zustand@4.5.7(@types/react@19.0.12)(immer@10.1.1)(react@19.0.0):
+    dependencies:
+      use-sync-external-store: 1.5.0(react@19.0.0)
+    optionalDependencies:
+      '@types/react': 19.0.12
+      immer: 10.1.1
+      react: 19.0.0
 
   zwitch@2.0.4: {}

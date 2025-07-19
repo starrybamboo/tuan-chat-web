@@ -6,13 +6,15 @@ import {
   useCheckUserCollectionQuery,
   useDeleteCollectionMutation,
 } from "../../../../api/hooks/collectionQueryHooks";
+import { useGetCounterQuery } from "../../../../api/hooks/couterQueryHooks";
 
 export default function CollectionIconButton({ targetInfo }: { targetInfo: CollectionCheckRequest }) {
   const isCollectedQuery = useCheckUserCollectionQuery(targetInfo);
 
   const isCollected = isCollectedQuery.data?.data;
-  const collectionCount = targetInfo.resourceId; // 假设targetId包含收藏数
 
+  const countData = useGetCounterQuery({ targetId: targetInfo.resourceId, targetType: Number(targetInfo.resourceType) });
+  const collectionCount = countData?.data?.data ?? 0;
   const addCollectionMutation = useAddCollectionMutation();
   const deleteCollectionMutation = useDeleteCollectionMutation();
 

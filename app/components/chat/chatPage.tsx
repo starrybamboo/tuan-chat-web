@@ -1,7 +1,7 @@
 import type { SpaceContextType } from "@/components/chat/spaceContext";
 import type { Room } from "../../../api";
 import RoomWindow from "@/components/chat/roomWindow";
-import SpaceRightSidePanel from "@/components/chat/sideDrawer/spaceRightSidePanel";
+import SpaceDetailPanel from "@/components/chat/sideDrawer/spaceDetailPanel";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import checkBack from "@/components/common/autoContrastText";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
@@ -32,7 +32,7 @@ import { MemberSelect } from "../common/memberSelect";
 /**
  * chat板块的主组件
  */
-export default function RoomSelect() {
+export default function ChatPage() {
   const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
   const navigate = useNavigate();
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
@@ -41,7 +41,7 @@ export default function RoomSelect() {
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
   // 当前激活的space对应的rooms。
-  const rooms = userRoomQuery.data?.data ?? [];
+  const rooms = useMemo(() => userRoomQuery.data?.data ?? [], [userRoomQuery.data?.data]);
   // 获取用户空间列表
   const userSpacesQuery = useGetUserSpacesQuery();
   const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
@@ -54,7 +54,7 @@ export default function RoomSelect() {
     : null);
   useEffect(() => {
     setActiveRoomId(rooms[0]?.roomId ?? null);
-  }, [activeSpaceId]);
+  }, [activeSpaceId, rooms]);
 
   const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState<boolean>("leftDrawer", !(urlSpaceId && urlRoomId), false);
 
@@ -88,7 +88,7 @@ export default function RoomSelect() {
   // 创建房间弹窗是否打开
   const [isRoomHandleOpen, setIsRoomHandleOpen] = useSearchParamsState<boolean>("addRoomPop", false);
   // 是否显示space详情
-  const [isShowSpacePanel, setIsShowSpacePanel] = useState(false);
+  const [isShowSpacePanel, setIsShowSpacePanel] = useSearchParamsState<boolean>("spaceDetailPop", false);
 
   // 处理邀请用户uid
   const [inputUserId, setInputUserId] = useState<number>(-1);
@@ -559,7 +559,7 @@ export default function RoomSelect() {
           </div>
         </PopWindow>
         <PopWindow isOpen={isShowSpacePanel} onClose={() => setIsShowSpacePanel(false)}>
-          <SpaceRightSidePanel></SpaceRightSidePanel>
+          <SpaceDetailPanel></SpaceDetailPanel>
         </PopWindow>
       </div>
     </SpaceContext>

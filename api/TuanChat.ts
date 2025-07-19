@@ -20,6 +20,7 @@ import { CommunityMemberService } from './services/CommunityMemberService';
 import { CommunityPostService } from './services/CommunityPostService';
 import { CounterService } from './services/CounterService';
 import { DiceCommentControllerService } from './services/DiceCommentControllerService';
+import { EmojiControllerService } from './services/EmojiControllerService';
 import { FeedControllerService } from './services/FeedControllerService';
 import { ImageGenerationControllerService } from './services/ImageGenerationControllerService';
 import { ItemControllerService } from './services/ItemControllerService';
@@ -44,6 +45,7 @@ import { TtsControllerService } from './services/TtsControllerService';
 import { UserControllerService } from './services/UserControllerService';
 import { UserFollowControllerService } from './services/UserFollowControllerService';
 import { UserPreferenceService } from './services/UserPreferenceService';
+import { WebsocketDocService } from './services/WebsocketDocService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class TuanChat {
     public readonly abilityController: AbilityControllerService;
@@ -61,6 +63,7 @@ export class TuanChat {
     public readonly communityPost: CommunityPostService;
     public readonly counter: CounterService;
     public readonly diceCommentController: DiceCommentControllerService;
+    public readonly emojiController: EmojiControllerService;
     public readonly feedController: FeedControllerService;
     public readonly imageGenerationController: ImageGenerationControllerService;
     public readonly itemController: ItemControllerService;
@@ -85,6 +88,7 @@ export class TuanChat {
     public readonly userController: UserControllerService;
     public readonly userFollowController: UserFollowControllerService;
     public readonly userPreference: UserPreferenceService;
+    public readonly websocketDoc: WebsocketDocService;
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
         this.request = new HttpRequest({
@@ -113,6 +117,7 @@ export class TuanChat {
         this.communityPost = new CommunityPostService(this.request);
         this.counter = new CounterService(this.request);
         this.diceCommentController = new DiceCommentControllerService(this.request);
+        this.emojiController = new EmojiControllerService(this.request);
         this.feedController = new FeedControllerService(this.request);
         this.imageGenerationController = new ImageGenerationControllerService(this.request);
         this.itemController = new ItemControllerService(this.request);
@@ -137,6 +142,7 @@ export class TuanChat {
         this.userController = new UserControllerService(this.request);
         this.userFollowController = new UserFollowControllerService(this.request);
         this.userPreference = new UserPreferenceService(this.request);
+        this.websocketDoc = new WebsocketDocService(this.request);
     }
 }
 

@@ -23,6 +23,38 @@
   ],
   "tags": [
     {
+      "name": "ScTransactions",
+      "description": "SC交易查询接口"
+    },
+    {
+      "name": "UserController",
+      "description": "用户相关接口"
+    },
+    {
+      "name": "CommunityPost",
+      "description": "社区帖子管理"
+    },
+    {
+      "name": "AvatarController",
+      "description": "头像相关接口"
+    },
+    {
+      "name": "websocket-doc",
+      "description": "WebSocket文档生成"
+    },
+    {
+      "name": "EmojiController",
+      "description": "表情包相关接口"
+    },
+    {
+      "name": "AbilityController",
+      "description": "角色能力相关接口"
+    },
+    {
+      "name": "ScWallets",
+      "description": "SC钱包接口"
+    },
+    {
       "name": "UserFollowController",
       "description": "用户关注相关接口"
     },
@@ -43,14 +75,6 @@
       "description": "角色能力生成相关的接口"
     },
     {
-      "name": "ScTransactions",
-      "description": "SC交易查询接口"
-    },
-    {
-      "name": "UserController",
-      "description": "用户相关接口"
-    },
-    {
       "name": "RuleController",
       "description": "提供规则的增删改查功能"
     },
@@ -65,14 +89,6 @@
     {
       "name": "FeedController",
       "description": "用户Feed相关接口"
-    },
-    {
-      "name": "CommunityPost",
-      "description": "社区帖子管理"
-    },
-    {
-      "name": "AvatarController",
-      "description": "头像相关接口"
     },
     {
       "name": "MessageDirectController",
@@ -93,14 +109,6 @@
     {
       "name": "Community",
       "description": "社区管理"
-    },
-    {
-      "name": "AbilityController",
-      "description": "角色能力相关接口"
-    },
-    {
-      "name": "ScWallets",
-      "description": "SC钱包接口"
     },
     {
       "name": "DiceCommentController",
@@ -8535,6 +8543,217 @@
         }
       }
     },
+    "/capi/emoji": {
+      "get": {
+        "tags": [
+          "EmojiController"
+        ],
+        "summary": "根据ID获取表情包",
+        "operationId": "getEmoji",
+        "parameters": [
+          {
+            "name": "emojiId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultEmoji"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "EmojiController"
+        ],
+        "summary": "创建表情包",
+        "operationId": "createEmoji",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmojiCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultLong"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "EmojiController"
+        ],
+        "summary": "删除表情包",
+        "operationId": "deleteEmoji",
+        "parameters": [
+          {
+            "name": "emojiId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/community/update": {
       "post": {
         "tags": [
@@ -11402,6 +11621,67 @@
         }
       }
     },
+    "/api/websocket/doc/generate": {
+      "post": {
+        "tags": [
+          "websocket-doc"
+        ],
+        "description": "生成WebSocket API文档",
+        "operationId": "generateDoc",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/ai/tts/hobbyist": {
       "post": {
         "tags": [
@@ -13740,6 +14020,67 @@
         }
       }
     },
+    "/capi/emoji/list": {
+      "get": {
+        "tags": [
+          "EmojiController"
+        ],
+        "summary": "获取用户表情包列表",
+        "operationId": "getUserEmojis",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListEmoji"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/community/post/my-posts": {
       "get": {
         "tags": [
@@ -15088,6 +15429,10 @@
           "gender": {
             "type": "string",
             "description": "性别: 隐藏(null) 男 女"
+          },
+          "readMe": {
+            "type": "string",
+            "description": "用户的README"
           }
         }
       },
@@ -19358,6 +19703,50 @@
         },
         "description": "Feed详情响应（包含统计信息）"
       },
+      "EmojiCreateRequest": {
+        "required": [
+          "fileSize",
+          "format",
+          "imageUrl",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "description": "表情包名称"
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "图片URL"
+          },
+          "fileSize": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "文件大小(bytes)",
+            "format": "int64"
+          },
+          "width": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "图片宽度",
+            "format": "int32"
+          },
+          "height": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "图片高度",
+            "format": "int32"
+          },
+          "format": {
+            "pattern": "^(jpg|jpeg|png|gif|webp)$",
+            "type": "string",
+            "description": "图片格式"
+          }
+        }
+      },
       "CommunityUpdateRequest": {
         "required": [
           "communityId"
@@ -20729,14 +21118,14 @@
             "description": "情感差分类型",
             "example": "开朗",
             "enum": [
-              "开朗",
-              "满足",
-              "沉思",
-              "悲伤",
-              "调皮",
-              "哭泣",
-              "愤怒",
-              "嫉妒"
+              "cheerful",
+              "satisfied",
+              "thoughtful",
+              "sad",
+              "playful",
+              "crying",
+              "angry",
+              "jealous"
             ]
           }
         },
@@ -21514,6 +21903,103 @@
           },
           "data": {
             "$ref": "#/components/schemas/FeedWithStatsResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ApiResultEmoji": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Emoji"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "Emoji": {
+        "type": "object",
+        "properties": {
+          "emojiId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "width": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "format": {
+            "type": "string"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "返回对象"
+      },
+      "ApiResultListEmoji": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/Emoji"
+            }
           }
         },
         "description": "基础返回体"

@@ -11,6 +11,7 @@ import { SpaceContext } from "@/components/chat/spaceContext";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { DraggableIcon } from "@/icons";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import {
@@ -20,6 +21,7 @@ import {
 } from "../../../api/hooks/chatQueryHooks";
 import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
 
+export const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
 function Header({ context }: { context:
 {
   fetchNextPage: () => void;
@@ -50,11 +52,11 @@ function ScrollSeekPlaceholder({ height }: { height: number }) {
 /**
  * 聊天框（不带输入部分）
  * @param useChatBubbleStyle 是否使用气泡样式
+ * @param virtuosoRef 虚拟列表的ref
  * @constructor
  */
-
-export default function ChatFrame({ useChatBubbleStyle }:
-{ useChatBubbleStyle: boolean }) {
+export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
+{ useChatBubbleStyle: boolean; virtuosoRef: React.RefObject<VirtuosoHandle | null> }) {
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
@@ -91,14 +93,15 @@ export default function ChatFrame({ useChatBubbleStyle }:
   /**
    * 虚拟列表
    */
-  const virtuosoRef = useRef<VirtuosoHandle>(null);
   // 虚拟列表的index到historyMessage中的index的转换
-  const INDEX_SHIFTER = 100000;
   const isAtBottomRef = useRef(true);
   const isAtTopRef = useRef(false);
-  // const virtuosoIndexToNormalIndex = (virtuosoIndex: number) => {
-  //   return historyMessages.length + virtuosoIndex - INDEX_SHIFTER;
-  // };
+  const virtuosoIndexToMessageIndex = (virtuosoIndex: number) => {
+    return historyMessages.length + virtuosoIndex - CHAT_VIRTUOSO_INDEX_SHIFTER;
+  };
+  const messageIndexToVirtuosoIndex = (messageIndex: number) => {
+    return messageIndex - historyMessages.length + CHAT_VIRTUOSO_INDEX_SHIFTER;
+  };
   /**
    * 新消息提醒
    */
@@ -111,7 +114,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
    * scroll相关
    */
   const scrollToBottom = () => {
-    virtuosoRef?.current?.scrollToIndex(historyMessages.length);
+    virtuosoRef?.current?.scrollToIndex(messageIndexToVirtuosoIndex(historyMessages.length - 1));
     updateUnreadMessagesNumber(roomId, 0);
   };
   useEffect(() => {
@@ -120,7 +123,8 @@ export default function ChatFrame({ useChatBubbleStyle }:
         scrollToBottom();
       }, 1000);
     }
-  }, [messagesInfiniteQuery?.isFetchedAfterMount]);
+  }, [messagesInfiniteQuery?.isFetchedAfterMount, roomId]);
+
   /**
    * 消息选择
    */
@@ -201,9 +205,13 @@ export default function ChatFrame({ useChatBubbleStyle }:
   // before代表拖拽到元素上半，after代表拖拽到元素下半
   const dropPositionRef = useRef<"before" | "after">("before");
   const curDragOverMessageRef = useRef<HTMLDivElement | null>(null);
-  // 通用的处理消息移动的函数
+  /**
+   * 通用的消息拖拽消息函数
+   * @param targetIndex 将被移动到targetIndex对应的消息的下方
+   * @param messageIds 要移动的消息租
+   */
   const handleMoveMessages = (
-    targetIndex: number, // 将被移动到targetIndex对应的消息的下方
+    targetIndex: number,
     messageIds: number[],
   ) => {
     const selectedMessages = Array.from(messageIds)
@@ -232,7 +240,9 @@ export default function ChatFrame({ useChatBubbleStyle }:
       });
     }
   };
-
+  /**
+   * 检查拖拽的位置
+   */
   const checkPosition = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     if (dragStartMessageIdRef.current === -1) {
       return;
@@ -257,6 +267,9 @@ export default function ChatFrame({ useChatBubbleStyle }:
     curDragOverMessageRef.current?.appendChild(indicator);
     indicatorRef.current = indicator;
   }, []);
+  /**
+   * 拖拽起始化
+   */
   const handleDragStart = useCallback ((e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.stopPropagation();
     e.dataTransfer.effectAllowed = "move";
@@ -284,7 +297,6 @@ export default function ChatFrame({ useChatBubbleStyle }:
   }, [historyMessages, isSelecting, selectedMessageIds.size]);
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    // e.stopPropagation();
     e.dataTransfer.dropEffect = "move";
     checkPosition(e);
   };
@@ -303,19 +315,10 @@ export default function ChatFrame({ useChatBubbleStyle }:
     if (isSelecting && selectedMessageIds.size > 0) {
       handleMoveMessages(adjustedIndex, Array.from(selectedMessageIds));
     }
-    // else {
-    //   handleMoveMessages();
-    // }
     else {
-      // 单条消息移动，额外判断是否移动到原来的位置
-      const beforeMessage = historyMessages[adjustedIndex]?.message;
-      const afterMessage = historyMessages[adjustedIndex - 1]?.message;
-      const beforeMessageId = beforeMessage?.messageID ?? null;
-      const afterMessageId = afterMessage?.messageID ?? null;
-      if (beforeMessageId !== dragStartMessageIdRef.current && afterMessageId !== dragStartMessageIdRef.current) {
-        handleMoveMessages(adjustedIndex, [dragStartMessageIdRef.current]);
-      }
+      handleMoveMessages(adjustedIndex, [dragStartMessageIdRef.current]);
     }
+
     dragStartMessageIdRef.current = -1;
     indicatorRef.current?.remove();
   };
@@ -334,7 +337,6 @@ export default function ChatFrame({ useChatBubbleStyle }:
     const messageElement = target.closest("[data-message-id]");
     setContextMenu({ x: e.clientX, y: e.clientY, messageId: Number(messageElement?.getAttribute("data-message-id")) });
   }
-
   function handleBatchDelete() {
     for (const messageId of selectedMessageIds) {
       deleteMessageMutation.mutate(messageId);
@@ -359,18 +361,17 @@ export default function ChatFrame({ useChatBubbleStyle }:
   }
 
   /**
-   * 预渲染
+   * @param index 虚拟列表中的index，为了实现反向滚动，进行了偏移
+   * @param chatMessageResponse
    */
   const renderMessage = (index: number, chatMessageResponse: ChatMessageResponse) => {
     const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageID);
-    // const normalIndex = virtuosoIndexToNormalIndex(index);
+    const draggable = spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId;
+    const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
     return ((
       <div
         key={chatMessageResponse.message.messageID}
-        // ref={(normalIndex === 4
-        //   ? messageRef
-        //   : null)}
-        className={`relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""}\``}
+        className={`pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""}`}
         data-message-id={chatMessageResponse.message.messageID}
         onClick={(e) => {
           if (isSelecting || e.ctrlKey) {
@@ -379,27 +380,25 @@ export default function ChatFrame({ useChatBubbleStyle }:
         }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        onDrop={e => handleDrop(e, index)}
-        // draggable={isSelecting && (spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId)}
-        onDragStart={e => handleDragStart(e, index)}
-        // onDragEnd={() => handleDragEnd()}
+        onDrop={e => handleDrop(e, indexInHistoryMessages)}
+        draggable={isSelecting && draggable}
+        onDragStart={e => handleDragStart(e, indexInHistoryMessages)}
       >
-        <div
-          className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
-                      -translate-x-full -translate-y-1/ opacity-0 transition-opacity flex items-center pr-2 cursor-move
-                      ${(spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId) ? "group-hover:opacity-100" : ""}`}
-          // draggable={spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId}
-          onDragStart={e => handleDragStart(e, index)}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </div>
+        {
+          draggable
+          && (
+            <div
+              className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
+                      opacity-0 transition-opacity flex items-center pr-2 cursor-move
+                      group-hover:opacity-100 z-100`}
+              draggable={draggable}
+              onDragStart={e => handleDragStart(e, indexInHistoryMessages)}
+            >
+              <DraggableIcon className="size-6 "></DraggableIcon>
+            </div>
+          )
+        }
+
         <ChatBubble chatMessageResponse={chatMessageResponse} />
       </div>
     )
@@ -411,12 +410,14 @@ export default function ChatFrame({ useChatBubbleStyle }:
   return (
     <div className="h-full">
       <div
-        className="ml-4 overflow-y-auto flex flex-col relative h-full"
+        className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
       >
         {selectedMessageIds.size > 0 && (
-          <div className="absolute top-0 bg-base-300 w-full p-2 shadow-sm z-10 flex justify-between items-center rounded">
+          <div
+            className="absolute top-0 bg-base-300 w-full p-2 shadow-sm z-10 flex justify-between items-center rounded"
+          >
             <span>{`已选择${selectedMessageIds.size} 条消息`}</span>
             <div className="gap-x-4 flex">
               <button
@@ -451,7 +452,7 @@ export default function ChatFrame({ useChatBubbleStyle }:
         <div className="h-full flex-1">
           <Virtuoso
             data={historyMessages}
-            firstItemIndex={INDEX_SHIFTER - historyMessages.length} // 使用这个技巧来在react-virtuoso中实现反向无限滚动
+            firstItemIndex={CHAT_VIRTUOSO_INDEX_SHIFTER - historyMessages.length} // 使用这个技巧来在react-virtuoso中实现反向无限滚动
             initialTopMostItemIndex={historyMessages.length - 1}
             // alignToBottom
             followOutput={true}

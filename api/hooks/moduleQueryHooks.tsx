@@ -1,32 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
-import type {ModuleItemUpdateRequest} from "../models/ModuleItemUpdateRequest";
-import type {ModuleItemCreateRequest} from "../models/ModuleItemCreateRequest";
-import type {ModuleItemDeleteRequest} from "../models/ModuleItemDeleteRequest";
-import type {ModuleItemListRequest} from "../models/ModuleItemListRequest";
-import type {ModulePageRequest} from "../models/ModulePageRequest";
-import type {ModuleDeleteRequest} from "../models/ModuleDeleteRequest";
-import type {ModuleCreateRequest} from "../models/ModuleCreateRequest";
-import type {ModuleUpdateRequest} from "../models/ModuleUpdateRequest";
-import type {ModuleRolePageRequest} from "../models/ModuleRolePageRequest";
-import type {ModuleRoleDeleteRequest} from "../models/ModuleRoleDeleteRequest";
-import type {ModuleRoleCreateRequest} from "../models/ModuleRoleCreateRequest";
-import type {ModuleSceneUpdateRequest} from "../models/ModuleSceneUpdateRequest";
-import type {ModuleSceneCreateRequest} from "../models/ModuleSceneCreateRequest";
-import type {ModuleSceneDeleteRequest} from "../models/ModuleSceneDeleteRequest";
-import type {ModuleScenePageRequest} from "../models/ModuleScenePageRequest";
+import type { ItemAddRequest } from "../models/ItemAddRequest";
+import type { ItemUpdateRequest } from "../models/ItemUpdateRequest";
+import type { ItemPageRequest } from "../models/ItemPageRequest";
+import type { ItemsGetRequest } from "../models/ItemsGetRequest";
+import type { ModulePageRequest } from "../models/ModulePageRequest";
+import type { ModuleCreateRequest } from "../models/ModuleCreateRequest";
+import type { ModuleUpdateRequest } from "../models/ModuleUpdateRequest";
+import type { ApiResultModuleInfo } from "../models/ApiResultModuleInfo";
+import type { EntityAddRequest } from "api/models/EntityAddRequest";
+import type { EntityRenameRequest } from "api/models/EntityRenameRequest";
+import type { RoleImportRequest } from "api/models/RoleImportRequest";
+import type { CommitRequest } from "api/models/CommitRequest";
+import type { StageRollbackRequest } from "api/models/StageRollbackRequest";
 
-//========================module item ==================================
+//========================item (物品相关) ==================================
 /**
  * 更新物品
  */
 export function useUpdateItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: ModuleItemUpdateRequest) => tuanchat.moduleItemController.updateItem(req),
+        mutationFn: (req: ItemUpdateRequest) => tuanchat.itemController.updateItem(req),
         mutationKey: ['updateItem'],
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['moduleItems'] });
+            queryClient.invalidateQueries({ queryKey: ['items'] });
         }
     });
 }
@@ -37,10 +35,10 @@ export function useUpdateItemMutation() {
 export function useAddItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: ModuleItemCreateRequest) => tuanchat.moduleItemController.addItem(req),
+        mutationFn: (req: ItemAddRequest) => tuanchat.itemController.addItem1(req),
         mutationKey: ['addItem'],
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['moduleItems'] });
+            queryClient.invalidateQueries({ queryKey: ['items'] });
         }
     });
 }
@@ -51,10 +49,10 @@ export function useAddItemMutation() {
 export function useDeleteItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: ModuleItemDeleteRequest) => tuanchat.moduleItemController.deleteItem(req),
+        mutationFn: (id: number) => tuanchat.itemController.deleteItem(id),
         mutationKey: ['deleteItem'],
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['moduleItems'] });
+            queryClient.invalidateQueries({ queryKey: ['items'] });
         }
     });
 }
@@ -62,18 +60,41 @@ export function useDeleteItemMutation() {
 /**
  * 获取物品列表
  */
-export function useModuleItemsQuery(requestBody: ModuleItemListRequest) {
+export function useItemsQuery(requestBody: ItemPageRequest) {
     return useQuery({
-        queryKey: ['moduleItems', requestBody],
-        queryFn: () => tuanchat.moduleItemController.list(requestBody),
+        queryKey: ['items', requestBody],
+        queryFn: () => tuanchat.itemController.page1(requestBody),
         staleTime: 300000 // 5分钟缓存
     });
 }
 
-//========================module==================================
+/**
+ * 获取物品详情
+ */
+export function useItemDetailQuery(id: number) {
+    return useQuery({
+        queryKey: ['itemDetail', id],
+        queryFn: () => tuanchat.itemController.getById(id),
+        staleTime: 300000, // 5分钟缓存
+        enabled: !!id
+    });
+}
 
 /**
- * 更新剧本
+ * 批量获取物品
+ */
+export function useItemsBatchQuery(requestBody: ItemsGetRequest) {
+    return useQuery({
+        queryKey: ['itemsBatch', requestBody],
+        queryFn: () => tuanchat.itemController.getByIds(requestBody),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
+//========================module (模组相关) ==================================
+
+/**
+ * 更新模组
  */
 export function useUpdateModuleMutation() {
     const queryClient = useQueryClient();
@@ -82,13 +103,16 @@ export function useUpdateModuleMutation() {
         mutationKey: ['updateModule'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['moduleList'] });
-            queryClient.invalidateQueries({ queryKey: ['moduleDetail', variables.moduleId] });
+            // 注意：ModuleUpdateRequest中应该有moduleId字段，如果没有请根据实际情况调整
+            if ('moduleId' in variables) {
+                queryClient.invalidateQueries({ queryKey: ['moduleDetail', variables.moduleId] });
+            }
         }
     });
 }
 
 /**
- * 添加剧本
+ * 添加模组
  */
 export function useAddModuleMutation() {
     const queryClient = useQueryClient();
@@ -97,167 +121,149 @@ export function useAddModuleMutation() {
         mutationKey: ['addModule'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['moduleList'] });
+            queryClient.invalidateQueries({ queryKey: ['staging'] });
         }
     });
 }
 
 /**
- * 删除剧本
- */
-export function useDeleteModuleMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: ModuleDeleteRequest) => tuanchat.moduleController.deleteModule(req),
-        mutationKey: ['deleteModule'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['moduleList'] });
-        }
-    });
-}
-
-/**
- * 分页获取剧本列表
+ * 分页获取模组列表
  */
 export function useModuleListQuery(requestBody: ModulePageRequest) {
     return useQuery({
         queryKey: ['moduleList', requestBody],
-        queryFn: () => tuanchat.moduleController.page1(requestBody),
+        queryFn: () => tuanchat.moduleController.page(requestBody),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
+//========================commit (提交相关) ==================================
+
+/**
+ * 获取模组信息
+ */
+export function useModuleInfoQuery(moduleId: number, branchId?: number) {
+    return useQuery({
+        queryKey: ['moduleInfo', moduleId, branchId],
+        queryFn: () => tuanchat.commitController.getModuleInfo(moduleId, branchId),
+        enabled: !!moduleId,
         staleTime: 300000 // 5分钟缓存
     });
 }
 
 /**
- * 获取剧本详情
+ * 根据提交ID获取模组信息
  */
-export function useModuleDetailQuery(id: number) {
+export function useModuleInfoByCommitIdQuery(commitId: number) {
     return useQuery({
-        queryKey: ['moduleDetail', id],
-        queryFn: () => tuanchat.moduleController.getById(id),
-        staleTime: 300000, // 5分钟缓存
-        enabled: !!id
-    });
-}
-
-//========================module role==================================
-
-/**
- * 获取预设卡详情
- */
-export function useModuleRoleInfoQuery(moduleId: number, roleId: number) {
-    return useQuery({
-        queryKey: ['moduleRoleInfo', moduleId, roleId],
-        queryFn: () => tuanchat.moduleRoleController.getModuleRoleInfo(moduleId, roleId),
-        staleTime: 300000, // 5分钟缓存
-        enabled: !!moduleId && !!roleId
-    });
-}
-
-/**
- * 创建模组角色
- */
-export function useCreateModuleRoleMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: ModuleRoleCreateRequest) => tuanchat.moduleRoleController.createModuleRole(req),
-        mutationKey: ['createModuleRole'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['moduleRoles'] });
-        }
-    });
-}
-
-/**
- * 删除模组角色
- */
-export function useDeleteModuleRoleMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: ModuleRoleDeleteRequest) => tuanchat.moduleRoleController.deleteModuleRole(req),
-        mutationKey: ['deleteModuleRole'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['moduleRoles'] });
-        }
-    });
-}
-
-/**
- * 分页获取模组角色
- */
-export function useModuleRolesQuery(requestBody: ModuleRolePageRequest) {
-    return useQuery({
-        queryKey: ['moduleRoles', requestBody],
-        queryFn: () => tuanchat.moduleRoleController.getModuleRolePage(requestBody),
-        staleTime: 300000 // 5分钟缓存
-    });
-}
-
-//========================module scene==================================
-
-/**
- * 更新场景
- */
-export function useUpdateSceneMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: ModuleSceneUpdateRequest) => tuanchat.moduleScene.updateScene(req),
-        mutationKey: ['updateScene'],
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['moduleScenes'] });
-            queryClient.invalidateQueries({ queryKey: ['sceneDetail', variables.moduleSceneId] });
-        }
-    });
-}
-
-/**
- * 添加场景
- */
-export function useAddSceneMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: ModuleSceneCreateRequest) => tuanchat.moduleScene.addScene(req),
-        mutationKey: ['addScene'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['moduleScenes'] });
-        }
-    });
-}
-
-/**
- * 删除场景
- */
-export function useDeleteSceneMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: ModuleSceneDeleteRequest) => tuanchat.moduleScene.deleteScene(req),
-        mutationKey: ['deleteScene'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['moduleScenes'] });
-        }
-    });
-}
-
-/**
- * 分页获取场景列表
- */
-export function useModuleScenesQuery(requestBody: ModuleScenePageRequest) {
-    return useQuery({
-        queryKey: ['moduleScenes', requestBody],
-        queryFn: () => tuanchat.moduleScene.page(requestBody),
+        queryKey: ['moduleInfoByCommitId', commitId],
+        queryFn: () => tuanchat.commitController.getModuleInfoByCommitId(commitId),
+        enabled: !!commitId,
         staleTime: 300000 // 5分钟缓存
     });
 }
 
 /**
- * 获取场景详情
+ * 获取单个模组的基本信息（通过列表查询筛选）
  */
-export function useSceneDetailQuery(id: number) {
-    return useQuery({
-        queryKey: ['sceneDetail', id],
-        queryFn: () => tuanchat.moduleScene.getSceneById(id),
-        staleTime: 300000, // 5分钟缓存
-        enabled: !!id
+export function useModuleDetailQuery(moduleId: number) {
+    const { data: listData, ...rest } = useModuleListQuery({
+        pageNo: 1,
+        pageSize: 100,
+    });
+
+    const moduleDetail = listData?.data?.list?.find((module: any) => module.moduleId === moduleId);
+
+    return {
+        data: moduleDetail ? { data: moduleDetail } : undefined,
+        ...rest
+    };
+}
+
+/*====================stages=======================*/
+// 回退文件信息
+export function useStageRollbackMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: StageRollbackRequest) => tuanchat.stageController.rollback(req),
+        mutationKey: ['rollback'],
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['staging'] });
+        }
     });
 }
 
+// 自动查询并显示自己拥有的模组
+export function useStagingQuery() {
+    return useQuery({
+        queryKey: ['staging'],
+        queryFn: () => tuanchat.stageController.staging(),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
 
+// 提交对应的修改
+export function useCommitMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: CommitRequest) => tuanchat.stageController.commit(req),
+        mutationKey: ['commit'],
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['staging'] });
+        }
+    });
+}
 
+// 查询最新提交的修改
+export function useQueryCommitQuery(stageId: number) {
+    return useQuery({
+        queryKey: ['queryCommit', stageId],
+        queryFn: () => tuanchat.stageController.queryCommit(stageId),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
+// 查询所有的实体
+export function useQueryEntitiesQuery(stageId: number) {
+    return useQuery({
+        queryKey: ['queryEntities', stageId],
+        queryFn: () => tuanchat.stageController.queryEntities(stageId),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
+// 导入角色实体
+export function useImportRoleMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: RoleImportRequest) => tuanchat.stageController.importRole(req),
+        mutationKey: ['importRole'],
+        onSuccess: (data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
+        }
+    });
+}
+
+// 修改实体
+export function useRenameMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: EntityRenameRequest) => tuanchat.stageController.rename(req),
+        mutationKey: ['rename'],
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['staging'] });
+        }
+    });
+}
+
+// 添加也可以删除实体
+export function useAddMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: EntityAddRequest) => tuanchat.stageController.add(req),
+        mutationKey: ['addEntity'],
+        onSuccess: (data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
+        }
+    });
+}

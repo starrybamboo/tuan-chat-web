@@ -1,6 +1,6 @@
 import type { ChatMessageRequest } from "./models/ChatMessageRequest";
 import type { ChatMessageResponse } from "./models/ChatMessageResponse";
-import { getLocalStorageValue } from "@/components/common/customHooks/useLocalStorage";
+import { getLocalStorageValue, useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { formatLocalDateTime } from "@/utils/dataUtil";
 import { useQueryClient } from "@tanstack/react-query";
 import {useCallback, useEffect, useRef, useState} from "react";
@@ -42,7 +42,9 @@ export interface WebsocketUtils {
   receivedMessages: Record<number, ChatMessageResponse[]>;
   receivedDirectMessages: Record<number, DirectMessageEvent[]>;
   unreadMessagesNumber: Record<number, number>; // 存储未读消息数
+  unreadDirectMessagesNumber: Record<number, number>;
   updateUnreadMessagesNumber: (roomId: number, newNumber: number,) => void;
+  updateUnreadDirectMessagesNumber: (senderId: number, newNumber: number,) => void;
   chatStatus: Record<number, ChatStatus[]>;
   updateChatStatus: (chatStatusEvent:ChatStatusEvent)=> void;
 }
@@ -67,6 +69,11 @@ export function useWebSocket() {
   // 输入状态, 按照roomId进行分组
   const [chatStatus, updateChatStatus] = useImmer<Record<number, ChatStatus[]>>({});
 
+  // 私聊新消息数记录（从localStorage中读取）
+  const [unreadDirectMessagesNumber, setUnreadDirectMessagesNumber] = useLocalStorage<Record<number, number>>(
+    `unreadDirectMessages_${globalContext.userId}`,
+    {}
+  );
   const token = getLocalStorageValue<number>("token", -1);
   // 配置参数
   const HEARTBEAT_INTERVAL = 25000;
@@ -216,8 +223,16 @@ export function useWebSocket() {
    * 处理私聊消息
    */
   const handleDirectChatMessage = (message: DirectMessageEvent) => {
-    const {receiverId,senderId} = message;
+    const {receiverId, senderId} = message;
     const channelId = globalContext.userId === senderId ? receiverId : senderId; // 如果是自己发的私聊消息，则channelId为接收者Id
+
+    if (message.status === 0 && globalContext.userId !== channelId) {
+      setUnreadDirectMessagesNumber(prev => ({
+        ...prev,
+        [senderId]: (prev[senderId] || 0) + 1,
+      }));
+    }
+
     updateReceivedDirectMessages((draft)=>{
       // 去重，比如撤回操作就会出现相同消息id的情况。
       if (channelId in draft) {
@@ -230,7 +245,7 @@ export function useWebSocket() {
           draft[channelId][existingIndex] = message;
         }
         else {
-          draft[channelId].push();
+          draft[channelId].push(message);
         }
       }
       else {
@@ -302,7 +317,21 @@ export function useWebSocket() {
             [roomId]: newNumber,
           }));
         };
-
+        
+  /**
+   * 更新私聊未读消息数量
+   * @param senderId 发送者id
+   * @param newNumber 新的未读消息数量
+   * */
+  const updateUnreadDirectMessagesNumber
+        = (senderId: number, newNumber: number) => {
+          setUnreadDirectMessagesNumber(prev => ({
+            ...prev,
+            [senderId]: newNumber,
+          }));
+        };
+  
+  
   const webSocketUtils: WebsocketUtils = {
     connect,
     send,
@@ -310,7 +339,9 @@ export function useWebSocket() {
     receivedMessages,
     receivedDirectMessages,
     unreadMessagesNumber,
+    unreadDirectMessagesNumber,
     updateUnreadMessagesNumber,
+    updateUnreadDirectMessagesNumber,
     chatStatus,
     updateChatStatus: handleChatStatusChange,
   };
