@@ -35,15 +35,13 @@ export function PopWindow({ isOpen, children, onClose, fullScreen = false, trans
           ${fullScreen ? "w-screen h-screen" : "modal-box w-auto max-w-[100vw] lg:max-w-[80vw] lg:h-auto lg:max-h-[90vh]"}`}
         >
           {/* 关闭按钮 */}
-          {!transparent && (
-            <button
-              type="button"
-              className="btn btn-sm btn-circle absolute right-2 top-2 bg-base-200 hover:bg-base-300 dark:bg-base-200 dark:hover:bg-base-100 z-20"
-              onClick={onClose}
-            >
-              ✕
-            </button>
-          )}
+          <button
+            type="button"
+            className="btn btn-sm btn-circle absolute right-2 top-2 bg-base-200 hover:bg-base-300 dark:bg-base-200 dark:hover:bg-base-100 z-20"
+            onClick={onClose}
+          >
+            ✕
+          </button>
           {/* 卡片内容 */}
           <div className="card-body p-4 w-full h-full">
             {children}
