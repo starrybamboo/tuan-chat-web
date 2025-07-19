@@ -12,9 +12,6 @@ function TagManagement() {
   const [tags, setTags] = useState<Tag[]>([
     { id: "1", text: "策略玩家", color: "indigo" },
     { id: "2", text: "剧情沉浸者", color: "purple" },
-    { id: "3", text: "500年老玩家", color: "blue" },
-    { id: "4", text: "不是Loli控", color: "amber" },
-    { id: "5", text: "至少绝对不是YZC", color: "teal" },
   ]);
 
   // 使用唯一的key来控制弹窗
@@ -69,7 +66,7 @@ function TagManagement() {
           ))}
 
           {tags.length === 0 && (
-            <div className="text-base italic py-2">
+            <div className="text-base py-2">
               暂无标签，点击上方按钮添加
             </div>
           )}

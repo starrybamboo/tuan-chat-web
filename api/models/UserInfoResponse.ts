@@ -32,5 +32,6 @@ export type UserInfoResponse = {
      * 性别: 隐藏(null) 男 女
      */
     gender?: string;
+    readMe?: string;
 };
 

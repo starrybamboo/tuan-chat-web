@@ -1,7 +1,7 @@
 import React from "react";
 
 // 定义状态类型
-type StatusType = "active" | "offline" | "busy" | "away";
+type StatusType = 1 | 2;
 
 interface UserStatusDotProps {
   status?: StatusType | string; // 允许传入 string 或 undefined
@@ -18,10 +18,10 @@ const UserStatusDot: React.FC<UserStatusDotProps> = ({
 }) => {
   // 检查传入的 status 是否合法，否则返回默认值 "offline"
   const getValidStatus = (status?: string | StatusType): StatusType => {
-    const validStatuses: StatusType[] = ["active", "offline", "busy", "away"];
+    const validStatuses: StatusType[] = [1, 2];
     return validStatuses.includes(status as StatusType)
       ? (status as StatusType)
-      : "offline";
+      : 2;
   };
 
   // 最终使用的状态
@@ -36,17 +36,17 @@ const UserStatusDot: React.FC<UserStatusDotProps> = ({
 
   // 状态颜色映射
   const statusColorMap = {
-    active: "bg-success",
-    offline: "bg-gray-600",
-    busy: "bg-warning",
-    away: "bg-info",
+    1: "bg-green-500",
+    2: "bg-gray-600",
+    // busy: "bg-warning",
+    // away: "bg-info",
   };
 
   return (
     <div
       className={`
         rounded-full 
-        ring-1 ring-white/50 
+        ring-1 ring-white/50
         ${sizeMap[size]} 
         ${statusColorMap[finalStatus]}
         ${editable ? "cursor-pointer" : ""}
