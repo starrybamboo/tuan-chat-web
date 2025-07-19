@@ -14,7 +14,7 @@ export interface StoredPost {
  * @param onSubmit 提交按钮的回调函数，异步执行, 传入帖子的标题和内容。如果发送成功，返回true，否则返回false。
  * @constructor
  */
-export default function PostWriter({ onClose, onSubmit }:
+export default function PostEditor({ onClose, onSubmit }:
 {
   onClose?: () => void;
   onSubmit: (post: StoredPost) => Promise<boolean>;
