@@ -1,5 +1,6 @@
 // Work.tsx
 import LeftContent from "@/components/create/left";
+import Sidebar from "@/components/create/sidebar/sidebar";
 import TopBar from "@/components/create/top/topbar";
 import { ModuleProvider } from "./context/_moduleContext";
 import EditModule from "./EditModule";
@@ -12,7 +13,11 @@ export default function Work() {
           <div className="h-12 flex-shrink-0">
             <TopBar />
           </div>
+          {" "}
           <div className="flex flex-1 min-h-0">
+            <div className="flex">
+              <Sidebar />
+            </div>
             <div className="bg-base-300 basis-1/5 flex flex-col overflow-hidden">
               <LeftContent />
             </div>

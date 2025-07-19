@@ -108,9 +108,10 @@ export function SceneList({ stageId }: { stageId: number }) {
             )
           : (
               <>
-                {list?.map(scene => (
+                {list?.map((scene, index) => (
                   <SceneListItem
-                    key={scene.entityInfo!.moduleSceneId}
+                    // key={scene.entityInfo!.moduleSceneId}
+                    key={index}
                     scene={scene}
                     isSelected={currentSelectedTabId === scene.createTime! + scene.name}
                     onClick={() => handleClick(scene)}

@@ -122,9 +122,10 @@ export default function ItemList({ stageId }: { stageId: number }) {
               </div>
             )
           : (
-              list.map(item => (
+              list.map((item, index) => (
                 <ItemListItem
-                  key={item.entityInfo!.itemId}
+                  // key={item.entityInfo!.itemId}
+                  key={index}
                   item={item}
                   isSelected={currentSelectedTabId === item.createTime! + item.name}
                   onClick={() => handleClick(item)}
@@ -140,9 +141,10 @@ export default function ItemList({ stageId }: { stageId: number }) {
         <div className="p-4 space-y-4">
           <p className="text-xl font-bold">选择添加的物品所在的场景</p>
           <div className="space-y-2">
-            {sceneList?.map(scene => (
+            {sceneList?.map((scene, index) => (
               <SceneListItem
-                key={scene.entityInfo!.sceneId}
+                // key={scene.entityInfo!.sceneId}
+                key={index}
                 scene={scene}
                 isSelected={selectedSceneId === scene.createTime! + scene.name}
                 onClick={() => setSelectedSceneId(scene.createTime! + scene.name)}

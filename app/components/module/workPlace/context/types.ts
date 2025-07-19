@@ -2,10 +2,12 @@ export type ModuleContextType = {
   moduleTabItems: ModuleTabItem[];
   currentSelectedTabId: string | null;
   stageId: number | null;
+  activeList: ModuleListEnum;
   setStageId: (id: number) => void;
   setCurrentSelectedTabId: (itemId: string) => void;
   pushModuleTabItem: (item: ModuleTabItem) => void;
   removeModuleTabItem: (id: string) => void;
+  setActiveList: (list: ModuleListEnum) => void;
 };
 
 /**
@@ -30,4 +32,11 @@ export enum ModuleItemEnum {
   SCENE = "scene",
   STAGE = "stage",
   COMMIT = "commit",
+}
+
+export enum ModuleListEnum {
+  CONTENT = "content",
+  STAGE = "stage",
+  HISTORY = "history",
+  BRANCH = "branch",
 }
