@@ -121,25 +121,23 @@ export function UserDetail({ userId }: UserDetailProps) {
                       <div className="skeleton w-24 h-24"></div>
                     )
                   : (
-                      <div className="pointer-events-none">
-                        <Link
-                          to={`/profile/${userId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <img
-                            src={user?.avatar || undefined}
-                            alt={user?.username}
-                            className="mask mask-circle"
-                          />
-                        </Link>
-                      </div>
+                      <Link
+                        to={`/profile/${userId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <img
+                          src={user?.avatar || undefined}
+                          alt={user?.username}
+                          className="mask mask-circle"
+                        />
+                      </Link>
                     )}
               </div>
             </div>
             {/* 关注按钮（头像右侧） */}
             {user?.userId !== loginUserId && (
-              <div className="absolute block left-38 top-1">
+              <div className="absolute block left-38">
                 <FollowButton userId={user?.userId || 0} />
               </div>
             )}
@@ -148,19 +146,21 @@ export function UserDetail({ userId }: UserDetailProps) {
           {/* 主要信息 */}
           <div className="flex justify-between w-full pl-2">
             {/* 名字和描述 */}
-            <div className="pt-14">
+            <div className="pt-12">
               <div className="flex items-center">
                 {userQuery.isLoading
                   ? (
                       <div className="skeleton h-8 w-48 pr-4"></div>
                     )
                   : (
-                      <h2 className="text-2xl font-bold h-8 pr-4 transition-all duration-300
-               max-w-2/5 sm:max-w-2/5 md:max-w-3/5
-               overflow-hidden text-ellipsis whitespace-nowrap"
+                      <Link
+                        to={`/profile/${userId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-2xl font-bold mr-2 hover:underline cursor-pointer"
                       >
                         {user?.username || "未知用户"}
-                      </h2>
+                      </Link>
                     )}
                 <UserStatusDot status={user?.activeStatus}></UserStatusDot>
               </div>
