@@ -14,7 +14,7 @@ type UsePrivateMessageSenderProps = {
 
 export function usePrivateMessageSender({ webSocketUtils, userId, currentContactUserId }: UsePrivateMessageSenderProps) {
   const WEBSOCKET_TYPE = 5; // WebSocket 私聊消息类型
-  const uploadUtils = new UploadUtils(2);
+  const uploadUtils = new UploadUtils();
 
   // 状态管理
   const [messageInput, setMessageInput] = useState("");
