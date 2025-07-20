@@ -55,7 +55,7 @@ interface ImgUploaderWithCopperProps {
  */
 export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName, mutate }: ImgUploaderWithCopperProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const uploadUtils = new UploadUtils(2);
+  const uploadUtils = new UploadUtils();
   // 控制弹窗的显示与隐藏
   const [isOpen, setIsOpen] = useSearchParamsState("imgUploaderWithCopperPop", false);
 

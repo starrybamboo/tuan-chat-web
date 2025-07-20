@@ -109,7 +109,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   };
 
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
-  const uploadUtils = new UploadUtils(2);
+  const uploadUtils = new UploadUtils();
 
   // 聊天框中包含的图片
   const [imgFiles, updateImgFiles] = useImmer<File[]>([]);

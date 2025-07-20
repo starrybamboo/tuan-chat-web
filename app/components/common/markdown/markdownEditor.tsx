@@ -42,7 +42,7 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [content, setContent] = useState(defaultContent ?? "");
-  const uploadUtils = new UploadUtils(2);
+  const uploadUtils = new UploadUtils();
   // 性能优化，防抖
   const debouncedContent = useDebounce(content, { wait: 200 });
   useEffect(() => {

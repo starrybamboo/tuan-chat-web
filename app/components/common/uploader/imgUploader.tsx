@@ -13,11 +13,14 @@ interface ImgUploaderProps {
 
 /**
  * 图片上传组件
- * @param setImg 当图片上传成功时调用的函数
+ * @param setImg 当图片文件加载成功时调用的函数
  * @param children
  * @constructor
  */
-export function ImgUploader({ setImg, children }: ImgUploaderProps) {
+export function ImgUploader({
+  setImg,
+  children,
+}: ImgUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
