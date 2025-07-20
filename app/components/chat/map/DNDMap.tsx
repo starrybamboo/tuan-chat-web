@@ -1,10 +1,10 @@
 import type { UserRole } from "../../../../api";
 import { RoomContext } from "@/components/chat/roomContext";
+import { confirmToast } from "@/components/common/comfirmToast";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { use, useLayoutEffect, useRef, useState } from "react"; // 引入 useLayoutEffect 用于DOM计算
-import toast from "react-hot-toast";
 import { useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery } from "../../../../api/queryHooks";
 
@@ -197,31 +197,10 @@ export default function DNDMap() {
   };
 
   const handleResetClick = () => {
-    toast(t => (
-      <div className="alert shadow-lg">
-        <div>
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-info shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          <div>
-            <h3 className="font-bold">确认重置</h3>
-            <div className="text-xs">此操作会清除地图和所有角色位置。</div>
-          </div>
-        </div>
-        <div className="flex-none gap-2">
-          <button className="btn btn-sm btn-ghost" onClick={() => toast.dismiss(t.id)} type="button">取消</button>
-          <button
-            className="btn btn-sm btn-error"
-            type="button"
-            onClick={() => {
-              setStampPositions({});
-              setMapImg("");
-              toast.dismiss(t.id);
-            }}
-          >
-            确认
-          </button>
-        </div>
-      </div>
-    ), { duration: Infinity, position: "top-center" });
+    confirmToast(() => {
+      setStampPositions({});
+      setMapImg("");
+    }, "此操作会清除地图和所有角色位置。", "确认重置");
   };
 
   // 计算图片实际渲染位置和尺寸的函数 ---
