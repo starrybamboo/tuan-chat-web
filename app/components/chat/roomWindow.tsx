@@ -15,6 +15,7 @@ import type { ChatStatusEvent } from "../../../api/wsModels";
 import ChatFrame from "@/components/chat/chatFrame";
 import CommandPanel from "@/components/chat/commandPanel";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
+import DNDMap from "@/components/chat/map/DNDMap";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import InitiativeList from "@/components/chat/sideDrawer/initiativeList";
@@ -44,6 +45,7 @@ import {
   GirlIcon,
   HexagonDice,
   MemberIcon,
+  PointOnMapPerspectiveLinear,
   SendIcon,
   Setting,
   SwordSwing,
@@ -138,7 +140,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [commandBrowseWindow, setCommandBrowseWindow] = useSearchParamsState<commandModeType>("commandPop", "none");
   const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
 
-  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "initiative">("rightSideDrawer", "none");
+  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "initiative" | "map">("rightSideDrawer", "none");
 
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useLocalStorage("useChatBubbleStyle", true);
 
@@ -751,6 +753,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           <div className="flex gap-2">
             <div
               className="tooltip tooltip-bottom hover:text-info"
+              data-tip="地图"
+              onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
+            >
+              <PointOnMapPerspectiveLinear className="size-7"></PointOnMapPerspectiveLinear>
+            </div>
+            <div
+              className="tooltip tooltip-bottom hover:text-info"
               data-tip="展示先攻表"
               onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}
             >
@@ -1005,6 +1014,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           <OpenAbleDrawer isOpen={sideDrawerState === "initiative"} className="max-h-full overflow-auto">
             <div className="w-px bg-base-300"></div>
             <InitiativeList></InitiativeList>
+          </OpenAbleDrawer>
+          <OpenAbleDrawer isOpen={sideDrawerState === "map"} className="max-h-full overflow-auto">
+            <div className="w-px bg-base-300"></div>
+            <DNDMap></DNDMap>
           </OpenAbleDrawer>
         </div>
       </div>
