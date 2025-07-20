@@ -41,7 +41,7 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
 
     if (message.messageType === 2) {
       // 图片消息减少内边距
-      return `${baseClass} px-2 pt-2`;
+      return `${baseClass}`;
     }
     else {
       // 文本消息正常内边距

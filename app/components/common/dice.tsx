@@ -162,7 +162,7 @@ function calculate(
     case "/":
       if (b === 0)
         throw new Error("除零错误");
-      return [Math.floor(a / b), ""];
+      return [Math.round(a / b), ""];
     case "d":
     { if (b <= 0)
       throw new Error("骰子面数必须为正数");
@@ -270,7 +270,7 @@ export function evaluate(
     }
 
     // 结果验证
-    const finalResult = opnd.pop();
+    const finalResult = opnd.pop() || 0; // pop 0 会变为 null
     if (
       opnd.size() !== 0
       || oprt.size() !== 1
