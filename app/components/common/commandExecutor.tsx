@@ -296,10 +296,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     }
 
     if (value < 0) {
-      throw new Error(`${name} 属性值不能为负`);
-    }
-    if (value > 100) {
-      value = 100;
+      value = 0;
     }
 
     const roll: number[] = rollDiceWithBP(bp);
@@ -633,6 +630,11 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     return Math.floor(Math.random() * sides) + 1;
   }
 
+  /**
+   * 带奖励骰和惩罚骰的检定掷骰
+   * @param bp 奖励骰数，负数表示惩罚骰数
+   * @returns 骰子结果数组 [最终结果, 奖励/惩罚骰1, 奖励/惩罚骰2,...]
+   */
   function rollDiceWithBP(bp: number = 0): number[] {
     let bonus: boolean = false;
     const result: number[] = Array.from({ length: bp + 2 });
@@ -654,6 +656,9 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     return result;
   }
 
+  /**
+   * 将d100的个位数和十位数连接起来，其中‘00’会被替换为‘100’
+   */
   function connect2D10(tens: number, ones: number) {
     let result = tens * 10 + ones;
     if (result === 0) {
