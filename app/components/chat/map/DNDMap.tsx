@@ -13,24 +13,41 @@ import { useGetRoleAvatarQuery } from "../../../../api/queryHooks";
  * @param role 角色
  * @param onDragStart 拖拽开始事件
  * @param scale 缩放比例，由于我们的这个图是可以缩放的，如果不考虑这个系数，拖拽的时候的拖拽图像会出现问题
+ * @param className
  * @constructor
  */
-function RoleStamp({ role, onDragStart, scale = 1 }:
+function RoleStamp({ role, onDragStart, scale = 1, className }:
 {
   role: UserRole;
   onDragStart: (e: React.DragEvent<HTMLDivElement>, role: UserRole) => void;
   scale?: number;
+  className?: string;
 }) {
   const roleAvatar = useGetRoleAvatarQuery(role.avatarId ?? -1).data?.data;
   const containerRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLSpanElement>(null);
 
-  // 使用 useLayoutEffect 将字体大小设置为容器高度的18%
+  // 使用 useLayoutEffect 将字体大小设置为容器高度的一定比例
   useLayoutEffect(() => {
-    if (containerRef.current && nameRef.current) {
-      const height = containerRef.current.clientHeight;
-      nameRef.current.style.fontSize = `${height * 0.18}px`;
-    }
+    const container = containerRef.current;
+    const name = nameRef.current;
+
+    if (!container || !name)
+      return;
+    // The observer will fire when the container's size is first calculated or when it changes.
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const height = entry.contentRect.height;
+        if (height > 0) {
+          name.style.fontSize = `${height * 0.22}px`;
+        }
+      }
+    });
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
   }, []);
 
   const handleInternalDragStart = (e: React.DragEvent<HTMLDivElement>) => {
@@ -58,12 +75,12 @@ function RoleStamp({ role, onDragStart, scale = 1 }:
     <div
       ref={containerRef}
       draggable
-      className="relative w-[80%] h-[80%] cursor-grab transition-opacity" // 添加 transition-opacity
+      className={`relative w-[80%] h-[80%] cursor-grab transition-opacity${className}`}// 添加 transition-opacity
       onDragStart={handleInternalDragStart}
       onDragEnd={handleInternalDragEnd}
     >
-      <div className="absolute bottom-full w-full flex justify-center items-center">
-        <span ref={nameRef} className="text-base-100 max-w-full truncate rounded bg-opacity-70 text-white select-none pointer-events-none">
+      <div className="absolute bottom-full w-full flex justify-center items-center bg-base-100/50 rounded">
+        <span ref={nameRef} className="max-w-full truncate rounded bg-opacity-70 select-none pointer-events-none">
           {role.roleName}
         </span>
       </div>
@@ -87,7 +104,7 @@ export default function DNDMap() {
   const [mapImg, setMapImg] = useLocalStorage("dndMapImg", "");
   const [gridSize, setGridSize] = useLocalStorage("dndMapGridSize", { rows: 10, cols: 10 });
   const [stampPositions, setStampPositions] = useLocalStorage<Record<string, { row: number; col: number }>>("dndMapStampPositions", {});
-  const [redLines, setRedLines] = useLocalStorage("redLine", false);
+  const [redLines, setRedLines] = useLocalStorage("dndRedLine", false);
 
   // --- 地图变换状态 ---
   const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
@@ -368,7 +385,7 @@ export default function DNDMap() {
         <div className="divider"></div>
         <h3 className="font-semibold pb-2">角色 (拖动到地图)</h3>
         <div className="flex-grow overflow-y-auto">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2 pt-4">
             {roomRoles.filter(role => !stampPositions[role.roleId])
               .map(role => (
                 <div className="aspect-square flex items-center justify-center" key={role.roleId}>
