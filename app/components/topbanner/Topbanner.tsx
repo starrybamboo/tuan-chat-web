@@ -18,10 +18,6 @@ export default function Topbar() {
   const isLoggedIn = authStatus?.isLoggedIn || false;
   const userId = (isLoggedIn && authStatus?.token) ? Number(authStatus.token) : 0;
 
-  if (isLoading) {
-    return <div className="w-full h-16 flex items-center justify-center" />;
-  }
-
   return (
     <div className="w-full">
       <div className="navbar bg-base-300">
@@ -65,54 +61,56 @@ export default function Topbar() {
         </div>
 
         {/* 右侧用户区域 */}
-        <div className="navbar-end gap-2">
-          <a onClick={() => navigate("/privatechat")} className="cursor-pointer active:animate-bounce">
-            <svg className="fill-current size-8" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-              <path d="M853.333333 896H170.666667c-72.533333 0-128-55.466667-128-128V256c0-72.533333 55.466667-128 128-128h682.666666c72.533333 0 128 55.466667 128 128v512c0 72.533333-55.466667 128-128 128zM170.666667 213.333333c-25.6 0-42.666667 17.066667-42.666667 42.666667v512c0 25.6 17.066667 42.666667 42.666667 42.666667h682.666666c25.6 0 42.666667-17.066667 42.666667-42.666667V256c0-25.6-17.066667-42.666667-42.666667-42.666667H170.666667z"></path>
-              <path d="M512 597.333333c-8.533333 0-17.066667-4.266667-25.6-8.533333l-426.666667-298.666667c-17.066667-12.8-21.333333-38.4-8.533333-59.733333 12.8-17.066667 38.4-21.333333 59.733333-8.533333l401.066667 281.6 401.066667-281.6c21.333333-12.8 46.933333-8.533333 59.733333 8.533333 12.8 21.333333 8.533333 46.933333-8.533333 59.733333l-426.666667 298.666667c-8.533333 4.266667-17.066667 8.533333-25.6 8.533333z"></path>
-            </svg>
-          </a>
-          <ThemeSwitch />
-          {isLoggedIn
-            ? (
-                <div className="dropdown dropdown-end">
-                  <div tabIndex={0} role="button" className="btn btn-ghost flex items-center gap-2">
-                    <UserAvatarComponent
-                      userId={userId || 1}
-                      width={8}
-                      isRounded={true}
-                      withName={true}
-                      stopPopWindow={true}
-                    />
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="m6 9 6 6 6-6" />
-                    </svg>
+        {!isLoading && (
+          <div className="navbar-end gap-2">
+            <a onClick={() => navigate("/privatechat")} className="cursor-pointer active:animate-bounce">
+              <svg className="fill-current size-8" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+                <path d="M853.333333 896H170.666667c-72.533333 0-128-55.466667-128-128V256c0-72.533333 55.466667-128 128-128h682.666666c72.533333 0 128 55.466667 128 128v512c0 72.533333-55.466667 128-128 128zM170.666667 213.333333c-25.6 0-42.666667 17.066667-42.666667 42.666667v512c0 25.6 17.066667 42.666667 42.666667 42.666667h682.666666c25.6 0 42.666667-17.066667 42.666667-42.666667V256c0-25.6-17.066667-42.666667-42.666667-42.666667H170.666667z"></path>
+                <path d="M512 597.333333c-8.533333 0-17.066667-4.266667-25.6-8.533333l-426.666667-298.666667c-17.066667-12.8-21.333333-38.4-8.533333-59.733333 12.8-17.066667 38.4-21.333333 59.733333-8.533333l401.066667 281.6 401.066667-281.6c21.333333-12.8 46.933333-8.533333 59.733333 8.533333 12.8 21.333333 8.533333 46.933333-8.533333 59.733333l-426.666667 298.666667c-8.533333 4.266667-17.066667 8.533333-25.6 8.533333z"></path>
+              </svg>
+            </a>
+            <ThemeSwitch />
+            {isLoggedIn
+              ? (
+                  <div className="dropdown dropdown-end">
+                    <div tabIndex={0} role="button" className="btn btn-ghost flex items-center gap-2">
+                      <UserAvatarComponent
+                        userId={userId || 1}
+                        width={8}
+                        isRounded={true}
+                        withName={true}
+                        stopPopWindow={true}
+                      />
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </div>
+                    <ul tabIndex={0} className="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-52">
+                      <li>
+                        <a onClick={() => navigate(`/profile/${userId}`)}>个人中心</a>
+                      </li>
+                      <li>
+                        <a onClick={() => navigate("/settings")}>设置</a>
+                      </li>
+                      <li>
+                        <a
+                          onClick={() => {
+                            localStorage.removeItem("token");
+                            queryClient.invalidateQueries({ queryKey: ["authStatus"] });
+                            window.location.reload();
+                          }}
+                        >
+                          退出登录
+                        </a>
+                      </li>
+                    </ul>
                   </div>
-                  <ul tabIndex={0} className="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-52">
-                    <li>
-                      <a onClick={() => navigate(`/profile/${userId}`)}>个人中心</a>
-                    </li>
-                    <li>
-                      <a onClick={() => navigate("/settings")}>设置</a>
-                    </li>
-                    <li>
-                      <a
-                        onClick={() => {
-                          localStorage.removeItem("token");
-                          queryClient.invalidateQueries({ queryKey: ["authStatus"] });
-                          window.location.reload();
-                        }}
-                      >
-                        退出登录
-                      </a>
-                    </li>
-                  </ul>
-                </div>
-              )
-            : (
-                <LoginButton />
-              )}
-        </div>
+                )
+              : (
+                  <LoginButton />
+                )}
+          </div>
+        )}
       </div>
       <UpdatesPopWindow></UpdatesPopWindow>
     </div>
