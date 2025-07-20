@@ -7,21 +7,24 @@ import React from "react";
  * @param isOpen 是否开启这个抽屉
  * @param children 抽屉元素
  * @param className
+ * @param overWrite 设置为true时，抽屉在非移动端也会直接在父元素上方显示，而不是在两边
  * @constructor
  */
 export function OpenAbleDrawer({
   isOpen,
   children,
   className,
+  overWrite,
 }: {
   isOpen: boolean;
   children: React.ReactNode;
   className?: string;
+  overWrite?: boolean;
 }) {
   if (!isOpen) {
     return null;
   }
-  if (getScreenSize() === "sm") {
+  if (getScreenSize() === "sm" || overWrite) {
     return (
       <div className={`w-full absolute ${className}`}>
         {children}

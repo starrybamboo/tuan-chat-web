@@ -1015,7 +1015,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             <div className="w-px bg-base-300"></div>
             <InitiativeList></InitiativeList>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "map"} className="max-h-full overflow-auto">
+          <OpenAbleDrawer isOpen={sideDrawerState === "map"} className="h-full overflow-auto" overWrite>
             <div className="w-px bg-base-300"></div>
             <DNDMap></DNDMap>
           </OpenAbleDrawer>
