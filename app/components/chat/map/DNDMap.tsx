@@ -104,7 +104,7 @@ export default function DNDMap() {
   const [mapImg, setMapImg] = useLocalStorage("dndMapImg", "");
   const [gridSize, setGridSize] = useLocalStorage("dndMapGridSize", { rows: 10, cols: 10 });
   const [stampPositions, setStampPositions] = useLocalStorage<Record<string, { row: number; col: number }>>("dndMapStampPositions", {});
-  const [redLines, setRedLines] = useLocalStorage("dndRedLine", false);
+  const [gridColor, setGridColor] = useLocalStorage("dndGridColor", "#808080");
 
   // --- 地图变换状态 ---
   const [transform, setTransform] = useState({ scale: 1, x: 0, y: 0 });
@@ -344,7 +344,8 @@ export default function DNDMap() {
                 return (
                   <div
                     key={cellKey}
-                    className={`border flex items-center justify-center ${redLines ? "border-red-500/50" : "border-gray-500/30"} `}
+                    className="border flex items-center justify-center border-dashed"
+                    style={{ border: `1px dashed ${gridColor}80` }}
                     onDragOver={handleDragOver}
                     onDrop={e => handleDropOnGrid(e, row, col)}
                   >
@@ -369,7 +370,7 @@ export default function DNDMap() {
           <input
             type="number"
             value={gridSize.rows}
-            onChange={e => setGridSize(prev => ({ ...prev, rows: Math.max(1, Number.parseInt(e.target.value) || 1) }))}
+            onChange={e => setGridSize(prev => ({ ...prev, rows: Number.parseInt(e.target.value) }))}
             className="input input-bordered w-full"
           />
         </div>
@@ -378,7 +379,7 @@ export default function DNDMap() {
           <input
             type="number"
             value={gridSize.cols}
-            onChange={e => setGridSize(prev => ({ ...prev, cols: Math.max(1, Number.parseInt(e.target.value) || 1) }))}
+            onChange={e => setGridSize(prev => ({ ...prev, cols: Number.parseInt(e.target.value) }))}
             className="input input-bordered w-full"
           />
         </div>
@@ -394,9 +395,23 @@ export default function DNDMap() {
               ))}
           </div>
         </div>
-        <div>
-          <input type="checkbox" defaultChecked className="toggle" onClick={() => setRedLines(!redLines)} />
-          <label className="ml-2">设置网格线为红色</label>
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">网格线颜色</span>
+          </label>
+          <div className="relative w-full h-10">
+            <div
+              className="w-full h-full rounded-lg border border-base-content/20"
+              style={{ backgroundColor: gridColor }}
+            >
+            </div>
+            <input
+              type="color"
+              value={gridColor}
+              onChange={e => setGridColor(e.target.value)}
+              className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+            />
+          </div>
         </div>
         <div className="divider"></div>
         <button
