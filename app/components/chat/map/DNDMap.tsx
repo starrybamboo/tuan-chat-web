@@ -9,9 +9,18 @@ import { useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery } from "../../../../api/queryHooks";
 
 /**
- * 可拖动的角色头像组件 (已修改)
+ * 可拖动的头像组件
+ * @param role 角色
+ * @param onDragStart 拖拽开始事件
+ * @param scale 缩放比例，由于我们的这个图是可以缩放的，如果不考虑这个系数，拖拽的时候的拖拽图像会出现问题
+ * @constructor
  */
-function RoleStamp({ role, onDragStart }: { role: UserRole; onDragStart: (e: React.DragEvent<HTMLDivElement>, role: UserRole) => void }) {
+function RoleStamp({ role, onDragStart, scale = 1 }:
+{
+  role: UserRole;
+  onDragStart: (e: React.DragEvent<HTMLDivElement>, role: UserRole) => void;
+  scale?: number;
+}) {
   const roleAvatar = useGetRoleAvatarQuery(role.avatarId ?? -1).data?.data;
   const containerRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLSpanElement>(null);
@@ -26,6 +35,16 @@ function RoleStamp({ role, onDragStart }: { role: UserRole; onDragStart: (e: Rea
 
   const handleInternalDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     e.stopPropagation();
+    const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
+    const originalElement = e.currentTarget;
+    const width = originalElement.offsetWidth * scale;
+    const height = originalElement.offsetHeight * scale;
+    dragImage.style.position = "absolute";
+    dragImage.style.top = "-1000px"; // 移出屏幕外
+    dragImage.style.width = `${width}px`;
+    dragImage.style.height = `${height}px`;
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, width / 2, height / 2);
     e.currentTarget.classList.add("opacity-50");
     onDragStart(e, role);
   };
@@ -312,7 +331,7 @@ export default function DNDMap() {
                     onDragOver={handleDragOver}
                     onDrop={e => handleDropOnGrid(e, row, col)}
                   >
-                    {roleInCell && <RoleStamp role={roleInCell} onDragStart={handleDragStart} />}
+                    {roleInCell && <RoleStamp role={roleInCell} onDragStart={handleDragStart} scale={transform.scale} />}
                   </div>
                 );
               }),
