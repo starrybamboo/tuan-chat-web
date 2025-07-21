@@ -7,13 +7,9 @@ import type { ItemsGetRequest } from "../models/ItemsGetRequest";
 import type { ModulePageRequest } from "../models/ModulePageRequest";
 import type { ModuleCreateRequest } from "../models/ModuleCreateRequest";
 import type { ModuleUpdateRequest } from "../models/ModuleUpdateRequest";
-import type { ApiResultModuleInfo } from "../models/ApiResultModuleInfo";
-import type { EntityAddRequest } from "api/models/EntityAddRequest";
-import type { EntityRenameRequest } from "api/models/EntityRenameRequest";
-import type { RoleImportRequest } from "api/models/RoleImportRequest";
-import type { CommitRequest } from "api/models/CommitRequest";
-import type { StageRollbackRequest } from "api/models/StageRollbackRequest";
-import type { BranchSwitchRequest } from "api/models/BranchSwitchRequest";
+import type { EntityAddRequest } from "../models/EntityAddRequest";
+import type { CommitRequest } from "../models/CommitRequest";
+import type { StageRollbackRequest } from "../models/StageRollbackRequest";
 
 //========================item (物品相关) ==================================
 /**
@@ -215,15 +211,6 @@ export function useCommitMutation() {
     });
 }
 
-// 查询最新提交的修改
-export function useQueryCommitQuery(stageId: number) {
-    return useQuery({
-        queryKey: ['queryCommit', stageId],
-        queryFn: () => tuanchat.stageController.queryCommit(stageId),
-        staleTime: 300000 // 5分钟缓存
-    });
-}
-
 // 查询所有的实体
 export function useQueryEntitiesQuery(stageId: number) {
     return useQuery({
@@ -233,52 +220,84 @@ export function useQueryEntitiesQuery(stageId: number) {
     });
 }
 
-// 导入角色实体
-export function useImportRoleMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: RoleImportRequest) => tuanchat.stageController.importRole(req),
-        mutationKey: ['importRole'],
-        onSuccess: (data, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
-        }
-    });
-}
-
-// 修改实体
-export function useRenameMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: EntityRenameRequest) => tuanchat.stageController.rename(req),
-        mutationKey: ['rename'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['staging'] });
-        }
-    });
-}
-
 // 添加也可以删除实体
+/**
+ * @deprecated
+ */
 export function useAddMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: EntityAddRequest) => tuanchat.stageController.add(req),
         mutationKey: ['addEntity'],
-        onSuccess: (data, variables) => {
+        onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
         }
     });
 }
 
-export function useBranchListQuery(stageId: number) {
-    return useQuery({
-        queryKey: ['branchList'],
-        queryFn: () => tuanchat.stageController.branches(stageId),
-        staleTime: 300000 // 5分钟缓存
+// 根据entityType添加实体
+export function useAddEntityMutation(entityType: 'item' | 'scene' | 'role' | 'scene') {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: Omit<EntityAddRequest, 'entityType'>) => tuanchat.stageController.add({...req, entityType}),
+        mutationKey: ['addEntity'],
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
+        }
     });
 }
 
-export function useSwitchBranchMutation() {
+// 重命名实体(调用更新接口)
+export function useRenameMutation(entityType: 'item' | 'scene' | 'role' | 'scene') {
+    const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (data: BranchSwitchRequest) => tuanchat.stageController.switchBranch(data),
+        mutationFn: (req: { id: number, name: string }) => tuanchat.stageController.update({
+            id:req.id,
+            name:req.name,
+            entityType
+        }),
+        mutationKey: ['renameEntity'],
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.id] });
+        }
+    });
+}
+
+// 删除实体
+export function useDeleteEntityMuation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({id, stageId}: {id: number, stageId: number}) => tuanchat.stageController.delete({id}),
+        mutationKey: ['deleteEntity'],
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
+        }
+    });
+}
+
+// 单独的增加角色的hook, 会先获得avatar之后再添加
+export function useAddRoleMutation() {
+    const queryClient = useQueryClient();
+    const addEntityMutation = useAddEntityMutation('role');
+
+    return useMutation({
+        mutationFn: async (req: Omit<EntityAddRequest, 'entityType'>) => {
+            // 先获取头像数据
+            const avatarResult = await tuanchat.avatarController.getRoleAvatar(req.entityInfo!.avatarId);
+            const avatar = avatarResult.data?.avatarUrl;
+            
+            // 然后调用添加实体的mutation
+            return addEntityMutation.mutateAsync({
+                ...req, 
+                entityInfo: {
+                    ...req.entityInfo, 
+                    avatar
+                }
+            });
+        },
+        mutationKey: ['addRole'],
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
+        }
     });
 }

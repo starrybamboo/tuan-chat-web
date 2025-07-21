@@ -1,10 +1,10 @@
-import type { StageEntityResponse } from "api";
+import type { RoleResponse, StageEntityResponse } from "api";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
-import { useAddMutation, useImportRoleMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
+import { useAddRoleMutation, useDeleteEntityMuation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useCreateRoleMutation, useGetUserRolesQuery } from "api/queryHooks";
 import { useState } from "react";
 import Section from "./section";
@@ -98,11 +98,11 @@ export default function RoleList({ stageId }: { stageId: number }) {
   const userId = useGlobalContext().userId ?? -1;
   const handleClick = (role: StageEntityResponse) => {
     pushModuleTabItem({
-      id: role.createTime! + role.name!,
+      id: role.id!,
       label: role.name!,
       type: ModuleItemEnum.ROLE,
     });
-    setCurrentSelectedTabId(role.createTime! + role.name!);
+    setCurrentSelectedTabId(role.id!);
   };
 
   // 模组相关
@@ -121,14 +121,17 @@ export default function RoleList({ stageId }: { stageId: number }) {
   };
 
   // 添加角色弹窗
-  const [selectedRoleList, setSelectedRoleList] = useState<number[]>([]);
+  const [selectedRoleList, setSelectedRoleList] = useState<RoleResponse[]>([]);
 
-  const handleAddRole = (roleId: number) => {
-    if (selectedRoleList.includes(roleId)) {
-      setSelectedRoleList(selectedRoleList.filter(id => id !== roleId));
-    }
-    else {
-      setSelectedRoleList([...selectedRoleList, roleId]);
+  const handleAddRole = (role: RoleResponse) => {
+    const { roleId } = role;
+    if (roleId) {
+      if (selectedRoleList.some(r => r.roleId === roleId)) {
+        setSelectedRoleList(selectedRoleList.filter(r => r.roleId !== roleId));
+      }
+      else {
+        setSelectedRoleList([...selectedRoleList, role]);
+      }
     }
   };
 
@@ -136,19 +139,27 @@ export default function RoleList({ stageId }: { stageId: number }) {
   const { data: myRoleData } = useGetUserRolesQuery(userId);
   const myRoleList = myRoleData?.data || [];
 
-  // 添加模组角色
-  const { mutate: addRole } = useImportRoleMutation();
   // 删除模组角色
-  const { mutate: deleteRole } = useAddMutation();
+  const { mutate: deleteRole } = useDeleteEntityMuation();
+  const handleDeleteRole = (roleId: number) => {
+    deleteRole({
+      stageId,
+      id: roleId,
+    });
+  };
+
+  // 将模组角色加入到模组中
+  const { mutate: addRole } = useAddRoleMutation();
   const handleAddRoleSubmit = () => {
-    selectedRoleList.map((id) => {
+    Promise.all(selectedRoleList.map(role =>
       addRole({
         stageId,
-        roleId: id,
-      });
-      return id;
+        name: role.roleName!,
+        entityInfo: role,
+      }),
+    )).then(() => {
+      setSelectedRoleList([]);
     });
-    setSelectedRoleList([]);
   };
 
   // 创建全新的模组角色
@@ -161,10 +172,10 @@ export default function RoleList({ stageId }: { stageId: number }) {
       onSuccess: (data) => {
         addRole({
           stageId,
-          roleId: data as number,
-        }, {
-          onSuccess: (data) => {
-            handleClick(data.data!);
+          name: `新角色${data}`,
+          entityInfo: {
+            roleName: "新角色",
+            description: "无",
           },
         });
       },
@@ -186,16 +197,10 @@ export default function RoleList({ stageId }: { stageId: number }) {
                 role={i!}
                 name={i!.name || "未命名"}
                 onDelete={() => {
-                  removeModuleTabItem(i.createTime! + i.name);
-                  deleteRole({
-                    operationType: 1,
-                    entityType: "role",
-                    entityInfo: i.entityInfo,
-                    stageId,
-                    name: i.name as string,
-                  });
+                  removeModuleTabItem(i.id!);
+                  handleDeleteRole(i.id!);
                 }}
-                isSelected={currentSelectedTabId === (i!.createTime! + i!.name)}
+                isSelected={currentSelectedTabId === (i.id)}
                 onClick={() => handleClick(i!)}
               />
             )))}
@@ -210,8 +215,8 @@ export default function RoleList({ stageId }: { stageId: number }) {
                 avatarId={i!.avatarId || ""}
                 name={i!.roleName || "角色名称未设置"}
                 description={i!.description || ""}
-                isSelected={selectedRoleList.includes(i!.roleId || 0)}
-                onClick={() => handleAddRole(i!.roleId || -1)}
+                isSelected={selectedRoleList.some(r => r.roleId === i!.roleId)}
+                onClick={() => handleAddRole(i)}
               />
             ))}
           </div>

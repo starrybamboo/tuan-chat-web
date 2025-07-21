@@ -28,17 +28,17 @@ export default function ItemEdit({ item }: ItemEditProps) {
 
   // 接入接口
   const { mutate: updateItem } = useAddMutation();
-  const { mutate: renameItem } = useRenameMutation();
+  const { mutate: renameItem } = useRenameMutation("item");
 
   const handleSave = () => {
     setIsTransitioning(true);
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
-      updateItem({ stageId: stageId as number, entityType: "item", entityInfo: localItem, operationType: 0, name: item.name! });
-      if (name !== item.name) {
-        removeModuleTabItem(item.createTime! + item.name);
-        renameItem({ stageId: stageId as number, entityType: "item", oldName: item.name!, newName: name! });
+      updateItem({ stageId: stageId as number, entityType: "item", entityInfo: localItem, name: item.name! });
+      if (name !== item.name && name) {
+        removeModuleTabItem(item.id!);
+        renameItem({ id: item.id!, name });
       }
     }, 300);
   };
@@ -63,7 +63,6 @@ export default function ItemEdit({ item }: ItemEditProps) {
       stageId: stageId as number,
       entityType: "item",
       entityInfo: updatedItem,
-      operationType: 0,
       name: item.name!,
     });
   };

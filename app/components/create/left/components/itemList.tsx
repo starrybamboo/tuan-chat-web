@@ -71,11 +71,11 @@ export default function ItemList({ stageId }: { stageId: number }) {
 
   const handleClick = (item: StageEntityResponse) => {
     pushModuleTabItem({
-      id: item.createTime! + item.name!,
+      id: item.id!.toString(),
       label: item.name!,
       type: ModuleItemEnum.ITEM,
     });
-    setCurrentSelectedTabId(item.createTime! + item.name!);
+    setCurrentSelectedTabId(item.id!.toString());
   };
 
   const { data } = useQueryEntitiesQuery(stageId);
@@ -99,7 +99,6 @@ export default function ItemList({ stageId }: { stageId: number }) {
       stageId,
       name: "新物品",
       entityType: "item",
-      operationType: 0,
       entityInfo: {
         tip: "悄悄地告诉kp",
         description: "新物品です", // 描述

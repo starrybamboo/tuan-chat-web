@@ -29,7 +29,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
 
   // 接入接口
   const { mutate: updateRole } = useAddMutation();
-  const { mutate: renameRole } = useRenameMutation();
+  const { mutate: renameRole } = useRenameMutation("role");
 
   // 表演属性
   // act 字段相关本地状态
@@ -63,10 +63,10 @@ export default function NPCEdit({ role }: NPCEditProps) {
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
-      updateRole({ stageId: stageId as number, entityType: "role", entityInfo: localRole, operationType: 0, name: role.name! });
-      if (name !== role.name) {
-        removeModuleTabItem(role.createTime! + role.name);
-        renameRole({ stageId: stageId as number, entityType: "role", oldName: role.name!, newName: name! });
+      updateRole({ stageId: stageId as number, entityType: "role", entityInfo: localRole, name: role.name! });
+      if (name !== role.name && name) {
+        removeModuleTabItem(role.id!);
+        renameRole({ id: role.id!, name });
       }
     }, 300);
   };
@@ -92,7 +92,6 @@ export default function NPCEdit({ role }: NPCEditProps) {
       stageId: stageId as number,
       entityType: "role",
       entityInfo: updatedRole, // 使用新创建的updatedRole而不是localRole
-      operationType: 0,
       name: role.name!,
     });
   };
