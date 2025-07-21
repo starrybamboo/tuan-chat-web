@@ -1,4 +1,5 @@
 import type { UserRole } from "../../../../api";
+import { useRoomExtra } from "@/components/chat/hooks";
 import { RoomContext } from "@/components/chat/roomContext";
 import { confirmToast } from "@/components/common/comfirmToast";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
@@ -101,9 +102,9 @@ export default function DNDMap() {
   const uploadUtil = new UploadUtils();
 
   // --- 状态管理 ---
-  const [mapImg, setMapImg] = useLocalStorage("dndMapImg", "");
-  const [gridSize, setGridSize] = useLocalStorage("dndMapGridSize", { rows: 10, cols: 10 });
-  const [stampPositions, setStampPositions] = useLocalStorage<Record<string, { row: number; col: number }>>("dndMapStampPositions", {});
+  const [mapImg, setMapImg] = useRoomExtra(roomId ?? -1, "dndMapImg", "");
+  const [gridSize, setGridSize] = useRoomExtra(roomId ?? -1, "dndMapGridSize", { rows: 10, cols: 10 });
+  const [stampPositions, setStampPositions] = useRoomExtra<Record<string, { row: number; col: number }>>(roomId ?? -1, "dndMapStampPositions", {});
   const [gridColor, setGridColor] = useLocalStorage("dndGridColor", "#808080");
 
   // --- 地图变换状态 ---
@@ -140,7 +141,7 @@ export default function DNDMap() {
     const roleJSON = e.dataTransfer.getData("application/json");
     if (roleJSON) {
       const role: UserRole = JSON.parse(roleJSON);
-      setStampPositions(prev => ({ ...prev, [role.roleId]: { row, col } }));
+      setStampPositions({ ...stampPositions, [role.roleId]: { row, col } });
     }
   };
 
@@ -149,11 +150,8 @@ export default function DNDMap() {
     const roleJSON = e.dataTransfer.getData("application/json");
     if (roleJSON) {
       const role: UserRole = JSON.parse(roleJSON);
-      setStampPositions((prev) => {
-        const newPositions = { ...prev };
-        delete newPositions[role.roleId];
-        return newPositions;
-      });
+      const { [role.roleId]: _, ...rest } = stampPositions;
+      setStampPositions(rest);
     }
   };
 
@@ -182,7 +180,6 @@ export default function DNDMap() {
   };
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    e.preventDefault();
     const container = mapContainerRef.current;
     if (!container)
       return;
@@ -349,7 +346,7 @@ export default function DNDMap() {
           <input
             type="number"
             value={gridSize.rows}
-            onChange={e => setGridSize(prev => ({ ...prev, rows: Number.parseInt(e.target.value) }))}
+            onChange={e => setGridSize({ ...gridSize, rows: Number.parseInt(e.target.value) })}
             className="input input-bordered w-full"
           />
         </div>
@@ -358,7 +355,7 @@ export default function DNDMap() {
           <input
             type="number"
             value={gridSize.cols}
-            onChange={e => setGridSize(prev => ({ ...prev, cols: Number.parseInt(e.target.value) }))}
+            onChange={e => setGridSize({ ...gridSize, cols: Number.parseInt(e.target.value) })}
             className="input input-bordered w-full"
           />
         </div>

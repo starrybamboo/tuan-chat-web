@@ -8,7 +8,7 @@ import { useImmer } from "use-immer";
 import {useGlobalContext} from "@/components/globalContextProvider";
 import {uploadFile} from "@/webGAL/fileOperator";
 import message from "@/components/common/message/message";
-import type {ChatStatusEvent, ChatStatusType, DirectMessageEvent} from "./wsModels";
+import type {ChatStatusEvent, ChatStatusType, DirectMessageEvent, RoomExtraChangeEvent} from "./wsModels";
 
 /**
  * 成员的输入状态（不包含roomId）
@@ -160,8 +160,8 @@ export function useWebSocket() {
         break;
       }
       case 15:{ // 房间extra变动
-        queryClient.invalidateQueries({queryKey: ['getRoomExtra'],});
-        queryClient.invalidateQueries({queryKey: ['getRoomInitiativeList'],});
+        // const event = message.data as RoomExtraChangeEvent;
+        // queryClient.invalidateQueries({queryKey: ['getRoomExtra',event.roomId,event.key]});
         break;
       }
       case 16: { // 房间禁言状态变动

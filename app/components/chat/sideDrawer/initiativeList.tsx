@@ -1,10 +1,7 @@
+import { useRoomExtra } from "@/components/chat/hooks";
 import { RoomContext } from "@/components/chat/roomContext";
 import { EditableField } from "@/components/common/editableField";
 import { use, useState } from "react";
-import {
-  useGetRoomInitiativeListQuery,
-  useRoomInitiativeListMutation,
-} from "../../../../api/hooks/chatQueryHooks";
 
 export interface Initiative {
   name: string;
@@ -17,25 +14,23 @@ export interface Initiative {
 export default function InitiativeList() {
   const roomContext = use(RoomContext);
   const roomId = roomContext.roomId ?? -1;
-  const initiativeListMutation = useRoomInitiativeListMutation(roomId);
-  const getRoomInitiativeListQuery = useGetRoomInitiativeListQuery(roomId);
-  const list = getRoomInitiativeListQuery.data ?? [];
+  const [initiativeList, setInitiativeList] = useRoomExtra<Initiative[]>(roomId, "initiativeList", []);
   const [newItem, setNewItem] = useState({ name: "", value: "" });
 
   // 删除项
   const handleDelete = (index: number) => {
-    initiativeListMutation.mutate(JSON.stringify(list.filter((_, i) => i !== index)));
+    setInitiativeList(initiativeList.filter((_, i) => i !== index));
   };
 
   // 保存编辑
   const handleUpdate = (initiativeList: Initiative[]) => {
-    initiativeListMutation.mutate(JSON.stringify(initiativeList.sort((a, b) => b.value - a.value)));
+    setInitiativeList(initiativeList.sort((a, b) => b.value - a.value));
   };
 
   // 添加新项
   const handleAdd = () => {
     handleUpdate([
-      ...list.filter(i => i.name !== newItem.name),
+      ...initiativeList.filter(i => i.name !== newItem.name),
       { name: newItem.name, value: Number(newItem.value) },
     ]);
   };
@@ -71,7 +66,7 @@ export default function InitiativeList() {
 
         {/* 列表项 */}
         <div className="space-y-2 w-full ">
-          {list.map((item, index) => (
+          {initiativeList.map((item, index) => (
             <div
               key={item.name}
               className="flex gap-3 p-3 rounded-lg items-center justify-between hover:bg-base-200 transition-colors group"
@@ -79,7 +74,7 @@ export default function InitiativeList() {
               <EditableField
                 content={item.name}
                 handleContentUpdate={(newName) => {
-                  handleUpdate(list.map(i => i.name === item.name ? { ...i, name: newName } : i));
+                  handleUpdate(initiativeList.map(i => i.name === item.name ? { ...i, name: newName } : i));
                 }}
                 className="font-medium truncate max-w-30"
                 usingInput
@@ -90,7 +85,7 @@ export default function InitiativeList() {
                 <EditableField
                   content={item.value.toString()}
                   handleContentUpdate={(newValue) => {
-                    handleUpdate(list.map(i => i.name === item.name ? { ...i, value: Number(newValue) } : i));
+                    handleUpdate(initiativeList.map(i => i.name === item.name ? { ...i, value: Number(newValue) } : i));
                   }}
                   className="max-w-20 text-right"
                   usingInput

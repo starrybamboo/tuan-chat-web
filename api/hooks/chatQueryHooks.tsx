@@ -520,7 +520,7 @@ export function useGetMessageByIdQuery(messageId: number) {
  */
 export function useGetRoomExtraQuery(request: RoomExtraRequest) {
     return useQuery({
-        queryKey: ['getRoomExtra', request],
+        queryKey: ['getRoomExtra', request.roomId, request.key],
         queryFn: () => tuanchat.roomController.getRoomExtra(request.roomId,request.key),
         staleTime: 300000,// 5分钟缓存
     });
@@ -534,8 +534,7 @@ export function useSetRoomExtraMutation() {
         mutationFn: (req: RoomExtraSetRequest) => tuanchat.roomController.setRoomExtra(req),
         mutationKey: ['setRoomExtra'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({queryKey: ['getRoomExtra'],});
-            queryClient.invalidateQueries({queryKey: ['getRoomInitiativeList'],});
+            queryClient.invalidateQueries({queryKey: ['getRoomExtra',variables.roomId,variables.key],});
         }
     });
 }
@@ -543,6 +542,7 @@ export function useSetRoomExtraMutation() {
 /**
  * 获取房间的先攻表
  */
+// TODO 把下面这两个删掉
 export function useGetRoomInitiativeListQuery(roomId: number) {
     return useQuery({
         queryFn: async () => {
@@ -567,8 +567,7 @@ export function useRoomInitiativeListMutation(roomId: number) {
         mutationFn: (newValue: string) => tuanchat.roomController.setRoomExtra({ roomId, key: "initiativeList", value: newValue }),
         mutationKey: ['setRoomInitiativeList'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({queryKey: ['getRoomExtra'],});
-            queryClient.invalidateQueries({queryKey: ['getRoomInitiativeList'],});
+            queryClient.invalidateQueries({queryKey: ['getRoomExtra',roomId,"initiativeList"],});
         }
     });
 }
@@ -582,8 +581,7 @@ export function useDeleteRoomExtraMutation() {
         mutationFn: (req: RoomExtraRequest) => tuanchat.roomController.deleteRoomExtra(req),
         mutationKey: ['deleteRoomExtra'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({queryKey: ['getRoomExtra'],});
-            queryClient.invalidateQueries({queryKey: ['getRoomInitiativeList'],});
+            queryClient.invalidateQueries({queryKey: ['getRoomExtra',variables.roomId,variables.key],});
         }
     });
 }
@@ -598,7 +596,6 @@ export function useCreateFightRoomMutation() {
         mutationKey: ['createFightRoom'],
         onSuccess: () => {
             queryClient.invalidateQueries({queryKey: ['getRoomExtra'],});
-            queryClient.invalidateQueries({queryKey: ['getRoomInitiativeList'],});
         }
     });
 }
