@@ -31,20 +31,35 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const { mutate: updateRole } = useAddMutation();
   const { mutate: renameRole } = useRenameMutation();
 
-  // 干净的文本
-  // const cleanText = (text: string) => {
-  //   if (!text)
-  //     return "";
-  //   return text
-  //     .replace(/\r\n/g, "\n")
-  //     .replace(/ {2,}/g, " ")
-  //     .replace(/\n{2,}/g, "\n")
-  //     .replace(/\s+$/g, "");
-  // };
+  // 表演属性
+  // act 字段相关本地状态
+  const [actFields, setActFields] = useState<{ [key: string]: string }>(localRole.act || {});
+  const [newActKey, setNewActKey] = useState("");
+  const [newActValue, setNewActValue] = useState("");
+
+  // 编辑 act 字段
+  const handleActFieldChange = (key: string, value: string) => {
+    setActFields(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleDeleteActField = (key: string) => {
+    const updated = { ...actFields };
+    delete updated[key];
+    setActFields(updated);
+  };
+
+  const handleAddActField = () => {
+    if (newActKey.trim() && newActValue.trim()) {
+      setActFields(prev => ({ ...prev, [newActKey.trim()]: newActValue }));
+      setNewActKey("");
+      setNewActValue("");
+    }
+  };
 
   const handleSave = () => {
     setIsTransitioning(true);
-    // 这里只做本地保存，不调接口
+    // 保存到localRole
+    setLocalRole(prev => ({ ...prev, act: actFields }));
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
@@ -225,8 +240,85 @@ export default function NPCEdit({ role }: NPCEditProps) {
                   </button>
                 )}
           </div>
+          {/* act 字段编辑区 */}
+          <div className="mt-6">
+            <h3 className="font-bold mb-2">角色表演属性</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {Object.entries(actFields).map(([key, value]) => (
+                <div key={key} className="group">
+                  {isEditing
+                    ? (
+                        <div className="flex items-center gap-1">
+                          <fieldset className="fieldset relative bg-base-200 border-base-300 rounded-box w-full">
+                            <legend className="fieldset-legend text-sm">{key}</legend>
+                            <textarea
+                              value={value}
+                              onChange={e => handleActFieldChange(key, e.target.value)}
+                              className="textarea w-full resize-none"
+                              rows={1}
+                            />
+                            <button
+                              type="button"
+                              className="absolute -top-6 -right-3 btn btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-gray-800 hover:text-white rounded-full p-1"
+                              onClick={() => handleDeleteActField(key)}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+                                <path
+                                  fill="currentColor"
+                                  d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                                />
+                              </svg>
+                            </button>
+                          </fieldset>
+                        </div>
+                      )
+                    : (
+                        <div className="card bg-base-100 shadow-sm p-2 h-full">
+                          <div className="divider">{key}</div>
+                          <div className="text-base-content mt-0.5 flex justify-center p-2">
+                            <div className="text-left">
+                              {value || <span className="text-base-content/50">未设置</span>}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                </div>
+              ))}
+            </div>
+            {/* 添加新字段 */}
+            {isEditing && (
+              <fieldset className="border border-base-300 rounded-lg p-4 mt-4">
+                <legend className="px-2 font-bold">添加新表演属性</legend>
+                <input
+                  type="text"
+                  placeholder="属性名称"
+                  className="input input-bordered input-sm w-1/4 mt-2"
+                  value={newActKey}
+                  onChange={e => setNewActKey(e.target.value)}
+                />
+                <div className="relative w-full">
+                  <textarea
+                    placeholder="值"
+                    className="textarea textarea-bordered textarea-sm w-full h-30 resize-none mt-4"
+                    value={newActValue}
+                    onChange={e => setNewActValue(e.target.value)}
+                    rows={1}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary absolute bottom-2 right-2"
+                    onClick={handleAddActField}
+                    disabled={!newActKey || !newActValue}
+                  >
+                    添加属性
+                  </button>
+                </div>
+              </fieldset>
+            )}
+          </div>
         </div>
       </div>
+
     </div>
   );
 }
