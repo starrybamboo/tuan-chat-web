@@ -1,12 +1,13 @@
+/* eslint-disable react-dom/no-missing-button-type */
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleListEnum } from "@/components/module/workPlace/context/types";
-import { BranchIcon, ContentIcon, HistoryIcon, StageIcon } from "@/icons";
+import { BranchIcon, HistoryIcon, StageIcon } from "@/icons";
 
 export default function Sidebar() {
   const { activeList, setActiveList } = useModuleContext();
 
   const sidebarItems = [
-    { id: ModuleListEnum.CONTENT, icon: ContentIcon, label: "内容", tooltip: "内容管理" },
+    // { id: ModuleListEnum.CONTENT, icon: ContentIcon, label: "内容", tooltip: "内容管理" },
     { id: ModuleListEnum.STAGE, icon: StageIcon, label: "暂存区", tooltip: "暂存区管理" },
     { id: ModuleListEnum.HISTORY, icon: HistoryIcon, label: "历史", tooltip: "历史记录" },
     { id: ModuleListEnum.BRANCH, icon: BranchIcon, label: "分支", tooltip: "分支管理" },

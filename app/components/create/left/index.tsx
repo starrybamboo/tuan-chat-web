@@ -9,14 +9,14 @@ function LeftContent() {
 
   const renderContent = () => {
     switch (activeList) {
-      case ModuleListEnum.CONTENT:
-        return (
-          <div className="h-full bg-base-100 p-4">
-            <h3 className="text-lg font-semibold mb-4">内容管理</h3>
-            {/* 这里可以添加内容管理的具体组件 */}
-            <p className="text-gray-600">内容管理功能开发中...</p>
-          </div>
-        );
+      // case ModuleListEnum.CONTENT:
+      //   return (
+      //     <div className="h-full bg-base-100 p-4">
+      //       <h3 className="text-lg font-semibold mb-4">内容查看</h3>
+      //       {/* 这里可以添加内容管理的具体组件 */}
+      //       <p className="text-gray-600">内容管理功能开发中...</p>
+      //     </div>
+      //   );
 
       case ModuleListEnum.STAGE:
         return (

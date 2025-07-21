@@ -13,6 +13,7 @@ import type { EntityRenameRequest } from "api/models/EntityRenameRequest";
 import type { RoleImportRequest } from "api/models/RoleImportRequest";
 import type { CommitRequest } from "api/models/CommitRequest";
 import type { StageRollbackRequest } from "api/models/StageRollbackRequest";
+import type { BranchSwitchRequest } from "api/models/BranchSwitchRequest";
 
 //========================item (物品相关) ==================================
 /**
@@ -265,5 +266,19 @@ export function useAddMutation() {
         onSuccess: (data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
         }
+    });
+}
+
+export function useBranchListQuery(stageId: number) {
+    return useQuery({
+        queryKey: ['branchList'],
+        queryFn: () => tuanchat.stageController.branches(stageId),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
+export function useSwitchBranchMutation() {
+    return useMutation({
+        mutationFn: (data: BranchSwitchRequest) => tuanchat.stageController.switchBranch(data),
     });
 }
