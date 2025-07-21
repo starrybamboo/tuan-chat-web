@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { CommitShownResponse } from './CommitShownResponse';
+import type { Emoji } from './Emoji';
 /**
  * 基础返回体
  */
-export type ApiResultListCommitShownResponse = {
+export type ApiResultEmoji = {
     /**
      * 成功标识true or false
      */
@@ -19,9 +19,6 @@ export type ApiResultListCommitShownResponse = {
      * 错误消息
      */
     errMsg?: string;
-    /**
-     * 返回对象
-     */
-    data?: Array<CommitShownResponse>;
+    data?: Emoji;
 };
 

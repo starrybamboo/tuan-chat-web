@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { BranchResponse } from './BranchResponse';
+import type { Emoji } from './Emoji';
 /**
  * 基础返回体
  */
-export type ApiResultListBranchResponse = {
+export type ApiResultListEmoji = {
     /**
      * 成功标识true or false
      */
@@ -22,6 +22,6 @@ export type ApiResultListBranchResponse = {
     /**
      * 返回对象
      */
-    data?: Array<BranchResponse>;
+    data?: Array<Emoji>;
 };
 

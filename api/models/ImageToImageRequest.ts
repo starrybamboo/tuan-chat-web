@@ -20,14 +20,14 @@ export namespace ImageToImageRequest {
      * 情感差分类型
      */
     export enum emotionType {
-        // _ = '开朗',
-        // _ = '满足',
-        // _ = '沉思',
-        // _ = '悲伤',
-        // _ = '调皮',
-        // _ = '哭泣',
-        // _ = '愤怒',
-        // _ = '嫉妒',
+        CHEERFUL = 'cheerful',
+        SATISFIED = 'satisfied',
+        THOUGHTFUL = 'thoughtful',
+        SAD = 'sad',
+        PLAYFUL = 'playful',
+        CRYING = 'crying',
+        ANGRY = 'angry',
+        JEALOUS = 'jealous',
     }
 }
 

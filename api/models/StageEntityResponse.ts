@@ -6,29 +6,19 @@
  * 返回对象
  */
 export type StageEntityResponse = {
-    /**
-     * 以name唯一标识一个实体，就像文件名标识一个文件
-     */
+    id?: number;
     name?: string;
     /**
      * 实体类型(item, role, scene)
      */
     entityType?: string;
     /**
-     * 变更内容的JSON数据
+     * 实体详情
      */
     entityInfo?: Record<string, any>;
     /**
-     * 操作类型(0:添加或修改, 1:删除)
+     * change接口使用，1删除，2修改，3新增，若为新增，则只实体只有一个id
      */
-    operationType?: number;
-    /**
-     * 创建时间
-     */
-    createTime?: string;
-    /**
-     * 更新时间
-     */
-    updateTime?: string;
+    diffType?: number;
 };
 

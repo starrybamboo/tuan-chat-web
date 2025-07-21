@@ -1,6 +1,6 @@
 import type { Route } from "../+types/home";
 import Pagination from "@/components/common/form/pagination";
-import Carousel from "@/components/module/carousel";
+// import Carousel from "@/components/module/carousel";
 import ModuleCard from "@/components/module/moduleCard";
 import UserCard from "@/components/module/userCard";
 import { useModuleListQuery } from "api/hooks/moduleAndStageQueryHooks";
@@ -25,18 +25,18 @@ function ModuleCardContainer({ children }: { children: React.ReactNode }) {
 }
 
 export default function Home() {
-  const data = [
-    {
-      img:
-        "https://img.daisyui.com/images/stock/photo-1625726411847-8cbb60cc71e6.webp",
-      alt: "image1",
-    },
-    {
-      img:
-        "https://img.daisyui.com/images/stock/photo-1609621838510-5ad474b7d25d.webp",
-      alt: "image2",
-    },
-  ];
+  // const data = [
+  //   {
+  //     img:
+  //       "https://img.daisyui.com/images/stock/photo-1625726411847-8cbb60cc71e6.webp",
+  //     alt: "image1",
+  //   },
+  //   {
+  //     img:
+  //       "https://img.daisyui.com/images/stock/photo-1609621838510-5ad474b7d25d.webp",
+  //     alt: "image2",
+  //   },
+  // ];
 
   const [pageNo, setPageNo] = useState(1);
   const { data: moduleList, isSuccess } = useModuleListQuery({
@@ -48,10 +48,10 @@ export default function Home() {
     <div className="min-h-[calc(100vh-3.5rem)] max-h-[calc(100vh-3.5rem)] bg-base-100 overflow-x-hidden">
       <div className="mx-auto max-w-[1280px] px-4 py-[10px] flex flex-col gap-8 justify-center items-center">
         <div className="w-full basis-[360px] flex gap-[10px]">
-          <Carousel
+          {/* <Carousel
             className="basis-[80%] rounded-md shrink-0 grow shadow-md"
             items={data}
-          />
+          /> */}
           <UserCard className="basis-[20%] rounded-md shrink-0 grow-0 overflow-hidden bg-base-200 shadow-md" />
         </div>
         <div className="w-full flex flex-wrap gap-3">
