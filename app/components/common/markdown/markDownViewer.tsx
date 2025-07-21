@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 // import { dark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 // 由于tailwind的preflight.css覆盖了原本的html样式，这里需要重新定义样式
 const MARKDOWN_STYLES = `
@@ -120,9 +121,9 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
  */
 export function MarkDownViewer({ content }: { content: string }) {
   return (
-    <div className={`prose max-w-none ${MARKDOWN_STYLES}`}>
+    <div className={`prose max-w-none ${MARKDOWN_STYLES} overflow-hidden`}>
       <ReactMarkdown
-        rehypePlugins={[rehypeRaw]}
+        rehypePlugins={[rehypeRaw, rehypeSanitize]}
         remarkPlugins={[remarkGfm]}
         components={{
           code(props) {
