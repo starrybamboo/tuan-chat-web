@@ -8,10 +8,12 @@ export default function FriendItem({
   id,
   currentContactUserId,
   latestMessage,
+  latestMessageTime,
 }: {
   id: number;
   currentContactUserId: number | null;
   latestMessage?: string; // 可选的最新消息
+  latestMessageTime?: string; // 可选的最新消息时间
 }) {
   const userInfoQuery = useGetUserInfoQuery(id);
   const userInfo = userInfoQuery.data?.data;
@@ -34,6 +36,26 @@ export default function FriendItem({
       clearUnread();
     }
   }, [currentContactUserId, id, absoluteunreadMessageNumber, clearUnread]);
+
+  // 格式化显示最后一条消息的时间
+  const formatLatestMessageTime = (time: string | undefined) => {
+    if (!time)
+      return "无消息";
+    const date = new Date(time);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const oneDay = 1000 * 60 * 60 * 24;
+    // 如果超过一年，显示完整日期
+    if (diff > oneDay * 365) {
+      return date.toLocaleDateString();
+    }
+    // 如果超过一天，显示月日
+    if (diff > oneDay) {
+      return date.toLocaleDateString(undefined, { month: "2-digit", day: "2-digit" });
+    }
+    // 如果在同一天，显示时分
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
 
   return (
     <div
@@ -69,6 +91,9 @@ export default function FriendItem({
           {latestMessage}
         </span>
       </div>
+      <span className="text-sm text-base-content/70 truncate">
+        {formatLatestMessageTime(latestMessageTime)}
+      </span>
     </div>
   );
 }
