@@ -1,5 +1,6 @@
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleListEnum } from "@/components/module/workPlace/context/types";
+import Branch from "./components/branchList";
 import History from "./history";
 import ModuleItems from "./moduleItems";
 
@@ -40,10 +41,8 @@ function LeftContent() {
 
       case ModuleListEnum.BRANCH:
         return (
-          <div className="h-full bg-base-100 p-4">
-            <h3 className="text-lg font-semibold mb-4">分支管理</h3>
-            {/* 这里可以添加分支管理的具体组件 */}
-            <p className="text-gray-600">分支管理功能开发中...</p>
+          <div className="h-full bg-base-100 p-2">
+            <Branch />
           </div>
         );
 
