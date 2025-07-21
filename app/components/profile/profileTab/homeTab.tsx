@@ -289,8 +289,8 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
         </div>
       </div>
       {/* 右侧 - 真正的主页 */}
-      <div className="flex-1 rounded-xl shadow-md lg:m-4">
-        <div className="p-6">
+      <div className="flex-1 lg:m-4">
+        <div className="p-6 shadow-md rounded-xl">
           {/* 用户ID和登录时间 - 紧凑布局 */}
           <div className="flex flex-wrap items-center gap-4 md:gap-8 mb-6">
             <div>
@@ -419,42 +419,42 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
               </div>
             </div>
           </div>
-          <div className="p-2 border-b border-primary"></div>
           {/* 个人主页的Readme */}
-          <div className="border-primary">
+          <div className="m-2 border-t border-primary">
             {/* 修改位置待定 */}
-            <MarkDownViewer content={user?.readMe || "## Hi, Welcome👋"}></MarkDownViewer>
+            <MarkDownViewer content={user?.readMe || "## Hi, welcome to my personal page!👋"}></MarkDownViewer>
           </div>
-          {/* SC余额 - 特殊展示 */}
-          {/* dark:from-gray-800 dark:to-gray-900 */}
-          {loginUserId === userId && (
-            <div className="mt-8 rounded-xl p-5 shadow-lg opacity-90 relative overflow-hidden bg-gradient-to-r from-purple-500 to-indigo-600 ">
-              {/* 装饰性背景元素 */}
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-indigo-500/20"></div>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-300/10 rounded-full transform translate-x-1/2 -translate-y-1/2"></div>
+        </div>
+        {/* SC余额 - 特殊展示 */}
+        {/* dark:from-gray-800 dark:to-gray-900 */}
+        {loginUserId === userId && (
+          <div className="mt-8 rounded-xl p-5 shadow-lg opacity-90 relative overflow-hidden bg-gradient-to-r from-purple-500 to-indigo-600">
+            {/* 装饰性背景元素 */}
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-indigo-500/20"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-300/10 rounded-full transform translate-x-1/2 -translate-y-1/2"></div>
 
-              <div className="relative z-10 flex justify-between items-center">
-                <div>
-                  <p className="text-purple-200 text-sm">游戏货币余额</p>
-                  <h3 className="text-2xl font-bold text-white mt-1">SC 点数</h3>
-                </div>
-                <div className="flex items-baseline">
-                  <span className="text-4xl md:text-5xl font-bold text-white">{userProfile.scBalance}</span>
-                  <span className="text-xl text-purple-200 ml-2">SC</span>
-                </div>
+            <div className="relative z-10 flex justify-between items-center">
+              <div>
+                <p className="text-purple-200 text-sm">游戏货币余额</p>
+                <h3 className="text-2xl font-bold text-white mt-1">SC 点数</h3>
               </div>
-
-              <div className="relative z-10 mt-4 flex space-x-3">
-                <button type="button" className="flex-1 bg-white text-indigo-600 font-medium py-2 px-4 rounded-lg hover:bg-indigo-50 transition-colors">
-                  充值
-                </button>
-                <button type="button" className="flex-1 bg-indigo-800 text-white font-medium py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
-                  兑换
-                </button>
+              <div className="flex items-baseline">
+                <span className="text-4xl md:text-5xl font-bold text-white">{userProfile.scBalance}</span>
+                <span className="text-xl text-purple-200 ml-2">SC</span>
               </div>
             </div>
-          )}
-        </div>
+
+            <div className="relative z-10 mt-4 flex space-x-3">
+              <button type="button" className="flex-1 bg-white text-indigo-600 font-medium py-2 px-4 rounded-lg hover:bg-indigo-50 transition-colors">
+                充值
+              </button>
+              <button type="button" className="flex-1 bg-indigo-800 text-white font-medium py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
+                兑换
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
       <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}>
         <EditProfileWindow onClose={() => setIsEditWindowOpen(false)}></EditProfileWindow>
