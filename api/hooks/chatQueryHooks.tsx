@@ -522,7 +522,7 @@ export function useGetRoomExtraQuery(request: RoomExtraRequest) {
     return useQuery({
         queryKey: ['getRoomExtra', request],
         queryFn: () => tuanchat.roomController.getRoomExtra(request.roomId,request.key),
-        staleTime: 300000 // 5分钟缓存
+        staleTime: 300000,// 5分钟缓存
     });
 }
 /**
@@ -555,6 +555,7 @@ export function useGetRoomInitiativeListQuery(roomId: number) {
             }
             return list
         },
+        enabled: roomId > 0,
         queryKey: ['getRoomInitiativeList', roomId],
         staleTime: 300000 // 5分钟缓存
     });

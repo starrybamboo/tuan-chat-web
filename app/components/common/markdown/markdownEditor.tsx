@@ -50,8 +50,15 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
   }, [debouncedContent, onChange]);
   // 性能优化，储存渲染结果
   const renderedMarkdown = useMemo(() => {
-    return (<MarkDownViewer content={debouncedContent} />);
+    try {
+      return <MarkDownViewer content={debouncedContent} />;
+    }
+    catch (error) {
+      console.error("Failed to render markdown:", error);
+      return <div className="text-red-500 text-center text-lg">渲染出错</div>;
+    }
   }, [debouncedContent]);
+
   // 向光标位置插入一段文本，或者替换选中的文本。
   const insertText = (text: string) => {
     if (!textareaRef.current)
