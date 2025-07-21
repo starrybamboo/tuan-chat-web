@@ -1,4 +1,5 @@
 import type { UserInfoResponse } from "../../../api";
+import MarkdownEditor from "@/components/common/markdown/markdownEditor";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useState } from "react";
@@ -13,7 +14,7 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
   const userQuery = useGetUserInfoQuery(userId);
 
   const user = userQuery.data?.data;
-
+  const [content, setContent] = useState(user?.readMe);
   const updateUserInfoMutation = useUpdateUserInfoMutation();
   // Shake it!!!
   const [errorShakeKey, setErrorShakeKey] = useState(0);
@@ -26,7 +27,7 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
         onClose();
       }
       const avatarUrl = (newAvtarUrl && newAvtarUrl !== "") ? newAvtarUrl : user?.avatar;
-      updateUserInfoMutation.mutate({ ...user, username, avatar: avatarUrl, description: userDescription } as UserInfoResponse);
+      updateUserInfoMutation.mutate({ ...user, username, avatar: avatarUrl, description: userDescription, readMe: content } as UserInfoResponse);
     }
     else {
       setErrorShakeKey(prev => prev + 1);
@@ -41,7 +42,7 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
   };
 
   return (
-    <div className="card bg-base-100 min-w-[20vw] max-w-[90vw] mx-auto">
+    <div className="card bg-base-100">
       <div className="card-body">
         {/* 头像部分 */}
         <div className="flex flex-col items-center gap-4">
@@ -67,7 +68,7 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
             </div>
           </ImgUploaderWithCopper>
           {/* 用户名称 */}
-          <div className="w-full max-w-xs flex gap-2 flex-col">
+          <div className="w-full flex gap-2 flex-col">
             <label htmlFor="userName" className="label cursor-pointer">
               <span className="text-lg font-semibold">修改昵称</span>
               <input
@@ -98,7 +99,7 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
             </div>
           </div>
           {/* 个人描述 */}
-          <div className="w-full max-w-xs flex flex-col gap-1">
+          <div className="w-full flex flex-col gap-1">
             {/* 改为垂直布局 */}
             <label htmlFor="userDescription" className="label cursor-pointer">
               <span className="text-lg font-semibold">修改描述</span>
@@ -142,6 +143,8 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
               呜呜…太多的话我装不下啦///
             </div>
           </div>
+          <div className="border-t w-full"></div>
+          <MarkdownEditor defaultContent={user?.readMe} onChange={value => setContent(value)}></MarkdownEditor>
           <div className="flex items-center gap-4 mt-4">
             <button onClick={handleSave} className="btn btn-info px-8" type="button">
               保存
