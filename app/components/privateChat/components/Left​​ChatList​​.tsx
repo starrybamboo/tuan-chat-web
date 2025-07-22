@@ -1,7 +1,6 @@
 import { SideDrawer } from "@/components/common/sideDrawer";
-import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetMessageDirectPageQueries } from "api/hooks/MessageDirectQueryHooks";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import FriendItem from "./FriendItem";
 
 interface contactInfo {
@@ -32,16 +31,6 @@ export default function LeftChatList({
   // 根据最新消息时间排序好友列表
   const sortedFriendInfos = sortFriendInfos(friendInfos);
 
-  // 未读消息提醒
-  const websocketUtils = useGlobalContext().websocketUtils;
-  const totalUnreadMessages = useMemo(() => {
-    return Object.values(websocketUtils.unreadDirectMessagesNumber).reduce((sum, count) => sum + count, 0);
-  }, [websocketUtils.unreadDirectMessagesNumber]);
-  // 在标签页中显示未读消息或删除未读消息
-  useEffect(() => {
-    updateUnreadMessagesCountInTag(totalUnreadMessages);
-  }, [totalUnreadMessages]);
-
   return (
     <SideDrawer sideDrawerId="private-chat">
       <div className="flex flex-col w-[300px] h-full bg-base-100">
@@ -70,6 +59,7 @@ export default function LeftChatList({
                       key={friend.userId}
                       id={friend.userId || -1}
                       latestMessage={friend.latestMessage}
+                      latestMessageTime={friend.latestMessageTime}
                       currentContactUserId={currentContactUserId}
                     />
                   ))
@@ -123,24 +113,6 @@ function sortFriendInfos(friendInfos: contactInfo[]): contactInfo[] {
     }
     return 1;
   });
-}
-
-function updateUnreadMessagesCountInTag(totalUnreadMessages: number) {
-  // 如果不是私聊页
-  if (window.location.pathname !== "/privatechat") {
-    return;
-  }
-
-  const originalTitle = document.title.replace(/^\d+条新消息-/, ""); // 清除已有前缀
-  if (totalUnreadMessages > 0) {
-    document.title = `${totalUnreadMessages}条新消息-${originalTitle}`;
-  }
-  else {
-    document.title = originalTitle;
-  }
-  return () => {
-    document.title = originalTitle;
-  };
 }
 
 function mergeLatestMessages(latestMessages: any[], allReceivedMessages: any[]) {

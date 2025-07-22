@@ -867,9 +867,24 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                         </div>
                         <ul
                           tabIndex={2}
-                          className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
+                          className="dropdown-content menu bg-base-100 rounded-box z-1 w-80 p-2 shadow-sm overflow-y-auto"
                         >
-                          <EmojiWindow onChoose={() => {
+                          <EmojiWindow onChoose={async (emoji) => {
+                            // 通过 fetch 获取图片 blob
+                            const response = await fetch(emoji.imageUrl);
+                            const blob = await response.blob();
+
+                            // 用 blob 创建 File
+                            const file = new File(
+                              [blob],
+                              `${emoji.name || "emoji"}-${emoji.emojiId}.${emoji.format}`,
+                              { type: blob.type },
+                            );
+
+                            // 添加到图片文件列表
+                            updateImgFiles((draft) => {
+                              draft.push(file);
+                            });
                           }}
                           >
                           </EmojiWindow>
