@@ -12,7 +12,7 @@ import {
 import { useGetRoleQuery } from "../../../api/queryHooks";
 // type DiceResult = { x: number; y: number; rolls: number[]; total: number };
 
-import { roll } from "./dice";
+import { roll } from "./dicer/dice";
 
 // 属性名中英文对照表
 const ABILITY_MAP: { [key: string]: string } = {
