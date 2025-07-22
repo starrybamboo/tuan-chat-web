@@ -1,17 +1,15 @@
+import type { Initiative } from "@/components/chat/sideDrawer/initiativeList";
+import { useRoomExtra } from "@/components/chat/hooks";
 import { useEffect, useRef } from "react";
 import { useParams } from "react-router";
+// type DiceResult = { x: number; y: number; rolls: number[]; total: number };
+
 import {
   useGetRoleAbilitiesQuery,
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityMutation,
 } from "../../../api/hooks/abilityQueryHooks";
-import {
-  useGetRoomInitiativeListQuery,
-  useRoomInitiativeListMutation,
-} from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../api/queryHooks";
-// type DiceResult = { x: number; y: number; rolls: number[]; total: number };
-
 import { roll } from "./dice";
 
 // 属性名中英文对照表
@@ -61,9 +59,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
   // 通过以下的mutation来对后端发送引起数据变动的请求
   const updateAbilityMutation = useUpdateRoleAbilityMutation(); // 更改属性与能力字段
   const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
-  const initiativeListMutation = useRoomInitiativeListMutation(roomId); // 更新先攻表
-
-  const initiativeList = useGetRoomInitiativeListQuery(roomId).data ?? [];
+  const [initiativeList, setInitiativeList] = useRoomExtra<Initiative[]>(roomId, "initiativeList", []);
 
   useEffect(() => {
     try {
@@ -371,11 +367,9 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
       name = role?.roleName;
     }
     if (initiative && name) {
-      initiativeListMutation.mutate(
-        JSON.stringify(
-          [...initiativeList.filter(i => i.name !== name), { name, value: initiative }]
-            .sort((a, b) => b.value - a.value),
-        ),
+      setInitiativeList(
+        [...initiativeList.filter(i => i.name !== name), { name, value: initiative }]
+          .sort((a, b) => b.value - a.value),
       );
     }
     else {
