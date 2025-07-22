@@ -138,7 +138,7 @@ export function Sidebar({
 
   // 创建新角色
   const handleCreate = async () => {
-    const data = await createRole();
+    const data = await createRole({ roleName: "新角色", description: "新角色描述" });
     if (data === undefined) {
       console.error("角色创建失败");
       return;

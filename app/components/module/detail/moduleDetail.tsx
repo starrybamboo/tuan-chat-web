@@ -135,7 +135,7 @@ function Author({ userId }: { userId?: number }) {
       {/* UserDetail 弹窗 */}
       {userId && (
         <PopWindow isOpen={isUserCardOpen} onClose={closeUserCard}>
-          <UserDetail userId={userId} size="compact" />
+          <UserDetail userId={userId} />
         </PopWindow>
       )}
     </>
