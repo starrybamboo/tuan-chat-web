@@ -1,6 +1,6 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { CharacterCopper } from "@/components/newCharacter/CharacterCopper";
-import { useAddMutation, useRenameMutation } from "api/hooks/moduleQueryHooks";
+import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useState } from "react";
 import { useModuleContext } from "./context/_moduleContext";
 
@@ -27,19 +27,16 @@ export default function ItemEdit({ item }: ItemEditProps) {
   }, [item]);
 
   // 接入接口
-  const { mutate: updateItem } = useAddMutation();
-  const { mutate: renameItem } = useRenameMutation();
-
+  const { mutate: updateItem } = useUpdateEntityMutation(stageId as number);
   const handleSave = () => {
     setIsTransitioning(true);
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
-      updateItem({ stageId: stageId as number, entityType: "item", entityInfo: localItem, operationType: 0, name: item.name! });
       if (name !== item.name) {
-        removeModuleTabItem(item.createTime! + item.name);
-        renameItem({ stageId: stageId as number, entityType: "item", oldName: item.name!, newName: name! });
+        removeModuleTabItem(item.id!.toString());
       }
+      updateItem({ id: item.id!, entityType: "item", entityInfo: localItem, name });
     }, 300);
   };
 
@@ -60,10 +57,9 @@ export default function ItemEdit({ item }: ItemEditProps) {
     const updatedItem = { ...localItem, image };
     setLocalItem(updatedItem);
     updateItem({
-      stageId: stageId as number,
+      id: item.id!,
       entityType: "item",
       entityInfo: updatedItem,
-      operationType: 0,
       name: item.name!,
     });
   };

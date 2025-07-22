@@ -60,7 +60,7 @@ function RoleModuleTabItem({
           name="WorkSpaceTab"
           className="tab"
           aria-label={label}
-          onClick={onTabClick.bind(null, id)}
+          onClick={onTabClick.bind(null, id.toString())}
         />
         <div
           className={`
@@ -70,7 +70,7 @@ function RoleModuleTabItem({
             hover:bg-base-content/80 rounded-sm
           `}
           onClick={() => {
-            onCloseClick(id);
+            onCloseClick(id.toString());
           }}
         >
           <BaselineClose />
@@ -115,7 +115,7 @@ function ItemModuleTabItem({
           name="WorkSpaceTab"
           className="tab"
           aria-label={label}
-          onClick={onTabClick.bind(null, id)}
+          onClick={onTabClick.bind(null, id.toString())}
         />
         <div
           className={`
@@ -125,7 +125,7 @@ function ItemModuleTabItem({
             hover:bg-base-content/80 rounded-sm
           `}
           onClick={() => {
-            onCloseClick(id);
+            onCloseClick(id.toString());
           }}
         >
           <BaselineClose />
@@ -170,7 +170,7 @@ function SceneModuleTabItem({
           name="WorkSpaceTab"
           className="tab"
           aria-label={label}
-          onClick={onTabClick.bind(null, id)}
+          onClick={onTabClick.bind(null, id.toString())}
         />
         <div
           className={`
@@ -180,7 +180,7 @@ function SceneModuleTabItem({
             hover:bg-base-content/80 rounded-sm
           `}
           onClick={() => {
-            onCloseClick(id);
+            onCloseClick(id.toString());
           }}
         >
           <BaselineClose />

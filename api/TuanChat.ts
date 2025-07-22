@@ -7,7 +7,6 @@ import type { OpenAPIConfig } from './core/OpenAPI';
 import { FetchHttpRequest } from './core/FetchHttpRequest';
 import { AbilityControllerService } from './services/AbilityControllerService';
 import { AvatarControllerService } from './services/AvatarControllerService';
-import { BranchControllerService } from './services/BranchControllerService';
 import { ChatControllerService } from './services/ChatControllerService';
 import { CollectionControllerService } from './services/CollectionControllerService';
 import { CollectionListControllerService } from './services/CollectionListControllerService';
@@ -50,7 +49,6 @@ type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class TuanChat {
     public readonly abilityController: AbilityControllerService;
     public readonly avatarController: AvatarControllerService;
-    public readonly branchController: BranchControllerService;
     public readonly chatController: ChatControllerService;
     public readonly collectionController: CollectionControllerService;
     public readonly collectionListController: CollectionListControllerService;
@@ -104,7 +102,6 @@ export class TuanChat {
         });
         this.abilityController = new AbilityControllerService(this.request);
         this.avatarController = new AvatarControllerService(this.request);
-        this.branchController = new BranchControllerService(this.request);
         this.chatController = new ChatControllerService(this.request);
         this.collectionController = new CollectionControllerService(this.request);
         this.collectionListController = new CollectionListControllerService(this.request);

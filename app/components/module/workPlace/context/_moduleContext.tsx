@@ -1,17 +1,20 @@
-import type { ModuleContextType, ModuleTabItem } from "./types";
+import type { ModuleContextType, ModuleTabItem, TabId } from "./types";
 import { createContext, use, useMemo, useState } from "react";
 import { useImmer } from "use-immer";
+import { ModuleListEnum } from "./types";
 
 const ModuleContext = createContext<ModuleContextType | null>(null);
 export function ModuleProvider({ children }: { children: React.ReactNode }) {
-  const [moduleTabItems, updateModuleTabItems] = useImmer<ModuleTabItem[]>([]);
-  const [currentSelectedTabId, _setCurrentSelectedTabId] = useState<string | null>(null);
-  const [stageId, _setStageId] = useState<number | null>(null);
+  const [moduleTabItems, updateModuleTabItems] = useImmer<ModuleTabItem[]>([]); // 模组的tab列表
+  const [currentSelectedTabId, _setCurrentSelectedTabId] = useState<TabId | null>(null); // 当前选中的tab的id
+  const [stageId, _setStageId] = useState<TabId | null>(null); // 当前选中的模组的id
+  const [activeList, _setActiveList] = useState<ModuleListEnum>(ModuleListEnum.STAGE); // 当前选中的列表, 默认暂存区
 
   const moduleContextValue: ModuleContextType = useMemo(() => ({
     moduleTabItems,
     currentSelectedTabId,
     stageId,
+    activeList,
     setStageId(id) {
       _setStageId(id);
     },
@@ -44,7 +47,10 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
         });
       }
     },
-  }), [moduleTabItems, currentSelectedTabId, stageId, updateModuleTabItems]);
+    setActiveList: (list: ModuleListEnum) => {
+      _setActiveList(list);
+    },
+  }), [moduleTabItems, currentSelectedTabId, stageId, activeList, updateModuleTabItems]);
 
   return (
     <ModuleContext

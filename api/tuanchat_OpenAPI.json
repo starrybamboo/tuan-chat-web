@@ -4886,18 +4886,18 @@
         }
       }
     },
-    "/capi/stage/switch": {
+    "/capi/stage/update": {
       "post": {
         "tags": [
           "StageController"
         ],
-        "summary": "切换当前分支，要求暂存区为空",
-        "operationId": "switchBranch",
+        "summary": "修改实体",
+        "operationId": "update",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BranchSwitchRequest"
+                "$ref": "#/components/schemas/EntityUpdateRequest"
               }
             }
           },
@@ -4980,7 +4980,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
+                  "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
                 }
               }
             }
@@ -5028,18 +5028,18 @@
         }
       }
     },
-    "/capi/stage/rename": {
+    "/capi/stage/delete": {
       "post": {
         "tags": [
           "StageController"
         ],
-        "summary": "修改实体name，效果等同于删除原实体，再添加一个只有name不同的实体",
-        "operationId": "rename",
+        "summary": "删除实体",
+        "operationId": "delete",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/EntityRenameRequest"
+                "$ref": "#/components/schemas/EntityDeleteRequest"
               }
             }
           },
@@ -5052,77 +5052,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/stage/import/role": {
-      "post": {
-        "tags": [
-          "StageController"
-        ],
-        "summary": "将角色导入暂存区",
-        "operationId": "importRole",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RoleImportRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultStageEntityResponse"
                 }
               }
             }
@@ -5245,7 +5174,7 @@
         "tags": [
           "StageController"
         ],
-        "summary": "添加实体到暂存区，或修改删除暂存区里已有的实体",
+        "summary": "添加实体",
         "operationId": "add",
         "requestBody": {
           "content": {
@@ -6913,582 +6842,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultPageBaseRespModule"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/module/branch/merge": {
-      "post": {
-        "tags": [
-          "branch-controller"
-        ],
-        "summary": "mergeBranches",
-        "description": "合并两个分支",
-        "operationId": "mergeBranches",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BranchMergeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/module/branch/merge/try": {
-      "post": {
-        "tags": [
-          "branch-controller"
-        ],
-        "summary": "showDiffBeforeMerge",
-        "description": "合并两个分支",
-        "operationId": "showDiffBeforeMerge",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MergeDiffRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultMergeDiffResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/module/branch/list": {
-      "post": {
-        "tags": [
-          "branch-controller"
-        ],
-        "summary": "listBranches",
-        "description": "查询一个模组的所有分支",
-        "operationId": "listBranches",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BranchListRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultListBranchResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/module/branch/diff": {
-      "post": {
-        "tags": [
-          "branch-controller"
-        ],
-        "summary": "diffBranches",
-        "description": "比较两个分支的差异",
-        "operationId": "diffBranches",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BranchDiffRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultMapStringListDiffResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/module/branch/diff/commit": {
-      "post": {
-        "tags": [
-          "branch-controller"
-        ],
-        "summary": "diffFormerCommit",
-        "description": "比较此提交与上一个提交的差异",
-        "operationId": "diffFormerCommit",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CommitDiffRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultMapStringListDiffResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/module/branch/delete": {
-      "post": {
-        "tags": [
-          "branch-controller"
-        ],
-        "summary": "deleteBranch",
-        "description": "删除一个分支",
-        "operationId": "deleteBranch",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BranchDeleteRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/module/branch/create": {
-      "post": {
-        "tags": [
-          "branch-controller"
-        ],
-        "summary": "createBranch",
-        "description": "新建一个分支",
-        "operationId": "createBranch",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BranchCreateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultBranchResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/module/branch/commits": {
-      "post": {
-        "tags": [
-          "branch-controller"
-        ],
-        "summary": "listBranchCommits",
-        "description": "查询一个分支的所有历史提交",
-        "operationId": "listBranchCommits",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BranchCommitsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultListCommitShownResponse"
                 }
               }
             }
@@ -12177,79 +11530,7 @@
         "tags": [
           "StageController"
         ],
-        "summary": "根据stageId查询当前模组当前用户分支的最新commit详情",
-        "operationId": "queryCommit",
-        "parameters": [
-          {
-            "name": "stageId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultModuleInfo"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/stage/change": {
-      "get": {
-        "tags": [
-          "StageController"
-        ],
-        "summary": "根据暂存区id查询所有暂存实体",
+        "summary": "查看最新详情",
         "operationId": "queryEntities",
         "parameters": [
           {
@@ -12316,13 +11597,13 @@
         }
       }
     },
-    "/capi/stage/branches": {
+    "/capi/stage/change": {
       "get": {
         "tags": [
           "StageController"
         ],
-        "summary": "根据暂存区Id获取相应的所有分支",
-        "operationId": "branches",
+        "summary": "查看对于commit的修改",
+        "operationId": "change",
         "parameters": [
           {
             "name": "stageId",
@@ -12340,7 +11621,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultListBranch"
+                  "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
                 }
               }
             }
@@ -15230,7 +14511,7 @@
   },
   "components": {
     "schemas": {
-      "ApiResult": {
+      "ApiResultVoid": {
         "required": [
           "success"
         ],
@@ -15256,7 +14537,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultVoid": {
+      "ApiResult": {
         "required": [
           "success"
         ],
@@ -16887,98 +16168,54 @@
           }
         }
       },
-      "BranchSwitchRequest": {
-        "required": [
-          "stageId"
-        ],
-        "type": "object",
-        "properties": {
-          "stageId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "branchId": {
-            "type": "integer",
-            "description": "切换分支时使用",
-            "format": "int64"
-          },
-          "name": {
-            "type": "string",
-            "description": "新建分支并切换时使用"
-          }
-        }
-      },
-      "StageRollbackRequest": {
+      "EntityUpdateRequest": {
         "required": [
           "entityType",
-          "name",
-          "stageId"
+          "id"
         ],
         "type": "object",
         "properties": {
-          "stageId": {
+          "id": {
             "type": "integer",
-            "description": "ID",
             "format": "int64"
           },
           "name": {
-            "type": "string",
-            "description": "以name唯一标识一个实体，就像文件名标识一个文件"
+            "type": "string"
           },
           "entityType": {
             "type": "string",
-            "description": "实体类型(item, role, scene)",
+            "description": "实体类型(item, role, scene, location)",
             "example": "item"
+          },
+          "entityInfo": {
+            "type": "object",
+            "description": "实体内容，根据entityType类型传入不同对象：- 当entityType=item时，传入ModuleItemRequest对象- 当entityType=role时，传入ModuleRoleRequest对象- 当entityType=scene时，传入ModuleSceneRequest对象- 当entityType=location时，传入ModuleLocationRequest对象",
+            "example": {
+              "description": "众义龙设自加起族火需。布林查千支。开则种量进太土。于边南满力更。",
+              "tip": "默认tip",
+              "image": "https://loremflickr.com/400/400?lock=377732162451592"
+            }
+          }
+        },
+        "description": "修改或删除"
+      },
+      "StageRollbackRequest": {
+        "required": [
+          "ids"
+        ],
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
           }
         },
         "description": "回退文件信息请求"
       },
-      "EntityRenameRequest": {
-        "required": [
-          "entityType",
-          "newName",
-          "oldName",
-          "stageId"
-        ],
-        "type": "object",
-        "properties": {
-          "stageId": {
-            "type": "integer",
-            "description": "模组ID",
-            "format": "int64"
-          },
-          "oldName": {
-            "type": "string"
-          },
-          "newName": {
-            "type": "string"
-          },
-          "entityType": {
-            "type": "string",
-            "description": "实体类型(item, role, scene)",
-            "example": "item"
-          }
-        },
-        "description": "修改实体name"
-      },
-      "RoleImportRequest": {
-        "required": [
-          "roleId",
-          "stageId"
-        ],
-        "type": "object",
-        "properties": {
-          "roleId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "stageId": {
-            "type": "integer",
-            "format": "int64"
-          }
-        }
-      },
-      "ApiResultStageEntityResponse": {
+      "ApiResultListStageEntityResponse": {
         "required": [
           "success"
         ],
@@ -16998,7 +16235,11 @@
             "description": "错误消息"
           },
           "data": {
-            "$ref": "#/components/schemas/StageEntityResponse"
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/StageEntityResponse"
+            }
           }
         },
         "description": "基础返回体"
@@ -17006,9 +16247,12 @@
       "StageEntityResponse": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
           "name": {
-            "type": "string",
-            "description": "以name唯一标识一个实体，就像文件名标识一个文件"
+            "type": "string"
           },
           "entityType": {
             "type": "string",
@@ -17016,25 +16260,27 @@
           },
           "entityInfo": {
             "type": "object",
-            "description": "变更内容的JSON数据"
+            "description": "实体详情"
           },
-          "operationType": {
+          "diffType": {
             "type": "integer",
-            "description": "操作类型(0:添加或修改, 1:删除)",
+            "description": "change接口使用，1删除，2修改，3新增，若为新增，则只实体只有一个id",
             "format": "int32"
-          },
-          "createTime": {
-            "type": "string",
-            "description": "创建时间",
-            "format": "date-time"
-          },
-          "updateTime": {
-            "type": "string",
-            "description": "更新时间",
-            "format": "date-time"
           }
         },
         "description": "返回对象"
+      },
+      "EntityDeleteRequest": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
       },
       "CommitRequest": {
         "required": [
@@ -17047,6 +16293,15 @@
             "type": "integer",
             "format": "int64"
           },
+          "ids": {
+            "type": "array",
+            "description": "（还没做）选择提交的id，为空则全部提交（TODO）",
+            "items": {
+              "type": "integer",
+              "description": "（还没做）选择提交的id，为空则全部提交（TODO）",
+              "format": "int64"
+            }
+          },
           "message": {
             "type": "string"
           }
@@ -17056,30 +16311,21 @@
         "required": [
           "entityType",
           "name",
-          "operationType",
           "stageId"
         ],
         "type": "object",
         "properties": {
           "stageId": {
             "type": "integer",
-            "description": "ID",
             "format": "int64"
-          },
-          "name": {
-            "type": "string",
-            "description": "以name唯一标识一个实体，就像文件名标识一个文件"
           },
           "entityType": {
             "type": "string",
-            "description": "实体类型(item, role, scene)",
+            "description": "实体类型(item, role, location, scene)",
             "example": "item"
           },
-          "operationType": {
-            "type": "integer",
-            "description": "操作类型，0添加或修改，1删除",
-            "format": "int32",
-            "example": 0
+          "name": {
+            "type": "string"
           },
           "entityInfo": {
             "type": "object",
@@ -17090,8 +16336,7 @@
               "image": "https://loremflickr.com/400/400?lock=377732162451592"
             }
           }
-        },
-        "description": "添加到暂存区请求"
+        }
       },
       "RoomAddRequest": {
         "required": [
@@ -18436,506 +17681,6 @@
           }
         },
         "description": "基础翻页返回"
-      },
-      "BranchMergeRequest": {
-        "required": [
-          "fastMerge",
-          "moduleId",
-          "sourceBranchId",
-          "sourceCommitId",
-          "targetBranchId",
-          "targetCommitId"
-        ],
-        "type": "object",
-        "properties": {
-          "sourceBranchId": {
-            "type": "integer",
-            "description": "源分支ID",
-            "format": "int64"
-          },
-          "targetBranchId": {
-            "type": "integer",
-            "description": "目标分支ID",
-            "format": "int64"
-          },
-          "sourceCommitId": {
-            "type": "integer",
-            "description": "源分支提交ID，至少有一个是头提交",
-            "format": "int64"
-          },
-          "targetCommitId": {
-            "type": "integer",
-            "description": "目标分支提交ID，至少有一个是头提交",
-            "format": "int64"
-          },
-          "message": {
-            "type": "string",
-            "description": "合并提交的描述"
-          },
-          "content": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "integer",
-                "description": "提交的内容",
-                "format": "int64"
-              },
-              "description": "提交的内容"
-            },
-            "description": "提交的内容"
-          },
-          "moduleId": {
-            "type": "integer",
-            "description": "属于哪个模组",
-            "format": "int64"
-          },
-          "fastMerge": {
-            "type": "boolean",
-            "description": "是否为快进提交"
-          }
-        },
-        "description": "合并分支请求"
-      },
-      "MergeDiffRequest": {
-        "required": [
-          "moduleId",
-          "sourceBranchId",
-          "sourceCommitId",
-          "targetBranchId",
-          "targetCommitId"
-        ],
-        "type": "object",
-        "properties": {
-          "sourceCommitId": {
-            "type": "integer",
-            "description": "源分支提交ID，至少有一个是头提交",
-            "format": "int64"
-          },
-          "targetCommitId": {
-            "type": "integer",
-            "description": "目标分支提交ID，至少有一个是头提交",
-            "format": "int64"
-          },
-          "sourceBranchId": {
-            "type": "integer",
-            "description": "源分支ID",
-            "format": "int64"
-          },
-          "targetBranchId": {
-            "type": "integer",
-            "description": "目标分支ID",
-            "format": "int64"
-          },
-          "moduleId": {
-            "type": "integer",
-            "description": "属于哪个模组",
-            "format": "int64"
-          }
-        },
-        "description": "合并差异请求"
-      },
-      "ApiResultMergeDiffResult": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/MergeDiffResult"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "DiffResult": {
-        "type": "object",
-        "properties": {
-          "diffType": {
-            "type": "integer",
-            "description": "差异类型 1.删除 2.修改 3.新增",
-            "format": "int32"
-          },
-          "id": {
-            "type": "integer",
-            "description": "条目ID",
-            "format": "int64"
-          },
-          "oldContent": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "description": "旧内容"
-            },
-            "description": "旧内容"
-          },
-          "newContent": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "description": "新的修改"
-            },
-            "description": "新的修改"
-          }
-        },
-        "description": "提交差异展示响应体"
-      },
-      "MergeDiffResult": {
-        "type": "object",
-        "properties": {
-          "diffResult": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "description": "差异响应",
-              "items": {
-                "$ref": "#/components/schemas/DiffResult"
-              }
-            },
-            "description": "差异响应"
-          },
-          "content": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "integer",
-                "description": "两个提交取并集的内容引用",
-                "format": "int64"
-              },
-              "description": "两个提交取并集的内容引用"
-            },
-            "description": "两个提交取并集的内容引用"
-          },
-          "fastMerge": {
-            "type": "boolean",
-            "description": "是否为快进提交"
-          }
-        },
-        "description": "合并差异响应体"
-      },
-      "BranchListRequest": {
-        "required": [
-          "moduleId"
-        ],
-        "type": "object",
-        "properties": {
-          "moduleId": {
-            "type": "integer",
-            "description": "模组ID",
-            "format": "int64"
-          }
-        },
-        "description": "查询模组分支列表请求"
-      },
-      "ApiResultListBranchResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "$ref": "#/components/schemas/BranchResponse"
-            }
-          }
-        },
-        "description": "基础返回体"
-      },
-      "BranchResponse": {
-        "type": "object",
-        "properties": {
-          "branchId": {
-            "type": "integer",
-            "description": "分支id",
-            "format": "int64"
-          },
-          "name": {
-            "type": "string",
-            "description": "分支名称"
-          },
-          "isMain": {
-            "type": "string",
-            "description": "是否是主分支(0:否, 1:是)",
-            "format": "byte"
-          },
-          "userId": {
-            "type": "integer",
-            "description": "创建者ID",
-            "format": "int64"
-          },
-          "createTime": {
-            "type": "string",
-            "description": "创建时间",
-            "format": "date-time"
-          },
-          "updateTime": {
-            "type": "string",
-            "description": "更新时间",
-            "format": "date-time"
-          }
-        },
-        "description": "分支相应体"
-      },
-      "BranchDiffRequest": {
-        "required": [
-          "sourceBranchId",
-          "targetBranchId"
-        ],
-        "type": "object",
-        "properties": {
-          "sourceBranchId": {
-            "type": "integer",
-            "description": "源分支ID",
-            "format": "int64"
-          },
-          "targetBranchId": {
-            "type": "integer",
-            "description": "目标分支ID",
-            "format": "int64"
-          }
-        },
-        "description": "比较分支差异请求"
-      },
-      "ApiResultMapStringListDiffResult": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "description": "返回对象",
-              "items": {
-                "$ref": "#/components/schemas/DiffResult"
-              }
-            },
-            "description": "返回对象"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "CommitDiffRequest": {
-        "required": [
-          "formerCommitId",
-          "presentCommitId"
-        ],
-        "type": "object",
-        "properties": {
-          "formerCommitId": {
-            "type": "integer",
-            "description": "前一个提交ID",
-            "format": "int64"
-          },
-          "presentCommitId": {
-            "type": "integer",
-            "description": "当前提交ID",
-            "format": "int64"
-          }
-        },
-        "description": "比较提交差异请求"
-      },
-      "BranchDeleteRequest": {
-        "required": [
-          "branchId"
-        ],
-        "type": "object",
-        "properties": {
-          "branchId": {
-            "type": "integer",
-            "description": "分支ID",
-            "format": "int64"
-          }
-        },
-        "description": "删除分支请求"
-      },
-      "BranchCreateRequest": {
-        "required": [
-          "branchName",
-          "moduleId"
-        ],
-        "type": "object",
-        "properties": {
-          "moduleId": {
-            "type": "integer",
-            "description": "模组ID",
-            "format": "int64"
-          },
-          "branchName": {
-            "type": "string",
-            "description": "分支名称"
-          },
-          "baseBranchId": {
-            "type": "integer",
-            "description": "从哪个分支创建，不提供则直接从main分支最新提交创建",
-            "format": "int64"
-          },
-          "baseCommitId": {
-            "type": "integer",
-            "description": "基于的提交ID，不提供则基于最新提交",
-            "format": "int64"
-          },
-          "description": {
-            "type": "string",
-            "description": "分支描述"
-          }
-        },
-        "description": "创建分支请求"
-      },
-      "ApiResultBranchResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/BranchResponse"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "BranchCommitsRequest": {
-        "required": [
-          "branchId"
-        ],
-        "type": "object",
-        "properties": {
-          "branchId": {
-            "type": "integer",
-            "description": "分支ID",
-            "format": "int64"
-          }
-        },
-        "description": "查询分支提交记录请求"
-      },
-      "ApiResultListCommitShownResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "$ref": "#/components/schemas/CommitShownResponse"
-            }
-          }
-        },
-        "description": "基础返回体"
-      },
-      "CommitShownResponse": {
-        "type": "object",
-        "properties": {
-          "commitId": {
-            "type": "integer",
-            "description": "提交唯一ID",
-            "format": "int64"
-          },
-          "message": {
-            "type": "string",
-            "description": "提交信息"
-          },
-          "commitTime": {
-            "type": "string",
-            "description": "提交时间",
-            "format": "date-time"
-          },
-          "userId": {
-            "type": "integer",
-            "description": "提交的用户ID",
-            "format": "int64"
-          },
-          "firstParentId": {
-            "type": "integer",
-            "description": "父1提交ID",
-            "format": "int64"
-          },
-          "secondParentId": {
-            "type": "integer",
-            "description": "父2提交ID, merge时使用",
-            "format": "int64"
-          },
-          "depth": {
-            "type": "integer",
-            "description": "提交深度",
-            "format": "int32"
-          },
-          "branchId": {
-            "type": "integer",
-            "description": "所属分支id",
-            "format": "int64"
-          }
-        },
-        "description": "分支提交展示响应体"
       },
       "MessageDirectSendRequest": {
         "required": [
@@ -21257,189 +20002,6 @@
         },
         "description": "暂存区响应"
       },
-      "ApiResultModuleInfo": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/ModuleInfo"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "ModuleInfo": {
-        "type": "object",
-        "properties": {
-          "responses": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/StageEntityResponse"
-            }
-          },
-          "moduleMap": {
-            "$ref": "#/components/schemas/ModuleMap"
-          }
-        },
-        "description": "返回对象"
-      },
-      "ModuleMap": {
-        "type": "object",
-        "properties": {
-          "sceneMap": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "description": "存储场景名，到相邻场景的list",
-              "items": {
-                "type": "string",
-                "description": "存储场景名，到相邻场景的list"
-              }
-            },
-            "description": "存储场景名，到相邻场景的list"
-          },
-          "sceneItem": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "description": "存储场景名，到场景内物品list",
-              "items": {
-                "type": "string",
-                "description": "存储场景名，到场景内物品list"
-              }
-            },
-            "description": "存储场景名，到场景内物品list"
-          },
-          "sceneRole": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "description": "存储场景名，到场景内人物list",
-              "items": {
-                "type": "string",
-                "description": "存储场景名，到场景内人物list"
-              }
-            },
-            "description": "存储场景名，到场景内人物list"
-          }
-        }
-      },
-      "ApiResultListStageEntityResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "$ref": "#/components/schemas/StageEntityResponse"
-            }
-          }
-        },
-        "description": "基础返回体"
-      },
-      "ApiResultListBranch": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "$ref": "#/components/schemas/Branch"
-            }
-          }
-        },
-        "description": "基础返回体"
-      },
-      "Branch": {
-        "type": "object",
-        "properties": {
-          "branchId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "name": {
-            "type": "string",
-            "description": "分支名称"
-          },
-          "moduleId": {
-            "type": "integer",
-            "description": "所属模组ID",
-            "format": "int64"
-          },
-          "headCommitId": {
-            "type": "integer",
-            "description": "当前指向的提交ID",
-            "format": "int64"
-          },
-          "isMain": {
-            "type": "string",
-            "description": "是否是主分支(0:否, 1:是)",
-            "format": "byte"
-          },
-          "userId": {
-            "type": "integer",
-            "description": "创建者ID",
-            "format": "int64"
-          },
-          "createTime": {
-            "type": "string",
-            "description": "创建时间",
-            "format": "date-time"
-          },
-          "updateTime": {
-            "type": "string",
-            "description": "更新时间",
-            "format": "date-time"
-          }
-        },
-        "description": "分支表"
-      },
       "ApiResultListUserRole": {
         "required": [
           "success"
@@ -21831,6 +20393,100 @@
           }
         },
         "description": "基础返回体"
+      },
+      "ApiResultModuleInfo": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ModuleInfo"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ModuleInfo": {
+        "type": "object",
+        "properties": {
+          "responses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StageEntityResponse"
+            }
+          },
+          "moduleMap": {
+            "$ref": "#/components/schemas/ModuleMap"
+          }
+        },
+        "description": "返回对象"
+      },
+      "ModuleMap": {
+        "type": "object",
+        "properties": {
+          "sceneMap": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "description": "存储场景名，到相邻场景的list",
+              "items": {
+                "type": "string",
+                "description": "存储场景名，到相邻场景的list"
+              }
+            },
+            "description": "存储场景名，到相邻场景的list"
+          },
+          "sceneItem": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "description": "存储场景名，到场景内物品list",
+              "items": {
+                "type": "string",
+                "description": "存储场景名，到场景内物品list"
+              }
+            },
+            "description": "存储场景名，到场景内物品list"
+          },
+          "sceneRole": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "description": "存储场景名，到场景内人物list",
+              "items": {
+                "type": "string",
+                "description": "存储场景名，到场景内人物list"
+              }
+            },
+            "description": "存储场景名，到场景内人物list"
+          },
+          "sceneLocation": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "description": "一个场景包含了哪些地点",
+              "items": {
+                "type": "string",
+                "description": "一个场景包含了哪些地点"
+              }
+            },
+            "description": "一个场景包含了哪些地点"
+          }
+        },
+        "description": "一个场景是一个逻辑上的概念，没有实体，包含各个实体的引用，聚合了一个阶段的跑团可能用到的所有物品、NPC、和地点信息"
       },
       "ApiResultItemResponse": {
         "required": [

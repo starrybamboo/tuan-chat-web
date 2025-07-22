@@ -1,11 +1,15 @@
+export type TabId = string | number;
+
 export type ModuleContextType = {
   moduleTabItems: ModuleTabItem[];
-  currentSelectedTabId: string | null;
-  stageId: number | null;
-  setStageId: (id: number) => void;
-  setCurrentSelectedTabId: (itemId: string) => void;
+  currentSelectedTabId: TabId | null;
+  stageId: TabId | null;
+  activeList: ModuleListEnum;
+  setStageId: (id: TabId) => void;
+  setCurrentSelectedTabId: (itemId: TabId) => void;
   pushModuleTabItem: (item: ModuleTabItem) => void;
-  removeModuleTabItem: (id: string) => void;
+  removeModuleTabItem: (id: TabId) => void;
+  setActiveList: (list: ModuleListEnum) => void;
 };
 
 /**
@@ -13,7 +17,7 @@ export type ModuleContextType = {
  * 可以按照 type 来区分是哪个类别的 tab
  */
 type BaseModuleTabItem<T> = {
-  id: string;
+  id: string | number; // 唯一标识符
   label: string;
   type: T;
 };
@@ -30,4 +34,11 @@ export enum ModuleItemEnum {
   SCENE = "scene",
   STAGE = "stage",
   COMMIT = "commit",
+}
+
+export enum ModuleListEnum {
+  CONTENT = "content",
+  STAGE = "stage",
+  HISTORY = "history",
+  BRANCH = "branch",
 }
