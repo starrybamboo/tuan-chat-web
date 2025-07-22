@@ -1,4 +1,4 @@
-import { useModuleDetailQuery } from "api/hooks/moduleAndStageQueryHooks";
+import { useModuleDetailQuery } from "api/hooks/moduleQueryHooks";
 import { useNavigate } from "react-router";
 
 function ModuleCard({ id }: { id: number }) {
