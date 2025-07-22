@@ -1,7 +1,7 @@
 import type { StageEntityResponse } from "api";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
-import { useAddMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
+import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import Section from "./section";
 
 export function SceneListItem({
@@ -29,7 +29,7 @@ export function SceneListItem({
         />
         <div className="flex flex-col">
           <p className="self-baseline font-medium">{scene.name}</p>
-          <p className="text-xs text-gray-500 self-baseline mt-0.5">{scene.entityInfo!.sceneDescription}</p>
+          <p className="text-xs text-gray-500 self-baseline mt-0.5 line-clamp-1">{scene.entityInfo!.sceneDescription}</p>
         </div>
       </div>
 
@@ -64,7 +64,7 @@ export function SceneListItem({
 export function SceneList({ stageId }: { stageId: number }) {
   const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem } = useModuleContext();
   const handleClick = (scene: StageEntityResponse) => {
-    const sceneId = scene.createTime! + scene.name;
+    const sceneId = scene.id!.toString();
     const sceneName = scene.name!;
 
     pushModuleTabItem({
@@ -76,14 +76,13 @@ export function SceneList({ stageId }: { stageId: number }) {
   };
 
   // 创建场景和删除
-  const { mutate: createAndDeleteScene } = useAddMutation();
+  const { mutate: createScene } = useAddEntityMutation("scene");
+  const { mutate: deleteScene } = useDeleteEntityMutation();
 
   const handleAddScene = () => {
-    createAndDeleteScene({
+    createScene({
       stageId,
       name: "新场景",
-      entityType: "scene",
-      operationType: 0,
       entityInfo: {
         tip: "给予的提示",
         sceneDescription: "新场景です", // 场景描述（可选）
@@ -100,30 +99,31 @@ export function SceneList({ stageId }: { stageId: number }) {
   const isEmpty = !list || list.length === 0;
 
   return (
-    <div>
-      <Section label="场景" onClick={handleAddScene}>
-        {isEmpty
-          ? (
-              <div className="text-sm text-gray-500 px-2 py-4">暂时没有场景哦</div>
-            )
-          : (
-              <>
-                {list?.map((scene, index) => (
-                  <SceneListItem
-                    // key={scene.entityInfo!.moduleSceneId}
-                    key={index}
-                    scene={scene}
-                    isSelected={currentSelectedTabId === scene.createTime! + scene.name}
-                    onClick={() => handleClick(scene)}
-                    onDelete={() => {
-                      removeModuleTabItem(scene.createTime! + scene.name);
-                      createAndDeleteScene({ entityType: "scene", operationType: 1, stageId, name: scene.name! });
-                    }}
-                  />
-                ))}
-              </>
-            )}
-      </Section>
-    </div>
+    <Section label="场景" onClick={handleAddScene}>
+      {isEmpty
+        ? (
+            <div className="text-sm text-gray-500 px-2 py-4">暂时没有场景哦</div>
+          )
+        : (
+            <>
+              {list?.map((scene, index) => (
+                <SceneListItem
+                  // key={scene.entityInfo!.moduleSceneId}
+                  key={index}
+                  scene={scene}
+                  isSelected={currentSelectedTabId === scene.id!.toString()}
+                  onClick={() => handleClick(scene)}
+                  onDelete={() => {
+                    removeModuleTabItem(scene.id!.toString());
+                    deleteScene({
+                      id: scene.id!,
+                      stageId,
+                    });
+                  }}
+                />
+              ))}
+            </>
+          )}
+    </Section>
   );
 }

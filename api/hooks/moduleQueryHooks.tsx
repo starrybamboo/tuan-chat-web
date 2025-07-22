@@ -10,6 +10,7 @@ import type { ModuleUpdateRequest } from "../models/ModuleUpdateRequest";
 import type { EntityAddRequest } from "../models/EntityAddRequest";
 import type { CommitRequest } from "../models/CommitRequest";
 import type { StageRollbackRequest } from "../models/StageRollbackRequest";
+import type { EntityUpdateRequest } from "api/models/EntityUpdateRequest";
 
 //========================item (物品相关) ==================================
 /**
@@ -236,7 +237,7 @@ export function useAddMutation() {
 }
 
 // 根据entityType添加实体
-export function useAddEntityMutation(entityType: 'item' | 'scene' | 'role' | 'scene') {
+export function useAddEntityMutation(entityType: 'item' | 'scene' | 'role' | 'location') {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: Omit<EntityAddRequest, 'entityType'>) => tuanchat.stageController.add({...req, entityType}),
@@ -248,23 +249,34 @@ export function useAddEntityMutation(entityType: 'item' | 'scene' | 'role' | 'sc
 }
 
 // 重命名实体(调用更新接口)
-export function useRenameMutation(entityType: 'item' | 'scene' | 'role' | 'scene') {
+// export function useRenameMutation(entityType: 'item' | 'scene' | 'role' | 'location') {
+//     const queryClient = useQueryClient();
+//     return useMutation({
+//         mutationFn: (req: { id: number, name: string }) => tuanchat.stageController.update({
+//             id:req.id,
+//             name:req.name,
+//             entityType
+//         }),
+//         mutationKey: ['renameEntity'],
+//         onSuccess: (_data, variables) => {
+//             queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.id] });
+//         }
+//     });
+// }
+
+export function useUpdateEntityMutation(stageId: number) {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: { id: number, name: string }) => tuanchat.stageController.update({
-            id:req.id,
-            name:req.name,
-            entityType
-        }),
-        mutationKey: ['renameEntity'],
-        onSuccess: (_data, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.id] });
+        mutationFn: (req: EntityUpdateRequest) => tuanchat.stageController.update(req),
+        mutationKey: ['updateEntity'],
+        onSuccess: (_data) => {
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', stageId] });
         }
-    });
+    })
 }
 
 // 删除实体
-export function useDeleteEntityMuation() {
+export function useDeleteEntityMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: ({id, stageId}: {id: number, stageId: number}) => tuanchat.stageController.delete({id}),

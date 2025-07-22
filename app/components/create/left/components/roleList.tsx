@@ -4,7 +4,7 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
-import { useAddRoleMutation, useDeleteEntityMuation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
+import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useCreateRoleMutation, useGetUserRolesQuery } from "api/queryHooks";
 import { useState } from "react";
 import Section from "./section";
@@ -33,7 +33,7 @@ function RoleListItem(
         />
         <div className="flex flex-col">
           <p className="self-baseline">{name}</p>
-          <p className="text-xs text-gray-500 self-baseline mt-0.5 line-clamp-1">{role.entityInfo!.description}</p>
+          <p className="text-xs text-gray-500 self-baseline mt-0.5">{role.entityInfo!.description}</p>
         </div>
       </div>
 
@@ -98,11 +98,11 @@ export default function RoleList({ stageId }: { stageId: number }) {
   const userId = useGlobalContext().userId ?? -1;
   const handleClick = (role: StageEntityResponse) => {
     pushModuleTabItem({
-      id: role.id!,
+      id: role.id!.toString(),
       label: role.name!,
       type: ModuleItemEnum.ROLE,
     });
-    setCurrentSelectedTabId(role.id!);
+    setCurrentSelectedTabId(role.id!.toString());
   };
 
   // 模组相关
@@ -139,17 +139,10 @@ export default function RoleList({ stageId }: { stageId: number }) {
   const { data: myRoleData } = useGetUserRolesQuery(userId);
   const myRoleList = myRoleData?.data || [];
 
+  // 添加模组角色
+  const { mutate: addRole } = useAddEntityMutation("role");
   // 删除模组角色
-  const { mutate: deleteRole } = useDeleteEntityMuation();
-  const handleDeleteRole = (roleId: number) => {
-    deleteRole({
-      stageId,
-      id: roleId,
-    });
-  };
-
-  // 将模组角色加入到模组中
-  const { mutate: addRole } = useAddRoleMutation();
+  const { mutate: deleteRole } = useDeleteEntityMutation();
   const handleAddRoleSubmit = () => {
     Promise.all(selectedRoleList.map(role =>
       addRole({
@@ -197,10 +190,13 @@ export default function RoleList({ stageId }: { stageId: number }) {
                 role={i!}
                 name={i!.name || "未命名"}
                 onDelete={() => {
-                  removeModuleTabItem(i.id!);
-                  handleDeleteRole(i.id!);
+                  removeModuleTabItem(i.id!.toString());
+                  deleteRole({
+                    id: i.id!,
+                    stageId,
+                  });
                 }}
-                isSelected={currentSelectedTabId === (i.id)}
+                isSelected={currentSelectedTabId === (i!.id!.toString())}
                 onClick={() => handleClick(i!)}
               />
             )))}

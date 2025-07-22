@@ -2,7 +2,7 @@ import type { StageEntityResponse } from "api";
 import { PopWindow } from "@/components/common/popWindow";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
-import { useAddMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
+import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useState } from "react";
 import { SceneListItem } from "./sceneList";
 import Section from "./section";
@@ -32,7 +32,7 @@ function ItemListItem({
         />
         <div className="flex flex-col">
           <p className="self-baseline font-medium">{item.name}</p>
-          <p className="text-xs text-gray-500 self-baseline mt-0.5">{item.entityInfo!.description}</p>
+          <p className="text-xs text-gray-500 self-baseline mt-0.5 line-clamp-1">{item.entityInfo!.description}</p>
         </div>
       </div>
 
@@ -83,7 +83,7 @@ export default function ItemList({ stageId }: { stageId: number }) {
   // 控制弹窗
   const [isOpen, setIsOpen] = useState(false);
   // // 选择场景
-  const [selectedSceneId, setSelectedSceneId] = useState<string>("");
+  const [selectedSceneId, setSelectedSceneId] = useState<number>(0);
   const handleOpen = () => {
     setIsOpen(true);
   };
@@ -93,12 +93,12 @@ export default function ItemList({ stageId }: { stageId: number }) {
   };
 
   // 创建物品并添加物品
-  const { mutate: addAndDeleteItem } = useAddMutation();
+  const { mutate: addItem } = useAddEntityMutation("item");
+  const { mutate: deleteItem } = useDeleteEntityMutation();
   const handleCreateItemSubmit = () => {
-    addAndDeleteItem({
+    addItem({
       stageId,
       name: "新物品",
-      entityType: "item",
       entityInfo: {
         tip: "悄悄地告诉kp",
         description: "新物品です", // 描述
@@ -126,11 +126,14 @@ export default function ItemList({ stageId }: { stageId: number }) {
                   // key={item.entityInfo!.itemId}
                   key={index}
                   item={item}
-                  isSelected={currentSelectedTabId === item.createTime! + item.name}
+                  isSelected={currentSelectedTabId === item.id!.toString()}
                   onClick={() => handleClick(item)}
                   onDelete={() => {
-                    removeModuleTabItem(item.createTime! + item.name);
-                    addAndDeleteItem({ operationType: 1, entityType: "item", entityInfo: item.entityInfo!, stageId, name: item.name! });
+                    removeModuleTabItem(item.id!.toString());
+                    deleteItem({
+                      id: item.id!,
+                      stageId,
+                    });
                   }}
                 />
               ))
@@ -145,8 +148,8 @@ export default function ItemList({ stageId }: { stageId: number }) {
                 // key={scene.entityInfo!.sceneId}
                 key={index}
                 scene={scene}
-                isSelected={selectedSceneId === scene.createTime! + scene.name}
-                onClick={() => setSelectedSceneId(scene.createTime! + scene.name)}
+                isSelected={selectedSceneId === scene.id!}
+                onClick={() => setSelectedSceneId(scene.id!)}
               />
             ))}
           </div>

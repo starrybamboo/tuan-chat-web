@@ -1,6 +1,7 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { CharacterCopper } from "@/components/newCharacter/CharacterCopper";
-import { useAddMutation, useRenameMutation } from "api/hooks/moduleQueryHooks";
+import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
+// import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useState } from "react";
 import { useModuleContext } from "./context/_moduleContext";
 
@@ -12,62 +13,38 @@ export default function NPCEdit({ role }: NPCEditProps) {
   // entityInfo 结构见后端定义
   const entityInfo = role.entityInfo || {};
   const { stageId, removeModuleTabItem } = useModuleContext();
-
   // 本地状态
   const [localRole, setLocalRole] = useState({ ...entityInfo });
+  const [ability, setAbility] = useState(entityInfo.ability || {});
   const [name, setName] = useState(role.name);
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [charCount, setCharCount] = useState(entityInfo.description?.length || 0);
+
+  // 获取规则详细
+  // const { data: ruleAbility } = useGetRuleDetailQuery(1);
   const MAX_DESCRIPTION_LENGTH = 140;
 
   useEffect(() => {
     setLocalRole({ ...entityInfo, name: role.name });
+    setAbility(entityInfo.ability || {});
     setCharCount(entityInfo.description?.length || 0);
     setName(role.name);
-  }, [role]);
+  }, [entityInfo, role]);
 
   // 接入接口
-  const { mutate: updateRole } = useAddMutation();
-  const { mutate: renameRole } = useRenameMutation("role");
-
-  // 表演属性
-  // act 字段相关本地状态
-  const [actFields, setActFields] = useState<{ [key: string]: string }>(localRole.act || {});
-  const [newActKey, setNewActKey] = useState("");
-  const [newActValue, setNewActValue] = useState("");
-
-  // 编辑 act 字段
-  const handleActFieldChange = (key: string, value: string) => {
-    setActFields(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleDeleteActField = (key: string) => {
-    const updated = { ...actFields };
-    delete updated[key];
-    setActFields(updated);
-  };
-
-  const handleAddActField = () => {
-    if (newActKey.trim() && newActValue.trim()) {
-      setActFields(prev => ({ ...prev, [newActKey.trim()]: newActValue }));
-      setNewActKey("");
-      setNewActValue("");
-    }
-  };
+  const { mutate: updateRole } = useUpdateEntityMutation(stageId as number);
 
   const handleSave = () => {
     setIsTransitioning(true);
-    // 保存到localRole
-    setLocalRole(prev => ({ ...prev, act: actFields }));
     setTimeout(() => {
+      const updatedRole = { ...localRole, ability };
       setIsTransitioning(false);
       setIsEditing(false);
-      updateRole({ stageId: stageId as number, entityType: "role", entityInfo: localRole, name: role.name! });
-      if (name !== role.name && name) {
-        removeModuleTabItem(role.id!);
-        renameRole({ id: role.id!, name });
+      if (name !== role.name) {
+        removeModuleTabItem(role.id!.toString());
       }
+      updateRole({ id: role.id!, entityType: "role", entityInfo: updatedRole, name });
     }, 300);
   };
 
@@ -89,17 +66,71 @@ export default function NPCEdit({ role }: NPCEditProps) {
     const updatedRole = { ...localRole, avatar };
     setLocalRole(updatedRole);
     updateRole({
-      stageId: stageId as number,
+      id: role.id!,
       entityType: "role",
-      entityInfo: updatedRole, // 使用新创建的updatedRole而不是localRole
+      entityInfo: updatedRole,
       name: role.name!,
     });
   };
 
+  // 计算六大属性
+  const hp = ability.con && ability.siz ? Math.floor((ability.con + ability.siz) / 10) : "-";
+  const san = ability.pow ?? "-";
+  // MOV 计算
+  let mov: string = "-";
+  if (typeof ability.dex === "number" && typeof ability.str === "number" && typeof ability.siz === "number") {
+    if (ability.dex < ability.siz && ability.str < ability.siz)
+      mov = "7";
+    else if (ability.dex > ability.siz && ability.str > ability.siz)
+      mov = "9";
+    else mov = "8";
+  }
+  // MP 计算
+  const mp = ability.pow ? Math.floor(ability.pow / 5).toString() : "-";
+
+  // 伤害加值和体格计算
+  let db = "-";
+  let build = "-";
+  if (typeof ability.str === "number" && typeof ability.siz === "number") {
+    const sum = ability.str + ability.siz;
+    if (sum >= 2 && sum <= 64) {
+      db = "-2";
+      build = "-2";
+    }
+    else if (sum >= 65 && sum <= 84) {
+      db = "-1";
+      build = "-1";
+    }
+    else if (sum >= 85 && sum <= 124) {
+      db = "0";
+      build = "0";
+    }
+    else if (sum >= 125 && sum <= 164) {
+      db = "+1d4";
+      build = "1";
+    }
+    else if (sum >= 165 && sum <= 204) {
+      db = "+1d6";
+      build = "2";
+    }
+    else if (sum >= 205 && sum <= 284) {
+      db = "+2d6";
+      build = "3";
+    }
+    else if (sum >= 285 && sum <= 364) {
+      db = "+3d6";
+      build = "4";
+    }
+    // 超过364，按每80点递增1d6和+1体格
+    else if (sum > 364) {
+      const extra = Math.floor((sum - 285) / 80) + 1;
+      db = `+${extra + 2}d6`;
+      build = `${extra + 2}`;
+    }
+  }
+
   return (
-    <div
-      className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}
-    >
+    <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
       {/* 基础信息卡片 */}
       <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
         <div className="card-body">
@@ -190,6 +221,35 @@ export default function NPCEdit({ role }: NPCEditProps) {
                   )}
             </div>
           </div>
+          {/* 六大属性展示区 */}
+          <div className="mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-6">
+              <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+                <span className="text-xs text-gray-500 mb-1">生命值</span>
+                <span className="font-bold text-lg">{hp}</span>
+              </div>
+              <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+                <span className="text-xs text-gray-500 mb-1">理智值</span>
+                <span className="font-bold text-lg">{san}</span>
+              </div>
+              <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+                <span className="text-xs text-gray-500 mb-1">移动速度</span>
+                <span className="font-bold text-lg">{mov}</span>
+              </div>
+              <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+                <span className="text-xs text-gray-500 mb-1">魔法值</span>
+                <span className="font-bold text-lg">{mp}</span>
+              </div>
+              <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+                <span className="text-xs text-gray-500 mb-1">伤害加值</span>
+                <span className="font-bold text-lg">{db}</span>
+              </div>
+              <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+                <span className="text-xs text-gray-500 mb-1">体格</span>
+                <span className="font-bold text-lg">{build}</span>
+              </div>
+            </div>
+          </div>
           {/* 操作按钮 */}
           <div className="card-actions justify-end">
             {isEditing
@@ -239,81 +299,184 @@ export default function NPCEdit({ role }: NPCEditProps) {
                   </button>
                 )}
           </div>
-          {/* act 字段编辑区 */}
+          {/* 属性表格区域，UI参考NumericalEditor */}
           <div className="mt-6">
-            <h3 className="font-bold mb-2">角色表演属性</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {Object.entries(actFields).map(([key, value]) => (
-                <div key={key} className="group">
-                  {isEditing
-                    ? (
-                        <div className="flex items-center gap-1">
-                          <fieldset className="fieldset relative bg-base-200 border-base-300 rounded-box w-full">
-                            <legend className="fieldset-legend text-sm">{key}</legend>
-                            <textarea
-                              value={value}
-                              onChange={e => handleActFieldChange(key, e.target.value)}
-                              className="textarea w-full resize-none"
-                              rows={1}
+            <h3 className="font-bold mb-2 w-full border-b-2">角色属性</h3>
+            <div className="overflow-x-auto">
+              <table className="table bg-base-200 rounded-lg">
+                <thead>
+                  <tr className="bg-base-100">
+                    <th className="text-center">属性</th>
+                    <th className="text-center">数值</th>
+                    <th className="text-center">英文</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="text-center font-bold">力量</td>
+                    <td className="text-center">
+                      {isEditing
+                        ? (
+                            <input
+                              type="number"
+                              className="input input-bordered input-sm w-20 text-center"
+                              value={ability.str ?? ""}
+                              onChange={e => setAbility((prev: any) => ({ ...prev, str: Number(e.target.value) }))}
                             />
-                            <button
-                              type="button"
-                              className="absolute -top-6 -right-3 btn btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-gray-800 hover:text-white rounded-full p-1"
-                              onClick={() => handleDeleteActField(key)}
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
-                                <path
-                                  fill="currentColor"
-                                  d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-                                />
-                              </svg>
-                            </button>
-                          </fieldset>
-                        </div>
-                      )
-                    : (
-                        <div className="card bg-base-100 shadow-sm p-2 h-full">
-                          <div className="divider">{key}</div>
-                          <div className="text-base-content mt-0.5 flex justify-center p-2">
-                            <div className="text-left">
-                              {value || <span className="text-base-content/50">未设置</span>}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                </div>
-              ))}
+                          )
+                        : (
+                            <span className="font-bold text-lg">{ability.str ?? "-"}</span>
+                          )}
+                    </td>
+                    <td className="text-center text-xs text-gray-500">STR</td>
+                  </tr>
+                  <tr>
+                    <td className="text-center font-bold">敏捷</td>
+                    <td className="text-center">
+                      {isEditing
+                        ? (
+                            <input
+                              type="number"
+                              className="input input-bordered input-sm w-20 text-center"
+                              value={ability.dex ?? ""}
+                              onChange={e => setAbility((prev: any) => ({ ...prev, dex: Number(e.target.value) }))}
+                            />
+                          )
+                        : (
+                            <span className="font-bold text-lg">{ability.dex ?? "-"}</span>
+                          )}
+                    </td>
+                    <td className="text-center text-xs text-gray-500">DEX</td>
+                  </tr>
+                  <tr>
+                    <td className="text-center font-bold">意志</td>
+                    <td className="text-center">
+                      {isEditing
+                        ? (
+                            <input
+                              type="number"
+                              className="input input-bordered input-sm w-20 text-center"
+                              value={ability.pow ?? ""}
+                              onChange={e => setAbility((prev: any) => ({ ...prev, pow: Number(e.target.value) }))}
+                            />
+                          )
+                        : (
+                            <span className="font-bold text-lg">{ability.pow ?? "-"}</span>
+                          )}
+                    </td>
+                    <td className="text-center text-xs text-gray-500">POW</td>
+                  </tr>
+                  <tr>
+                    <td className="text-center font-bold">体质</td>
+                    <td className="text-center">
+                      {isEditing
+                        ? (
+                            <input
+                              type="number"
+                              className="input input-bordered input-sm w-20 text-center"
+                              value={ability.con ?? ""}
+                              onChange={e => setAbility((prev: any) => ({ ...prev, con: Number(e.target.value) }))}
+                            />
+                          )
+                        : (
+                            <span className="font-bold text-lg">{ability.con ?? "-"}</span>
+                          )}
+                    </td>
+                    <td className="text-center text-xs text-gray-500">CON</td>
+                  </tr>
+                  <tr>
+                    <td className="text-center font-bold">外貌</td>
+                    <td className="text-center">
+                      {isEditing
+                        ? (
+                            <input
+                              type="number"
+                              className="input input-bordered input-sm w-20 text-center"
+                              value={ability.app ?? ""}
+                              onChange={e => setAbility((prev: any) => ({ ...prev, app: Number(e.target.value) }))}
+                            />
+                          )
+                        : (
+                            <span className="font-bold text-lg">{ability.app ?? "-"}</span>
+                          )}
+                    </td>
+                    <td className="text-center text-xs text-gray-500">APP</td>
+                  </tr>
+                  <tr>
+                    <td className="text-center font-bold">教育</td>
+                    <td className="text-center">
+                      {isEditing
+                        ? (
+                            <input
+                              type="number"
+                              className="input input-bordered input-sm w-20 text-center"
+                              value={ability.edu ?? ""}
+                              onChange={e => setAbility((prev: any) => ({ ...prev, edu: Number(e.target.value) }))}
+                            />
+                          )
+                        : (
+                            <span className="font-bold text-lg">{ability.edu ?? localRole.ability?.edu ?? "-"}</span>
+                          )}
+                    </td>
+                    <td className="text-center text-xs text-gray-500">EDU</td>
+                  </tr>
+                  <tr>
+                    <td className="text-center font-bold">体型</td>
+                    <td className="text-center">
+                      {isEditing
+                        ? (
+                            <input
+                              type="number"
+                              className="input input-bordered input-sm w-20 text-center"
+                              value={ability.siz ?? ""}
+                              onChange={e => setAbility((prev: any) => ({ ...prev, siz: Number(e.target.value) }))}
+                            />
+                          )
+                        : (
+                            <span className="font-bold text-lg">{ability.siz ?? "-"}</span>
+                          )}
+                    </td>
+                    <td className="text-center text-xs text-gray-500">SIZ</td>
+                  </tr>
+                  <tr>
+                    <td className="text-center font-bold">智力</td>
+                    <td className="text-center">
+                      {isEditing
+                        ? (
+                            <input
+                              type="number"
+                              className="input input-bordered input-sm w-20 text-center"
+                              value={ability.int ?? ""}
+                              onChange={e => setAbility((prev: any) => ({ ...prev, int: Number(e.target.value) }))}
+                            />
+                          )
+                        : (
+                            <span className="font-bold text-lg">{ability.int ?? "-"}</span>
+                          )}
+                    </td>
+                    <td className="text-center text-xs text-gray-500">INT</td>
+                  </tr>
+                  <tr>
+                    <td className="text-center font-bold">幸运</td>
+                    <td className="text-center">
+                      {isEditing
+                        ? (
+                            <input
+                              type="number"
+                              className="input input-bordered input-sm w-20 text-center"
+                              value={ability.luck ?? ""}
+                              onChange={e => setAbility((prev: any) => ({ ...prev, luck: Number(e.target.value) }))}
+                            />
+                          )
+                        : (
+                            <span className="font-bold text-lg">{ability.luck ?? "-"}</span>
+                          )}
+                    </td>
+                    <td className="text-center text-xs text-gray-500">LUCK</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            {/* 添加新字段 */}
-            {isEditing && (
-              <fieldset className="border border-base-300 rounded-lg p-4 mt-4">
-                <legend className="px-2 font-bold">添加新表演属性</legend>
-                <input
-                  type="text"
-                  placeholder="属性名称"
-                  className="input input-bordered input-sm w-1/4 mt-2"
-                  value={newActKey}
-                  onChange={e => setNewActKey(e.target.value)}
-                />
-                <div className="relative w-full">
-                  <textarea
-                    placeholder="值"
-                    className="textarea textarea-bordered textarea-sm w-full h-30 resize-none mt-4"
-                    value={newActValue}
-                    onChange={e => setNewActValue(e.target.value)}
-                    rows={1}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-primary absolute bottom-2 right-2"
-                    onClick={handleAddActField}
-                    disabled={!newActKey || !newActValue}
-                  >
-                    添加属性
-                  </button>
-                </div>
-              </fieldset>
-            )}
           </div>
         </div>
       </div>
