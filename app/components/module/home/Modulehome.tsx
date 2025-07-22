@@ -248,38 +248,6 @@ export default function ModuleHome() {
     pageSize: itemsPerPage,
   });
 
-  // 示例数据
-  const textCards = [
-    {
-      id: "text-1",
-      title: "创作灵感",
-      content: "在这里，每一个想法都可能成为下一个精彩的故事。让创意在协作中绽放，让故事在共创中升华。",
-      type: "text" as const,
-      theme: "default" as const,
-    },
-    {
-      id: "text-2",
-      title: "社区协作",
-      content: "加入我们的创作社区，与志同道合的创作者一起构建令人惊叹的故事世界。",
-      type: "text" as const,
-      theme: "default" as const,
-    },
-    {
-      id: "text-3",
-      title: "技术创新",
-      content: "运用最新的技术和工具，打造更加流畅和沉浸式的游戏体验，让每一个细节都完美呈现。",
-      type: "text" as const,
-      theme: "default" as const,
-    },
-    {
-      id: "text-4",
-      title: "开放生态",
-      content: "构建开放包容的创作生态，让每个人都能找到属于自己的创作方式和表达空间。",
-      type: "text" as const,
-      theme: "default" as const,
-    },
-  ];
-
   // 计算分页数据 - 使用 API 数据
   const moduleData = ModuleList.data?.data;
   const totalPages = moduleData?.totalRecords ? Math.ceil(moduleData.totalRecords / itemsPerPage) : 1;
@@ -409,18 +377,6 @@ export default function ModuleHome() {
       </div>
       {/* 其他内容区域 */}
       <div className="p-8">
-        {/* 文本卡片区域 */}
-        <ModuleHomeCardContainer title="" className="mb-12">
-          {textCards.map(card => (
-            <ContentCard
-              key={card.id}
-              title={card.title}
-              content={card.content}
-              type={card.type}
-              theme={card.theme}
-            />
-          ))}
-        </ModuleHomeCardContainer>
 
         {/* 图片卡片区域 */}
         <div id="featured-content">
