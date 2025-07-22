@@ -83,7 +83,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
   const renderedContent = useMemo(() => {
     if (message.messageType === 2) {
       return (
-        <div>
+        <div className="overflow-hidden">
           <BetterImg
             src={imgMsg?.url || message.extra?.fileMessage?.url}
             size={{ width: imgMsg?.width, height: imgMsg?.height }}
