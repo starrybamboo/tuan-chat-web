@@ -66,13 +66,16 @@ export default function FriendItem({
         navigate(`/privatechat/${id}`);
       }}
     >
+      {/* 头像 */}
       <UserAvatarComponent
         userId={id}
         width={12}
         isRounded={true}
         uniqueKey={`chatlist-${id}`}
       />
-      <div className="flex-1 flex flex-col justify-center min-w-0">
+      {/* 用户名和最新消息 */}
+      <div className="flex-1 flex flex-col gap-1 justify-center min-w-0">
+        {/* 用户名和未读消息数 */}
         <div className="flex items-center gap-2">
           <span className="font-medium">
             {userInfoQuery.isLoading
@@ -87,10 +90,12 @@ export default function FriendItem({
             </span>
           )}
         </div>
+        {/* 最新消息内容 */}
         <span className="text-sm text-base-content/70 truncate">
           {latestMessage}
         </span>
       </div>
+      {/* 最新消息时间 */}
       <span className="text-sm text-base-content/70 truncate">
         {formatLatestMessageTime(latestMessageTime)}
       </span>

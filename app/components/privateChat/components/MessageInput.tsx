@@ -62,7 +62,7 @@ export default function MessageInput({
             />
           </div>
           <div className="flex items-center gap-2">
-            <Emoji>
+            <Emoji updateImgFiles={updateImgFiles}>
               <EmojiIcon className="size-6 cursor-pointer hover:text-blue-500 transition-colors" />
             </Emoji>
 
@@ -112,7 +112,7 @@ export default function MessageInput({
         <div className="h-12 w-full flex items-center justify-between px-2">
           {/* 工具 */}
           <div className="h-full flex items-center gap-4">
-            <Emoji>
+            <Emoji updateImgFiles={updateImgFiles}>
               <EmojiIcon className="size-6 cursor-pointer hover:text-blue-500 transition-colors" />
             </Emoji>
             <Image updateImgFiles={updateImgFiles}>
@@ -134,20 +134,41 @@ export default function MessageInput({
   );
 }
 
-function Emoji({ children }: { children: React.ReactNode }) {
+function Emoji({ children, updateImgFiles }: { children: React.ReactNode; updateImgFiles: (recipe: (draft: File[]) => void) => void }) {
+  const onChoose = async (emoji: any) => {
+    // 通过 fetch 获取图片 blob
+    const response = await fetch(emoji.imageUrl);
+    const blob = await response.blob();
+
+    // 用 blob 创建 File
+    const file = new File(
+      [blob],
+      `${emoji.name || "emoji"}-${emoji.emojiId}.${emoji.format}`,
+      { type: blob.type },
+    );
+
+    // 添加到图片列表
+    updateImgFiles((draft) => {
+      draft.push(file);
+    });
+  };
   return (
     <div className="dropdown dropdown-top flex items-center justify-center h-full">
       {/* dropdown 默认展示 */}
       <div
         role="button"
+        tabIndex={0}
         className="tooltip"
         data-tip="发送表情"
       >
         {children}
       </div>
       {/* dropdown 表情选择窗口 */}
-      <ul className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto">
-        <EmojiWindow></EmojiWindow>
+      <ul
+        tabIndex={0}
+        className="dropdown-content menu bg-base-100 rounded-box z-1 w-80 p-2 shadow-sm overflow-y-auto"
+      >
+        <EmojiWindow onChoose={onChoose}></EmojiWindow>
       </ul>
     </div>
   );
