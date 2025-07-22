@@ -23,7 +23,7 @@ function LeftContent() {
         return (
           <div className="h-full bg-base-100">
             {editingStageId
-              ? <ModuleItems stageId={editingStageId} />
+              ? <ModuleItems stageId={editingStageId as number} />
               : (
                   <div className="p-4">
                     <p className="text-gray-600">请先选择一个模组</p>
