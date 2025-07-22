@@ -4,6 +4,7 @@ import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import Section from "../Section";
 import GenerateByAI from "./GenerateByAI";
+import ImportWithStCmd from "./ImportWithStCmd";
 import NumericalEditor from "./NumericalEditor";
 import { deepOverrideTargetWithSource, flattenConstraints, wrapIntoNested } from "./ObjectExpansion";
 import PerformanceEditor from "./PerformanceEditor";
@@ -156,6 +157,11 @@ export default function ExpansionModule({
                 }}
                 onChange={handleNumericalChange}
                 abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
+              />
+              <ImportWithStCmd
+                ruleId={selectedRuleId}
+                roleId={roleId}
+                onImportSuccess={() => {}}
               />
               <GenerateByAI
                 ruleId={selectedRuleId}
