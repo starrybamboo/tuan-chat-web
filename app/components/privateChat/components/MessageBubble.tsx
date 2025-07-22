@@ -36,8 +36,8 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
   // 获取消息气泡的样式类
   const getMessageBubbleClass = () => {
     const baseClass = isOwn
-      ? "bg-info text-info-content rounded-lg max-w-[70%]"
-      : "bg-base-300 text-base-content rounded-lg max-w-[70%]";
+      ? "bg-info text-info-content rounded-lg max-w-[70%] h-full"
+      : "bg-base-300 text-base-content rounded-lg max-w-[70%] h-full";
 
     if (message.messageType === 2) {
       // 图片消息减少内边距
@@ -50,30 +50,62 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
   };
 
   return (
-    <div key={message.messageId} className={`flex items-start gap-2 ${isOwn ? "justify-end" : ""}`}>
+    <div key={message.messageId} className={`flex items-start gap-2 relative ${isOwn ? "justify-end" : ""}`}>
       {/* 左侧头像（接收的消息） */}
       {!isOwn && (
-        <UserAvatarComponent
-          userId={message.senderId || -1}
-          width={12}
-          isRounded={true}
-          uniqueKey={`${message.senderId}${message.messageId}`}
-        />
+        <>
+          <UserAvatarComponent
+            userId={message.senderId || -1}
+            width={10}
+            isRounded={true}
+            uniqueKey={`${message.senderId}${message.messageId}`}
+          />
+          <div className={`text-xs text-base-content/70 absolute left-12 -bottom-4 opacity-0 message-time-${message.messageId} transition-opacity duration-200`}>
+            {new Date(message.createTime || Date.now()).getFullYear() !== new Date().getFullYear() && `${new Date(message.createTime || Date.now()).getFullYear()}/`}
+            {new Date(message.createTime || Date.now()).toLocaleDateString() !== new Date().toLocaleDateString() && `${new Date(message.createTime || Date.now()).toLocaleDateString(undefined, { month: "2-digit", day: "2-digit" })} `}
+            {new Date(message.createTime || Date.now()).toLocaleTimeString()}
+          </div>
+        </>
       )}
 
       {/* 消息内容 */}
-      <div className={getMessageBubbleClass()}>
+      <div
+        className={getMessageBubbleClass()}
+        onMouseEnter={() => {
+          // 鼠标悬停时显示时间
+          const timeElement = document.querySelector(`.message-time-${message.messageId}`);
+          if (timeElement) {
+            timeElement.classList.remove("opacity-0");
+            timeElement.classList.add("opacity-100");
+          }
+        }}
+        onMouseLeave={() => {
+          // 鼠标离开时隐藏时间
+          const timeElement = document.querySelector(`.message-time-${message.messageId}`);
+          if (timeElement) {
+            timeElement.classList.remove("opacity-100");
+            timeElement.classList.add("opacity-0");
+          }
+        }}
+      >
         {renderMessageContent()}
       </div>
 
       {/* 右侧头像（发送的消息） */}
       {isOwn && (
-        <UserAvatarComponent
-          userId={message.senderId || -1}
-          width={12}
-          isRounded={true}
-          uniqueKey={`${message.senderId}${message.messageId}`}
-        />
+        <div>
+          <UserAvatarComponent
+            userId={message.senderId || -1}
+            width={10}
+            isRounded={true}
+            uniqueKey={`${message.senderId}${message.messageId}`}
+          />
+          <div className={`text-xs text-base-content/70 absolute right-12 -bottom-4 opacity-0 message-time-${message.messageId} transition-opacity duration-200`}>
+            {new Date(message.createTime || Date.now()).getFullYear() !== new Date().getFullYear() && `${new Date(message.createTime || Date.now()).getFullYear()}/`}
+            {new Date(message.createTime || Date.now()).toLocaleDateString() !== new Date().toLocaleDateString() && `${new Date(message.createTime || Date.now()).toLocaleDateString(undefined, { month: "2-digit", day: "2-digit" })} `}
+            {new Date(message.createTime || Date.now()).toLocaleTimeString()}
+          </div>
+        </div>
       )}
     </div>
   );
