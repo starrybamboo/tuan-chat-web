@@ -10,13 +10,14 @@ import React, { useEffect, useRef, useState } from "react";
  * @param size 图片的尺寸，用于优化加载体验
  * @param popWindowKey 弹窗的searchParam key。如果同一页面会出现多个同一url的图片时，需要指定
  */
-function BetterImg({ src, className, onClose, size, popWindowKey }:
-{
+
+function BetterImg({ src, className, onClose, size, popWindowKey, transparent = true }: {
   src: string | File | undefined;
   className?: string;
   onClose?: () => void;
   size?: { width?: number; height?: number };
   popWindowKey?: string;
+  transparent?: boolean;
 }) {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -36,13 +37,18 @@ function BetterImg({ src, className, onClose, size, popWindowKey }:
       const containerMouseX = mouseX - containerRect.left;
       const containerMouseY = mouseY - containerRect.top;
 
-      // 计算当前鼠标位置在图片坐标系中的位置
-      const imgMouseX = (containerMouseX - position.x) / scale;
-      const imgMouseY = (containerMouseY - position.y) / scale;
+      // 计算容器中心点
+      const containerCenterX = containerRect.width / 2;
+      const containerCenterY = containerRect.height / 2;
 
-      // 计算新的位置，使鼠标位置在图片上的点保持不变
-      const newX = containerMouseX - imgMouseX * newScale;
-      const newY = containerMouseY - imgMouseY * newScale;
+      // 计算鼠标相对于图片中心的偏移
+      const offsetX = containerMouseX - containerCenterX;
+      const offsetY = containerMouseY - containerCenterY;
+
+      // 根据缩放比例调整位置，使鼠标位置保持不变
+      const scaleRatio = newScale / scale;
+      const newX = position.x - offsetX * (scaleRatio - 1);
+      const newY = position.y - offsetY * (scaleRatio - 1);
 
       setPosition({ x: newX, y: newY });
       setScale(newScale);
@@ -86,6 +92,15 @@ function BetterImg({ src, className, onClose, size, popWindowKey }:
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.25 : 0.25;
     zoom(delta, e.clientX, e.clientY);
+  };
+
+  // 点击容器空白区域关闭图片查看
+  const handleContainerClick = (e: React.MouseEvent) => {
+    // 只有当点击的是容器本身（不是图片）时才关闭
+    if (e.target === e.currentTarget) {
+      setIsOpen(false);
+      resetZoom();
+    }
   };
 
   useEffect(() => {
@@ -133,15 +148,18 @@ function BetterImg({ src, className, onClose, size, popWindowKey }:
           setIsOpen(false);
           resetZoom();
         }}
+        fullScreen={true}
+        transparent={transparent}
       >
         <div
-          className="relative overflow-hidden"
+          className={`relative overflow-hidden flex justify-center items-center ${transparent ? "w-screen h-screen" : ""}`}
           ref={containerRef}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave} // 新增事件处理
           onWheel={handleWheel}
+          onClick={handleContainerClick} // 点击容器空白区域关闭图片查看
           style={{
             // 根据缩放状态和拖动状态显示不同光标
             cursor: isDragging ? "grabbing" : scale > 1 ? "grab" : "default",
@@ -152,7 +170,7 @@ function BetterImg({ src, className, onClose, size, popWindowKey }:
             style={{
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
               transition: isDragging ? "none" : "transform 0.2s ease",
-              transformOrigin: "0 0",
+              transformOrigin: "center center", // 修改为中心缩放
             }}
           >
             <img
@@ -161,6 +179,7 @@ function BetterImg({ src, className, onClose, size, popWindowKey }:
               alt="img"
               width={size?.width}
               height={size?.height}
+              onClick={e => e.stopPropagation()} // 防止点击图片时触发容器的关闭事件
             />
           </div>
         </div>

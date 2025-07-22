@@ -1,14 +1,13 @@
 import type { useGetMessageDirectPageQuery } from "api/hooks/MessageDirectQueryHooks";
-import type {
-  MessageDirectResponse,
-  MessageDirectSendRequest,
-} from "../../../../api";
+import type { MessageDirectResponse } from "../../../../api";
 import { SideDrawerToggle } from "@/components/common/sideDrawer";
-import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ChevronRight, MoreMenu } from "@/icons";
 import { useGetUserInfoQuery } from "api/queryHooks";
 import { useEffect, useRef, useState } from "react";
+
+import { usePrivateMessageSender } from "../hooks/usePrivateMessageSender";
+import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
 
 export default function RightChatView(
@@ -25,27 +24,22 @@ export default function RightChatView(
   const globalContext = useGlobalContext();
   const userId = globalContext.userId || -1;
   const webSocketUtils = globalContext.websocketUtils;
-  const WEBSOCKET_TYPE = 5; // WebSocket 消息类型
 
   // 当前联系人信息
   const currentContactUserInfo = useGetUserInfoQuery(currentContactUserId || -1).data?.data;
-  // 用户输入
-  const [messageInput, setMessageInput] = useState("");
 
-  // 发送私聊消息相关
-  const send = (message: MessageDirectSendRequest) => webSocketUtils.send({ type: WEBSOCKET_TYPE, data: message }); // 私聊消息发送
-  const handleSendMessage = () => {
-    if (messageInput.trim() === "")
-      return;
-    const sendMessage: MessageDirectSendRequest = {
-      receiverId: currentContactUserId || -1,
-      content: messageInput,
-      messageType: 1,
-      extra: {},
-    };
-    send(sendMessage); // 当消息发送到服务器后，服务器会通过 WebSocket 广播给所有在线用户
-    setMessageInput(""); // 包括发送者自己也会收到这条消息的回显，无需主动refetch
-  };
+  // 使用自定义hook处理消息发送
+  const {
+    messageInput,
+    setMessageInput,
+    imgFiles,
+    updateImgFiles,
+    handleSendMessage,
+  } = usePrivateMessageSender({
+    webSocketUtils,
+    userId,
+    currentContactUserId,
+  });
 
   // 滚动相关
   const messagesLatestRef = useRef<HTMLDivElement>(null); // 用于滚动到最新消息的引用
@@ -152,33 +146,11 @@ export default function RightChatView(
 
                 {/* 消息列表项 */}
                 {allMessages.map(msg => (
-                  msg.senderId === userId
-                    ? (
-                        <div key={msg.messageId} className="flex items-start justify-end gap-2">
-                          <div className="bg-info text-info-content p-2 rounded-lg">
-                            {msg.content}
-                          </div>
-                          <UserAvatarComponent
-                            userId={msg.senderId || -1}
-                            width={12}
-                            isRounded={true}
-                            uniqueKey={`${msg.senderId}${msg.messageId}`}
-                          />
-                        </div>
-                      )
-                    : (
-                        <div key={msg.messageId} className="flex items-start gap-2">
-                          <UserAvatarComponent
-                            userId={msg.senderId || -1}
-                            width={12}
-                            isRounded={true}
-                            uniqueKey={`${msg.senderId}${msg.messageId}`}
-                          />
-                          <div className="bg-base-300 text-base-content p-2 rounded-lg">
-                            {msg.content}
-                          </div>
-                        </div>
-                      )
+                  <MessageBubble
+                    key={msg.messageId}
+                    message={msg}
+                    isOwn={msg.senderId === userId}
+                  />
                 ))}
                 {/* 滚动锚点 */}
                 <div ref={messagesLatestRef} />
@@ -197,6 +169,8 @@ export default function RightChatView(
         setMessageInput={setMessageInput}
         messageInput={messageInput}
         handleSendMessage={handleSendMessage}
+        imgFiles={imgFiles}
+        updateImgFiles={updateImgFiles}
       />
     </div>
   );

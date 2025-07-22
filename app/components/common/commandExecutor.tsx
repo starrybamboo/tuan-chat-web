@@ -1,17 +1,15 @@
+import type { Initiative } from "@/components/chat/sideDrawer/initiativeList";
+import { useRoomExtra } from "@/components/chat/hooks";
 import { useEffect, useRef } from "react";
 import { useParams } from "react-router";
+// type DiceResult = { x: number; y: number; rolls: number[]; total: number };
+
 import {
   useGetRoleAbilitiesQuery,
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityMutation,
 } from "../../../api/hooks/abilityQueryHooks";
-import {
-  useGetRoomInitiativeListQuery,
-  useRoomInitiativeListMutation,
-} from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleQuery } from "../../../api/queryHooks";
-// type DiceResult = { x: number; y: number; rolls: number[]; total: number };
-
 import { roll } from "./dice";
 
 // 属性名中英文对照表
@@ -61,9 +59,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
   // 通过以下的mutation来对后端发送引起数据变动的请求
   const updateAbilityMutation = useUpdateRoleAbilityMutation(); // 更改属性与能力字段
   const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
-  const initiativeListMutation = useRoomInitiativeListMutation(roomId); // 更新先攻表
-
-  const initiativeList = useGetRoomInitiativeListQuery(roomId).data ?? [];
+  const [initiativeList, setInitiativeList] = useRoomExtra<Initiative[]>(roomId, "initiativeList", []);
 
   useEffect(() => {
     try {
@@ -232,23 +228,82 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
    * @const
    */
   function handleRc(args: string[]): string {
-    let [attr] = args;
+    // 所有参数转为小写
+    args = args.map(arg => arg.toLowerCase());
+    // 解析参数
+    // 1. 以正负号开头的数字
+    const signedNumbers = args.filter(str => /^[+-]\d+(?:\.\d+)?$/.test(str));
+
+    // 2. 无符号数字
+    const unsignedNumbers = args.filter(str => /^\d+(?:\.\d+)?$/.test(str));
+
+    // 3. 数字（可无）跟字母b或p
+    const numWithBp = args.filter(str => /^\d*[bp]$/.test(str));
+
+    // 4. 其他
+    const names = args.filter(str =>
+      !/^[+-]\d+(?:\.\d+)?$/.test(str)
+      && !/^\d+(?:\.\d+)?$/.test(str)
+      && !/^\d*[bp]$/.test(str),
+    );
+    const [attr] = unsignedNumbers;
+    const [bonus] = signedNumbers;
+    // 计算加权总和
+    const bp: number = numWithBp.reduce((sum, item) => {
+      // 正则匹配：提取数字部分（可含正负号）和末尾的b/p
+      const match = item.match(/^([+-]?\d*)([bp])$/);
+      if (!match) {
+        throw new Error(`无效元素: ${item}`); // 处理不符合格式的元素
+      }
+
+      const [, numStr, letter] = match;
+      // 数字部分为空时，默认n=1；否则转换为整数（支持正负）
+      const n = numStr === "" ? 1 : Number.parseInt(numStr, 10);
+      // 确定权重
+      const weight = letter === "b" ? 1 : -1;
+
+      return sum + n * weight;
+    }, 0);
+    let [name] = names;
     // 补丁：添加对于英文简写属性不可读的临时解决方案
     // TODO 后续添加更健壮的属性解析方案
-    if (!attr)
+    if (!name) {
       throw new Error("缺少技能名称");
-    if (ABILITY_MAP[attr.toLowerCase()]) {
-      attr = ABILITY_MAP[attr.toLowerCase()];
     }
-    if (!curAbility?.ability)
-      throw new Error(`未设置 ${attr} 属性值`);
+    if (ABILITY_MAP[name.toLowerCase()]) {
+      name = ABILITY_MAP[name.toLowerCase()];
+    }
+    if (!curAbility?.ability) {
+      throw new Error(`未设置 ${name} 属性值`);
+    }
 
-    const value = curAbility?.ability[attr];
-    if (value === undefined)
-      throw new Error(`未设置 ${attr} 属性值`);
+    let value = curAbility?.ability[name];
 
-    const roll = rollDice(100);
-    return buildCheckResult(attr, roll, value);
+    if (value === undefined && attr === undefined) {
+      throw new Error(`未设置 ${name} 属性值`);
+    }
+
+    if (attr !== undefined) {
+      value = Number.parseInt(attr);
+    }
+
+    if (bonus !== undefined) {
+      value += Number.parseInt(bonus);
+    }
+
+    if (value < 0) {
+      value = 0;
+    }
+
+    const roll: number[] = rollDiceWithBP(bp);
+    let result: string = buildCheckResult(name, roll[0], value);
+    if (bp > 0) {
+      result += ` 奖励骰 [${roll.slice(1).join(",")}]`;
+    }
+    if (bp < 0) {
+      result += ` 惩罚骰 [${roll.slice(1).join(",")}]`;
+    }
+    return result;
   }
 
   /**
@@ -312,11 +367,9 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
       name = role?.roleName;
     }
     if (initiative && name) {
-      initiativeListMutation.mutate(
-        JSON.stringify(
-          [...initiativeList.filter(i => i.name !== name), { name, value: initiative }]
-            .sort((a, b) => b.value - a.value),
-        ),
+      setInitiativeList(
+        [...initiativeList.filter(i => i.name !== name), { name, value: initiative }]
+          .sort((a, b) => b.value - a.value),
       );
     }
     else {
@@ -569,6 +622,43 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
 
   function rollDice(sides: number): number {
     return Math.floor(Math.random() * sides) + 1;
+  }
+
+  /**
+   * 带奖励骰和惩罚骰的检定掷骰
+   * @param bp 奖励骰数，负数表示惩罚骰数
+   * @returns 骰子结果数组 [最终结果, 奖励/惩罚骰1, 奖励/惩罚骰2,...]
+   */
+  function rollDiceWithBP(bp: number = 0): number[] {
+    let bonus: boolean = false;
+    const result: number[] = Array.from({ length: bp + 2 });
+    if (bp > 0) {
+      bonus = true;
+    }
+    bp = Math.abs(bp);
+    let tens = Math.floor(Math.random() * 10);
+    const ones = Math.floor(Math.random() * 10);
+    result[1] = tens;
+    for (let i = 1; i <= bp; i++) {
+      const roll = Math.floor(Math.random() * 10);
+      if ((connect2D10(tens, ones) > connect2D10(roll, ones)) === bonus) {
+        tens = roll;
+      }
+      result[i + 1] = roll;
+    }
+    result[0] = connect2D10(tens, ones);
+    return result;
+  }
+
+  /**
+   * 将d100的个位数和十位数连接起来，其中‘00’会被替换为‘100’
+   */
+  function connect2D10(tens: number, ones: number) {
+    let result = tens * 10 + ones;
+    if (result === 0) {
+      result = 100;
+    }
+    return result;
   }
 
   return execute;

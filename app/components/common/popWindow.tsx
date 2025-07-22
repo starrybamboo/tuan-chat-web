@@ -16,12 +16,13 @@ import React from "react";
  * @param fullScreen 开启后会变成全屏，并且只能靠右上角的关闭按钮关闭
  * @constructor
  */
-export function PopWindow({ isOpen, children, onClose, fullScreen = false }: {
+export function PopWindow({ isOpen, children, onClose, fullScreen = false, transparent = false }: {
   isOpen: boolean;
   children: React.ReactNode;
   onClose: () => void;
   /** 开启后会变成全屏，并且只能靠右上角的关闭按钮关闭 */
   fullScreen?: boolean;
+  transparent?: boolean; // 是否透明背景
 }) {
   if (!isOpen) {
     return null;
@@ -29,7 +30,8 @@ export function PopWindow({ isOpen, children, onClose, fullScreen = false }: {
   return (
     <Mounter targetId="modal-root">
       <div className={`modal ${isOpen ? "modal-open" : ""}`}>
-        <div className={`relative bg-base-100 dark:bg-base-300 overflow-auto
+        <div className={`relative overflow-auto
+          ${transparent ? "bg-transparent w-screen h-screen" : "bg-base-100 dark:bg-base-300"}
           ${fullScreen ? "w-screen h-screen" : "modal-box w-auto max-w-[100vw] lg:max-w-[80vw] lg:h-auto lg:max-h-[90vh]"}`}
         >
           {/* 关闭按钮 */}
@@ -47,7 +49,11 @@ export function PopWindow({ isOpen, children, onClose, fullScreen = false }: {
         </div>
 
         {/* 背景遮罩 */}
-        <div className="modal-backdrop bg-black/50 dark:bg-black/70" onClick={fullScreen ? () => {} : onClose}></div>
+        <div
+          className={`modal-backdrop ${transparent ? "bg-black/20 dark:bg-black/30" : "bg-black/50 dark:bg-black/70"}`}
+          onClick={fullScreen ? () => { } : onClose}
+        >
+        </div>
       </div>
     </Mounter>
   );

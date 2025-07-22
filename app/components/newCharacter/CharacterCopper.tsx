@@ -66,7 +66,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   // 文件输入框引用
   const fileInputRef = useRef<HTMLInputElement>(null);
   // 上传工具实例
-  const uploadUtils = new UploadUtils(2);
+  const uploadUtils = new UploadUtils();
   // 控制弹窗的显示状态
   const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`characterCopperPop`, false);
 

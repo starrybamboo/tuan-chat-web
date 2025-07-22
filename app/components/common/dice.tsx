@@ -101,6 +101,13 @@ function preprocessDiceExpr(expr: string, diceSize: number): string {
   while (i < processed.length) {
     const current = processed[i];
 
+    // 处理表达式开头的d
+    if (i === 0 && current === "d") {
+      result += "1d";
+      i++;
+      continue;
+    }
+
     if (current === "d") {
       // 处理 d% 情况
       if (i + 1 < processed.length && processed[i + 1] === "%") {
@@ -118,15 +125,30 @@ function preprocessDiceExpr(expr: string, diceSize: number): string {
         continue;
       }
 
-      // 普通 d 处理
+      // 处理普通 d 情况
+
+      // 处理左侧默认值
       let leftIndex = i - 1;
-      while (leftIndex >= 0 && isSpace(processed[leftIndex])) leftIndex--;
+      let hasLeftOperand = false;
 
-      const leftHasDigit = leftIndex >= 0 && isDigit(processed[leftIndex]);
-      const leftIsExprEnd = leftIndex >= 0 && isExprEnd(processed[leftIndex]);
+      // 回溯查找有效操作数
+      while (leftIndex >= 0) {
+        if (isDigit(processed[leftIndex])) {
+          hasLeftOperand = true;
+          break;
+        }
+        // 遇到运算符或括号停止
+        if (["+", "-", "*", "/", "(", ")"].includes(processed[leftIndex])) {
+          break;
+        }
+        leftIndex--;
+      }
 
-      if (!leftHasDigit && !leftIsExprEnd)
+      // 没有左侧操作数时添加默认值
+      if (!hasLeftOperand) {
         result += "1";
+      }
+
       result += "d";
 
       // 处理右侧默认值
@@ -162,7 +184,7 @@ function calculate(
     case "/":
       if (b === 0)
         throw new Error("除零错误");
-      return [Math.floor(a / b), ""];
+      return [Math.round(a / b), ""];
     case "d":
     { if (b <= 0)
       throw new Error("骰子面数必须为正数");
@@ -270,7 +292,7 @@ export function evaluate(
     }
 
     // 结果验证
-    const finalResult = opnd.pop();
+    const finalResult = opnd.pop() || 0; // pop 0 会变为 null
     if (
       opnd.size() !== 0
       || oprt.size() !== 1

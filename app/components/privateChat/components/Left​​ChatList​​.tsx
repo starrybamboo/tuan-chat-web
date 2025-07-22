@@ -27,7 +27,6 @@ export default function LeftChatList({
   const mergedLatestMessages = useMemo(() => {
     return mergeLatestMessages(latestMessages, allReceivedMessages);
   }, [latestMessages, allReceivedMessages]);
-  console.warn("Merged Latest Messages:", mergedLatestMessages);
   // 将好友信息和最新消息合并
   const friendInfos = mapFriendInfos(friends, mergedLatestMessages);
   // 根据最新消息时间排序好友列表
@@ -151,7 +150,6 @@ function mergeLatestMessages(latestMessages: any[], allReceivedMessages: any[]) 
       messageMap.set(msg.messageId, msg);
     }
   });
-  console.warn("All Received Messages:", allReceivedMessages);
   allReceivedMessages.forEach((msg) => {
     const sameMessageId = findSameTwoContacter(msg);
     if (sameMessageId) {
