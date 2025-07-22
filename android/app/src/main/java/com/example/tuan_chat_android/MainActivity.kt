@@ -1,4 +1,4 @@
-package com.example.tuan_chat_android
+package com.example.tuan_chat_newest_android
 
 import android.annotation.TargetApi
 import android.app.Activity
@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
 
     private var uploadMessage: ValueCallback<Uri>? = null
     private var uploadMessageAboveL: ValueCallback<Array<Uri>>? = null
-    private var webUrl = "http://47.119.147.6:82/" // 将URL定义为变量，方便重用
+    private var webUrl = "http://47.119.147.6:84/" // 将URL定义为变量，方便重用
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

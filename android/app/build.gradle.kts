@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.tuan_chat_android"
+    namespace = "com.example.tuan_chat_newest_android"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.tuan_chat_android"
+        applicationId = "com.example.tuan_chat_newest_android"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

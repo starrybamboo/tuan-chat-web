@@ -1,4 +1,4 @@
-package com.example.tuan_chat_android
+package com.example.tuan_chat_newest_android
 
 import org.junit.Test
 

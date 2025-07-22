@@ -1,4 +1,4 @@
-package com.example.tuan_chat_android.ui.theme
+package com.example.tuan_chat_newest_android.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

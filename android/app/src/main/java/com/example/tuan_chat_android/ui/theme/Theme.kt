@@ -1,4 +1,4 @@
-package com.example.tuan_chat_android.ui.theme
+package com.example.tuan_chat_newest_android.ui.theme
 
 import android.app.Activity
 import android.os.Build
