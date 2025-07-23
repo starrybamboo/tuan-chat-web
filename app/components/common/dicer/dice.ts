@@ -1,6 +1,6 @@
 // 骰子表达式解析器
 // TODO: 修复连续d解析问题（因该功能使用较少，暂不修复）
-type TokenType = "number" | "operator" | "paren" | "dice";
+type TokenType = "number" | "operator" | "paren" | "dice" | "percent";
 
 type Token = {
   type: TokenType;
@@ -13,7 +13,6 @@ type ExpressionValue = {
   expr: string; // 表达式字符串表示
   isDice: boolean; // 是否是骰子表达式
   diceDetails?: string; // 骰子展开细节（如有）
-  hasNestedDice?: boolean; // 是否包含嵌套骰子（用于检测连续d）
 };
 
 class ExpressionParser {
@@ -21,6 +20,7 @@ class ExpressionParser {
   private currentIndex = 0;
   private diceSize = 100;
   private consecutiveDiceDetected = false; // 检测连续d操作符
+  private diceRolls: Map<string, string> = new Map(); // 存储所有骰子展开细节
 
   // 运算符优先级表
   private precedence: Record<string, number> = {
@@ -58,10 +58,11 @@ class ExpressionParser {
 
   /**
    * 表达式预处理
-   * 1. 转换全角符号
-   * 2. 处理d%特殊语法
-   * 3. 为骰子表达式添加默认参数
-   *
+   * @param expr 原始表达式
+   * @returns 标准化表达式
+   */
+  /**
+   * 表达式预处理
    * @param expr 原始表达式
    * @returns 标准化表达式
    */
@@ -102,14 +103,28 @@ class ExpressionParser {
 
         result += "d";
 
-        // 检查右侧是否需要默认值
+        // 处理右侧默认值
         let nextIndex = i + 1;
         while (nextIndex < processed.length && /\s/.test(processed[nextIndex])) {
           nextIndex++;
         }
 
+        // 检查是否到达末尾或遇到运算符
         if (nextIndex >= processed.length || !/[\d(]/.test(processed[nextIndex])) {
+          // 添加默认骰子面数（100）
           result += this.diceSize.toString();
+          // 跳过当前d字符的处理
+          i++;
+          continue;
+        }
+      }
+      else if (current === "%") {
+        // 单独处理%符号 -> 转换为d100
+        if (i === 0 || !/\d/.test(processed[i - 1])) {
+          result += "1d100";
+        }
+        else {
+          result += "d100";
         }
       }
       else {
@@ -154,7 +169,7 @@ class ExpressionParser {
       }
 
       // 处理运算符和括号
-      if (/[+\-*/d()]/.test(char)) {
+      if (/[+\-*/d()%]/.test(char)) {
         const type = char === "(" || char === ")" ? "paren" : "operator";
         this.tokens.push({ type, value: char, position });
         position++;
@@ -175,6 +190,7 @@ class ExpressionParser {
    */
   parse(expr: string): { result: number; expanded: string } {
     this.consecutiveDiceDetected = false;
+    this.diceRolls.clear();
     const processed = this.preprocess(expr);
     this.tokenize(processed);
 
@@ -182,27 +198,92 @@ class ExpressionParser {
       return { result: 0, expanded: "0" };
     }
 
-    // 计算表达式值并获取表达式对象
     const exprObj = this.evaluateExpression();
 
-    // 生成展开表达式
     let expanded: string;
     if (this.consecutiveDiceDetected) {
-      // 检测到连续d操作符
       expanded = "[略]";
     }
-    else if (exprObj.isDice) {
-      // 骰子表达式：显示细节
-      expanded = exprObj.diceDetails
-        ? `${exprObj.expr}${exprObj.diceDetails}`
-        : exprObj.expr;
-    }
     else {
-      // 纯数学表达式
-      expanded = processed;
+      // 使用新的递归构建方法
+      expanded = this.buildFullExpression(exprObj);
     }
 
     return { result: exprObj.value, expanded };
+  }
+
+  /**
+   * 递归构建完整表达式（带所有骰子细节）
+   * @param exprObj 表达式对象
+   * @returns 带所有细节的表达式字符串
+   */
+  private buildFullExpression(exprObj: ExpressionValue): string {
+    // 如果是基础骰子表达式，直接返回带细节的表达式
+    if (exprObj.isDice && exprObj.diceDetails) {
+      return `${exprObj.expr}${exprObj.diceDetails}`;
+    }
+
+    // 处理括号表达式
+    if (exprObj.expr.startsWith("(") && exprObj.expr.endsWith(")")) {
+      const inner = exprObj.expr.slice(1, -1);
+      return `(${this.buildFullExpressionForString(inner)})`;
+    }
+
+    // 处理运算符表达式
+    const operators = ["+", "-", "*", "/", "d"];
+
+    // 尝试按每个运算符拆分表达式
+    for (const op of operators) {
+      // 使用更智能的拆分方法，处理多个运算符的情况
+      const regex = new RegExp(`(.*?)\\${op}(.*)`);
+      const match = exprObj.expr.match(regex);
+
+      if (match) {
+        const leftPart = match[1].trim();
+        const rightPart = match[2].trim();
+
+        // 递归处理左右部分
+        const leftExpr = this.buildFullExpressionForString(leftPart);
+        const rightExpr = this.buildFullExpressionForString(rightPart);
+
+        return `${leftExpr}${op}${rightExpr}`;
+      }
+    }
+
+    // 基础情况：直接返回表达式
+    return exprObj.expr;
+  }
+
+  /**
+   * 为表达式字符串构建带细节的表达式
+   * @param exprStr 表达式字符串
+   * @returns 带细节的表达式
+   */
+  private buildFullExpressionForString(exprStr: string): string {
+    // 如果整个字符串有存储的骰子细节，直接使用
+    if (this.diceRolls.has(exprStr)) {
+      return `${exprStr}${this.diceRolls.get(exprStr)}`;
+    }
+
+    // 尝试拆分子表达式
+    const operators = ["+", "-", "*", "/", "d"];
+    for (const op of operators) {
+      const regex = new RegExp(`(.*?)\\${op}(.*)`);
+      const match = exprStr.match(regex);
+
+      if (match) {
+        const leftPart = match[1].trim();
+        const rightPart = match[2].trim();
+
+        const leftExpr = this.buildFullExpressionForString(leftPart);
+        const rightExpr = this.buildFullExpressionForString(rightPart);
+
+        return `${leftExpr}${op}${rightExpr}`;
+      }
+    }
+
+    // 基础情况：返回原始字符串
+    return exprStr;
   }
 
   /**
@@ -242,6 +323,12 @@ class ExpressionParser {
         if (ops.length === 0)
           throw new Error("括号不匹配");
         ops.pop(); // 弹出左括号
+
+        // 处理括号内的表达式
+        const lastValue = values[values.length - 1];
+        if (lastValue) {
+          lastValue.expr = `(${lastValue.expr})`;
+        }
         continue;
       }
 
@@ -285,67 +372,69 @@ class ExpressionParser {
     if (op === "#")
       return;
 
-    if (values.length < 2) {
+    // 确保有足够的操作数
+    if (values.length < 2 && op !== "d") {
       throw new Error(`运算符 ${op} 缺少操作数`);
     }
 
+    // 特殊处理d操作符 - 允许部分操作数缺失
+    if (op === "d") {
+      // 确保有足够的操作数，不足时使用默认值
+      const b = values.pop() || { value: this.diceSize, expr: this.diceSize.toString(), isDice: false };
+      const a = values.pop() || { value: 1, expr: "1", isDice: false };
+
+      // 验证参数
+      const count = a.value <= 0 ? 1 : a.value;
+      const sides = b.value <= 0 ? this.diceSize : b.value;
+
+      // 掷骰子
+      const { total, rolls } = this.rollDiceHandle(count, sides);
+      const diceKey = `${a.expr}d${b.expr}`;
+      const diceDetails = `[${rolls.join("+")}]`;
+
+      // 创建表达式对象
+      values.push({
+        value: total,
+        expr: diceKey,
+        isDice: true,
+        diceDetails,
+      });
+
+      // 存储骰子细节
+      this.diceRolls.set(diceKey, diceDetails);
+      return;
+    }
+
+    // 处理其他运算符
     const b = values.pop()!;
     const a = values.pop()!;
 
-    // 处理骰子操作符
-    if (op === "d") {
-      // 验证参数
-      if (a.value <= 0)
-        throw new Error("骰子数量必须为正数");
-      if (b.value <= 0)
-        throw new Error("骰子面数必须为正数");
-
-      // 掷骰子
-      const { total, rolls } = this.rollDiceHandle(a.value, b.value);
-
-      // 构建表达式对象
-      const exprValue: ExpressionValue = {
-        value: total,
-        expr: `${a.expr}d${b.expr}`,
-        isDice: true,
-      };
-
-      // 添加骰子细节（如果没有嵌套骰子）
-      if (!a.isDice && !b.isDice) {
-        exprValue.diceDetails = `[${rolls.join("+")}]`;
-      }
-
-      values.push(exprValue);
+    // 计算结果
+    let value: number;
+    switch (op) {
+      case "+":
+        value = a.value + b.value;
+        break;
+      case "-":
+        value = a.value - b.value;
+        break;
+      case "*":
+        value = a.value * b.value;
+        break;
+      case "/":
+        if (b.value === 0)
+          throw new Error("除零错误");
+        value = Math.round(a.value / b.value);
+        break;
+      default: throw new Error(`未知运算符: ${op}`);
     }
-    // 处理其他运算符
-    else {
-      // 计算结果
-      let result: number;
-      switch (op) {
-        case "+":
-          result = a.value + b.value;
-          break;
-        case "-":
-          result = a.value - b.value;
-          break;
-        case "*":
-          result = a.value * b.value;
-          break;
-        case "/":
-          if (b.value === 0)
-            throw new Error("除零错误");
-          result = Math.round(a.value / b.value);
-          break;
-        default: throw new Error(`未知运算符: ${op}`);
-      }
 
-      // 构建表达式对象
-      values.push({
-        value: result,
-        expr: `(${a.expr}${op}${b.expr})`,
-        isDice: a.isDice || b.isDice, // 如果任一操作数是骰子，则标记为骰子表达式
-      });
-    }
+    // 创建表达式对象
+    values.push({
+      value,
+      expr: `${a.expr}${op}${b.expr}`,
+      isDice: a.isDice || b.isDice,
+    });
   }
 
   /**
@@ -502,6 +591,7 @@ class ExpressionParser {
  *
  * @example
  * roll("2d6+3") // { result: 8, expanded: "2d6[1+5]+3" }
+ * roll("1d10+2d6") // { result: 12, expanded: "1d10[7]+2d6[2+3]" }
  * roll("1d10d100") // { result: 42, expanded: "[略]" }
  */
 export function roll(dice: string, diceSize: number = 100): { result: number; expanded: string } {
@@ -523,12 +613,41 @@ export function range(dice: string, diceSize: number = 100): { min: number; max:
   return parser.range(dice);
 }
 
+/**
+ * 掷一个指定面数的骰子
+ * @param {number} [diceSize] - 骰子的面数，默认为100面骰
+ * @returns {number} 返回1到diceSize之间的随机整数
+ * @example
+ * rollDice(6) // 返回1-6之间的随机数
+ * rollDice()  // 返回1-100之间的随机数
+ */
 export function rollDice(diceSize: number = 100): number {
   return Math.floor(Math.random() * diceSize) + 1;
 }
 
-export function parseDiceExpression(expr: string): { result: { value: number; expanded: string }; possibleRange: { max: number; min: number } } {
-  const parser = new ExpressionParser(100);
+/**
+ * 解析骰子表达式并返回结果和可能范围
+ * @param {string} expr - 骰子表达式字符串
+ * @param {number} diceSize - 骰子的面数，默认为100面骰
+ * @returns {object} 包含结果和范围的对象
+ * @property {object} result - 解析结果
+ * @property {number} result.value - 表达式计算结果
+ * @property {string} result.expanded - 展开后的表达式细节
+ * @property {object} possibleRange - 表达式可能的最小/最大值范围
+ * @property {number} possibleRange.min - 表达式可能的最小值
+ * @property {number} possibleRange.max - 表达式可能的最大值
+ * @example
+ * parseDiceExpression("2d6+3") // 返回类似:
+ * // {
+ * //   result: { value: 8, expanded: "2d6[1+5]+3" },
+ * //   possibleRange: { min: 5, max: 15 }
+ * // }
+ */
+export function parseDiceExpression(expr: string, diceSize: number = 100): {
+  result: { value: number; expanded: string };
+  possibleRange: { max: number; min: number };
+} {
+  const parser = new ExpressionParser(diceSize);
   const result = parser.parse(expr);
   const possibleRange = parser.range(expr);
   return { result: { value: result.result, expanded: result.expanded }, possibleRange };
