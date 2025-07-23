@@ -1,4 +1,5 @@
 // 骰子表达式解析器
+// TODO: 修复连续d解析问题（因该功能使用较少，暂不修复）
 type TokenType = "number" | "operator" | "paren" | "dice";
 
 type Token = {
