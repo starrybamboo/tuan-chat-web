@@ -114,7 +114,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
           ))}
         </div>
         {/* 仿 GitHub 按钮组 */}
-        <div className="inline-flex rounded-md border border-base-300">
+        <div className="inline-flex rounded-md border border-base-300 flex-shrink-0 mr-3">
           <button type="button" className="btn-md flex items-center gap-1 px-4 py-2 rounded-l-md border-r border-base-300 hover:bg-base-200 focus:bg-base-200 transition-colors cursor-pointer">
             {/* 眼睛图标 */}
             <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -179,8 +179,6 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
           </label>
           <div className="tab-content">
             <div className="fieldset bg-base-100 border-base-300 rounded-box border p-4 mb-4">
-              <ContentTab moduleId={Number(moduleId!)} />
-              <div className="divider my-4" />
               {/* 使用 MarkDownViewer 显示用户内容 */}
               <MarkDownViewer content={userContent} />
             </div>

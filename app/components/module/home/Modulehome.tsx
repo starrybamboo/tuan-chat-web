@@ -3,14 +3,14 @@ import { useModuleListQuery } from "api/hooks/moduleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
-// 导入本地图片
-import 办公室图片 from "../scene/images/办公室.webp";
-import 天台图片 from "../scene/images/天台.webp";
-import 操场图片 from "../scene/images/操场.webp";
-import 教室图片 from "../scene/images/教室.webp";
-import 楼道图片 from "../scene/images/楼道.webp";
-
 import Carousel from "./carousel";
+// 导入本地图片
+import 办公室图片 from "./images/办公室.webp";
+import 天台图片 from "./images/天台.webp";
+import 操场图片 from "./images/操场.webp";
+import 教室图片 from "./images/教室.webp";
+
+import 楼道图片 from "./images/楼道.webp";
 
 // 卡片内容类型定义
 interface ContentCardProps {
