@@ -138,7 +138,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
       }
       if (setCopperedDownloadUrl) {
         const copperedImgFile = await getCopperedImg();
-        copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, 70, 768);
+        copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, 2, 70, 768);
         setCopperedDownloadUrl(copperedDownloadUrl);
       }
       if (mutate !== undefined) {

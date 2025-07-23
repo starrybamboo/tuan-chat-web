@@ -2,43 +2,38 @@ import * as toml from "@ltd/j-toml";
 import * as yaml from "js-yaml";
 import { parse as parseJsonc } from "jsonc-parser";
 
-// const JSONPATH = './seal.json';
-// const JSONCPATH = './钓鱼-星界.jsonc';
-// const YAMLPATH = './日语词汇.yaml';
-// const TOMLPATH = './同人文关键词.toml';
-
 // 文件的解析和处理类
 class DeckFile {
-  filePath: string; // 文件路径
+  deckOrigin: string; // 文件路径或者字符串
   deckFormat: string; // 文件格式标识
   deckObject: any; // 解析后的内容（对象）
 
-  constructor(filePath: string) {
-    this.filePath = filePath;
+  constructor(deckOrigin: string) {
+    this.deckOrigin = deckOrigin;
     this.deckFormat = "";
     this.deckObject = null;
-    this.detectDeckFileFormat(filePath);
+    this.detectDeckFileFormat(deckOrigin);
   }
 
   // 异步的初始化方法
   async init(): Promise<void> {
-    await this.fetchDeckFileContent(this.filePath);
+    await this.fetchDeckFileContent(this.deckOrigin);
   }
 
-  detectDeckFileFormat(filePath: string) {
+  detectDeckFileFormat(deckOrigin: string) {
     // Dice!
-    if (filePath.endsWith(".json")) {
+    if (deckOrigin.endsWith(".json")) {
       this.deckFormat = "json";
     }
-    else if (filePath.endsWith(".jsonc")) {
+    else if (deckOrigin.endsWith(".jsonc")) {
       this.deckFormat = "jsonc";
       // SinaNya
     }
-    else if (filePath.endsWith(".yaml") || filePath.endsWith(".yml")) {
+    else if (deckOrigin.endsWith(".yaml") || deckOrigin.endsWith(".yml")) {
       this.deckFormat = "yaml";
       // Seal
     }
-    else if (filePath.endsWith(".toml")) {
+    else if (deckOrigin.endsWith(".toml")) {
       this.deckFormat = "toml";
     }
     else {
@@ -46,30 +41,25 @@ class DeckFile {
     }
   }
 
-  async fetchDeckFileContent(filePath: string) {
+  async fetchDeckFileContent(deckOrigin: string) {
     if (this.deckFormat === "json") {
-      this.deckObject = await fetch(filePath).then(res => res.json());
+      this.deckObject = await fetch(deckOrigin).then(res => res.json());
     }
     else if (this.deckFormat === "jsonc") {
-      this.deckObject = await fetch(filePath).then(res => res.text()).then(text => parseJsonc(text));
+      this.deckObject = await fetch(deckOrigin).then(res => res.text()).then(text => parseJsonc(text));
     }
     else if (this.deckFormat === "yaml") {
-      this.deckObject = await fetch(filePath).then(res => res.text()).then(text => yaml.load(text));
+      this.deckObject = await fetch(deckOrigin).then(res => res.text()).then(text => yaml.load(text));
     }
     else if (this.deckFormat === "toml") {
-      this.deckObject = await fetch(filePath).then(res => res.text()).then(text => toml.parse(text));
+      this.deckObject = await fetch(deckOrigin).then(res => res.text()).then(text => toml.parse(text));
     }
     else {
       // 如果是字符串，直接解析为 JSON 对象
-      this.deckObject = JSON.parse(filePath);
+      this.deckObject = JSON.parse(deckOrigin);
     }
   }
 }
-
-// 使用示例
-// const deckFile = new DeckFile(TOMLPATH);
-// await deckFile.init();
-// deckFile.consoleLogDeckObject();
 
 // 牌堆类
 export class Deck {
@@ -77,9 +67,9 @@ export class Deck {
   deckFile: DeckFile;
   deckItems: Record<string, string[]>;
 
-  constructor(deckName: string, filePath: string) {
+  constructor(deckName: string, deckOrigin: string) {
     this.deckName = deckName;
-    this.deckFile = new DeckFile(filePath);
+    this.deckFile = new DeckFile(deckOrigin);
     this.deckItems = {};
   }
 

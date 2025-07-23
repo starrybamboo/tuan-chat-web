@@ -51,7 +51,7 @@ interface ImgUploaderWithCopperProps {
   // 上传文件的文件名
   fileName: string;
   // 上传场景：1.聊天室,2.表情包，3.角色差分 4.模组图片
-  scene: number;
+  scene: 1 | 2 | 3 | 4;
   // 数据更新回调函数
   mutate?: (data: any) => void;
   // 外层div的className
