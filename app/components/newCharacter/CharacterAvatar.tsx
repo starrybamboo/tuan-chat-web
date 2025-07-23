@@ -224,6 +224,7 @@ export default function CharacterAvatar({ role, onchange }: {
                     setDownloadUrl={() => { }}
                     setCopperedDownloadUrl={setCopperedUrl}
                     fileName={uniqueFileName}
+                    scene={3} // 角色差分
                     mutate={(data) => {
                       mutate({ ...data, roleId: role.id });
                     }}

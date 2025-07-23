@@ -74,14 +74,17 @@ export default function CharacterDetail({
 
   // 更新url和avatarId,方便更改服务器数据
   const handleAvatarChange = (previewUrl: string, avatarId: number) => {
-    setLocalRole(prev => ({ ...prev, avatar: previewUrl, avatarId }));
-    const cleanedRole = {
+    const updatedRole = {
       ...localRole,
+      avatar: previewUrl,
+      avatarId,
+    };
+    setLocalRole(updatedRole);
+    const cleanedRole = {
+      ...updatedRole,
       name: cleanText(localRole.name),
       description: cleanText(localRole.description),
     };
-    cleanedRole.avatarId = avatarId;
-    cleanedRole.avatar = previewUrl;
     updateRole(cleanedRole);
   };
 

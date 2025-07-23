@@ -91,6 +91,7 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: any) => void)
       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
       queryClient.invalidateQueries({ queryKey: ['getRole', variables.roleId] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
+      queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', variables.roleId] });
     },
     onError: (error: any) => {
       console.error("Mutation failed:", error);
