@@ -4,13 +4,13 @@ import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import Section from "./section";
 
-export function SceneListItem({
-  scene,
+export function LocationListItem({
+  location,
   isSelected,
   onClick,
   onDelete,
 }: {
-  scene: StageEntityResponse;
+  location: StageEntityResponse;
   isSelected: boolean;
   onClick: () => void;
   onDelete?: () => void;
@@ -23,13 +23,13 @@ export function SceneListItem({
       {/* 左侧内容 */}
       <div className="flex items-center gap-2">
         <img
-          src={scene.entityInfo!.image || "./favicon.ico"}
-          alt="scene"
+          src={location?.entityInfo?.image || "./favicon.ico"}
+          alt="location"
           style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
         />
         <div className="flex flex-col">
-          <p className="self-baseline font-medium">{scene.name}</p>
-          <p className="text-xs text-gray-500 self-baseline mt-0.5 line-clamp-1">{scene.entityInfo!.sceneDescription}</p>
+          <p className="self-baseline font-medium">{location.name}</p>
+          <p className="text-xs text-gray-500 self-baseline mt-0.5 line-clamp-1">{location.entityInfo?.description}</p>
         </div>
       </div>
 
@@ -61,31 +61,31 @@ export function SceneListItem({
   );
 }
 
-export function SceneList({ stageId }: { stageId: number }) {
+export function LocationList({ stageId }: { stageId: number }) {
   const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem } = useModuleContext();
-  const handleClick = (scene: StageEntityResponse) => {
-    const sceneId = scene.id!.toString();
-    const sceneName = scene.name!;
+  const handleClick = (location: StageEntityResponse) => {
+    const locationId = location.id!.toString();
+    const locationName = location.name!;
 
     pushModuleTabItem({
-      id: sceneId,
-      label: sceneName,
-      type: ModuleItemEnum.SCENE,
+      id: locationId,
+      label: locationName,
+      type: ModuleItemEnum.LOCATION,
     });
-    setCurrentSelectedTabId(sceneId);
+    setCurrentSelectedTabId(locationId);
   };
 
   // 创建场景和删除
-  const { mutate: createScene } = useAddEntityMutation("scene");
-  const { mutate: deleteScene } = useDeleteEntityMutation();
+  const { mutate: createLocation } = useAddEntityMutation("location");
+  const { mutate: deleteLocation } = useDeleteEntityMutation();
 
   const handleAddScene = () => {
-    createScene({
+    createLocation({
       stageId,
-      name: "新场景",
+      name: "新地点",
       entityInfo: {
         tip: "给予的提示",
-        sceneDescription: "新场景です", // 场景描述（可选）
+        description: "新场景です", // 场景描述（可选）
         image: "./favicon.ico",
       },
     });
@@ -93,30 +93,30 @@ export function SceneList({ stageId }: { stageId: number }) {
 
   const { data } = useQueryEntitiesQuery(stageId);
 
-  const list = data?.data?.filter(i => i!.entityType === "scene");
+  const list = data?.data?.filter(i => i!.entityType === "location");
 
   // 判断列表是否存在且非空
   const isEmpty = !list || list.length === 0;
 
   return (
-    <Section label="场景" onClick={handleAddScene}>
+    <Section label="地点" onClick={handleAddScene}>
       {isEmpty
         ? (
             <div className="text-sm text-gray-500 px-2 py-4">暂时没有场景哦</div>
           )
         : (
             <>
-              {list?.map((scene, index) => (
-                <SceneListItem
+              {list?.map((location, index) => (
+                <LocationListItem
                   // key={scene.entityInfo!.moduleSceneId}
                   key={index}
-                  scene={scene}
-                  isSelected={currentSelectedTabId === scene.id!.toString()}
-                  onClick={() => handleClick(scene)}
+                  location={location}
+                  isSelected={currentSelectedTabId === location.id!.toString()}
+                  onClick={() => handleClick(location)}
                   onDelete={() => {
-                    removeModuleTabItem(scene.id!.toString());
-                    deleteScene({
-                      id: scene.id!,
+                    removeModuleTabItem(location.id!.toString());
+                    deleteLocation({
+                      id: location.id!,
                       stageId,
                     });
                   }}
