@@ -10,7 +10,7 @@ import {
   useUpdateRoleAbilityMutation,
 } from "../../../api/hooks/abilityQueryHooks";
 import { useGetRoleQuery } from "../../../api/queryHooks";
-import { roll } from "./dice";
+import { parseDiceExpression, roll, rollDice } from "./dicer/dice";
 
 // 属性名中英文对照表
 const ABILITY_MAP: { [key: string]: string } = {
@@ -439,27 +439,30 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
 
     // 大成功判定
     if (roll <= 5) {
-      actualLoss = Math.min(...failureLoss.possibleValues); // 大成功时失去最小san值
+      actualLoss = successLoss.possibleRange.min; // 大成功时失去最小san值
       result = "大成功";
     }
     // 大失败判定
     else if (roll >= 96) {
-      actualLoss = Math.max(...successLoss.possibleValues); // 大失败时失去最大san值
+      actualLoss = failureLoss.possibleRange.max; // 大失败时失去最大san值
       result = "大失败";
     }
     // 普通成功
     else if (roll <= currentSan) {
-      actualLoss = successLoss.value;
+      actualLoss = successLoss.result.value;
       result = "成功";
     }
     // 普通失败
     else {
-      actualLoss = failureLoss.value;
+      actualLoss = failureLoss.result.value;
       result = "失败";
     }
 
     // 计算新san值
-    const newSan = currentSan - actualLoss;
+    let newSan = currentSan - actualLoss;
+    if (newSan <= 0) {
+      newSan = 0;
+    }
 
     // 更新角色卡中的san值
     if (curAbility) {
@@ -488,7 +491,10 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     let res: string = `理智检定：D100=${roll}/${currentSan} ${result}\n`
       + `损失san值：${actualLoss}\n`
       + `当前san值：${newSan}`;
-    if (actualLoss >= 5) {
+    if (newSan === 0) {
+      res += `\n注意：角色理智值归零，陷入永久性疯狂。`;
+    }
+    else if (actualLoss >= 5) {
       res += `\n注意：单次失去理智值达到5点，请进行智力检定，若检定成功角色将陷入疯狂。疯狂后请使用\`.ti\`或\`.li\`指令抽取临时症状或总结症状。`;
     }
     return res;
@@ -578,50 +584,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     const res = boutsOfMadnessForSummaryList[rollDice(boutsOfMadnessForSummaryList.length) - 1];
     const timeOfDuration = rollDice(10);
     return `疯狂发作-总结症状：\n${res.name}\n已略过时间：${timeOfDuration}小时\n${res.desc}`;
-  }
-
-  /**
-   * 解析单个的骰子表达式 (如1d6, 2d10, 3等)，并返回结果和可能的最大值与最小值
-   */
-  function parseDiceExpression(expr: string): { value: number; possibleValues: number[] } {
-    // 固定值
-    if (!expr.includes("d")) {
-      const value = Number.parseInt(expr);
-      if (Number.isNaN(value))
-        throw new Error(`无效的骰子表达式: ${expr}`);
-      return {
-        value,
-        possibleValues: [value],
-      };
-    }
-
-    // 骰子表达式
-    const [countStr, sidesStr] = expr.split("d");
-    const count = countStr ? Number.parseInt(countStr) : 1;
-    const sides = sidesStr ? Number.parseInt(sidesStr) : defaultDice.current;
-
-    if (Number.isNaN(count) || Number.isNaN(sides) || count < 1 || sides < 1) {
-      throw new Error(`无效的骰子表达式: ${expr}`);
-    }
-
-    // 计算可能的值范围
-    const min = count;
-    const max = count * sides;
-    const possibleValues = Array.from({ length: max - min + 1 }, (_, i) => min + i);
-
-    let value = 0;
-    for (let i = 0; i < count; i++) {
-      value += rollDice(sides);
-    }
-
-    return {
-      value,
-      possibleValues,
-    };
-  }
-
-  function rollDice(sides: number): number {
-    return Math.floor(Math.random() * sides) + 1;
   }
 
   /**

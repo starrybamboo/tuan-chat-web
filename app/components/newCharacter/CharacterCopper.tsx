@@ -50,6 +50,8 @@ interface ImgUploaderWithCopperProps {
   children: React.ReactNode;
   // 上传文件的文件名
   fileName: string;
+  // 上传场景：1.聊天室,2.表情包，3.角色差分 4.模组图片
+  scene: 1 | 2 | 3 | 4;
   // 数据更新回调函数
   mutate?: (data: any) => void;
   // 外层div的className
@@ -62,7 +64,7 @@ interface ImgUploaderWithCopperProps {
  * 带裁剪功能的图片上传组件
  * 支持图片上传、预览、裁剪和保存功能
  */
-export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName, mutate, triggerClassName, wrapperClassName }: ImgUploaderWithCopperProps) {
+export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName, scene, mutate, triggerClassName, wrapperClassName }: ImgUploaderWithCopperProps) {
   // 文件输入框引用
   const fileInputRef = useRef<HTMLInputElement>(null);
   // 上传工具实例
@@ -190,12 +192,12 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
       else if (currentStep === 2) {
         // 第二步：上传原始图片和裁剪后的头像
         if (setDownloadUrl) {
-          downloadUrl = await uploadUtils.uploadImg(fileWithNewName);
+          downloadUrl = await uploadUtils.uploadImg(fileWithNewName, scene);
           setDownloadUrl(downloadUrl);
         }
         if (setCopperedDownloadUrl) {
           const copperedImgFile = await getCopperedImg();
-          copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, 70, 768);
+          copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, scene, 70, 768);
           setCopperedDownloadUrl(copperedDownloadUrl);
         }
         if (mutate !== undefined) {
