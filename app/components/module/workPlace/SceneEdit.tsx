@@ -4,47 +4,47 @@ import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useState } from "react";
 import { useModuleContext } from "./context/_moduleContext";
 
-interface SceneEditProps {
-  scene: StageEntityResponse;
+interface LocationEditProps {
+  location: StageEntityResponse;
 }
 
-export default function SceneEdit({ scene }: SceneEditProps) {
-  const entityInfo = scene.entityInfo || {};
+export default function LocationEdit({ location }: LocationEditProps) {
+  const entityInfo = location.entityInfo || {};
   const { stageId, removeModuleTabItem } = useModuleContext();
 
   // 本地状态
-  const [localScene, setLocalScene] = useState({ ...entityInfo });
-  const [name, setName] = useState(scene.name);
+  const [localLocation, setLocalLocation] = useState({ ...entityInfo });
+  const [name, setName] = useState(location.name);
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [charCount, setCharCount] = useState(entityInfo.sceneDescription?.length || 0);
   const MAX_DESCRIPTION_LENGTH = 300;
 
   useEffect(() => {
-    setLocalScene({ ...entityInfo });
+    setLocalLocation({ ...entityInfo });
     setCharCount(entityInfo.sceneDescription?.length || 0);
-    setName(scene.name);
-  }, [scene]);
+    setName(location.name);
+  }, [location]);
 
   // 接入接口
-  const { mutate: updateScene } = useUpdateEntityMutation(stageId as number);
-  // const { mutate: renameScene } = useRenameMutation("scene");
+  const { mutate: updateLocation } = useUpdateEntityMutation(stageId as number);
+  // const { mutate: renameLocation } = useRenameMutation("scene");
 
   const handleSave = () => {
     setIsTransitioning(true);
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
-      if (name !== scene.name) {
-        removeModuleTabItem(scene.id!.toString());
+      if (name !== location.name) {
+        removeModuleTabItem(location.id!.toString());
       }
-      updateScene({ id: scene.id!, entityInfo: localScene, name, entityType: "scene" });
+      updateLocation({ id: location.id!, entityInfo: localLocation, name, entityType: "location" });
     }, 300);
   };
 
   const handleEdit = () => setIsEditing(true);
   const handleCancel = () => {
-    setLocalScene({ ...entityInfo });
+    setLocalLocation({ ...entityInfo });
     setIsEditing(false);
   };
 
@@ -53,16 +53,16 @@ export default function SceneEdit({ scene }: SceneEditProps) {
     return `sceneModule-${name}-${timestamp}`;
   };
 
-  const uniqueFileName = generateUniqueFileName(scene.name!);
+  const uniqueFileName = generateUniqueFileName(location.name!);
 
   const handleAvatarChange = (avatar: string) => {
-    const updatedScene = { ...localScene, image: avatar };
-    setLocalScene(updatedScene);
-    updateScene({
-      id: scene.id!,
+    const updatedLocation = { ...localLocation, image: avatar };
+    setLocalLocation(updatedLocation);
+    updateLocation({
+      id: location.id!,
       entityType: "scene",
-      entityInfo: updatedScene,
-      name: scene.name!,
+      entityInfo: updatedLocation,
+      name: location.name!,
     });
   };
 
@@ -73,13 +73,13 @@ export default function SceneEdit({ scene }: SceneEditProps) {
         <div className="card-body">
           <div className="flex items-center gap-8">
             {/* 头像 */}
-            <CharacterCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleAvatarChange} fileName={uniqueFileName}>
+            <CharacterCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleAvatarChange} fileName={uniqueFileName} scene={4}>
               <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
                 <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
                   <img
-                    src={localScene.image || "./favicon.ico"}
-                    alt="Scene Image"
+                    src={localLocation.image || "./favicon.ico"}
+                    alt="Location Image"
                     className="object-cover transform group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
@@ -101,9 +101,9 @@ export default function SceneEdit({ scene }: SceneEditProps) {
                       />
                       <p>场景描述：</p>
                       <textarea
-                        value={localScene.sceneDescription || ""}
+                        value={localLocation.sceneDescription || ""}
                         onChange={(e) => {
-                          setLocalScene(prev => ({ ...prev, sceneDescription: e.target.value }));
+                          setLocalLocation(prev => ({ ...prev, sceneDescription: e.target.value }));
                           setCharCount(e.target.value.length);
                         }}
                         placeholder="场景描述"
@@ -126,8 +126,8 @@ export default function SceneEdit({ scene }: SceneEditProps) {
                       </div>
                       <p>提示（KP可见）：</p>
                       <textarea
-                        value={localScene.tip || ""}
-                        onChange={e => setLocalScene(prev => ({ ...prev, tip: e.target.value }))}
+                        value={localLocation.tip || ""}
+                        onChange={e => setLocalLocation(prev => ({ ...prev, tip: e.target.value }))}
                         placeholder="KP提示"
                         className="textarea textarea-bordered w-full h-24 resize-none"
                       />
@@ -137,11 +137,11 @@ export default function SceneEdit({ scene }: SceneEditProps) {
                     <>
                       <h2 className="card-title text-2xl">{name || "未命名场景"}</h2>
                       <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden">
-                        {localScene.sceneDescription || "暂无描述"}
+                        {localLocation.sceneDescription || "暂无描述"}
                       </p>
                       <p className="text-base-content/70 italic whitespace-pre-wrap break-words max-w-full overflow-hidden">
                         提示：
-                        {localScene.tip || "暂无提示"}
+                        {localLocation.tip || "暂无提示"}
                       </p>
                     </>
                   )}
