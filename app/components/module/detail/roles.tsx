@@ -248,7 +248,7 @@ export default function Roles({ moduleId }: { moduleId: number }) {
   }, [selectFirstRole]);
 
   return (
-    <div className="flex w-full flex-col max-w-screen md:flex-row md:min-h-128 bg-base-200">
+    <div className="flex w-full flex-col max-w-screen md:flex-row md:min-h-128 bg-base-100">
       <div className="basis-92 shrink-0 flex flex-wrap p-2 gap-2 h-fit">
         {roleList.length > 0
           ? roleList.map((roleEntity, index) => {

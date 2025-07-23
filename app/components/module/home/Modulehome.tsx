@@ -95,6 +95,12 @@ export function ContentCard({
             alt={imageAlt || title || "Content image"}
             className="w-full aspect-square object-cover transition-transform duration-300 group-hover:scale-110 rounded-none"
             onLoad={imageOnLoad}
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (target.src !== 教室图片) {
+                target.src = 教室图片;
+              }
+            }}
           />
           {/* 悬浮时的遮罩 */}
           <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-40 transition-opacity duration-300"></div>
@@ -250,6 +256,7 @@ export default function ModuleHome() {
 
   // 计算分页数据 - 使用 API 数据
   const moduleData = ModuleList.data?.data;
+  // console.log("ModuleList data:", moduleData);
   const totalPages = moduleData?.totalRecords ? Math.ceil(moduleData.totalRecords / itemsPerPage) : 1;
   const currentItems = useMemo(() => {
     if (!moduleData?.list) {
