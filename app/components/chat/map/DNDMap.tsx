@@ -15,14 +15,15 @@ import { useGetRoleAvatarQuery } from "../../../../api/queryHooks";
  * @param onDragStart 拖拽开始事件
  * @param scale 缩放比例，由于我们的这个图是可以缩放的，如果不考虑这个系数，拖拽的时候的拖拽图像会出现问题
  * @param className
+ * @param size 大小，按px计
  * @constructor
  */
-function RoleStamp({ role, onDragStart, scale = 1, className }:
-{
+function RoleStamp({ role, onDragStart, scale = 1, className, size }: {
   role: UserRole;
   onDragStart: (e: React.DragEvent<HTMLDivElement>, role: UserRole) => void;
   scale?: number;
   className?: string;
+  size?: number;
 }) {
   const roleAvatar = useGetRoleAvatarQuery(role.avatarId ?? -1).data?.data;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -35,7 +36,7 @@ function RoleStamp({ role, onDragStart, scale = 1, className }:
 
     if (!container || !name)
       return;
-    // The observer will fire when the container's size is first calculated or when it changes.
+      // The observer will fire when the container's size is first calculated or when it changes.
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const height = entry.contentRect.height;
@@ -72,11 +73,14 @@ function RoleStamp({ role, onDragStart, scale = 1, className }:
     e.currentTarget.classList.remove("opacity-50");
   };
 
+  const sizeStyles = size ? { width: `${size}px`, height: `${size}px` } : {};
+
   return (
     <div
       ref={containerRef}
       draggable
-      className={`relative w-[80%] h-[80%] cursor-grab transition-opacity${className}`}// 添加 transition-opacity
+      className={`relative aspect-square cursor-grab transition-opacity ${className}`}
+      style={sizeStyles}
       onDragStart={handleInternalDragStart}
       onDragEnd={handleInternalDragEnd}
     >
@@ -281,6 +285,11 @@ export default function DNDMap() {
     cellToRoleMap[key] = roleId;
   });
 
+  // 图标尺寸
+  const cellWidth = imageRenderInfo.width > 0 ? imageRenderInfo.width / gridSize.cols : 0;
+  const cellHeight = imageRenderInfo.height > 0 ? imageRenderInfo.height / gridSize.rows : 0;
+  const stampSizeOnMap = Math.min(cellWidth, cellHeight) * 0.8;
+
   return (
     <div className="w-full h-full flex bg-base-200">
       {/* 主地图区域 */}
@@ -325,7 +334,14 @@ export default function DNDMap() {
                     onDragOver={handleDragOver}
                     onDrop={e => handleDropOnGrid(e, row, col)}
                   >
-                    {roleInCell && <RoleStamp role={roleInCell} onDragStart={handleDragStart} scale={transform.scale} />}
+                    {roleInCell && (
+                      <RoleStamp
+                        role={roleInCell}
+                        onDragStart={handleDragStart}
+                        scale={transform.scale}
+                        size={stampSizeOnMap}
+                      />
+                    )}
                   </div>
                 );
               }),

@@ -76,7 +76,7 @@ export function Sidebar({
       const mappedRoles = roleQuery?.pages.flatMap(page =>
         (page.data?.list ?? []).map(convertRole),
       ) ?? [];
-        // 将映射后的角色数据设置到状态中
+      // 将映射后的角色数据设置到状态中
       setRoles((prev) => {
         // 如果存在旧角色数据，需要过滤掉重复的角色，这也避免了头像数据的重复加载
         const existingIds = new Set(prev.map(r => r.id));
@@ -138,7 +138,7 @@ export function Sidebar({
 
   // 创建新角色
   const handleCreate = async () => {
-    const data = await createRole();
+    const data = await createRole({ roleName: "新角色", description: "新角色描述" });
     if (data === undefined) {
       console.error("角色创建失败");
       return;
@@ -165,9 +165,8 @@ export function Sidebar({
   useEffect(() => {
     if (isSuccess) {
       loadRoles();
-    }
-  }, [isSuccess, roleQuery?.pages]);
-
+    };
+  }, [isSuccess]); // 添加 roles 到依赖项
   // 过滤角色列表
   const filteredRoles = roles.filter(role =>
     role.name.toLowerCase().includes(searchQuery.toLowerCase())

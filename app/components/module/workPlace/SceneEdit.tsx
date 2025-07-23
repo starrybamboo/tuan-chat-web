@@ -1,6 +1,6 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { CharacterCopper } from "@/components/newCharacter/CharacterCopper";
-import { useAddMutation, useRenameMutation } from "api/hooks/moduleQueryHooks";
+import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useState } from "react";
 import { useModuleContext } from "./context/_moduleContext";
 
@@ -27,19 +27,18 @@ export default function SceneEdit({ scene }: SceneEditProps) {
   }, [scene]);
 
   // 接入接口
-  const { mutate: updateScene } = useAddMutation();
-  const { mutate: renameScene } = useRenameMutation();
+  const { mutate: updateScene } = useUpdateEntityMutation(stageId as number);
+  // const { mutate: renameScene } = useRenameMutation("scene");
 
   const handleSave = () => {
     setIsTransitioning(true);
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
-      updateScene({ stageId: stageId as number, entityType: "scene", entityInfo: localScene, operationType: 0, name: scene.name! });
       if (name !== scene.name) {
-        removeModuleTabItem(scene.createTime! + scene.name);
-        renameScene({ stageId: stageId as number, entityType: "scene", oldName: scene.name!, newName: name! });
+        removeModuleTabItem(scene.id!.toString());
       }
+      updateScene({ id: scene.id!, entityInfo: localScene, name, entityType: "scene" });
     }, 300);
   };
 
@@ -60,10 +59,9 @@ export default function SceneEdit({ scene }: SceneEditProps) {
     const updatedScene = { ...localScene, image: avatar };
     setLocalScene(updatedScene);
     updateScene({
-      stageId: stageId as number,
+      id: scene.id!,
       entityType: "scene",
       entityInfo: updatedScene,
-      operationType: 0,
       name: scene.name!,
     });
   };

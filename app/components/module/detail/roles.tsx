@@ -19,10 +19,9 @@ function RoleAvatar(
   return (
     <div className="avatar h-16">
       <div
-        className={`w-16 h-16 rounded-full cursor-pointer transition-all duration-200 ease-in-out hover:scale-110 ${
-          isSelected
-            ? "border-4 border-primary shadow-lg"
-            : "border-2 border-transparent hover:border-primary/50"
+        className={`w-16 h-16 rounded-full cursor-pointer transition-all duration-200 ease-in-out hover:scale-110 ${isSelected
+          ? "border-4 border-primary shadow-lg"
+          : "border-2 border-transparent hover:border-primary/50"
         }`}
         onClick={handleSelectRole}
       >
@@ -147,10 +146,9 @@ function RoleDetail(
             {getRoleTypeText(normalizedRoleInfo?.type)}
           </span>
           {normalizedRoleInfo?.state !== undefined && (
-            <span className={`px-2 py-1 text-xs rounded-full ${
-              normalizedRoleInfo.state === 0
-                ? "bg-success/10 text-success"
-                : "bg-warning/10 text-warning"
+            <span className={`px-2 py-1 text-xs rounded-full ${normalizedRoleInfo.state === 0
+              ? "bg-success/10 text-success"
+              : "bg-warning/10 text-warning"
             }`}
             >
               {normalizedRoleInfo.state === 0 ? "正常" : "归档"}

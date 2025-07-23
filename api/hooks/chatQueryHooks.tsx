@@ -523,6 +523,7 @@ export function useGetRoomExtraQuery(request: RoomExtraRequest) {
         queryKey: ['getRoomExtra', request.roomId, request.key],
         queryFn: () => tuanchat.roomController.getRoomExtra(request.roomId,request.key),
         staleTime: 300000,// 5分钟缓存
+        enabled: request.roomId > 0
     });
 }
 /**
@@ -533,42 +534,9 @@ export function useSetRoomExtraMutation() {
     return useMutation({
         mutationFn: (req: RoomExtraSetRequest) => tuanchat.roomController.setRoomExtra(req),
         mutationKey: ['setRoomExtra'],
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({queryKey: ['getRoomExtra',variables.roomId,variables.key],});
-        }
-    });
-}
-
-/**
- * 获取房间的先攻表
- */
-// TODO 把下面这两个删掉
-export function useGetRoomInitiativeListQuery(roomId: number) {
-    return useQuery({
-        queryFn: async () => {
-            const response = await tuanchat.roomController.getRoomExtra(roomId,"initiativeList")
-            let list: Initiative[] = [];
-            try {
-                list = JSON.parse(response.data || "[]") as Initiative[];
-            } finally {
-                list = list.sort((a, b) => b.value - a.value);
-            }
-            return list
-        },
-        enabled: roomId > 0,
-        queryKey: ['getRoomInitiativeList', roomId],
-        staleTime: 300000 // 5分钟缓存
-    });
-}
-
-export function useRoomInitiativeListMutation(roomId: number) {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (newValue: string) => tuanchat.roomController.setRoomExtra({ roomId, key: "initiativeList", value: newValue }),
-        mutationKey: ['setRoomInitiativeList'],
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({queryKey: ['getRoomExtra',roomId,"initiativeList"],});
-        }
+        // onSuccess: (_, variables) => {
+        //     queryClient.invalidateQueries({queryKey: ['getRoomExtra',variables.roomId,variables.key],});
+        // }
     });
 }
 

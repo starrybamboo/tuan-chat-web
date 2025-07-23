@@ -2,8 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type RoleImportRequest = {
-    roleId: number;
-    stageId: number;
+export type EntityDeleteRequest = {
+    id: number;
 };
 

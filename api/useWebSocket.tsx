@@ -160,8 +160,9 @@ export function useWebSocket() {
         break;
       }
       case 15:{ // 房间extra变动
-        // const event = message.data as RoomExtraChangeEvent;
-        // queryClient.invalidateQueries({queryKey: ['getRoomExtra',event.roomId,event.key]});
+        const event = message.data as RoomExtraChangeEvent;
+        queryClient.invalidateQueries({queryKey: ['getRoomExtra',event.roomId,event.key]});
+        console.log("Room extra change:", event);
         break;
       }
       case 16: { // 房间禁言状态变动
