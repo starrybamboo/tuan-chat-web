@@ -3,7 +3,7 @@ import type { StageEntityResponse } from "api/models/StageEntityResponse";
 // 根据类型过滤实体数据的函数
 export function getEntityListByType(
   moduleInfo: any,
-  type: "item" | "role" | "scene",
+  type: "item" | "role" | "scene" | "location",
 ): StageEntityResponse[] {
   if (moduleInfo && Array.isArray(moduleInfo)
     && moduleInfo.every(item => "entityType" in item && "entityInfo" in item)) {
@@ -35,6 +35,7 @@ export function getAllEntityLists(moduleInfo: any) {
   return {
     itemList: getEntityListByType(moduleInfo, "item"),
     roleList: getEntityListByType(moduleInfo, "role"),
+    locationList: getEntityListByType(moduleInfo, "location"),
     sceneList: getEnhancedSceneList(moduleInfo),
   };
 }

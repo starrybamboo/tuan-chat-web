@@ -1,6 +1,6 @@
-import Items from "@/components/module/detail/items";
-import Roles from "@/components/module/detail/roles";
-import NewSceneGraph from "../scene/react flow/newSceneGraph";
+import Items from "@/components/module/detail/ContentTab/items";
+import Roles from "@/components/module/detail/ContentTab/roles";
+import NewSceneGraph from "@/components/module/detail/ContentTab/scene/react flow/newSceneGraph";
 
 interface ContentTabProps {
   moduleId: number;

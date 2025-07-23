@@ -1,6 +1,6 @@
 import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import { useCallback, useEffect, useState } from "react";
-import { getEntityListByType } from "./moduleUtils";
+import { getEntityListByType } from "../moduleUtils";
 
 function ItemListItem(
   { itemId, name, isSelected, onChange }: {

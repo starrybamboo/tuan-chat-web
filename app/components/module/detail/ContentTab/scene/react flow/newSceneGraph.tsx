@@ -11,7 +11,7 @@ import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import dagre from "dagre";
 import { useCallback, useEffect, useMemo } from "react";
 import { useParams } from "react-router";
-import { getEnhancedSceneList } from "../../detail/moduleUtils";
+import { getEnhancedSceneList } from "../../../../detail/moduleUtils";
 import SceneNode from "./NewSceneNode";
 import "@xyflow/react/dist/style.css";
 
