@@ -1,6 +1,6 @@
 import { Handle, Position } from "@xyflow/react";
 import { useState } from "react";
-import { PopWindow } from "../../../common/popWindow";
+import { PopWindow } from "../../../../../common/popWindow";
 
 interface SceneNodeProps {
   data: {
