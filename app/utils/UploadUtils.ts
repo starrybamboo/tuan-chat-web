@@ -11,7 +11,7 @@ export class UploadUtils {
    * @param quality 质量
    * @param maxSize 最大的宽高（px）
    */
-  async uploadImg(file: File, scene: number = 1, quality = 0.7, maxSize = 2560): Promise<string> {
+  async uploadImg(file: File, scene: 1 | 2 | 3 | 4 = 1, quality = 0.7, maxSize = 2560): Promise<string> {
     let new_file = file;
     if (file.type.startsWith("image/")) {
       new_file = await compressImage(file, quality, maxSize);

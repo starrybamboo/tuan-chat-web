@@ -12,13 +12,13 @@ export default function EmojiWindow({ onChoose }:
 
   // 新增表情
   const createEmojiMutation = useCreateEmojiMutation();
-  const uploadUtils = new UploadUtils(2);
+  const uploadUtils = new UploadUtils();
 
   const handleAddEmoji = async (newImg: File) => {
     if (!newImg) {
       return;
     }
-    const imageUrl = await uploadUtils.uploadImg(newImg);
+    const imageUrl = await uploadUtils.uploadImg(newImg, 2);
 
     const emojiCreateRequest = {
       name: newImg.name,
