@@ -1,14 +1,13 @@
 import type { StageEntityResponse } from "api";
 import type { SVGProps } from "react";
 import type { ItemModuleItem, ModuleTabItem, RoleModuleItem } from "./context/types";
-import { getAllEntityLists } from "@/components/module/detail/moduleUtils";
 import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useEffect, useRef } from "react";
 import { useModuleContext } from "./context/_moduleContext";
 import { ModuleItemEnum } from "./context/types";
 import ItemEdit from "./ItemEdit";
 import NPCEdit from "./NPCEdit";
-import SceneEdit from "./SceneEdit";
+import LocationEdit from "./SceneEdit";
 
 export function BaselineClose(props: SVGProps<SVGSVGElement>) {
   return (
@@ -139,15 +138,15 @@ function ItemModuleTabItem({
   );
 }
 
-function SceneModuleTabItem({
+function LocationModuleTabItem({
   sceneModuleItem,
-  scene,
+  location,
   isSelected,
   onTabClick,
   onCloseClick,
 }: {
   sceneModuleItem: ModuleTabItem;
-  scene: StageEntityResponse; // 这里用 any，实际可替换为具体类型
+  location: StageEntityResponse; // 这里用 any，实际可替换为具体类型
   isSelected: boolean;
   onTabClick: (id: string) => void;
   onCloseClick: (id: string) => void;
@@ -189,7 +188,7 @@ function SceneModuleTabItem({
       </label>
       <div className="tab-content bg-base-100 border-base-300 p-6">
         {/* 这里可替换为具体的 SceneEdit 组件 */}
-        <SceneEdit scene={scene} />
+        <LocationEdit location={location} />
       </div>
     </>
   );
@@ -201,14 +200,13 @@ export default function EditModule() {
   const roleModuleItems = moduleTabItems.filter(item =>
     item.type === ModuleItemEnum.ROLE,
   );
-  const sceneModuleItems = moduleTabItems.filter(item =>
-    item.type === ModuleItemEnum.SCENE,
+  const locationModuleItems = moduleTabItems.filter(item =>
+    item.type === ModuleItemEnum.LOCATION,
   );
   const itemModuleItems = moduleTabItems.filter(item =>
     item.type === ModuleItemEnum.ITEM,
   );
   const { data: moduleInfo } = useQueryEntitiesQuery(stageId as number);
-  const allLists = getAllEntityLists(moduleInfo?.data);
 
   return (
     <div className="h-screen p-4 overflow-y-scroll">
@@ -216,7 +214,7 @@ export default function EditModule() {
         {roleModuleItems.map(item => (
           <RoleModuleTabItem
             key={item.id}
-            role={allLists.roleList.find(role => role.name === item.label) as StageEntityResponse}
+            role={moduleInfo!.data!.filter(role => role.entityType === "role").find(role => role.name === item.label) as StageEntityResponse}
             roleModuleItem={item}
             isSelected={item.id === currentSelectedTabId}
             onTabClick={setCurrentSelectedTabId}
@@ -228,7 +226,7 @@ export default function EditModule() {
             <ItemModuleTabItem
               key={item.id}
               itemModuleItem={item}
-              item={allLists.itemList.find(items => items.name === item.label) as StageEntityResponse}
+              item={moduleInfo!.data!.filter(item => item.entityType === "item").find(items => items.name === item.label) as StageEntityResponse}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={setCurrentSelectedTabId}
               onCloseClick={removeModuleTabItem}
@@ -236,11 +234,11 @@ export default function EditModule() {
           ))
         }
         {
-          sceneModuleItems.map(item => (
-            <SceneModuleTabItem
+          locationModuleItems.map(item => (
+            <LocationModuleTabItem
               key={item.id}
               sceneModuleItem={item}
-              scene={allLists.sceneList.find(scene => scene.name === item.label) as StageEntityResponse}
+              location={moduleInfo!.data!.filter(location => location.entityType === "location").find(scene => scene.name === item.label) as StageEntityResponse}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={setCurrentSelectedTabId}
               onCloseClick={removeModuleTabItem}

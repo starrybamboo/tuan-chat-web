@@ -4,7 +4,7 @@ import { useModuleContext } from "@/components/module/workPlace/context/_moduleC
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useState } from "react";
-import { SceneListItem } from "./sceneList";
+import { LocationListItem } from "./LocationList";
 import Section from "./section";
 
 function ItemListItem({
@@ -83,7 +83,7 @@ export default function ItemList({ stageId }: { stageId: number }) {
   // 控制弹窗
   const [isOpen, setIsOpen] = useState(false);
   // // 选择场景
-  const [selectedSceneId, setSelectedSceneId] = useState<number>(0);
+  const [selectedLocationId, setSelectedLocationId] = useState<number>(0);
   const handleOpen = () => {
     setIsOpen(true);
   };
@@ -108,7 +108,7 @@ export default function ItemList({ stageId }: { stageId: number }) {
   };
 
   const list = data?.data?.filter(i => i.entityType === "item");
-  const sceneList = data?.data?.filter(i => i.entityType === "scene");
+  const locationList = data?.data?.filter(i => i.entityType === "location");
   const isEmpty = !list || list.length === 0;
 
   return (
@@ -141,15 +141,15 @@ export default function ItemList({ stageId }: { stageId: number }) {
       </>
       <PopWindow isOpen={isOpen} onClose={handleClose}>
         <div className="p-4 space-y-4">
-          <p className="text-xl font-bold">选择添加的物品所在的场景</p>
+          <p className="text-xl font-bold">选择添加的物品所在的地点</p>
           <div className="space-y-2">
-            {sceneList?.map((scene, index) => (
-              <SceneListItem
+            {locationList?.map((location, index) => (
+              <LocationListItem
                 // key={scene.entityInfo!.sceneId}
                 key={index}
-                scene={scene}
-                isSelected={selectedSceneId === scene.id!}
-                onClick={() => setSelectedSceneId(scene.id!)}
+                location={location}
+                isSelected={selectedLocationId === location.id!}
+                onClick={() => setSelectedLocationId(location.id!)}
               />
             ))}
           </div>

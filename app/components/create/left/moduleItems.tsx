@@ -2,9 +2,9 @@
 // import {  useCommitMutation } from "api/hooks/moduleQueryHooks";
 // import { useState } from "react";
 import ItemList from "./components/itemList";
+import { LocationList } from "./components/LocationList";
 import ResourceList from "./components/resourceList";
 import RoleList from "./components/roleList";
-import { SceneList } from "./components/sceneList";
 
 // const sections = ["角色", "物品", "场景"];
 function ModuleItems({ stageId }: { stageId: number }) {
@@ -23,7 +23,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
     <div className="w-full h-full flex flex-col">
       <RoleList stageId={stageId} />
       <ItemList stageId={stageId} />
-      <SceneList stageId={stageId} />
+      <LocationList stageId={stageId} />
       <ResourceList />
       {/* <div className="flex w-full">
         <details className="dropdown flex-1">
