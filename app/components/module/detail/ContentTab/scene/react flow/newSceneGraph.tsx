@@ -11,8 +11,7 @@ import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import dagre from "dagre";
 import { useCallback, useEffect, useMemo } from "react";
 import { useParams } from "react-router";
-import { getEnhancedSceneList } from "../../detail/moduleUtils";
-import 教室图片 from "../images/教室.webp";
+import { getEnhancedSceneList } from "../../../../detail/moduleUtils";
 import SceneNode from "./NewSceneNode";
 import "@xyflow/react/dist/style.css";
 
@@ -47,7 +46,7 @@ export default function NewSceneGraph() {
         position: { x: 0, y: 0 }, // 先占位，后续用 dagre 计算
         data: {
           label: sceneName,
-          imgUrl: sceneData?.entityInfo?.image || 教室图片,
+          imgUrl: sceneData?.entityInfo?.image || "./moduleDefaultImage.webp",
           sceneItems: sceneData?.sceneItems || [],
           sceneRoles: sceneData?.sceneRoles || [],
           description: sceneData?.entityInfo?.sceneDescription || "",
@@ -183,7 +182,7 @@ export default function NewSceneGraph() {
   }
 
   return (
-    <div className="max-w-screen" style={{ height: "50vh" }}>
+    <div className="max-w-screen bg-base-100" style={{ height: "50vh" }}>
       <ReactFlow
         key={`reactflow-${nodes.length}-${edges.length}`}
         nodes={nodes}

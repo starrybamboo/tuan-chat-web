@@ -26,10 +26,12 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const MAX_DESCRIPTION_LENGTH = 140;
 
   useEffect(() => {
-    setLocalRole({ ...entityInfo, name: role.name });
-    setAbility(entityInfo.ability || {});
-    setCharCount(entityInfo.description?.length || 0);
-    setName(role.name);
+    if (role) {
+      setLocalRole({ ...entityInfo, name: role.name });
+      setAbility(entityInfo.ability || {});
+      setCharCount(entityInfo.description?.length || 0);
+      setName(role.name);
+    }
   }, [entityInfo, role]);
 
   // 接入接口
