@@ -621,10 +621,18 @@ export default function NPCEdit({ role }: NPCEditProps) {
                         id={`ability-${key}`}
                         checked={Object.prototype.hasOwnProperty.call(selectedAbilities, key)}
                         onChange={(e) => {
-                          setSelectedAbilities(prev => ({
-                            ...prev,
-                            [key]: e.target.checked ? Number(value) : 0,
-                          }));
+                          if (e.target.checked) {
+                            // 选中时添加能力
+                            setSelectedAbilities(prev => ({
+                              ...prev,
+                              [key]: Number(value),
+                            }));
+                          }
+                          else {
+                            // 取消选中时移除能力
+                            const { [key]: _, ...rest } = selectedAbilities;
+                            setSelectedAbilities(rest);
+                          }
                         }}
                         className="checkbox checkbox-sm"
                       />
