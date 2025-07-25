@@ -87,7 +87,7 @@ const resourceList: ResourceEntity[] = [
   },
 ];
 
-export default function ResourceList() {
+export default function SceneList() {
   const [selectedResourceId, setSelectedResourceId] = useState<number | null>(null);
 
   const handleClick = (id: number) => {
@@ -100,7 +100,7 @@ export default function ResourceList() {
   const isEmpty = resourceList.length === 0;
 
   return (
-    <Section label="资源">
+    <Section label="场景">
       <>
         {isEmpty
           ? (

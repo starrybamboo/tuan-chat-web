@@ -3,8 +3,8 @@
 // import { useState } from "react";
 import ItemList from "./components/itemList";
 import { LocationList } from "./components/LocationList";
-import ResourceList from "./components/resourceList";
 import RoleList from "./components/roleList";
+import SceneList from "./components/SceneList";
 
 // const sections = ["角色", "物品", "场景"];
 function ModuleItems({ stageId }: { stageId: number }) {
@@ -24,7 +24,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
       <RoleList stageId={stageId} />
       <ItemList stageId={stageId} />
       <LocationList stageId={stageId} />
-      <ResourceList />
+      <SceneList />
       {/* <div className="flex w-full">
         <details className="dropdown flex-1">
           <summary className="btn m-1 bg-primary text-primary-content">切换分支</summary>
