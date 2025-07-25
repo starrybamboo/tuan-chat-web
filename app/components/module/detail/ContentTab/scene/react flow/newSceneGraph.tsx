@@ -46,15 +46,13 @@ export default function NewSceneGraph() {
         position: { x: 0, y: 0 }, // 先占位，后续用 dagre 计算
         data: {
           label: sceneName,
-          imgUrl: sceneData?.entityInfo?.image || "./moduleDefaultImage.webp",
+          imgUrl: "./moduleDefaultImage.webp",
           sceneItems: sceneData?.sceneItems || [],
           sceneRoles: sceneData?.sceneRoles || [],
+          sceneLocations: sceneData?.sceneLocations || [],
           description: sceneData?.entityInfo?.sceneDescription || "",
           tip: sceneData?.entityInfo?.tip || "",
-          moduleSceneId: sceneData?.entityInfo?.moduleSceneId || 0,
           moduleSceneName: sceneData?.entityInfo?.moduleSceneName || sceneName,
-          createTime: sceneData?.entityInfo?.createTime || "",
-          updateTime: sceneData?.entityInfo?.updateTime || "",
         },
       };
     });
