@@ -71,7 +71,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
         <div className="card-body">
           <div className="flex items-center gap-8">
             {/* 图片 */}
-            <CharacterCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleImageChange} fileName={uniqueFileName}>
+            <CharacterCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleImageChange} fileName={uniqueFileName} scene={4}>
               <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
                 <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
