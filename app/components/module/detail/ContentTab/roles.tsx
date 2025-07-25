@@ -1,50 +1,50 @@
 import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { getEntityListByType } from "../moduleUtils";
 
 function RoleAvatar(
-  { roleId, avatar, isSelected, onChange }: {
-    roleId: number;
+  { name, avatar, isSelected, onChange }: {
+    name: string;
     avatar?: string;
     isSelected?: boolean;
-    onChange?: (roleId: number) => void;
+    onChange?: (name: string) => void;
   },
 ) {
   const handleSelectRole = useCallback(() => {
     if (onChange) {
-      onChange(roleId);
+      onChange(name);
     }
-  }, [onChange, roleId]);
+  }, [onChange, name]);
 
   return (
-    <div className="avatar h-16">
-      <div
-        className={`w-16 h-16 rounded-full cursor-pointer transition-all duration-200 ease-in-out hover:scale-110 ${isSelected
-          ? "border-4 border-primary shadow-lg"
-          : "border-2 border-transparent hover:border-primary/50"
-        }`}
-        onClick={handleSelectRole}
-      >
-        <img
-          src={avatar || "/favicon.ico"}
-          alt="角色头像"
-          className="w-full h-full object-cover rounded-full"
-        />
+    <div className="flex flex-col items-center w-20">
+      <div className="flex items-center justify-center h-16">
+        <div
+          className={`w-16 h-16 rounded-full cursor-pointer transition-all duration-200 ease-in-out hover:scale-110 ${isSelected
+            ? "border-4 border-primary shadow-lg"
+            : "border-2 border-transparent hover:border-primary/50"
+          }`}
+          onClick={handleSelectRole}
+        >
+          <img
+            src={avatar || "/favicon.ico"}
+            alt="角色头像"
+            className="w-full h-full object-cover rounded-full"
+          />
+        </div>
       </div>
+      <div className="text-xs mt-1 w-full truncate text-center" title={name}>{name}</div>
     </div>
   );
 }
 
 function RoleDetail(
-  { roleId, roleList }: { roleId: number; roleList: any[] },
+  { name, roleList }: { name: string; roleList: any[] },
 ) {
-  // 尝试多种方式查找角色
-  const roleData = roleList.find((role) => {
-    const info = role.entityInfo;
-    return info?.moduleRoleId === roleId;
-  }) || roleList[roleId]; // 如果没找到，尝试用index直接访问
+  // 通过 name 查找角色
+  const roleData = roleList.find(role => role.name === name);
 
-  if (!roleId) {
+  if (!name) {
     return (
       <div className="flex h-full w-full items-center justify-center text-base-content/50">
         请选择一个角色
@@ -54,25 +54,7 @@ function RoleDetail(
 
   const roleInfo = roleData?.entityInfo;
 
-  // 处理可能的字段名差异
-  const normalizedRoleInfo = roleInfo
-    ? {
-        roleId: roleInfo.moduleRoleId,
-        roleName: roleInfo.roleName,
-        avatar: roleInfo.avatar,
-        description: roleInfo.description,
-        type: roleInfo.type,
-        modelName: roleInfo.modelName,
-        speakerName: roleInfo.speakerName,
-        ability: roleInfo.ability,
-        act: roleInfo.act,
-        createTime: roleInfo.createTime || roleInfo.create_time,
-        updateTime: roleInfo.updateTime || roleInfo.update_time,
-        state: roleInfo.state,
-      }
-    : null;
-
-  if (!roleData || !normalizedRoleInfo) {
+  if (!roleData || !roleInfo) {
     return (
       <div className="flex h-full w-full items-center justify-center text-base-content/50">
         未找到角色信息
@@ -136,31 +118,15 @@ function RoleDetail(
       <div className="flex flex-col gap-4 p-4 bg-base-100 rounded-lg w-full overflow-y-auto">
         {/* 角色名称和基本信息 */}
         <div className="flex items-center gap-4 flex-wrap">
-          <h2 className="text-xl font-bold">{normalizedRoleInfo?.roleName}</h2>
-          <span className="px-2 py-1 text-xs bg-primary/10 text-primary rounded-full">
-            ID:
-            {" "}
-            {normalizedRoleInfo?.roleId}
-          </span>
+          <h2 className="text-xl font-bold">{roleData.name}</h2>
           <span className="px-2 py-1 text-xs bg-secondary/10 text-secondary rounded-full">
-            {getRoleTypeText(normalizedRoleInfo?.type)}
+            {getRoleTypeText(roleInfo.type)}
           </span>
-          {normalizedRoleInfo?.state !== undefined && (
-            <span className={`px-2 py-1 text-xs rounded-full ${normalizedRoleInfo.state === 0
-              ? "bg-success/10 text-success"
-              : "bg-warning/10 text-warning"
-            }`}
-            >
-              {normalizedRoleInfo.state === 0 ? "正常" : "归档"}
-            </span>
-          )}
         </div>
-
-        {/* 角色描述 */}
-        {normalizedRoleInfo?.description && (
+        {roleInfo.description && (
           <div className="text-base-content/80">
-            <h4 className="text-sm font-medium mb-2">角色描述</h4>
-            <p className="whitespace-pre-wrap text-sm">{normalizedRoleInfo.description}</p>
+            <h4 className="text-sm font-medium mb-2">角色简介</h4>
+            <p className="whitespace-pre-wrap text-sm">{roleInfo.description}</p>
           </div>
         )}
 
@@ -169,52 +135,26 @@ function RoleDetail(
           <div className="flex flex-col gap-1">
             <span className="text-base-content/60">语音模型</span>
             <span className="font-mono text-xs">
-              {normalizedRoleInfo?.modelName || "未设置"}
+              {roleInfo.modelName || "未设置"}
             </span>
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-base-content/60">说话人</span>
             <span className="font-mono text-xs">
-              {normalizedRoleInfo?.speakerName || "未设置"}
+              {roleInfo.speakerName || "未设置"}
             </span>
           </div>
         </div>
-
-        {/* 时间信息 */}
-        {(normalizedRoleInfo?.createTime || normalizedRoleInfo?.updateTime) && (
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            {normalizedRoleInfo?.createTime && (
-              <div className="flex flex-col gap-1">
-                <span className="text-base-content/60">创建时间</span>
-                <span className="font-mono text-xs">
-                  {new Date(normalizedRoleInfo.createTime).toLocaleString("zh-CN")}
-                </span>
-              </div>
-            )}
-            {normalizedRoleInfo?.updateTime && (
-              <div className="flex flex-col gap-1">
-                <span className="text-base-content/60">更新时间</span>
-                <span className="font-mono text-xs">
-                  {new Date(normalizedRoleInfo.updateTime).toLocaleString("zh-CN")}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* 能力值 */}
-        {normalizedRoleInfo?.ability && (
+        {roleInfo.ability && (
           <div className="text-sm">
             <h4 className="text-base-content/60 mb-2">能力值</h4>
-            {renderAbilities(normalizedRoleInfo.ability)}
+            {renderAbilities(roleInfo.ability)}
           </div>
         )}
-
-        {/* 行为设定 */}
-        {normalizedRoleInfo?.act && (
+        {roleInfo.act && (
           <div className="text-sm">
             <h4 className="text-base-content/60 mb-2">行为设定</h4>
-            {renderActions(normalizedRoleInfo.act)}
+            {renderActions(roleInfo.act)}
           </div>
         )}
       </div>
@@ -223,57 +163,42 @@ function RoleDetail(
 }
 
 export default function Roles({ moduleId }: { moduleId: number }) {
-  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
-  const { data: moduleInfo, isLoading: _isModuleLoading } = useModuleInfoQuery(moduleId);
+  const { data: moduleInfo } = useModuleInfoQuery(moduleId);
 
-  // 从模组信息中获取所有角色
+  // 获取所有角色，name为唯一标识符
   const roleList = getEntityListByType(moduleInfo, "role");
-
-  const setRoleId = useCallback((roleId: number) => {
-    setSelectedRoleId(roleId);
+  const firstName = roleList.length > 0 ? roleList[0].name ?? "" : "";
+  const [selectedName, setSelectedName] = useState<string>(firstName);
+  const setName = useCallback((name: string) => {
+    setSelectedName(name);
   }, []);
-
-  // 自动选择第一个角色的函数
-  const selectFirstRole = useCallback(() => {
-    if (roleList.length > 0 && selectedRoleId === null) {
-      const firstRoleInfo = roleList[0].entityInfo;
-      const firstRoleId = firstRoleInfo?.moduleRoleId || firstRoleInfo?.roleId || firstRoleInfo?.id || 0;
-      setRoleId(firstRoleId);
-    }
-  }, [roleList, selectedRoleId, setRoleId]);
-
-  // 当角色列表加载完成且有数据时，自动选择第一个角色
-  useEffect(() => {
-    selectFirstRole();
-  }, [selectFirstRole]);
 
   return (
     <div className="flex w-full flex-col max-w-screen md:flex-row md:min-h-128 bg-base-100">
       <div className="basis-92 shrink-0 flex flex-wrap p-2 gap-2 h-fit">
         {roleList.length > 0
-          ? roleList.map((roleEntity, index) => {
+          ? roleList.map((roleEntity) => {
               const roleInfo = roleEntity.entityInfo;
-
-              // 使用 moduleRoleId 或其他字段作为唯一标识
-              const roleId = roleInfo?.moduleRoleId || roleInfo?.roleId || roleInfo?.id || index;
-              const avatar = roleInfo?.avatar || roleInfo?.avatarUrl || roleInfo?.image;
-
+              const name = roleEntity.name ?? "";
+              const avatar = roleInfo?.avatar;
+              if (!name)
+                return null;
               return (
                 <RoleAvatar
-                  key={roleId}
-                  roleId={roleId!}
+                  key={name}
+                  name={name}
                   avatar={avatar}
-                  isSelected={selectedRoleId === roleId}
-                  onChange={setRoleId}
+                  isSelected={selectedName === name}
+                  onChange={setName}
                 />
               );
             })
           : <div>没有数据</div>}
       </div>
       <div className="grow p-2 border-l-2 border-base-content/10 border-solid">
-        {selectedRoleId
+        {selectedName
           ? (
-              <RoleDetail roleId={selectedRoleId} roleList={roleList} />
+              <RoleDetail name={selectedName} roleList={roleList} />
             )
           : (
               <div className="flex h-full w-full items-center justify-center text-base-content/50">

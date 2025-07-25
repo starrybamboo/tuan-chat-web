@@ -8,12 +8,10 @@ interface SceneNodeProps {
     imgUrl: string;
     sceneItems?: string[];
     sceneRoles?: string[];
+    sceneLocations?: string[];
     description?: string;
     tip?: string;
-    moduleSceneId?: number;
     moduleSceneName?: string;
-    createTime?: string;
-    updateTime?: string;
   };
   selected?: boolean;
 }
@@ -73,12 +71,12 @@ function SceneNode({ data, selected }: SceneNodeProps) {
           {/* 模组场景信息 */}
           <div className="w-full bg-gray-50 p-3 rounded-lg">
             <div className="grid grid-cols-2 gap-2 text-sm">
-              {data.moduleSceneId && (
+              {/* {data.moduleSceneId && (
                 <div>
                   <span className="font-medium text-gray-600">场景ID: </span>
                   <span className="text-gray-800">{data.moduleSceneId}</span>
                 </div>
-              )}
+              )} */}
               {data.moduleSceneName && (
                 <div>
                   <span className="font-medium text-gray-600">场景名称: </span>
@@ -142,8 +140,25 @@ function SceneNode({ data, selected }: SceneNodeProps) {
             </div>
           )}
 
+          {/* 场景地点 */}
+          {data.sceneLocations && data.sceneLocations.length > 0 && (
+            <div className="w-full">
+              <h4 className="font-semibold text-lg mb-2 text-purple-600">场景地点</h4>
+              <div className="flex flex-wrap gap-2">
+                {data.sceneLocations.map(location => (
+                  <span
+                    key={location}
+                    className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium"
+                  >
+                    {location}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* 时间信息 */}
-          {(data.createTime || data.updateTime) && (
+          {/* {(data.createTime || data.updateTime) && (
             <div className="w-full bg-gray-50 p-3 rounded-lg">
               <h4 className="font-semibold text-sm mb-2 text-gray-600">时间信息</h4>
               <div className="grid grid-cols-1 gap-1 text-xs text-gray-600">
@@ -163,7 +178,7 @@ function SceneNode({ data, selected }: SceneNodeProps) {
                 )}
               </div>
             </div>
-          )}
+          )} */}
         </div>
       </PopWindow>
     </>
