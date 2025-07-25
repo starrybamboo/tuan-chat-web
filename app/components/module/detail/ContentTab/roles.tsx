@@ -1,5 +1,5 @@
 import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getEntityListByType } from "../moduleUtils";
 
 function RoleAvatar(
@@ -167,11 +167,23 @@ export default function Roles({ moduleId }: { moduleId: number }) {
 
   // 获取所有角色，name为唯一标识符
   const roleList = getEntityListByType(moduleInfo, "role");
-  const firstName = roleList.length > 0 ? roleList[0].name ?? "" : "";
-  const [selectedName, setSelectedName] = useState<string>(firstName);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
   const setName = useCallback((name: string) => {
     setSelectedName(name);
   }, []);
+
+  // 自动选择第一个角色
+  const selectFirst = useCallback(() => {
+    if (roleList.length > 0 && selectedName === null) {
+      const firstName = roleList[0].name ?? "";
+      if (firstName)
+        setName(firstName);
+    }
+  }, [roleList, selectedName, setName]);
+
+  useEffect(() => {
+    selectFirst();
+  }, [selectFirst]);
 
   return (
     <div className="flex w-full flex-col max-w-screen md:flex-row md:min-h-128 bg-base-100">
