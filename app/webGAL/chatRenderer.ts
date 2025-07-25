@@ -73,7 +73,8 @@ export class ChatRenderer {
     if (!spritesName || this.uploadedSpritesNameSet.has(spritesName)) {
       return;
     }
-    const spriteUrl = (await tuanchat.avatarController.getRoleAvatar(message.avatarId)).data?.spriteUrl;
+    const role = await tuanchat.avatarController.getRoleAvatar(message.avatarId);
+    const spriteUrl = role.data?.spriteUrl || role.data?.avatarUrl;
     if (spriteUrl) {
       await this.renderer.uploadSprites(spriteUrl, spritesName);
       this.uploadedSpritesNameSet.add(spritesName);

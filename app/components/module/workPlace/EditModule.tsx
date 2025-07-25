@@ -6,8 +6,8 @@ import { useEffect, useRef } from "react";
 import { useModuleContext } from "./context/_moduleContext";
 import { ModuleItemEnum } from "./context/types";
 import ItemEdit from "./ItemEdit";
+import LocationEdit from "./LocationEdit";
 import NPCEdit from "./NPCEdit";
-import LocationEdit from "./SceneEdit";
 
 export function BaselineClose(props: SVGProps<SVGSVGElement>) {
   return (

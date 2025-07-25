@@ -1,6 +1,8 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
+import { PopWindow } from "@/components/common/popWindow";
 import { CharacterCopper } from "@/components/newCharacter/CharacterCopper";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
+import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 // import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useState } from "react";
 import { useModuleContext } from "./context/_moduleContext";
@@ -21,9 +23,17 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [charCount, setCharCount] = useState(entityInfo.description?.length || 0);
 
-  // 获取规则详细
-  // const { data: ruleAbility } = useGetRuleDetailQuery(1);
   const MAX_DESCRIPTION_LENGTH = 140;
+
+  // 获取规则详细
+  const { data: ruleAbility } = useGetRuleDetailQuery(1);
+  const [showAbilityPopup, setShowAbilityPopup] = useState(false);
+  const [selectedAbilities, setSelectedAbilities] = useState<Record<string, number>>({});
+  const [newAbilityName, setNewAbilityName] = useState("");
+  const [newAbilityValue, setNewAbilityValue] = useState(0);
+
+  // 规则能力搜索框
+  const [abilitySearchQuery, setAbilitySearchQuery] = useState("");
 
   useEffect(() => {
     if (role) {
@@ -54,6 +64,31 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const handleCancel = () => {
     setLocalRole({ ...entityInfo, name: role.name! });
     setIsEditing(false);
+  };
+
+  // 处理添加能力
+  const handleAddAbilities = () => {
+    const updatedAbility = { ...ability };
+    Object.entries(selectedAbilities).forEach(([key, value]) => {
+      if (key && value !== undefined) {
+        updatedAbility[key] = value;
+      }
+    });
+    if (newAbilityName) {
+      updatedAbility[newAbilityName] = newAbilityValue;
+    }
+    setAbility(updatedAbility);
+    updateRole({ id: role.id!, entityType: "role", entityInfo: { ...localRole, ability: updatedAbility }, name });
+    setSelectedAbilities({});
+    setNewAbilityName("");
+    setNewAbilityValue(0);
+    setShowAbilityPopup(false);
+  };
+
+  // 在状态定义后添加一个辅助函数
+  const isBaseAttribute = (key: string) => {
+    const baseAttributes = ["str", "dex", "pow", "con", "app", "edu", "siz", "int", "luck"];
+    return baseAttributes.includes(key);
   };
 
   const generateUniqueFileName = (name: string): string => {
@@ -479,10 +514,191 @@ export default function NPCEdit({ role }: NPCEditProps) {
                 </tbody>
               </table>
             </div>
+            <div className="mt-6">
+              <div className="flex justify-between items-center mb-2 w-full border-b-2">
+                <h3 className="font-bold">自定义能力</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowAbilityPopup(true)}
+                  className="btn btn-sm btn-accent"
+                >
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 4v16m8-8H4" stroke="currentColor" strokeWidth="2" />
+                    </svg>
+                    创建能力
+                  </span>
+                </button>
+              </div>
+              {/* 自定义能力展示区 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
+                {Object.entries(ability)
+                  .filter(([key]) => !isBaseAttribute(key))
+                  .map(([key, value]) => (
+                    <div key={key} className="card bg-base-100 shadow-sm p-3">
+                      <div className="flex justify-between items-center">
+                        <div className="font-medium text-sm">{key}</div>
+                        {isEditing
+                          ? (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  value={value as number}
+                                  onChange={e => setAbility((prev: any) => ({
+                                    ...prev,
+                                    [key]: Number(e.target.value),
+                                  }))}
+                                  className="input input-bordered input-sm w-20"
+                                />
+                                <button
+                                  onClick={() => {
+                                    const newAbility = { ...ability };
+                                    delete newAbility[key];
+                                    setAbility(newAbility);
+                                  }}
+                                  className="btn btn-error btn-circle btn-xs"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            )
+                          : (
+                              <div className="font-bold text-lg">{value as number}</div>
+                            )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
           </div>
+          <PopWindow
+            isOpen={showAbilityPopup}
+            onClose={() => {
+              setShowAbilityPopup(false);
+              // 关闭弹窗时清除搜索查询
+              setAbilitySearchQuery("");
+            }}
+            fullScreen={false}
+          >
+            <div className="space-y-4">
+              <h3 className="font-bold text-lg">选择能力</h3>
+
+              {/* 添加搜索框 */}
+              <div className="flex gap-2">
+                <label className="input flex items-center gap-2 w-full">
+                  <svg
+                    className="h-[1em]"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.3-4.3" />
+                  </svg>
+                  <input
+                    type="text"
+                    className="grow"
+                    placeholder="搜索能力..."
+                    value={abilitySearchQuery}
+                    onChange={e => setAbilitySearchQuery(e.target.value)}
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
+                {Object.entries(ruleAbility?.data?.abilityDefault?.["320"] || {})
+                  .filter(([key]) =>
+                    key.toLowerCase().includes(abilitySearchQuery.toLowerCase())
+                    || abilitySearchQuery === "",
+                  )
+                  .map(([key, value]) => (
+                    <div key={key} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id={`ability-${key}`}
+                        checked={Object.prototype.hasOwnProperty.call(selectedAbilities, key)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            // 选中时添加能力
+                            setSelectedAbilities(prev => ({
+                              ...prev,
+                              [key]: Number(value),
+                            }));
+                          }
+                          else {
+                            // 取消选中时移除能力
+                            const { [key]: _, ...rest } = selectedAbilities;
+                            setSelectedAbilities(rest);
+                          }
+                        }}
+                        className="checkbox checkbox-sm"
+                      />
+                      <label htmlFor={`ability-${key}`} className="flex-1">
+                        {key}
+                        {" "}
+                        (
+                        {value}
+                        )
+                      </label>
+                    </div>
+                  ))}
+              </div>
+
+              {/* 当搜索结果为空时显示提示 */}
+              {abilitySearchQuery
+                && Object.keys(ruleAbility?.data?.abilityDefault?.["320"] || {})
+                  .filter(([key]) =>
+                    key.toLowerCase().includes(abilitySearchQuery.toLowerCase()),
+                  )
+                  .length === 0 && (
+                <div className="text-center py-4 text-base-content/50">
+                  未找到匹配的能力
+                </div>
+              )}
+
+              <div className="divider">或创建新能力</div>
+
+              <div className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={newAbilityName}
+                  onChange={e => setNewAbilityName(e.target.value)}
+                  placeholder="能力名称"
+                  className="input input-bordered flex-1"
+                />
+                <input
+                  type="number"
+                  value={newAbilityValue}
+                  onChange={e => setNewAbilityValue(Number(e.target.value))}
+                  placeholder="数值"
+                  className="input input-bordered w-20"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setShowAbilityPopup(false);
+                    setAbilitySearchQuery("");
+                  }}
+                  className="btn btn-secondary"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleAddAbilities}
+                  className="btn btn-primary"
+                >
+                  确认添加
+                </button>
+              </div>
+            </div>
+          </PopWindow>
         </div>
       </div>
-
     </div>
   );
 }

@@ -33,7 +33,7 @@ function RoleListItem(
         />
         <div className="flex flex-col">
           <p className="self-baseline">{name}</p>
-          <p className="text-xs text-gray-500 self-baseline mt-0.5">{role.entityInfo!.description}</p>
+          <p className="text-xs text-gray-500 self-baseline mt-0.5 line-clamp-1">{role.entityInfo!.description}</p>
         </div>
       </div>
 
