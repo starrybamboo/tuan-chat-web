@@ -92,7 +92,10 @@ export class Renderer {
 
   public async uploadSprites(url: string, spritesName: string): Promise<void> {
     const path = `games/${this.game.name}/game/figure/`;
-    await uploadFile(url, path, `${spritesName}.png`);
+    // 提取URL中的文件后缀
+    const fileExtension = url.split(".").pop() || "png";
+    await uploadFile(url, path, `${spritesName}.${fileExtension}`);
+    console.log(`Uploaded sprites ${spritesName}.${fileExtension} to ${path}`);
   }
 
   // 上传背景图片，直接使用url当作fileName

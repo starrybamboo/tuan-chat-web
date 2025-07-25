@@ -37,6 +37,9 @@ export default function RenderWindow() {
       console.error("Rendering failed:", error);
     }
     setIsRendering(false);
+
+    const webgalUrl = `http://localhost:3001/#/game/%20preview_${roomId}`;
+    window.open(webgalUrl, "");
   }
 
   return (
