@@ -24,7 +24,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
       <RoleList stageId={stageId} />
       <ItemList stageId={stageId} />
       <LocationList stageId={stageId} />
-      <SceneList />
+      <SceneList stageId={stageId} />
       {/* <div className="flex w-full">
         <details className="dropdown flex-1">
           <summary className="btn m-1 bg-primary text-primary-content">切换分支</summary>

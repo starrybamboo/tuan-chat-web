@@ -1,6 +1,6 @@
 import type { StageEntityResponse } from "api";
 import type { SVGProps } from "react";
-import type { ItemModuleItem, ModuleTabItem, RoleModuleItem } from "./context/types";
+import type { ItemModuleItem, ModuleTabItem, RoleModuleItem, SceneModuleItem } from "./context/types";
 import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useEffect, useRef } from "react";
 import { useModuleContext } from "./context/_moduleContext";
@@ -194,6 +194,62 @@ function LocationModuleTabItem({
   );
 }
 
+function SceneModuleTabItem({
+  sceneModuleItem,
+  scene,
+  isSelected,
+  onTabClick,
+  onCloseClick,
+}: {
+  sceneModuleItem: SceneModuleItem;
+  scene: StageEntityResponse;
+  isSelected: boolean;
+  onTabClick: (id: string) => void;
+  onCloseClick: (id: string) => void;
+}) {
+  const { id, label } = sceneModuleItem;
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isSelected && inputRef.current) {
+      inputRef.current.checked = true;
+    }
+  }, [isSelected]);
+
+  return (
+    <>
+      <label className="tab flex-row-reverse pr-8! relative group before:hidden!">
+        <input
+          ref={inputRef}
+          type="radio"
+          name="WorkSpaceTab"
+          className="tab"
+          aria-label={label}
+          onClick={onTabClick.bind(null, id.toString())}
+        />
+        <div
+          className={`
+            absolute right-[10px] invisible
+            w-4 h-4 flex items-center justify-center
+            group-hover:visible ${isSelected ? "visible" : ""}
+            hover:bg-base-content/80 rounded-sm
+          `}
+          onClick={() => {
+            onCloseClick(id.toString());
+          }}
+        >
+          <BaselineClose />
+        </div>
+        {label}
+      </label>
+      <div className="tab-content bg-base-100 border-base-300 p-6">
+        {/* 这里可替换为具体的 SceneEdit 组件 */}
+        {scene.name}
+      </div>
+    </>
+  );
+}
+
 export default function EditModule() {
   const { moduleTabItems, currentSelectedTabId, setCurrentSelectedTabId, removeModuleTabItem, stageId }
     = useModuleContext();
@@ -206,6 +262,10 @@ export default function EditModule() {
   const itemModuleItems = moduleTabItems.filter(item =>
     item.type === ModuleItemEnum.ITEM,
   );
+  const sceneModuleItems = moduleTabItems.filter(item =>
+    item.type === ModuleItemEnum.SCENE,
+  );
+
   const { data: moduleInfo } = useQueryEntitiesQuery(stageId as number);
 
   return (
@@ -239,6 +299,18 @@ export default function EditModule() {
               key={item.id}
               sceneModuleItem={item}
               location={moduleInfo!.data!.filter(location => location.entityType === "location").find(scene => scene.name === item.label) as StageEntityResponse}
+              isSelected={item.id === currentSelectedTabId}
+              onTabClick={setCurrentSelectedTabId}
+              onCloseClick={removeModuleTabItem}
+            />
+          ))
+        }
+        {
+          sceneModuleItems.map(item => (
+            <SceneModuleTabItem
+              key={item.id}
+              sceneModuleItem={item}
+              scene={moduleInfo!.data!.filter(scene => scene.entityType === "scene").find(scene => scene.name === item.label) as StageEntityResponse}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={setCurrentSelectedTabId}
               onCloseClick={removeModuleTabItem}
