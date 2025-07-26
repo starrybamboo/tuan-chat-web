@@ -6,6 +6,7 @@ import {
   ReactFlow,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from "@xyflow/react";
 import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import dagre from "dagre";
@@ -14,6 +15,16 @@ import { useParams } from "react-router";
 import { getEnhancedSceneList } from "../../../../detail/moduleUtils";
 import SceneNode from "./NewSceneNode";
 import "@xyflow/react/dist/style.css";
+// 自动 fitView 组件，必须作为 ReactFlow 的子组件
+function AutoFitView({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
+  const { fitView } = useReactFlow();
+  useEffect(() => {
+    if (nodes.length > 0) {
+      fitView();
+    }
+  }, [nodes, edges, fitView]);
+  return null;
+}
 
 const nodeTypes = {
   location: SceneNode,
@@ -137,6 +148,8 @@ export default function NewSceneGraph() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
+  // 自动 fitView 逻辑已移到 AutoFitView 组件
+
   // 当 initialNodes 或 initialEdges 变化时，更新状态
   useEffect(() => {
     setNodes(initialNodes);
@@ -196,6 +209,7 @@ export default function NewSceneGraph() {
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         nodeOrigin={[0.5, 0]}
       >
+        <AutoFitView nodes={nodes} edges={edges} />
         <Controls />
         <Background gap={16} color="#aaa" />
       </ReactFlow>
