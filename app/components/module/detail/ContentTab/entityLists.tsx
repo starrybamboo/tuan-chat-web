@@ -44,7 +44,7 @@ function ItemDetail({ itemName, itemList, entityType }: ItemDetailProps) {
   if (!itemName) {
     return (
       <div className="flex h-full w-full items-center justify-center text-base-content/50">
-        请选择一个物品
+        请选择一项
       </div>
     );
   }
@@ -68,7 +68,7 @@ function ItemDetail({ itemName, itemList, entityType }: ItemDetailProps) {
   if (!itemData || !normalizedItemInfo) {
     return (
       <div className="flex h-full w-full items-center justify-center text-base-content/50">
-        未找到物品信息
+        未找到信息
       </div>
     );
   }
@@ -110,7 +110,7 @@ function ItemDetail({ itemName, itemList, entityType }: ItemDetailProps) {
       <div className="flex flex-col gap-4 p-4 bg-base-100 rounded-lg w-full overflow-y-auto">
         {/* 物品名称和基本信息 */}
         <div className="flex items-center gap-4 flex-wrap">
-          <h2 className="text-xl font-bold">{normalizedItemInfo?.name || "未命名物品"}</h2>
+          <h2 className="text-xl font-bold">{normalizedItemInfo?.name || "未命名"}</h2>
           {/* <span className="px-2 py-1 text-xs bg-primary/10 text-primary rounded-full">
             ID:
             {" "}
@@ -137,7 +137,7 @@ function ItemDetail({ itemName, itemList, entityType }: ItemDetailProps) {
         {/* 物品图片（Scene 类型无图片） */}
         {entityType !== "scene" && normalizedItemInfo?.image && (
           <div className="flex flex-col gap-2">
-            <h4 className="text-sm font-medium text-base-content/60">物品图片</h4>
+            <h4 className="text-sm font-medium text-base-content/60">图片</h4>
             <div className="w-32 h-32 rounded-lg overflow-hidden border border-base-300">
               <img
                 src={normalizedItemInfo.image}
@@ -151,7 +151,7 @@ function ItemDetail({ itemName, itemList, entityType }: ItemDetailProps) {
         {/* 物品描述（可直接展示给玩家） */}
         {normalizedItemInfo?.description && (
           <div className="text-base-content/80">
-            <h4 className="text-sm font-medium mb-2 text-base-content/60">物品描述</h4>
+            <h4 className="text-sm font-medium mb-2 text-base-content/60">描述</h4>
             <p className="whitespace-pre-wrap text-sm bg-base-200 p-3 rounded-lg">
               {normalizedItemInfo.description}
             </p>

@@ -205,7 +205,7 @@ export default function Roles({ moduleId }: { moduleId: number }) {
                 />
               );
             })
-          : <div>没有数据</div>}
+          : <div className="w-full text-center text-base-content/50 py-8">没有数据</div>}
       </div>
       <div className="grow p-2 border-l-2 border-base-content/10 border-solid">
         {selectedName
