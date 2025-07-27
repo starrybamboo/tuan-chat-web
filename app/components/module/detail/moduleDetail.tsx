@@ -50,7 +50,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
     },
     moduleData.authorName && { label: "作者", value: moduleData.authorName },
     moduleData.userId && { label: "上传者ID", value: String(moduleData.userId) },
-    moduleData.ruleId && { label: "规则ID", value: String(moduleData.ruleId) },
+    moduleData.ruleId && { label: "规则", value: String(moduleData.ruleId) },
     moduleData.createTime && { label: "创建时间", value: new Date(moduleData.createTime).toLocaleDateString("zh-CN") },
     moduleData.updateTime && { label: "最后更新", value: new Date(moduleData.updateTime).toLocaleString("zh-CN") },
   ].filter((item): item is { label: string; value: string } => Boolean(item)); // 类型断言过滤

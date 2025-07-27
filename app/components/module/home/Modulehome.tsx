@@ -1,5 +1,6 @@
 import Pagination from "@/components/common/pagination";
 import { useModuleListQuery } from "api/hooks/moduleQueryHooks";
+import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -9,7 +10,6 @@ import 办公室图片 from "./images/办公室.webp";
 import 天台图片 from "./images/天台.webp";
 import 操场图片 from "./images/操场.webp";
 import 教室图片 from "./images/教室.webp";
-
 import 楼道图片 from "./images/楼道.webp";
 
 // 卡片内容类型定义
@@ -19,6 +19,8 @@ interface ContentCardProps {
   imageAlt?: string;
   // 标题
   title?: string;
+  // 规则
+  RuleName?: string;
   // 文段内容
   content?: string;
   // 自定义样式类名
@@ -47,6 +49,7 @@ export function ContentCard({
   image,
   imageAlt,
   title,
+  RuleName,
   content,
   className = "",
   onClick,
@@ -152,11 +155,14 @@ export function ContentCard({
 
       {/* 内容部分 */}
       <div className={`${sizeClasses[size]}`}>
-        {/* 标题（所有类型都显示在下方） */}
+        {/* 标题和规则名（所有类型都显示在下方） */}
         {title && (
-          <h2 className="text-lg font-bold mt-4 mb-3 line-clamp-2">
-            {title}
-          </h2>
+          <div className="flex items-center justify-between mt-4 mb-3">
+            <h2 className="text-lg font-bold line-clamp-2">{title}</h2>
+            {RuleName && (
+              <span className="ml-4 px-2 py-1 text-xs font-semibold bg-primary/10 text-primary rounded-full whitespace-nowrap">{RuleName}</span>
+            )}
+          </div>
         )}
 
         {/* 文段内容 */}
@@ -235,6 +241,8 @@ export default function ModuleHome() {
     },
   ], []);
 
+  const RuleList = useRuleListQuery();
+
   // 分页状态管理
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12; // 每页显示12个模组
@@ -265,6 +273,7 @@ export default function ModuleHome() {
     // 将 API 数据转换为 ContentCard 所需的格式
     return moduleData.list.map((module: any) => ({
       id: `module-${module.moduleId}`,
+      rule: RuleList.data?.find(rule => rule.id === module.ruleId)?.name || "",
       title: module.moduleName,
       image: module.image || 教室图片, // 如果没有图片则使用默认图片
       content: module.description,
@@ -281,7 +290,7 @@ export default function ModuleHome() {
       maxTime: module.maxTime,
       parent: module.parent, // 从哪个模组fork来
     }));
-  }, [moduleData]);
+  }, [moduleData, RuleList]);
 
   const [imagesReady, setImagesReady] = useState(false);
 
@@ -429,6 +438,7 @@ export default function ModuleHome() {
                 <ContentCard
                   key={card.id}
                   title={card.title}
+                  RuleName={card.rule}
                   image={card.image}
                   content={card.content}
                   type={card.type}
@@ -444,7 +454,7 @@ export default function ModuleHome() {
                       state: {
                         moduleData: {
                           moduleId: card.moduleId,
-                          ruleId: card.ruleId, // 所用的规则id
+                          ruleName: card.rule, // 所用的规则id
                           moduleName: card.title,
                           description: card.content,
                           userId: card.userId, // 上传者
