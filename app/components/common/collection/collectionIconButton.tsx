@@ -1,5 +1,6 @@
 import type { CollectionCheckRequest } from "../../../../api";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import React from "react";
 import { toast } from "react-hot-toast";
 import {
   useAddCollectionMutation,
@@ -8,13 +9,20 @@ import {
 } from "../../../../api/hooks/collectionQueryHooks";
 import { useGetCounterQuery } from "../../../../api/hooks/couterQueryHooks";
 
-export default function CollectionIconButton({ targetInfo }: { targetInfo: CollectionCheckRequest }) {
+interface CollectionIconButtonProps {
+  targetInfo: CollectionCheckRequest;
+  showCount?: boolean;
+}
+export default function CollectionIconButton({ targetInfo, showCount }: CollectionIconButtonProps) {
   const isCollectedQuery = useCheckUserCollectionQuery(targetInfo);
 
   const isCollected = isCollectedQuery.data?.data;
 
-  const countData = useGetCounterQuery({ targetId: targetInfo.resourceId, targetType: Number(targetInfo.resourceType) });
-  const collectionCount = countData?.data?.data ?? 0;
+  const { data: countData } = useGetCounterQuery({
+    targetId: targetInfo.resourceId,
+    targetType: Number(targetInfo.resourceType),
+  }, { enabled: showCount });
+  const collectionCount = countData?.data ?? 0;
   const addCollectionMutation = useAddCollectionMutation();
   const deleteCollectionMutation = useDeleteCollectionMutation();
 
