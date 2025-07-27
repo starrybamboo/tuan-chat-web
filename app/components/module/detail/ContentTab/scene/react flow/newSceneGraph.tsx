@@ -75,11 +75,10 @@ export default function NewSceneGraph({
         data: {
           label: sceneName,
           idx: scenes.indexOf(sceneName),
-          // imgUrl: "/moduleDefaultImage.webp",
           sceneItems: sceneData?.sceneItems || [],
           sceneRoles: sceneData?.sceneRoles || [],
           sceneLocations: sceneData?.sceneLocations || [],
-          description: sceneData?.entityInfo?.sceneDescription || "",
+          description: sceneData?.entityInfo?.description || "",
           tip: sceneData?.entityInfo?.tip || "",
           moduleSceneName: sceneData?.entityInfo?.moduleSceneName || sceneName,
         },

@@ -88,7 +88,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
               {/* 字段名列 */}
               <div className="flex flex-col gap-2">
                 {infos.map(info => (
-                  <h3 key={`label-${info.label}`} className="text-base text-primary">{info.label}</h3>
+                  <h3 key={`label-${info.label}`} className="text-base font-bold text-secondary">{info.label}</h3>
                 ))}
               </div>
               {/* 竖直分隔线 */}
