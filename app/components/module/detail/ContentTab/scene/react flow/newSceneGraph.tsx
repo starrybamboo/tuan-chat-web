@@ -31,6 +31,7 @@ const nodeTypes = {
 };
 
 export default function NewSceneGraph() {
+  // 直接使用路由参数
   const params = useParams();
   const moduleId = Number(params.id);
 
@@ -194,26 +195,24 @@ export default function NewSceneGraph() {
   }
 
   return (
-    <div className="max-w-screen bg-base-100" style={{ height: "50vh" }}>
-      <ReactFlow
-        key={`reactflow-${nodes.length}-${edges.length}`}
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodeDrag={onNodeDrag}
-        nodeTypes={nodeTypes}
-        nodesDraggable={true}
-        nodesConnectable={false}
-        elementsSelectable={true}
-        fitView
-        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-        nodeOrigin={[0.5, 0]}
-      >
-        <AutoFitView nodes={nodes} edges={edges} />
-        <Controls />
-        <Background gap={16} color="#aaa" />
-      </ReactFlow>
-    </div>
+    <ReactFlow
+      key={`reactflow-${nodes.length}-${edges.length}`}
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      onNodeDrag={onNodeDrag}
+      nodeTypes={nodeTypes}
+      nodesDraggable={true}
+      nodesConnectable={false}
+      elementsSelectable={true}
+      fitView
+      defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+      nodeOrigin={[0.5, 0]}
+    >
+      <AutoFitView nodes={nodes} edges={edges} />
+      <Controls />
+      <Background gap={16} color="#aaa" />
+    </ReactFlow>
   );
 }
