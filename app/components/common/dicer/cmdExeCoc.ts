@@ -74,7 +74,7 @@ const cmdRc = new CommandExecutor(
     // 补丁：添加对于英文简写属性不可读的临时解决方案
     // TODO 后续添加更健壮的属性解析方案
     if (!name) {
-      throw new Error("缺少技能名称");
+      throw new Error("错误：缺少技能名称");
     }
     if (ABILITY_MAP[name.toLowerCase()]) {
       name = ABILITY_MAP[name.toLowerCase()];
@@ -93,7 +93,7 @@ const cmdRc = new CommandExecutor(
     let value = curAbility?.ability[name];
 
     if (value === undefined && attr === undefined) {
-      cpi.sendMsg(`未找到技能或属性`);
+      cpi.sendMsg("错误：未找到技能或属性");
       return {
         success: false,
         error: {
