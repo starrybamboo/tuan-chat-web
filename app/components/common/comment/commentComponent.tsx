@@ -2,6 +2,7 @@ import type { CommentVO } from "api";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
 import CommentPreview from "@/components/common/comment/commentPreview";
 import CommentToggle from "@/components/common/comment/CommentToggle";
+import DivideLine from "@/components/common/comment/divideLine";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import LikeIconButton from "@/components/common/likeIconButton";
 import { PopWindow } from "@/components/common/popWindow";
@@ -90,11 +91,17 @@ export default function CommentComponent({ comment, level = 1 }: {
         <CommentPreview commentVO={commentVO}></CommentPreview>
       </div>
       <div className="flex flex-row">
-        <div className="divider divider-horizontal divider-start hover:divider-neutral hover:font-bold ml-3 mr-3" onClick={() => setIsFolded(!isFolded)}>
-          <div className="pt-3">
-            <CommentToggle isFolded={isFolded} />
-          </div>
-        </div>
+        <DivideLine onClick={() => setIsFolded(!isFolded)} className="px-5">
+          <CommentToggle isFolded={isFolded} />
+        </DivideLine>
+        {/* <div */}
+        {/*  className="divider divider-horizontal divider-start hover:divider-neutral hover:font-bold ml-3 mr-3 w-px" */}
+        {/*  onClick={() => setIsFolded(!isFolded)} */}
+        {/* > */}
+        {/*  <div className="pt-3"> */}
+        {/*    <CommentToggle isFolded={isFolded} /> */}
+        {/*  </div> */}
+        {/* </div> */}
         <div>
           {/* Comment Content */}
           <div className="prose max-w-none pl-2">
