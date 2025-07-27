@@ -168,3 +168,24 @@ export function useRulePageMutation() {
     }
   });
 }
+
+export function useRuleListQuery() {
+  return useQuery({
+    queryKey: ["ruleList"],
+    queryFn: async () => {
+      const res = await tuanchat.ruleController.getRulePage({ pageNo: 1, pageSize: 100 });
+      if (res.success && res.data?.list) {
+        // 将后端数据结构转换为前端需要的 `GameRule` 类型
+        return res.data.list.map(rule => ({
+          id: rule.ruleId || 0,
+          name: rule.ruleName || "",
+          description: rule.ruleDescription || "",
+          performance: {}, // 表演字段
+          numerical: {}, // 数值约束
+        }));
+      }
+      throw new Error('获取规则列表失败');
+    },
+    staleTime: 300000, // 5分钟缓存
+  });
+}
