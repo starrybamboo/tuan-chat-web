@@ -1,7 +1,9 @@
+import type { Edge, Node } from "@xyflow/react";
 import { PopWindow } from "@/components/common/popWindow";
 import EntityList from "@/components/module/detail/ContentTab/entityLists";
 import Roles from "@/components/module/detail/ContentTab/roles";
 import NewSceneGraph from "@/components/module/detail/ContentTab/scene/react flow/newSceneGraph";
+import { useEdgesState, useNodesState } from "@xyflow/react";
 import { useState } from "react";
 
 interface ContentTabProps {
@@ -10,6 +12,9 @@ interface ContentTabProps {
 
 export default function ContentTab({ moduleId }: ContentTabProps) {
   const [showSceneGraph, setShowSceneGraph] = useState(false);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]); // 泛型是 Node
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]); // 泛型是 Edge
   return (
     <>
       {/* 场景 */}
@@ -34,7 +39,14 @@ export default function ContentTab({ moduleId }: ContentTabProps) {
           <EntityList moduleId={moduleId} entityType="scene" />
           <div className="divider" />
           <div className="max-w-screen bg-base-100 relative" style={{ height: "50vh" }}>
-            <NewSceneGraph />
+            <NewSceneGraph
+              nodes={nodes}
+              edges={edges}
+              setNodes={setNodes}
+              setEdges={setEdges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+            />
             <button
               type="button"
               className="btn btn-square bg-white absolute top-2 right-2 shadow-md hover:shadow-lg"
@@ -117,7 +129,14 @@ export default function ContentTab({ moduleId }: ContentTabProps) {
 
       <PopWindow isOpen={showSceneGraph} onClose={() => setShowSceneGraph(false)} fullScreen={true}>
         <div className="p-8" style={{ width: "100%", height: "100%" }}>
-          <NewSceneGraph />
+          <NewSceneGraph
+            nodes={nodes}
+            edges={edges}
+            setNodes={setNodes}
+            setEdges={setEdges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+          />
         </div>
       </PopWindow>
     </>
