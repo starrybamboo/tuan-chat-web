@@ -5,7 +5,7 @@ import { PopWindow } from "../../../../../common/popWindow";
 interface SceneNodeProps {
   data: {
     label: string;
-    imgUrl: string;
+    idx: number;
     sceneItems?: string[];
     sceneRoles?: string[];
     sceneLocations?: string[];
@@ -24,35 +24,51 @@ function SceneNode({ data, selected }: SceneNodeProps) {
   };
 
   return (
-    <>
+    <div className="border min-w-[120px] rounded-xs">
+      {/* 右下偏移的背景层，仅作用于本内容区 */}
+      <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 bg-base-300 opacity-50 rounded-xs -z-10"></div>
+      <div className="border-b bg-base-100">
+        {/* 节点索引显示在顶部 */}
+        <span className="text-xl font-black font-mono bg-cyan-400 text-info-content">
+          {(data.idx + 1).toString().padStart(2, "0")}
+          .
+        </span>
+
+        <span className="ml-1 mb-2 text-sm font-semibold text-base-content">场景资源</span>
+      </div>
       <div
-        className={`w-32 p-2 rounded-lg bg-white shadow-md relative cursor-pointer ${
-          selected ? "border-2 border-blue-500" : "border border-gray-300"
+        className={`relative cursor-pointer flex flex-col items-center justify-center h-12 ${
+          selected ? "border-2 border-blue-500" : ""
         }`}
         onClick={handleNodeClick}
       >
-        <div className="relative">
-          <img
-            src={data.imgUrl}
-            alt={data.label}
-            className="w-full rounded"
-          />
+        <div className="flex items-center justify-center text-primary ">
+          <span className="text-xl font-black leading-none mr-4 mb-4">「 </span>
+          <span className="text-2xl font-black font-mono tracking-widest">{data.label}</span>
+          <span className="text-xl font-black leading-none ml-4 mt-4"> 」</span>
         </div>
-
-        {/* 连接点 */}
-        <Handle type="source" position={Position.Right} />
-        <Handle type="target" position={Position.Left} />
+        {/* 连接点... */}
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!absolute !top-1/2"
+        />
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="!absolute !top-1/2"
+        />
       </div>
 
       {/* 节点标签显示在下方 */}
-      <div
+      {/* <div
         className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1"
         style={{ pointerEvents: "none" }}
       >
         <span className="text-xs font-semibold text-gray-700 whitespace-nowrap">
           {data.label}
         </span>
-      </div>
+      </div> */}
 
       {/* 场景大图弹窗 */}
       <PopWindow isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)}>
@@ -60,13 +76,13 @@ function SceneNode({ data, selected }: SceneNodeProps) {
           <h3 className="text-xl font-bold text-center">{data.label}</h3>
 
           {/* 场景图片 */}
-          <div className="max-w-full max-h-[50vh] overflow-hidden rounded-lg">
+          {/* <div className="max-w-full max-h-[50vh] overflow-hidden rounded-lg">
             <img
               src={data.imgUrl}
               alt={data.label}
               className="w-full h-full object-contain"
             />
-          </div>
+          </div> */}
 
           {/* 模组场景信息 */}
           <div className="w-full bg-gray-50 p-3 rounded-lg">
@@ -181,7 +197,7 @@ function SceneNode({ data, selected }: SceneNodeProps) {
           )} */}
         </div>
       </PopWindow>
-    </>
+    </div>
   );
 }
 

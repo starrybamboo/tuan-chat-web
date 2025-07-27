@@ -57,7 +57,8 @@ export default function NewSceneGraph() {
         position: { x: 0, y: 0 }, // 先占位，后续用 dagre 计算
         data: {
           label: sceneName,
-          imgUrl: "/moduleDefaultImage.webp",
+          idx: scenes.indexOf(sceneName),
+          // imgUrl: "/moduleDefaultImage.webp",
           sceneItems: sceneData?.sceneItems || [],
           sceneRoles: sceneData?.sceneRoles || [],
           sceneLocations: sceneData?.sceneLocations || [],
