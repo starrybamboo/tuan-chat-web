@@ -74,7 +74,7 @@ function SceneNode({ data, selected }: SceneNodeProps) {
 
       {/* 场景大图弹窗 */}
       <PopWindow isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)}>
-        <div className="min-w-[50vw] max-w-[60vw]">
+        <div className="w-[50vw]">
           <ItemDetail
             itemName={data.label}
             itemList={[{ ...data, name: data.label, entityInfo: { description: data.description, tip: data.tip } }]}
