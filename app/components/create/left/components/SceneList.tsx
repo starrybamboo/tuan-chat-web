@@ -1,21 +1,21 @@
+import type { StageEntityResponse } from "api";
+import { PopWindow } from "@/components/common/popWindow";
+import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
+import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
+import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useState } from "react";
 import Section from "./section";
 
-// 模拟后端返回的资源数据结构
-interface ResourceEntity {
-  id: number;
-  name: string;
-  description?: string;
-  icon?: string; // 可选，资源类型图标
-}
-
-// 资源项组件，参考 roleListItem 样式
-function ResourceListItem({ resource, isSelected, onClick, onDelete }: {
-  resource: ResourceEntity;
-  isSelected: boolean;
-  onClick?: () => void;
-  onDelete?: () => void;
-}) {
+// 场景表单项
+function SceneListItem(
+  { scene, name, isSelected, onClick, onDelete }: {
+    scene: StageEntityResponse;
+    name: string;
+    isSelected: boolean;
+    onClick?: () => void;
+    onDelete?: () => void;
+  },
+) {
   return (
     <div
       className={`group w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""}`}
@@ -24,15 +24,16 @@ function ResourceListItem({ resource, isSelected, onClick, onDelete }: {
       {/* 左侧内容 */}
       <div className="flex items-center gap-2">
         <img
-          src={resource.icon || "https://cdn-icons-png.flaticon.com/512/833/833524.png"}
-          alt="icon"
-          style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", background: "#f3f4f6" }}
+          src={scene.entityInfo!.avatar || "./favicon.ico"}
+          alt="avatar"
+          style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
         />
         <div className="flex flex-col">
-          <p className="self-baseline">{resource.name}</p>
-          <p className="text-xs text-gray-500 self-baseline mt-0.5 line-clamp-1">{resource.description}</p>
+          <p className="self-baseline">{name}</p>
+          <p className="text-xs text-gray-500 self-baseline mt-0.5 line-clamp-1">{scene.entityInfo!.description}</p>
         </div>
       </div>
+
       {/* 右侧按钮 */}
       <button
         type="button"
@@ -59,65 +60,92 @@ function ResourceListItem({ resource, isSelected, onClick, onDelete }: {
   );
 }
 
-// 模拟后端资源列表
-const resourceList: ResourceEntity[] = [
-  {
-    id: 1,
-    name: "图片资源",
-    description: "用于展示的图片文件",
-    icon: "https://cdn-icons-png.flaticon.com/512/833/833524.png",
-  },
-  {
-    id: 2,
-    name: "音频资源",
-    description: "用于背景音乐和音效",
-    icon: "https://cdn-icons-png.flaticon.com/512/727/727245.png",
-  },
-  {
-    id: 3,
-    name: "文档资源",
-    description: "项目相关文档",
-    icon: "https://cdn-icons-png.flaticon.com/512/337/337946.png",
-  },
-  {
-    id: 4,
-    name: "其他资源",
-    description: "其它类型的文件",
-    icon: "https://cdn-icons-png.flaticon.com/512/833/833472.png",
-  },
-];
-
-export default function SceneList() {
-  const [selectedResourceId, setSelectedResourceId] = useState<number | null>(null);
-
-  const handleClick = (id: number) => {
-    setSelectedResourceId(id);
-  };
-  const handleDelete = (id: number) => {
-    console.warn(`删除资源：${id}`);
+export default function SceneList({ stageId }: { stageId: number }) {
+  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem } = useModuleContext();
+  const handleClick = (scene: StageEntityResponse) => {
+    pushModuleTabItem({
+      id: scene.id!.toString(),
+      label: scene.name!,
+      type: ModuleItemEnum.SCENE,
+    });
+    setCurrentSelectedTabId(scene.id!.toString());
   };
 
-  const isEmpty = resourceList.length === 0;
+  // 模组相关
+  const { data, isSuccess: _isSuccess } = useQueryEntitiesQuery(stageId);
+  const list = data?.data!.filter(i => i.entityType === "scene");
+  const isEmpty = !list || list!.length === 0;
+
+  // 控制弹窗
+  const [isOpen, setIsOpen] = useState(false);
+  const handleOpen = () => {
+    setIsOpen(true);
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+  };
+
+  // 添加模组场景
+  const { mutate: addScene } = useAddEntityMutation("scene");
+  // 删除模组场景
+  const { mutate: deleteScene } = useDeleteEntityMutation();
+
+  const handleAddSceneSubmit = () => {
+    addScene({
+      stageId,
+      name: "新场景",
+      entityInfo: {
+        name: "新场景",
+        description: "无",
+      },
+    });
+  };
 
   return (
-    <Section label="场景">
+    <Section label="场景" onClick={handleOpen}>
       <>
         {isEmpty
           ? (
-              <div className="text-sm text-gray-500 px-2 py-4">暂无资源</div>
+              <div className="text-sm text-gray-500 px-2 py-4">
+                暂时没有场景哦
+              </div>
             )
-          : (
-              resourceList.map(item => (
-                <ResourceListItem
-                  key={item.id}
-                  resource={item}
-                  isSelected={selectedResourceId === item.id}
-                  onClick={() => handleClick(item.id)}
-                  onDelete={() => handleDelete(item.id)}
-                />
-              ))
-            )}
+          : (list?.map(i => (
+              <SceneListItem
+                key={i!.id ?? 0}
+                scene={i!}
+                name={i!.name || "未命名"}
+                onDelete={() => {
+                  removeModuleTabItem(i.id!.toString());
+                  deleteScene({
+                    id: i.id!,
+                    stageId,
+                  });
+                }}
+                isSelected={currentSelectedTabId === (i!.id!.toString())}
+                onClick={() => handleClick(i!)}
+              />
+            )))}
       </>
+      <PopWindow isOpen={isOpen} onClose={handleClose}>
+        <div className="p-4 space-y-4">
+          <p className="text-xl font-bold">添加场景</p>
+          <div className="flex justify-end space-x-2">
+            <button
+              type="button"
+              className="btn btn-primary btn-md"
+              onClick={() => {
+                handleAddSceneSubmit();
+                handleClose();
+              }}
+              title="创建一个全新的模组场景"
+            >
+              创建场景
+            </button>
+          </div>
+        </div>
+      </PopWindow>
     </Section>
   );
 }
