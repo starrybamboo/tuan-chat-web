@@ -1,6 +1,6 @@
-// import { PopWindow } from "@/components/common/popWindow";
-// import {  useCommitMutation } from "api/hooks/moduleQueryHooks";
-// import { useState } from "react";
+import { PopWindow } from "@/components/common/popWindow";
+import { useCommitMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
+import { useState } from "react";
 import ItemList from "./components/itemList";
 import { LocationList } from "./components/LocationList";
 import RoleList from "./components/roleList";
@@ -8,16 +8,25 @@ import SceneList from "./components/SceneList";
 
 // const sections = ["角色", "物品", "场景"];
 function ModuleItems({ stageId }: { stageId: number }) {
-  // const { mutate: commit } = useCommitMutation();
-  // const { data: allBranchList } = useBranchListQuery(stageId);
-  // const [isOpen, setIsOpen] = useState(false);
-  // const [message, setMessage] = useState("");
-
-  // const handleSubmit = () => {
-  //   commit({ stageId, message });
-  //   setIsOpen(false);
-  //   setMessage("");
-  // };
+  const { mutate: commit } = useCommitMutation();
+  const [isOpen, setIsOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const handleSubmit = () => {
+    if (message.trim() === "") {
+      commit({
+        stageId,
+        message: "无提交说明",
+      });
+    }
+    else {
+      commit({
+        stageId,
+        message,
+      });
+    }
+    setIsOpen(false);
+    setMessage("");
+  };
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -25,8 +34,8 @@ function ModuleItems({ stageId }: { stageId: number }) {
       <ItemList stageId={stageId} />
       <LocationList stageId={stageId} />
       <SceneList stageId={stageId} />
-      {/* <div className="flex w-full">
-        <details className="dropdown flex-1">
+      <div className="flex w-full">
+        {/* <details className="dropdown flex-1">
           <summary className="btn m-1 bg-primary text-primary-content">切换分支</summary>
           <ul className="menu dropdown-content bg-base-100 rounded-box z-1 w-52 p-2 shadow-sm">
             {
@@ -39,7 +48,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
               })
             }
           </ul>
-        </details>
+        </details> */}
         <button
           className="btn btn-primary btn-md m-1 flex-1"
           type="button"
@@ -78,7 +87,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
             </div>
           </div>
         </PopWindow>
-      </div> */}
+      </div>
     </div>
   );
 }
