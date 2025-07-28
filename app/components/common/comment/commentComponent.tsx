@@ -2,23 +2,37 @@ import type { CommentVO } from "api";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
 import CommentPreview from "@/components/common/comment/commentPreview";
 import CommentToggle from "@/components/common/comment/CommentToggle";
-import DivideLine from "@/components/common/comment/divideLine";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import LikeIconButton from "@/components/common/likeIconButton";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import React, { useMemo, useState } from "react";
+import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useDeleteCommentMutation, useGetCommentByIdQuery } from "../../../../api/hooks/commentQueryHooks";
 
 /**
- * 评论组件，使用递归的方式渲染
- * @param comment Comment对象
- * @param level 最大深度，如果超过了这个深度就显示一个按钮，点击后可以以一个弹窗的形式查看更深的评论
- * @constructor
+ * 一个内部组件，专门用于渲染“L”形回复连接线。
+ * 它现在通过 prop 接收父组件的悬停状态，而不是依赖 group-hover。
  */
+function ReplyConnector({ isParentHovered }: { isParentHovered: boolean }) {
+  // 根据父组件的悬停状态，动态决定边框颜色
+  const borderColor = isParentHovered
+    ? "border-gray-500 dark:border-gray-400"
+    : "border-gray-300 dark:border-gray-600";
+
+  return (
+    // 这个 32x32 的盒子被绝对定位到父评论的“沟槽”区域
+    <div aria-hidden="true" className="absolute -left-8 top-0 h-8 w-8 flex justify-end pointer-events-none">
+      {/* L 形线条本身。它只占其容器的右半部分（w-1/2），
+          并通过 justify-end 对齐到右侧。这确保其左边框与父评论居中的垂直线精确对齐。
+        */}
+      <div className={`box-border h-full w-1/2 rounded-bl-lg border-b border-l border-solid ${borderColor} transition-colors`} />
+    </div>
+  );
+}
+
 export default function CommentComponent({ comment, level = 1 }: {
-  comment: number | CommentVO; // 可以传commentVO数据或者commentId
+  comment: number | CommentVO;
   level?: number;
 }) {
   const MAX_LEVEL = 4;
@@ -28,34 +42,81 @@ export default function CommentComponent({ comment, level = 1 }: {
   const deleteCommentMutation = useDeleteCommentMutation();
   const [isInput, setIsInput] = useState(false);
   const [isFolded, setIsFolded] = useState(false);
-  // 评论过深时，打开一个PopWindow来显示
   const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`commentPop${commentVO?.commentId}`, false);
+
+  // 追踪悬停状态
+  const [isLineHovered, setIsLineHovered] = useState(false);
+
+  // 引入 ref 来动态计算垂直线高度
+  const verticalLineRef = useRef<HTMLDivElement>(null);
+  const lastChildRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  // 【修复】为整个内容列创建一个 ref，以便 ResizeObserver 能监视所有高度变化
+  const contentColumnRef = useRef<HTMLDivElement>(null);
+
+  // 使用 ResizeObserver 动态调整垂直线的高度
+  useLayoutEffect(() => {
+    const verticalLine = verticalLineRef.current;
+    if (!verticalLine)
+      return;
+
+    // 定义一个可重用的高度更新函数
+    const updateHeight = () => {
+      if (!isFolded && lastChildRef.current && contentRef.current) {
+        const contentTop = contentRef.current.getBoundingClientRect().top;
+        const lastChildTop = lastChildRef.current.getBoundingClientRect().top;
+        const height = (lastChildTop - contentTop) + 16; // 16px 是连接器高度的一半
+        verticalLine.style.height = `${height}px`;
+      }
+      else {
+        verticalLine.style.height = "0px";
+      }
+    };
+
+    updateHeight(); // 初始渲染时立即计算一次
+
+    // 【修复】监视整个内容列的尺寸变化
+    const contentColumn = contentColumnRef.current;
+    if (contentColumn) {
+      // 创建一个 ResizeObserver 来监视子评论容器的尺寸变化
+      const resizeObserver = new ResizeObserver(updateHeight);
+      resizeObserver.observe(contentColumn);
+
+      // 清理函数：当组件卸载或依赖项变化时，断开观察
+      return () => resizeObserver.disconnect();
+    }
+  }, [isFolded, commentVO?.children]); // 依赖于折叠状态和子评论列表
+
+  const isParentCurrentlyHovered = isLineHovered;
+
   const childrenComments = useMemo(() => {
     return (
       <>
-
-        {/* Child Comments */}
-        {/* TODO：分页获取子消息 */}
-        {
-          commentVO?.children && commentVO?.children.length > 0 && (
-            <div className="pt-4">
-              {commentVO.children.map(child => (
-                <CommentComponent key={child.commentId} comment={child} level={level + 1 > MAX_LEVEL ? 1 : level + 1} />
-              ))}
-              {commentVO.hasMore && (
-                <button className="btn btn-sm btn-ghost mt-2 text-base-content hover:text-primary" type="button">
-                  Load more replies (
-                  {commentVO.totalChildren || 0 - commentVO.children.length}
-                  {" "}
-                  more)
-                </button>
-              )}
-            </div>
-          )
-        }
+        {commentVO?.children && commentVO.children.length > 0 && (
+          <div className="space-y-4">
+            {commentVO.children.map((child, index) => (
+              <div
+                key={child.commentId}
+                className="relative"
+                ref={index === (commentVO.children?.length ?? 0) - 1 ? lastChildRef : null}
+              >
+                <ReplyConnector isParentHovered={isParentCurrentlyHovered} />
+                <CommentComponent comment={child} level={level + 1 > MAX_LEVEL ? 1 : level + 1} />
+              </div>
+            ))}
+            {commentVO.hasMore && (
+              <button className="btn btn-sm btn-ghost mt-2 text-base-content hover:text-primary" type="button">
+                Load more replies (
+                {commentVO.totalChildren || 0 - commentVO.children.length}
+                {" "}
+                more)
+              </button>
+            )}
+          </div>
+        )}
       </>
     );
-  }, [commentVO?.children, commentVO?.hasMore, commentVO?.totalChildren, level]);
+  }, [commentVO?.children, commentVO?.hasMore, commentVO?.totalChildren, level, isParentCurrentlyHovered]);
 
   if (!commentVO) {
     return <div className="loading loading-spinner text-primary"></div>;
@@ -74,103 +135,74 @@ export default function CommentComponent({ comment, level = 1 }: {
         }}
       >
         <div className="w-10 h-10 rounded-full flex justify-center items-center">
-          <CommentToggle
-            isFolded={isFolded}
-            onClick={() => setIsFolded(!isFolded)}
-          />
+          <CommentToggle isFolded={isFolded} onClick={() => setIsFolded(!isFolded)} />
         </div>
         <CommentPreview commentVO={commentVO}></CommentPreview>
       </div>
     );
   }
+
   return (
-    <div className="text-base-content">
-      {/* Comment Header - User Info */}
-      <div className="flex items-center gap-2">
-        <UserAvatarComponent userId={commentVO?.userId || -1} width={10} isRounded={true} withName={false} />
-        <CommentPreview commentVO={commentVO}></CommentPreview>
+    <div className="grid grid-cols-[32px_minmax(0,1fr)] text-base-content">
+      {/* --- 第 1 列: 垂直主干线和折叠按钮 --- */}
+      <div
+        ref={contentRef}
+        className="relative flex justify-center cursor-pointer"
+        onMouseEnter={() => setIsLineHovered(true)}
+        onMouseLeave={() => setIsLineHovered(false)}
+        onClick={() => setIsFolded(!isFolded)}
+      >
+        <div
+          ref={verticalLineRef}
+          className={`absolute top-0 left-1/2 -translate-x-1/2 w-px ${isLineHovered ? "bg-gray-500 dark:bg-gray-400" : "bg-gray-300 dark:bg-gray-600"} transition-colors`}
+        />
+        <div className="relative z-10 pt-3">
+          <div className="bg-base-100">
+            <CommentToggle isFolded={isFolded} />
+          </div>
+        </div>
       </div>
-      <div className="flex flex-row">
-        <DivideLine onClick={() => setIsFolded(!isFolded)} className="px-5">
-          <CommentToggle isFolded={isFolded} />
-        </DivideLine>
-        {/* <div */}
-        {/*  className="divider divider-horizontal divider-start hover:divider-neutral hover:font-bold ml-3 mr-3 w-px" */}
-        {/*  onClick={() => setIsFolded(!isFolded)} */}
-        {/* > */}
-        {/*  <div className="pt-3"> */}
-        {/*    <CommentToggle isFolded={isFolded} /> */}
-        {/*  </div> */}
-        {/* </div> */}
+
+      {/* --- 第 2 列: 所有评论内容 --- */}
+      <div className="min-w-0" ref={contentColumnRef}>
         <div>
-          {/* Comment Content */}
-          <div className="prose max-w-none pl-2">
+          <div className="flex items-center gap-2">
+            <UserAvatarComponent userId={commentVO?.userId || -1} width={10} isRounded={true} withName={false} />
+            <CommentPreview commentVO={commentVO}></CommentPreview>
+          </div>
+
+          <div className="prose max-w-none pl-2 pt-2">
             <p>{commentVO?.content}</p>
           </div>
-          {/* Comment Actions */}
+
           <div className="card-actions">
-            <button
-              className="btn btn-sm btn-ghost hover:text-primary"
-              type="button"
-              onClick={() => setIsInput(!isInput)}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
+            <button className="btn btn-sm btn-ghost hover:text-primary" type="button" onClick={() => setIsInput(!isInput)}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
               回复
             </button>
-
-            <LikeIconButton
-              targetInfo={{ targetId: commentVO.commentId ?? -1, targetType: "2" }}
-              className="btn btn-sm btn-ghost text-base-content hover:text-primary"
-              icon={(
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
-                </svg>
-              )}
-              direction="row"
-            />
+            <LikeIconButton targetInfo={{ targetId: commentVO.commentId ?? -1, targetType: "2" }} className="btn btn-sm btn-ghost text-base-content hover:text-primary" icon={(<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" /></svg>)} direction="row" />
             {Number(commentVO.userId) === userId && (
               <button className="btn btn-sm btn-ghost text-base-content hover:text-error" type="button" onClick={() => { deleteCommentMutation.mutate(commentVO.commentId!); }}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 删除
               </button>
             )}
           </div>
-          {
-            isInput && (
-              <CommentInputBox
-                parentCommentId={commentVO?.commentId}
-                rootCommentId={commentVO?.rootCommentId === 0 ? commentVO?.commentId : commentVO?.rootCommentId}
-                onSubmitFinish={() => { setIsInput(false); }}
-              >
-              </CommentInputBox>
-            )
-          }
-          {
-            level < MAX_LEVEL
-              ? (
-                  childrenComments
-                )
-              : (commentVO?.children?.length ?? -1) > 0
-                  ? (
-                      <div>
-                        <button
-                          className="btn btn-ghost"
-                          onClick={() => setIsOpen(true)}
-                          type="button"
-                        >
-                          点击查看更深的回复
-                        </button>
-                        <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>
-                          {childrenComments}
-                        </PopWindow>
-                      </div>
-                    )
-                  : null
-          }
+
+          {isInput && (<CommentInputBox parentCommentId={commentVO?.commentId} rootCommentId={commentVO?.rootCommentId === 0 ? commentVO?.commentId : commentVO?.rootCommentId} onSubmitFinish={() => { setIsInput(false); }} />)}
+        </div>
+
+        <div className="pt-4">
+          {level < MAX_LEVEL
+            ? childrenComments
+            : (commentVO?.children?.length ?? -1) > 0
+                ? (
+                    <div>
+                      <button className="btn btn-ghost" onClick={() => setIsOpen(true)} type="button">点击查看更深的回复</button>
+                      <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>{childrenComments}</PopWindow>
+                    </div>
+                  )
+                : null}
         </div>
       </div>
     </div>
