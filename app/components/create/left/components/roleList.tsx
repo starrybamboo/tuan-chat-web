@@ -1,12 +1,9 @@
-import type { RoleResponse, StageEntityResponse } from "api";
-import { PopWindow } from "@/components/common/popWindow";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import type { StageEntityResponse } from "api";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
-import { useCreateRoleMutation, useGetUserRolesQuery } from "api/queryHooks";
 import { useState } from "react";
+import CreateRole from "./createRole";
 import Section from "./section";
 
 // 角色表单项
@@ -63,39 +60,8 @@ function RoleListItem(
   );
 }
 
-// 新增：用于我的角色选择弹窗的组件
-function MyRoleListItem({ avatarId, name, description, isSelected, onClick }: {
-  avatarId: number | string;
-  name: string;
-  description?: string;
-  isSelected: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <div
-      className={`group w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""}`}
-      onClick={onClick}
-    >
-      <div className="flex items-center gap-2">
-        <RoleAvatarComponent
-          avatarId={Number(avatarId)}
-          width={10}
-          withTitle={false}
-          isRounded={true}
-          stopPopWindow={true}
-        />
-        <div className="flex flex-col">
-          <p className="self-baseline">{name}</p>
-          <p className="text-xs text-gray-500 self-baseline mt-0.5">{description}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function RoleList({ stageId }: { stageId: number }) {
   const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem } = useModuleContext();
-  const userId = useGlobalContext().userId ?? -1;
   const handleClick = (role: StageEntityResponse) => {
     pushModuleTabItem({
       id: role.id!.toString(),
@@ -115,64 +81,26 @@ export default function RoleList({ stageId }: { stageId: number }) {
   const handleOpen = () => {
     setIsOpen(true);
   };
-
   const handleClose = () => {
     setIsOpen(false);
   };
 
-  // 添加角色弹窗
-  const [selectedRoleList, setSelectedRoleList] = useState<RoleResponse[]>([]);
-
-  const handleAddRole = (role: RoleResponse) => {
-    const { roleId } = role;
-    if (roleId) {
-      if (selectedRoleList.some(r => r.roleId === roleId)) {
-        setSelectedRoleList(selectedRoleList.filter(r => r.roleId !== roleId));
-      }
-      else {
-        setSelectedRoleList([...selectedRoleList, role]);
-      }
-    }
-  };
-
-  // 添加自己的角色
-  const { data: myRoleData } = useGetUserRolesQuery(userId);
-  const myRoleList = myRoleData?.data || [];
-
-  // 添加模组角色
-  const { mutate: addRole } = useAddEntityMutation("role");
-  // 删除模组角色
+  // 角色相关
   const { mutate: deleteRole } = useDeleteEntityMutation();
-  const handleAddRoleSubmit = () => {
-    Promise.all(selectedRoleList.map(role =>
-      addRole({
-        stageId,
-        name: role.roleName!,
-        entityInfo: role,
-      }),
-    )).then(() => {
-      setSelectedRoleList([]);
-    });
-  };
+  const { mutate: createRole } = useAddEntityMutation("role");
+  const listIdSets = new Set(list?.map(i => i.id!.toString())); // 已经请求到的角色 ID 集合, 传入创建中, 提示用户避免选入
 
-  // 创建全新的模组角色
-  const { mutate: createRole } = useCreateRoleMutation();
-  const handleCreateRoleSubmit = () => {
-    createRole({
-      roleName: "新角色",
-      description: "无",
-    }, {
-      onSuccess: (data) => {
-        addRole({
-          stageId,
-          name: `新角色${data}`,
-          entityInfo: {
-            roleName: "新角色",
-            description: "无",
-          },
-        });
-      },
-    });
+  const handleAddRoleSubmit = (row: any[]) => {
+    Promise.all(row.map(role =>
+      createRole({
+        stageId,
+        name: role.name,
+        entityInfo: {
+          avatar: role.avatar,
+          description: role.description,
+        },
+      }),
+    ));
   };
 
   return (
@@ -201,48 +129,14 @@ export default function RoleList({ stageId }: { stageId: number }) {
               />
             )))}
       </>
-      <PopWindow isOpen={isOpen} onClose={handleClose}>
-        <div className="p-4 space-y-4">
-          <p className="text-xl font-bold">选择你的角色进行添加</p>
-          <div className="space-y-2">
-            {myRoleList?.map(i => (
-              <MyRoleListItem
-                key={i!.roleId}
-                avatarId={i!.avatarId || ""}
-                name={i!.roleName || "角色名称未设置"}
-                description={i!.description || ""}
-                isSelected={selectedRoleList.some(r => r.roleId === i!.roleId)}
-                onClick={() => handleAddRole(i)}
-              />
-            ))}
-          </div>
-          <div className="flex justify-end space-x-2">
-            <button
-              type="button"
-              className="btn btn-primary btn-md"
-              onClick={() => {
-                handleCreateRoleSubmit();
-                handleClose();
-              }}
-              title="创建一个全新的模组角色"
-            >
-              创建一个全新的模组角色
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary btn-md"
-              onClick={() => {
-                handleAddRoleSubmit();
-                handleClose();
-                // 添加角色的逻辑
-              }}
-              title="添加角色"
-            >
-              添加角色
-            </button>
-          </div>
-        </div>
-      </PopWindow>
+
+      <CreateRole
+        isOpen={isOpen}
+        onClose={handleClose}
+        onConfirm={handleAddRoleSubmit}
+        multiSelect={true}
+        existIdSet={listIdSets}
+      />
     </Section>
   );
 }
