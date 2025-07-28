@@ -113,23 +113,45 @@ function RoleDetail(
 
   return (
     <div className="h-full w-full flex gap-2">
-
-      {/* 角色信息部分 */}
       <div className="flex flex-col gap-4 p-4 bg-base-100 rounded-lg w-full overflow-y-auto">
-        {/* 角色名称和基本信息 */}
-        <div className="flex items-center gap-4 flex-wrap">
-          <h2 className="text-xl font-bold">{roleData.name}</h2>
-          <span className="px-2 py-1 text-xs bg-secondary/10 text-secondary rounded-full">
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold text-secondary">{roleData.name || "未命名"}</h1>
+          <span className="px-3 py-1 text-base bg-secondary/10 text-secondary rounded-full whitespace-nowrap">
             {getRoleTypeText(roleInfo.type)}
           </span>
         </div>
-        {roleInfo.description && (
-          <div className="text-base-content/80">
-            <h4 className="text-sm font-medium mb-2">角色简介</h4>
-            <p className="whitespace-pre-wrap text-sm">{roleInfo.description}</p>
+        <div className="divider my-0" />
+        {/* 头像展示 */}
+        {roleInfo.avatar && (
+          <div className="flex flex-col gap-2">
+            <h4 className="text-sm font-medium text-base-content/60">头像</h4>
+            <div className="w-32 h-32 rounded-lg overflow-hidden border border-base-300">
+              <img
+                src={roleInfo.avatar}
+                alt={roleData.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
           </div>
         )}
-
+        {/* 角色描述（统一为ItemDetail样式） */}
+        {roleInfo.description && (
+          <div className="w-full">
+            <h4 className="font-semibold text-lg text-secondary mb-2">角色简介</h4>
+            <p className="bg-info/10 text-info-content p-3 rounded-lg">
+              {roleInfo.description}
+            </p>
+          </div>
+        )}
+        {/* KP提示（如果有，统一为ItemDetail样式） */}
+        {roleInfo.tip && (
+          <div className="w-full">
+            <h4 className="font-semibold text-lg mb-2 text-orange-600">KP提示</h4>
+            <p className="text-gray-700 bg-orange-50 p-3 rounded-lg border-l-4 border-orange-200">
+              {roleInfo.tip}
+            </p>
+          </div>
+        )}
         {/* TTS 相关信息 */}
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="flex flex-col gap-1">
@@ -145,16 +167,22 @@ function RoleDetail(
             </span>
           </div>
         </div>
+        {/* 能力值展示（统一样式） */}
         {roleInfo.ability && (
-          <div className="text-sm">
-            <h4 className="text-base-content/60 mb-2">能力值</h4>
-            {renderAbilities(roleInfo.ability)}
+          <div className="w-full">
+            <h4 className="font-semibold text-lg mb-2 text-green-600">能力值</h4>
+            <div className="bg-green-50 p-3 rounded-lg border-l-4 border-green-200">
+              {renderAbilities(roleInfo.ability)}
+            </div>
           </div>
         )}
+        {/* 行为设定展示（统一样式） */}
         {roleInfo.act && (
-          <div className="text-sm">
-            <h4 className="text-base-content/60 mb-2">行为设定</h4>
-            {renderActions(roleInfo.act)}
+          <div className="w-full">
+            <h4 className="font-semibold text-lg mb-2 text-blue-600">行为设定</h4>
+            <div className="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-200">
+              {renderActions(roleInfo.act)}
+            </div>
           </div>
         )}
       </div>

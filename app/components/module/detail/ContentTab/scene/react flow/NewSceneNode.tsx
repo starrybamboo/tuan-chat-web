@@ -6,6 +6,7 @@ import ItemDetail from "../ItemDetail";
 interface SceneNodeProps {
   data: {
     label: string;
+    moduleInfo?: any;
     idx: number;
     sceneItems?: string[];
     sceneRoles?: string[];
@@ -73,8 +74,13 @@ function SceneNode({ data, selected }: SceneNodeProps) {
 
       {/* 场景大图弹窗 */}
       <PopWindow isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)}>
-        <div className="min-w-[40vw] max-w-[60vw]">
-          <ItemDetail itemName={data.label} itemList={[{ ...data, name: data.label, entityInfo: { description: data.description, tip: data.tip } }]} entityType="scene" />
+        <div className="min-w-[50vw] max-w-[60vw]">
+          <ItemDetail
+            itemName={data.label}
+            itemList={[{ ...data, name: data.label, entityInfo: { description: data.description, tip: data.tip } }]}
+            entityType="scene"
+            moduleInfo={data.moduleInfo}
+          />
         </div>
       </PopWindow>
     </div>

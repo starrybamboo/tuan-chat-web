@@ -1,4 +1,3 @@
-import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getEnhancedSceneList, getEntityListByType } from "../moduleUtils";
 import ItemDetail from "./scene/ItemDetail";
@@ -35,14 +34,13 @@ function EntityListItem(
 type EntityType = "item" | "location" | "scene";
 
 interface ItemsProps {
-  moduleId: number;
+  moduleData: any;
   entityType?: EntityType;
 }
 
-export default function EntityList({ moduleId, entityType = "item" }: ItemsProps) {
+export default function EntityList({ moduleData: moduleInfo, entityType = "item" }: ItemsProps) {
   // 选中的实体唯一标识符为name
   const [selectedName, setSelectedName] = useState<string | null>(null);
-  const { data: moduleInfo } = useModuleInfoQuery(moduleId);
 
   const entityList: any[] = useMemo(() => {
     if (entityType === "scene") {
