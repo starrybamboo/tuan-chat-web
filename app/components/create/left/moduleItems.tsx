@@ -1,5 +1,5 @@
 import { PopWindow } from "@/components/common/popWindow";
-import { useCommitMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
+import { useCommitMutation } from "api/hooks/moduleQueryHooks";
 import { useState } from "react";
 import ItemList from "./components/itemList";
 import { LocationList } from "./components/LocationList";
