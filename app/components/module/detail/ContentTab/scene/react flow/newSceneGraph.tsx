@@ -6,7 +6,6 @@ import {
   ReactFlow,
   useReactFlow,
 } from "@xyflow/react";
-
 // import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import dagre from "dagre";
 import { useCallback, useEffect, useMemo } from "react";
@@ -41,6 +40,7 @@ function AutoFitView({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
 const nodeTypes = {
   location: SceneNode,
 };
+
 
 export default function NewSceneGraph(props: NewSceneGraphProps) {
   const {

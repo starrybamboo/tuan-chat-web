@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-
 interface ItemDetailProps {
   itemName: string;
   itemList: any[];
@@ -99,6 +98,7 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
                         setSelectedEntity(item);
                       }}
                     >
+                    <span key={item} className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
                       {item}
                     </span>
                   ))}
@@ -135,6 +135,7 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
                         setSelectedEntity(location);
                       }}
                     >
+                    <span key={location} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">
                       {location}
                     </span>
                   ))}
@@ -177,4 +178,4 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
       </div>
     </div>
   );
-}
+
