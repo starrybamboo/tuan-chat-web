@@ -11,8 +11,7 @@ import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useDeleteCommentMutation, useGetCommentByIdQuery } from "../../../../api/hooks/commentQueryHooks";
 
 /**
- * 一个内部组件，专门用于渲染“L”形回复连接线。
- * 它现在通过 prop 接收父组件的悬停状态，而不是依赖 group-hover。
+ * “L”形回复连接线。
  */
 function ReplyConnector({ isParentHovered }: { isParentHovered: boolean }) {
   // 根据父组件的悬停状态，动态决定边框颜色
@@ -47,11 +46,10 @@ export default function CommentComponent({ comment, level = 1 }: {
   // 追踪悬停状态
   const [isLineHovered, setIsLineHovered] = useState(false);
 
-  // 引入 ref 来动态计算垂直线高度
+  // 动态计算垂直线高度
   const verticalLineRef = useRef<HTMLDivElement>(null);
   const lastChildRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  // 【修复】为整个内容列创建一个 ref，以便 ResizeObserver 能监视所有高度变化
   const contentColumnRef = useRef<HTMLDivElement>(null);
 
   // 使用 ResizeObserver 动态调整垂直线的高度
@@ -75,19 +73,17 @@ export default function CommentComponent({ comment, level = 1 }: {
 
     updateHeight(); // 初始渲染时立即计算一次
 
-    // 【修复】监视整个内容列的尺寸变化
+    // 监视整个内容列的尺寸变化
     const contentColumn = contentColumnRef.current;
     if (contentColumn) {
       // 创建一个 ResizeObserver 来监视子评论容器的尺寸变化
       const resizeObserver = new ResizeObserver(updateHeight);
       resizeObserver.observe(contentColumn);
 
-      // 清理函数：当组件卸载或依赖项变化时，断开观察
+      // 清理函数
       return () => resizeObserver.disconnect();
     }
   }, [isFolded, commentVO?.children]); // 依赖于折叠状态和子评论列表
-
-  const isParentCurrentlyHovered = isLineHovered;
 
   const childrenComments = useMemo(() => {
     return (
@@ -100,7 +96,7 @@ export default function CommentComponent({ comment, level = 1 }: {
                 className="relative"
                 ref={index === (commentVO.children?.length ?? 0) - 1 ? lastChildRef : null}
               >
-                <ReplyConnector isParentHovered={isParentCurrentlyHovered} />
+                <ReplyConnector isParentHovered={isLineHovered} />
                 <CommentComponent comment={child} level={level + 1 > MAX_LEVEL ? 1 : level + 1} />
               </div>
             ))}
@@ -116,7 +112,7 @@ export default function CommentComponent({ comment, level = 1 }: {
         )}
       </>
     );
-  }, [commentVO?.children, commentVO?.hasMore, commentVO?.totalChildren, level, isParentCurrentlyHovered]);
+  }, [commentVO?.children, commentVO?.hasMore, commentVO?.totalChildren, level, isLineHovered]);
 
   if (!commentVO) {
     return <div className="loading loading-spinner text-primary"></div>;
@@ -134,7 +130,7 @@ export default function CommentComponent({ comment, level = 1 }: {
           setIsFolded(!isFolded);
         }}
       >
-        <div className="w-10 h-10 rounded-full flex justify-center items-center">
+        <div className="w-8 h-10 rounded-full flex justify-center items-center">
           <CommentToggle isFolded={isFolded} onClick={() => setIsFolded(!isFolded)} />
         </div>
         <CommentPreview commentVO={commentVO}></CommentPreview>
@@ -154,9 +150,9 @@ export default function CommentComponent({ comment, level = 1 }: {
       >
         <div
           ref={verticalLineRef}
-          className={`absolute top-0 left-1/2 -translate-x-1/2 w-px ${isLineHovered ? "bg-gray-500 dark:bg-gray-400" : "bg-gray-300 dark:bg-gray-600"} transition-colors`}
+          className={`absolute top-0 left-1/2 w-px ${isLineHovered ? "bg-gray-500 dark:bg-gray-400" : "bg-gray-300 dark:bg-gray-600"} transition-colors`}
         />
-        <div className="relative z-10 pt-3">
+        <div className="relative z-10 pt-4">
           <div className="bg-base-100">
             <CommentToggle isFolded={isFolded} />
           </div>
