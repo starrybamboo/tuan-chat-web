@@ -6,11 +6,10 @@ import {
   ReactFlow,
   useReactFlow,
 } from "@xyflow/react";
-
-import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
+// import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import dagre from "dagre";
 import { useCallback, useEffect, useMemo } from "react";
-import { useParams } from "react-router";
+// import { useParams } from "react-router";
 import { getEnhancedSceneList } from "../../../../detail/moduleUtils";
 import SceneNode from "./NewSceneNode";
 import "@xyflow/react/dist/style.css";
@@ -22,6 +21,9 @@ interface NewSceneGraphProps {
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
+  moduleData: any;
+  isLoading: boolean;
+  error: any;
 }
 
 // 自动 fitView 组件，必须作为 ReactFlow 的子组件
@@ -39,20 +41,19 @@ const nodeTypes = {
   location: SceneNode,
 };
 
-export default function NewSceneGraph({
-  nodes,
-  edges,
-  setNodes,
-  setEdges,
-  onNodesChange,
-  onEdgesChange,
-}: NewSceneGraphProps) {
-  // 直接使用路由参数
-  const params = useParams();
-  const moduleId = Number(params.id);
-
-  // 获取模组信息
-  const { data: moduleInfo, isLoading, error } = useModuleInfoQuery(moduleId);
+export default function NewSceneGraph(props: NewSceneGraphProps) {
+  const {
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    onNodesChange,
+    onEdgesChange,
+    moduleData,
+    isLoading,
+    error,
+  } = props;
+  const moduleInfo = moduleData;
 
   // 根据sceneMap和增强场景数据生成节点和边
   const { initialNodes, initialEdges } = useMemo(() => {
@@ -73,6 +74,7 @@ export default function NewSceneGraph({
         type: "location",
         position: { x: 0, y: 0 }, // 先占位，后续用 dagre 计算
         data: {
+          moduleInfo: moduleInfo.data?.responses,
           label: sceneName,
           idx: scenes.indexOf(sceneName),
           sceneItems: sceneData?.sceneItems || [],
@@ -100,7 +102,7 @@ export default function NewSceneGraph({
     const edges: Edge[] = [];
     let edgeId = 1;
     Object.entries(sceneMap).forEach(([source, targets]) => {
-      targets.forEach((target) => {
+      (targets as string[]).forEach((target: string) => {
         dagreGraph.setEdge(source, target);
         edges.push({
           id: `e${edgeId++}`,
@@ -137,7 +139,7 @@ export default function NewSceneGraph({
     const simpleEdges: { source: string; target: string }[] = [];
 
     Object.entries(sceneMap).forEach(([source, targets]) => {
-      targets.forEach((target) => {
+      (targets as string[]).forEach((target: string) => {
         simpleEdges.push({ source, target });
         edges.push({
           id: `e${edgeId++}`,
