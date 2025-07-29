@@ -6,8 +6,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import {useCallback, useEffect, useRef, useState} from "react";
 import { useImmer } from "use-immer";
 import {useGlobalContext} from "@/components/globalContextProvider";
-import {uploadFile} from "@/webGAL/fileOperator";
-import message from "@/components/common/message/message";
 import type {ChatStatusEvent, ChatStatusType, DirectMessageEvent, RoomExtraChangeEvent} from "./wsModels";
 
 /**
@@ -78,8 +76,10 @@ export function useWebSocket() {
   // 配置参数
   const HEARTBEAT_INTERVAL = 25000;
 
+  const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttempts = useRef(0);
+
   useEffect(() => {
-    console.log(wsRef.current?.readyState)
     if (document.visibilityState === "visible" &&  wsRef.current?.readyState !== WebSocket.OPEN) {
       connect();
     }
@@ -87,6 +87,17 @@ export function useWebSocket() {
 
   useEffect(() => {
     connect();
+    return () => {
+      if (reconnectTimer.current) {
+        clearTimeout(reconnectTimer.current);
+      }
+      stopHeartbeat();
+      if (wsRef.current) {
+        // 设置 onclose 为 null 防止在手动关闭时触发重连逻辑
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+      }
+    };
   }, []);
 
   /**
@@ -102,14 +113,32 @@ export function useWebSocket() {
       wsRef.current = new WebSocket(`${WS_URL}?token=${token}`);
       wsRef.current.onopen = () => {
         console.log("WebSocket connected");
+        reconnectAttempts.current = 0;
+        if (reconnectTimer.current) {
+          clearTimeout(reconnectTimer.current);
+        }
         startHeartbeat();
       };
 
       wsRef.current.onclose = (event) => {
         console.log(`Close code: ${event.code}, Reason: ${event.reason}`);
-        connect();
-      };
+        stopHeartbeat();
 
+        // 设定重连延迟（指数退避）
+        const attempt = reconnectAttempts.current;
+        const delay = Math.min(50 * (2 ** attempt), 60000);
+
+        console.log(`WebSocket closed. Attempting to reconnect in ${delay / 1000} seconds.`);
+
+        if (reconnectTimer.current) {
+          clearTimeout(reconnectTimer.current);
+        }
+
+        reconnectTimer.current = setTimeout(() => {
+          reconnectAttempts.current++;
+          connect();
+        }, delay);
+      };
       wsRef.current.onmessage = (event) => {
         try {
           const message: WsMessage<any> = JSON.parse(event.data);
