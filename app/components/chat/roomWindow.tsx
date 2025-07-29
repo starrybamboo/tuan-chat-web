@@ -268,7 +268,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       }
     };
   }, [inputText]);
-  //
 
   /**
    * 输入框相关
@@ -282,6 +281,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
    *   - moveCursorToEnd: 插入后是否将光标移动到节点末尾（默认false）
    * @returns 是否插入成功
    */
+
   const insertNodeAtCursor = (
     node: Node | string,
     options?: {
@@ -522,7 +522,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [isSubmitting, setIsSubmitting] = useState(false);
   const disableSendMessage = (curRoleId <= 0) // 没有选中角色
     || ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3) // 没有权限
-    || (!(inputText.trim() || imgFiles.length) || isSubmitting); // 没有内容
+    || !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0) // 没有内容
+    || isSubmitting;
   const handleMessageSubmit = async () => {
     if (disableSendMessage)
       return;
@@ -530,39 +531,26 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     if (!inputText.trim() && !imgFiles.length) {
       return;
     }
-    if (imgFiles.length > 0) {
-      for (let i = 0; i < imgFiles.length; i++) {
-        const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
-        // 获取到图片的宽高
-        const { width, height } = await getImageSize(imgFiles[i]);
-        // 如果有图片，发送独立的图片消息
-        if (imgDownLoadUrl && imgDownLoadUrl !== "") {
-          const messageRequest: ChatMessageRequest = {
-            content: "",
-            roomId,
-            roleId: curRoleId,
-            avatarId: curAvatarId,
-            messageType: 2,
-            extra: {
-              size: 0,
-              url: imgDownLoadUrl,
-              fileName: imgDownLoadUrl.split("/").pop() || `${roomId}-${Date.now()}`,
-              width,
-              height,
-            },
-          };
-          send(messageRequest);
-        }
-      }
+    // 发送图片
+    for (let i = 0; i < imgFiles.length; i++) {
+      const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
+      const { width, height } = await getImageSize(imgFiles[i]);
+      sendImg(imgDownLoadUrl, width, height);
     }
+    // 发送表情
     updateImgFiles([]);
+    for (let i = 0; i < emojiUrls.length; i++) {
+      const { width, height } = await getImageSize(emojiUrls[i]);
+      sendImg(emojiUrls[i], width, height);
+    }
+    updateEmojiUrls([]);
     // 发送文本消息
     if (inputText.trim() !== "") {
       const messageRequest: ChatMessageRequest = {
         roomId,
         roleId: curRoleId,
         content: inputText.trim(),
-        avatarId: roleAvatars[curAvatarIndex].avatarId || -1,
+        avatarId: curAvatarId,
         messageType: 1,
         replayMessageId: replyMessage?.messageID || undefined,
         extra: {},
@@ -583,6 +571,24 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     setReplyMessage(undefined);
     setIsSubmitting(false);
   };
+
+  function sendImg(img: string, width: number, height: number) {
+    const messageRequest: ChatMessageRequest = {
+      content: "",
+      roomId,
+      roleId: curRoleId,
+      avatarId: curAvatarId,
+      messageType: 2,
+      extra: {
+        size: 0,
+        url: img,
+        fileName: img.split("/").pop() || "error when extract fileName",
+        width,
+        height,
+      },
+    };
+    send(messageRequest);
+  }
 
   async function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
     // 获取剪贴板中的图片
@@ -1003,7 +1009,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
                     <div className="flex gap-2">
 
-                      {/* send button */}
+                      {/* 发送按钮 */}
                       <button
                         type="button"
                         className="btn btn-primary"
