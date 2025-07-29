@@ -126,7 +126,7 @@ export function useWebSocket() {
 
         // 设定重连延迟（指数退避）
         const attempt = reconnectAttempts.current;
-        const delay = Math.min(50 * (2 ** attempt), 60000);
+        const delay = Math.min(200 * (2 ** attempt), 60000);
 
         console.log(`WebSocket closed. Attempting to reconnect in ${delay / 1000} seconds.`);
 
