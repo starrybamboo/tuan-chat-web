@@ -1,9 +1,10 @@
 import type { Initiative } from "@/components/chat/sideDrawer/initiativeList";
+import type { UserRole } from "../../../api";
 import { useRoomExtra } from "@/components/chat/hooks";
 import { useEffect, useRef } from "react";
-import { useParams } from "react-router";
 // type DiceResult = { x: number; y: number; rolls: number[]; total: number };
 
+import { useParams } from "react-router";
 import {
   useGetRoleAbilitiesQuery,
   useSetRoleAbilityMutation,
@@ -28,6 +29,27 @@ const ABILITY_MAP: { [key: string]: string } = {
   hp: "体力",
   cm: "克苏鲁神话",
 };
+
+/**
+ * 聊天室部分会传这个组件到
+ */
+export interface executorProp {
+  /**
+   * 命令的主体, 不带前置的标点, 即英文句号
+   */
+  command: string;
+  /**
+   * 聊天框中@的橘色
+   */
+  atRoles?: UserRole[];
+}
+export interface executorReturnResponse {
+  /**
+   * 处理命令后, 发给后端的消息字符串. 后端的骰娘(ai)会根据这个字符串来锐评.
+   * 如果设置为null或者undefine, 那就不会发送消息给后端
+   */
+  result?: string;
+}
 
 export function isCommand(command: string) {
   const trimmed = command.trim();
