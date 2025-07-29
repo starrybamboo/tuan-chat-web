@@ -130,7 +130,7 @@ export default function CommentComponent({ comment, level = 1 }: {
           setIsFolded(!isFolded);
         }}
       >
-        <div className="w-8 h-10 rounded-full flex justify-center items-center">
+        <div className="w-8 h-15 rounded-full flex justify-center items-center">
           <CommentToggle isFolded={isFolded} onClick={() => setIsFolded(!isFolded)} />
         </div>
         <CommentPreview commentVO={commentVO}></CommentPreview>
