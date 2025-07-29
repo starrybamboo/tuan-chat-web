@@ -1,4 +1,5 @@
 import type { WebsocketUtils } from "../../api/useWebSocket";
+import type { ChatStatusEvent } from "../../api/wsModels";
 import { createContext, use, useEffect, useMemo, useState } from "react";
 import { useWebSocket } from "../../api/useWebSocket";
 
@@ -30,6 +31,10 @@ const GlobalContext = createContext<GlobalContextType>({
     chatStatus: {},
     updateChatStatus(chatStatusEvent: ChatStatusEvent): void {
       console.error(`Function not implemented.${chatStatusEvent}`);
+    },
+    unreadDirectMessagesNumber: {},
+    updateUnreadDirectMessagesNumber(senderId: number, newNumber: number): void {
+      console.error(`Function not implemented.${senderId}${newNumber}`);
     },
   },
   setUserId: () => {},

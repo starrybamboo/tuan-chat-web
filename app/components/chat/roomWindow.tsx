@@ -115,6 +115,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   // 聊天框中包含的图片
   const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
+  const [emojiUrls, updateEmojiUrls] = useImmer<string[]>([]);
   // 引用的聊天记录id
   const [replyMessage, setReplyMessage] = useState<Message | undefined>(undefined);
   useEffect(() => {
@@ -839,7 +840,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                             ? "dice"
                             : "none"
                     }
-                    className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10 w-full"
+                    className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
                   />
                   <div className="flex pl-3 pr-6 justify-between ">
                     <div className="flex gap-2">
@@ -870,20 +871,11 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                           className="dropdown-content menu bg-base-100 rounded-box z-1 w-80 p-2 shadow-sm overflow-y-auto"
                         >
                           <EmojiWindow onChoose={async (emoji) => {
-                            // 通过 fetch 获取图片 blob
-                            const response = await fetch(emoji.imageUrl);
-                            const blob = await response.blob();
-
-                            // 用 blob 创建 File
-                            const file = new File(
-                              [blob],
-                              `${emoji.name || "emoji"}-${emoji.emojiId}.${emoji.format}`,
-                              { type: blob.type },
-                            );
-
-                            // 添加到图片文件列表
-                            updateImgFiles((draft) => {
-                              draft.push(file);
+                            updateEmojiUrls((draft) => {
+                              const newUrl = emoji?.imageUrl;
+                              if (newUrl && !draft.includes(newUrl)) {
+                                draft.push(newUrl);
+                              }
                             });
                           }}
                           >
@@ -923,7 +915,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     </div>
                   </div>
                   {/* 预览要发送的图片 */}
-                  {imgFiles.length > 0 && (
+                  {(imgFiles.length > 0 || emojiUrls.length > 0) && (
                     <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
                       {imgFiles.map((file, index) => (
                         <BetterImg
@@ -931,6 +923,14 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                           className="h-14 w-max rounded"
                           onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
                           key={file.name}
+                        />
+                      ))}
+                      {emojiUrls.map((url, index) => (
+                        <BetterImg
+                          src={url}
+                          className="h-14 w-max rounded"
+                          onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
+                          key={url}
                         />
                       ))}
                     </div>

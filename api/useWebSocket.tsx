@@ -78,13 +78,12 @@ export function useWebSocket() {
   // 配置参数
   const HEARTBEAT_INTERVAL = 25000;
 
-  if (typeof window !== "undefined"){
-    window.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible" &&  wsRef.current?.readyState !== WebSocket.OPEN) {
-        connect();
-      }
-    });
-  }
+  useEffect(() => {
+    console.log(wsRef.current?.readyState)
+    if (document.visibilityState === "visible" &&  wsRef.current?.readyState !== WebSocket.OPEN) {
+      connect();
+    }
+  }, [document.visibilityState]);
 
   useEffect(() => {
     connect();
