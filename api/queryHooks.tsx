@@ -44,7 +44,6 @@ import {
   type PlayerRevokeRequest,
   type RoomRoleAddRequest,
   type RoomRoleDeleteRequest,
-  type SpaceRoleAddRequest,
   type RoomMemberAddRequest,
   type RoomMemberDeleteRequest,
   type SpaceUpdateRequest,
@@ -136,18 +135,18 @@ export function useCreateRoleMutation() {
  * 删除角色（单个角色）
  * @param roleId 要删除的角色ID
  */
-export function useDeleteRoleMutation(roleId: number) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: () => tuanchat.roleController.deleteRole2([roleId]),
-    mutationKey: ['deleteRole', roleId],
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
-      queryClient.invalidateQueries({ queryKey: ['getRole', roleId] });
-      queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
-    }
-  });
-}
+// export function useDeleteRoleMutation(roleId: number) {
+//   const queryClient = useQueryClient();
+//   return useMutation({
+//     mutationFn: () => tuanchat.roleController.deleteRole2([roleId]),
+//     mutationKey: ['deleteRole', roleId],
+//     onSuccess: () => {
+//       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
+//       queryClient.invalidateQueries({ queryKey: ['getRole', roleId] });
+//       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
+//     }
+//   });
+// }
 
 /**
  * 批量删除角色的hook
@@ -160,7 +159,7 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
   return useMutation({
     mutationKey: ["deleteRoles"],
     mutationFn: async (roleIds: number[]) => {
-      const res = await tuanchat.roleController.deleteRole2(roleIds);
+      const res = await tuanchat.roleController.deleteRole1(roleIds);
       if (!res.success) {
         throw new Error("删除角色失败");
       }

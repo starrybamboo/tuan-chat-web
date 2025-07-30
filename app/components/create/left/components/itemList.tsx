@@ -73,6 +73,7 @@ export default function ItemList({ stageId }: { stageId: number }) {
     pushModuleTabItem({
       id: item.id!.toString(),
       label: item.name!,
+      content: item,
       type: ModuleItemEnum.ITEM,
     });
     setCurrentSelectedTabId(item.id!.toString());
@@ -93,7 +94,7 @@ export default function ItemList({ stageId }: { stageId: number }) {
   };
 
   // 创建物品并添加物品
-  const { mutate: addItem } = useAddEntityMutation("item");
+  const { mutate: addItem } = useAddEntityMutation(1);
   const { mutate: deleteItem } = useDeleteEntityMutation();
   const handleCreateItemSubmit = () => {
     addItem({
@@ -107,8 +108,8 @@ export default function ItemList({ stageId }: { stageId: number }) {
     });
   };
 
-  const list = data?.data?.filter(i => i.entityType === "item");
-  const locationList = data?.data?.filter(i => i.entityType === "location");
+  const list = data?.data?.filter(i => i.entityType === 1);
+  const locationList = data?.data?.filter(i => i.entityType === 4);
   const isEmpty = !list || list.length === 0;
 
   return (

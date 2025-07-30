@@ -1,7 +1,8 @@
 import type { StageEntityResponse } from "api";
+import RoleAvatar from "@/components/common/roleAvatar";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
-import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
+import { useAddRoleMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useState } from "react";
 import CreateRole from "./createRole";
 import Section from "./section";
@@ -23,11 +24,13 @@ function RoleListItem(
     >
       {/* 左侧内容 */}
       <div className="flex items-center gap-2">
-        <img
-          src={role.entityInfo!.avatar}
+        {/* <img
+          src={role.entityInfo!.avatarIds[0]}
           alt="avatar"
           style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
-        />
+        /> */}
+        <RoleAvatar avatarId={role.entityInfo!.avatarIds[0]} width={10} isRounded={true} stopPopWindow={true} />
+
         <div className="flex flex-col">
           <p className="self-baseline">{name}</p>
           <p className="text-xs text-gray-500 self-baseline mt-0.5 line-clamp-1">{role.entityInfo!.description}</p>
@@ -66,6 +69,7 @@ export default function RoleList({ stageId }: { stageId: number }) {
     pushModuleTabItem({
       id: role.id!.toString(),
       label: role.name!,
+      content: role,
       type: ModuleItemEnum.ROLE,
     });
     setCurrentSelectedTabId(role.id!.toString());
@@ -73,7 +77,7 @@ export default function RoleList({ stageId }: { stageId: number }) {
 
   // 模组相关
   const { data, isSuccess: _isSuccess } = useQueryEntitiesQuery(stageId);
-  const list = data?.data!.filter(i => i.entityType === "role");
+  const list = data?.data!.filter(i => i.entityType === 2);
   const isEmpty = !list || list!.length === 0;
 
   // 控制弹窗
@@ -87,18 +91,15 @@ export default function RoleList({ stageId }: { stageId: number }) {
 
   // 角色相关
   const { mutate: deleteRole } = useDeleteEntityMutation();
-  const { mutate: createRole } = useAddEntityMutation("role");
+  const { mutate: createRole } = useAddRoleMutation();
   const listIdSets = new Set(list?.map(i => i.id!.toString())); // 已经请求到的角色 ID 集合, 传入创建中, 提示用户避免选入
 
   const handleAddRoleSubmit = (row: any[]) => {
     Promise.all(row.map(role =>
       createRole({
         stageId,
-        name: role.name,
-        entityInfo: {
-          avatar: role.avatar,
-          description: role.description,
-        },
+        roleId: role.id,
+        type: 1,
       }),
     ));
   };

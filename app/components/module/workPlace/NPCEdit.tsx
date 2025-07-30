@@ -1,9 +1,13 @@
+import type { RoleAvatar as roleAvatar } from "api";
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { PopWindow } from "@/components/common/popWindow";
+import RoleAvatar from "@/components/common/roleAvatar";
+
 import { CharacterCopper } from "@/components/newCharacter/CharacterCopper";
+import { useQuery } from "@tanstack/react-query";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-// import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
+import { tuanchat } from "api/instance";
 import { useEffect, useState } from "react";
 import { useModuleContext } from "./context/_moduleContext";
 
@@ -22,6 +26,11 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [charCount, setCharCount] = useState(entityInfo.description?.length || 0);
+
+  // 头像相关事宜
+  const [copperedUrl, setCopperedUrl] = useState<string>("");
+  const [roleAvatars, setRoleAvatars] = useState<roleAvatar[]>([]);
+  const [avatarToDeleteIndex, setAvatarToDeleteIndex] = useState<number | null>(null);
 
   const MAX_DESCRIPTION_LENGTH = 140;
 
@@ -56,7 +65,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
       if (name !== role.name) {
         removeModuleTabItem(role.id!.toString());
       }
-      updateRole({ id: role.id!, entityType: "role", entityInfo: updatedRole, name });
+      updateRole({ id: role.id!, entityType: 2, entityInfo: updatedRole, name });
     }, 300);
   };
 
@@ -78,7 +87,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
       updatedAbility[newAbilityName] = newAbilityValue;
     }
     setAbility(updatedAbility);
-    updateRole({ id: role.id!, entityType: "role", entityInfo: { ...localRole, ability: updatedAbility }, name });
+    updateRole({ id: role.id!, entityType: 2, entityInfo: { ...localRole, ability: updatedAbility }, name });
     setSelectedAbilities({});
     setNewAbilityName("");
     setNewAbilityValue(0);
@@ -91,24 +100,79 @@ export default function NPCEdit({ role }: NPCEditProps) {
     return baseAttributes.includes(key);
   };
 
-  const generateUniqueFileName = (name: string): string => {
+  // 获取角色所有头像
+  useQuery({
+    queryKey: ["roleAvatar", role.id],
+    queryFn: async () => {
+      const res = role.entityInfo!.avatarIds.map(async (avatarId: number) => {
+        const res = await tuanchat.avatarController.getRoleAvatar(avatarId);
+        return res.data;
+      });
+      setRoleAvatars(await Promise.all(res));
+      return null;
+    },
+  });
+
+  // 处理弹窗相关事宜
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [changeAvatarConfirmOpen, setChangeAvatarConfirmOpen] = useState(false);
+
+  const handleCancelChangeAvatar = () => {
+    setChangeAvatarConfirmOpen(false);
+  };
+
+  const cancelDeleteAvatar = () => {
+    setIsDeleteModalOpen(false);
+  };
+
+  // 点击头像处理 (新增预览文字更新)
+  const handleAvatarClick = (avatarUrl: string, index: number) => {
+    setCopperedUrl(avatarUrl || "");
+    // 选中的头像移到最前面
+    const newRoleAvatars = [...roleAvatars];
+    const [selectedAvatar] = newRoleAvatars.splice(index, 1);
+    newRoleAvatars.unshift(selectedAvatar);
+    setRoleAvatars(newRoleAvatars);
+  };
+
+  // 删除操作处理
+  const handleDeleteAvatar = (index: number) => {
+    setAvatarToDeleteIndex(index);
+    setIsDeleteModalOpen(true);
+  };
+    // 删除头像
+  const confirmDeleteAvatar = () => {
+    if (avatarToDeleteIndex !== null && avatarToDeleteIndex >= 0 && avatarToDeleteIndex < roleAvatars.length) {
+      setRoleAvatars(prevRoleAvatars =>
+        prevRoleAvatars.filter((_, i) => i !== avatarToDeleteIndex),
+      );
+      setAvatarToDeleteIndex(null);
+      setIsDeleteModalOpen(false);
+    }
+    else {
+      console.error("无效的头像索引");
+      setIsDeleteModalOpen(false);
+    }
+  };
+
+  // 辅助函数生成唯一文件名
+  const generateUniqueFileName = (roleId: number): string => {
     const timestamp = Date.now();
-    return `avatarModule-${name}-${timestamp}`;
+    return `avatar-${roleId}-${timestamp}`;
   };
 
   // 生成唯一文件名
-  const uniqueFileName = generateUniqueFileName(role.name!);
-
-  const handleAvatarChange = (avatar: string) => {
-    const updatedRole = { ...localRole, avatar };
-    setLocalRole(updatedRole);
-    updateRole({
-      id: role.id!,
-      entityType: "role",
-      entityInfo: updatedRole,
-      name: role.name!,
-    });
-  };
+  const uniqueFileName = generateUniqueFileName(role.id as number);
+  // const handleAvatarChange = (avatar: string) => {
+  //   const updatedRole = { ...localRole, avatar };
+  //   setLocalRole(updatedRole);
+  //   updateRole({
+  //     id: role.id!,
+  //     entityType: 2,
+  //     entityInfo: updatedRole,
+  //     name: role.name!,
+  //   });
+  // };
 
   // 计算六大属性
   const hp = ability.con && ability.siz ? Math.floor((ability.con + ability.siz) / 10) : "-";
@@ -168,23 +232,131 @@ export default function NPCEdit({ role }: NPCEditProps) {
 
   return (
     <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
+      <PopWindow isOpen={changeAvatarConfirmOpen} onClose={handleCancelChangeAvatar}>
+        <div className="h-full w-full flex flex-col">
+          <div className="flex flex-col md:flex-row gap-4 min-h-0 justify-center">
+            {/* 大图预览 */}
+            <div className="w-full md:w-1/2 bg-base-200 p-3 rounded-lg order-1 md:order-1">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">
+                  角色头像
+                </h2>
+              </div>
+              <div className=" bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
+                <img
+                  src={roleAvatars[0]?.avatarUrl ?? "./favicon.ico"}
+                  alt="预览"
+                  className="md:max-h-[65vh] md:min-h-[35vh] object-contain"
+                />
+              </div>
+            </div>
+
+            <div className="w-full md:w-1/2 p-3 order-2 md:order-2">
+              {/* 头像列表区域 */}
+              <h2 className="text-xl font-bold mb-4">选择头像：</h2>
+              <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
+                {roleAvatars.map((item, index) => (
+                  <li
+                    key={`${item}`}
+                    className="relative w-full max-w-[128px] flex flex-col items-center rounded-lg transition-colors"
+                    onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
+                  >
+                    {/* 头像卡片容器 */}
+                    <div className="relative w-full aspect-square group cursor-pointer">
+                      <img
+                        src={item.avatarUrl || "/favicon.ico"}
+                        alt="头像"
+                        className={`w-full h-full object-contain rounded-lg transition-all duration-300 group-hover:scale-105 ${item === copperedUrl ? "border-2 border-primary" : "border"}`}
+                      />
+                      {/* 删除按钮  */}
+                      <button
+                        className="absolute -top-2 -right-2 w-5 h-5 md:w-7 md:h-7 bg-gray-700 md:bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800 z-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteAvatar(index);
+                        }}
+                        type="button"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+                          <path
+                            fill="currentColor"
+                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                          />
+                        </svg>
+                      </button>
+                      {/* 添加悬浮遮罩 */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 rounded-lg"></div>
+                    </div>
+                  </li>
+                ))}
+                {/* 添加新头像 */}
+                <li className="relative w-full max-w-[128px] aspect-square flex flex-col items-center rounded-lg transition-colors">
+                  <CharacterCopper
+                    setDownloadUrl={() => { }}
+                    setCopperedDownloadUrl={setCopperedUrl}
+                    fileName={uniqueFileName}
+                    scene={4} // 模组角色差分
+                  >
+                    <button className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-full h-full text-gray-400 transition-transform duration-300 group-hover:scale-105"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
+                    </button>
+                  </CharacterCopper>
+                </li>
+              </div>
+            </div>
+
+            {/* 删除确认弹窗 */}
+            <PopWindow isOpen={isDeleteModalOpen} onClose={cancelDeleteAvatar}>
+              <div className="card">
+                <div className="card-body items-center text-center">
+                  <h2 className="card-title text-2xl font-bold">确认删除头像</h2>
+                  <div className="divider"></div>
+                  <p className="text-lg opacity-75 mb-8">确定要删除这个头像吗？</p>
+                </div>
+              </div>
+              <div className="card-actions justify-center gap-6 mt-8">
+                <button type="button" className="btn btn-outline" onClick={cancelDeleteAvatar}>
+                  取消
+                </button>
+                <button type="button" className="btn btn-error" onClick={confirmDeleteAvatar}>
+                  删除
+                </button>
+              </div>
+            </PopWindow>
+          </div>
+          <div className="absolute bottom-5 right-5 md:bottom-10 md:right-10 card-actions justify-end">
+            <button
+              type="submit"
+              onClick={() => {
+                setChangeAvatarConfirmOpen(false);
+              }}
+              className="btn btn-primary btn-md md:btn-lg"
+            >
+              确认更改头像
+            </button>
+          </div>
+        </div>
+
+      </PopWindow>
       {/* 基础信息卡片 */}
       <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
         <div className="card-body">
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-8" onClick={() => setChangeAvatarConfirmOpen(true)}>
             {/* 头像 */}
-            <CharacterCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleAvatarChange} fileName={uniqueFileName} scene={4}>
-              <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
-                <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
-                  <img
-                    src={localRole.avatar || "./favicon.ico"}
-                    alt="Character Avatar"
-                    className="object-cover transform group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-              </div>
-            </CharacterCopper>
+            <div><RoleAvatar avatarId={role.entityInfo!.avatarIds[0]} width={36} isRounded={false} stopPopWindow={true} /></div>
             {/* 右侧内容 */}
             <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               {isEditing

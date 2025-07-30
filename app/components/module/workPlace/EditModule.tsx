@@ -1,7 +1,6 @@
 import type { StageEntityResponse } from "api";
 import type { SVGProps } from "react";
 import type { ItemModuleItem, ModuleTabItem, RoleModuleItem, SceneModuleItem } from "./context/types";
-import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useEffect, useRef } from "react";
 import { useModuleContext } from "./context/_moduleContext";
 import { ModuleItemEnum } from "./context/types";
@@ -251,7 +250,7 @@ function SceneModuleTabItem({
 }
 
 export default function EditModule() {
-  const { moduleTabItems, currentSelectedTabId, setCurrentSelectedTabId, removeModuleTabItem, stageId }
+  const { moduleTabItems, currentSelectedTabId, setCurrentSelectedTabId, removeModuleTabItem }
     = useModuleContext();
   const roleModuleItems = moduleTabItems.filter(item =>
     item.type === ModuleItemEnum.ROLE,
@@ -266,15 +265,13 @@ export default function EditModule() {
     item.type === ModuleItemEnum.SCENE,
   );
 
-  const { data: moduleInfo } = useQueryEntitiesQuery(stageId as number);
-
   return (
     <div className="h-screen p-4 overflow-y-scroll">
       <div className="w-full h-full tabs tabs-lift">
         {roleModuleItems.map(item => (
           <RoleModuleTabItem
             key={item.id}
-            role={moduleInfo!.data!.filter(role => role.entityType === "role").find(role => role.name === item.label) as StageEntityResponse}
+            role={item.content}
             roleModuleItem={item}
             isSelected={item.id === currentSelectedTabId}
             onTabClick={setCurrentSelectedTabId}
@@ -286,7 +283,7 @@ export default function EditModule() {
             <ItemModuleTabItem
               key={item.id}
               itemModuleItem={item}
-              item={moduleInfo!.data!.filter(item => item.entityType === "item").find(items => items.name === item.label) as StageEntityResponse}
+              item={item.content}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={setCurrentSelectedTabId}
               onCloseClick={removeModuleTabItem}
@@ -298,7 +295,7 @@ export default function EditModule() {
             <LocationModuleTabItem
               key={item.id}
               sceneModuleItem={item}
-              location={moduleInfo!.data!.filter(location => location.entityType === "location").find(scene => scene.name === item.label) as StageEntityResponse}
+              location={item.content}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={setCurrentSelectedTabId}
               onCloseClick={removeModuleTabItem}
@@ -310,7 +307,7 @@ export default function EditModule() {
             <SceneModuleTabItem
               key={item.id}
               sceneModuleItem={item}
-              scene={moduleInfo!.data!.filter(scene => scene.entityType === "scene").find(scene => scene.name === item.label) as StageEntityResponse}
+              scene={item.content}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={setCurrentSelectedTabId}
               onCloseClick={removeModuleTabItem}
