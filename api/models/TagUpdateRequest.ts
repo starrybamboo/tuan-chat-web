@@ -3,16 +3,16 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 添加收藏标签请求
+ * 更新标签请求
  */
-export type CollectionTagAddRequest = {
+export type TagUpdateRequest = {
     /**
-     * 收藏ID
+     * 标签ID
      */
-    collectionId: number;
+    tagId: number;
     /**
-     * 标签名称
+     * 标签颜色
      */
-    tagName: string;
+    color?: string;
 };
 

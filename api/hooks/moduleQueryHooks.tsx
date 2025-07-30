@@ -11,6 +11,7 @@ import type { EntityAddRequest } from "../models/EntityAddRequest";
 import type { CommitRequest } from "../models/CommitRequest";
 import type { StageRollbackRequest } from "../models/StageRollbackRequest";
 import type { EntityUpdateRequest } from "api/models/EntityUpdateRequest";
+import type { RoleImportRequest } from "api/models/RoleImportRequest";
 
 //========================item (物品相关) ==================================
 /**
@@ -237,7 +238,7 @@ export function useAddMutation() {
 }
 
 // 根据entityType添加实体
-export function useAddEntityMutation(entityType: 'item' | 'scene' | 'role' | 'location') {
+export function useAddEntityMutation(entityType: 1 | 2 | 3 | 4 | 5) {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (req: Omit<EntityAddRequest, 'entityType'>) => tuanchat.stageController.add({...req, entityType}),
@@ -287,29 +288,29 @@ export function useDeleteEntityMutation() {
     });
 }
 
-// 单独的增加角色的hook, 会先获得avatar之后再添加
+// 增加角色的hook
 export function useAddRoleMutation() {
     const queryClient = useQueryClient();
-    const addEntityMutation = useAddEntityMutation('role');
 
     return useMutation({
-        mutationFn: async (req: Omit<EntityAddRequest, 'entityType'>) => {
-            // 先获取头像数据
-            const avatarResult = await tuanchat.avatarController.getRoleAvatar(req.entityInfo!.avatarId);
-            const avatar = avatarResult.data?.avatarUrl;
-            
-            // 然后调用添加实体的mutation
-            return addEntityMutation.mutateAsync({
-                ...req, 
-                entityInfo: {
-                    ...req.entityInfo, 
-                    avatar
-                }
-            });
-        },
+        mutationFn: async (req: RoleImportRequest) => tuanchat.stageController.importRole(req),
         mutationKey: ['addRole'],
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
         }
     });
 }
+
+// 模组角色上传头像
+// export function useUploadModuleRoleAvatarMutation() {
+//     const queryClient = useQueryClient();
+//     return useMutation({
+//         mutationFn: async ({ avatarUrl, spriteUrl, id }) => {
+//             const res = await tuanchat.avatarController.setRoleAvatar();
+//         }
+//         mutationKey: ['uploadModuleRoleAvatar'],
+//         onSuccess: (_data, variables) => {
+//             queryClient.invalidateQueries({ queryKey: ['queryModuleRoles', variables.moduleId] });
+//         }
+//     });
+// }

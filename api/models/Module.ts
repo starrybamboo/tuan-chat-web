@@ -31,6 +31,10 @@ export type Module = {
      */
     authorName?: string;
     /**
+     * md内容
+     */
+    instruction?: string;
+    /**
      * 模组可能需要花费的时间，以小时为单位
      */
     minTime?: number;

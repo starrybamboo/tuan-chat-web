@@ -17,7 +17,6 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
     activeList,
     setStageId(id) {
       _setStageId(id);
-      updateModuleTabItems(() => []); // 切换模组的时候, 清空之前的tab页
     },
     setCurrentSelectedTabId(item) {
       _setCurrentSelectedTabId(item);

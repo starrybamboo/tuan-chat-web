@@ -36,7 +36,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
       if (name !== item.name) {
         removeModuleTabItem(item.id!.toString());
       }
-      updateItem({ id: item.id!, entityType: "item", entityInfo: localItem, name });
+      updateItem({ id: item.id!, entityType: 1, entityInfo: localItem, name });
     }, 300);
   };
 
@@ -58,7 +58,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
     setLocalItem(updatedItem);
     updateItem({
       id: item.id!,
-      entityType: "item",
+      entityType: 1,
       entityInfo: updatedItem,
       name: item.name!,
     });

@@ -5,11 +5,13 @@
 import type { ApiResultListStageEntityResponse } from '../models/ApiResultListStageEntityResponse';
 import type { ApiResultListStageResponse } from '../models/ApiResultListStageResponse';
 import type { ApiResultLong } from '../models/ApiResultLong';
+import type { ApiResultStageEntityResponse } from '../models/ApiResultStageEntityResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { CommitRequest } from '../models/CommitRequest';
 import type { EntityAddRequest } from '../models/EntityAddRequest';
 import type { EntityDeleteRequest } from '../models/EntityDeleteRequest';
 import type { EntityUpdateRequest } from '../models/EntityUpdateRequest';
+import type { RoleImportRequest } from '../models/RoleImportRequest';
 import type { StageRollbackRequest } from '../models/StageRollbackRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
@@ -49,6 +51,28 @@ export class StageControllerService {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/stage/rollback',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 导入角色
+     * @param requestBody
+     * @returns ApiResultStageEntityResponse OK
+     * @throws ApiError
+     */
+    public importRole(
+        requestBody: RoleImportRequest,
+    ): CancelablePromise<ApiResultStageEntityResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/stage/importRole',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -104,6 +128,7 @@ export class StageControllerService {
     }
     /**
      * 添加实体
+     * 同种类型名字不能重复，map只能有一个
      * @param requestBody
      * @returns ApiResultLong OK
      * @throws ApiError
@@ -142,19 +167,70 @@ export class StageControllerService {
         });
     }
     /**
+     * 根据id查看实体最新状态
+     * @param id
+     * @returns ApiResultListStageEntityResponse OK
+     * @throws ApiError
+     */
+    public get(
+        id: number,
+    ): CancelablePromise<ApiResultListStageEntityResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/stage/query',
+            query: {
+                'id': id,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * @param name
+     * @param stageId
+     * @returns ApiResultStageEntityResponse OK
+     * @throws ApiError
+     */
+    public getByName(
+        name: string,
+        stageId: number,
+    ): CancelablePromise<ApiResultStageEntityResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/stage/name',
+            query: {
+                'name': name,
+                'stageId': stageId,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
      * 查看最新详情
      * @param stageId
+     * @param type
      * @returns ApiResultListStageEntityResponse OK
      * @throws ApiError
      */
     public queryEntities(
         stageId: number,
+        type?: number,
     ): CancelablePromise<ApiResultListStageEntityResponse> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/stage/info',
             query: {
                 'stageId': stageId,
+                'type': type,
             },
             errors: {
                 400: `Bad Request`,

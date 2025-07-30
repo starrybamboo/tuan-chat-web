@@ -1,3 +1,5 @@
+import type { StageEntityResponse } from "api";
+
 export type TabId = string | number;
 
 export type ModuleContextType = {
@@ -19,6 +21,7 @@ export type ModuleContextType = {
 type BaseModuleTabItem<T> = {
   id: string | number; // 唯一标识符
   label: string;
+  content: StageEntityResponse;
   type: T;
 };
 export type RoleModuleItem = BaseModuleTabItem<ModuleItemEnum.ROLE>;

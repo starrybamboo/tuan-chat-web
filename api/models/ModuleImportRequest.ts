@@ -2,14 +2,17 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type SpaceRoleDeleteRequest = {
+/**
+ * 模组导入群聊请求
+ */
+export type ModuleImportRequest = {
     /**
-     * 空间id
+     * 空间ID
      */
     spaceId: number;
     /**
-     * 角色id列表
+     * 提交ID
      */
-    roleIdList: Array<number>;
+    commitId: number;
 };
 

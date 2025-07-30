@@ -3,30 +3,32 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
-import type { ApiResultCollectionTag } from '../models/ApiResultCollectionTag';
 import type { ApiResultInteger } from '../models/ApiResultInteger';
-import type { ApiResultListCollectionTag } from '../models/ApiResultListCollectionTag';
-import type { ApiResultListString } from '../models/ApiResultListString';
-import type { CollectionTagAddRequest } from '../models/CollectionTagAddRequest';
-import type { CollectionTagDeleteRequest } from '../models/CollectionTagDeleteRequest';
+import type { ApiResultListTag } from '../models/ApiResultListTag';
+import type { ApiResultTag } from '../models/ApiResultTag';
+import type { TagAddRequest } from '../models/TagAddRequest';
+import type { TagDeleteRequest } from '../models/TagDeleteRequest';
+import type { TagGetRequest } from '../models/TagGetRequest';
+import type { TagUpdateRequest } from '../models/TagUpdateRequest';
+import type { TagUsageRequest } from '../models/TagUsageRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
-export class CollectionTagControllerService {
+export class TagControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * 获取收藏的标签
-     * @param collectionId
-     * @returns ApiResultListCollectionTag OK
+     * 获取标签信息
+     * @param id
+     * @returns ApiResultTag OK
      * @throws ApiError
      */
-    public getCollectionTags(
-        collectionId: number,
-    ): CancelablePromise<ApiResultListCollectionTag> {
+    public getTag(
+        id: number,
+    ): CancelablePromise<ApiResultTag> {
         return this.httpRequest.request({
             method: 'GET',
-            url: '/capi/collection/tag',
+            url: '/capi/tag',
             query: {
-                'collectionId': collectionId,
+                'id': id,
             },
             errors: {
                 400: `Bad Request`,
@@ -37,17 +39,17 @@ export class CollectionTagControllerService {
         });
     }
     /**
-     * 为收藏添加标签
+     * 更新标签
      * @param requestBody
-     * @returns ApiResultCollectionTag OK
+     * @returns ApiResultTag OK
      * @throws ApiError
      */
-    public addCollectionTag(
-        requestBody: CollectionTagAddRequest,
-    ): CancelablePromise<ApiResultCollectionTag> {
+    public updateTag(
+        requestBody: TagUpdateRequest,
+    ): CancelablePromise<ApiResultTag> {
         return this.httpRequest.request({
-            method: 'POST',
-            url: '/capi/collection/tag',
+            method: 'PUT',
+            url: '/capi/tag',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
@@ -59,36 +61,41 @@ export class CollectionTagControllerService {
         });
     }
     /**
-     * 删除收藏标签
+     * 创建标签
+     * @param requestBody
+     * @returns ApiResultTag OK
+     * @throws ApiError
+     */
+    public addTag(
+        requestBody: TagAddRequest,
+    ): CancelablePromise<ApiResultTag> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/tag',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 删除标签
      * @param requestBody
      * @returns ApiResultBoolean OK
      * @throws ApiError
      */
-    public deleteCollectionTag(
-        requestBody: CollectionTagDeleteRequest,
+    public deleteTag(
+        requestBody: TagDeleteRequest,
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
             method: 'DELETE',
-            url: '/capi/collection/tag',
+            url: '/capi/tag',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 获取用户所有标签
-     * @returns ApiResultListString OK
-     * @throws ApiError
-     */
-    public getUserTags(): CancelablePromise<ApiResultListString> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/capi/collection/tag/user',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -99,19 +106,40 @@ export class CollectionTagControllerService {
     }
     /**
      * 获取标签使用次数
-     * @param tagName
+     * @param requestBody
      * @returns ApiResultInteger OK
      * @throws ApiError
      */
     public getTagUsageCount(
-        tagName: string,
+        requestBody: TagUsageRequest,
     ): CancelablePromise<ApiResultInteger> {
         return this.httpRequest.request({
-            method: 'GET',
-            url: '/capi/collection/tag/usage',
-            query: {
-                'tagName': tagName,
+            method: 'POST',
+            url: '/capi/tag/usage',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
             },
+        });
+    }
+    /**
+     * 根据类型和id获取标签
+     * @param requestBody
+     * @returns ApiResultListTag OK
+     * @throws ApiError
+     */
+    public getTags(
+        requestBody: TagGetRequest,
+    ): CancelablePromise<ApiResultListTag> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/tag/get',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

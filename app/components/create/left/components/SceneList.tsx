@@ -66,6 +66,7 @@ export default function SceneList({ stageId }: { stageId: number }) {
     pushModuleTabItem({
       id: scene.id!.toString(),
       label: scene.name!,
+      content: scene,
       type: ModuleItemEnum.SCENE,
     });
     setCurrentSelectedTabId(scene.id!.toString());
@@ -73,7 +74,7 @@ export default function SceneList({ stageId }: { stageId: number }) {
 
   // 模组相关
   const { data, isSuccess: _isSuccess } = useQueryEntitiesQuery(stageId);
-  const list = data?.data!.filter(i => i.entityType === "scene");
+  const list = data?.data!.filter(i => i.entityType === 3);
   const isEmpty = !list || list!.length === 0;
 
   // 控制弹窗
@@ -87,7 +88,7 @@ export default function SceneList({ stageId }: { stageId: number }) {
   };
 
   // 添加模组场景
-  const { mutate: addScene } = useAddEntityMutation("scene");
+  const { mutate: addScene } = useAddEntityMutation(3);
   // 删除模组场景
   const { mutate: deleteScene } = useDeleteEntityMutation();
 

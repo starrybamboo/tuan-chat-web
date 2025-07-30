@@ -34,6 +34,8 @@ export type Space = {
      * 状态 0正常 1删除 2归档
      */
     status?: number;
+    moduleId?: number;
+    stageId?: number;
     createTime?: string;
     updateTime?: string;
 };

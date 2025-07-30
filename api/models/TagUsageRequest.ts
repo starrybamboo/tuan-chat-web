@@ -3,16 +3,16 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 删除收藏标签请求
+ * 标签使用次数获取请求
  */
-export type CollectionTagDeleteRequest = {
+export type TagUsageRequest = {
     /**
-     * 收藏ID
+     * 标签类型
      */
-    collectionId: number;
+    tagType: number;
     /**
-     * 标签名称
+     * 标签内容
      */
-    tagName: string;
+    content: string;
 };
 
