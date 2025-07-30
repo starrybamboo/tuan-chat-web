@@ -31,22 +31,26 @@ const ABILITY_MAP: { [key: string]: string } = {
 };
 
 /**
- * 聊天室部分会传这个组件到
+ * 聊天室部分调用executor的时候, 会传这么一个结构体进去
  */
-export interface executorProp {
+export interface ExecutorProp {
   /**
-   * 命令的主体, 不带前置的标点, 即英文句号
+   * 命令的主体, 不带前置的标点, 即英文句号，也不包含@的人
    */
   command: string;
   /**
-   * 聊天框中@的橘色
+   * 聊天框中@的角色
    */
-  atRoles?: UserRole[];
+  mentionedRoles?: UserRole[];
 }
-export interface executorReturnResponse {
+
+/**
+ * executor返回给聊天室的结构体
+ */
+export interface ExecutorReturnResponse {
   /**
    * 处理命令后, 发给后端的消息字符串. 后端的骰娘(ai)会根据这个字符串来锐评.
-   * 如果设置为null或者undefine, 那就不会发送消息给后端
+   * 如果设置为null或者undefined, 那就不会发送消息给后端
    */
   result?: string;
 }
@@ -94,9 +98,10 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
 
   /**
    * 返回这个函数
-   * @param command
+   * @param executorProp
    */
-  function execute(command: string): string {
+  function execute(executorProp: ExecutorProp): string {
+    const command = executorProp.command;
     const [cmdPart, ...args] = parseCommand(command);
 
     try {
