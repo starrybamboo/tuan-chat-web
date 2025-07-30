@@ -702,7 +702,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     if (!parent)
       return;
     const span = document.createElement("span");
-    span.textContent = `@${role.roleName}`;
+    // 使用非断行空格 (\u00A0) 来确保浏览器会渲染这个空格
+    // 否则，在某些情况下，元素末尾的常规空格会被浏览器“折叠”或忽略。
+    span.textContent = `@${role.roleName}` + "\u00A0";
     span.className = "inline text-blue-500 bg-transparent px-0 py-0 border-none";
     span.contentEditable = "false";
     span.style.display = "inline-block";
