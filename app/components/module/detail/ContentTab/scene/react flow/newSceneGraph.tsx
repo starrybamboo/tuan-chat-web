@@ -1,30 +1,59 @@
-import type { Edge, Node } from "@xyflow/react";
+import type { Edge, EdgeChange, Node, NodeChange } from "@xyflow/react";
 import {
   Background,
   Controls,
   MarkerType,
   ReactFlow,
-  useEdgesState,
-  useNodesState,
+  useReactFlow,
 } from "@xyflow/react";
-import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
+// import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import dagre from "dagre";
 import { useCallback, useEffect, useMemo } from "react";
-import { useParams } from "react-router";
+// import { useParams } from "react-router";
 import { getEnhancedSceneList } from "../../../../detail/moduleUtils";
 import SceneNode from "./NewSceneNode";
 import "@xyflow/react/dist/style.css";
+
+interface NewSceneGraphProps {
+  nodes: Node[];
+  edges: Edge[];
+  setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
+  setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
+  onNodesChange: (changes: NodeChange[]) => void;
+  onEdgesChange: (changes: EdgeChange[]) => void;
+  moduleData: any;
+  isLoading: boolean;
+  error: any;
+}
+
+// 自动 fitView 组件，必须作为 ReactFlow 的子组件
+function AutoFitView({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
+  const { fitView } = useReactFlow();
+  useEffect(() => {
+    if (nodes.length > 0) {
+      fitView();
+    }
+  }, [nodes, edges, fitView]);
+  return null;
+}
 
 const nodeTypes = {
   location: SceneNode,
 };
 
-export default function NewSceneGraph() {
-  const params = useParams();
-  const moduleId = Number(params.id);
-
-  // 获取模组信息
-  const { data: moduleInfo, isLoading, error } = useModuleInfoQuery(moduleId);
+export default function NewSceneGraph(props: NewSceneGraphProps) {
+  const {
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    onNodesChange,
+    onEdgesChange,
+    moduleData,
+    isLoading,
+    error,
+  } = props;
+  const moduleInfo = moduleData;
 
   // 根据sceneMap和增强场景数据生成节点和边
   const { initialNodes, initialEdges } = useMemo(() => {
@@ -45,16 +74,15 @@ export default function NewSceneGraph() {
         type: "location",
         position: { x: 0, y: 0 }, // 先占位，后续用 dagre 计算
         data: {
+          moduleInfo: moduleInfo.data?.responses,
           label: sceneName,
-          imgUrl: sceneData?.entityInfo?.image || "./moduleDefaultImage.webp",
+          idx: scenes.indexOf(sceneName),
           sceneItems: sceneData?.sceneItems || [],
           sceneRoles: sceneData?.sceneRoles || [],
-          description: sceneData?.entityInfo?.sceneDescription || "",
+          sceneLocations: sceneData?.sceneLocations || [],
+          description: sceneData?.entityInfo?.description || "",
           tip: sceneData?.entityInfo?.tip || "",
-          moduleSceneId: sceneData?.entityInfo?.moduleSceneId || 0,
           moduleSceneName: sceneData?.entityInfo?.moduleSceneName || sceneName,
-          createTime: sceneData?.entityInfo?.createTime || "",
-          updateTime: sceneData?.entityInfo?.updateTime || "",
         },
       };
     });
@@ -74,7 +102,7 @@ export default function NewSceneGraph() {
     const edges: Edge[] = [];
     let edgeId = 1;
     Object.entries(sceneMap).forEach(([source, targets]) => {
-      targets.forEach((target) => {
+      (targets as string[]).forEach((target: string) => {
         dagreGraph.setEdge(source, target);
         edges.push({
           id: `e${edgeId++}`,
@@ -111,7 +139,7 @@ export default function NewSceneGraph() {
     const simpleEdges: { source: string; target: string }[] = [];
 
     Object.entries(sceneMap).forEach(([source, targets]) => {
-      targets.forEach((target) => {
+      (targets as string[]).forEach((target: string) => {
         simpleEdges.push({ source, target });
         edges.push({
           id: `e${edgeId++}`,
@@ -136,17 +164,20 @@ export default function NewSceneGraph() {
     return { initialNodes: nodes, initialEdges: edges };
   }, [moduleInfo, isLoading]);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  // const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  // const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // 自动 fitView 逻辑已移到 AutoFitView 组件
 
   // 当 initialNodes 或 initialEdges 变化时，更新状态
   useEffect(() => {
-    setNodes(initialNodes);
-  }, [initialNodes, setNodes]);
-
-  useEffect(() => {
-    setEdges(initialEdges);
-  }, [initialEdges, setEdges]);
+    if (nodes.length === 0 && initialNodes.length > 0) {
+      setNodes(initialNodes);
+    }
+    if (edges.length === 0 && initialEdges.length > 0) {
+      setEdges(initialEdges);
+    }
+  }, [initialNodes, initialEdges, nodes, edges, setNodes, setEdges]);
 
   const onNodeDrag = useCallback((_event: any, _node: Node) => {
     // Node dragged
@@ -182,25 +213,24 @@ export default function NewSceneGraph() {
   }
 
   return (
-    <div className="max-w-screen bg-base-100" style={{ height: "50vh" }}>
-      <ReactFlow
-        key={`reactflow-${nodes.length}-${edges.length}`}
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodeDrag={onNodeDrag}
-        nodeTypes={nodeTypes}
-        nodesDraggable={true}
-        nodesConnectable={false}
-        elementsSelectable={true}
-        fitView
-        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-        nodeOrigin={[0.5, 0]}
-      >
-        <Controls />
-        <Background gap={16} color="#aaa" />
-      </ReactFlow>
-    </div>
+    <ReactFlow
+      key={`reactflow-${nodes.length}-${edges.length}`}
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      onNodeDrag={onNodeDrag}
+      nodeTypes={nodeTypes}
+      nodesDraggable={true}
+      nodesConnectable={false}
+      elementsSelectable={true}
+      fitView
+      defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+      nodeOrigin={[0.5, 0]}
+    >
+      <AutoFitView nodes={nodes} edges={edges} />
+      <Controls />
+      <Background gap={16} color="#aaa" />
+    </ReactFlow>
   );
 }

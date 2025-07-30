@@ -1,5 +1,6 @@
 import Pagination from "@/components/common/pagination";
 import { useModuleListQuery } from "api/hooks/moduleQueryHooks";
+import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -9,8 +10,26 @@ import 办公室图片 from "./images/办公室.webp";
 import 天台图片 from "./images/天台.webp";
 import 操场图片 from "./images/操场.webp";
 import 教室图片 from "./images/教室.webp";
-
 import 楼道图片 from "./images/楼道.webp";
+
+// 示例tag数组，可根据实际数据源替换
+const tags = [
+  "TRPG",
+  "冒险",
+  "合作",
+  "推理",
+  "恐怖",
+  "短剧本",
+  "长剧本",
+  "新手友好",
+  "高难度",
+  "单元剧",
+  "剧情驱动",
+  "规则轻量",
+  "规则复杂",
+  "经典",
+  "原创",
+];
 
 // 卡片内容类型定义
 interface ContentCardProps {
@@ -19,6 +38,8 @@ interface ContentCardProps {
   imageAlt?: string;
   // 标题
   title?: string;
+  // 规则
+  RuleName?: string;
   // 文段内容
   content?: string;
   // 自定义样式类名
@@ -47,6 +68,7 @@ export function ContentCard({
   image,
   imageAlt,
   title,
+  RuleName,
   content,
   className = "",
   onClick,
@@ -152,11 +174,14 @@ export function ContentCard({
 
       {/* 内容部分 */}
       <div className={`${sizeClasses[size]}`}>
-        {/* 标题（所有类型都显示在下方） */}
+        {/* 标题和规则名（所有类型都显示在下方） */}
         {title && (
-          <h2 className="text-lg font-bold mt-4 mb-3 line-clamp-2">
-            {title}
-          </h2>
+          <div className="flex items-center justify-between mt-4 mb-3">
+            <h2 className="text-lg font-bold line-clamp-2">{title}</h2>
+            {RuleName && (
+              <span className="ml-4 px-2 py-1 text-xs font-semibold bg-primary/10 text-primary rounded-full whitespace-nowrap">{RuleName}</span>
+            )}
+          </div>
         )}
 
         {/* 文段内容 */}
@@ -167,31 +192,6 @@ export function ContentCard({
             </p>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-// 模块首页卡片容器组件
-export function ModuleHomeCardContainer({
-  children,
-  title,
-  className = "",
-}: {
-  children: React.ReactNode;
-  title?: string;
-  className?: string;
-}) {
-  return (
-    <div className={`max-w-6xl mx-auto ${className}`}>
-      {title && (
-        <h1 className="text-3xl font-bold mb-6 pl-8 relative before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-2 before:bg-primary before:rounded-r-md">
-          {title}
-        </h1>
-      )}
-      <div className="divider mb-8"></div>
-      <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10">
-        {children}
       </div>
     </div>
   );
@@ -235,8 +235,11 @@ export default function ModuleHome() {
     },
   ], []);
 
+  const RuleList = useRuleListQuery();
+
   // 分页状态管理
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
   const itemsPerPage = 12; // 每页显示12个模组
 
   // 当前活跃的背景图片状态
@@ -252,6 +255,7 @@ export default function ModuleHome() {
   const ModuleList = useModuleListQuery({
     pageNo: currentPage,
     pageSize: itemsPerPage,
+    ruleId: selectedRuleId ?? undefined,
   });
 
   // 计算分页数据 - 使用 API 数据
@@ -265,6 +269,7 @@ export default function ModuleHome() {
     // 将 API 数据转换为 ContentCard 所需的格式
     return moduleData.list.map((module: any) => ({
       id: `module-${module.moduleId}`,
+      rule: RuleList.data?.find(rule => rule.id === module.ruleId)?.name || "",
       title: module.moduleName,
       image: module.image || 教室图片, // 如果没有图片则使用默认图片
       content: module.description,
@@ -281,7 +286,7 @@ export default function ModuleHome() {
       maxTime: module.maxTime,
       parent: module.parent, // 从哪个模组fork来
     }));
-  }, [moduleData]);
+  }, [moduleData, RuleList]);
 
   const [imagesReady, setImagesReady] = useState(false);
 
@@ -387,84 +392,152 @@ export default function ModuleHome() {
 
         {/* 图片卡片区域 */}
         <div id="featured-content">
-          <ModuleHomeCardContainer title="全部模组" className="mb-12 mt-16">
-            {(() => {
-              if (ModuleList.isLoading || !imagesReady) {
-                return Array.from({ length: 8 }, (_, index) => (
-                  <div key={`loading-skeleton-${index}-${Math.random()}`} className="animate-pulse">
-                    <div className="bg-base-300 aspect-square rounded-none mb-4"></div>
-                    <div className="h-4 bg-base-300 rounded mb-2"></div>
-                    <div className="h-3 bg-base-300 rounded mb-1"></div>
-                    <div className="h-3 bg-base-300 rounded w-2/3"></div>
-                  </div>
-                ));
-              }
+          <div className="max-w-6xl mx-auto mb-12 mt-8">
+            <div className="flex items-center mb-6">
+              <h1 className="text-3xl font-bold pl-8 relative before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-2 before:bg-primary before:rounded-r-md">
+                模组列表
+              </h1>
+              <div className="ml-auto flex items-center">
+                <div className="relative w-48 md:w-64 ml-6">
+                  <input
+                    type="text"
+                    className="input input-sm w-full pl-10 bg-base-200 border-2 border-base-300 focus:border-primary focus:bg-base-100 transition-colors"
+                    placeholder="搜索模组..."
+                    value=""
+                    onChange={() => {}}
+                    // TODO: 绑定搜索状态和事件
+                  />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/60 pointer-events-none">
+                    <svg className="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                      <g
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        strokeWidth="2.5"
+                        fill="none"
+                        stroke="currentColor"
+                      >
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.3-4.3"></path>
+                      </g>
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </div>
 
-              if (ModuleList.isError) {
-                return (
-                  <div className="col-span-full flex flex-col items-center justify-center py-12">
-                    <div className="text-error text-lg mb-2">加载失败</div>
-                    <div className="text-base-content/60 text-sm mb-4">请稍后再试</div>
+            <div className="divider"></div>
+            {/* 规则列表展示 */}
+            <div className="flex flex-col gap-6 max-w-6xl mx-auto">
+              <div className="flex-1">
+                <h2 className="text-xl font-bold mb-4 text-primary">全部规则</h2>
+                <div className="flex flex-wrap gap-3">
+                  {RuleList.data?.map(rule => (
                     <button
+                      key={rule.id}
                       type="button"
-                      className="btn btn-primary btn-sm"
-                      onClick={() => ModuleList.refetch()}
+                      className={`px-3 py-1 rounded-full text-primary text-sm font-semibold border border-primary/30 transition-all duration-200 focus:outline-none cursor-pointer ${selectedRuleId === rule.id ? "bg-primary text-white" : "bg-primary/10"}`}
+                      onClick={() => {
+                        setSelectedRuleId(selectedRuleId === rule.id ? null : rule.id);
+                        setCurrentPage(1);
+                      }}
                     >
-                      重新加载
+                      {rule.name}
                     </button>
-                  </div>
-                );
-              }
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold mb-4 text-accent">全部标签</h2>
+                <div className="flex flex-wrap gap-3">
+                  {tags.map(tag => (
+                    <span key={tag} className="px-3 py-1 rounded-full bg-accent/10 text-accent text-sm font-semibold">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="divider mb-8"></div>
+            <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10">
+              {(() => {
+                if (ModuleList.isLoading || !imagesReady) {
+                  return Array.from({ length: 8 }, (_, index) => (
+                    <div key={`loading-skeleton-${index}-${Math.random()}`} className="animate-pulse">
+                      <div className="bg-base-300 aspect-square rounded-none mb-4"></div>
+                      <div className="h-4 bg-base-300 rounded mb-2"></div>
+                      <div className="h-3 bg-base-300 rounded mb-1"></div>
+                      <div className="h-3 bg-base-300 rounded w-2/3"></div>
+                    </div>
+                  ));
+                }
 
-              if (currentItems.length === 0) {
-                return (
-                  <div className="col-span-full flex flex-col items-center justify-center py-12">
-                    <div className="text-base-content/60 text-lg mb-2">暂无模组数据</div>
-                    <div className="text-base-content/40 text-sm">快来创建第一个模组吧！</div>
-                  </div>
-                );
-              }
+                if (ModuleList.isError) {
+                  return (
+                    <div className="col-span-full flex flex-col items-center justify-center py-12">
+                      <div className="text-error text-lg mb-2">加载失败</div>
+                      <div className="text-base-content/60 text-sm mb-4">请稍后再试</div>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => ModuleList.refetch()}
+                      >
+                        重新加载
+                      </button>
+                    </div>
+                  );
+                }
 
-              return currentItems.map(card => (
-                <ContentCard
-                  key={card.id}
-                  title={card.title}
-                  image={card.image}
-                  content={card.content}
-                  type={card.type}
-                  authorName={card.authorName}
-                  createTime={card.createTime}
-                  minPeople={card.minPeople}
-                  maxPeople={card.maxPeople}
-                  minTime={card.minTime}
-                  maxTime={card.maxTime}
-                  onClick={() => {
+                if (currentItems.length === 0) {
+                  return (
+                    <div className="col-span-full flex flex-col items-center justify-center py-12">
+                      <div className="text-base-content/60 text-lg mb-2">暂无模组数据</div>
+                      <div className="text-base-content/40 text-sm">快来创建第一个模组吧！</div>
+                    </div>
+                  );
+                }
+
+                return currentItems.map(card => (
+                  <ContentCard
+                    key={card.id}
+                    title={card.title}
+                    RuleName={card.rule}
+                    image={card.image}
+                    content={card.content}
+                    type={card.type}
+                    authorName={card.authorName}
+                    createTime={card.createTime}
+                    minPeople={card.minPeople}
+                    maxPeople={card.maxPeople}
+                    minTime={card.minTime}
+                    maxTime={card.maxTime}
+                    onClick={() => {
                     // 处理卡片点击事件，跳转到模组详情页面并传递数据
-                    navigate(`/module/detail/${card.moduleId}`, {
-                      state: {
-                        moduleData: {
-                          moduleId: card.moduleId,
-                          ruleId: card.ruleId, // 所用的规则id
-                          moduleName: card.title,
-                          description: card.content,
-                          userId: card.userId, // 上传者
-                          authorName: card.authorName, // 作者
-                          image: card.image, // 模组封面
-                          createTime: card.createTime, // 创建时间
-                          updateTime: card.updateTime, // 修改时间
-                          minPeople: card.minPeople, // 模组需要人数
-                          maxPeople: card.maxPeople,
-                          minTime: card.minTime, // 模组可能需要花费时间
-                          maxTime: card.maxTime,
-                          parent: card.parent, // 从哪个模组fork来
+                      navigate(`/module/detail/${card.moduleId}`, {
+                        state: {
+                          moduleData: {
+                            moduleId: card.moduleId,
+                            ruleName: card.rule, // 所用的规则id
+                            moduleName: card.title,
+                            description: card.content,
+                            userId: card.userId, // 上传者
+                            authorName: card.authorName, // 作者
+                            image: card.image, // 模组封面
+                            createTime: card.createTime, // 创建时间
+                            updateTime: card.updateTime, // 修改时间
+                            minPeople: card.minPeople, // 模组需要人数
+                            maxPeople: card.maxPeople,
+                            minTime: card.minTime, // 模组可能需要花费时间
+                            maxTime: card.maxTime,
+                            parent: card.parent, // 从哪个模组fork来
+                          },
                         },
-                      },
-                    });
-                  }}
-                />
-              ));
-            })()}
-          </ModuleHomeCardContainer>
+                      });
+                    }}
+                  />
+                ));
+              })()}
+            </div>
+          </div>
           {/* 分页组件 */}
           {!ModuleList.isLoading && !ModuleList.isError && totalPages > 1 && (
             <div className="mt-8 mb-12 flex justify-center">

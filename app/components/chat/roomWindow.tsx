@@ -95,7 +95,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       .replace(/<[^>]+(>|$)/g, ""); // 移除其他HTML标签但保留文本
     setInputTextWithoutUpdateTextArea(text);
   };
-  // 如果想从外部控制输入框的内容，使用这个函数。
+  /**
+   * 如果想从外部控制输入框的内容，使用这个函数。
+   * @param text 想要重置的inputText
+   */
   const setInputText = (text: string) => {
     setInputTextWithoutUpdateTextArea(text);
     if (textareaRef.current) {
@@ -110,11 +113,51 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     }
   };
 
+  /**
+   * 从编辑器中提取 @ 的角色列表和纯文本内容
+   * @returns userRole[], text
+   */
+  function extractMentionsAndText(): { mentionedRoles: UserRole[]; text: string } {
+    const editorDiv = textareaRef.current;
+    if (!editorDiv) {
+      return { mentionedRoles: [], text: "" };
+    }
+    // 克隆编辑器以进行操作，而不会影响实时 DOM
+    const clone = editorDiv.cloneNode(true) as HTMLDivElement;
+
+    const mentionedRoles: UserRole[] = [];
+    // 在克隆中查找所有提及 span
+    const mentionSpans = clone.querySelectorAll<HTMLSpanElement>("span[data-role]");
+
+    mentionSpans.forEach((span) => {
+      const roleData = span.dataset.role;
+      if (roleData) {
+        try {
+          const role: UserRole = JSON.parse(roleData);
+          // 添加到列表，并确保没有重复
+          if (!mentionedRoles.some(r => r.roleId === role.roleId)) {
+            mentionedRoles.push(role);
+          }
+        }
+        catch (e) {
+          console.error("Failed to parse role data from mention span:", e);
+        }
+      }
+      // 从克隆中删除 span
+      span.parentNode?.removeChild(span);
+    });
+    // `textContent` 属性会自动拼接子元素的文本内容，
+    const text = clone.textContent ?? "";
+    return { mentionedRoles, text };
+  }
+  const { mentionedRoles, text: inputTextWithoutMentions } = extractMentionsAndText();
+
   const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const uploadUtils = new UploadUtils();
 
   // 聊天框中包含的图片
   const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
+  const [emojiUrls, updateEmojiUrls] = useImmer<string[]>([]);
   // 引用的聊天记录id
   const [replyMessage, setReplyMessage] = useState<Message | undefined>(undefined);
   useEffect(() => {
@@ -267,7 +310,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       }
     };
   }, [inputText]);
-  //
 
   /**
    * 输入框相关
@@ -281,6 +323,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
    *   - moveCursorToEnd: 插入后是否将光标移动到节点末尾（默认false）
    * @returns 是否插入成功
    */
+
   const insertNodeAtCursor = (
     node: Node | string,
     options?: {
@@ -521,7 +564,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [isSubmitting, setIsSubmitting] = useState(false);
   const disableSendMessage = (curRoleId <= 0) // 没有选中角色
     || ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3) // 没有权限
-    || (!(inputText.trim() || imgFiles.length) || isSubmitting); // 没有内容
+    || !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0) // 没有内容
+    || isSubmitting;
   const handleMessageSubmit = async () => {
     if (disableSendMessage)
       return;
@@ -529,46 +573,33 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     if (!inputText.trim() && !imgFiles.length) {
       return;
     }
-    if (imgFiles.length > 0) {
-      for (let i = 0; i < imgFiles.length; i++) {
-        const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
-        // 获取到图片的宽高
-        const { width, height } = await getImageSize(imgFiles[i]);
-        // 如果有图片，发送独立的图片消息
-        if (imgDownLoadUrl && imgDownLoadUrl !== "") {
-          const messageRequest: ChatMessageRequest = {
-            content: "",
-            roomId,
-            roleId: curRoleId,
-            avatarId: curAvatarId,
-            messageType: 2,
-            extra: {
-              size: 0,
-              url: imgDownLoadUrl,
-              fileName: imgDownLoadUrl.split("/").pop() || `${roomId}-${Date.now()}`,
-              width,
-              height,
-            },
-          };
-          send(messageRequest);
-        }
-      }
+    // 发送图片
+    for (let i = 0; i < imgFiles.length; i++) {
+      const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
+      const { width, height } = await getImageSize(imgFiles[i]);
+      sendImg(imgDownLoadUrl, width, height);
     }
+    // 发送表情
     updateImgFiles([]);
+    for (let i = 0; i < emojiUrls.length; i++) {
+      const { width, height } = await getImageSize(emojiUrls[i]);
+      sendImg(emojiUrls[i], width, height);
+    }
+    updateEmojiUrls([]);
     // 发送文本消息
     if (inputText.trim() !== "") {
       const messageRequest: ChatMessageRequest = {
         roomId,
         roleId: curRoleId,
         content: inputText.trim(),
-        avatarId: roleAvatars[curAvatarIndex].avatarId || -1,
+        avatarId: curAvatarId,
         messageType: 1,
         replayMessageId: replyMessage?.messageID || undefined,
         extra: {},
       };
       // 如果是命令，额外发送一条消息给骰娘
       if (isCommand(inputText)) {
-        const commandResult = commandExecutor(inputText);
+        const commandResult = commandExecutor({ command: inputTextWithoutMentions, mentionedRoles });
         messageRequest.extra = {
           result: commandResult,
         };
@@ -582,6 +613,24 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     setReplyMessage(undefined);
     setIsSubmitting(false);
   };
+
+  function sendImg(img: string, width: number, height: number) {
+    const messageRequest: ChatMessageRequest = {
+      content: "",
+      roomId,
+      roleId: curRoleId,
+      avatarId: curAvatarId,
+      messageType: 2,
+      extra: {
+        size: 0,
+        url: img,
+        fileName: img.split("/").pop() || "error when extract fileName",
+        width,
+        height,
+      },
+    };
+    send(messageRequest);
+  }
 
   async function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
     // 获取剪贴板中的图片
@@ -701,11 +750,14 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     if (!parent)
       return;
     const span = document.createElement("span");
-    span.textContent = `@${role.roleName}`;
+    // 使用非断行空格 (\u00A0) 来确保浏览器会渲染这个空格
+    // 否则，在某些情况下，元素末尾的常规空格会被浏览器“折叠”或忽略。
+    span.textContent = `@${role.roleName}` + "\u00A0";
     span.className = "inline text-blue-500 bg-transparent px-0 py-0 border-none";
     span.contentEditable = "false";
     span.style.display = "inline-block";
     span.addEventListener("click", () => {});
+    span.dataset.role = JSON.stringify(role);
 
     // 替换内容
     const newTextNode = document.createTextNode(afterText);
@@ -830,16 +882,16 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                 </div>
                 <div className="relative flex-1 flex flex-col min-w-0">
                   <CommandPanel
-                    prefix={inputText}
+                    prefix={inputTextWithoutMentions}
                     handleSelectCommand={handleSelectCommand}
                     commandMode={
-                      inputText.startsWith("%")
+                      inputTextWithoutMentions.startsWith("%")
                         ? "webgal"
-                        : (inputText.startsWith(".") || inputText.startsWith("。"))
+                        : (inputTextWithoutMentions.startsWith(".") || inputTextWithoutMentions.startsWith("。"))
                             ? "dice"
                             : "none"
                     }
-                    className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10 w-full"
+                    className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
                   />
                   <div className="flex pl-3 pr-6 justify-between ">
                     <div className="flex gap-2">
@@ -870,20 +922,11 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                           className="dropdown-content menu bg-base-100 rounded-box z-1 w-80 p-2 shadow-sm overflow-y-auto"
                         >
                           <EmojiWindow onChoose={async (emoji) => {
-                            // 通过 fetch 获取图片 blob
-                            const response = await fetch(emoji.imageUrl);
-                            const blob = await response.blob();
-
-                            // 用 blob 创建 File
-                            const file = new File(
-                              [blob],
-                              `${emoji.name || "emoji"}-${emoji.emojiId}.${emoji.format}`,
-                              { type: blob.type },
-                            );
-
-                            // 添加到图片文件列表
-                            updateImgFiles((draft) => {
-                              draft.push(file);
+                            updateEmojiUrls((draft) => {
+                              const newUrl = emoji?.imageUrl;
+                              if (newUrl && !draft.includes(newUrl)) {
+                                draft.push(newUrl);
+                              }
                             });
                           }}
                           >
@@ -923,7 +966,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     </div>
                   </div>
                   {/* 预览要发送的图片 */}
-                  {imgFiles.length > 0 && (
+                  {(imgFiles.length > 0 || emojiUrls.length > 0) && (
                     <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
                       {imgFiles.map((file, index) => (
                         <BetterImg
@@ -931,6 +974,14 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                           className="h-14 w-max rounded"
                           onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
                           key={file.name}
+                        />
+                      ))}
+                      {emojiUrls.map((url, index) => (
+                        <BetterImg
+                          src={url}
+                          className="h-14 w-max rounded"
+                          onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
+                          key={url}
                         />
                       ))}
                     </div>
@@ -1003,7 +1054,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
                     <div className="flex gap-2">
 
-                      {/* send button */}
+                      {/* 发送按钮 */}
                       <button
                         type="button"
                         className="btn btn-primary"
