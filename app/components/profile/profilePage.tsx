@@ -59,7 +59,7 @@ function ProfilePage({ userId }: Props) {
       {/* 导航栏 */}
       <div
         role="tablist"
-        className="flex border-b pl-10"
+        className="flex border-b md:pl-10"
       >
         {TABS.map(tab => (
           <button

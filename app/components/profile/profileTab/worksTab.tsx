@@ -65,7 +65,7 @@ export function WorksTab({ userId }: { userId: number }) {
         </nav>
       </div>
 
-      <div className="flex flex-col md:flex-row flex-1 pl-10">
+      <div className="flex flex-col md:flex-row flex-1 md:pl-10">
         {/* 左侧导航 - PC端（垂直） */}
         <div className="hidden md:flex md:flex-col w-48 flex-shrink-0 p-4 border-r border-gray-200 pt-10">
           <nav className="space-y-2 flex flex-col">
