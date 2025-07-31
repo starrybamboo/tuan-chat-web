@@ -1,14 +1,12 @@
-import Pagination from "@/components/common/pagination";
-import { useGlobalContext } from "@/components/globalContextProvider";
-import { UserRoleCard } from "@/components/profile/module/userRoleCard";
+import { UserRolesList } from "@/components/profile/workTabPart/UserRolesList";
 import React, { useMemo, useState } from "react";
-import { Link } from "react-router";
 import { useGetUserRolesPageQuery, useGetUserRolesQuery } from "../../../../api/queryHooks";
 
+type TabType = "roles" | "modules";
+
 export function WorksTab({ userId }: { userId: number }) {
-  const currentUserId = useGlobalContext().userId ?? -1;
-  // const userQuery = useGetUserInfoQuery(userId);
   const [page, setPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<TabType>("roles");
   const { isLoading } = useGetUserRolesQuery(userId);
 
   const { data: response } = useGetUserRolesPageQuery({
@@ -17,119 +15,87 @@ export function WorksTab({ userId }: { userId: number }) {
     pageSize: 10,
   });
 
-  // 计算总页数
-  const totalPages = useMemo(() => {
-    if (!response?.data?.totalRecords || !response.data.pageSize)
-      return 0;
-    return Math.ceil(response.data.totalRecords / response.data.pageSize);
-  }, [response]);
-
+  // 确保 roleIds 是纯数字数组
   const roleIds = useMemo((): number[] => {
     return (response?.data?.list || [])
       .map(role => role.roleId)
       .filter((id): id is number => id !== undefined && typeof id === "number");
   }, [response]);
 
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "roles":
+        return (
+          <UserRolesList
+            userId={userId}
+            roleIds={roleIds}
+            totalRecords={response?.data?.totalRecords || 0}
+            currentPage={page}
+            onPageChange={setPage}
+            isLoading={isLoading}
+          />
+        );
+      case "modules":
+        return <div className="py-10 text-center text-gray-500">模组内容正在开发中...</div>;
+      default:
+        return null;
+    }
+  };
+
+  const renderTabButton = (tab: TabType, label: string) => (
+    <button
+      onClick={() => setActiveTab(tab)}
+      className={`px-4 py-2 rounded-lg cursor-pointer ${
+        activeTab === tab
+          ? "bg-success/50 text-base font-medium"
+          : "hover:bg-success/30"
+      }`}
+    >
+      {label}
+    </button>
+  );
+
   return (
-    <div className="p-12">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">创建的角色</h2>
-        <span className="text-gray-500">
-          共
-          {" "}
-          {response?.data?.totalRecords || 0}
-          {" "}
-          个角色
-        </span>
+    <div className="flex flex-col min-h-screen">
+      {/* 顶部导航 - 移动端 */}
+      <div className="md:hidden overflow-x-auto whitespace-nowrap p-4 border-b border-gray-200">
+        <nav className="flex space-x-2">
+          {renderTabButton("roles", "角色")}
+          {renderTabButton("modules", "模组")}
+        </nav>
       </div>
-      {isLoading
-        ? (
-            <>
-              {/* 匹配 UserRoleCard 的骨架屏 */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {Array.from({ length: 10 }).map((_, index) => (
-                  <div
-                    key={`skeleton-${index}`}
-                    className="animate-pulse w-48 bg-white rounded-lg shadow-md overflow-hidden"
-                  >
-                    <div className="relative h-48 bg-gray-200">
-                      <div className="w-full h-full bg-gray-200"></div>
-                    </div>
-                    {/* 描述区域 */}
-                    <div className="p-4 space-y-2">
-                      {/* 角色名称 */}
-                      <div className="bg-gray-200 h-4 rounded-full w-4/5"></div>
-                      {/* 描述 */}
-                      <div className="bg-gray-200 h-3 rounded-full w-full"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )
-        : (
-            <>
-              {roleIds.length === 0
-                ? (
-                    <div className="text-center py-10 rounded-lg">
-                      {currentUserId === userId
-                        ? (
-                            <div
-                              className="w-full flex flex-col items-center justify-center text-gray-500 gap-2 mt-8"
-                            >
-                              {/* 圆形加号按钮 */}
-                              <Link
-                                to="/role"
-                                className="w-12 h-12 flex items-center justify-center rounded-full bg-pink-100 text-pink-500 hover:bg-pink-200 transition-colors duration-200"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="w-6 h-6"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                  strokeWidth={2}
-                                >
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                                </svg>
-                              </Link>
-                              <p className="text-center leading-snug text-sm mt-2">
-                                还没有角色呢…
-                                <br />
-                                可以从一个小小的名字开始喵~
-                              </p>
-                            </div>
 
-                          )
-                        : (
-                            <p className="text-gray-500">这里还没有他的角色...仿佛藏着一段被尘封的往事...</p>
-                          )}
-                    </div>
-                  )
-                : (
-                    <>
-                      {/* 根据roleId获取而生成的角色卡片 */}
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                        {roleIds.map(roleId => (
-                          <UserRoleCard
-                            key={roleId}
-                            roleId={roleId}
-                          />
-                        ))}
-                      </div>
-                      {/* 分页组件 如果总页数在0-1就不显示 */}
-                      <Pagination
-                        totalPages={totalPages}
-                        currentPage={page}
-                        onPageChange={setPage}
-                        className="mt-8 items-center w-full"
-                      />
-                    </>
-                  )}
+      <div className="flex flex-col md:flex-row flex-1 pl-10">
+        {/* 左侧导航 - PC端（垂直） */}
+        <div className="hidden md:flex md:flex-col w-48 flex-shrink-0 p-4 border-r border-gray-200 pt-10">
+          <nav className="space-y-2 flex flex-col">
+            {renderTabButton("roles", "角色")}
+            {renderTabButton("modules", "模组")}
+          </nav>
+        </div>
 
-            </>
-          )}
-
+        {/* 主要内容区域 */}
+        <div className="flex-1 p-4 md:p-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">
+              {{
+                roles: "创建的角色",
+                modules: "创建的模组",
+              }[activeTab]}
+            </h2>
+            {activeTab === "roles" && (
+              <span className="text-gray-500">
+                共
+                {" "}
+                {response?.data?.totalRecords || 0}
+                {" "}
+                个角色
+              </span>
+            )}
+          </div>
+          {renderTabContent()}
+        </div>
+      </div>
     </div>
   );
 }
