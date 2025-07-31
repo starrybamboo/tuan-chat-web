@@ -1,78 +1,107 @@
 import { RoomContext } from "@/components/chat/roomContext";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { PopWindow } from "@/components/common/popWindow";
+import { SpaceContext } from "@/components/chat/spaceContext";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import React, { use, useState } from "react";
+import { useGetSpaceMembersQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetUserFollowingsQuery } from "../../../../api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 
-export default function AddMemberWindow({ handleAddMember }: { handleAddMember: (userId: number) => void }) {
+function MemberBox({ userId, onClickAddMember }: { userId: number; onClickAddMember: () => void }) {
   const roomContext = use(RoomContext);
   const roomMembers = roomContext.roomMembers; // 用户已加进去的角色
+  const canNotAdd = roomMembers.find(member => member.userId === userId);
+  return (
+    <div
+      className="card bg-base-100 shadow hover:shadow-lg transition-shadow cursor-pointer"
+      key={userId}
+      onClick={() => { !canNotAdd && onClickAddMember(); }}
+    >
+      <div className="card-body items-center p-4">
+        <UserAvatarComponent
+          userId={userId}
+          width={12}
+          isRounded={true}
+          withName={true}
+        />
+        {
+          canNotAdd
+            ? (
+                <button
+                  className="btn btn-sm btn-info mt-2"
+                  type="button"
+                  disabled={true}
+                >
+                  已加入
+                </button>
+              )
+            : (
+                <button
+                  className="btn btn-sm btn-info mt-2"
+                  type="button"
+                  onClick={onClickAddMember}
+                >
+                  添加
+                </button>
+              )
+        }
+      </div>
+    </div>
+  );
+}
+
+export default function AddMemberWindow({ handleAddMember }: { handleAddMember: (userId: number) => void }) {
+  const spaceContext = use(SpaceContext);
+  const spaceMembers = useGetSpaceMembersQuery(spaceContext.spaceId ?? -1).data?.data ?? [];
   const globalContext = useGlobalContext();
   const followingQuery = useGetUserFollowingsQuery(globalContext.userId ?? -1, { pageNo: 1, pageSize: 100 });
   const friends = followingQuery.data?.data?.list?.filter(user => user.status === 2) ?? [];
   const [inputUserId, setInputUserId] = useState<number>(-1);
   const inputUserInfo = useGetUserInfoQuery(inputUserId).data?.data;
-  const [addFromIdWindow, setAddFromIdWindow] = useSearchParamsState<boolean>(`addMemberPop`, false);
 
   return (
-    <div className="space-y-6 p-4 overflow-auto max-h-[80vh]">
-      {/* 好友列表 */}
-      <div className="space-y-4 flex flex-col items-center">
-        <h2 className="text-xl font-semibold">从好友列表添加</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 justify-center w-max">
-          {friends.map(friend => (
-            friend.userId && (
-              <div
-                className="card bg-base-100 shadow hover:shadow-lg transition-shadow cursor-pointer"
-                key={friend.userId}
-                onClick={() => handleAddMember(friend.userId ?? -1)}
-              >
-                <div className="card-body items-center p-4">
-                  <UserAvatarComponent
-                    userId={friend.userId}
-                    width={12}
-                    isRounded={true}
-                    withName={true}
-                  />
-                  {
-                    roomMembers.find(member => member.userId === friend.userId)
-                      ? (
-                          <button
-                            className="btn btn-sm btn-info mt-2"
-                            type="button"
-                            disabled={true}
-                          >
-                            已加入
-                          </button>
-                        )
-                      : (
-                          <button
-                            className="btn btn-sm btn-info mt-2"
-                            type="button"
-                            onClick={() => handleAddMember(friend.userId ?? -1)}
-                          >
-                            添加
-                          </button>
-                        )
-                  }
-                </div>
-              </div>
-            )
-          ))}
+    <div className="space-y-6 p-4">
+      {/* name of each tab group should be unique */}
+      <div className="tabs tabs-lift">
+        <input type="radio" name="my_tabs_3" className="tab" aria-label="从空间添加" />
+        <div className="tab-content space-y-4 pt-4">
+          <div
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 justify-center w-max"
+          >
+            {spaceMembers.map(member => (
+              member.userId && (
+                <MemberBox
+                  userId={member.userId}
+                  onClickAddMember={() => handleAddMember(member.userId ?? -1)}
+                  key={member.userId}
+                >
+                </MemberBox>
+              )
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="flex justify-end">
-        <button className="btn btn-info" onClick={() => setAddFromIdWindow(true)} type="button">
-          通过用户ID加入
-        </button>
-      </div>
 
-      <PopWindow isOpen={addFromIdWindow} onClose={() => setAddFromIdWindow(false)}>
-        <div className="max-w-md mx-auto space-y-4">
+        <input type="radio" name="my_tabs_3" className="tab" aria-label="从好友列表中添加" defaultChecked />
+        <div className="tab-content space-y-4 pt-4">
+          <div
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 justify-center w-max"
+          >
+            {friends.map(friend => (
+              friend.userId && (
+                <MemberBox
+                  userId={friend.userId}
+                  onClickAddMember={() => handleAddMember(friend.userId ?? -1)}
+                  key={friend.userId}
+                >
+                </MemberBox>
+              )
+            ))}
+          </div>
+        </div>
+
+        <input type="radio" name="my_tabs_3" className="tab" aria-label="搜索id添加" />
+        <div className="tab-content max-w-md mx-auto space-y-4 pt-4">
           <h3 className="text-lg font-semibold text-center">输入要加入的用户的ID</h3>
           <input
             type="number"
@@ -97,7 +126,7 @@ export default function AddMemberWindow({ handleAddMember }: { handleAddMember: 
             </div>
           )}
         </div>
-      </PopWindow>
+      </div>
     </div>
   );
 }
