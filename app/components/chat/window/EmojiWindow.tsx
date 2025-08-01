@@ -1,10 +1,11 @@
+import type { Emoji } from "api/models/Emoji";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { useCreateEmojiMutation, useGetUserEmojisQuery } from "api/hooks/emojiQueryHooks";
 
 export default function EmojiWindow({ onChoose }:
 {
-  onChoose: (emoji: any) => void; // 选择表情的回调函数
+  onChoose: (emoji: Emoji) => void; // 选择表情的回调函数
 }) {
   // 获取用户自定义表情列表
   const { data: emojisData } = useGetUserEmojisQuery();
