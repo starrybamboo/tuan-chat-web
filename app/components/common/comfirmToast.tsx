@@ -17,7 +17,10 @@ export function confirmToast(onConfirm: () => void, info: string, title?: string
         <button
           className="btn btn-sm btn-error"
           type="button"
-          onClick={onConfirm}
+          onClick={() => {
+            onConfirm();
+            toast.dismiss(t.id);
+          }}
         >
           确认
         </button>

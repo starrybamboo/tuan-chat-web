@@ -2,14 +2,13 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type SpaceRoleAddRequest = {
+/**
+ * 添加标签请求
+ */
+export type TagDeleteRequest = {
     /**
-     * 空间id
+     * 标签ID
      */
-    spaceId: number;
-    /**
-     * 角色id列表
-     */
-    roleIdList: Array<number>;
+    tagId: number;
 };
 

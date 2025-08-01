@@ -99,6 +99,10 @@
       "description": "消息收发，消息标记，与消息相关的基本在这"
     },
     {
+      "name": "TagController",
+      "description": "标签管理接口"
+    },
+    {
       "name": "CommentController",
       "description": "评论相关接口"
     },
@@ -498,6 +502,285 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultUserInfoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/tag": {
+      "get": {
+        "tags": [
+          "TagController"
+        ],
+        "summary": "获取标签信息",
+        "operationId": "getTag",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultTag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "TagController"
+        ],
+        "summary": "更新标签",
+        "operationId": "updateTag",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultTag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "TagController"
+        ],
+        "summary": "创建标签",
+        "operationId": "addTag",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagAddRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultTag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "TagController"
+        ],
+        "summary": "删除标签",
+        "operationId": "deleteTag",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagDeleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultBoolean"
                 }
               }
             }
@@ -1684,7 +1967,7 @@
           "RoleController"
         ],
         "summary": "根据id批量删除角色",
-        "operationId": "deleteRole_2",
+        "operationId": "deleteRole_1",
         "parameters": [
           {
             "name": "roleId",
@@ -4886,6 +5169,148 @@
         }
       }
     },
+    "/capi/tag/usage": {
+      "post": {
+        "tags": [
+          "TagController"
+        ],
+        "summary": "获取标签使用次数",
+        "operationId": "getTagUsageCount",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagUsageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultInteger"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/tag/get": {
+      "post": {
+        "tags": [
+          "TagController"
+        ],
+        "summary": "根据类型和id获取标签",
+        "operationId": "getTags",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TagGetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListTag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/stage/update": {
       "post": {
         "tags": [
@@ -4981,6 +5406,77 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/stage/importRole": {
+      "post": {
+        "tags": [
+          "StageController"
+        ],
+        "summary": "导入角色",
+        "operationId": "importRole",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultStageEntityResponse"
                 }
               }
             }
@@ -5175,6 +5671,7 @@
           "StageController"
         ],
         "summary": "添加实体",
+        "description": "同种类型名字不能重复，map只能有一个",
         "operationId": "add",
         "requestBody": {
           "content": {
@@ -5311,18 +5808,18 @@
         }
       }
     },
-    "/capi/space/role/": {
+    "/capi/space/module/import": {
       "post": {
         "tags": [
-          "space-role-controller"
+          "space-module-controller"
         ],
-        "summary": "增加空间的角色",
-        "operationId": "addRole",
+        "summary": "从模组导入群聊",
+        "operationId": "importFromModule",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SpaceRoleAddRequest"
+                "$ref": "#/components/schemas/ModuleImportRequest"
               }
             }
           },
@@ -5334,76 +5831,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "space-role-controller"
-        ],
-        "summary": "删除空间的角色",
-        "operationId": "deleteRole",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SpaceRoleDeleteRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
+                  "$ref": "#/components/schemas/ApiResultModuleMap"
                 }
               }
             }
@@ -5544,77 +5972,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/space/import": {
-      "post": {
-        "tags": [
-          "space-controller"
-        ],
-        "summary": "从模组导入群聊",
-        "operationId": "importFromModule",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ImportFromModuleRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultSpace"
                 }
               }
             }
@@ -5878,13 +6235,153 @@
         }
       }
     },
+    "/capi/room/role/npc": {
+      "post": {
+        "tags": [
+          "room-role-controller"
+        ],
+        "summary": "添加房间的模组角色",
+        "operationId": "addModuleRole",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModuleRoleAddRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "room-role-controller"
+        ],
+        "summary": "删除房间模组角色",
+        "operationId": "deleteModuleRole",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModuleRoleAddRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/room/role/": {
       "post": {
         "tags": [
           "room-role-controller"
         ],
-        "summary": "增加房间的角色",
-        "operationId": "addRole_1",
+        "summary": "增加房间的玩家角色",
+        "operationId": "addRole",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5952,8 +6449,8 @@
         "tags": [
           "room-role-controller"
         ],
-        "summary": "删除房间的角色",
-        "operationId": "deleteRole_1",
+        "summary": "删除房间的玩家角色",
+        "operationId": "deleteRole",
         "requestBody": {
           "content": {
             "application/json": {
@@ -9767,216 +10264,6 @@
         }
       }
     },
-    "/capi/collection/tag": {
-      "get": {
-        "tags": [
-          "CollectionTagController"
-        ],
-        "summary": "获取收藏的标签",
-        "operationId": "getCollectionTags",
-        "parameters": [
-          {
-            "name": "collectionId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultListCollectionTag"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "CollectionTagController"
-        ],
-        "summary": "为收藏添加标签",
-        "operationId": "addCollectionTag",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CollectionTagAddRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultCollectionTag"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "CollectionTagController"
-        ],
-        "summary": "删除收藏标签",
-        "operationId": "deleteCollectionTag",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CollectionTagDeleteRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultBoolean"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/capi/collection/page": {
       "post": {
         "tags": [
@@ -11251,6 +11538,76 @@
         }
       }
     },
+    "/s/{shortCode}": {
+      "get": {
+        "tags": [
+          "short-link-controller"
+        ],
+        "operationId": "redirectToOriginal",
+        "parameters": [
+          {
+            "name": "shortCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/counter/uv/get": {
       "get": {
         "tags": [
@@ -11525,6 +11882,157 @@
         }
       }
     },
+    "/capi/stage/query": {
+      "get": {
+        "tags": [
+          "StageController"
+        ],
+        "summary": "根据id查看实体最新状态",
+        "operationId": "get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/stage/name": {
+      "get": {
+        "tags": [
+          "StageController"
+        ],
+        "operationId": "getByName",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultStageEntityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/stage/info": {
       "get": {
         "tags": [
@@ -11540,6 +12048,15 @@
             "schema": {
               "type": "integer",
               "format": "int64"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -11811,13 +12328,13 @@
         }
       }
     },
-    "/capi/space/role/list": {
+    "/capi/space/module/room/location": {
       "get": {
         "tags": [
-          "space-role-controller"
+          "space-module-controller"
         ],
-        "summary": "获取空间的所有角色",
-        "operationId": "spaceRole",
+        "summary": "获得当前房间的所有地点",
+        "operationId": "roomLocation",
         "parameters": [
           {
             "name": "roomId",
@@ -11835,7 +12352,223 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultListUserRole"
+                  "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/space/module/room/item": {
+      "get": {
+        "tags": [
+          "space-module-controller"
+        ],
+        "summary": "获得当前房间的所有物品",
+        "operationId": "roomItem",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/space/module/role": {
+      "get": {
+        "tags": [
+          "space-module-controller"
+        ],
+        "summary": "获取空间的所有角色",
+        "operationId": "spaceRole",
+        "parameters": [
+          {
+            "name": "spaceId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/space/module/map": {
+      "get": {
+        "tags": [
+          "space-module-controller"
+        ],
+        "summary": "获取模组整体逻辑图",
+        "operationId": "getMap",
+        "parameters": [
+          {
+            "name": "spaceId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultModuleMap"
                 }
               }
             }
@@ -12232,12 +12965,84 @@
         }
       }
     },
+    "/capi/room/role/npc/list": {
+      "get": {
+        "tags": [
+          "room-role-controller"
+        ],
+        "summary": "获取房间的所有模组角色",
+        "operationId": "roomModuleRole",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/room/role/list": {
       "get": {
         "tags": [
           "room-role-controller"
         ],
-        "summary": "获取房间的所有角色",
+        "summary": "获取房间的所有玩家角色",
         "operationId": "roomRole",
         "parameters": [
           {
@@ -13629,138 +14434,6 @@
         }
       }
     },
-    "/capi/collection/tag/user": {
-      "get": {
-        "tags": [
-          "CollectionTagController"
-        ],
-        "summary": "获取用户所有标签",
-        "operationId": "getUserTags",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultListString"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/collection/tag/usage": {
-      "get": {
-        "tags": [
-          "CollectionTagController"
-        ],
-        "summary": "获取标签使用次数",
-        "operationId": "getTagUsageCount",
-        "parameters": [
-          {
-            "name": "tagName",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultInteger"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/capi/collection/count": {
       "get": {
         "tags": [
@@ -14742,6 +15415,85 @@
         },
         "description": "基础返回体"
       },
+      "TagUpdateRequest": {
+        "required": [
+          "tagId"
+        ],
+        "type": "object",
+        "properties": {
+          "tagId": {
+            "type": "integer",
+            "description": "标签ID",
+            "format": "int64"
+          },
+          "color": {
+            "type": "string",
+            "description": "标签颜色"
+          }
+        },
+        "description": "更新标签请求"
+      },
+      "ApiResultTag": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Tag"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "tagId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "content": {
+            "type": "string",
+            "description": "tag的内容"
+          },
+          "tagType": {
+            "type": "integer",
+            "description": "tag的类型 1.用户 2.模组 3.收藏",
+            "format": "int32"
+          },
+          "color": {
+            "type": "string",
+            "description": "tag的颜色"
+          },
+          "targetId": {
+            "type": "integer",
+            "description": "目标ID，通常是用户ID、模组ID或收藏ID等",
+            "format": "int64"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "标签表"
+      },
       "SpaceOwnerTransferRequest": {
         "required": [
           "newOwnerId",
@@ -15146,6 +15898,9 @@
           "authorName": {
             "type": "string",
             "description": "模组作者名字"
+          },
+          "instruction": {
+            "type": "string"
           },
           "minTime": {
             "minimum": 0,
@@ -15589,6 +16344,11 @@
           "roleId": {
             "type": "integer",
             "description": "角色id",
+            "format": "int64"
+          },
+          "stageEntityId": {
+            "type": "integer",
+            "description": "模组角色id",
             "format": "int64"
           },
           "content": {
@@ -16168,6 +16928,104 @@
           }
         }
       },
+      "TagAddRequest": {
+        "required": [
+          "color",
+          "content",
+          "tagType",
+          "targetId"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "标签内容"
+          },
+          "tagType": {
+            "type": "integer",
+            "description": "标签类型 1.用户 2.模组 3.收藏",
+            "format": "int32"
+          },
+          "color": {
+            "type": "string",
+            "description": "标签颜色"
+          },
+          "targetId": {
+            "type": "integer",
+            "description": "目标ID，通常是用户ID、模组ID或收藏ID",
+            "format": "int64"
+          }
+        },
+        "description": "添加标签请求"
+      },
+      "TagUsageRequest": {
+        "required": [
+          "content",
+          "tagType"
+        ],
+        "type": "object",
+        "properties": {
+          "tagType": {
+            "type": "integer",
+            "description": "标签类型",
+            "format": "int32"
+          },
+          "content": {
+            "type": "string",
+            "description": "标签内容"
+          }
+        },
+        "description": "标签使用次数获取请求"
+      },
+      "TagGetRequest": {
+        "required": [
+          "tagType",
+          "targetId"
+        ],
+        "type": "object",
+        "properties": {
+          "tagType": {
+            "type": "integer",
+            "description": "标签类型",
+            "format": "int32"
+          },
+          "targetId": {
+            "type": "integer",
+            "description": "目标ID，通常是用户ID、模组ID或收藏ID等",
+            "format": "int64"
+          }
+        },
+        "description": "标签获取请求"
+      },
+      "ApiResultListTag": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/Tag"
+            }
+          }
+        },
+        "description": "基础返回体"
+      },
       "EntityUpdateRequest": {
         "required": [
           "entityType",
@@ -16183,9 +17041,9 @@
             "type": "string"
           },
           "entityType": {
-            "type": "string",
-            "description": "实体类型(item, role, scene, location)",
-            "example": "item"
+            "type": "integer",
+            "description": "实体类型(item, role, scene, location, map，见https://ycn45b70r8yz.feishu.cn/wiki/Im2Nw8XbFiN1EvkHBYYcyUUcnde)",
+            "format": "int32"
           },
           "entityInfo": {
             "type": "object",
@@ -16255,8 +17113,9 @@
             "type": "string"
           },
           "entityType": {
-            "type": "string",
-            "description": "实体类型(item, role, scene)"
+            "type": "integer",
+            "description": "实体类型(item, role, scene)",
+            "format": "int32"
           },
           "entityInfo": {
             "type": "object",
@@ -16269,6 +17128,53 @@
           }
         },
         "description": "返回对象"
+      },
+      "RoleImportRequest": {
+        "required": [
+          "roleId",
+          "stageId",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "stageId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ApiResultStageEntityResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StageEntityResponse"
+          }
+        },
+        "description": "基础返回体"
       },
       "EntityDeleteRequest": {
         "required": [
@@ -16320,9 +17226,9 @@
             "format": "int64"
           },
           "entityType": {
-            "type": "string",
-            "description": "实体类型(item, role, location, scene)",
-            "example": "item"
+            "type": "integer",
+            "description": "实体类型(item, role, location, scene, map)，见https://ycn45b70r8yz.feishu.cn/wiki/Im2Nw8XbFiN1EvkHBYYcyUUcnde",
+            "format": "int32"
           },
           "name": {
             "type": "string"
@@ -16453,28 +17359,104 @@
         },
         "description": "Room对象"
       },
-      "SpaceRoleAddRequest": {
+      "ModuleImportRequest": {
         "required": [
-          "roleIdList",
+          "commitId",
           "spaceId"
         ],
         "type": "object",
         "properties": {
           "spaceId": {
             "type": "integer",
-            "description": "空间id",
+            "description": "空间ID",
             "format": "int64"
           },
-          "roleIdList": {
-            "type": "array",
-            "description": "角色id列表",
-            "items": {
-              "type": "integer",
-              "description": "角色id列表",
-              "format": "int64"
-            }
+          "commitId": {
+            "type": "integer",
+            "description": "提交ID",
+            "format": "int64"
           }
-        }
+        },
+        "description": "模组导入群聊请求"
+      },
+      "ApiResultModuleMap": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ModuleMap"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ModuleMap": {
+        "type": "object",
+        "properties": {
+          "sceneMap": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "description": "存储场景名，到相邻场景的list",
+              "items": {
+                "type": "string",
+                "description": "存储场景名，到相邻场景的list"
+              }
+            },
+            "description": "存储场景名，到相邻场景的list"
+          },
+          "sceneItem": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "description": "存储场景名，到场景内物品list",
+              "items": {
+                "type": "string",
+                "description": "存储场景名，到场景内物品list"
+              }
+            },
+            "description": "存储场景名，到场景内物品list"
+          },
+          "sceneRole": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "description": "存储场景名，到场景内人物list",
+              "items": {
+                "type": "string",
+                "description": "存储场景名，到场景内人物list"
+              }
+            },
+            "description": "存储场景名，到场景内人物list"
+          },
+          "sceneLocation": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "description": "一个场景包含了哪些地点",
+              "items": {
+                "type": "string",
+                "description": "一个场景包含了哪些地点"
+              }
+            },
+            "description": "一个场景包含了哪些地点"
+          }
+        },
+        "description": "一个场景是一个逻辑上的概念，没有实体，包含各个实体的引用，聚合了一个阶段的跑团可能用到的所有物品、NPC、和地点信息"
       },
       "SpaceMemberAddRequest": {
         "required": [
@@ -16499,15 +17481,32 @@
           }
         }
       },
-      "ImportFromModuleRequest": {
+      "SpaceAddRequest": {
         "required": [
-          "commitId"
+          "ruleId"
         ],
         "type": "object",
         "properties": {
-          "commitId": {
+          "userIdList": {
+            "type": "array",
+            "description": "邀请的uid列表",
+            "items": {
+              "type": "integer",
+              "description": "邀请的uid列表",
+              "format": "int64"
+            }
+          },
+          "spaceName": {
+            "type": "string",
+            "description": "空间名称"
+          },
+          "avatar": {
+            "type": "string",
+            "description": "空间头像"
+          },
+          "ruleId": {
             "type": "integer",
-            "description": "模组版本对应的 commit id",
+            "description": "空间规则",
             "format": "int64"
           }
         }
@@ -16572,6 +17571,14 @@
             "description": "状态 0正常 1删除 2归档",
             "format": "int32"
           },
+          "moduleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "stageId": {
+            "type": "integer",
+            "format": "int64"
+          },
           "createTime": {
             "type": "string",
             "format": "date-time"
@@ -16582,36 +17589,6 @@
           }
         },
         "description": "Space对象"
-      },
-      "SpaceAddRequest": {
-        "required": [
-          "ruleId"
-        ],
-        "type": "object",
-        "properties": {
-          "userIdList": {
-            "type": "array",
-            "description": "邀请的uid列表",
-            "items": {
-              "type": "integer",
-              "description": "邀请的uid列表",
-              "format": "int64"
-            }
-          },
-          "spaceName": {
-            "type": "string",
-            "description": "空间名称"
-          },
-          "avatar": {
-            "type": "string",
-            "description": "空间头像"
-          },
-          "ruleId": {
-            "type": "integer",
-            "description": "空间规则",
-            "format": "int64"
-          }
-        }
       },
       "RulePageRequest": {
         "type": "object",
@@ -16826,6 +17803,26 @@
           }
         },
         "description": "返回对象"
+      },
+      "ModuleRoleAddRequest": {
+        "required": [
+          "ids",
+          "roomId"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        }
       },
       "RoomRoleAddRequest": {
         "required": [
@@ -17493,6 +18490,9 @@
             "type": "string",
             "description": "模组的描述"
           },
+          "instruction": {
+            "type": "string"
+          },
           "authorName": {
             "type": "string",
             "description": "模组作者名字"
@@ -17608,6 +18608,10 @@
           "authorName": {
             "type": "string",
             "description": "作者"
+          },
+          "instruction": {
+            "type": "string",
+            "description": "md内容"
           },
           "minTime": {
             "type": "integer",
@@ -19220,77 +20224,6 @@
         },
         "description": "基础翻页返回"
       },
-      "CollectionTagAddRequest": {
-        "required": [
-          "collectionId",
-          "tagName"
-        ],
-        "type": "object",
-        "properties": {
-          "collectionId": {
-            "type": "integer",
-            "description": "收藏ID",
-            "format": "int64"
-          },
-          "tagName": {
-            "type": "string",
-            "description": "标签名称"
-          }
-        },
-        "description": "添加收藏标签请求"
-      },
-      "ApiResultCollectionTag": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/CollectionTag"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "CollectionTag": {
-        "type": "object",
-        "properties": {
-          "collectionTagId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "collectionId": {
-            "type": "integer",
-            "description": "关联的收藏ID",
-            "format": "int64"
-          },
-          "tagName": {
-            "type": "string",
-            "description": "标签名称"
-          },
-          "createTime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updateTime": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "description": "收藏标签表"
-      },
       "CollectionListAddRequest": {
         "required": [
           "collectionListName"
@@ -19563,6 +20496,11 @@
           "roleId": {
             "type": "integer",
             "description": "发送者扮演的角色的id",
+            "format": "int64"
+          },
+          "stageEntityId": {
+            "type": "integer",
+            "description": "发送者扮演的模组角色id",
             "format": "int64"
           },
           "avatarId": {
@@ -20002,89 +20940,6 @@
         },
         "description": "暂存区响应"
       },
-      "ApiResultListUserRole": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "$ref": "#/components/schemas/UserRole"
-            }
-          }
-        },
-        "description": "基础返回体"
-      },
-      "UserRole": {
-        "required": [
-          "roleId",
-          "userId"
-        ],
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "integer",
-            "description": "用户id",
-            "format": "int64"
-          },
-          "roleId": {
-            "type": "integer",
-            "description": "角色id",
-            "format": "int64"
-          },
-          "roleName": {
-            "type": "string",
-            "description": "角色名字"
-          },
-          "description": {
-            "type": "string",
-            "description": "简介"
-          },
-          "avatarId": {
-            "type": "integer",
-            "description": "角色头像",
-            "format": "int64"
-          },
-          "state": {
-            "type": "integer",
-            "description": "角色状态，0正常，1删除",
-            "format": "int32"
-          },
-          "modelName": {
-            "type": "string",
-            "description": "tts时使用的模型"
-          },
-          "speakerName": {
-            "type": "string",
-            "description": "tts时使用的角色名"
-          },
-          "createTime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updateTime": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "description": "角色实体类"
-      },
       "ApiResultListSpaceMember": {
         "required": [
           "success"
@@ -20171,6 +21026,89 @@
           }
         },
         "description": "基础返回体"
+      },
+      "ApiResultListUserRole": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/UserRole"
+            }
+          }
+        },
+        "description": "基础返回体"
+      },
+      "UserRole": {
+        "required": [
+          "roleId",
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "用户id",
+            "format": "int64"
+          },
+          "roleId": {
+            "type": "integer",
+            "description": "角色id",
+            "format": "int64"
+          },
+          "roleName": {
+            "type": "string",
+            "description": "角色名字"
+          },
+          "description": {
+            "type": "string",
+            "description": "简介"
+          },
+          "avatarId": {
+            "type": "integer",
+            "description": "角色头像",
+            "format": "int64"
+          },
+          "state": {
+            "type": "integer",
+            "description": "角色状态，0正常，1删除",
+            "format": "int32"
+          },
+          "modelName": {
+            "type": "string",
+            "description": "tts时使用的模型"
+          },
+          "speakerName": {
+            "type": "string",
+            "description": "tts时使用的角色名"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "角色实体类"
       },
       "ApiResultListRoomMember": {
         "required": [
@@ -20434,60 +21372,6 @@
         },
         "description": "返回对象"
       },
-      "ModuleMap": {
-        "type": "object",
-        "properties": {
-          "sceneMap": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "description": "存储场景名，到相邻场景的list",
-              "items": {
-                "type": "string",
-                "description": "存储场景名，到相邻场景的list"
-              }
-            },
-            "description": "存储场景名，到相邻场景的list"
-          },
-          "sceneItem": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "description": "存储场景名，到场景内物品list",
-              "items": {
-                "type": "string",
-                "description": "存储场景名，到场景内物品list"
-              }
-            },
-            "description": "存储场景名，到场景内物品list"
-          },
-          "sceneRole": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "description": "存储场景名，到场景内人物list",
-              "items": {
-                "type": "string",
-                "description": "存储场景名，到场景内人物list"
-              }
-            },
-            "description": "存储场景名，到场景内人物list"
-          },
-          "sceneLocation": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "description": "一个场景包含了哪些地点",
-              "items": {
-                "type": "string",
-                "description": "一个场景包含了哪些地点"
-              }
-            },
-            "description": "一个场景包含了哪些地点"
-          }
-        },
-        "description": "一个场景是一个逻辑上的概念，没有实体，包含各个实体的引用，聚合了一个阶段的跑团可能用到的所有物品、NPC、和地点信息"
-      },
       "ApiResultItemResponse": {
         "required": [
           "success"
@@ -20745,65 +21629,6 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultListCollectionTag": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "$ref": "#/components/schemas/CollectionTag"
-            }
-          }
-        },
-        "description": "基础返回体"
-      },
-      "ApiResultListString": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "type": "string",
-              "description": "返回对象"
-            }
-          }
-        },
-        "description": "基础返回体"
-      },
       "ApiResultChatMessageResponse": {
         "required": [
           "success"
@@ -21030,28 +21855,19 @@
         },
         "description": "基础返回体"
       },
-      "SpaceRoleDeleteRequest": {
+      "TagDeleteRequest": {
         "required": [
-          "roleIdList",
-          "spaceId"
+          "tagId"
         ],
         "type": "object",
         "properties": {
-          "spaceId": {
+          "tagId": {
             "type": "integer",
-            "description": "空间id",
+            "description": "标签ID",
             "format": "int64"
-          },
-          "roleIdList": {
-            "type": "array",
-            "description": "角色id列表",
-            "items": {
-              "type": "integer",
-              "description": "角色id列表",
-              "format": "int64"
-            }
           }
-        }
+        },
+        "description": "添加标签请求"
       },
       "PlayerRevokeRequest": {
         "required": [
@@ -21162,25 +21978,6 @@
             "description": "键"
           }
         }
-      },
-      "CollectionTagDeleteRequest": {
-        "required": [
-          "collectionId",
-          "tagName"
-        ],
-        "type": "object",
-        "properties": {
-          "collectionId": {
-            "type": "integer",
-            "description": "收藏ID",
-            "format": "int64"
-          },
-          "tagName": {
-            "type": "string",
-            "description": "标签名称"
-          }
-        },
-        "description": "删除收藏标签请求"
       },
       "CollectionListItemRemoveRequest": {
         "required": [

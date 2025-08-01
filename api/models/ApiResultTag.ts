@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { CollectionTag } from './CollectionTag';
+import type { Tag } from './Tag';
 /**
  * 基础返回体
  */
-export type ApiResultListCollectionTag = {
+export type ApiResultTag = {
     /**
      * 成功标识true or false
      */
@@ -19,9 +19,6 @@ export type ApiResultListCollectionTag = {
      * 错误消息
      */
     errMsg?: string;
-    /**
-     * 返回对象
-     */
-    data?: Array<CollectionTag>;
+    data?: Tag;
 };
 

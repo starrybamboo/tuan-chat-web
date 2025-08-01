@@ -16,6 +16,10 @@ export type ChatMessageRequest = {
      */
     roleId?: number;
     /**
+     * 发送者扮演的模组角色id
+     */
+    stageEntityId?: number;
+    /**
      * 发送者扮演的角色的立绘id
      */
     avatarId?: number;

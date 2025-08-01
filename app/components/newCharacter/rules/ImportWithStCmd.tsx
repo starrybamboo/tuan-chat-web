@@ -14,7 +14,7 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
 
   const handleImport = () => {
     try {
-      const importResult = execute(commandInput);
+      const importResult = execute({ command: commandInput });
 
       // 处理结果格式
       let formattedResult = importResult

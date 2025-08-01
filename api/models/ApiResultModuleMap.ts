@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { CollectionTag } from './CollectionTag';
+import type { ModuleMap } from './ModuleMap';
 /**
  * 基础返回体
  */
-export type ApiResultCollectionTag = {
+export type ApiResultModuleMap = {
     /**
      * 成功标识true or false
      */
@@ -19,6 +19,6 @@ export type ApiResultCollectionTag = {
      * 错误消息
      */
     errMsg?: string;
-    data?: CollectionTag;
+    data?: ModuleMap;
 };
 

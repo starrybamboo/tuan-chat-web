@@ -28,7 +28,7 @@ export default function CommentToggle({
 
       {/* Expanded state (minus icon) */}
       <svg
-        className="swap-on fill-current w-6 h-6"
+        className="swap-on fill-current size-5"
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
       >
@@ -38,7 +38,7 @@ export default function CommentToggle({
 
       {/* Collapsed state (plus icon) */}
       <svg
-        className="swap-off fill-current w-6 h-6"
+        className="swap-off fill-current size-5"
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
       >

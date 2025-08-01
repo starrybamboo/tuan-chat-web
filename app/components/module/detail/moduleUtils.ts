@@ -17,16 +17,19 @@ export function getEntityListByType(
 export function getEnhancedSceneList(moduleInfo: any): (StageEntityResponse & {
   sceneItems?: string[];
   sceneRoles?: string[];
+  sceneLocations?: string[];
 })[] {
   const sceneList = getEntityListByType(moduleInfo, "scene");
   const moduleMap = moduleInfo?.data?.moduleMap;
   const sceneItemMap = moduleMap?.sceneItem || {};
   const sceneRoleMap = moduleMap?.sceneRole || {};
+  const sceneLocationMap = moduleMap?.sceneLocation || {};
 
   return sceneList.map(scene => ({
     ...scene,
     sceneItems: sceneItemMap[scene.name || ""] || [],
     sceneRoles: sceneRoleMap[scene.name || ""] || [],
+    sceneLocations: sceneLocationMap[scene.name || ""] || [],
   }));
 }
 

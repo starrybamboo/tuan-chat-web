@@ -1,16 +1,15 @@
 import type { StageEntityResponse } from "api";
-import RoleAvatar from "@/components/common/roleAvatar";
+import { PopWindow } from "@/components/common/popWindow";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
-import { useAddRoleMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
+import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useState } from "react";
-import CreateRole from "./createRole";
 import Section from "./section";
 
-// 角色表单项
-function RoleListItem(
-  { role, name, isSelected, onClick, onDelete }: {
-    role: StageEntityResponse;
+// 场景表单项
+function SceneListItem(
+  { scene, name, isSelected, onClick, onDelete }: {
+    scene: StageEntityResponse;
     name: string;
     isSelected: boolean;
     onClick?: () => void;
@@ -24,16 +23,14 @@ function RoleListItem(
     >
       {/* 左侧内容 */}
       <div className="flex items-center gap-2">
-        {/* <img
-          src={role.entityInfo!.avatarIds[0]}
+        <img
+          src={scene.entityInfo!.avatar || "./favicon.ico"}
           alt="avatar"
           style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
-        /> */}
-        <RoleAvatar avatarId={role.entityInfo!.avatarIds[0]} width={10} isRounded={true} stopPopWindow={true} />
-
+        />
         <div className="flex flex-col">
           <p className="self-baseline">{name}</p>
-          <p className="text-xs text-gray-500 self-baseline mt-0.5 line-clamp-1">{role.entityInfo!.description}</p>
+          <p className="text-xs text-gray-500 self-baseline mt-0.5 line-clamp-1">{scene.entityInfo!.description}</p>
         </div>
       </div>
 
@@ -63,21 +60,21 @@ function RoleListItem(
   );
 }
 
-export default function RoleList({ stageId }: { stageId: number }) {
+export default function SceneList({ stageId }: { stageId: number }) {
   const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem } = useModuleContext();
-  const handleClick = (role: StageEntityResponse) => {
+  const handleClick = (scene: StageEntityResponse) => {
     pushModuleTabItem({
-      id: role.id!.toString(),
-      label: role.name!,
-      content: role,
-      type: ModuleItemEnum.ROLE,
+      id: scene.id!.toString(),
+      label: scene.name!,
+      content: scene,
+      type: ModuleItemEnum.SCENE,
     });
-    setCurrentSelectedTabId(role.id!.toString());
+    setCurrentSelectedTabId(scene.id!.toString());
   };
 
   // 模组相关
   const { data, isSuccess: _isSuccess } = useQueryEntitiesQuery(stageId);
-  const list = data?.data!.filter(i => i.entityType === 2);
+  const list = data?.data!.filter(i => i.entityType === 3);
   const isEmpty = !list || list!.length === 0;
 
   // 控制弹窗
@@ -85,42 +82,44 @@ export default function RoleList({ stageId }: { stageId: number }) {
   const handleOpen = () => {
     setIsOpen(true);
   };
+
   const handleClose = () => {
     setIsOpen(false);
   };
 
-  // 角色相关
-  const { mutate: deleteRole } = useDeleteEntityMutation();
-  const { mutate: createRole } = useAddRoleMutation();
-  const listIdSets = new Set(list?.map(i => i.id!.toString())); // 已经请求到的角色 ID 集合, 传入创建中, 提示用户避免选入
+  // 添加模组场景
+  const { mutate: addScene } = useAddEntityMutation(3);
+  // 删除模组场景
+  const { mutate: deleteScene } = useDeleteEntityMutation();
 
-  const handleAddRoleSubmit = (row: any[]) => {
-    Promise.all(row.map(role =>
-      createRole({
-        stageId,
-        roleId: role.id,
-        type: 1,
-      }),
-    ));
+  const handleAddSceneSubmit = () => {
+    addScene({
+      stageId,
+      name: "新场景",
+      entityInfo: {
+        name: "新场景",
+        description: "无",
+      },
+    });
   };
 
   return (
-    <Section label="角色" onClick={handleOpen}>
+    <Section label="场景" onClick={handleOpen}>
       <>
         {isEmpty
           ? (
               <div className="text-sm text-gray-500 px-2 py-4">
-                暂时没有人物哦
+                暂时没有场景哦
               </div>
             )
           : (list?.map(i => (
-              <RoleListItem
-                key={i!.entityInfo!.roleId ?? i!.name ?? 0}
-                role={i!}
+              <SceneListItem
+                key={i!.id ?? 0}
+                scene={i!}
                 name={i!.name || "未命名"}
                 onDelete={() => {
                   removeModuleTabItem(i.id!.toString());
-                  deleteRole({
+                  deleteScene({
                     id: i.id!,
                     stageId,
                   });
@@ -130,14 +129,24 @@ export default function RoleList({ stageId }: { stageId: number }) {
               />
             )))}
       </>
-
-      <CreateRole
-        isOpen={isOpen}
-        onClose={handleClose}
-        onConfirm={handleAddRoleSubmit}
-        multiSelect={true}
-        existIdSet={listIdSets}
-      />
+      <PopWindow isOpen={isOpen} onClose={handleClose}>
+        <div className="p-4 space-y-4">
+          <p className="text-xl font-bold">添加场景</p>
+          <div className="flex justify-end space-x-2">
+            <button
+              type="button"
+              className="btn btn-primary btn-md"
+              onClick={() => {
+                handleAddSceneSubmit();
+                handleClose();
+              }}
+              title="创建一个全新的模组场景"
+            >
+              创建场景
+            </button>
+          </div>
+        </div>
+      </PopWindow>
     </Section>
   );
 }

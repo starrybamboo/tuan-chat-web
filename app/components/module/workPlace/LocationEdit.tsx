@@ -38,7 +38,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
       if (name !== location.name) {
         removeModuleTabItem(location.id!.toString());
       }
-      updateLocation({ id: location.id!, entityInfo: localLocation, name, entityType: "location" });
+      updateLocation({ id: location.id!, entityInfo: localLocation, name, entityType: 4 });
     }, 300);
   };
 
@@ -60,7 +60,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
     setLocalLocation(updatedLocation);
     updateLocation({
       id: location.id!,
-      entityType: "scene",
+      entityType: 4,
       entityInfo: updatedLocation,
       name: location.name!,
     });

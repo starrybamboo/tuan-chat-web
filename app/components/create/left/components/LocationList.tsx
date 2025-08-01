@@ -70,13 +70,14 @@ export function LocationList({ stageId }: { stageId: number }) {
     pushModuleTabItem({
       id: locationId,
       label: locationName,
+      content: location,
       type: ModuleItemEnum.LOCATION,
     });
     setCurrentSelectedTabId(locationId);
   };
 
   // 创建场景和删除
-  const { mutate: createLocation } = useAddEntityMutation("location");
+  const { mutate: createLocation } = useAddEntityMutation(4);
   const { mutate: deleteLocation } = useDeleteEntityMutation();
 
   const handleAddScene = () => {
@@ -93,7 +94,7 @@ export function LocationList({ stageId }: { stageId: number }) {
 
   const { data } = useQueryEntitiesQuery(stageId);
 
-  const list = data?.data?.filter(i => i!.entityType === "location");
+  const list = data?.data?.filter(i => i!.entityType === 4);
 
   // 判断列表是否存在且非空
   const isEmpty = !list || list.length === 0;

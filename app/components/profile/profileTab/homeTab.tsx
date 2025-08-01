@@ -54,11 +54,11 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
 
   // 用于测试的，写死的数据
   const userProfile = {
-    lastLoginTime: "2025-07-15 21:34",
-    rating: 4.7,
-    sessions: 31,
-    kpSessions: 7,
-    scBalance: 1280,
+    lastLoginTime: "1999-13-32 25:100",
+    rating: 0,
+    sessions: 0,
+    kpSessions: 0,
+    scBalance: 0,
     tags: ["悬疑团", "搞笑团", "抽象团", "奇幻团", "科幻团", "历史团"],
     medals: [
       { id: 1, name: "Your Story", desc: "首次设计了一个模组", date: "2025-07-21" },
@@ -289,8 +289,8 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
         </div>
       </div>
       {/* 右侧 - 真正的主页 */}
-      <div className="flex-1 rounded-xl shadow-md lg:m-4">
-        <div className="p-6">
+      <div className="flex-1 lg:m-4">
+        <div className="p-6 shadow-md rounded-xl">
           {/* 用户ID和登录时间 - 紧凑布局 */}
           <div className="flex flex-wrap items-center gap-4 md:gap-8 mb-6">
             <div>
@@ -333,7 +333,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                     <span className="text-4xl font-bold text-purple-600">{userProfile.sessions}</span>
                     <span className="ml-1 mb-1">次</span>
                   </div>
-                  <div className="mt-2 text-xs">近30天参与5次</div>
+                  <div className="mt-2 text-xs">近30天参与-次</div>
                 </div>
 
                 {/* 担任KP次数 */}
@@ -343,25 +343,25 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                     <span className="text-4xl font-bold text-indigo-600">{userProfile.kpSessions}</span>
                     <span className="ml-1 mb-1">次</span>
                   </div>
-                  <div className="mt-2 text-xs">最近：2025-07-12</div>
+                  <div className="mt-2 text-xs"></div>
                 </div>
               </div>
               <div className="rounded-xl p-5 col-span-3">
                 <div className="flex justify-between items-center">
                   <p className="text-sm">模组创作</p>
-                  <span className="text-sm text-indigo-600 font-medium">查看详情</span>
+                  {/* <span className="text-sm text-indigo-600 font-medium">查看详情</span> */}
                 </div>
                 <div className="mt-3 flex gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-indigo-600">3</div>
+                    <div className="text-2xl font-bold text-indigo-600">0</div>
                     <div className="text-sm mt-1">原创模组</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-indigo-600">12</div>
+                    <div className="text-2xl font-bold text-indigo-600">0</div>
                     <div className="text-sm mt-1">改编模组</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-indigo-600">1927</div>
+                    <div className="text-2xl font-bold text-indigo-600">0</div>
                     <div className="text-sm mt-1">被收藏数量</div>
                   </div>
                 </div>
@@ -375,7 +375,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                     <svg className="w-5 h-5 mr-2 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    成就勋章
+                    成就勋章（测试用）
                   </h2>
                   {userProfile.medals.length > 6 && (
                     <button
@@ -419,52 +419,42 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
               </div>
             </div>
           </div>
-          <div className="p-2 border-b border-primary"></div>
           {/* 个人主页的Readme */}
-          <div className="border-primary">
+          <div className="m-2 border-t border-primary">
             {/* 修改位置待定 */}
-            {/* <button type="button" className="btn flex justify-end"> */}
-            {/*  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> */}
-            {/*    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /> */}
-            {/*    <polyline points="14 2 14 8 20 8" /> */}
-            {/*    <line x1="16" y1="13" x2="8" y2="13" /> */}
-            {/*    <line x1="16" y1="17" x2="8" y2="17" /> */}
-            {/*    <polyline points="10 9 9 9 8 9" /> */}
-            {/*  </svg> */}
-            {/*  <span>编辑我的 ReadMe</span> */}
-            {/* </button> */}
-            <MarkDownViewer content={user?.readMe || "## Hi, Welcome👋"}></MarkDownViewer>
+            <MarkDownViewer content={user?.readMe || "## Hi, welcome to my personal page!👋"}></MarkDownViewer>
           </div>
-          {/* SC余额 - 特殊展示 */}
-          {/* dark:from-gray-800 dark:to-gray-900 */}
-          {loginUserId === userId && (
-            <div className="mt-8 rounded-xl p-5 shadow-lg opacity-90 relative overflow-hidden bg-gradient-to-r from-purple-500 to-indigo-600 ">
-              {/* 装饰性背景元素 */}
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-indigo-500/20"></div>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-300/10 rounded-full transform translate-x-1/2 -translate-y-1/2"></div>
+        </div>
+        {/* SC余额 - 特殊展示 */}
+        {/* dark:from-gray-800 dark:to-gray-900 */}
+        {loginUserId === userId && (
+          <div className="mt-8 rounded-xl p-5 shadow-lg opacity-90 relative overflow-hidden bg-gradient-to-r from-purple-500 to-indigo-600">
+            {/* 装饰性背景元素 */}
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-indigo-500/20"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-300/10 rounded-full transform translate-x-1/2 -translate-y-1/2"></div>
 
-              <div className="relative z-10 flex justify-between items-center">
-                <div>
-                  <p className="text-purple-200 text-sm">游戏货币余额</p>
-                  <h3 className="text-2xl font-bold text-white mt-1">SC 点数</h3>
-                </div>
-                <div className="flex items-baseline">
-                  <span className="text-4xl md:text-5xl font-bold text-white">{userProfile.scBalance}</span>
-                  <span className="text-xl text-purple-200 ml-2">SC</span>
-                </div>
+            <div className="relative z-10 flex justify-between items-center">
+              <div>
+                <p className="text-purple-200 text-sm">游戏货币余额</p>
+                <h3 className="text-2xl font-bold text-white mt-1">SC 点数</h3>
               </div>
-
-              <div className="relative z-10 mt-4 flex space-x-3">
-                <button type="button" className="flex-1 bg-white text-indigo-600 font-medium py-2 px-4 rounded-lg hover:bg-indigo-50 transition-colors">
-                  充值
-                </button>
-                <button type="button" className="flex-1 bg-indigo-800 text-white font-medium py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
-                  兑换
-                </button>
+              <div className="flex items-baseline">
+                <span className="text-4xl md:text-5xl font-bold text-white">{userProfile.scBalance}</span>
+                <span className="text-xl text-purple-200 ml-2">SC</span>
               </div>
             </div>
-          )}
-        </div>
+
+            <div className="relative z-10 mt-4 flex space-x-3">
+              <button type="button" className="flex-1 bg-white text-indigo-600 font-medium py-2 px-4 rounded-lg hover:bg-indigo-50 transition-colors">
+                充值
+              </button>
+              <button type="button" className="flex-1 bg-indigo-800 text-white font-medium py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
+                兑换
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
       <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}>
         <EditProfileWindow onClose={() => setIsEditWindowOpen(false)}></EditProfileWindow>
