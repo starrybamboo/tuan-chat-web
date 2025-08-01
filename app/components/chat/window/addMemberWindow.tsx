@@ -16,7 +16,6 @@ function MemberBox({ userId, onClickAddMember }: { userId: number; onClickAddMem
     <div
       className="card bg-base-100 shadow hover:shadow-lg transition-shadow cursor-pointer"
       key={userId}
-      onClick={() => { !canNotAdd && onClickAddMember(); }}
     >
       <div className="card-body items-center p-4">
         <UserAvatarComponent
@@ -29,7 +28,7 @@ function MemberBox({ userId, onClickAddMember }: { userId: number; onClickAddMem
           canNotAdd
             ? (
                 <button
-                  className="btn btn-sm btn-info mt-2"
+                  className="btn btn-sm btn-info mt-2 btn-ghost"
                   type="button"
                   disabled={true}
                 >
@@ -66,9 +65,7 @@ export default function AddMemberWindow({ handleAddMember }: { handleAddMember: 
 
         {/* --- 从空间添加 --- */}
         <input type="radio" name="add_member_tabs" className="tab" aria-label="从空间添加" defaultChecked />
-        {/* */}
         <div className="tab-content bg-base-100 border-base-300 rounded-box p-6">
-          {/* */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full">
             {spaceMembers.map(member => (
               member.userId && (
@@ -103,10 +100,8 @@ export default function AddMemberWindow({ handleAddMember }: { handleAddMember: 
         {/* --- 搜索ID添加 --- */}
         <input type="radio" name="add_member_tabs" className="tab" aria-label="搜索ID添加" />
         <div className="tab-content bg-base-100 border-base-300 rounded-box p-6">
-          {/* */}
           <div className="max-w-md mx-auto space-y-4">
             <h3 className="text-lg font-semibold text-center">按用户 ID 搜索</h3>
-            {/* */}
             <div className="form-control">
               <input
                 type="number"
@@ -117,7 +112,6 @@ export default function AddMemberWindow({ handleAddMember }: { handleAddMember: 
               />
             </div>
 
-            {/* */}
             {inputUserId > 0 && inputUserInfo && (
               <div className="card bg-base-200 shadow-md mt-4">
                 <div className="card-body items-center text-center space-y-4">
