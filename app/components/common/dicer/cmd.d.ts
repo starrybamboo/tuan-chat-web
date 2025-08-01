@@ -6,6 +6,7 @@
  */
 export class CommandExecutor {
   cmdInfo: CommandInfo;
+  // TODO: 这里CharacterInfo具体类型需要等待接口。
   solve: (args: string[], operator: CharacterInfo, Ats: CharacterInfo[], cpi: CPI) => Promise<CommandResult>;
 
   /**
@@ -130,13 +131,16 @@ export class RuleNameSpace {
    * 执行命令
    * @param {string} name - 命令名称或别名
    * @param {string[]} args - 命令参数数组
+   * @param {CharacterInfo} operator - 操作者信息
+   * @param {CharacterInfo[]} Ats - At列表信息数组
+   * @param {CPI} cpi -CmdPre接口对象
    * @returns {boolean} 命令执行结果
    * @throws {Error} 当命令不存在时抛出错误
    */
-  execute(name: string, args: string[]): boolean {
+  execute(name: string, args: string[], operator: CharacterInfo, Ats: CharacterInfo[], cpi: CPI): boolean {
     const cmd = this.cmdMap.get(name);
     if (cmd) {
-      return cmd.solve(args);
+      return cmd.solve(args, operator, Ats, cpi);
     }
     throw new Error(`Command ${name} not found in rule ${this.name}`);
   }
