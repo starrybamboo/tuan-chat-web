@@ -293,7 +293,7 @@ export function useSetRoleAvatarMutation(roleId: number) {
  * 删除角色头像
  * @param roleId 关联的角色ID（用于缓存刷新）
  */
-export function useDeleteRoleAvatarMutation(roleId: number) {
+export function useDeleteRoleAvatarMutation(roleId?: number) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (avatarId: number) => tuanchat.avatarController.deleteRoleAvatar(avatarId),

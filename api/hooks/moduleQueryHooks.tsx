@@ -302,15 +302,24 @@ export function useAddRoleMutation() {
 }
 
 // 模组角色上传头像
-// export function useUploadModuleRoleAvatarMutation() {
-//     const queryClient = useQueryClient();
-//     return useMutation({
-//         mutationFn: async ({ avatarUrl, spriteUrl, id }) => {
-//             const res = await tuanchat.avatarController.setRoleAvatar();
-//         }
-//         mutationKey: ['uploadModuleRoleAvatar'],
-//         onSuccess: (_data, variables) => {
-//             queryClient.invalidateQueries({ queryKey: ['queryModuleRoles', variables.moduleId] });
-//         }
-//     });
-// }
+export function useUploadModuleRoleAvatarMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ avatarUrl, spriteUrl, id }: { avatarUrl: string; spriteUrl: string; id: number } ) => {
+            const res = await tuanchat.avatarController.setRoleAvatar({});
+            if (!res.success || !res.data) {
+                console.error("头像创建失败", res);
+                return undefined;
+            }
+            const avatarId = res.data;
+            await tuanchat.avatarController.updateRoleAvatar({
+                avatarId,
+                avatarUrl,
+                spriteUrl
+            });
+            return avatarId;
+        },
+        mutationKey: ['uploadModuleRoleAvatar'],
+    });
+}
+

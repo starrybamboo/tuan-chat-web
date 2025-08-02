@@ -15184,7 +15184,7 @@
   },
   "components": {
     "schemas": {
-      "ApiResultVoid": {
+      "ApiResult": {
         "required": [
           "success"
         ],
@@ -15210,7 +15210,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResult": {
+      "ApiResultVoid": {
         "required": [
           "success"
         ],
