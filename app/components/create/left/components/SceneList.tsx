@@ -23,11 +23,6 @@ function SceneListItem(
     >
       {/* 左侧内容 */}
       <div className="flex items-center gap-2">
-        <img
-          src={scene.entityInfo!.avatar || "./favicon.ico"}
-          alt="avatar"
-          style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
-        />
         <div className="flex flex-col">
           <p className="self-baseline">{name}</p>
           <p className="text-xs text-gray-500 self-baseline mt-0.5 line-clamp-1">{scene.entityInfo!.description}</p>

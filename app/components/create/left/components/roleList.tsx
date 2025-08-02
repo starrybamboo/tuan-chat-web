@@ -29,7 +29,7 @@ function RoleListItem(
           alt="avatar"
           style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
         /> */}
-        <RoleAvatar avatarId={role.entityInfo!.avatarIds[0]} width={10} isRounded={true} stopPopWindow={true} />
+        <RoleAvatar avatarId={role.entityInfo!.avatarId || role.entityInfo!.avatarIds[0]} width={10} isRounded={true} stopPopWindow={true} />
 
         <div className="flex flex-col">
           <p className="self-baseline">{name}</p>

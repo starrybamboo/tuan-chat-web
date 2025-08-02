@@ -5,9 +5,10 @@ import RoleAvatar from "@/components/common/roleAvatar";
 
 import { CharacterCopper } from "@/components/newCharacter/CharacterCopper";
 import { useQuery } from "@tanstack/react-query";
-import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
+import { useUpdateEntityMutation, useUploadModuleRoleAvatarMutation } from "api/hooks/moduleQueryHooks";
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
+import { useDeleteRoleAvatarMutation } from "api/queryHooks";
 import { useEffect, useState } from "react";
 import { useModuleContext } from "./context/_moduleContext";
 
@@ -16,6 +17,9 @@ interface NPCEditProps {
 }
 
 export default function NPCEdit({ role }: NPCEditProps) {
+  // 接入接口
+  const { mutate: updateRoleAvatar } = useUploadModuleRoleAvatarMutation();
+  const { mutate: deleteAvatar } = useDeleteRoleAvatarMutation();
   // entityInfo 结构见后端定义
   const entityInfo = role.entityInfo || {};
   const { stageId, removeModuleTabItem } = useModuleContext();
@@ -46,7 +50,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
 
   useEffect(() => {
     if (role) {
-      setLocalRole({ ...entityInfo, name: role.name });
+      setLocalRole({ ...entityInfo });
       setAbility(entityInfo.ability || {});
       setCharCount(entityInfo.description?.length || 0);
       setName(role.name);
@@ -102,9 +106,9 @@ export default function NPCEdit({ role }: NPCEditProps) {
 
   // 获取角色所有头像
   useQuery({
-    queryKey: ["roleAvatar", role.id],
+    queryKey: ["roleAvatar", role.id, localRole.avatarIds],
     queryFn: async () => {
-      const res = role.entityInfo!.avatarIds.map(async (avatarId: number) => {
+      const res = localRole.avatarIds.map(async (avatarId: number) => {
         const res = await tuanchat.avatarController.getRoleAvatar(avatarId);
         return res.data;
       });
@@ -146,6 +150,17 @@ export default function NPCEdit({ role }: NPCEditProps) {
       setRoleAvatars(prevRoleAvatars =>
         prevRoleAvatars.filter((_, i) => i !== avatarToDeleteIndex),
       );
+      deleteAvatar(roleAvatars[avatarToDeleteIndex]?.avatarId || 0, {
+        onSuccess: () => {
+          const updatedRole = { ...role, avatarIds: localRole.avatarIds.filter((id: number) => id !== roleAvatars[avatarToDeleteIndex]?.avatarId) };
+          updateRole({
+            id: role.id!,
+            entityType: 2,
+            entityInfo: updatedRole,
+            name: role.name!,
+          });
+        },
+      });
       setAvatarToDeleteIndex(null);
       setIsDeleteModalOpen(false);
     }
@@ -296,6 +311,20 @@ export default function NPCEdit({ role }: NPCEditProps) {
                     setCopperedDownloadUrl={setCopperedUrl}
                     fileName={uniqueFileName}
                     scene={4} // 模组角色差分
+                    mutate={(data) => {
+                      updateRoleAvatar({ ...data, id: role.id }, {
+                        onSuccess: (_data) => {
+                          const updatedRole = { ...localRole, avatarIds: [...(localRole.avatarIds || []), _data] };
+                          setLocalRole(updatedRole);
+                          updateRole({
+                            id: role.id!,
+                            entityType: 2,
+                            entityInfo: updatedRole,
+                            name: role.name!,
+                          });
+                        },
+                      });
+                    }}
                   >
                     <button className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group">
                       <svg
@@ -342,6 +371,16 @@ export default function NPCEdit({ role }: NPCEditProps) {
               type="submit"
               onClick={() => {
                 setChangeAvatarConfirmOpen(false);
+                const newAvatarId = roleAvatars[0]?.avatarId;
+                // const newAvatarIds = roleAvatars.map(avatar => avatar.avatarId);
+                const updatedRole = { ...localRole, avatarId: newAvatarId };
+                setLocalRole(updatedRole);
+                updateRole({
+                  id: role.id!,
+                  name: role.name!,
+                  entityType: 2,
+                  entityInfo: updatedRole,
+                });
               }}
               className="btn btn-primary btn-md md:btn-lg"
             >
@@ -354,9 +393,9 @@ export default function NPCEdit({ role }: NPCEditProps) {
       {/* 基础信息卡片 */}
       <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
         <div className="card-body">
-          <div className="flex items-center gap-8" onClick={() => setChangeAvatarConfirmOpen(true)}>
+          <div className="flex items-center gap-8">
             {/* 头像 */}
-            <div><RoleAvatar avatarId={role.entityInfo!.avatarIds[0]} width={36} isRounded={false} stopPopWindow={true} /></div>
+            <div onClick={() => setChangeAvatarConfirmOpen(true)}><RoleAvatar avatarId={localRole.avatarId || localRole.avatarIds[0]} width={36} isRounded={false} stopPopWindow={true} /></div>
             {/* 右侧内容 */}
             <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               {isEditing

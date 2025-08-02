@@ -1,12 +1,13 @@
 import type { StageEntityResponse } from "api";
 import type { SVGProps } from "react";
-import type { ItemModuleItem, ModuleTabItem, RoleModuleItem, SceneModuleItem } from "./context/types";
+import type { ItemModuleItem, MapModuleItem, ModuleTabItem, RoleModuleItem, SceneModuleItem } from "./context/types";
 import { useEffect, useRef } from "react";
 import { useModuleContext } from "./context/_moduleContext";
 import { ModuleItemEnum } from "./context/types";
 import ItemEdit from "./ItemEdit";
 import LocationEdit from "./LocationEdit";
 import NPCEdit from "./NPCEdit";
+import SceneEdit from "./SceneEdit";
 
 export function BaselineClose(props: SVGProps<SVGSVGElement>) {
   return (
@@ -242,8 +243,62 @@ function SceneModuleTabItem({
         {label}
       </label>
       <div className="tab-content bg-base-100 border-base-300 p-6">
-        {/* 这里可替换为具体的 SceneEdit 组件 */}
-        {scene.name}
+        <SceneEdit scene={scene} />
+      </div>
+    </>
+  );
+}
+
+function MapModuleTabItem({
+  mapModuleItem,
+  map,
+  isSelected,
+  onTabClick,
+  onCloseClick,
+}: {
+  mapModuleItem: MapModuleItem;
+  map: StageEntityResponse;
+  isSelected: boolean;
+  onTabClick: (id: string) => void;
+  onCloseClick: (id: string) => void;
+}) {
+  const { id, label } = mapModuleItem;
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isSelected && inputRef.current) {
+      inputRef.current.checked = true;
+    }
+  }, [isSelected]);
+
+  return (
+    <>
+      <label className="tab flex-row-reverse pr-8! relative group before:hidden!">
+        <input
+          ref={inputRef}
+          type="radio"
+          name="WorkSpaceTab"
+          className="tab"
+          aria-label={label}
+          onClick={onTabClick.bind(null, id.toString())}
+        />
+        <div
+          className={`
+            absolute right-[10px] invisible
+            w-4 h-4 flex items-center justify-center
+            group-hover:visible ${isSelected ? "visible" : ""}
+            hover:bg-base-content/80 rounded-sm
+          `}
+          onClick={() => {
+            onCloseClick(id.toString());
+          }}
+        >
+          <BaselineClose />
+        </div>
+        {label}
+      </label>
+      <div className="tab-content bg-base-100 border-base-300 p-6">
+        {map.name}
       </div>
     </>
   );
@@ -263,6 +318,9 @@ export default function EditModule() {
   );
   const sceneModuleItems = moduleTabItems.filter(item =>
     item.type === ModuleItemEnum.SCENE,
+  );
+  const mapModuleItems = moduleTabItems.filter(item =>
+    item.type === ModuleItemEnum.MAP,
   );
 
   return (
@@ -308,6 +366,18 @@ export default function EditModule() {
               key={item.id}
               sceneModuleItem={item}
               scene={item.content}
+              isSelected={item.id === currentSelectedTabId}
+              onTabClick={setCurrentSelectedTabId}
+              onCloseClick={removeModuleTabItem}
+            />
+          ))
+        }
+        {
+          mapModuleItems.map(item => (
+            <MapModuleTabItem
+              key={item.id}
+              mapModuleItem={item}
+              map={item.content}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={setCurrentSelectedTabId}
               onCloseClick={removeModuleTabItem}

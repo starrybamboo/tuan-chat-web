@@ -3,6 +3,7 @@ import { useCommitMutation } from "api/hooks/moduleQueryHooks";
 import { useState } from "react";
 import ItemList from "./components/itemList";
 import { LocationList } from "./components/LocationList";
+import MapModule from "./components/MapModule";
 import RoleList from "./components/roleList";
 import SceneList from "./components/SceneList";
 
@@ -30,6 +31,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
 
   return (
     <div className="w-full h-full flex flex-col">
+      <MapModule stageId={stageId} />
       <RoleList stageId={stageId} />
       <ItemList stageId={stageId} />
       <LocationList stageId={stageId} />
