@@ -11,7 +11,9 @@ interface UserRolesListProps {
   onPageChange: (page: number) => void;
   isLoading: boolean;
 }
-
+/**
+ * 在workTab使用的角色列表，卡片本身来源于userRoleCard
+ */
 export function UserRolesList({
   userId,
   roleIds,

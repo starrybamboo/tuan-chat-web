@@ -7,6 +7,7 @@ import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import EditProfileWindow from "@/components/profile/editProfileWindow";
+import GNSSpiderChart from "@/components/profile/module/GNSSpiderChart";
 import React, { useState } from "react";
 import { Link } from "react-router";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../../api/hooks/userFollowQueryHooks";
@@ -307,6 +308,10 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
           <div className="mb-4">
             <TagManagement />
           </div>
+          {/* 用户 GNS 雷达图 */}
+          <div className="mb-4">
+            <GNSSpiderChart />
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 ">
             {/* 左侧 - 基本信息 */}
@@ -425,7 +430,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             <MarkDownViewer content={user?.readMe || "## Hi, welcome to my personal page!👋"}></MarkDownViewer>
           </div>
         </div>
-        {/* SC余额 - 特殊展示 */}
+        {/* SC余额卡片 */}
         {/* dark:from-gray-800 dark:to-gray-900 */}
         {loginUserId === userId && (
           <div className="mt-8 rounded-xl p-5 shadow-lg opacity-90 relative overflow-hidden bg-gradient-to-r from-purple-500 to-indigo-600">
@@ -456,7 +461,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
         )}
 
       </div>
-      <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}>
+      <PopWindow isOpen={isEditWindowOpen} fullScreen={true} onClose={() => setIsEditWindowOpen(false)}>
         <EditProfileWindow onClose={() => setIsEditWindowOpen(false)}></EditProfileWindow>
       </PopWindow>
       <PopWindow
