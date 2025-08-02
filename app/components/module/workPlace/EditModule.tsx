@@ -6,6 +6,7 @@ import { useModuleContext } from "./context/_moduleContext";
 import { ModuleItemEnum } from "./context/types";
 import ItemEdit from "./ItemEdit";
 import LocationEdit from "./LocationEdit";
+import MapEdit from "./MapEdit";
 import NPCEdit from "./NPCEdit";
 import SceneEdit from "./SceneEdit";
 
@@ -298,7 +299,7 @@ function MapModuleTabItem({
         {label}
       </label>
       <div className="tab-content bg-base-100 border-base-300 p-6">
-        {map.name}
+        <MapEdit map={map} />
       </div>
     </>
   );
