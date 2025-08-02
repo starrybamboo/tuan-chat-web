@@ -3,6 +3,7 @@ import type {
   ChatMessageRequest,
   ChatMessageResponse,
   FeedRequest,
+  ImageMessage,
   Message,
 } from "../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
@@ -12,13 +13,16 @@ import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { DraggableIcon } from "@/icons";
+import { getImageSize } from "@/utils/getImgSize";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { Virtuoso } from "react-virtuoso";
 import {
   useDeleteMessageMutation,
   useSendMessageMutation,
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
+import { useCreateEmojiMutation, useGetUserEmojisQuery } from "../../../api/hooks/emojiQueryHooks";
 import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
 
 export const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
@@ -76,6 +80,13 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   const deleteMessageMutation = useDeleteMessageMutation();
   const publishFeedMutation = usePublishFeedMutation();
   const updateMessageMutation = useUpdateMessageMutation();
+
+  // 获取用户自定义表情列表
+  const { data: emojisData } = useGetUserEmojisQuery();
+  const emojiList = Array.isArray(emojisData?.data) ? emojisData.data : [];
+
+  // 新增表情
+  const createEmojiMutation = useCreateEmojiMutation();
   /**
    * 获取历史消息
    * 分页获取消息
@@ -194,6 +205,21 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     publishFeedMutation.mutate(feedRequest);
     setIsForwardWindowOpen(false);
     updateSelectedMessageIds(new Set());
+  }
+  async function handleAddEmoji(imgMessage: ImageMessage) {
+    if (emojiList.find(emoji => emoji.imageUrl === imgMessage.url)) {
+      toast.error("该表情已存在");
+      return;
+    }
+    const fileSize = imgMessage.size > 0
+      ? imgMessage.size
+      : (await getImageSize(imgMessage.url)).size;
+    createEmojiMutation.mutate({
+      name: imgMessage.fileName,
+      imageUrl: imgMessage.url,
+      fileSize,
+      format: imgMessage.url.split(".").pop() || "webp",
+    }, { onSuccess: () => { toast.success("表情添加成功"); } });
   }
   /**
    * 聊天气泡拖拽排序
@@ -586,20 +612,35 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
                     </li>
                   );
                 }
+                // 图片消息
                 return (
-                  <li>
-                    <a
-                      onClick={(e) => {
-                        e.preventDefault();
-                        toggleBackground(contextMenu.messageId);
-                        closeContextMenu();
-                      }}
-                    >
-                      {
-                        message?.message.extra?.imageMessage?.background ? "取消设置为背景" : "设为背景"
-                      }
-                    </a>
-                  </li>
+                  <>
+                    <li>
+                      <a
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toggleBackground(contextMenu.messageId);
+                          closeContextMenu();
+                        }}
+                      >
+                        {
+                          message?.message.extra?.imageMessage?.background ? "取消设置为背景" : "设为背景"
+                        }
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const imgMessage = message?.message.extra?.imageMessage;
+                          imgMessage && handleAddEmoji(imgMessage);
+                          closeContextMenu();
+                        }}
+                      >
+                        添加到表情
+                      </a>
+                    </li>
+                  </>
                 );
               })()}
             </ul>
