@@ -253,12 +253,14 @@ function SceneModuleTabItem({
 function MapModuleTabItem({
   mapModuleItem,
   map,
+  stageId,
   isSelected,
   onTabClick,
   onCloseClick,
 }: {
   mapModuleItem: MapModuleItem;
   map: StageEntityResponse;
+  stageId: number;
   isSelected: boolean;
   onTabClick: (id: string) => void;
   onCloseClick: (id: string) => void;
@@ -299,14 +301,14 @@ function MapModuleTabItem({
         {label}
       </label>
       <div className="tab-content bg-base-100 border-base-300 p-6">
-        <MapEdit map={map} />
+        <MapEdit map={map} stageId={stageId} />
       </div>
     </>
   );
 }
 
 export default function EditModule() {
-  const { moduleTabItems, currentSelectedTabId, setCurrentSelectedTabId, removeModuleTabItem }
+  const { moduleTabItems, currentSelectedTabId, setCurrentSelectedTabId, removeModuleTabItem, stageId }
     = useModuleContext();
   const roleModuleItems = moduleTabItems.filter(item =>
     item.type === ModuleItemEnum.ROLE,
@@ -378,6 +380,7 @@ export default function EditModule() {
             <MapModuleTabItem
               key={item.id}
               mapModuleItem={item}
+              stageId={stageId as number}
               map={item.content}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={setCurrentSelectedTabId}

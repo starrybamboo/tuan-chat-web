@@ -14,6 +14,7 @@ interface SceneNodeProps {
     description?: string;
     tip?: string;
     moduleSceneName?: string;
+    children?: React.ReactNode;
   };
   selected?: boolean;
 }
@@ -75,12 +76,16 @@ function SceneNode({ data, selected }: SceneNodeProps) {
       {/* 场景大图弹窗 */}
       <PopWindow isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)}>
         <div className="w-[50vw]">
-          <ItemDetail
-            itemName={data.label}
-            itemList={[{ ...data, name: data.label, entityInfo: { description: data.description, tip: data.tip } }]}
-            entityType="scene"
-            moduleInfo={data.moduleInfo}
-          />
+          {
+            data.children || (
+              <ItemDetail
+                itemName={data.label}
+                itemList={[{ ...data, name: data.label, entityInfo: { description: data.description, tip: data.tip } }]}
+                entityType="scene"
+                moduleInfo={data.moduleInfo}
+              />
+            )
+          }
         </div>
       </PopWindow>
     </div>

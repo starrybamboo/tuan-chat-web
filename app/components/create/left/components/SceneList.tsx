@@ -1,9 +1,7 @@
 import type { StageEntityResponse } from "api";
-import { PopWindow } from "@/components/common/popWindow";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
-import { useState } from "react";
 import Section from "./section";
 
 // 场景表单项
@@ -72,16 +70,6 @@ export default function SceneList({ stageId }: { stageId: number }) {
   const list = data?.data!.filter(i => i.entityType === 3);
   const isEmpty = !list || list!.length === 0;
 
-  // 控制弹窗
-  const [isOpen, setIsOpen] = useState(false);
-  const handleOpen = () => {
-    setIsOpen(true);
-  };
-
-  const handleClose = () => {
-    setIsOpen(false);
-  };
-
   // 添加模组场景
   const { mutate: addScene } = useAddEntityMutation(3);
   // 删除模组场景
@@ -92,14 +80,14 @@ export default function SceneList({ stageId }: { stageId: number }) {
       stageId,
       name: "新场景",
       entityInfo: {
-        name: "新场景",
         description: "无",
+        tip: "无",
       },
     });
   };
 
   return (
-    <Section label="场景" onClick={handleOpen}>
+    <Section label="场景" onClick={handleAddSceneSubmit}>
       <>
         {isEmpty
           ? (
@@ -124,24 +112,6 @@ export default function SceneList({ stageId }: { stageId: number }) {
               />
             )))}
       </>
-      <PopWindow isOpen={isOpen} onClose={handleClose}>
-        <div className="p-4 space-y-4">
-          <p className="text-xl font-bold">添加场景</p>
-          <div className="flex justify-end space-x-2">
-            <button
-              type="button"
-              className="btn btn-primary btn-md"
-              onClick={() => {
-                handleAddSceneSubmit();
-                handleClose();
-              }}
-              title="创建一个全新的模组场景"
-            >
-              创建场景
-            </button>
-          </div>
-        </div>
-      </PopWindow>
     </Section>
   );
 }

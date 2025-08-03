@@ -76,7 +76,7 @@ export function LocationList({ stageId }: { stageId: number }) {
     setCurrentSelectedTabId(locationId);
   };
 
-  // 创建场景和删除
+  // 创建地点和删除
   const { mutate: createLocation } = useAddEntityMutation(4);
   const { mutate: deleteLocation } = useDeleteEntityMutation();
 
