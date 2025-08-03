@@ -25,7 +25,7 @@ function ReplyConnector({ isParentHovered }: { isParentHovered: boolean }) {
       {/* L 形线条本身。它只占其容器的右半部分（w-1/2），
           并通过 justify-end 对齐到右侧。这确保其左边框与父评论居中的垂直线精确对齐。
         */}
-      <div className={`box-border h-full w-1/2 rounded-bl-lg border-b border-l border-solid ${borderColor} transition-colors`} />
+      <div className={`box-border h-full w-1/2 rounded-bl-lg border-b border-b-2 border-l border-l-2 border-solid ${borderColor} transition-colors`} />
     </div>
   );
 }
@@ -150,7 +150,7 @@ export default function CommentComponent({ comment, level = 1 }: {
       >
         <div
           ref={verticalLineRef}
-          className={`absolute top-0 left-1/2 w-px ${isLineHovered ? "bg-gray-500 dark:bg-gray-400" : "bg-gray-300 dark:bg-gray-600"} transition-colors`}
+          className={`absolute top-0 left-1/2 w-[2px] ${isLineHovered ? "bg-gray-500 dark:bg-gray-400" : "bg-gray-300 dark:bg-gray-600"} transition-colors`}
         />
         <div className="relative z-10 pt-4">
           <div className="bg-base-100">

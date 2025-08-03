@@ -35,7 +35,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
       if (imgFiles.length > 0) {
         for (let i = 0; i < imgFiles.length; i++) {
           const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
-          const { width, height } = await getImageSize(imgFiles[i]);
+          const { width, height, size } = await getImageSize(imgFiles[i]);
 
           if (imgDownLoadUrl && imgDownLoadUrl !== "") {
             const imageMessage: MessageDirectSendRequest = {
@@ -43,7 +43,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
               content: "",
               messageType: 2, // 图片消息类型
               extra: {
-                size: 0,
+                size,
                 url: imgDownLoadUrl,
                 fileName: imgDownLoadUrl.split("/").pop() || `${userId}-${Date.now()}`,
                 width,
