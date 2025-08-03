@@ -37,9 +37,6 @@ function MapListItem({
       <div className="flex items-center gap-2">
         <div className="flex flex-col">
           <p className="self-baseline font-bold text-primary-content">{map.name}</p>
-          <p className="text-xs text-primary-content/80 self-baseline mt-0.5 line-clamp-1">
-            {map.entityInfo?.description || "暂无描述"}
-          </p>
         </div>
       </div>
       <div className="badge badge-outline text-primary-content border-primary-content">地图</div>
@@ -71,7 +68,10 @@ export default function MapModule({ stageId }: { stageId: number }) {
       stageId,
       name: `${stageId}模组地图`,
       entityInfo: {
-        description: "模组的专属地图",
+        sceneMap: [],
+        sceneItem: [],
+        sceneRole: [],
+        sceneLocation: [],
       },
     });
   };
