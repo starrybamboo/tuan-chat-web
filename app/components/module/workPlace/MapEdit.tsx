@@ -1,4 +1,4 @@
-import type { Edge, EdgeChange, Node, NodeChange } from "@xyflow/react";
+import type { Connection, Edge, EdgeChange, Node, NodeChange } from "@xyflow/react";
 import type { StageEntityResponse } from "api";
 import {
   addEdge,
@@ -8,11 +8,12 @@ import {
   Controls,
   MarkerType,
   ReactFlow,
+  reconnectEdge,
   useReactFlow,
 } from "@xyflow/react";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import dagre from "dagre";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import SceneNode from "../detail/ContentTab/scene/react flow/NewSceneNode";
 import { useModuleContext } from "./context/_moduleContext";
 import SceneEdit from "./SceneEdit";
@@ -38,9 +39,14 @@ export default function MapEdit({ map }: { map: StageEntityResponse }) {
   const { data, isLoading, error } = useQueryEntitiesQuery(stageId as number);
   const { mutate: updateMap } = useUpdateEntityMutation(stageId as number);
 
+  // reactflow绘制
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [localMap, setLocalMap] = useState<StageEntityResponse>(map);
+  const [sceneMap, setSceneMap] = useState<Record<string, string[]>>(map.entityInfo?.sceneMap || {});
+  const initialized = useRef(false);
+
+  // reactflow移除边
+  const edgeReconnectSuccessful = useRef(true);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes(nodes => applyNodeChanges(changes, nodes)),
@@ -48,32 +54,176 @@ export default function MapEdit({ map }: { map: StageEntityResponse }) {
   );
 
   const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => setEdges(edges => applyEdgeChanges(changes, edges)),
-    [],
+    (changes: EdgeChange[]) => {
+      // 检查是否有边被移除
+      const removedEdges = changes.filter(change =>
+        change.type === "remove" && "id" in change,
+      ) as Array<{ id: string; type: "remove" }>;
+
+      // 如果有边被移除，更新sceneMap
+      if (removedEdges.length > 0) {
+        setSceneMap((prevSceneMap) => {
+          const updatedSceneMap = { ...prevSceneMap };
+
+          // 从updatedSceneMap中移除对应的边
+          removedEdges.forEach((removedEdge) => {
+            const edge = edges.find(e => e.id === removedEdge.id);
+            if (edge) {
+              if (updatedSceneMap[edge.source]) {
+                updatedSceneMap[edge.source] = updatedSceneMap[edge.source].filter(
+                  (target: string) => target !== edge.target,
+                );
+
+                // 如果source没有目标了，删除这个source键
+                if (updatedSceneMap[edge.source].length === 0) {
+                  delete updatedSceneMap[edge.source];
+                }
+              }
+            }
+          });
+
+          // 调用API更新
+          updateMap({
+            id: map.id!,
+            name: map.name,
+            entityType: 5,
+            entityInfo: {
+              ...map.entityInfo,
+              sceneMap: updatedSceneMap,
+            },
+          });
+
+          return updatedSceneMap;
+        });
+      }
+
+      setEdges(eds => applyEdgeChanges(changes, eds));
+    },
+    [edges, map, updateMap],
   );
 
+  // 添加边
   const onConnect = useCallback(
-    (params: any) => setEdges((edges) => {
+    (params: Connection) => {
+      setSceneMap((prevSceneMap) => {
+        let changedMap;
+        if (prevSceneMap[params.source!]) {
+          changedMap = [...prevSceneMap[params.source!], params.target!];
+        }
+        else {
+          changedMap = [params.target!];
+        }
+        const updatedSceneMap = { ...prevSceneMap, [params.source!]: changedMap };
+
+        // 调用API更新
+        updateMap({
+          id: map.id!,
+          name: map.name,
+          entityType: 5,
+          entityInfo: {
+            ...map.entityInfo,
+            sceneMap: updatedSceneMap,
+          },
+        });
+
+        return updatedSceneMap;
+      });
+
+      setEdges(eds => addEdge(params, eds));
+    },
+    [map, updateMap],
+  );
+
+  // 移除和重新连接边
+  const onReconnectStart = useCallback(() => {
+    edgeReconnectSuccessful.current = false;
+  }, []);
+
+  const onReconnectEnd = useCallback((_: any, edge: Edge) => {
+    if (!edgeReconnectSuccessful.current) {
+      setSceneMap((prevSceneMap) => {
+        const updatedSceneMap = { ...prevSceneMap };
+        if (updatedSceneMap[edge.source]) {
+          updatedSceneMap[edge.source] = updatedSceneMap[edge.source].filter(
+            (target: string) => target !== edge.target,
+          );
+
+          // 如果source没有目标了，删除这个source键
+          if (updatedSceneMap[edge.source].length === 0) {
+            delete updatedSceneMap[edge.source];
+          }
+        }
+
+        // 调用API更新
+        updateMap({
+          id: map.id!,
+          name: map.name,
+          entityType: 5,
+          entityInfo: {
+            ...map.entityInfo,
+            sceneMap: updatedSceneMap,
+          },
+        });
+
+        return updatedSceneMap;
+      });
+      setEdges(eds => eds.filter(e => e.id !== edge.id));
+    }
+
+    edgeReconnectSuccessful.current = true;
+  }, [map, updateMap]);
+
+  // 处理重连操作
+  const onEdgesReconnect = useCallback((oldEdge: Edge, newConnection: Connection) => {
+    setSceneMap((prevSceneMap) => {
+      // 先从旧的连接中移除边
+      const updatedSceneMap = { ...prevSceneMap };
+      if (updatedSceneMap[oldEdge.source]) {
+        updatedSceneMap[oldEdge.source] = updatedSceneMap[oldEdge.source].filter(
+          (target: string) => target !== oldEdge.target,
+        );
+
+        // 如果source没有目标了，删除这个source键
+        if (updatedSceneMap[oldEdge.source].length === 0) {
+          delete updatedSceneMap[oldEdge.source];
+        }
+      }
+
+      // 再添加新的连接
       let changedMap;
-      if (localMap.entityInfo?.sceneMap && localMap.entityInfo?.sceneMap[params.source]) {
-        changedMap = [...localMap.entityInfo.sceneMap[params.source], params.target];
+      if (updatedSceneMap[newConnection.source!]) {
+        changedMap = [...updatedSceneMap[newConnection.source!], newConnection.target!];
       }
       else {
-        changedMap = [params.target];
+        changedMap = [newConnection.target!];
       }
-      const updatedMap = { ...localMap.entityInfo?.sceneMap, [params.source]: changedMap };
-      updateMap({ id: localMap.id!, name: localMap.name, entityType: 5, entityInfo: { ...localMap.entityInfo, sceneMap: updatedMap } });
-      setLocalMap({ id: localMap.id!, name: localMap.name, entityType: 5, entityInfo: { ...localMap.entityInfo, sceneMap: updatedMap } });
-      return addEdge(params, edges);
-    }),
-    [],
-  );
+      updatedSceneMap[newConnection.source!] = changedMap;
 
-  const { initialNodes, initialEdges } = useMemo(() => {
-    const entityType3Data = data!.data!.filter(item => item.entityType === 3);
-    setLocalMap(map);
+      // 调用API更新
+      updateMap({
+        id: map.id!,
+        name: map.name,
+        entityType: 5,
+        entityInfo: {
+          ...map.entityInfo,
+          sceneMap: updatedSceneMap,
+        },
+      });
 
-    const nodes: Node[] = entityType3Data.map(item => ({
+      return updatedSceneMap;
+    });
+
+    setEdges(els => reconnectEdge(oldEdge, newConnection, els));
+  }, [map, updateMap]);
+
+  // 初始化节点
+  useEffect(() => {
+    if (!data?.data || initialized.current)
+      return;
+
+    const entityType3Data = data.data.filter(item => item.entityType === 3);
+
+    const newNodes: Node[] = entityType3Data.map(item => ({
       id: item.name!,
       type: "mapEditNode",
       position: { x: 0, y: 0 },
@@ -84,40 +234,13 @@ export default function MapEdit({ map }: { map: StageEntityResponse }) {
     dagreGraph.setDefaultEdgeLabel(() => ({}));
     dagreGraph.setGraph({ rankdir: "TB", nodesep: 60, ranksep: 120 });
 
-    nodes.forEach((node) => {
+    newNodes.forEach((node) => {
       dagreGraph.setNode(node.id, { width: 200, height: 120 });
     });
 
-    // 生成边
-    const edges: Edge[] = [];
-    let edgeId = 1;
-    if (localMap.entityInfo?.sceneMap) {
-      Object.entries(localMap.entityInfo?.sceneMap).forEach(([source, targets]) => {
-        (targets as string[]).forEach((target: string) => {
-          dagreGraph.setEdge(source, target);
-          edges.push({
-            id: `e${edgeId++}`,
-            source,
-            target,
-            animated: true,
-            type: "smoothstep",
-            markerEnd: {
-              type: MarkerType.ArrowClosed,
-              width: 20,
-              height: 20,
-              color: "#333",
-            },
-            style: {
-              strokeWidth: 2,
-            },
-          });
-        });
-      });
-    }
-
     dagre.layout(dagreGraph);
 
-    nodes.forEach((node) => {
+    newNodes.forEach((node) => {
       const pos = dagreGraph.node(node.id);
       if (pos) {
         node.position = {
@@ -127,17 +250,41 @@ export default function MapEdit({ map }: { map: StageEntityResponse }) {
       }
     });
 
-    return { initialNodes: nodes, initialEdges: edges };
-  }, [data, isLoading, localMap]);
+    setNodes(newNodes);
+    initialized.current = true;
+  }, [data]);
 
+  // 根据sceneMap更新边
   useEffect(() => {
-    if (nodes.length === 0 && initialNodes.length > 0) {
-      setNodes(initialNodes);
-    }
-    if (edges.length === 0 && initialEdges.length > 0) {
-      setEdges(initialEdges);
-    }
-  }, [initialNodes, initialEdges, nodes, edges, setNodes, setEdges, map]);
+    if (!initialized.current)
+      return;
+
+    const newEdges: Edge[] = [];
+    let edgeId = 1;
+
+    Object.entries(sceneMap).forEach(([source, targets]) => {
+      targets.forEach((target: string) => {
+        newEdges.push({
+          id: `e${edgeId++}`,
+          source,
+          target,
+          animated: true,
+          type: "smoothstep",
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 20,
+            height: 20,
+            color: "#333",
+          },
+          style: {
+            strokeWidth: 2,
+          },
+        });
+      });
+    });
+
+    setEdges(newEdges);
+  }, [sceneMap]);
 
   if (isLoading) {
     return (
@@ -166,6 +313,9 @@ export default function MapEdit({ map }: { map: StageEntityResponse }) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onReconnect={onEdgesReconnect}
+        onReconnectStart={onReconnectStart}
+        onReconnectEnd={onReconnectEnd}
         nodeTypes={nodeTypes}
         fitView
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
