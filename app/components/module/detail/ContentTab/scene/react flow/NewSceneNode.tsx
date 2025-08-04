@@ -45,7 +45,7 @@ function SceneNode({ data, selected }: SceneNodeProps) {
         }`}
         onClick={handleNodeClick}
       >
-        <div className="flex items-center justify-center text-primary ">
+        <div className="flex items-center justify-center">
           <span className="text-xl font-black leading-none mr-4 mb-4">「 </span>
           <span className="text-2xl font-black font-mono tracking-widest">{data.label}</span>
           <span className="text-xl font-black leading-none ml-4 mt-4"> 」</span>

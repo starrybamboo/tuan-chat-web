@@ -21,8 +21,8 @@ function RoleAvatar(
       <div className="flex items-center justify-center h-16">
         <div
           className={`w-16 h-16 rounded-full cursor-pointer transition-all duration-200 ease-in-out hover:scale-110 ${isSelected
-            ? "border-4 border-primary shadow-lg"
-            : "border-2 border-transparent hover:border-primary/50"
+            ? "border-4 border-accent shadow-lg"
+            : "border-2 border-transparent hover:border-accent/50"
           }`}
           onClick={handleSelectRole}
         >
@@ -46,7 +46,7 @@ function RoleDetail(
 
   if (!name) {
     return (
-      <div className="flex h-full w-full items-center justify-center text-base-content/50">
+      <div className="flex h-full w-full items-center justify-center text-accent">
         请选择一个角色
       </div>
     );
@@ -56,7 +56,7 @@ function RoleDetail(
 
   if (!roleData || !roleInfo) {
     return (
-      <div className="flex h-full w-full items-center justify-center text-base-content/50">
+      <div className="flex h-full w-full items-center justify-center text-accent">
         未找到角色信息
       </div>
     );
@@ -115,8 +115,8 @@ function RoleDetail(
     <div className="h-full w-full flex gap-2">
       <div className="flex flex-col gap-4 p-4 bg-base-100 rounded-lg w-full overflow-y-auto">
         <div className="flex items-center gap-4">
-          <h1 className="text-3xl font-bold text-secondary">{roleData.name || "未命名"}</h1>
-          <span className="px-3 py-1 text-base bg-secondary/10 text-secondary rounded-full whitespace-nowrap">
+          <h1 className="text-3xl font-bold text-accent">{roleData.name || "未命名"}</h1>
+          <span className="px-3 py-1 text-base bg-accent/10 text-accent rounded-full whitespace-nowrap">
             {getRoleTypeText(roleInfo.type)}
           </span>
         </div>
@@ -137,8 +137,8 @@ function RoleDetail(
         {/* 角色描述（统一为ItemDetail样式） */}
         {roleInfo.description && (
           <div className="w-full">
-            <h4 className="font-semibold text-lg text-secondary mb-2">角色简介</h4>
-            <p className="bg-info/10 text-info-content p-3 rounded-lg">
+            <h4 className="font-semibold text-lg text-accent mb-2">角色简介</h4>
+            <p className="bg-info/10 text-accent p-3 rounded-lg">
               {roleInfo.description}
             </p>
           </div>
@@ -156,13 +156,13 @@ function RoleDetail(
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="flex flex-col gap-1">
             <span className="text-base-content/60">语音模型</span>
-            <span className="font-mono text-xs">
+            <span className="font-mono text-sm">
               {roleInfo.modelName || "未设置"}
             </span>
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-base-content/60">说话人</span>
-            <span className="font-mono text-xs">
+            <span className="font-mono text-sm">
               {roleInfo.speakerName || "未设置"}
             </span>
           </div>
@@ -233,7 +233,7 @@ export default function Roles({ moduleId }: { moduleId: number }) {
                 />
               );
             })
-          : <div className="w-full text-center text-base-content/50 py-8">没有数据</div>}
+          : <div className="w-full text-center text-accent py-8">没有数据</div>}
       </div>
       <div className="grow p-2 border-l-2 border-base-content/10 border-solid">
         {selectedName
@@ -241,7 +241,7 @@ export default function Roles({ moduleId }: { moduleId: number }) {
               <RoleDetail name={selectedName} roleList={roleList} />
             )
           : (
-              <div className="flex h-full w-full items-center justify-center text-base-content/50">
+              <div className="flex h-full w-full items-center justify-center text-accent">
                 请选择一个角色
               </div>
             )}

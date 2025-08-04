@@ -93,7 +93,7 @@ export function ContentCard({
   // 根据主题设置背景样式
   const themeClasses = {
     default: "bg-transparent",
-    primary: "bg-transparent text-primary",
+    primary: "bg-transparent text-accent",
     secondary: "bg-transparent text-secondary",
     accent: "bg-transparent text-accent",
   };
@@ -179,7 +179,7 @@ export function ContentCard({
           <div className="flex items-center justify-between mt-4 mb-3">
             <h2 className="text-lg font-bold line-clamp-2">{title}</h2>
             {RuleName && (
-              <span className="ml-4 px-2 py-1 text-xs font-semibold bg-primary/10 text-primary rounded-full whitespace-nowrap">{RuleName}</span>
+              <span className="ml-4 px-2 py-1 text-xs font-semibold bg-accent/10 text-accent rounded-full whitespace-nowrap">{RuleName}</span>
             )}
           </div>
         )}
@@ -331,7 +331,7 @@ export default function ModuleHome() {
       {/* 创建模组按钮 - 响应式：大屏右上角固定，移动端底部悬浮 */}
       <button
         type="button"
-        className="cursor-pointer fixed z-50 flex items-center justify-center px-3 py-2 border-2 border-primary bg-base-200 font-bold text-base overflow-hidden group transition-all duration-300 hover:border-white
+        className="cursor-pointer fixed z-50 flex items-center justify-center px-3 py-2 border-2 border-accent bg-base-200 font-bold text-base overflow-hidden group transition-all duration-300 hover:border-white
         left-1/2 -translate-x-1/2 bottom-4 w-[90vw] max-w-xs rounded-full shadow-lg
         md:bg-transparent md:px-4 md:py-4 md:border-4 md:text-xl md:left-auto md:right-16 md:top-30 md:bottom-auto md:w-auto md:max-w-none md:rounded-none md:shadow-none md:translate-x-0"
         onClick={() => navigate("/module/create")}
@@ -340,9 +340,9 @@ export default function ModuleHome() {
         <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
 
         {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
-        <span className="relative z-10 text-primary group-hover:text-white transition-colors duration-300">创建模组</span>
+        <span className="relative z-10 text-accent group-hover:text-white transition-colors duration-300">创建模组</span>
         <svg
-          className="w-8 h-8 relative z-10 text-primary group-hover:text-white transition-colors duration-300"
+          className="w-8 h-8 relative z-10 text-accent group-hover:text-white transition-colors duration-300"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -429,13 +429,13 @@ export default function ModuleHome() {
             {/* 规则列表展示 */}
             <div className="flex flex-col gap-6 max-w-6xl mx-auto">
               <div className="flex-1">
-                <h2 className="text-xl font-bold mb-4 text-primary">全部规则</h2>
+                <h2 className="text-xl font-bold mb-4 text-accent">全部规则</h2>
                 <div className="flex flex-wrap gap-3">
                   {RuleList.data?.map(rule => (
                     <button
                       key={rule.id}
                       type="button"
-                      className={`px-3 py-1 rounded-full text-primary text-sm font-semibold border border-primary/30 transition-all duration-200 focus:outline-none cursor-pointer ${selectedRuleId === rule.id ? "bg-primary text-white" : "bg-primary/10"}`}
+                      className={`px-3 py-1 rounded-full text-accent text-sm font-semibold border border-accent/30 transition-all duration-200 focus:outline-none cursor-pointer ${selectedRuleId === rule.id ? "bg-accent text-white" : "bg-accent/10"}`}
                       onClick={() => {
                         setSelectedRuleId(selectedRuleId === rule.id ? null : rule.id);
                         setCurrentPage(1);

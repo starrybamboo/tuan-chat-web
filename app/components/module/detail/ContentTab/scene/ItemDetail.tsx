@@ -52,7 +52,7 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
   return (
     <div className="h-full w-full flex gap-2">
       <div className="flex flex-col gap-4 p-4 bg-base-100 rounded-lg w-full overflow-y-auto">
-        <h1 className="text-3xl font-bold text-secondary">{normalizedItemInfo?.name || "未命名"}</h1>
+        <h1 className="text-3xl font-bold text-accent">{normalizedItemInfo?.name || "未命名"}</h1>
         <div className="divider my-0" />
         {entityType !== "scene" && normalizedItemInfo?.image && (
           <div className="flex flex-col gap-2">
@@ -69,8 +69,8 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
         {/* 物品描述（统一为SceneDetail样式） */}
         {normalizedItemInfo?.description && (
           <div className="w-full">
-            <h4 className="font-semibold text-lg text-secondary mb-2">描述</h4>
-            <p className="bg-info/10 text-info-content p-3 rounded-lg">
+            <h4 className="font-semibold text-lg text-accent mb-2">描述</h4>
+            <p className="bg-info/10 text-accent p-3 rounded-lg">
               {normalizedItemInfo.description}
             </p>
           </div>
@@ -79,7 +79,7 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
         {normalizedItemInfo?.tip && (
           <div className="w-full">
             <h4 className="font-semibold text-lg mb-2 text-orange-600">KP提示</h4>
-            <p className="text-gray-700 bg-orange-50 p-3 rounded-lg border-l-4 border-orange-200">
+            <p className="text-accent bg-orange-50/10 p-3 rounded-lg border-l-4 border-orange-200">
               {normalizedItemInfo.tip}
             </p>
           </div>

@@ -5,12 +5,22 @@ export function getEntityListByType(
   moduleInfo: any,
   type: "item" | "role" | "scene" | "location",
 ): StageEntityResponse[] {
+  // 创建类型映射：字符串 -> 数字
+  const typeMap: Record<string, number> = {
+    item: 1,
+    role: 2,
+    scene: 3,
+    location: 4,
+  };
+
+  const numericType = typeMap[type];
+
   if (moduleInfo && Array.isArray(moduleInfo)
     && moduleInfo.every(item => "entityType" in item && "entityInfo" in item)) {
-    return moduleInfo.filter(entity => entity.entityType === type);
+    return moduleInfo.filter(entity => entity.entityType === numericType);
   }
   const responses = moduleInfo?.data?.responses || [];
-  return responses.filter((entity: StageEntityResponse) => entity.entityType === type);
+  return responses.filter((entity: StageEntityResponse) => entity.entityType === numericType);
 }
 
 // 扩展场景实体，添加物品和角色信息
