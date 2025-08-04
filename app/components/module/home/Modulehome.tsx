@@ -267,25 +267,27 @@ export default function ModuleHome() {
       return [];
     }
     // 将 API 数据转换为 ContentCard 所需的格式
-    return moduleData.list.map((module: any) => ({
-      id: `module-${module.moduleId}`,
-      rule: RuleList.data?.find(rule => rule.id === module.ruleId)?.name || "",
-      title: module.moduleName,
-      image: module.image || 教室图片, // 如果没有图片则使用默认图片
-      content: module.description,
-      type: "mixed" as const,
-      authorName: module.authorName,
-      moduleId: module.moduleId,
-      ruleId: module.ruleId, // 所用的规则id
-      userId: module.userId, // 上传者
-      createTime: module.createTime,
-      updateTime: module.updateTime, // 修改时间
-      minPeople: module.minPeople,
-      maxPeople: module.maxPeople,
-      minTime: module.minTime,
-      maxTime: module.maxTime,
-      parent: module.parent, // 从哪个模组fork来
-    }));
+    return moduleData.list
+      .filter((module: any) => module.moduleId && module.moduleId !== null && module.moduleId !== "null") // 过滤掉没有moduleId的数据
+      .map((module: any) => ({
+        id: `module-${module.moduleId}`,
+        rule: RuleList.data?.find(rule => rule.id === module.ruleId)?.name || "",
+        title: module.moduleName,
+        image: (module.image && module.image !== null && module.image !== "null") ? module.image : 教室图片, // 更严格的空值检查
+        content: module.description,
+        type: "mixed" as const,
+        authorName: module.authorName,
+        moduleId: module.moduleId,
+        ruleId: module.ruleId, // 所用的规则id
+        userId: module.userId, // 上传者
+        createTime: module.createTime,
+        updateTime: module.updateTime, // 修改时间
+        minPeople: module.minPeople,
+        maxPeople: module.maxPeople,
+        minTime: module.minTime,
+        maxTime: module.maxTime,
+        parent: module.parent, // 从哪个模组fork来
+      }));
   }, [moduleData, RuleList]);
 
   const [imagesReady, setImagesReady] = useState(false);
@@ -309,7 +311,9 @@ export default function ModuleHome() {
 
   useEffect(() => {
     if (ModuleList.isSuccess && currentItems.length > 0) {
-      const imageUrls = currentItems.map(item => item.image);
+      const imageUrls = currentItems
+        .map(item => item.image)
+        .filter(url => url && url !== null && url !== undefined && url !== "null"); // 过滤掉空值
       preloadImages(imageUrls).then(() => {
         setImagesReady(true);
       });
@@ -511,7 +515,11 @@ export default function ModuleHome() {
                     minTime={card.minTime}
                     maxTime={card.maxTime}
                     onClick={() => {
-                    // 处理卡片点击事件，跳转到模组详情页面并传递数据
+                      // 处理卡片点击事件，跳转到模组详情页面并传递数据
+                      if (!card.moduleId || card.moduleId === null) {
+                        console.error("模组ID为空，无法跳转");
+                        return;
+                      }
                       navigate(`/module/detail/${card.moduleId}`, {
                         state: {
                           moduleData: {

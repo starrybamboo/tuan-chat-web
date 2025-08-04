@@ -52,3 +52,7 @@ export function getAllEntityLists(moduleInfo: any) {
     sceneList: getEnhancedSceneList(moduleInfo),
   };
 }
+
+// clone todo
+// 1. 在工作区创建模组
+// 2. 导入实体

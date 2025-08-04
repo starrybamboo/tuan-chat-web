@@ -108,7 +108,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
         {/* tag渲染，最左侧 */}
         <div className="flex flex-row flex-wrap gap-2 md:mr-auto md:ml-0 mb-2 md:mb-0">
           {tags.map(tag => (
-            <span key={tag} className="badge badge-acctext-accent badge-outline px-3 py-1 text-xs font-semibold">
+            <span key={tag} className="badge badge-accent badge-outline px-3 py-1 text-xs font-semibold">
               {tag}
             </span>
           ))}
