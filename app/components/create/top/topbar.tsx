@@ -58,7 +58,7 @@ export default function TopBar() {
             <ChevronDown className="w-4 h-4 text-gray-600 transition-transform duration-200 group-open:rotate-180" />
           </div>
         </summary>
-        <ul className="menu dropdown-content rounded-none bg-base-100 rounded-box z-1 top-12 w-full p-0 shadow-sm select-none">
+        <ul className="menu dropdown-content w-fit rounded-none bg-base-100 rounded-box z-1 top-12 p-0 shadow-sm select-none">
           <div className="flex flex-col p-2 justify-center items-center">
 
             {/* 搜索栏 */}
