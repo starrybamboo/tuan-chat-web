@@ -36,8 +36,8 @@ export default function ModuleListItem({
     <div
       className={`w-full p-2 rounded-md transition-all duration-200 cursor-pointer hover:shadow-sm ${
         isSelected
-          ? "bg-blue-50 border border-blue-200"
-          : "bg-white border border-gray-100 hover:border-gray-200"
+          ? "bg-base-300 border border-primary/30"
+          : "bg-base-300 border border-base-content/10 hover:border-base-content/20"
       }`}
       onClick={onClick}
     >
@@ -55,7 +55,7 @@ export default function ModuleListItem({
         <div className="flex-1 min-w-0">
           {/* 模组名称和在线状态 */}
           <div className="flex items-center space-x-1 mb-0.5">
-            <h3 className="text-sm font-medium text-gray-900 truncate">
+            <h3 className="text-sm font-medium text-base-content truncate">
               {item.moduleName || "未命名模组"}
             </h3>
           </div>
