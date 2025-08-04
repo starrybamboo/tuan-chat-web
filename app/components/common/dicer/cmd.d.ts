@@ -1,3 +1,33 @@
+import type { RoleAbility, UserRole } from "../../../../api";
+
+interface ExecutorProp { // eslint-disable-line
+  /**
+   * 房间ID
+   */
+  roomId: number;
+  /**
+   * 指令消息id;
+   * 用于后续的指令回复,避免消息混乱;
+   */
+  replyMessageId: number;
+  /**
+   * 骰娘的角色ID
+   */
+  dicerRoleId: number;
+  /**
+   * 骰娘的头像ID
+   */
+  dicerAvatarId: number;
+  /**
+   * 命令的主体, 不带前置的标点, 即英文句号，也不包含@的人
+   */
+  command: string;
+  /**
+   * 聊天框中@的角色
+   */
+  mentionedRoles?: UserRole[];
+}
+
 /**
  * 命令执行器类，封装命令信息和执行逻辑
  *
@@ -7,7 +37,7 @@
 export class CommandExecutor {
   cmdInfo: CommandInfo;
   // TODO: 这里CharacterInfo具体类型需要等待接口。
-  solve: (args: string[], operator: CharacterInfo, Ats: CharacterInfo[], cpi: CPI) => Promise<CommandResult>;
+  solve: (args: string[], operator: CharacterInfo, Ats: CharacterInfo[], cpi: CPI, prop: ExecutorProp) => Promise<CommandResult>;
 
   /**
    * 构造函数
@@ -41,14 +71,14 @@ type CommandResult = {
   };
 };
 
-type CPI = {
-  // 获取同步后的基础数据（角色卡数据，后期可能会有用户配置之类的其他东西）
-  getData: <T>(unit: string, key: string) => T | null;
-  // 保存数据（自动触发钩子同步）
-  saveData: (unit: string, key: string, data: any) => Promise<boolean>;
+interface CPI { // eslint-disable-line
   // 发送消息
-  sendMsg: (msg: string) => void;
-};
+  sendMsg: (prop: ExecutorProp, msg: string) => void;
+  // 获取角色能力列表
+  getRoleAbilityList: (roleId: number) => RoleAbility;
+  // 设置角色能力列表
+  setRoleAbilityList: (roleId: number, ability: RoleAbility) => void;
+}
 
 /**
  * 规则命名空间类，用于管理和执行一组相关命令
@@ -137,10 +167,10 @@ export class RuleNameSpace {
    * @returns {boolean} 命令执行结果
    * @throws {Error} 当命令不存在时抛出错误
    */
-  execute(name: string, args: string[], operator: CharacterInfo, Ats: CharacterInfo[], cpi: CPI): boolean {
+  execute(name: string, args: string[], operator: UserRole, Ats: UserRole[], cpi: CPI, prop: ExecutorProp): boolean {
     const cmd = this.cmdMap.get(name);
     if (cmd) {
-      return cmd.solve(args, operator, Ats, cpi);
+      return cmd.solve(args, operator, Ats, cpi, prop);
     }
     throw new Error(`Command ${name} not found in rule ${this.name}`);
   }
