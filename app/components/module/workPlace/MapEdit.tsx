@@ -14,6 +14,7 @@ import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/module
 import dagre from "dagre";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import SceneNode from "../detail/ContentTab/scene/react flow/NewSceneNode";
+import { useModuleContext } from "./context/_moduleContext";
 import SceneEdit from "./SceneEdit";
 import "@xyflow/react/dist/style.css";
 
@@ -31,13 +32,15 @@ const nodeTypes = {
   mapEditNode: SceneNode,
 };
 
-export default function MapEdit({ map, stageId }: { map: StageEntityResponse; stageId: number }) {
+export default function MapEdit({ map }: { map: StageEntityResponse }) {
+  const { stageId } = useModuleContext();
   // 接入接口
-  const { data, isLoading, error } = useQueryEntitiesQuery(stageId);
-  const { mutate: updateMap } = useUpdateEntityMutation(stageId);
+  const { data, isLoading, error } = useQueryEntitiesQuery(stageId as number);
+  const { mutate: updateMap } = useUpdateEntityMutation(stageId as number);
 
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [localMap, setLocalMap] = useState<StageEntityResponse>(map);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes(nodes => applyNodeChanges(changes, nodes)),
@@ -52,14 +55,15 @@ export default function MapEdit({ map, stageId }: { map: StageEntityResponse; st
   const onConnect = useCallback(
     (params: any) => setEdges((edges) => {
       let changedMap;
-      if (map.entityInfo?.sceneMap[params.source]) {
-        changedMap = [...map.entityInfo.sceneMap[params.source], params.target];
+      if (localMap.entityInfo?.sceneMap && localMap.entityInfo?.sceneMap[params.source]) {
+        changedMap = [...localMap.entityInfo.sceneMap[params.source], params.target];
       }
       else {
         changedMap = [params.target];
       }
-      const updatedMap = { ...map.entityInfo?.sceneMap, [params.source]: changedMap };
-      updateMap({ id: map.id!, entityType: 5, entityInfo: { ...map.entityInfo, sceneMap: updatedMap } });
+      const updatedMap = { ...localMap.entityInfo?.sceneMap, [params.source]: changedMap };
+      updateMap({ id: localMap.id!, name: localMap.name, entityType: 5, entityInfo: { ...localMap.entityInfo, sceneMap: updatedMap } });
+      setLocalMap({ id: localMap.id!, name: localMap.name, entityType: 5, entityInfo: { ...localMap.entityInfo, sceneMap: updatedMap } });
       return addEdge(params, edges);
     }),
     [],
@@ -67,6 +71,7 @@ export default function MapEdit({ map, stageId }: { map: StageEntityResponse; st
 
   const { initialNodes, initialEdges } = useMemo(() => {
     const entityType3Data = data!.data!.filter(item => item.entityType === 3);
+    setLocalMap(map);
 
     const nodes: Node[] = entityType3Data.map(item => ({
       id: item.name!,
@@ -86,8 +91,8 @@ export default function MapEdit({ map, stageId }: { map: StageEntityResponse; st
     // 生成边
     const edges: Edge[] = [];
     let edgeId = 1;
-    if (map.entityInfo?.sceneMap) {
-      Object.entries(map.entityInfo?.sceneMap).forEach(([source, targets]) => {
+    if (localMap.entityInfo?.sceneMap) {
+      Object.entries(localMap.entityInfo?.sceneMap).forEach(([source, targets]) => {
         (targets as string[]).forEach((target: string) => {
           dagreGraph.setEdge(source, target);
           edges.push({
@@ -123,7 +128,7 @@ export default function MapEdit({ map, stageId }: { map: StageEntityResponse; st
     });
 
     return { initialNodes: nodes, initialEdges: edges };
-  }, [data, isLoading, map]);
+  }, [data, isLoading, localMap]);
 
   useEffect(() => {
     if (nodes.length === 0 && initialNodes.length > 0) {
@@ -132,7 +137,7 @@ export default function MapEdit({ map, stageId }: { map: StageEntityResponse; st
     if (edges.length === 0 && initialEdges.length > 0) {
       setEdges(initialEdges);
     }
-  }, [initialNodes, initialEdges, nodes, edges, setNodes, setEdges]);
+  }, [initialNodes, initialEdges, nodes, edges, setNodes, setEdges, map]);
 
   if (isLoading) {
     return (
@@ -169,6 +174,7 @@ export default function MapEdit({ map, stageId }: { map: StageEntityResponse; st
         <AutoFitView nodes={nodes} edges={edges} />
         <Controls />
         <Background gap={16} color="#aaa" />
+        {map.name}
       </ReactFlow>
     </div>
   );
