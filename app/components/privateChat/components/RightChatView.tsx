@@ -34,6 +34,8 @@ export default function RightChatView(
     setMessageInput,
     imgFiles,
     updateImgFiles,
+    emojiUrls,
+    updateEmojiUrls,
     handleSendMessage,
   } = usePrivateMessageSender({
     webSocketUtils,
@@ -171,6 +173,8 @@ export default function RightChatView(
         handleSendMessage={handleSendMessage}
         imgFiles={imgFiles}
         updateImgFiles={updateImgFiles}
+        emojiUrls={emojiUrls}
+        updateEmojiUrls={updateEmojiUrls}
       />
     </div>
   );
