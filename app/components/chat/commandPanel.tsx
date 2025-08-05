@@ -1,4 +1,4 @@
-import { diceCommands, webgalCommands } from "@/utils/commands";
+import { diceCommands, webgalCommands } from "@/components/common/dicer/commands";
 import React from "react";
 
 /**
