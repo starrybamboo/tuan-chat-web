@@ -7,7 +7,7 @@ import type { StageRollbackRequest } from "api/models/StageRollbackRequest";
 import type { CommitRequest } from "api/models/CommitRequest";
 import type { RoleImportRequest } from "api/models/RoleImportRequest";
 import type { EntityAddRequest } from "api/models/EntityAddRequest";
-import type { EntityRenameRequest } from "api/models/EntityRenameRequest";
+// import type { EntityRenameRequest } from "api/models/EntityRenameRequest";
 //========================module==================================
 
 /**
@@ -87,14 +87,14 @@ export function useCommitMutation() {
     });
 }
 
-// 查询最新提交的修改
-export function useQueryCommitQuery(stageId: number) {
-    return useQuery({
-        queryKey: ['queryCommit', stageId],
-        queryFn: () => tuanchat.stageController.queryCommit(stageId),
-        staleTime: 300000 // 5分钟缓存
-    });
-}
+// // 查询最新提交的修改
+// export function useQueryCommitQuery(stageId: number) {
+//     return useQuery({
+//         queryKey: ['queryCommit', stageId],
+//         queryFn: () => tuanchat.stageController.queryCommit(stageId),
+//         staleTime: 300000 // 5分钟缓存
+//     });
+// }
 
 // 查询所有的实体
 export function useQueryEntitiesQuery(stageId: number) {
@@ -117,17 +117,17 @@ export function useImportRoleMutation() {
     });
 }
 
-// 修改实体
-export function useRenameMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: EntityRenameRequest) => tuanchat.stageController.rename(req),
-        mutationKey: ['rename'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['staging'] });
-        }
-    });
-}
+// // 修改实体
+// export function useRenameMutation() {
+//     const queryClient = useQueryClient();
+//     return useMutation({
+//         mutationFn: (req: EntityRenameRequest) => tuanchat.stageController.rename(req),
+//         mutationKey: ['rename'],
+//         onSuccess: () => {
+//             queryClient.invalidateQueries({ queryKey: ['staging'] });
+//         }
+//     });
+// }
 
 // 添加也可以删除实体
 export function useAddMutation() {

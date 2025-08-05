@@ -38,6 +38,7 @@ interface ContentCardProps {
   imageAlt?: string;
   // 标题
   title?: string;
+  ruleId?: number; // 规则ID
   // 规则
   RuleName?: string;
   // 文段内容
@@ -68,6 +69,7 @@ export function ContentCard({
   image,
   imageAlt,
   title,
+  ruleId,
   RuleName,
   content,
   className = "",
@@ -178,7 +180,7 @@ export function ContentCard({
         {title && (
           <div className="flex items-center justify-between mt-4 mb-3">
             <h2 className="text-lg font-bold line-clamp-2">{title}</h2>
-            {RuleName && (
+            {ruleId && RuleName && (
               <span className="ml-4 px-2 py-1 text-xs font-semibold bg-accent/10 text-accent rounded-full whitespace-nowrap">{RuleName}</span>
             )}
           </div>
@@ -287,6 +289,7 @@ export default function ModuleHome() {
         minTime: module.minTime,
         maxTime: module.maxTime,
         parent: module.parent, // 从哪个模组fork来
+        instruction: module.instruction, // 指令字段
       }));
   }, [moduleData, RuleList]);
 
@@ -504,6 +507,7 @@ export default function ModuleHome() {
                   <ContentCard
                     key={card.id}
                     title={card.title}
+                    ruleId={card.ruleId}
                     RuleName={card.rule}
                     image={card.image}
                     content={card.content}
@@ -524,7 +528,8 @@ export default function ModuleHome() {
                         state: {
                           moduleData: {
                             moduleId: card.moduleId,
-                            ruleName: card.rule, // 所用的规则id
+                            ruleId: card.ruleId, // 所用的规则id
+                            ruleName: card.rule, // 所用的规则名称
                             moduleName: card.title,
                             description: card.content,
                             userId: card.userId, // 上传者
@@ -537,6 +542,7 @@ export default function ModuleHome() {
                             minTime: card.minTime, // 模组可能需要花费时间
                             maxTime: card.maxTime,
                             parent: card.parent, // 从哪个模组fork来
+                            instruction: card.instruction, // 指令字段
                           },
                         },
                       });

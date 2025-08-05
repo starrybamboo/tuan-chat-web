@@ -1,9 +1,12 @@
 import type { ModuleData } from "./constants";
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
+import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
+import { useMemo } from "react";
 import { useParams } from "react-router";
 import Author from "./author";
 import ContentTab from "./contentTab";
 import IssueTab from "./issueTab";
+// import { useCloneModule } from "./moduleUtils";
 import PrTab from "./prTab";
 import userContent from "./readmeDemo.md?raw";
 
@@ -27,7 +30,15 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
     "原创",
   ];
   const params = useParams();
+  // const navigate = useNavigate();
   const moduleId = params.id;
+
+  // 获取 moduleInfo 数据
+  const { data: moduleInfoData, isLoading, error } = useModuleInfoQuery(Number(moduleId!));
+  const moduleInfo = useMemo(() => moduleInfoData?.data?.responses || [], [moduleInfoData]);
+
+  // 在组件层级使用 CloneModule hooks
+  // const { cloneModule, isLoading: isCloning } = useCloneModule(moduleInfoData, moduleData);
 
   // 构建信息数组，只包含有数据的字段
   const infos = [
@@ -165,7 +176,37 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
       <div className="rounded-md overflow-hidden mb-32 flex flex-col gap-2">
         {/* 作者信息常规展示 */}
         <div className="mb-2">
-          <Author userId={moduleData.userId} />
+          <div className="card bg-base-200 w-full mb-8">
+            <div className="card-body p-4">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row items-center gap-4">
+                  <Author userId={moduleData.userId} />
+                  <div className="flex gap-4 items-center justify-end flex-1">
+                    <button type="button" className="btn btn-outline  btn-ghost rounded-md">
+                      Branch
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-ghost rounded-md"
+                      // disabled={isCloning}
+                      // onClick={async () => {
+                      //   try {
+                      //     await cloneModule();
+                      //     navigate("/create");
+                      //   }
+                      //   catch (error) {
+                      //     console.error("克隆模组失败:", error);
+                      //   }
+                      // }}
+                    >
+                      Clone
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
         <div className="tabs tabs-border">
           <label className="tab">
@@ -192,7 +233,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
             Content
           </label>
           <div className="tab-content">
-            <ContentTab moduleId={Number(moduleId!)} />
+            <ContentTab moduleInfo={moduleInfo} moduleId={Number(moduleId!)} isLoading={isLoading} error={error} />
           </div>
           <label className="tab">
             <input type="radio" name="moduleDetailTab" />
