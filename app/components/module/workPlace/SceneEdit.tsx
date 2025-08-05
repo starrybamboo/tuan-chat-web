@@ -42,11 +42,14 @@ export default function SceneEdit({ scene }: SceneEditProps) {
       }
       updateScene({ id: scene.id!, entityType: 3, entityInfo: localScene, name });
       if (changed && mapData) {
-        const newMap = { ...mapData.entityInfo?.sceneMap } as Record<string, any>;
-        Object.entries(newMap).forEach(([key, value]) => {
+        const oldMap = { ...mapData.entityInfo?.sceneMap } as Record<string, any>;
+        const newMap: Record<string, any> = {};
+        Object.entries(oldMap).forEach(([key, value]) => {
           if (key === oldName) {
             newMap[name as string] = value;
-            delete newMap[oldName];
+          }
+          else {
+            newMap[key] = value;
           };
           // 处理值的替换（只处理数组类型的值）
           if (Array.isArray(value)) {
@@ -58,7 +61,12 @@ export default function SceneEdit({ scene }: SceneEditProps) {
               }
             });
             // 将修改后的数组赋值回newMap
-            newMap[key] = newArray;
+            if (key === oldName) {
+              newMap[name as string] = newArray;
+            }
+            else {
+              newMap[key] = newArray;
+            }
           }
         });
         updateScene({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
