@@ -91,12 +91,19 @@ export function isCommand(command: string) {
 export default function useCommandExecutor(roleId: number, ruleId: number) {
   const { spaceId: _, roomId: urlRoomId } = useParams();
   const roomId = Number(urlRoomId);
-  const role = useGetRoleQuery(roleId).data?.data;
 
+  // 可通过以下代码获取到发送消息所必要的信息
+  // const roomContext = use(RoomContext);
+  // const curRoleId = roomContext.curRoleId; // 当前选中的角色id
+  // const curAvatarId = roomContext.curAvatarId; // 当前选中的角色的立绘id
   // 可以通过以下代码获取用户信息
   // const globalContext = useGlobalContext();
   // const userId = globalContext.userId;
   // const userInfo = useGetUserInfoQuery().data?.data;
+  // 这个接口来发送骰娘消息
+  // tuanchat.chatController.sendMessageAiResponse(messageRequest);
+
+  const role = useGetRoleQuery(roleId).data?.data;
 
   const defaultDice = useRef(100);
 
