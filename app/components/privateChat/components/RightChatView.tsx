@@ -34,6 +34,8 @@ export default function RightChatView(
     setMessageInput,
     imgFiles,
     updateImgFiles,
+    emojiUrls,
+    updateEmojiUrls,
     handleSendMessage,
   } = usePrivateMessageSender({
     webSocketUtils,
@@ -119,7 +121,7 @@ export default function RightChatView(
       >
         {currentContactUserId
           ? (
-              // 会溢出的消息列表容器
+            // 会溢出的消息列表容器
               <div className="space-y-4">
                 {/* 加载更多按钮 */}
                 {!directMessageQuery.isLastPage && (
@@ -171,6 +173,8 @@ export default function RightChatView(
         handleSendMessage={handleSendMessage}
         imgFiles={imgFiles}
         updateImgFiles={updateImgFiles}
+        emojiUrls={emojiUrls}
+        updateEmojiUrls={updateEmojiUrls}
       />
     </div>
   );
