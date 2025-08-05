@@ -1,3 +1,5 @@
+import type { ExecutorProp } from "@/components/common/dicer/cmdPre";
+
 interface RoleAbility { // eslint-disable-line ts/consistent-type-definitions
   abilityId?: number;
   roleId?: number;
@@ -17,34 +19,6 @@ interface UserRole { // eslint-disable-line ts/consistent-type-definitions
   speakerName?: string;
   createTime?: string;
   updateTime?: string;
-}
-
-interface ExecutorProp { // eslint-disable-line ts/consistent-type-definitions
-  /**
-   * 房间ID
-   */
-  roomId: number;
-  /**
-   * 指令消息id;
-   * 用于后续的指令回复,避免消息混乱;
-   */
-  replyMessageId: number;
-  /**
-   * 骰娘的角色ID
-   */
-  dicerRoleId: number;
-  /**
-   * 骰娘的头像ID
-   */
-  dicerAvatarId: number;
-  /**
-   * 命令的主体, 不带前置的标点, 即英文句号，也不包含@的人
-   */
-  command: string;
-  /**
-   * 聊天框中@的角色
-   */
-  mentionedRoles?: UserRole[];
 }
 
 interface CommandInfo { // eslint-disable-line ts/consistent-type-definitions

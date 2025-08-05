@@ -1,4 +1,9 @@
+import type { ExecutorProp } from "@/components/common/dicer/cmdPre";
+import type { CPI } from "@/components/common/dicer/cmdType";
+
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
+
+import type { UserRole } from "../../../../api";
 
 // 属性名中英文对照表
 const ABILITY_MAP: { [key: string]: string } = {
