@@ -90,7 +90,6 @@ function BetterImg({ src, className, onClose, size, popWindowKey, transparent = 
   };
 
   const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
     const delta = e.deltaY > 0 ? -0.25 : 0.25;
     zoom(delta, e.clientX, e.clientY);
   };
