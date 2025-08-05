@@ -1,25 +1,26 @@
 import type { Edge, Node } from "@xyflow/react";
+import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { PopWindow } from "@/components/common/popWindow";
 import EntityList from "@/components/module/detail/ContentTab/entityLists";
 import Roles from "@/components/module/detail/ContentTab/roles";
 import NewSceneGraph from "@/components/module/detail/ContentTab/scene/react flow/newSceneGraph";
 import { useEdgesState, useNodesState } from "@xyflow/react";
-import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
-import { useMemo, useState } from "react";
+// import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
+import { useState } from "react";
 import EntityDetail from "./ContentTab/EntityDetail";
 
 interface ContentTabProps {
+  moduleInfo: StageEntityResponse[];
   moduleId: number;
+  isLoading: boolean;
+  error: Error | null;
 }
 
-export default function ContentTab({ moduleId }: ContentTabProps) {
+export default function ContentTab({ moduleInfo, moduleId, isLoading, error }: ContentTabProps) {
   const [showSceneGraph, setShowSceneGraph] = useState(false);
-  const { data: moduleData, isLoading, error } = useModuleInfoQuery(moduleId);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]); // 泛型是 Node
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]); // 泛型是 Edge
-
-  const moduleInfo = useMemo(() => moduleData?.data?.responses || [], [moduleData]);
 
   return (
     <>
@@ -33,7 +34,7 @@ export default function ContentTab({ moduleId }: ContentTabProps) {
               viewBox="0 0 24 24"
               strokeWidth={2}
               stroke="currentColor"
-              className="w-6 h-6 text-primary align-middle"
+              className="w-6 h-6 text-accent align-middle"
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12V6.75A2.25 2.25 0 014.5 4.5h3.379c.414 0 .81.17 1.102.474l1.197 1.252c.292.304.688.474 1.102.474H19.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25H4.5A2.25 2.25 0 012.25 19.5V12z" />
             </svg>
@@ -58,7 +59,7 @@ export default function ContentTab({ moduleId }: ContentTabProps) {
               viewBox="0 0 24 24"
               strokeWidth={2}
               stroke="currentColor"
-              className="w-6 h-6 text-primary align-middle"
+              className="w-6 h-6 text-accent align-middle"
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12V6.75A2.25 2.25 0 014.5 4.5h3.379c.414 0 .81.17 1.102.474l1.197 1.252c.292.304.688.474 1.102.474H19.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25H4.5A2.25 2.25 0 012.25 19.5V12z" />
             </svg>
@@ -66,7 +67,7 @@ export default function ContentTab({ moduleId }: ContentTabProps) {
           <span className="leading-none">场景</span>
         </div>
         <div className="collapse-content bg-base-200">
-          <EntityList moduleData={moduleData} entityType="scene" />
+          <EntityList moduleData={moduleInfo} entityType="scene" />
           <div className="divider" />
           <div className="max-w-screen bg-base-100 relative" style={{ height: "50vh" }}>
             <NewSceneGraph
@@ -76,7 +77,7 @@ export default function ContentTab({ moduleId }: ContentTabProps) {
               setEdges={setEdges}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
-              moduleData={moduleData}
+              moduleId={moduleId}
               isLoading={isLoading}
               error={error}
             />
@@ -104,7 +105,7 @@ export default function ContentTab({ moduleId }: ContentTabProps) {
               viewBox="0 0 24 24"
               strokeWidth={2}
               stroke="currentColor"
-              className="w-6 h-6 text-primary align-middle"
+              className="w-6 h-6 text-accent align-middle"
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12V6.75A2.25 2.25 0 014.5 4.5h3.379c.414 0 .81.17 1.102.474l1.197 1.252c.292.304.688.474 1.102.474H19.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25H4.5A2.25 2.25 0 012.25 19.5V12z" />
             </svg>
@@ -112,7 +113,7 @@ export default function ContentTab({ moduleId }: ContentTabProps) {
           <span className="leading-none">物品</span>
         </div>
         <div className="collapse-content bg-base-200">
-          <EntityList moduleData={moduleData} entityType="item" />
+          <EntityList moduleData={moduleInfo} entityType="item" />
         </div>
       </div>
       {/* 地点 */}
@@ -126,7 +127,7 @@ export default function ContentTab({ moduleId }: ContentTabProps) {
               viewBox="0 0 24 24"
               strokeWidth={2}
               stroke="currentColor"
-              className="w-6 h-6 text-primary align-middle"
+              className="w-6 h-6 text-accent align-middle"
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12V6.75A2.25 2.25 0 014.5 4.5h3.379c.414 0 .81.17 1.102.474l1.197 1.252c.292.304.688.474 1.102.474H19.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25H4.5A2.25 2.25 0 012.25 19.5V12z" />
             </svg>
@@ -134,7 +135,7 @@ export default function ContentTab({ moduleId }: ContentTabProps) {
           <span className="leading-none">地点</span>
         </div>
         <div className="collapse-content bg-base-200">
-          <EntityList moduleData={moduleData} entityType="location" />
+          <EntityList moduleData={moduleInfo} entityType="location" />
         </div>
       </div>
       {/* 角色 */}
@@ -148,7 +149,7 @@ export default function ContentTab({ moduleId }: ContentTabProps) {
               viewBox="0 0 24 24"
               strokeWidth={2}
               stroke="currentColor"
-              className="w-6 h-6 text-primary align-middle"
+              className="w-6 h-6 text-accent align-middle"
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12V6.75A2.25 2.25 0 014.5 4.5h3.379c.414 0 .81.17 1.102.474l1.197 1.252c.292.304.688.474 1.102.474H19.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25H4.5A2.25 2.25 0 012.25 19.5V12z" />
             </svg>
@@ -169,7 +170,7 @@ export default function ContentTab({ moduleId }: ContentTabProps) {
             setEdges={setEdges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
-            moduleData={moduleData}
+            moduleId={moduleId}
             isLoading={isLoading}
             error={error}
           />

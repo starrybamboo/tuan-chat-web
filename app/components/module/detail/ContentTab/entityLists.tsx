@@ -19,8 +19,8 @@ function EntityListItem(
     <div
       className={`w-full p-3 cursor-pointer transition-all duration-200 ease-in-out border-l-4 ${
         isSelected
-          ? "border-primary bg-base-100 text-primary font-medium"
-          : "border-transparent hover:border-primary/50 hover:bg-base-100"
+          ? "border-accent bg-base-100 text-accent font-medium"
+          : "border-transparent hover:border-accent/50 hover:bg-base-100"
       }`}
       onClick={handleSelectItem}
     >
@@ -83,7 +83,7 @@ export default function EntityList({ moduleData: moduleInfo, entityType = "item"
               );
             })
           : (
-              <div className="w-full text-center text-base-content/50 py-8">
+              <div className="w-full text-center text-accent py-8">
                 没有数据
               </div>
             )}
@@ -96,7 +96,7 @@ export default function EntityList({ moduleData: moduleInfo, entityType = "item"
               <ItemDetail itemName={selectedName} itemList={entityList} entityType={entityType} />
             )
           : (
-              <div className="flex h-full w-full items-center justify-center text-base-content/50">
+              <div className="flex h-full w-full items-center justify-center text-accent">
                 请选择一个查看详细信息
               </div>
             )}

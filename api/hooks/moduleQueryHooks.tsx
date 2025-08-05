@@ -249,6 +249,55 @@ export function useAddEntityMutation(entityType: 1 | 2 | 3 | 4 | 5) {
     });
 }
 
+// 直接传入完整EntityAddRequest对象（包括entityType）
+export function useAddEntityWithoutTypeMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (req: EntityAddRequest) => {
+            // 添加请求前的验证和调试
+            console.warn("AddEntity API 请求数据:", req);
+            
+            // 验证必需字段
+            if (!req.stageId || typeof req.stageId !== 'number') {
+                throw new TypeError(`Invalid stageId: ${req.stageId}`);
+            }
+            if (!req.name || typeof req.name !== 'string' || req.name.trim() === '') {
+                throw new TypeError(`Invalid name: ${req.name}`);
+            }
+            if (!req.entityType || typeof req.entityType !== 'number' || req.entityType < 1 || req.entityType > 5) {
+                throw new TypeError(`Invalid entityType: ${req.entityType}`);
+            }
+            
+            try {
+                const result = await tuanchat.stageController.add(req);
+                console.warn("AddEntity API 响应成功:", result);
+                return result;
+            } catch (error: any) {
+                console.error("AddEntity API 请求失败:", error);
+                console.error("失败的请求数据:", req);
+                
+                // 如果是400错误，提供更详细的错误信息
+                if (error?.status === 400) {
+                    console.error("400错误详情:", {
+                        message: error.message,
+                        body: error.body,
+                        response: error.response
+                    });
+                }
+                throw error;
+            }
+        },
+        mutationKey: ['addEntityWithType'],
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
+        },
+        onError: (error, variables) => {
+            console.error("Mutation onError - 变量:", variables);
+            console.error("Mutation onError - 错误:", error);
+        }
+    });
+}
+
 // 重命名实体(调用更新接口)
 // export function useRenameMutation(entityType: 'item' | 'scene' | 'role' | 'location') {
 //     const queryClient = useQueryClient();
