@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from "@xyflow/react";
 import type { StageEntityResponse } from "api";
 import {
@@ -258,6 +259,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse }) {
   useEffect(() => {
     if (!initialized.current)
       return;
+    setSceneMap(data?.data?.filter(item => item.entityType === 5)[0].entityInfo?.sceneMap);
 
     const newEdges: Edge[] = [];
     let edgeId = 1;
@@ -284,7 +286,29 @@ export default function MapEdit({ map }: { map: StageEntityResponse }) {
     });
 
     setEdges(newEdges);
-  }, [sceneMap]);
+  }, [data, sceneMap]);
+
+  // 用于节点改名时的变化
+  useEffect(() => {
+    if (!data?.data || !initialized.current)
+      return;
+
+    const entityType3Data = data.data.filter(item => item.entityType === 3);
+
+    setNodes((prevNodes) => {
+      const newNodes: Node[] = entityType3Data.map((item) => {
+        // 查找是否已有这个节点（通过ID匹配）
+        const existingNode = prevNodes.find(node => node.id === item.name);
+        return {
+          id: item.name!,
+          type: "mapEditNode",
+          position: existingNode ? existingNode.position : { x: 0, y: 0 },
+          data: { label: item.name, idx: -1, children: <SceneEdit scene={item}></SceneEdit> },
+        };
+      });
+      return newNodes;
+    });
+  }, [data]);
 
   if (isLoading) {
     return (

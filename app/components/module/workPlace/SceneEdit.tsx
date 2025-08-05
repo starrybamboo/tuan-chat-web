@@ -1,5 +1,5 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
-import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
+import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useState } from "react";
 import { useModuleContext } from "./context/_moduleContext";
 
@@ -27,15 +27,50 @@ export default function SceneEdit({ scene }: SceneEditProps) {
 
   // 接入接口
   const { mutate: updateScene } = useUpdateEntityMutation(stageId as number);
+  // 获取地图
+  const mapData = useQueryEntitiesQuery(stageId as number).data?.data?.filter(item => item.entityType === 5)[0];
   const handleSave = () => {
     setIsTransitioning(true);
+    let changed = false;
+    const oldName = scene.name;
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
       if (name !== scene.name) {
         removeModuleTabItem(scene.id!.toString());
+        changed = true;
       }
       updateScene({ id: scene.id!, entityType: 3, entityInfo: localScene, name });
+      if (changed && mapData) {
+        const oldMap = { ...mapData.entityInfo?.sceneMap } as Record<string, any>;
+        const newMap: Record<string, any> = {};
+        Object.entries(oldMap).forEach(([key, value]) => {
+          if (key === oldName) {
+            newMap[name as string] = value;
+          }
+          else {
+            newMap[key] = value;
+          };
+          // 处理值的替换（只处理数组类型的值）
+          if (Array.isArray(value)) {
+            // 创建数组副本以避免修改只读数组
+            const newArray = [...value] as Array<string>;
+            newArray.forEach((item, index) => {
+              if (item === oldName) {
+                newArray[index] = name as string;
+              }
+            });
+            // 将修改后的数组赋值回newMap
+            if (key === oldName) {
+              newMap[name as string] = newArray;
+            }
+            else {
+              newMap[key] = newArray;
+            }
+          }
+        });
+        updateScene({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
+      };
     }, 300);
   };
 

@@ -17,6 +17,7 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
     activeList,
     setStageId(id) {
       _setStageId(id);
+      updateModuleTabItems([]);
     },
     setCurrentSelectedTabId(item) {
       _setCurrentSelectedTabId(item);
