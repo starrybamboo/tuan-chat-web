@@ -32,8 +32,8 @@ const cmdRc = new CommandExecutor(
   "进行技能检定",
   [""],
   "rc [奖励/惩罚骰]? [技能名] [技能值]?",
-  (args, operator, _ats, cpi) => {
-    const curAbility = cpi.getData<any>("role", operator);
+  (args: string[], operator: UserRole, _ats: UserRole[], cpi: CPI, prop: ExecutorProp): boolean => {
+    const curAbility = cpi.getRoleAbilityList(operator.roleId);
     // 所有参数转为小写
     args = args.map(arg => arg.toLowerCase());
     // 解析参数
@@ -80,27 +80,15 @@ const cmdRc = new CommandExecutor(
       name = ABILITY_MAP[name.toLowerCase()];
     }
     if (!curAbility?.ability) {
-      cpi.sendMsg(`未设置角色能力`);
-      return {
-        success: false,
-        error: {
-          type: "InvalidRoleAbility",
-          message: "未设置角色能力",
-        },
-      };
+      cpi.sendMsg(prop, `未设置角色能力`);
+      return false;
     }
 
     let value = curAbility?.ability[name];
 
     if (value === undefined && attr === undefined) {
-      cpi.sendMsg("错误：未找到技能或属性");
-      return {
-        success: false,
-        error: {
-          type: "InvalidSkillOrAttribute",
-          message: "未找到技能或属性",
-        },
-      };
+      cpi.sendMsg(prop, `错误：未找到技能或属性`);
+      return false;
     }
 
     if (attr !== undefined) {
@@ -124,11 +112,8 @@ const cmdRc = new CommandExecutor(
       result += ` 惩罚骰 [${roll.slice(1).join(",")}]`;
     }
 
-    cpi.sendMsg(result);
-    return {
-      success: true,
-      data: result,
-    };
+    cpi.sendMsg(prop, result);
+    return true;
   },
 );
 
