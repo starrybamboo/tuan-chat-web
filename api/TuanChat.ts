@@ -24,6 +24,7 @@ import { ImageGenerationControllerService } from './services/ImageGenerationCont
 import { ItemControllerService } from './services/ItemControllerService';
 import { LikeRecordControllerService } from './services/LikeRecordControllerService';
 import { MessageDirectControllerService } from './services/MessageDirectControllerService';
+import { MessageSessionService } from './services/MessageSessionService';
 import { ModuleControllerService } from './services/ModuleControllerService';
 import { OssControllerService } from './services/OssControllerService';
 import { RatingService } from './services/RatingService';
@@ -67,6 +68,7 @@ export class TuanChat {
     public readonly itemController: ItemControllerService;
     public readonly likeRecordController: LikeRecordControllerService;
     public readonly messageDirectController: MessageDirectControllerService;
+    public readonly messageSession: MessageSessionService;
     public readonly moduleController: ModuleControllerService;
     public readonly ossController: OssControllerService;
     public readonly rating: RatingService;
@@ -121,6 +123,7 @@ export class TuanChat {
         this.itemController = new ItemControllerService(this.request);
         this.likeRecordController = new LikeRecordControllerService(this.request);
         this.messageDirectController = new MessageDirectControllerService(this.request);
+        this.messageSession = new MessageSessionService(this.request);
         this.moduleController = new ModuleControllerService(this.request);
         this.ossController = new OssControllerService(this.request);
         this.rating = new RatingService(this.request);

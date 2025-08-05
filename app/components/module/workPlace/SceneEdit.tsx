@@ -50,11 +50,15 @@ export default function SceneEdit({ scene }: SceneEditProps) {
           };
           // 处理值的替换（只处理数组类型的值）
           if (Array.isArray(value)) {
-            (value as Array<string>).forEach((item, index) => {
+            // 创建数组副本以避免修改只读数组
+            const newArray = [...value] as Array<string>;
+            newArray.forEach((item, index) => {
               if (item === oldName) {
-                (value as Array<string>)[index] = name as string;
+                newArray[index] = name as string;
               }
             });
+            // 将修改后的数组赋值回newMap
+            newMap[key] = newArray;
           }
         });
         updateScene({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
