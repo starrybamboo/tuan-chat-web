@@ -38,6 +38,7 @@ interface ContentCardProps {
   imageAlt?: string;
   // 标题
   title?: string;
+  ruleId?: number; // 规则ID
   // 规则
   RuleName?: string;
   // 文段内容
@@ -68,6 +69,7 @@ export function ContentCard({
   image,
   imageAlt,
   title,
+  ruleId,
   RuleName,
   content,
   className = "",
@@ -93,7 +95,7 @@ export function ContentCard({
   // 根据主题设置背景样式
   const themeClasses = {
     default: "bg-transparent",
-    primary: "bg-transparent text-primary",
+    primary: "bg-transparent text-accent",
     secondary: "bg-transparent text-secondary",
     accent: "bg-transparent text-accent",
   };
@@ -178,8 +180,8 @@ export function ContentCard({
         {title && (
           <div className="flex items-center justify-between mt-4 mb-3">
             <h2 className="text-lg font-bold line-clamp-2">{title}</h2>
-            {RuleName && (
-              <span className="ml-4 px-2 py-1 text-xs font-semibold bg-primary/10 text-primary rounded-full whitespace-nowrap">{RuleName}</span>
+            {ruleId && RuleName && (
+              <span className="ml-4 px-2 py-1 text-xs font-semibold bg-accent/10 text-accent rounded-full whitespace-nowrap">{RuleName}</span>
             )}
           </div>
         )}
@@ -267,25 +269,28 @@ export default function ModuleHome() {
       return [];
     }
     // 将 API 数据转换为 ContentCard 所需的格式
-    return moduleData.list.map((module: any) => ({
-      id: `module-${module.moduleId}`,
-      rule: RuleList.data?.find(rule => rule.id === module.ruleId)?.name || "",
-      title: module.moduleName,
-      image: module.image || 教室图片, // 如果没有图片则使用默认图片
-      content: module.description,
-      type: "mixed" as const,
-      authorName: module.authorName,
-      moduleId: module.moduleId,
-      ruleId: module.ruleId, // 所用的规则id
-      userId: module.userId, // 上传者
-      createTime: module.createTime,
-      updateTime: module.updateTime, // 修改时间
-      minPeople: module.minPeople,
-      maxPeople: module.maxPeople,
-      minTime: module.minTime,
-      maxTime: module.maxTime,
-      parent: module.parent, // 从哪个模组fork来
-    }));
+    return moduleData.list
+      .filter((module: any) => module.moduleId && module.moduleId !== null && module.moduleId !== "null") // 过滤掉没有moduleId的数据
+      .map((module: any) => ({
+        id: `module-${module.moduleId}`,
+        rule: RuleList.data?.find(rule => rule.id === module.ruleId)?.name || "",
+        title: module.moduleName,
+        image: (module.image && module.image !== null && module.image !== "null") ? module.image : 教室图片, // 更严格的空值检查
+        content: module.description,
+        type: "mixed" as const,
+        authorName: module.authorName,
+        moduleId: module.moduleId,
+        ruleId: module.ruleId, // 所用的规则id
+        userId: module.userId, // 上传者
+        createTime: module.createTime,
+        updateTime: module.updateTime, // 修改时间
+        minPeople: module.minPeople,
+        maxPeople: module.maxPeople,
+        minTime: module.minTime,
+        maxTime: module.maxTime,
+        parent: module.parent, // 从哪个模组fork来
+        instruction: module.instruction, // 指令字段
+      }));
   }, [moduleData, RuleList]);
 
   const [imagesReady, setImagesReady] = useState(false);
@@ -309,7 +314,9 @@ export default function ModuleHome() {
 
   useEffect(() => {
     if (ModuleList.isSuccess && currentItems.length > 0) {
-      const imageUrls = currentItems.map(item => item.image);
+      const imageUrls = currentItems
+        .map(item => item.image)
+        .filter(url => url && url !== null && url !== undefined && url !== "null"); // 过滤掉空值
       preloadImages(imageUrls).then(() => {
         setImagesReady(true);
       });
@@ -331,7 +338,7 @@ export default function ModuleHome() {
       {/* 创建模组按钮 - 响应式：大屏右上角固定，移动端底部悬浮 */}
       <button
         type="button"
-        className="cursor-pointer fixed z-50 flex items-center justify-center px-3 py-2 border-2 border-primary bg-base-200 font-bold text-base overflow-hidden group transition-all duration-300 hover:border-white
+        className="cursor-pointer fixed z-50 flex items-center justify-center px-3 py-2 border-2 border-accent bg-base-200 font-bold text-base overflow-hidden group transition-all duration-300 hover:border-white
         left-1/2 -translate-x-1/2 bottom-4 w-[90vw] max-w-xs rounded-full shadow-lg
         md:bg-transparent md:px-4 md:py-4 md:border-4 md:text-xl md:left-auto md:right-16 md:top-30 md:bottom-auto md:w-auto md:max-w-none md:rounded-none md:shadow-none md:translate-x-0"
         onClick={() => navigate("/module/create")}
@@ -340,9 +347,9 @@ export default function ModuleHome() {
         <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
 
         {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
-        <span className="relative z-10 text-primary group-hover:text-white transition-colors duration-300">创建模组</span>
+        <span className="relative z-10 text-accent group-hover:text-white transition-colors duration-300">创建模组</span>
         <svg
-          className="w-8 h-8 relative z-10 text-primary group-hover:text-white transition-colors duration-300"
+          className="w-8 h-8 relative z-10 text-accent group-hover:text-white transition-colors duration-300"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -429,13 +436,13 @@ export default function ModuleHome() {
             {/* 规则列表展示 */}
             <div className="flex flex-col gap-6 max-w-6xl mx-auto">
               <div className="flex-1">
-                <h2 className="text-xl font-bold mb-4 text-primary">全部规则</h2>
+                <h2 className="text-xl font-bold mb-4 text-accent">全部规则</h2>
                 <div className="flex flex-wrap gap-3">
                   {RuleList.data?.map(rule => (
                     <button
                       key={rule.id}
                       type="button"
-                      className={`px-3 py-1 rounded-full text-primary text-sm font-semibold border border-primary/30 transition-all duration-200 focus:outline-none cursor-pointer ${selectedRuleId === rule.id ? "bg-primary text-white" : "bg-primary/10"}`}
+                      className={`px-3 py-1 rounded-full text-accent text-sm font-semibold border border-accent/30 transition-all duration-200 focus:outline-none cursor-pointer ${selectedRuleId === rule.id ? "bg-accent text-white" : "bg-accent/10"}`}
                       onClick={() => {
                         setSelectedRuleId(selectedRuleId === rule.id ? null : rule.id);
                         setCurrentPage(1);
@@ -500,6 +507,7 @@ export default function ModuleHome() {
                   <ContentCard
                     key={card.id}
                     title={card.title}
+                    ruleId={card.ruleId}
                     RuleName={card.rule}
                     image={card.image}
                     content={card.content}
@@ -511,12 +519,17 @@ export default function ModuleHome() {
                     minTime={card.minTime}
                     maxTime={card.maxTime}
                     onClick={() => {
-                    // 处理卡片点击事件，跳转到模组详情页面并传递数据
+                      // 处理卡片点击事件，跳转到模组详情页面并传递数据
+                      if (!card.moduleId || card.moduleId === null) {
+                        console.error("模组ID为空，无法跳转");
+                        return;
+                      }
                       navigate(`/module/detail/${card.moduleId}`, {
                         state: {
                           moduleData: {
                             moduleId: card.moduleId,
-                            ruleName: card.rule, // 所用的规则id
+                            ruleId: card.ruleId, // 所用的规则id
+                            ruleName: card.rule, // 所用的规则名称
                             moduleName: card.title,
                             description: card.content,
                             userId: card.userId, // 上传者
@@ -529,6 +542,7 @@ export default function ModuleHome() {
                             minTime: card.minTime, // 模组可能需要花费时间
                             maxTime: card.maxTime,
                             parent: card.parent, // 从哪个模组fork来
+                            instruction: card.instruction, // 指令字段
                           },
                         },
                       });

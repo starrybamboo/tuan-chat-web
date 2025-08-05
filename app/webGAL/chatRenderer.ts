@@ -138,8 +138,13 @@ export class ChatRenderer {
       // 立绘的状态
       const spriteState = new Set<string>();
 
+      const skipRegex = this.renderProps.skipRegex ? new RegExp(this.renderProps.skipRegex) : null;
+
       for (const messageResponse of sortedMessages) {
         const { message } = messageResponse;
+
+        if (skipRegex && skipRegex.test(message.content))
+          continue;
         // 获取回复的消息
         const repliedMessage = message.replyMessageId
           ? messages.find(m => m.message.messageID === message.replyMessageId)?.message

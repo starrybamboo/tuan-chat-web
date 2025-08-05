@@ -2,6 +2,7 @@
 export const DEFAULT_MODULE_DATA = {
   moduleId: 1,
   ruleId: 1,
+  ruleName: null as string | null,
   moduleName: "加载中...",
   description: "正在获取模块信息...",
   userId: undefined as number | undefined,
