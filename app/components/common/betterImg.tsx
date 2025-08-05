@@ -9,6 +9,7 @@ import React, { useEffect, useRef, useState } from "react";
  * @param onClose 可选的回调函数，如果填写了该回调函数，那么图片左上角会出现一个关闭按钮，点击后调用onClose回调函数。
  * @param size 图片的尺寸，用于优化加载体验
  * @param popWindowKey 弹窗的searchParam key。如果同一页面会出现多个同一url的图片时，需要指定
+ * @param transparent
  */
 
 function BetterImg({ src, className, onClose, size, popWindowKey, transparent = true }: {

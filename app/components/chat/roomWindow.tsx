@@ -281,7 +281,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // 当输入框内容发生变动的时候，将自身的状态改变为输入状态
   useEffect(() => {
-    if (!userId)
+    if (!userId || roomId <= 0)
       return;
 
     const chatStatusEvent: ChatStatusEvent = {
@@ -570,9 +570,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     if (disableSendMessage)
       return;
     setIsSubmitting(true);
-    if (!inputText.trim() && !imgFiles.length) {
-      return;
-    }
     // 发送图片
     for (let i = 0; i < imgFiles.length; i++) {
       const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
@@ -967,7 +964,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   </div>
                   {/* 预览要发送的图片 */}
                   {(imgFiles.length > 0 || emojiUrls.length > 0) && (
-                    <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
+                    <div className="flex flex-row gap-x-3 overflow-x-auto pb-2 pl-3">
                       {imgFiles.map((file, index) => (
                         <BetterImg
                           src={file}
