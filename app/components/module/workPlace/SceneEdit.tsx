@@ -1,5 +1,5 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
-import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
+import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useState } from "react";
 import { useModuleContext } from "./context/_moduleContext";
 
@@ -27,15 +27,38 @@ export default function SceneEdit({ scene }: SceneEditProps) {
 
   // 接入接口
   const { mutate: updateScene } = useUpdateEntityMutation(stageId as number);
+  // 获取地图
+  const mapData = useQueryEntitiesQuery(stageId as number).data?.data?.filter(item => item.entityType === 5)[0];
   const handleSave = () => {
     setIsTransitioning(true);
+    let changed = false;
+    const oldName = scene.name;
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
       if (name !== scene.name) {
         removeModuleTabItem(scene.id!.toString());
+        changed = true;
       }
       updateScene({ id: scene.id!, entityType: 3, entityInfo: localScene, name });
+      if (changed && mapData) {
+        const newMap = { ...mapData.entityInfo?.sceneMap } as Record<string, any>;
+        Object.entries(newMap).forEach(([key, value]) => {
+          if (key === oldName) {
+            newMap[name as string] = value;
+            delete newMap[oldName];
+          };
+          // 处理值的替换（只处理数组类型的值）
+          if (Array.isArray(value)) {
+            (value as Array<string>).forEach((item, index) => {
+              if (item === oldName) {
+                (value as Array<string>)[index] = name as string;
+              }
+            });
+          }
+        });
+        updateScene({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
+      };
     }, 300);
   };
 
