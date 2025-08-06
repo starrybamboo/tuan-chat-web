@@ -1,6 +1,7 @@
 import type { AbilityFieldUpdateRequest } from "../../../../api";
 import { SpaceContext } from "@/components/chat/spaceContext";
-import React, { use, useState } from "react";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import React, { use, useEffect, useState } from "react";
 import {
   useGetRoleAbilitiesQuery,
   useUpdateKeyFieldMutation,
@@ -13,6 +14,11 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
 
   const spaceContext = use(SpaceContext);
   const ability = roleAbilityList.find(ability => ability.ruleId === spaceContext.ruleId);
+
+  const [searchKey, setSearchKey] = useSearchParamsState<string>("roleAbilitySearchKey", "");
+  useEffect(() => {
+    setSearchKey("");
+  }, []);
 
   const [editingField, setEditingField] = useState<{
     abilityId: number;
@@ -105,8 +111,16 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
       <div key={ability.abilityId} className="flex flex-col gap-4">
         <div className="flex flex-col gap-4 w-full">
           {/* 角色属性部分 */}
-          <div className="card bg-base-200 p-4">
-            <h3 className="card-title text-lg font-bold mb-4">角色属性</h3>
+          <div className="card bg-base-200 p-4 flex flex-col gap-2">
+            <div className="flex gap-4 ">
+              <span className="card-title text-lg font-bold">角色属性</span>
+              <input
+                type="text"
+                placeholder="搜索"
+                className="input input-bordered flex-1"
+                onChange={e => setSearchKey(e.target.value)}
+              />
+            </div>
             <div className="flex flex-col gap-4">
               <div className="flex gap-2 items-center">
                 <input
@@ -130,7 +144,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
                 </button>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                {Object.entries(ability.ability ?? {}).map(([key, value]) => (
+                {Object.entries(ability.ability ?? {}).filter(([key]) => key.includes(searchKey)).map(([key, value]) => (
                   <div key={key} className="card bg-base-100 shadow-sm p-3">
                     <div className="flex justify-between">
                       {renderEditableField(ability.abilityId ?? -1, "ability", true, key, value)}
@@ -143,7 +157,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
           </div>
 
           {/* 角色能力部分 */}
-          <div className="card bg-base-200 p-4">
+          <div className="card bg-base-200 p-4 items-center">
             <h3 className="card-title text-lg font-bold mb-4">角色能力</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
               {Object.entries(ability.act ?? {}).map(([key, value]) => (
