@@ -1,4 +1,5 @@
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
+import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
   BaselineCode,
   BaselineFormatBold,
@@ -103,6 +104,9 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
     let textToInsert: string;
     let newCursorOffset: number = 0;
 
+    // 检查光标位置，如果光标在开头或前一个字符是换行符，则前缀为空，否则为换行符
+    const prefix = (start === 0 || content.substring(start - 1, start) === "\n") ? "" : "\n";
+
     switch (format) {
       case "strong":
         textToInsert = ` **${selectedText}** `;
@@ -125,15 +129,15 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
         newCursorOffset = 2 + selectedText.length;
         break;
       case "ul":
-        textToInsert = `\n- ${selectedText}`;
+        textToInsert = `${prefix}- ${selectedText}`;
         newCursorOffset = 3;
         break;
       case "ol":
-        textToInsert = `\n1. ${selectedText}`;
+        textToInsert = `${prefix}1. ${selectedText}`;
         newCursorOffset = 4;
         break;
       case "blockquote":
-        textToInsert = `\n> ${selectedText}`;
+        textToInsert = `${prefix}> ${selectedText}`;
         newCursorOffset = 2;
         break;
       case "del":
@@ -141,11 +145,11 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
         newCursorOffset = 3 + selectedText.length;
         break;
       case "codeBlock":
-        textToInsert = `\n\`\`\`\n${selectedText}\n\`\`\`\n`;
+        textToInsert = `${prefix}\`\`\`\n${selectedText}\n\`\`\`\n`;
         newCursorOffset = 4;
         break;
       case "detail":
-        textToInsert = `\n<details>\n<summary>${selectedText || "标题"}</summary>\n\n内容\n</details>\n`;
+        textToInsert = `${prefix}<details>\n<summary>${selectedText || "标题"}</summary>\n内容\n</details>\n`;
         newCursorOffset = 33 + selectedText.length;
         break;
       case "bilibili":
@@ -272,13 +276,19 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
             <DeleteLine className="size-6"></DeleteLine>
           </div>
 
-          <div
-            className="tooltip hover:bg-base-200 rounded cursor-pointer"
-            data-tip="插入图片(可以直接粘贴图片）"
-            onClick={() => insertFormat("img")}
+          <ImgUploader setImg={async (imgFile) => {
+            const url = await uploadUtils.uploadImg(imgFile);
+            insertText(`![${imgFile.name}](${url})`);
+          }}
           >
-            <Image2Fill className="size-6" />
-          </div>
+            <div
+              className="tooltip hover:bg-base-200 rounded cursor-pointer"
+              data-tip="插入图片(可以直接粘贴图片）"
+              // onClick={() => insertFormat("img")}
+            >
+              <Image2Fill className="size-6" />
+            </div>
+          </ImgUploader>
 
           <div
             className="tooltip hover:bg-base-200 rounded cursor-pointer"
@@ -315,7 +325,7 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
         <textarea
           ref={textareaRef}
           placeholder="写下你的想法..."
-          className="textarea textarea-bordered w-full min-h-[255px] lg:flex-1 overflow-auto"
+          className="textarea textarea-bordered rounded-box resize-none w-full min-h-[255px] lg:flex-1 overflow-auto"
           value={content}
           onChange={(e) => {
             setContent(e.target.value);
