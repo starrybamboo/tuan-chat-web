@@ -64,12 +64,14 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
   const insertText = (text: string) => {
     if (!textareaRef.current)
       return;
+
     const textarea = textareaRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const beforeText = content.substring(0, start);
-    const afterText = content.substring(end);
-    setContent(`${beforeText}${text}${afterText}`);
+    // 必须先聚焦在输入框上，命令才能生效
+    textarea.focus();
+
+    // 使用 execCommand 来插入文本
+    // 这个命令会模拟用户输入，从而被浏览器的撤销/重做堆栈记录
+    document.execCommand("insertText", false, text);
   };
 
   async function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
@@ -130,15 +132,15 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
         break;
       case "ul":
         textToInsert = `${prefix}- ${selectedText}`;
-        newCursorOffset = 3;
+        newCursorOffset = textToInsert.length;
         break;
       case "ol":
         textToInsert = `${prefix}1. ${selectedText}`;
-        newCursorOffset = 4;
+        newCursorOffset = textToInsert.length;
         break;
       case "blockquote":
         textToInsert = `${prefix}> ${selectedText}`;
-        newCursorOffset = 2;
+        newCursorOffset = textToInsert.length;
         break;
       case "del":
         textToInsert = ` ~~${selectedText}~~ `;
@@ -150,7 +152,7 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
         break;
       case "detail":
         textToInsert = `${prefix}<details>\n<summary>${selectedText || "标题"}</summary>\n内容\n</details>\n`;
-        newCursorOffset = 33 + selectedText.length;
+        newCursorOffset = prefix.length + 32 + selectedText.length;
         break;
       case "bilibili":
         textToInsert = `{{bilibili:${selectedText || "bv"}}}`;
