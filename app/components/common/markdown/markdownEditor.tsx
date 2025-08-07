@@ -1,4 +1,5 @@
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
+import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
   BaselineCode,
   BaselineFormatBold,
@@ -272,13 +273,19 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
             <DeleteLine className="size-6"></DeleteLine>
           </div>
 
-          <div
-            className="tooltip hover:bg-base-200 rounded cursor-pointer"
-            data-tip="插入图片(可以直接粘贴图片）"
-            onClick={() => insertFormat("img")}
+          <ImgUploader setImg={async (imgFile) => {
+            const url = await uploadUtils.uploadImg(imgFile);
+            insertText(`![${imgFile.name}](${url})`);
+          }}
           >
-            <Image2Fill className="size-6" />
-          </div>
+            <div
+              className="tooltip hover:bg-base-200 rounded cursor-pointer"
+              data-tip="插入图片(可以直接粘贴图片）"
+              // onClick={() => insertFormat("img")}
+            >
+              <Image2Fill className="size-6" />
+            </div>
+          </ImgUploader>
 
           <div
             className="tooltip hover:bg-base-200 rounded cursor-pointer"
