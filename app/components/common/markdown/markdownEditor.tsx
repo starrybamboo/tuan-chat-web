@@ -322,7 +322,7 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
         <textarea
           ref={textareaRef}
           placeholder="写下你的想法..."
-          className="textarea textarea-bordered w-full min-h-[255px] lg:flex-1 overflow-auto"
+          className="textarea textarea-bordered rounded-box resize-none w-full min-h-[255px] lg:flex-1 overflow-auto"
           value={content}
           onChange={(e) => {
             setContent(e.target.value);
