@@ -1,20 +1,27 @@
 import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
+import { useRoleAvatarQuery } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
 import { getEntityListByType } from "../moduleUtils";
 
-function RoleAvatar(
-  { name, avatar, isSelected, onChange }: {
+// 支持 avatarId 的角色头像组件
+function RoleAvatarWithId(
+  { name, avatarId, avatar, isSelected, onChange }: {
     name: string;
+    avatarId?: number;
     avatar?: string;
     isSelected?: boolean;
     onChange?: (name: string) => void;
   },
 ) {
+  const avatarUrl = useRoleAvatarQuery(avatarId || 0);
   const handleSelectRole = useCallback(() => {
     if (onChange) {
       onChange(name);
     }
   }, [onChange, name]);
+
+  // 优先使用通过 avatarId 获取的头像，然后是 avatar 参数，最后是默认头像
+  const displayAvatar = avatarId && avatarUrl ? avatarUrl : (avatar || "/favicon.ico");
 
   return (
     <div className="flex flex-col items-center w-20">
@@ -27,13 +34,53 @@ function RoleAvatar(
           onClick={handleSelectRole}
         >
           <img
-            src={avatar || "/favicon.ico"}
+            src={displayAvatar}
             alt="角色头像"
             className="w-full h-full object-cover rounded-full"
+            onError={(e) => {
+              // 如果头像加载失败，使用默认头像
+              (e.target as HTMLImageElement).src = "/favicon.ico";
+            }}
           />
         </div>
       </div>
       <div className="text-xs mt-1 w-full truncate text-center" title={name}>{name}</div>
+    </div>
+  );
+}
+
+// 头像列表组件
+function AvatarList({ avatarIds }: { avatarIds?: number[] }) {
+  if (!avatarIds || avatarIds.length === 0) {
+    return (
+      <div className="text-base-content/60 text-sm">暂无头像</div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {avatarIds.map(avatarId => (
+        <AvatarItem key={avatarId} avatarId={avatarId} />
+      ))}
+    </div>
+  );
+}
+
+// 单个头像项组件
+function AvatarItem({ avatarId }: { avatarId: number }) {
+  const avatarUrl = useRoleAvatarQuery(avatarId);
+
+  return (
+    <div className="w-16 h-16 rounded-lg overflow-hidden border border-base-300 bg-base-200">
+      <img
+        src={avatarUrl || "/favicon.ico"}
+        alt={`头像 ${avatarId}`}
+        className="w-full h-full object-cover"
+        onError={(e) => {
+          // 如果头像加载失败，使用默认头像
+          (e.target as HTMLImageElement).src = "/favicon.ico";
+        }}
+      />
     </div>
   );
 }
@@ -77,7 +124,7 @@ function RoleDetail(
       return <span className="text-base-content/60">未设置</span>;
     }
     return (
-      <div className="grid grid-cols-2 gap-1">
+      <div className="grid grid-cols-2 gap-x-8 gap-y-1">
         {Object.entries(abilities).map(([key, value]) => (
           <div key={key} className="flex justify-between">
             <span>
@@ -121,10 +168,17 @@ function RoleDetail(
           </span>
         </div>
         <div className="divider my-0" />
-        {/* 头像展示 */}
+        {/* 头像列表展示 */}
+        {roleInfo.avatarIds && roleInfo.avatarIds.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <h4 className="text-sm font-medium text-base-content/60">头像列表</h4>
+            <AvatarList avatarIds={roleInfo.avatarIds} />
+          </div>
+        )}
+        {/* 主头像展示 */}
         {roleInfo.avatar && (
           <div className="flex flex-col gap-2">
-            <h4 className="text-sm font-medium text-base-content/60">头像</h4>
+            <h4 className="text-sm font-medium text-base-content/60">主头像</h4>
             <div className="w-32 h-32 rounded-lg overflow-hidden border border-base-300">
               <img
                 src={roleInfo.avatar}
@@ -220,13 +274,16 @@ export default function Roles({ moduleId }: { moduleId: number }) {
           ? roleList.map((roleEntity) => {
               const roleInfo = roleEntity.entityInfo;
               const name = roleEntity.name ?? "";
-              const avatar = roleInfo?.avatar;
+              // 优先使用 avatarIds 数组中的第一个头像，如果没有则使用 avatar 字段
+              const avatarId = roleInfo?.avatarIds?.[0];
+              const avatar = avatarId ? undefined : roleInfo?.avatar; // 如果有 avatarId 就不使用 avatar
               if (!name)
                 return null;
               return (
-                <RoleAvatar
+                <RoleAvatarWithId
                   key={name}
                   name={name}
+                  avatarId={avatarId}
                   avatar={avatar}
                   isSelected={selectedName === name}
                   onChange={setName}

@@ -29,6 +29,12 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
 
   const itemInfo = itemData?.entityInfo;
 
+  // if (entityType === "scene") {
+  //   console.warn("props:", itemName, itemList, entityType);
+  //   console.warn("itemData:", itemData);
+  //   console.warn("itemInfo:", itemInfo);
+  // }
+
   const normalizedItemInfo = itemInfo
     ? {
         name: itemData.name,
@@ -166,9 +172,12 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
                   </div>
                 )
               : (
-                  Array.isArray(moduleInfo) && moduleInfo.length > 0 && (
+                  (normalizedItemInfo?.sceneItems?.length > 0
+                    || normalizedItemInfo?.sceneRoles?.length > 0
+                    || normalizedItemInfo?.sceneLocations?.length > 0) && (
                     <div className="mt-6 p-4 rounded-lg border border-base-300 bg-base-200">
-                      <h4 className="font-bold text-lg mb-20 text-primary">请选择一个实体以查看详情：</h4>
+                      <h4 className="font-bold text-lg mb-2 text-primary">请选择一个实体以查看详情</h4>
+                      <p className="text-base-content/60 text-sm">点击上方的实体标签来查看详细信息</p>
                     </div>
                   )
                 )}
