@@ -1,4 +1,9 @@
-// 压缩成webp
+/**
+ * 将图片压缩成webp，会改变原来的文件名和后缀（加上时间戳，去除空格，改为webp）
+ * @param file
+ * @param quality
+ * @param maxSize
+ */
 export async function compressImage(file: File, quality = 0.7, maxSize = 2560): Promise<File> {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith("image/")) {
@@ -35,7 +40,7 @@ export async function compressImage(file: File, quality = 0.7, maxSize = 2560): 
           reject(new Error("图片压缩失败"));
           return;
         }
-        const newName = file.name.replace(/(\.[^.]+)?$/, `_${Date.now()}.webp`);
+        const newName = file.name.replace(/(\.[^.]+)?$/, `_${Date.now()}.webp`).split(" ").join("");
         const compressedFile = new File([blob], newName, {
           type: "image/webp",
         });
