@@ -1,7 +1,7 @@
 import type { StageEntityResponse } from "api";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
-import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
+import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import Section from "./section";
 
 // 场景表单项
@@ -67,7 +67,10 @@ export default function SceneList({ stageId }: { stageId: number }) {
 
   // 模组相关
   const { data, isSuccess: _isSuccess } = useQueryEntitiesQuery(stageId);
+  const { mutate: updateMap } = useUpdateEntityMutation(stageId);
   const list = data?.data!.filter(i => i.entityType === 3);
+  // 同步到地图
+  const mapData = data?.data!.filter(i => i.entityType === 5)[0];
   const isEmpty = !list || list!.length === 0;
 
   // 添加模组场景
@@ -76,12 +79,35 @@ export default function SceneList({ stageId }: { stageId: number }) {
   const { mutate: deleteScene } = useDeleteEntityMutation();
 
   const handleAddSceneSubmit = () => {
+    let index = 1;
+    let name = "新场景1";
+    while (list?.some(i => i.name === name)) {
+      name = `新场景${index}`;
+      index++;
+    }
     addScene({
       stageId,
-      name: "新场景",
+      name,
       entityInfo: {
         description: "无",
         tip: "无",
+      },
+    }, {
+      onSuccess: () => {
+        if (mapData) {
+          updateMap({
+            id: mapData.id!,
+            name: mapData.name,
+            entityType: 5,
+            entityInfo: {
+              ...mapData.entityInfo,
+              sceneMap: {
+                ...mapData.entityInfo!.sceneMap,
+                [name]: [],
+              },
+            },
+          });
+        }
       },
     });
   };
@@ -102,6 +128,30 @@ export default function SceneList({ stageId }: { stageId: number }) {
                 name={i!.name || "未命名"}
                 onDelete={() => {
                   removeModuleTabItem(i.id!.toString());
+                  if (mapData) {
+                    const oldMap = mapData?.entityInfo?.sceneMap;
+                    const newMap: Record<string, any> = {};
+                    if (oldMap) {
+                      Object.entries(oldMap).forEach(([key, value]) => {
+                        if (key !== i.name) {
+                          if (Array.isArray(value)) {
+                            newMap[key] = value.filter(item => item !== i.name);
+                          }
+                          else {
+                            newMap[key] = value;
+                          }
+                        }
+                      });
+                    }
+                    updateMap({
+                      id: mapData.id!,
+                      entityType: 5,
+                      entityInfo: {
+                        ...mapData.entityInfo,
+                        sceneMap: newMap,
+                      },
+                    });
+                  }
                   deleteScene({
                     id: i.id!,
                     stageId,

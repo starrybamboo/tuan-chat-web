@@ -371,4 +371,3 @@ export function useUploadModuleRoleAvatarMutation() {
         mutationKey: ['uploadModuleRoleAvatar'],
     });
 }
-

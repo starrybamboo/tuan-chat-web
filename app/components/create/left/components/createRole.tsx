@@ -4,9 +4,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import {
-  useCreateRoleMutation,
   useGetInfiniteUserRolesQuery,
-  useUploadAvatarMutation,
 } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
@@ -71,6 +69,7 @@ interface CreateRoleProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (selectedRoles: Role[]) => void;
+  onCreateNew: (num: number) => void;
   multiSelect?: boolean; // 是否支持多选
   existIdSet: Set<string>; // 已存在角色 ID 集合
 }
@@ -79,12 +78,17 @@ export default function CreateRole({
   isOpen,
   onClose,
   onConfirm,
+  onCreateNew,
   multiSelect = false,
 }: CreateRoleProps) {
   const [roles, setRoles] = useState<Role[]>([]);
   const [selectedRoles, setSelectedRoles] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // 第二个弹窗
+  const [isOpenSecond, setIsOpenSecond] = useState(false);
+  const [num, setNum] = useState(1);
 
   const queryClient = useQueryClient();
   const userId = useGlobalContext().userId;
@@ -96,9 +100,6 @@ export default function CreateRole({
     fetchNextPage,
     hasNextPage,
   } = useGetInfiniteUserRolesQuery(userId ?? -1);
-
-  const { mutateAsync: createRole } = useCreateRoleMutation();
-  const { mutate: uploadAvatar } = useUploadAvatarMutation();
 
   // 转换角色数据格式
   const convertRole = (role: RoleResponse): Role => ({
@@ -176,51 +177,6 @@ export default function CreateRole({
     await fetchNextPage();
     setIsLoadingMore(false);
   }, [fetchNextPage, hasNextPage, isLoadingMore]);
-
-  // 创建新角色
-  const handleCreateNew = async () => {
-    try {
-      const roleId = await createRole({
-        roleName: "新角色",
-        description: "新角色描述",
-      });
-
-      if (roleId === undefined) {
-        console.error("角色创建失败");
-        return;
-      }
-
-      const newRole: Role = {
-        id: roleId,
-        name: "新角色",
-        description: "新角色描述",
-        avatar: "/favicon.ico",
-        avatarId: 0,
-        modelName: "散华",
-        speakerName: "鸣潮",
-      };
-
-      // 上传默认头像
-      uploadAvatar({
-        avatarUrl: "/favicon.ico",
-        spriteUrl: "/favicon.ico",
-        roleId,
-      });
-
-      setRoles(prev => [newRole, ...prev]);
-
-      // 自动选择新创建的角色
-      if (multiSelect) {
-        setSelectedRoles(prev => new Set([...prev, roleId]));
-      }
-      else {
-        setSelectedRoles(new Set([roleId]));
-      }
-    }
-    catch (error) {
-      console.error("创建角色失败:", error);
-    }
-  };
 
   // 初始化角色数据
   useEffect(() => {
@@ -307,7 +263,7 @@ export default function CreateRole({
           <button
             type="button"
             className="btn btn-primary"
-            onClick={handleCreateNew}
+            onClick={() => setIsOpenSecond(true)}
             title="创建新角色"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -395,6 +351,40 @@ export default function CreateRole({
           </button>
         </div>
       </div>
+      <PopWindow isOpen={isOpenSecond} onClose={() => setIsOpenSecond(false)}>
+        <div className="space-y-4">
+          <div className="text-xl font-bold">您想要创建几个角色</div>
+          <div>
+            <label className="block mb-2 text-sm font-medium text-gray-700">角色数量：</label>
+            <input
+              type="number"
+              className="input input-bordered w-full"
+              value={num}
+              onChange={e => setNum(e.target.value as unknown as number)}
+              placeholder="请输入提交数量"
+            />
+          </div>
+          <div className="flex justify-end space-x-2">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                onCreateNew(num);
+                setIsOpenSecond(false);
+              }}
+            >
+              确认提交
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setIsOpenSecond(false)}
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      </PopWindow>
     </PopWindow>
   );
 };
