@@ -64,12 +64,14 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
   const insertText = (text: string) => {
     if (!textareaRef.current)
       return;
+
     const textarea = textareaRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const beforeText = content.substring(0, start);
-    const afterText = content.substring(end);
-    setContent(`${beforeText}${text}${afterText}`);
+    // 必须先聚焦在输入框上，命令才能生效
+    textarea.focus();
+
+    // 使用 execCommand 来插入文本
+    // 这个命令会模拟用户输入，从而被浏览器的撤销/重做堆栈记录
+    document.execCommand("insertText", false, text);
   };
 
   async function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
