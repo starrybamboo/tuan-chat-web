@@ -96,7 +96,17 @@ export default function ItemList({ stageId }: { stageId: number }) {
   // 创建物品并添加物品
   const { mutate: addItem } = useAddEntityMutation(1);
   const { mutate: deleteItem } = useDeleteEntityMutation();
+
+  const list = data?.data?.filter(i => i.entityType === 1);
+  const locationList = data?.data?.filter(i => i.entityType === 4);
+  const isEmpty = !list || list.length === 0;
   const handleCreateItemSubmit = () => {
+    let t = 0;
+    let name = "新物品";
+    while (list!.some(item => item.name === name)) {
+      name = `新物品${t}`;
+      t++;
+    }
     addItem({
       stageId,
       name: "新物品",
@@ -107,10 +117,6 @@ export default function ItemList({ stageId }: { stageId: number }) {
       },
     });
   };
-
-  const list = data?.data?.filter(i => i.entityType === 1);
-  const locationList = data?.data?.filter(i => i.entityType === 4);
-  const isEmpty = !list || list.length === 0;
 
   return (
     <Section label="物品" onClick={handleOpen}>

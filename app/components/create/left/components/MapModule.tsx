@@ -68,10 +68,7 @@ export default function MapModule({ stageId }: { stageId: number }) {
       stageId,
       name: `${stageId}模组地图`,
       entityInfo: {
-        sceneMap: {},
-        sceneItem: {},
-        sceneRole: {},
-        sceneLocation: {},
+        sceneMap: { 新场景1: ["新场景2"], 新场景2: [] },
       },
     });
   };

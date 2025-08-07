@@ -2,7 +2,7 @@ import type { StageEntityResponse } from "api";
 import RoleAvatar from "@/components/common/roleAvatar";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
-import { useAddRoleMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
+import { useAddEntityMutation, useAddRoleMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useState } from "react";
 import CreateRole from "./createRole";
 import Section from "./section";
@@ -92,8 +92,8 @@ export default function RoleList({ stageId }: { stageId: number }) {
   // 角色相关
   const { mutate: deleteRole } = useDeleteEntityMutation();
   const { mutate: createRole } = useAddRoleMutation();
+  const { mutate: createNewRole } = useAddEntityMutation(2);
   const listIdSets = new Set(list?.map(i => i.id!.toString())); // 已经请求到的角色 ID 集合, 传入创建中, 提示用户避免选入
-
   const handleAddRoleSubmit = (row: any[]) => {
     Promise.all(row.map(role =>
       createRole({
@@ -102,6 +102,43 @@ export default function RoleList({ stageId }: { stageId: number }) {
         type: 1,
       }),
     ));
+  };
+
+  // 使用状态管理角色序号，避免重名
+  const [roleCounter, setRoleCounter] = useState(0);
+
+  const handleCreateNewRole = (sum: number) => {
+    try {
+      let newCounter = roleCounter;
+      for (let j = 1; j <= sum; j++) {
+        let name = `新角色${newCounter}`;
+        // 检查是否已存在，如果存在则继续递增直到找到唯一名称
+        while (list?.some(role => role.name === name)) {
+          newCounter++;
+          name = `新角色${newCounter}`;
+        }
+        createNewRole({
+          stageId: stageId as number,
+          name,
+          entityInfo: {
+            avatarIds: [],
+            description: "无",
+            speakerName: "无",
+            modelName: "无",
+            type: 0,
+            ability: {},
+            act: {},
+          },
+        });
+        newCounter++;
+      }
+      // 更新序号状态
+      setRoleCounter(newCounter);
+    }
+    catch (error) {
+      console.error("创建角色失败:", error);
+    }
+    handleClose();
   };
 
   return (
@@ -135,6 +172,7 @@ export default function RoleList({ stageId }: { stageId: number }) {
         isOpen={isOpen}
         onClose={handleClose}
         onConfirm={handleAddRoleSubmit}
+        onCreateNew={handleCreateNewRole}
         multiSelect={true}
         existIdSet={listIdSets}
       />
