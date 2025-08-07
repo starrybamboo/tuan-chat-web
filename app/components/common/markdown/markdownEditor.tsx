@@ -104,6 +104,9 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
     let textToInsert: string;
     let newCursorOffset: number = 0;
 
+    // 检查光标位置，如果光标在开头或前一个字符是换行符，则前缀为空，否则为换行符
+    const prefix = (start === 0 || content.substring(start - 1, start) === "\n") ? "" : "\n";
+
     switch (format) {
       case "strong":
         textToInsert = ` **${selectedText}** `;
@@ -126,15 +129,15 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
         newCursorOffset = 2 + selectedText.length;
         break;
       case "ul":
-        textToInsert = `\n- ${selectedText}`;
+        textToInsert = `${prefix}- ${selectedText}`;
         newCursorOffset = 3;
         break;
       case "ol":
-        textToInsert = `\n1. ${selectedText}`;
+        textToInsert = `${prefix}1. ${selectedText}`;
         newCursorOffset = 4;
         break;
       case "blockquote":
-        textToInsert = `\n> ${selectedText}`;
+        textToInsert = `${prefix}> ${selectedText}`;
         newCursorOffset = 2;
         break;
       case "del":
@@ -142,11 +145,11 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
         newCursorOffset = 3 + selectedText.length;
         break;
       case "codeBlock":
-        textToInsert = `\n\`\`\`\n${selectedText}\n\`\`\`\n`;
+        textToInsert = `${prefix}\`\`\`\n${selectedText}\n\`\`\`\n`;
         newCursorOffset = 4;
         break;
       case "detail":
-        textToInsert = `\n<details>\n<summary>${selectedText || "标题"}</summary>\n\n内容\n</details>\n`;
+        textToInsert = `${prefix}<details>\n<summary>${selectedText || "标题"}</summary>\n内容\n</details>\n`;
         newCursorOffset = 33 + selectedText.length;
         break;
       case "bilibili":
