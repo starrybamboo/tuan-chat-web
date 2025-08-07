@@ -130,15 +130,15 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
         break;
       case "ul":
         textToInsert = `${prefix}- ${selectedText}`;
-        newCursorOffset = 3;
+        newCursorOffset = textToInsert.length;
         break;
       case "ol":
         textToInsert = `${prefix}1. ${selectedText}`;
-        newCursorOffset = 4;
+        newCursorOffset = textToInsert.length;
         break;
       case "blockquote":
         textToInsert = `${prefix}> ${selectedText}`;
-        newCursorOffset = 2;
+        newCursorOffset = textToInsert.length;
         break;
       case "del":
         textToInsert = ` ~~${selectedText}~~ `;
@@ -150,7 +150,7 @@ export default function MarkdownEditor({ onChange, className, defaultContent }:
         break;
       case "detail":
         textToInsert = `${prefix}<details>\n<summary>${selectedText || "标题"}</summary>\n内容\n</details>\n`;
-        newCursorOffset = 33 + selectedText.length;
+        newCursorOffset = prefix.length + 32 + selectedText.length;
         break;
       case "bilibili":
         textToInsert = `{{bilibili:${selectedText || "bv"}}}`;
