@@ -599,7 +599,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         };
         // 如果是命令，额外发送一条消息给骰娘
         if (isCommand(inputText)) {
-          const commandResult = commandExecutor({ command: inputTextWithoutMentions, mentionedRoles });
+          const commandResult = commandExecutor({ command: inputTextWithoutMentions, mentionedRoles, originMessage: inputText });
           messageRequest.extra = {
             result: commandResult,
           };

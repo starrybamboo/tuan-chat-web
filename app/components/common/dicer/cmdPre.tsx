@@ -47,6 +47,10 @@ export interface ExecutorProp {
    */
   roomId?: number;
   /**
+   * 完整的原始消息
+   */
+  originMessage?: string;
+  /**
    * 指令消息id;
    * 用于后续的指令回复,避免消息混乱;
    */
