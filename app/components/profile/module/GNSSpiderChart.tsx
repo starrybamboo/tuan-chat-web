@@ -1,4 +1,5 @@
 import { PopWindow } from "@/components/common/popWindow";
+import GNSPreferenceEditor from "@/components/profile/module/GNSEditor";
 import { useState } from "react";
 
 type RatingCategory = "Gamism" | "Narrativism" | "Simulationism";
@@ -9,15 +10,21 @@ interface Ratings {
   Simulationism: number;
 }
 
-function GNSTriangleChart() {
+function GNSSpiderChart() {
   const [ratings, setRatings] = useState<Ratings>({
     Gamism: 3,
     Narrativism: 2,
     Simulationism: 4,
   });
-  const [isEditWindowOpen, setIsEditWindowOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const categories: RatingCategory[] = ["Gamism", "Narrativism", "Simulationism"];
+  const categoryNames = {
+    Gamism: "游戏性",
+    Narrativism: "叙事性",
+    Simulationism: "模拟性",
+  };
+
   const maxRating = Math.max(...Object.values(ratings));
   const highlightedCategory = (Object.entries(ratings) as [RatingCategory, number][])
     .find(([_, value]) => value === maxRating)?.[0] || "";
@@ -63,19 +70,20 @@ function GNSTriangleChart() {
 
   // 三角形顶点位置（用于标签）
   const labelPositions = [
-    { x: 150, y: 40 }, // 顶部
-    { x: 63, y: 220 }, // 左下
-    { x: 237, y: 220 }, // 右下
+    { x: 150, y: 25 }, // 顶部
+    { x: 60, y: 220 }, // 左下
+    { x: 240, y: 220 }, // 右下
   ];
 
   return (
-    <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-md">
+    <div className="flex flex-col items-center p-6 rounded-lg shadow-md">
       <div className="flex items-center gap-4 mb-4">
-        <h1 className="text-2xl font-bold text-center">
-          {highlightedCategory ? `${highlightedCategory.toUpperCase()}` : "GMS 三角图"}
+        <h1 className="text-xl font-bold text-center">
+          {highlightedCategory ? `${categoryNames[highlightedCategory]}玩家` : "GMS 三角图"}
         </h1>
         <button
-          onClick={() => setIsEditWindowOpen(true)}
+          type="button"
+          onClick={() => setIsEditOpen(true)}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
         >
           编辑
@@ -166,7 +174,7 @@ function GNSTriangleChart() {
                   className="text-sm font-bold"
                   fill={isHighlighted ? "#1d4ed8" : "#64748b"}
                 >
-                  {category}
+                  {categoryNames[category]}
                 </text>
                 <text
                   x={pos.x}
@@ -186,42 +194,15 @@ function GNSTriangleChart() {
       </div>
 
       {/* 编辑弹窗 */}
-      <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}>
-        <h2 className="text-xl font-bold mb-4">编辑 GMS</h2>
-        <div className="space-y-4">
-          {categories.map(category => (
-            <div key={category} className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-700 w-24">
-                {category}
-                :
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="range"
-                  min="1"
-                  max="5"
-                  value={ratings[category]}
-                  onChange={e => handleRatingChange(category, e.target.value)}
-                  className="flex-1"
-                />
-                <span className="w-8 text-center font-medium">
-                  {ratings[category]}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={() => setIsEditWindowOpen(false)}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            完成
-          </button>
-        </div>
+      <PopWindow isOpen={isEditOpen} onClose={() => setIsEditOpen(false)}>
+        <GNSPreferenceEditor
+          ratings={ratings}
+          onRatingChange={handleRatingChange}
+          onClose={() => setIsEditOpen(false)}
+        />
       </PopWindow>
     </div>
   );
 }
 
-export default GNSTriangleChart;
+export default GNSSpiderChart;

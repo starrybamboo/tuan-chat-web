@@ -43,9 +43,10 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
 
   return (
     <div className="card card-body">
+      <h1 className="text-xl text-accent font-bold pb-2">更新个人资料</h1>
       <div className="flex flex-col gap-4">
         {/* 头像部分 */}
-        <div className="flex flex-col md:flex-row gap-6 p-4">
+        <div className="flex flex-col md:flex-row gap-6 p-2 items-center">
           {/* 左侧 - 头像上传区域 */}
           <div className="flex flex-col items-center md:items-start gap-4 w-full md:w-auto">
             <ImgUploaderWithCopper
@@ -68,7 +69,7 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
           </div>
 
           {/* 右侧 - 用户名和描述表单 */}
-          <div className="flex-1 flex flex-col gap-6">
+          <div className="flex-1 flex flex-col gap-6 p-2">
             {/* 用户名输入 */}
             <div className="w-full flex gap-2 flex-col">
               <label htmlFor="userName" className="label cursor-pointer">
@@ -91,7 +92,7 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
                 style={{
                   animation: username.length > 30 ? "quick-shake 0.4s ease-in-out" : "none",
                 }}
-                className={`text-right text-sm overflow-hidden transition-all duration-300 ease-in-out ${
+                className={`text-right text-sm overflow-hidden transition-all duration-300 ease-in-out pt-1 md:text-left md:ml-20 ${
                   username.length > 30
                     ? "text-error max-h-8 opacity-100 translate-y-0"
                     : "max-h-0 opacity-0 translate-y-2"
@@ -102,7 +103,7 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
             </div>
 
             {/* 个人描述 */}
-            <div className="w-full flex flex-col gap-1">
+            <div className="w-full flex flex-col gap-1 mt-2">
               <label htmlFor="userDescription" className="label cursor-pointer">
                 <span className="text-lg font-semibold">修改描述</span>
               </label>
@@ -153,10 +154,10 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
 
         <MarkdownEditor defaultContent={user?.readMe} onChange={value => setContent(value)}></MarkdownEditor>
         <div className="flex items-center gap-4 mt-4">
-          <button onClick={handleSave} className="btn btn-info px-8" type="button">
+          <button onClick={handleSave} className="btn btn-info px-16" type="button">
             保存
           </button>
-          <button onClick={handleCancel} className="btn btn-ghost px-8" type="button">
+          <button onClick={handleCancel} className="btn btn-ghost px-16" type="button">
             取消
           </button>
         </div>
