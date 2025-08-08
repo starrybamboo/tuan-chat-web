@@ -2,11 +2,12 @@ import type { Initiative } from "@/components/chat/sideDrawer/initiativeList";
 import type { RuleNameSpace } from "@/components/common/dicer/cmd";
 import type { ChatMessageRequest, RoleAbility, UserRole } from "../../../../api";
 import { useRoomExtra } from "@/components/chat/hooks";
-// type DiceResult = { x: number; y: number; rolls: number[]; total: number };
-
 import { RoomContext } from "@/components/chat/roomContext";
 import CmdExeCoc from "@/components/common/dicer/cmdExeCoc";
+// type DiceResult = { x: number; y: number; rolls: number[]; total: number };
+
 import { use, useEffect, useRef } from "react";
+import toast from "react-hot-toast";
 import { useParams } from "react-router";
 import {
   useGetRoleAbilitiesQuery,
@@ -16,6 +17,7 @@ import {
 import { tuanchat } from "../../../../api/instance";
 import { useGetRoleQuery } from "../../../../api/queryHooks";
 import { parseDiceExpression, roll, rollDice } from "./dice";
+import "react-toastify/dist/ReactToastify.css";
 
 // 属性名中英文对照表
 const ABILITY_MAP: { [key: string]: string } = {
@@ -167,10 +169,15 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     }
   };
 
+  const sendToast = (message: string) => {
+    toast(message);
+  };
+
   const CmdPreInterface = {
     sendMsg,
     getRoleAbilityList,
     setRoleAbilityList,
+    sendToast,
   };
 
   useEffect(() => {
