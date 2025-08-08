@@ -1,7 +1,7 @@
 import type { StageEntityResponse } from "api";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
-import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
+import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import Section from "./section";
 
 export function LocationListItem({
@@ -80,10 +80,20 @@ export function LocationList({ stageId }: { stageId: number }) {
   const { mutate: createLocation } = useAddEntityMutation(4);
   const { mutate: deleteLocation } = useDeleteEntityMutation();
 
+  const { data } = useQueryEntitiesQuery(stageId);
+  const list = data?.data?.filter(i => i!.entityType === 4);
+  const sceneList = data?.data?.filter(i => i!.entityType === 3);
+
   const handleAddScene = () => {
+    let t = 1;
+    let name = "新地点1";
+    while (list!.some(item => item.name === name)) {
+      name = `新地点${t}`;
+      t++;
+    }
     createLocation({
       stageId,
-      name: "新地点",
+      name,
       entityInfo: {
         tip: "给予的提示",
         description: "新场景です", // 场景描述（可选）
@@ -92,9 +102,7 @@ export function LocationList({ stageId }: { stageId: number }) {
     });
   };
 
-  const { data } = useQueryEntitiesQuery(stageId);
-
-  const list = data?.data?.filter(i => i!.entityType === 4);
+  const { mutate: updateScene } = useUpdateEntityMutation(stageId);
 
   // 判断列表是否存在且非空
   const isEmpty = !list || list.length === 0;
@@ -119,6 +127,14 @@ export function LocationList({ stageId }: { stageId: number }) {
                     deleteLocation({
                       id: location.id!,
                       stageId,
+                    }, {
+                      onSuccess: () => {
+                        const newScenes = sceneList?.map((scene) => {
+                          const newLocations = scene.entityInfo?.locations.filter((location: { name: any }) => location !== location.name);
+                          return { ...scene, entityInfo: { ...scene.entityInfo, locations: newLocations } };
+                        });
+                        newScenes?.forEach(scene => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
+                      },
                     });
                   }}
                 />

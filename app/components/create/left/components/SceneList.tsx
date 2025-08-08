@@ -91,6 +91,9 @@ export default function SceneList({ stageId }: { stageId: number }) {
       entityInfo: {
         description: "无",
         tip: "无",
+        items: [],
+        roles: [],
+        locations: [],
       },
     }, {
       onSuccess: () => {

@@ -1,8 +1,9 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { CharacterCopper } from "@/components/newCharacter/CharacterCopper";
+import { useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useState } from "react";
-import { useModuleContext } from "./context/_moduleContext";
+import { useModuleContext } from "../context/_moduleContext";
 
 interface LocationEditProps {
   location: StageEntityResponse;
@@ -11,6 +12,8 @@ interface LocationEditProps {
 export default function LocationEdit({ location }: LocationEditProps) {
   const entityInfo = location.entityInfo || {};
   const { stageId, removeModuleTabItem } = useModuleContext();
+
+  const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(item => item.entityType === 3);
 
   // 本地状态
   const [localLocation, setLocalLocation] = useState({ ...entityInfo });
@@ -35,8 +38,15 @@ export default function LocationEdit({ location }: LocationEditProps) {
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
+      const oldName = location.name;
       if (name !== location.name) {
         removeModuleTabItem(location.id!.toString());
+        // 同步更新scene
+        const newScenes = sceneEntities?.map((scene) => {
+          const newLocations = scene.entityInfo?.locations.map((location: string | undefined) => location === oldName ? name : location);
+          return { ...scene, entityInfo: { ...scene.entityInfo, locations: newLocations } };
+        });
+        newScenes?.forEach(scene => updateLocation({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
       }
       updateLocation({ id: location.id!, entityInfo: localLocation, name, entityType: 4 });
     }, 300);

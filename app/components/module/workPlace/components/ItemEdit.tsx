@@ -1,91 +1,98 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
+import { CharacterCopper } from "@/components/newCharacter/CharacterCopper";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useState } from "react";
-import { useModuleContext } from "./context/_moduleContext";
+import { useModuleContext } from "../context/_moduleContext";
 
-interface SceneEditProps {
-  scene: StageEntityResponse;
+interface ItemEditProps {
+  item: StageEntityResponse;
 }
 
-export default function SceneEdit({ scene }: SceneEditProps) {
-  const entityInfo = scene.entityInfo || {};
+export default function ItemEdit({ item }: ItemEditProps) {
+  const entityInfo = item.entityInfo || {};
   const { stageId, removeModuleTabItem } = useModuleContext();
 
+  const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(item => item.entityType === 3);
+
   // 本地状态
-  const [localScene, setLocalScene] = useState({ ...entityInfo });
-  const [name, setName] = useState(scene.name);
+  const [localItem, setLocalItem] = useState({ ...entityInfo });
+  const [name, setName] = useState(item.name);
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [charCount, setCharCount] = useState(entityInfo.tip?.length || 0);
   const MAX_TIP_LENGTH = 300;
 
   useEffect(() => {
-    setLocalScene({ ...entityInfo });
+    setLocalItem({ ...entityInfo });
     setCharCount(entityInfo.tip?.length || 0);
-    setName(scene.name);
-  }, [scene]);
+    setName(item.name);
+  }, [item]);
 
   // 接入接口
-  const { mutate: updateScene } = useUpdateEntityMutation(stageId as number);
-  // 获取地图
-  const mapData = useQueryEntitiesQuery(stageId as number).data?.data?.filter(item => item.entityType === 5)[0];
+  const { mutate: updateItem } = useUpdateEntityMutation(stageId as number);
   const handleSave = () => {
     setIsTransitioning(true);
-    let changed = false;
-    const oldName = scene.name;
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
-      if (name !== scene.name) {
-        removeModuleTabItem(scene.id!.toString());
-        changed = true;
-      }
-      updateScene({ id: scene.id!, entityType: 3, entityInfo: localScene, name });
-      if (changed && mapData) {
-        const oldMap = { ...mapData.entityInfo?.sceneMap } as Record<string, any>;
-        const newMap: Record<string, any> = {};
-        Object.entries(oldMap).forEach(([key, value]) => {
-          if (key === oldName) {
-            newMap[name as string] = value;
-          }
-          else {
-            newMap[key] = value;
-          };
-          // 处理值的替换（只处理数组类型的值）
-          if (Array.isArray(value)) {
-            // 创建数组副本以避免修改只读数组
-            const newArray = [...value] as Array<string>;
-            newArray.forEach((item, index) => {
-              if (item === oldName) {
-                newArray[index] = name as string;
-              }
-            });
-            // 将修改后的数组赋值回newMap
-            if (key === oldName) {
-              newMap[name as string] = newArray;
-            }
-            else {
-              newMap[key] = newArray;
-            }
-          }
+      const oldName = item.name;
+      if (name !== oldName) {
+        removeModuleTabItem(item.id!.toString());
+        // 同步更新scene
+        const newScenes = sceneEntities?.map((scene) => {
+          const newItems = scene.entityInfo?.items.map((item: string | undefined) => item === oldName ? name : item);
+          return { ...scene, entityInfo: { ...scene.entityInfo, items: newItems } };
         });
-        updateScene({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
-      };
+        newScenes?.forEach(scene => updateItem({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
+      }
+      updateItem({ id: item.id!, entityType: 1, entityInfo: localItem, name });
     }, 300);
   };
 
   const handleEdit = () => setIsEditing(true);
   const handleCancel = () => {
-    setLocalScene({ ...entityInfo });
+    setLocalItem({ ...entityInfo });
     setIsEditing(false);
+  };
+
+  const generateUniqueFileName = (name: string): string => {
+    const timestamp = Date.now();
+    return `itemModule-${name}-${timestamp}`;
+  };
+
+  const uniqueFileName = generateUniqueFileName(item.name!);
+
+  const handleImageChange = (image: string) => {
+    const updatedItem = { ...localItem, image };
+    setLocalItem(updatedItem);
+    updateItem({
+      id: item.id!,
+      entityType: 1,
+      entityInfo: updatedItem,
+      name: item.name!,
+    });
   };
 
   return (
     <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
-      {/* 场景信息卡片 */}
+      {/* 物品信息卡片 */}
       <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
         <div className="card-body">
           <div className="flex items-center gap-8">
+            {/* 图片 */}
+            <CharacterCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleImageChange} fileName={uniqueFileName} scene={4}>
+              <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
+                <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
+                  <img
+                    src={localItem.image || "./favicon.ico"}
+                    alt="Item Image"
+                    className="object-cover transform group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+              </div>
+            </CharacterCopper>
+
             {/* 右侧内容 */}
             <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               {isEditing
@@ -93,24 +100,23 @@ export default function SceneEdit({ scene }: SceneEditProps) {
                     <>
                       <div>
                         <label className="label">
-                          <span className="label-text font-bold">场景名称</span>
+                          <span className="label-text font-bold">物品名称</span>
                         </label>
                         <input
                           type="text"
                           value={name || ""}
                           onChange={e => setName(e.target.value)}
-                          placeholder="请输入场景名称"
+                          placeholder="请输入物品名称"
                           className="input input-bordered w-full"
                         />
                       </div>
                       <div>
                         <label className="label">
-                          <span className="label-text font-bold">场景描述（玩家可见）</span>
+                          <span className="label-text font-bold">物品描述（玩家可见）</span>
                         </label>
                         <textarea
-                          value={localScene.description || ""}
-                          onChange={e =>
-                            setLocalScene(prev => ({ ...prev, description: e.target.value }))}
+                          value={localItem.description || ""}
+                          onChange={e => setLocalItem(prev => ({ ...prev, description: e.target.value }))}
                           placeholder="可以直接展示给玩家的描述"
                           className="textarea textarea-bordered w-full h-24 resize-none"
                         />
@@ -120,9 +126,9 @@ export default function SceneEdit({ scene }: SceneEditProps) {
                           <span className="label-text font-bold">提示（仅KP可见）</span>
                         </label>
                         <textarea
-                          value={localScene.tip || ""}
+                          value={localItem.tip || ""}
                           onChange={(e) => {
-                            setLocalScene(prev => ({ ...prev, tip: e.target.value }));
+                            setLocalItem(prev => ({ ...prev, tip: e.target.value }));
                             setCharCount(e.target.value.length);
                           }}
                           placeholder="对KP的提醒（检定，PL需要做什么来获得线索）"
@@ -136,10 +142,11 @@ export default function SceneEdit({ scene }: SceneEditProps) {
                             }`}
                           >
                             {charCount}
-                            {" "}
                             /
                             {MAX_TIP_LENGTH}
-                            {charCount > MAX_TIP_LENGTH && <span className="ml-2">(已超出字数上限)</span>}
+                            {charCount > MAX_TIP_LENGTH && (
+                              <span className="ml-2">(已超出字数上限)</span>
+                            )}
                           </span>
                         </div>
                       </div>
@@ -147,13 +154,13 @@ export default function SceneEdit({ scene }: SceneEditProps) {
                   )
                 : (
                     <>
-                      <h2 className="card-title text-2xl">{name || "未命名场景"}</h2>
+                      <h2 className="card-title text-2xl">{name || "未命名物品"}</h2>
                       <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden">
-                        {localScene.description || "暂无描述"}
+                        {localItem.description || "暂无描述"}
                       </p>
                       <p className="text-base-content/70 italic whitespace-pre-wrap break-words max-w-full overflow-hidden">
                         提示：
-                        {localScene.tip || "暂无提示"}
+                        {localItem.tip || "暂无提示"}
                       </p>
                     </>
                   )}
@@ -177,36 +184,31 @@ export default function SceneEdit({ scene }: SceneEditProps) {
                         : (
                             <span className="flex items-center gap-1">
                               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                <path
-                                  d="M20 6L9 17l-5-5"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                />
+                                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                               </svg>
                               保存
                             </span>
                           )}
                     </button>
-                    <button type="button" onClick={handleCancel} className="btn btn-secondary ml-2">
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      className="btn btn-secondary ml-2"
+                    >
                       取消
                     </button>
                   </>
                 )
               : (
-                  <button type="button" onClick={handleEdit} className="btn btn-accent">
+                  <button
+                    type="button"
+                    onClick={handleEdit}
+                    className="btn btn-accent"
+                  >
                     <span className="flex items-center gap-1">
                       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        />
-                        <path
-                          d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        />
+                        <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                        <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
                       </svg>
                       编辑
                     </span>

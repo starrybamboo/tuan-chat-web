@@ -40,14 +40,13 @@ function SceneNode({ data, selected }: SceneNodeProps) {
         <span className="ml-1 mb-2 text-sm font-semibold text-base-content">场景资源</span>
       </div>
       <div
-        className={`relative cursor-pointer flex flex-col items-center justify-center h-12 ${
-          selected ? "border-2 border-blue-500" : ""
+        className={`relative cursor-pointer flex flex-col items-center justify-center h-12 ${selected ? "border-2 border-blue-500" : ""
         }`}
         onClick={handleNodeClick}
       >
         <div className="flex items-center justify-center">
           <span className="text-xl font-black leading-none mr-4 mb-4">「 </span>
-          <span className="text-2xl font-black font-mono tracking-widest">{data.label}</span>
+          <span className="text-2xl font-black tracking-widest">{data.label}</span>
           <span className="text-xl font-black leading-none ml-4 mt-4"> 」</span>
         </div>
         {/* 连接点... */}

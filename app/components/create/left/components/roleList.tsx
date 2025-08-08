@@ -2,7 +2,7 @@ import type { StageEntityResponse } from "api";
 import RoleAvatar from "@/components/common/roleAvatar";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
-import { useAddEntityMutation, useAddRoleMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
+import { useAddEntityMutation, useAddRoleMutation, useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useState } from "react";
 import CreateRole from "./createRole";
 import Section from "./section";
@@ -77,7 +77,10 @@ export default function RoleList({ stageId }: { stageId: number }) {
 
   // 模组相关
   const { data, isSuccess: _isSuccess } = useQueryEntitiesQuery(stageId);
+  const { mutate: updateScene } = useUpdateEntityMutation(stageId);
+
   const list = data?.data!.filter(i => i.entityType === 2);
+  const sceneList = data?.data!.filter(i => i.entityType === 3);
   const isEmpty = !list || list!.length === 0;
 
   // 控制弹窗
@@ -160,6 +163,19 @@ export default function RoleList({ stageId }: { stageId: number }) {
                   deleteRole({
                     id: i.id!,
                     stageId,
+                  }, {
+                    onSuccess: () => {
+                      const newScenes = sceneList?.map((scene) => {
+                        const newRoles = scene.entityInfo!.roles.filter((role: string | undefined) => role !== i.name);
+                        return {
+                          id: scene.id,
+                          name: scene.name,
+                          entityType: scene.entityType,
+                          entityInfo: { ...scene.entityInfo, roles: newRoles },
+                        };
+                      });
+                      newScenes?.forEach(scene => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
+                    },
                   });
                 }}
                 isSelected={currentSelectedTabId === (i!.id!.toString())}

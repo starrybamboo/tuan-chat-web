@@ -1,10 +1,7 @@
 import type { StageEntityResponse } from "api";
-import { PopWindow } from "@/components/common/popWindow";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
-import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
-import { useState } from "react";
-import { LocationListItem } from "./LocationList";
+import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import Section from "./section";
 
 function ItemListItem({
@@ -81,35 +78,24 @@ export default function ItemList({ stageId }: { stageId: number }) {
 
   const { data } = useQueryEntitiesQuery(stageId);
 
-  // 控制弹窗
-  const [isOpen, setIsOpen] = useState(false);
-  // // 选择场景
-  const [selectedLocationId, setSelectedLocationId] = useState<number>(0);
-  const handleOpen = () => {
-    setIsOpen(true);
-  };
-
-  const handleClose = () => {
-    setIsOpen(false);
-  };
-
   // 创建物品并添加物品
   const { mutate: addItem } = useAddEntityMutation(1);
   const { mutate: deleteItem } = useDeleteEntityMutation();
+  const { mutate: updateScene } = useUpdateEntityMutation(stageId);
 
   const list = data?.data?.filter(i => i.entityType === 1);
-  const locationList = data?.data?.filter(i => i.entityType === 4);
+  const sceneList = data?.data?.filter(i => i.entityType === 3);
   const isEmpty = !list || list.length === 0;
   const handleCreateItemSubmit = () => {
-    let t = 0;
-    let name = "新物品";
+    let t = 1;
+    let name = "新物品1";
     while (list!.some(item => item.name === name)) {
       name = `新物品${t}`;
       t++;
     }
     addItem({
       stageId,
-      name: "新物品",
+      name,
       entityInfo: {
         tip: "悄悄地告诉kp",
         description: "新物品です", // 描述
@@ -119,7 +105,7 @@ export default function ItemList({ stageId }: { stageId: number }) {
   };
 
   return (
-    <Section label="物品" onClick={handleOpen}>
+    <Section label="物品" onClick={handleCreateItemSubmit}>
       <>
         {isEmpty
           ? (
@@ -140,41 +126,20 @@ export default function ItemList({ stageId }: { stageId: number }) {
                     deleteItem({
                       id: item.id!,
                       stageId,
+                    }, {
+                      onSuccess: () => {
+                        const newScenes = sceneList?.map((scene) => {
+                          const newItems = scene.entityInfo?.items.filter((i: string | undefined) => i !== item.name);
+                          return { ...scene, entityInfo: { ...scene.entityInfo, items: newItems } };
+                        });
+                        newScenes?.forEach(scene => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
+                      },
                     });
                   }}
                 />
               ))
             )}
       </>
-      <PopWindow isOpen={isOpen} onClose={handleClose}>
-        <div className="p-4 space-y-4">
-          <p className="text-xl font-bold">选择添加的物品所在的地点</p>
-          <div className="space-y-2">
-            {locationList?.map((location, index) => (
-              <LocationListItem
-                // key={scene.entityInfo!.sceneId}
-                key={index}
-                location={location}
-                isSelected={selectedLocationId === location.id!}
-                onClick={() => setSelectedLocationId(location.id!)}
-              />
-            ))}
-          </div>
-          <div className="flex justify-end space-x-2">
-            <button
-              type="button"
-              className="btn btn-primary btn-md"
-              onClick={() => {
-                handleCreateItemSubmit();
-                setIsOpen(false);
-              }}
-              title="创建物品"
-            >
-              创建物品
-            </button>
-          </div>
-        </div>
-      </PopWindow>
     </Section>
   );
 }
