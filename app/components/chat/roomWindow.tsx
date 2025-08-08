@@ -57,6 +57,7 @@ import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { useImmer } from "use-immer";
 import {
   useGetMemberListQuery,
@@ -566,49 +567,57 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     || ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3) // 没有权限
     || !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0) // 没有内容
     || isSubmitting;
+
   const handleMessageSubmit = async () => {
     if (disableSendMessage)
       return;
     setIsSubmitting(true);
-    // 发送图片
-    for (let i = 0; i < imgFiles.length; i++) {
-      const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
-      const { width, height, size } = await getImageSize(imgFiles[i]);
-      sendImg(imgDownLoadUrl, width, height, size);
-    }
-    // 发送表情
-    updateImgFiles([]);
-    for (let i = 0; i < emojiUrls.length; i++) {
-      const { width, height, size } = await getImageSize(emojiUrls[i]);
-      sendImg(emojiUrls[i], width, height, size);
-    }
-    updateEmojiUrls([]);
-    // 发送文本消息
-    if (inputText.trim() !== "") {
-      const messageRequest: ChatMessageRequest = {
-        roomId,
-        roleId: curRoleId,
-        content: inputText.trim(),
-        avatarId: curAvatarId,
-        messageType: 1,
-        replayMessageId: replyMessage?.messageID || undefined,
-        extra: {},
-      };
-      // 如果是命令，额外发送一条消息给骰娘
-      if (isCommand(inputText)) {
-        const commandResult = commandExecutor({ command: inputTextWithoutMentions, mentionedRoles });
-        messageRequest.extra = {
-          result: commandResult,
+    try {
+      // 发送图片
+      for (let i = 0; i < imgFiles.length; i++) {
+        const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
+        const { width, height, size } = await getImageSize(imgFiles[i]);
+        sendImg(imgDownLoadUrl, width, height, size);
+      }
+      // 发送表情
+      updateImgFiles([]);
+      for (let i = 0; i < emojiUrls.length; i++) {
+        const { width, height, size } = await getImageSize(emojiUrls[i]);
+        sendImg(emojiUrls[i], width, height, size);
+      }
+      updateEmojiUrls([]);
+      // 发送文本消息
+      if (inputText.trim() !== "") {
+        const messageRequest: ChatMessageRequest = {
+          roomId,
+          roleId: curRoleId,
+          content: inputText.trim(),
+          avatarId: curAvatarId,
+          messageType: 1,
+          replayMessageId: replyMessage?.messageID || undefined,
+          extra: {},
         };
-        tuanchat.chatController.sendMessageAiResponse(messageRequest);
+        // 如果是命令，额外发送一条消息给骰娘
+        if (isCommand(inputText)) {
+          const commandResult = commandExecutor({ command: inputTextWithoutMentions, mentionedRoles });
+          messageRequest.extra = {
+            result: commandResult,
+          };
+          tuanchat.chatController.sendMessageAiResponse(messageRequest);
+        }
+        else {
+          send(messageRequest);
+        }
+        setInputText("");
       }
-      else {
-        send(messageRequest);
-      }
-      setInputText("");
+      setReplyMessage(undefined);
     }
-    setReplyMessage(undefined);
-    setIsSubmitting(false);
+    catch (e: any) {
+      toast.error(e.message + e.stack, { duration: 3000 });
+    }
+    finally {
+      setIsSubmitting(false);
+    }
   };
 
   function sendImg(img: string, width: number, height: number, size: number) {
