@@ -358,7 +358,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
 
           {/* 用户标签 */}
           <div className="mb-4">
-            <TagManagement />
+            <TagManagement userId={userId} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 ">
@@ -420,8 +420,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                 </div>
               </div>
             </div>
-            {/* 右侧 - 勋章展示 */}
-            {/* 用户 GNS 雷达图 */}
+            {/* 右侧 - 用户 GNS 雷达图 */}
             <div className="mb-4">
               <GNSSpiderChart />
             </div>

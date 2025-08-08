@@ -1,30 +1,23 @@
+import type { Tag } from "../../../../api";
 import { PopWindow } from "@/components/common/popWindow";
 import React, { useState } from "react";
-
-interface Tag {
-  id: string;
-  text: string;
-  color: string;
-}
 
 interface TagManagementPopupProps {
   isOpen: boolean;
   onClose: () => void;
   tags: Tag[];
-  setTags: React.Dispatch<React.SetStateAction<Tag[]>>;
 }
 
 export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
   isOpen,
   onClose,
   tags,
-  setTags,
 }) => {
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [newTag, setNewTag] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("indigo");
 
-  const [editingTagId, setEditingTagId] = useState<string | null>(null);
+  const [editingTagId, setEditingTagId] = useState<number | null>(null);
   // 颜色样式映射
   const colorClasses = {
     indigo: "bg-indigo-100 text-indigo-800 ring-indigo-500/10",
@@ -54,47 +47,47 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
     if (newTag.trim() === "")
       return;
 
-    if (isEditMode && editingTagId) {
-      // 编辑现有标签
-      setTags(tags.map(tag =>
-        tag.id === editingTagId
-          ? { ...tag, text: newTag, color: selectedColor }
-          : tag,
-      ));
-      setIsEditMode(false);
-      setEditingTagId(null);
-    }
-    else {
-      // 添加新标签
-      const newTagObj: Tag = {
-        id: Date.now().toString(),
-        text: newTag,
-        color: selectedColor,
-      };
-      setTags([...tags, newTagObj]);
-    }
+    // if (isEditMode && editingTagId) {
+    //   // 编辑现有标签
+    //   setTags(tags.map(tag =>
+    //     tag.tagId === editingTagId
+    //       ? { ...tag, content: newTag, color: selectedColor }
+    //       : tag,
+    //   ));
+    //   setIsEditMode(false);
+    //   setEditingTagId(null);
+    // }
+    // else {
+    //   // 添加新标签
+    //   const newTagObj: Tag = {
+    //     tagId: Date.now(),
+    //     content: newTag,
+    //     color: selectedColor,
+    //   };
+    //   setTags([...tags, newTagObj]);
+    // }
 
     setNewTag("");
   };
 
   // 删除标签
-  const handleDeleteTag = (id: string) => {
-    setTags(tags.filter(tag => tag.id !== id));
-    // 如果删除的是正在编辑的标签，重置编辑状态
-    if (id === editingTagId) {
-      setIsEditMode(false);
-      setEditingTagId(null);
-      setNewTag("");
-    }
-  };
+  // const handleDeleteTag = (id: number) => {
+  //   setTags(tags.filter(tag => tag.tagId !== id));
+  //   // 如果删除的是正在编辑的标签，重置编辑状态
+  //   if (id === editingTagId) {
+  //     setIsEditMode(false);
+  //     setEditingTagId(null);
+  //     setNewTag("");
+  //   }
+  // };
 
   // 编辑标签
-  const handleEditTag = (tag: Tag) => {
-    setNewTag(tag.text);
-    setSelectedColor(tag.color);
-    setIsEditMode(true);
-    setEditingTagId(tag.id);
-  };
+  // const handleEditTag = (tag: Tag) => {
+  //   setNewTag(tag.content);
+  //   setSelectedColor(tag.color);
+  //   setIsEditMode(true);
+  //   setEditingTagId(tag.tagId);
+  // };
 
   // 关闭弹窗时重置状态
   const handleClose = () => {
@@ -183,16 +176,16 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {tags.map(tag => (
                       <div
-                        key={tag.id}
+                        key={tag.tagId}
                         className={`flex items-center justify-between p-3 rounded-lg transition-all hover:shadow-md
                       ${colorClasses[tag.color as keyof typeof colorClasses]}
-                      ${editingTagId === tag.id ? "ring-2 ring-primary" : ""}`}
+                      ${editingTagId === tag.tagId ? "ring-2 ring-primary" : ""}`}
                       >
-                        <span className="font-medium">{tag.text}</span>
+                        <span className="font-medium">{tag.content}</span>
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            onClick={() => handleEditTag(tag)}
+                            // onClick={() => handleEditTag(tag)}
                             className="btn btn-sm btn-ghost hover:bg-white/50"
                             aria-label="编辑标签"
                           >
@@ -202,7 +195,7 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDeleteTag(tag.id)}
+                            // onClick={() => handleDeleteTag(tag.tagId)}
                             className="btn btn-sm btn-ghost hover:bg-white/50 text-red-600"
                             aria-label="删除标签"
                           >

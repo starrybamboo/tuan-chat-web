@@ -1,36 +1,26 @@
+import type { Tag } from "../../../api";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { TagManagementPopup } from "@/components/profile/module/TagManagementPopup";
-import React, { useState } from "react";
+import React from "react";
+import { useGetTagsQuery } from "../../../api/hooks/userTagQurryHooks";
 
-interface Tag {
-  id: string;
-  text: string;
-  color: string;
+interface TagManagementProps {
+  userId?: number;
 }
 
-function TagManagement() {
-  const [tags, setTags] = useState<Tag[]>([
-    { id: "1", text: "策略玩家", color: "indigo" },
-    { id: "2", text: "剧情沉浸者", color: "purple" },
-  ]);
-
+function TagManagement({ userId }: TagManagementProps) {
+  // 获取标签数据
+  const { data: tagsData } = useGetTagsQuery({
+    tagType: 1,
+    targetId: userId ?? -1,
+  });
   // 使用唯一的key来控制弹窗
   const [isTagPopupOpen, setIsTagPopupOpen] = useSearchParamsState<boolean>(
     "TagManagementPopup",
     false,
   );
 
-  const colorClasses = {
-    indigo: "bg-indigo-100 text-indigo-800 ring-indigo-500/10",
-    blue: "bg-blue-100 text-blue-800 ring-blue-500/10",
-    purple: "bg-purple-100 text-purple-800 ring-purple-500/10",
-    teal: "bg-teal-100 text-teal-800 ring-teal-500/10",
-    amber: "bg-amber-100 text-amber-800 ring-amber-500/10",
-    red: "bg-red-100 text-red-800 ring-red-500/10",
-    green: "bg-green-100 text-green-800 ring-green-500/10",
-    pink: "bg-pink-100 text-pink-800 ring-pink-500/10",
-  };
-
+  const tags: Tag[] = tagsData?.data ?? [];
   // 打开标签管理弹窗
   const openTagPopup = () => {
     setIsTagPopupOpen(true);
@@ -47,29 +37,41 @@ function TagManagement() {
             onClick={openTagPopup}
             className="btn btn-primary flex items-center"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 mr-1"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                clipRule="evenodd"
+              />
             </svg>
             添加/管理标签
           </button>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {tags.map(tag => (
-            <span
-              key={tag.id}
-              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
-                ${colorClasses[tag.color as keyof typeof colorClasses]}`}
-            >
-              {tag.text}
-            </span>
-          ))}
+          {tags && tags.length > 0
+            ? (
+                tags.map(tag => (
+                  <span
+                    key={tag.tagId} // 直接使用 tagId 作为 key
+                    className={`px-2 py-1 rounded text-xs bg-${tag.color}-100 text-${tag.color}-800`}
+                  >
+                    {tag.content}
+                    {" "}
+                  </span>
+                ))
+              )
+            : (
+                <div className="text-base py-2">
+                  暂无标签，点击上方按钮添加
+                </div>
+              )}
 
-          {tags.length === 0 && (
-            <div className="text-base py-2">
-              暂无标签，点击上方按钮添加
-            </div>
-          )}
         </div>
       </div>
 
@@ -78,7 +80,6 @@ function TagManagement() {
         isOpen={isTagPopupOpen}
         onClose={() => setIsTagPopupOpen(false)}
         tags={tags}
-        setTags={setTags}
       />
     </div>
   );
