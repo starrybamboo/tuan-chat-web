@@ -191,7 +191,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
   function execute(executorProp: ExecutorProp): string {
     const command = executorProp.command;
     const [cmdPart, ...args] = parseCommand(command);
-    const ats = executorProp.mentionedRoles ?? [];
     const operator: UserRole = {
       userId: role?.userId ?? -1,
       roleId: role?.roleId ?? -1,
@@ -203,12 +202,14 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
       speakerName: role?.speakerName ?? "",
       createTime: "",
     };
+    const mentioned: UserRole[] = (executorProp.mentionedRoles || []);
+    mentioned.push(operator);
 
     const executor = RULES.get(ruleId);
     if (!executor) {
       return `未知规则 ${ruleId}`;
     }
-    executor.execute(cmdPart, args, operator, ats, CmdPreInterface, executorProp);
+    executor.execute(cmdPart, args, mentioned, CmdPreInterface, executorProp);
 
     try {
       switch (cmdPart) {

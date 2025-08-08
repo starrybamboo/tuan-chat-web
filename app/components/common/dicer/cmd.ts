@@ -142,6 +142,14 @@ export class RuleNameSpace {
  */
 export class CommandExecutor {
   cmdInfo: CommandInfo;
+  /**
+   * 接收参数数组并返回执行结果
+   * @param {string[]} args - 命令参数数组
+   * @param {UserRole[]} mentioned - At列表信息数组,顺序为被At的顺序加上命令发送者，直接反应代骰优先级，操作时取最前面所需操作数个元素即可
+   * @param {CPI} cpi -CmdPre接口对象，包含发送角色和读取数据表的方法。
+   * @param {ExecutorProp} prop - 从聊天室获取的原始信息记录
+   * @returns {boolean} 命令执行结果
+   */
   solve: (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp) => boolean;
 
   /**
