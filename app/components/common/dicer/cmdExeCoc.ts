@@ -37,8 +37,8 @@ const cmdRc = new CommandExecutor(
   "进行技能检定",
   [""],
   "rc [奖励/惩罚骰]? [技能名] [技能值]?",
-  (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): boolean => {
-    const curAbility = cpi.getRoleAbilityList(mentioned[0].roleId);
+  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+    const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     // 所有参数转为小写
     args = args.map(arg => arg.toLowerCase());
     // 解析参数
@@ -85,7 +85,7 @@ const cmdRc = new CommandExecutor(
       name = ABILITY_MAP[name.toLowerCase()];
     }
     if (!curAbility?.ability) {
-      cpi.sendMsg(prop, `未设置角色能力`);
+      cpi.sendMsg(prop, `未设置角色能力？`);
       return false;
     }
 

@@ -33,9 +33,11 @@ interface CPI { // eslint-disable-line ts/consistent-type-definitions
   // 发送消息
   sendMsg: (prop: ExecutorProp, msg: string) => void;
   // 获取角色能力列表
-  getRoleAbilityList: (roleId: number) => RoleAbility;
+  getRoleAbilityList: (roleId: number) => Promise<RoleAbility>;
   // 设置角色能力列表
-  setRoleAbilityList: (roleId: number, ability: RoleAbility) => void;
+  setRoleAbilityList: (roleId: number, ability: RoleAbility) => Promise<void>;
+  // 发送Toast消息
+  sendToast: (msg: string) => void;
 }
 
 /**
@@ -125,7 +127,7 @@ export class RuleNameSpace {
    * @returns {boolean} 命令执行结果
    * @throws {Error} 当命令不存在时抛出错误
    */
-  execute(name: string, args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): boolean {
+  execute(name: string, args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> {
     const cmd = this.cmdMap.get(name);
     if (cmd) {
       return cmd.solve(args, mentioned, cpi, prop);
@@ -150,7 +152,7 @@ export class CommandExecutor {
    * @param {ExecutorProp} prop - 从聊天室获取的原始信息记录
    * @returns {boolean} 命令执行结果
    */
-  solve: (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp) => boolean;
+  solve: (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp) => Promise<boolean>;
 
   /**
    * 构造函数
@@ -161,8 +163,8 @@ export class CommandExecutor {
    * @param {string} usage - 用法说明
    * @param {Function} solve - 命令执行函数
    */
-  constructor(name: string, alias: string[], description: string, examples: string[], usage: string, solve: (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp) => boolean) {
+  constructor(name: string, alias: string[], description: string, examples: string[], usage: string, solve: (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp) => boolean | Promise<boolean>) {
     this.cmdInfo = { name, alias, description, examples, usage };
-    this.solve = solve;
+    this.solve = (args, mentioned, cpi, prop) => Promise.resolve(solve(args, mentioned, cpi, prop));
   }
 }
