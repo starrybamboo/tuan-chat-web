@@ -140,18 +140,16 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     tuanchat.chatController.sendMessageAiResponse(messageRequest);
   };
 
-  const getRoleAbilityList = (roleId: number): RoleAbility => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const abilityQuery = useGetRoleAbilitiesQuery(roleId);
-    const abilityList = abilityQuery.data?.data ?? [];
+  const getRoleAbilityList = async (roleId: number): Promise<RoleAbility> => {
+    const abilityQuery = await tuanchat.abilityController.listRoleAbility(roleId);
+    const abilityList = abilityQuery.data ?? [];
     const ability = abilityList.find(a => a.ruleId === ruleId);
     return ability?.ability || {};
   };
 
-  const setRoleAbilityList = (roleId: number, ability: RoleAbility): void => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const abilityQuery = useGetRoleAbilitiesQuery(roleId);
-    const abilityList = abilityQuery.data?.data ?? [];
+  const setRoleAbilityList = async (roleId: number, ability: RoleAbility): Promise<void> => {
+    const abilityQuery = await tuanchat.abilityController.listRoleAbility(roleId);
+    const abilityList = abilityQuery.data ?? [];
     const curAbility = abilityList.find(a => a.ruleId === ruleId);
     if (curAbility) {
       updateAbilityMutation.mutate({
