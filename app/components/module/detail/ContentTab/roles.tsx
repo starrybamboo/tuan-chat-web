@@ -3,6 +3,44 @@ import { useRoleAvatarQuery } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
 import { getEntityListByType } from "../moduleUtils";
 
+// 可折叠组件
+function CollapsibleSection({
+  title,
+  children,
+  titleColor = "text-accent",
+  bgColor = "bg-info/10",
+  borderColor = "border-info/20",
+  defaultExpanded = true,
+}: {
+  title: string;
+  children: React.ReactNode;
+  titleColor?: string;
+  bgColor?: string;
+  borderColor?: string;
+  defaultExpanded?: boolean;
+}) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+  return (
+    <div className="w-full">
+      <h4
+        className={`font-semibold text-lg mb-2 ${titleColor} cursor-pointer flex items-center gap-2 hover:opacity-80 transition-opacity`}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <span>
+          {isExpanded ? "▼" : "▶"}
+        </span>
+        {title}
+      </h4>
+      {isExpanded && (
+        <div className={`${bgColor} p-3 rounded-lg border-l-4 ${borderColor}`}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // 支持 avatarId 的角色头像组件
 function RoleAvatarWithId(
   { name, avatarId, avatar, isSelected, onChange }: {
@@ -50,7 +88,15 @@ function RoleAvatarWithId(
 }
 
 // 头像列表组件
-function AvatarList({ avatarIds }: { avatarIds?: number[] }) {
+function AvatarList({
+  avatarIds,
+  selectedAvatarId,
+  onAvatarSelect,
+}: {
+  avatarIds?: number[];
+  selectedAvatarId?: number;
+  onAvatarSelect?: (avatarId: number) => void;
+}) {
   if (!avatarIds || avatarIds.length === 0) {
     return (
       <div className="text-base-content/60 text-sm">暂无头像</div>
@@ -60,18 +106,38 @@ function AvatarList({ avatarIds }: { avatarIds?: number[] }) {
   return (
     <div className="flex flex-wrap gap-2">
       {avatarIds.map(avatarId => (
-        <AvatarItem key={avatarId} avatarId={avatarId} />
+        <AvatarItem
+          key={avatarId}
+          avatarId={avatarId}
+          isSelected={selectedAvatarId === avatarId}
+          onSelect={onAvatarSelect}
+        />
       ))}
     </div>
   );
 }
 
 // 单个头像项组件
-function AvatarItem({ avatarId }: { avatarId: number }) {
+function AvatarItem({
+  avatarId,
+  isSelected,
+  onSelect,
+}: {
+  avatarId: number;
+  isSelected?: boolean;
+  onSelect?: (avatarId: number) => void;
+}) {
   const avatarUrl = useRoleAvatarQuery(avatarId);
 
   return (
-    <div className="w-16 h-16 rounded-lg overflow-hidden border border-base-300 bg-base-200">
+    <div
+      className={`w-16 h-16 rounded-lg overflow-hidden border cursor-pointer transition-all duration-200 ${
+        isSelected
+          ? "border-accent border-2 shadow-lg ring-2 ring-accent/30"
+          : "border-base-300 bg-base-200 hover:border-accent/50"
+      }`}
+      onClick={() => onSelect?.(avatarId)}
+    >
       <img
         src={avatarUrl || "/favicon.ico"}
         alt={`头像 ${avatarId}`}
@@ -85,11 +151,58 @@ function AvatarItem({ avatarId }: { avatarId: number }) {
   );
 }
 
+// 选中头像显示组件
+function SelectedAvatar({ avatarId }: { avatarId?: number }) {
+  const avatarUrl = useRoleAvatarQuery(avatarId || 0);
+
+  if (!avatarId)
+    return null;
+
+  return (
+    <div className="w-24 h-24 rounded-lg overflow-hidden border-2 border-accent shadow-md">
+      <img
+        src={avatarUrl || "/favicon.ico"}
+        alt="选中头像"
+        className="w-full h-full object-cover"
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = "/favicon.ico";
+        }}
+      />
+    </div>
+  );
+}
+
 function RoleDetail(
   { name, roleList }: { name: string; roleList: any[] },
 ) {
+  // 管理选中的头像状态
+  const [selectedAvatarId, setSelectedAvatarId] = useState<number | undefined>(undefined);
+
   // 通过 name 查找角色
   const roleData = roleList.find(role => role.name === name);
+  const roleInfo = roleData?.entityInfo;
+
+  // 创建设置头像的回调函数
+  const updateSelectedAvatar = useCallback(() => {
+    if (roleInfo?.avatarIds && roleInfo.avatarIds.length > 0) {
+      const newAvatarId = roleInfo.avatarIds[0];
+      setSelectedAvatarId((prev) => {
+        // 只有当前选中的头像不在新的头像列表中时才重置
+        if (!prev || !roleInfo.avatarIds.includes(prev)) {
+          return newAvatarId;
+        }
+        return prev;
+      });
+    }
+    else {
+      setSelectedAvatarId(() => undefined);
+    }
+  }, [roleInfo?.avatarIds]);
+
+  // 当角色切换时，重置为第一个头像
+  useEffect(() => {
+    updateSelectedAvatar();
+  }, [name, updateSelectedAvatar]);
 
   if (!name) {
     return (
@@ -98,8 +211,6 @@ function RoleDetail(
       </div>
     );
   }
-
-  const roleInfo = roleData?.entityInfo;
 
   if (!roleData || !roleInfo) {
     return (
@@ -162,6 +273,7 @@ function RoleDetail(
     <div className="h-full w-full flex gap-2">
       <div className="flex flex-col gap-4 p-4 bg-base-100 rounded-lg w-full overflow-y-auto">
         <div className="flex items-center gap-4">
+          <SelectedAvatar avatarId={selectedAvatarId} />
           <h1 className="text-3xl font-bold text-accent">{roleData.name || "未命名"}</h1>
           <span className="px-3 py-1 text-base bg-accent/10 text-accent rounded-full whitespace-nowrap">
             {getRoleTypeText(roleInfo.type)}
@@ -172,7 +284,11 @@ function RoleDetail(
         {roleInfo.avatarIds && roleInfo.avatarIds.length > 0 && (
           <div className="flex flex-col gap-2">
             <h4 className="text-sm font-medium text-base-content/60">头像列表</h4>
-            <AvatarList avatarIds={roleInfo.avatarIds} />
+            <AvatarList
+              avatarIds={roleInfo.avatarIds}
+              selectedAvatarId={selectedAvatarId}
+              onAvatarSelect={setSelectedAvatarId}
+            />
           </div>
         )}
         {/* 主头像展示 */}
@@ -221,23 +337,27 @@ function RoleDetail(
             </span>
           </div>
         </div>
-        {/* 能力值展示（统一样式） */}
-        {roleInfo.ability && (
-          <div className="w-full">
-            <h4 className="font-semibold text-lg mb-2 text-green-600">能力值</h4>
-            <div className="bg-green-50 p-3 rounded-lg border-l-4 border-green-200">
-              {renderAbilities(roleInfo.ability)}
-            </div>
-          </div>
-        )}
         {/* 行为设定展示（统一样式） */}
         {roleInfo.act && (
-          <div className="w-full">
-            <h4 className="font-semibold text-lg mb-2 text-blue-600">行为设定</h4>
-            <div className="bg-blue-50 p-3 rounded-lg border-l-4 border-blue-200">
-              {renderActions(roleInfo.act)}
-            </div>
-          </div>
+          <CollapsibleSection
+            title="行为设定"
+            titleColor="text-blue-600"
+            bgColor="bg-blue-50"
+            borderColor="border-blue-200"
+          >
+            {renderActions(roleInfo.act)}
+          </CollapsibleSection>
+        )}
+        {/* 能力值展示（统一样式） */}
+        {roleInfo.ability && (
+          <CollapsibleSection
+            title="能力值"
+            titleColor="text-green-600"
+            bgColor="bg-green-50"
+            borderColor="border-green-200"
+          >
+            {renderAbilities(roleInfo.ability)}
+          </CollapsibleSection>
         )}
       </div>
     </div>
