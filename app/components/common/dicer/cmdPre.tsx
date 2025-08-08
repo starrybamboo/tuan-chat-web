@@ -17,7 +17,6 @@ import {
 import { tuanchat } from "../../../../api/instance";
 import { useGetRoleQuery } from "../../../../api/queryHooks";
 import { parseDiceExpression, roll, rollDice } from "./dice";
-import "react-toastify/dist/ReactToastify.css";
 
 // 属性名中英文对照表
 const ABILITY_MAP: { [key: string]: string } = {
