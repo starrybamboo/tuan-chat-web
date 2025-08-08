@@ -15,8 +15,8 @@ import {
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import dagre from "dagre";
 import { useCallback, useEffect, useRef, useState } from "react";
-import SceneNode from "../detail/ContentTab/scene/react flow/NewSceneNode";
-import { useModuleContext } from "./context/_moduleContext";
+import SceneNode from "../../detail/ContentTab/scene/react flow/NewSceneNode";
+import { useModuleContext } from "../context/_moduleContext";
 import SceneEdit from "./SceneEdit";
 import "@xyflow/react/dist/style.css";
 

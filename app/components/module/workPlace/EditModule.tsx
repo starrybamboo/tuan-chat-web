@@ -2,13 +2,13 @@ import type { StageEntityResponse } from "api";
 import type { SVGProps } from "react";
 import type { ItemModuleItem, MapModuleItem, ModuleTabItem, RoleModuleItem, SceneModuleItem } from "./context/types";
 import { useEffect, useRef } from "react";
+import ItemEdit from "./components/ItemEdit";
+import LocationEdit from "./components/LocationEdit";
+import MapEdit from "./components/MapEdit";
+import NPCEdit from "./components/NPCEdit";
+import SceneEdit from "./components/SceneEdit";
 import { useModuleContext } from "./context/_moduleContext";
 import { ModuleItemEnum } from "./context/types";
-import ItemEdit from "./ItemEdit";
-import LocationEdit from "./LocationEdit";
-import MapEdit from "./MapEdit";
-import NPCEdit from "./NPCEdit";
-import SceneEdit from "./SceneEdit";
 
 export function BaselineClose(props: SVGProps<SVGSVGElement>) {
   return (
