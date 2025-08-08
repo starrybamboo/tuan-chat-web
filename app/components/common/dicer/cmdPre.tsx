@@ -132,7 +132,9 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
   };
 
   const sendMsg = (prop: ExecutorProp, message: string) => {
-    messageRequest.content = message;
+    messageRequest.extra = {
+      result: message,
+    };
     messageRequest.roleId = curRoleId;
     messageRequest.avatarId = curAvatarId;
     tuanchat.chatController.sendMessageAiResponse(messageRequest);
