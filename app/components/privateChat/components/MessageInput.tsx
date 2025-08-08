@@ -1,3 +1,4 @@
+import type { Emoji as EmojiType } from "api/models/Emoji";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import BetterImg from "@/components/common/betterImg";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
@@ -10,6 +11,8 @@ export default function MessageInput({
   handleSendMessage,
   imgFiles,
   updateImgFiles,
+  emojiUrls,
+  updateEmojiUrls,
 }: {
   currentContactUserId: number | null;
   setMessageInput: (value: string) => void;
@@ -17,6 +20,8 @@ export default function MessageInput({
   handleSendMessage: () => void | Promise<void>;
   imgFiles: File[]; // 预览的图片文件列表
   updateImgFiles: (recipe: (draft: File[]) => void) => void; // 更新图片文件列表的函数
+  emojiUrls: string[]; // 表情图片 URL 列表
+  updateEmojiUrls: (recipe: (draft: string[]) => void) => void;
 }) {
   /**
    * 文本消息发送
@@ -49,6 +54,8 @@ export default function MessageInput({
             ))}
           </div>
         )}
+        {/* 预览要发送的表情 */}
+
         {/* 下方输入框和按钮 */}
         <div className="flex items-center gap-3 w-full">
           <div className="flex-1">
@@ -62,7 +69,7 @@ export default function MessageInput({
             />
           </div>
           <div className="flex items-center gap-2">
-            <Emoji updateImgFiles={updateImgFiles}>
+            <Emoji updateEmojiUrls={updateEmojiUrls}>
               <EmojiIcon className="size-6 cursor-pointer hover:text-blue-500 transition-colors" />
             </Emoji>
 
@@ -74,7 +81,7 @@ export default function MessageInput({
             type="button"
             className="btn btn-info btn-sm btn-circle"
             onClick={handleSendMessage}
-            disabled={!messageInput.trim() && imgFiles.length === 0}
+            disabled={!messageInput.trim() && imgFiles.length === 0 && emojiUrls.length === 0}
           >
             <svg className="size-4" fill="currentColor" viewBox="0 0 24 24">
               <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
@@ -86,7 +93,7 @@ export default function MessageInput({
       {/* 桌面端样式 */}
       <div className="hidden md:flex flex-col w-full border-t border-base-300 px-6 pt-4 pb-2">
         {/* 预览要发送的图片 */}
-        {imgFiles.length > 0 && (
+        {(imgFiles.length > 0 || emojiUrls.length > 0) && (
           <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
             {imgFiles.map((file, index) => (
               <BetterImg
@@ -94,6 +101,14 @@ export default function MessageInput({
                 className="h-14 w-max rounded"
                 onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
                 key={file.name}
+              />
+            ))}
+            {emojiUrls.map((url, index) => (
+              <BetterImg
+                src={url}
+                className="h-14 w-max rounded"
+                onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
+                key={url}
               />
             ))}
           </div>
@@ -112,7 +127,7 @@ export default function MessageInput({
         <div className="h-12 w-full flex items-center justify-between px-2">
           {/* 工具 */}
           <div className="h-full flex items-center gap-4">
-            <Emoji updateImgFiles={updateImgFiles}>
+            <Emoji updateEmojiUrls={updateEmojiUrls}>
               <EmojiIcon className="size-6 cursor-pointer hover:text-blue-500 transition-colors" />
             </Emoji>
             <Image updateImgFiles={updateImgFiles}>
@@ -124,7 +139,7 @@ export default function MessageInput({
             type="button"
             className="btn btn-info"
             onClick={handleSendMessage}
-            disabled={!messageInput.trim() && imgFiles.length === 0}
+            disabled={!messageInput.trim() && imgFiles.length === 0 && emojiUrls.length === 0}
           >
             发送 (Enter)
           </button>
@@ -134,22 +149,14 @@ export default function MessageInput({
   );
 }
 
-function Emoji({ children, updateImgFiles }: { children: React.ReactNode; updateImgFiles: (recipe: (draft: File[]) => void) => void }) {
-  const onChoose = async (emoji: any) => {
-    // 通过 fetch 获取图片 blob
-    const response = await fetch(emoji.imageUrl);
-    const blob = await response.blob();
-
-    // 用 blob 创建 File
-    const file = new File(
-      [blob],
-      `${emoji.name || "emoji"}-${emoji.emojiId}.${emoji.format}`,
-      { type: blob.type },
-    );
-
-    // 添加到图片列表
-    updateImgFiles((draft) => {
-      draft.push(file);
+function Emoji({ children, updateEmojiUrls }: { children: React.ReactNode; updateEmojiUrls: (recipe: (draft: string[]) => void) => void }) {
+  const onChoose = async (emoji: EmojiType) => {
+    // 添加到表情列表
+    updateEmojiUrls((draft) => {
+      const newUrl = emoji?.imageUrl;
+      if (newUrl && !draft.includes(newUrl)) {
+        draft.push(newUrl);
+      }
     });
   };
   return (
@@ -166,7 +173,7 @@ function Emoji({ children, updateImgFiles }: { children: React.ReactNode; update
       {/* dropdown 表情选择窗口 */}
       <ul
         tabIndex={0}
-        className="dropdown-content menu bg-base-100 rounded-box z-1 w-80 p-2 shadow-sm overflow-y-auto"
+        className="dropdown-content menu bg-base-100 rounded-box z-1 w-96 p-2 shadow-sm overflow-y-auto"
       >
         <EmojiWindow onChoose={onChoose}></EmojiWindow>
       </ul>

@@ -19,13 +19,14 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
   // 状态管理
   const [messageInput, setMessageInput] = useState("");
   const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
+  const [emojiUrls, updateEmojiUrls] = useImmer<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 发送消息函数
   const send = (message: MessageDirectSendRequest) => webSocketUtils.send({ type: WEBSOCKET_TYPE, data: message });
 
   const handleSendMessage = async () => {
-    if ((!messageInput.trim() && imgFiles.length === 0) || isSubmitting || !currentContactUserId)
+    if ((!messageInput.trim() && imgFiles.length === 0 && emojiUrls.length === 0) || isSubmitting || !currentContactUserId)
       return;
 
     setIsSubmitting(true);
@@ -35,7 +36,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
       if (imgFiles.length > 0) {
         for (let i = 0; i < imgFiles.length; i++) {
           const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
-          const { width, height, size } = await getImageSize(imgFiles[i]);
+          const { width, height } = await getImageSize(imgFiles[i]);
 
           if (imgDownLoadUrl && imgDownLoadUrl !== "") {
             const imageMessage: MessageDirectSendRequest = {
@@ -43,7 +44,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
               content: "",
               messageType: 2, // 图片消息类型
               extra: {
-                size,
+                size: 0,
                 url: imgDownLoadUrl,
                 fileName: imgDownLoadUrl.split("/").pop() || `${userId}-${Date.now()}`,
                 width,
@@ -67,17 +68,42 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
         send(sendMessage);
         setMessageInput("");
       }
+
+      // 发送表情消息
+      if (emojiUrls.length > 0) {
+        for (const emojiUrl of emojiUrls) {
+          const { width, height } = await getImageSize(emojiUrl);
+
+          const emojiMessage: MessageDirectSendRequest = {
+            receiverId: currentContactUserId,
+            content: "",
+            messageType: 2,
+            extra: {
+              size: 0,
+              fileName: emojiUrl.split("/").pop() || `${userId}-${Date.now()}`,
+              width,
+              height,
+              url: emojiUrl,
+            },
+          };
+          send(emojiMessage);
+        }
+        updateEmojiUrls((draft) => {
+          draft.splice(0, draft.length);
+        });
+      }
     }
     finally {
       setIsSubmitting(false);
     }
   };
-
   return {
     messageInput,
     setMessageInput,
     imgFiles,
     updateImgFiles,
+    emojiUrls,
+    updateEmojiUrls,
     isSubmitting,
     handleSendMessage,
   };

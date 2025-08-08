@@ -112,6 +112,23 @@ export default function SceneList({ stageId }: { stageId: number }) {
           });
         }
       },
+    }, {
+      onSuccess: () => {
+        if (mapData) {
+          updateMap({
+            id: mapData.id!,
+            name: mapData.name,
+            entityType: 5,
+            entityInfo: {
+              ...mapData.entityInfo,
+              sceneMap: {
+                ...mapData.entityInfo!.sceneMap,
+                [name]: [],
+              },
+            },
+          });
+        }
+      },
     });
   };
 

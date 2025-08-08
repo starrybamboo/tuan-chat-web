@@ -19,6 +19,7 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
             src={imgData?.url}
             size={{ width: imgData?.width, height: imgData?.height }}
             className="max-h-[40vh] max-w-[300px] rounded-lg"
+            popWindowKey={`${message.messageId}img_${imgData.url}`}
           />
         </div>
       );
