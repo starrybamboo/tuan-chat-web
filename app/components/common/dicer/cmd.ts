@@ -119,17 +119,16 @@ export class RuleNameSpace {
    * 执行命令
    * @param {string} name - 命令名称或别名
    * @param {string[]} args - 命令参数数组
-   * @param {UserRole} operator - 操作者信息
-   * @param {UserRole[]} Ats - At列表信息数组
+   * @param {UserRole[]} mentioned - At列表信息数组
    * @param {CPI} cpi -CmdPre接口对象
    * @param {ExecutorProp} prop - 从聊天室获取的原始信息记录
    * @returns {boolean} 命令执行结果
    * @throws {Error} 当命令不存在时抛出错误
    */
-  execute(name: string, args: string[], operator: UserRole, Ats: UserRole[], cpi: CPI, prop: ExecutorProp): boolean {
+  execute(name: string, args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): boolean {
     const cmd = this.cmdMap.get(name);
     if (cmd) {
-      return cmd.solve(args, operator, Ats, cpi, prop);
+      return cmd.solve(args, mentioned, cpi, prop);
     }
     throw new Error(`Command ${name} not found in rule ${this.name}`);
   }
@@ -143,7 +142,7 @@ export class RuleNameSpace {
  */
 export class CommandExecutor {
   cmdInfo: CommandInfo;
-  solve: (args: string[], operator: UserRole, Ats: UserRole[], cpi: CPI, prop: ExecutorProp) => boolean;
+  solve: (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp) => boolean;
 
   /**
    * 构造函数
@@ -154,7 +153,7 @@ export class CommandExecutor {
    * @param {string} usage - 用法说明
    * @param {Function} solve - 命令执行函数
    */
-  constructor(name: string, alias: string[], description: string, examples: string[], usage: string, solve: (args: string[], operator: UserRole, Ats: UserRole[], cpi: CPI, prop: ExecutorProp) => boolean) {
+  constructor(name: string, alias: string[], description: string, examples: string[], usage: string, solve: (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp) => boolean) {
     this.cmdInfo = { name, alias, description, examples, usage };
     this.solve = solve;
   }

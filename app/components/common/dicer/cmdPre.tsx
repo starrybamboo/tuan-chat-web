@@ -4,9 +4,10 @@ import type { ChatMessageRequest, RoleAbility, UserRole } from "../../../../api"
 import { useRoomExtra } from "@/components/chat/hooks";
 // type DiceResult = { x: number; y: number; rolls: number[]; total: number };
 
+import { RoomContext } from "@/components/chat/roomContext";
 import CmdExeCoc from "@/components/common/dicer/cmdExeCoc";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { useEffect, useRef } from "react";
+import { use, useEffect, useRef } from "react";
 import { useParams } from "react-router";
 import {
   useGetRoleAbilitiesQuery,
@@ -119,8 +120,12 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
 
   const globalContext = useGlobalContext();
   const webSocketUtils = globalContext.websocketUtils;
+  const roomContext = use(RoomContext);
+  const curRoleId = roomContext.curRoleId; // 当前选中的角色id
+  const curAvatarId = roomContext.curAvatarId; // 当前选中的角色的立绘id
+
   const messageRequest: ChatMessageRequest = {
-    roomId: 0,
+    roomId,
     messageType: 1,
     content: "",
     replayMessageId: 0,
@@ -129,8 +134,8 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
 
   const sendMsg = (prop: ExecutorProp, message: string) => {
     messageRequest.content = message;
-    messageRequest.roleId = prop.dicerRoleId;
-    messageRequest.avatarId = prop.dicerAvatarId;
+    messageRequest.roleId = curRoleId;
+    messageRequest.avatarId = curAvatarId;
     webSocketUtils.send({ type: 3, data: messageRequest });
   };
 
@@ -143,6 +148,10 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
   };
 
   const setRoleAbilityList = (roleId: number, ability: RoleAbility): void => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const abilityQuery = useGetRoleAbilitiesQuery(roleId);
+    const abilityList = abilityQuery.data?.data ?? [];
+    const curAbility = abilityList.find(a => a.ruleId === ruleId);
     if (curAbility) {
       updateAbilityMutation.mutate({
         abilityId: curAbility.abilityId ?? -1,
