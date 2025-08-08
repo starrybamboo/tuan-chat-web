@@ -1,9 +1,12 @@
 import type { ModuleData } from "./constants";
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
+import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
+import { useMemo } from "react";
 import { useParams } from "react-router";
 import Author from "./author";
 import ContentTab from "./contentTab";
 import IssueTab from "./issueTab";
+// import { useCloneModule } from "./moduleUtils";
 import PrTab from "./prTab";
 import userContent from "./readmeDemo.md?raw";
 
@@ -27,7 +30,15 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
     "原创",
   ];
   const params = useParams();
+  // const navigate = useNavigate();
   const moduleId = params.id;
+
+  // 获取 moduleInfo 数据
+  const { data: moduleInfoData, isLoading, error } = useModuleInfoQuery(Number(moduleId!));
+  const moduleInfo = useMemo(() => moduleInfoData?.data?.responses || [], [moduleInfoData]);
+
+  // 在组件层级使用 CloneModule hooks
+  // const { cloneModule, isLoading: isCloning } = useCloneModule(moduleInfoData, moduleData);
 
   // 构建信息数组，只包含有数据的字段
   const infos = [
@@ -50,7 +61,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
     },
     moduleData.authorName && { label: "作者", value: moduleData.authorName },
     moduleData.userId && { label: "上传者ID", value: String(moduleData.userId) },
-    moduleData.ruleId && { label: "规则", value: String(moduleData.ruleId) },
+    moduleData.ruleName && { label: "规则", value: String(moduleData.ruleName) },
     moduleData.createTime && { label: "创建时间", value: new Date(moduleData.createTime).toLocaleDateString("zh-CN") },
     moduleData.updateTime && { label: "最后更新", value: new Date(moduleData.updateTime).toLocaleString("zh-CN") },
   ].filter((item): item is { label: string; value: string } => Boolean(item)); // 类型断言过滤
@@ -73,12 +84,12 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
         <div className="w-full md:w-1/2 flex flex-col justify-between gap-4">
           <div className="flex-1 flex flex-col justify-center">
             {/* 模组名称 */}
-            <h1 className="text-5xl mb-2 font-bold text-primary md:text-white">
+            <h1 className="text-5xl mb-2 font-bold text-accent md:text-white">
               {moduleData.moduleName}
             </h1>
             <div className="divider m-0" />
             {/* 模组简介 */}
-            <p className="text-base font-semibold tracking-wide leading-relaxed mt-2 text-primary md:text-white line-clamp-4">
+            <p className="text-base font-semibold tracking-wide leading-relaxed mt-2 text-accent md:text-white line-clamp-4">
               {moduleData.description}
             </p>
           </div>
@@ -88,7 +99,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
               {/* 字段名列 */}
               <div className="flex flex-col gap-2">
                 {infos.map(info => (
-                  <h3 key={`label-${info.label}`} className="text-base font-bold text-secondary">{info.label}</h3>
+                  <h3 key={`label-${info.label}`} className="text-base font-bold text-accent">{info.label}</h3>
                 ))}
               </div>
               {/* 竖直分隔线 */}
@@ -96,7 +107,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
               {/* 字段值列 */}
               <div className="flex flex-col gap-2">
                 {infos.map(info => (
-                  <h4 key={`value-${info.label}`} className="text-base text-primary">{info.value}</h4>
+                  <h4 key={`value-${info.label}`} className="text-base text-accent">{info.value}</h4>
                 ))}
               </div>
             </div>
@@ -108,7 +119,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
         {/* tag渲染，最左侧 */}
         <div className="flex flex-row flex-wrap gap-2 md:mr-auto md:ml-0 mb-2 md:mb-0">
           {tags.map(tag => (
-            <span key={tag} className="badge badge-primary badge-outline px-3 py-1 text-xs font-semibold">
+            <span key={tag} className="badge badge-accent badge-outline px-3 py-1 text-xs font-semibold">
               {tag}
             </span>
           ))}
@@ -117,7 +128,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
         <div className="inline-flex rounded-md border border-base-300 flex-shrink-0 mr-3">
           <button type="button" className="btn-md flex items-center gap-1 px-4 py-2 rounded-l-md border-r border-base-300 hover:bg-base-200 focus:bg-base-200 transition-colors cursor-pointer">
             {/* 眼睛图标 */}
-            <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
@@ -125,13 +136,13 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
             <span className="ml-1 text-xs bg-base-100 rounded px-1">0</span>
           </button>
           <button type="button" className="btn-md flex items-center gap-1 px-4 py-2 border-r border-base-200 hover:bg-base-200 focus:bg-base-200 transition-colors cursor-pointer">
-            <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+            <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
             <span className="text-sm">Fork</span>
             <span className="ml-1 text-xs bg-base-100 rounded px-1">0</span>
           </button>
           <button type="button" className="btn-md flex items-center gap-1 px-4 py-2 rounded-r-md hover:bg-base-200 focus:bg-base-200 transition-colors cursor-pointer">
             {/* 五角星图标 */}
-            <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
             </svg>
             <span className="text-sm">Star</span>
@@ -141,13 +152,13 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
         {/* 原有按钮 */}
         <button
           type="button"
-          className="cursor-pointer z-50 relative flex items-center px-4 py-4 border-4 border-primary bg-transparent text-black font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0"
+          className="cursor-pointer z-50 relative flex items-center px-4 py-4 border-4 border-acctext-accent bg-transparent text-accent font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0"
         >
           <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
           {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
-          <span className="relative z-10 text-primary group-hover:text-white transition-colors duration-300">应用至群聊</span>
+          <span className="relative z-10 text-accent group-hover:text-white transition-colors duration-300">应用至群聊</span>
           <svg
-            className="w-8 h-8 relative z-10 text-primary group-hover:text-white transition-colors duration-300"
+            className="w-8 h-8 relative z-10 text-accent group-hover:text-white transition-colors duration-300"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -165,7 +176,37 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
       <div className="rounded-md overflow-hidden mb-32 flex flex-col gap-2">
         {/* 作者信息常规展示 */}
         <div className="mb-2">
-          <Author userId={moduleData.userId} />
+          <div className="card bg-base-200 w-full mb-8">
+            <div className="card-body p-4">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row items-center gap-4">
+                  <Author userId={moduleData.userId} />
+                  <div className="flex gap-4 items-center justify-end flex-1">
+                    <button type="button" className="btn btn-outline  btn-ghost rounded-md">
+                      Branch
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-ghost rounded-md"
+                      // disabled={isCloning}
+                      // onClick={async () => {
+                      //   try {
+                      //     await cloneModule();
+                      //     navigate("/create");
+                      //   }
+                      //   catch (error) {
+                      //     console.error("克隆模组失败:", error);
+                      //   }
+                      // }}
+                    >
+                      Clone
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
         <div className="tabs tabs-border">
           <label className="tab">
@@ -192,7 +233,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
             Content
           </label>
           <div className="tab-content">
-            <ContentTab moduleId={Number(moduleId!)} />
+            <ContentTab moduleInfo={moduleInfo} moduleId={Number(moduleId!)} isLoading={isLoading} error={error} />
           </div>
           <label className="tab">
             <input type="radio" name="moduleDetailTab" />

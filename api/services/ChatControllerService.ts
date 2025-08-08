@@ -10,7 +10,6 @@ import type { ApiResultMessage } from '../models/ApiResultMessage';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { ChatMessagePageRequest } from '../models/ChatMessagePageRequest';
 import type { ChatMessageRequest } from '../models/ChatMessageRequest';
-import type { InsertMessageRequest } from '../models/InsertMessageRequest';
 import type { Message } from '../models/Message';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
@@ -145,29 +144,6 @@ export class ChatControllerService {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/chat/message/page',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 在指定位置插入消息
-     * 根据beforeMessageId和afterMessageId确定插入位置，至少需要提供一个，KP权限才能插入消息
-     * @param requestBody
-     * @returns ApiResultMessage OK
-     * @throws ApiError
-     */
-    public insertMessage(
-        requestBody: InsertMessageRequest,
-    ): CancelablePromise<ApiResultMessage> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/capi/chat/message/insert',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

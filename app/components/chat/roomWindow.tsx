@@ -281,7 +281,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // 当输入框内容发生变动的时候，将自身的状态改变为输入状态
   useEffect(() => {
-    if (!userId)
+    if (!userId || roomId <= 0)
       return;
 
     const chatStatusEvent: ChatStatusEvent = {
@@ -570,20 +570,17 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     if (disableSendMessage)
       return;
     setIsSubmitting(true);
-    if (!inputText.trim() && !imgFiles.length) {
-      return;
-    }
     // 发送图片
     for (let i = 0; i < imgFiles.length; i++) {
       const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
-      const { width, height } = await getImageSize(imgFiles[i]);
-      sendImg(imgDownLoadUrl, width, height);
+      const { width, height, size } = await getImageSize(imgFiles[i]);
+      sendImg(imgDownLoadUrl, width, height, size);
     }
     // 发送表情
     updateImgFiles([]);
     for (let i = 0; i < emojiUrls.length; i++) {
-      const { width, height } = await getImageSize(emojiUrls[i]);
-      sendImg(emojiUrls[i], width, height);
+      const { width, height, size } = await getImageSize(emojiUrls[i]);
+      sendImg(emojiUrls[i], width, height, size);
     }
     updateEmojiUrls([]);
     // 发送文本消息
@@ -614,7 +611,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     setIsSubmitting(false);
   };
 
-  function sendImg(img: string, width: number, height: number) {
+  function sendImg(img: string, width: number, height: number, size: number) {
     const messageRequest: ChatMessageRequest = {
       content: "",
       roomId,
@@ -622,7 +619,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       avatarId: curAvatarId,
       messageType: 2,
       extra: {
-        size: 0,
+        size,
         url: img,
         fileName: img.split("/").pop() || "error when extract fileName",
         width,
@@ -967,7 +964,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   </div>
                   {/* 预览要发送的图片 */}
                   {(imgFiles.length > 0 || emojiUrls.length > 0) && (
-                    <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
+                    <div className="flex flex-row gap-x-3 overflow-x-auto pb-2 pl-3">
                       {imgFiles.map((file, index) => (
                         <BetterImg
                           src={file}

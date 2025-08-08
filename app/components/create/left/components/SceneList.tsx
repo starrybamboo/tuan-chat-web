@@ -1,9 +1,7 @@
 import type { StageEntityResponse } from "api";
-import { PopWindow } from "@/components/common/popWindow";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
-import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
-import { useState } from "react";
+import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import Section from "./section";
 
 // 场景表单项
@@ -23,11 +21,6 @@ function SceneListItem(
     >
       {/* 左侧内容 */}
       <div className="flex items-center gap-2">
-        <img
-          src={scene.entityInfo!.avatar || "./favicon.ico"}
-          alt="avatar"
-          style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
-        />
         <div className="flex flex-col">
           <p className="self-baseline">{name}</p>
           <p className="text-xs text-gray-500 self-baseline mt-0.5 line-clamp-1">{scene.entityInfo!.description}</p>
@@ -74,18 +67,11 @@ export default function SceneList({ stageId }: { stageId: number }) {
 
   // 模组相关
   const { data, isSuccess: _isSuccess } = useQueryEntitiesQuery(stageId);
+  const { mutate: updateMap } = useUpdateEntityMutation(stageId);
   const list = data?.data!.filter(i => i.entityType === 3);
+  // 同步到地图
+  const mapData = data?.data!.filter(i => i.entityType === 5)[0];
   const isEmpty = !list || list!.length === 0;
-
-  // 控制弹窗
-  const [isOpen, setIsOpen] = useState(false);
-  const handleOpen = () => {
-    setIsOpen(true);
-  };
-
-  const handleClose = () => {
-    setIsOpen(false);
-  };
 
   // 添加模组场景
   const { mutate: addScene } = useAddEntityMutation(3);
@@ -93,18 +79,41 @@ export default function SceneList({ stageId }: { stageId: number }) {
   const { mutate: deleteScene } = useDeleteEntityMutation();
 
   const handleAddSceneSubmit = () => {
+    let index = 1;
+    let name = "新场景1";
+    while (list?.some(i => i.name === name)) {
+      name = `新场景${index}`;
+      index++;
+    }
     addScene({
       stageId,
-      name: "新场景",
+      name,
       entityInfo: {
-        name: "新场景",
         description: "无",
+        tip: "无",
+      },
+    }, {
+      onSuccess: () => {
+        if (mapData) {
+          updateMap({
+            id: mapData.id!,
+            name: mapData.name,
+            entityType: 5,
+            entityInfo: {
+              ...mapData.entityInfo,
+              sceneMap: {
+                ...mapData.entityInfo!.sceneMap,
+                [name]: [],
+              },
+            },
+          });
+        }
       },
     });
   };
 
   return (
-    <Section label="场景" onClick={handleOpen}>
+    <Section label="场景" onClick={handleAddSceneSubmit}>
       <>
         {isEmpty
           ? (
@@ -119,6 +128,30 @@ export default function SceneList({ stageId }: { stageId: number }) {
                 name={i!.name || "未命名"}
                 onDelete={() => {
                   removeModuleTabItem(i.id!.toString());
+                  if (mapData) {
+                    const oldMap = mapData?.entityInfo?.sceneMap;
+                    const newMap: Record<string, any> = {};
+                    if (oldMap) {
+                      Object.entries(oldMap).forEach(([key, value]) => {
+                        if (key !== i.name) {
+                          if (Array.isArray(value)) {
+                            newMap[key] = value.filter(item => item !== i.name);
+                          }
+                          else {
+                            newMap[key] = value;
+                          }
+                        }
+                      });
+                    }
+                    updateMap({
+                      id: mapData.id!,
+                      entityType: 5,
+                      entityInfo: {
+                        ...mapData.entityInfo,
+                        sceneMap: newMap,
+                      },
+                    });
+                  }
                   deleteScene({
                     id: i.id!,
                     stageId,
@@ -129,24 +162,6 @@ export default function SceneList({ stageId }: { stageId: number }) {
               />
             )))}
       </>
-      <PopWindow isOpen={isOpen} onClose={handleClose}>
-        <div className="p-4 space-y-4">
-          <p className="text-xl font-bold">添加场景</p>
-          <div className="flex justify-end space-x-2">
-            <button
-              type="button"
-              className="btn btn-primary btn-md"
-              onClick={() => {
-                handleAddSceneSubmit();
-                handleClose();
-              }}
-              title="创建一个全新的模组场景"
-            >
-              创建场景
-            </button>
-          </div>
-        </div>
-      </PopWindow>
     </Section>
   );
 }

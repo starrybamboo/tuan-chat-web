@@ -121,7 +121,7 @@ export default function RightChatView(
       >
         {currentContactUserId
           ? (
-              // 会溢出的消息列表容器
+            // 会溢出的消息列表容器
               <div className="space-y-4">
                 {/* 加载更多按钮 */}
                 {!directMessageQuery.isLastPage && (

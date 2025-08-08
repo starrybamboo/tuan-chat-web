@@ -14,6 +14,7 @@ interface SceneNodeProps {
     description?: string;
     tip?: string;
     moduleSceneName?: string;
+    children?: React.ReactNode;
   };
   selected?: boolean;
 }
@@ -44,9 +45,9 @@ function SceneNode({ data, selected }: SceneNodeProps) {
         }`}
         onClick={handleNodeClick}
       >
-        <div className="flex items-center justify-center text-primary ">
+        <div className="flex items-center justify-center">
           <span className="text-xl font-black leading-none mr-4 mb-4">「 </span>
-          <span className="text-2xl font-black font-mono tracking-widest">{data.label}</span>
+          <span className="text-2xl font-black tracking-widest">{data.label}</span>
           <span className="text-xl font-black leading-none ml-4 mt-4"> 」</span>
         </div>
         {/* 连接点... */}
@@ -75,12 +76,16 @@ function SceneNode({ data, selected }: SceneNodeProps) {
       {/* 场景大图弹窗 */}
       <PopWindow isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)}>
         <div className="w-[50vw]">
-          <ItemDetail
-            itemName={data.label}
-            itemList={[{ ...data, name: data.label, entityInfo: { description: data.description, tip: data.tip } }]}
-            entityType="scene"
-            moduleInfo={data.moduleInfo}
-          />
+          {
+            data.children || (
+              <ItemDetail
+                itemName={data.label}
+                itemList={[{ ...data, name: data.label, entityInfo: { description: data.description, tip: data.tip } }]}
+                entityType="scene"
+                moduleInfo={data.moduleInfo}
+              />
+            )
+          }
         </div>
       </PopWindow>
     </div>

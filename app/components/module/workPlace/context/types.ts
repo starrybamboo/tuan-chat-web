@@ -30,7 +30,8 @@ export type SceneModuleItem = BaseModuleTabItem<ModuleItemEnum.SCENE>;
 export type StageModuleItem = BaseModuleTabItem<ModuleItemEnum.STAGE>;
 export type CommitModuleItem = BaseModuleTabItem<ModuleItemEnum.COMMIT>;
 export type LocationModuleItem = BaseModuleTabItem<ModuleItemEnum.LOCATION>;
-export type ModuleTabItem = RoleModuleItem | ItemModuleItem | SceneModuleItem | StageModuleItem | CommitModuleItem | LocationModuleItem;
+export type MapModuleItem = BaseModuleTabItem<ModuleItemEnum.MAP>;
+export type ModuleTabItem = RoleModuleItem | ItemModuleItem | SceneModuleItem | StageModuleItem | CommitModuleItem | LocationModuleItem | MapModuleItem;
 
 export enum ModuleItemEnum {
   ROLE = "role",
@@ -39,6 +40,7 @@ export enum ModuleItemEnum {
   STAGE = "stage",
   COMMIT = "commit",
   LOCATION = "location",
+  MAP = "map",
 }
 
 export enum ModuleListEnum {

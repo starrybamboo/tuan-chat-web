@@ -59,6 +59,10 @@
       "description": "用户关注相关接口"
     },
     {
+      "name": "message-session",
+      "description": "消息会话相关接口"
+    },
+    {
       "name": "CommunityMember",
       "description": "社区成员管理"
     },
@@ -10901,31 +10905,31 @@
         }
       }
     },
-    "/capi/chat/message/page": {
+    "/capi/chat/session/unsubscribe": {
       "post": {
         "tags": [
-          "ChatController"
+          "message-session"
         ],
-        "summary": "按页获取消息列表",
-        "description": "用的是游标翻页",
-        "operationId": "getMsgPage",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChatMessagePageRequest"
-              }
+        "description": "取消订阅房间",
+        "operationId": "unsubscribeRoom",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
             }
-          },
-          "required": true
-        },
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseChatMessageResponse"
+                  "$ref": "#/components/schemas/ApiResultBoolean"
                 }
               }
             }
@@ -10973,19 +10977,90 @@
         }
       }
     },
-    "/capi/chat/message/insert": {
+    "/capi/chat/session/subscribe": {
       "post": {
         "tags": [
-          "ChatController"
+          "message-session"
         ],
-        "summary": "在指定位置插入消息",
-        "description": "根据beforeMessageId和afterMessageId确定插入位置，至少需要提供一个，KP权限才能插入消息",
-        "operationId": "insertMessage",
+        "description": "订阅房间",
+        "operationId": "subscribeRoom",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultBoolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/chat/session/read": {
+      "post": {
+        "tags": [
+          "message-session"
+        ],
+        "description": "更新已读位置",
+        "operationId": "updateReadPosition",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/InsertMessageRequest"
+                "$ref": "#/components/schemas/SessionReadUpdateRequest"
               }
             }
           },
@@ -10997,7 +11072,79 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultMessage"
+                  "$ref": "#/components/schemas/ApiResultBoolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/chat/message/page": {
+      "post": {
+        "tags": [
+          "ChatController"
+        ],
+        "summary": "按页获取消息列表",
+        "description": "用的是游标翻页",
+        "operationId": "getMsgPage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatMessagePageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseChatMessageResponse"
                 }
               }
             }
@@ -14468,6 +14615,139 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultInteger"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/chat/session/room": {
+      "get": {
+        "tags": [
+          "message-session"
+        ],
+        "description": "获取用户在指定房间的会话信息",
+        "operationId": "getRoomSession",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultMessageSessionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/chat/session/list": {
+      "get": {
+        "tags": [
+          "message-session"
+        ],
+        "description": "获取用户的所有会话列表",
+        "operationId": "getUserSessions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListMessageSessionResponse"
                 }
               }
             }
@@ -20475,6 +20755,26 @@
         },
         "description": "检查是否已收藏请求"
       },
+      "SessionReadUpdateRequest": {
+        "required": [
+          "roomId",
+          "syncId"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "房间ID",
+            "format": "int64"
+          },
+          "syncId": {
+            "type": "integer",
+            "description": "已读消息的sync_id",
+            "format": "int64"
+          }
+        },
+        "description": "更新已读位置请求"
+      },
       "ChatMessageRequest": {
         "required": [
           "extra",
@@ -20595,54 +20895,6 @@
           }
         },
         "description": "游标翻页返回"
-      },
-      "InsertMessageRequest": {
-        "required": [
-          "messageType",
-          "roomId"
-        ],
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "string",
-            "description": "消息内容"
-          },
-          "roomId": {
-            "type": "integer",
-            "description": "房间ID",
-            "format": "int64"
-          },
-          "messageType": {
-            "type": "integer",
-            "description": "消息类型",
-            "format": "int32"
-          },
-          "extra": {
-            "type": "object",
-            "description": "消息体"
-          },
-          "roleId": {
-            "type": "integer",
-            "description": "角色ID",
-            "format": "int64"
-          },
-          "avatarId": {
-            "type": "integer",
-            "description": "头像ID",
-            "format": "int64"
-          },
-          "beforeMessageId": {
-            "type": "integer",
-            "description": "插入位置前面的消息ID",
-            "format": "int64"
-          },
-          "afterMessageId": {
-            "type": "integer",
-            "description": "插入位置后面的消息ID",
-            "format": "int64"
-          }
-        },
-        "description": "插入消息请求"
       },
       "RoleAvatarCreateRequest": {
         "type": "object",
@@ -21625,6 +21877,95 @@
           },
           "data": {
             "$ref": "#/components/schemas/CommentVO"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ApiResultMessageSessionResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MessageSessionResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "MessageSessionResponse": {
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "房间ID",
+            "format": "int64"
+          },
+          "lastReadSyncId": {
+            "type": "integer",
+            "description": "最后已读消息的sync_id",
+            "format": "int64"
+          },
+          "latestSyncId": {
+            "type": "integer",
+            "description": "房间最新消息的sync_id",
+            "format": "int64"
+          },
+          "lastActiveTime": {
+            "type": "string",
+            "description": "最后活跃时间",
+            "format": "date-time"
+          },
+          "lastMessageContent": {
+            "type": "string",
+            "description": "最新消息内容"
+          },
+          "lastMessageTime": {
+            "type": "string",
+            "description": "最新消息时间",
+            "format": "date-time"
+          }
+        },
+        "description": "消息会话响应"
+      },
+      "ApiResultListMessageSessionResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/MessageSessionResponse"
+            }
           }
         },
         "description": "基础返回体"

@@ -29,12 +29,29 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
 
   const itemInfo = itemData?.entityInfo;
 
+  // if (entityType === "scene") {
+  //   console.warn("props:", itemName, itemList, entityType);
+  //   console.warn("itemData:", itemData);
+  //   console.warn("itemInfo:", itemInfo);
+  // }
+
+  // 规范化图片路径
+  const normalizeImagePath = (imagePath?: string) => {
+    if (!imagePath)
+      return undefined;
+    // 如果是相对路径 ./favicon.ico，转换为绝对路径 /favicon.ico
+    if (imagePath.startsWith("./")) {
+      return imagePath.substring(1);
+    }
+    return imagePath;
+  };
+
   const normalizedItemInfo = itemInfo
     ? {
         name: itemData.name,
         description: itemInfo.description,
         tip: itemInfo.tip,
-        image: entityType === "scene" ? undefined : itemInfo.image,
+        image: entityType === "scene" ? undefined : normalizeImagePath(itemInfo.image),
         sceneItems: itemData.sceneItems || [],
         sceneRoles: itemData.sceneRoles || [],
         sceneLocations: itemData.sceneLocations || [],
@@ -52,7 +69,7 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
   return (
     <div className="h-full w-full flex gap-2">
       <div className="flex flex-col gap-4 p-4 bg-base-100 rounded-lg w-full overflow-y-auto">
-        <h1 className="text-3xl font-bold text-secondary">{normalizedItemInfo?.name || "未命名"}</h1>
+        <h1 className="text-3xl font-bold text-accent">{normalizedItemInfo?.name || "未命名"}</h1>
         <div className="divider my-0" />
         {entityType !== "scene" && normalizedItemInfo?.image && (
           <div className="flex flex-col gap-2">
@@ -62,6 +79,10 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
                 src={normalizedItemInfo.image}
                 alt={normalizedItemInfo.name}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  // 如果图片加载失败，使用默认图片
+                  (e.target as HTMLImageElement).src = "/favicon.ico";
+                }}
               />
             </div>
           </div>
@@ -69,8 +90,8 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
         {/* 物品描述（统一为SceneDetail样式） */}
         {normalizedItemInfo?.description && (
           <div className="w-full">
-            <h4 className="font-semibold text-lg text-secondary mb-2">描述</h4>
-            <p className="bg-info/10 text-info-content p-3 rounded-lg">
+            <h4 className="font-semibold text-lg text-accent mb-2">描述</h4>
+            <p className="bg-info/10 text-accent p-3 rounded-lg">
               {normalizedItemInfo.description}
             </p>
           </div>
@@ -79,7 +100,7 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
         {normalizedItemInfo?.tip && (
           <div className="w-full">
             <h4 className="font-semibold text-lg mb-2 text-orange-600">KP提示</h4>
-            <p className="text-gray-700 bg-orange-50 p-3 rounded-lg border-l-4 border-orange-200">
+            <p className="text-accent bg-orange-50/10 p-3 rounded-lg border-l-4 border-orange-200">
               {normalizedItemInfo.tip}
             </p>
           </div>
@@ -148,7 +169,15 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
                     <h4 className="font-bold text-lg mb-2 text-primary">{selectedEntity}</h4>
                     {selectedEntityInfo.image && (
                       <div className="mb-2">
-                        <img src={selectedEntityInfo.image} alt={selectedEntityInfo.name || selectedEntity || ""} className="w-24 h-24 object-cover rounded" />
+                        <img
+                          src={normalizeImagePath(selectedEntityInfo.image)}
+                          alt={selectedEntityInfo.name || selectedEntity || ""}
+                          className="w-24 h-24 object-cover rounded"
+                          onError={(e) => {
+                            // 如果图片加载失败，使用默认图片
+                            (e.target as HTMLImageElement).src = "/favicon.ico";
+                          }}
+                        />
                       </div>
                     )}
                     {selectedEntityInfo.description && (
@@ -166,9 +195,12 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
                   </div>
                 )
               : (
-                  Array.isArray(moduleInfo) && moduleInfo.length > 0 && (
+                  (normalizedItemInfo?.sceneItems?.length > 0
+                    || normalizedItemInfo?.sceneRoles?.length > 0
+                    || normalizedItemInfo?.sceneLocations?.length > 0) && (
                     <div className="mt-6 p-4 rounded-lg border border-base-300 bg-base-200">
-                      <h4 className="font-bold text-lg mb-20 text-primary">请选择一个实体以查看详情：</h4>
+                      <h4 className="font-bold text-lg mb-2 text-primary">请选择一个实体以查看详情</h4>
+                      <p className="text-base-content/60 text-sm">点击上方的实体标签来查看详细信息</p>
                     </div>
                   )
                 )}

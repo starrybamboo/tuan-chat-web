@@ -6,11 +6,12 @@ import {
   ReactFlow,
   useReactFlow,
 } from "@xyflow/react";
+import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 // import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import dagre from "dagre";
 import { useCallback, useEffect, useMemo } from "react";
 // import { useParams } from "react-router";
-import { getEnhancedSceneList } from "../../../../detail/moduleUtils";
+import { getEntityListByType } from "../../../../detail/moduleUtils";
 import SceneNode from "./NewSceneNode";
 import "@xyflow/react/dist/style.css";
 
@@ -21,7 +22,7 @@ interface NewSceneGraphProps {
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
-  moduleData: any;
+  moduleId: number;
   isLoading: boolean;
   error: any;
 }
@@ -49,12 +50,12 @@ export default function NewSceneGraph(props: NewSceneGraphProps) {
     setEdges,
     onNodesChange,
     onEdgesChange,
-    moduleData,
+    moduleId,
     isLoading,
     error,
   } = props;
-  const moduleInfo = moduleData;
 
+  const { data: moduleInfo } = useModuleInfoQuery(Number(moduleId!));
   // 根据sceneMap和增强场景数据生成节点和边
   const { initialNodes, initialEdges } = useMemo(() => {
     // 如果还在加载或没有数据，返回空数组
@@ -63,7 +64,7 @@ export default function NewSceneGraph(props: NewSceneGraphProps) {
     }
 
     const sceneMap = moduleInfo?.data?.moduleMap?.sceneMap || {};
-    const enhancedScenes = getEnhancedSceneList(moduleInfo);
+    const enhancedScenes = getEntityListByType(moduleInfo, "scene");
     const scenes = Object.keys(sceneMap);
 
     // 生成节点（先不设置 position）
@@ -77,11 +78,11 @@ export default function NewSceneGraph(props: NewSceneGraphProps) {
           moduleInfo: moduleInfo.data?.responses,
           label: sceneName,
           idx: scenes.indexOf(sceneName),
-          sceneItems: sceneData?.sceneItems || [],
-          sceneRoles: sceneData?.sceneRoles || [],
-          sceneLocations: sceneData?.sceneLocations || [],
           description: sceneData?.entityInfo?.description || "",
           tip: sceneData?.entityInfo?.tip || "",
+          scenelocations: sceneData?.entityInfo?.locations || [],
+          sceneRoles: sceneData?.entityInfo?.roles || [],
+          sceneItems: sceneData?.entityInfo?.items || [],
           moduleSceneName: sceneData?.entityInfo?.moduleSceneName || sceneName,
         },
       };
