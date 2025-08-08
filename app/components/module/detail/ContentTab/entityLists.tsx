@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getEnhancedSceneList, getEntityListByType } from "../moduleUtils";
+import { getEntityListByType } from "../moduleUtils";
 import ItemDetail from "./scene/ItemDetail";
 
 function EntityListItem(
@@ -43,9 +43,6 @@ export default function EntityList({ moduleData: moduleInfo, entityType = "item"
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
   const entityList: any[] = useMemo(() => {
-    if (entityType === "scene") {
-      return getEnhancedSceneList(moduleInfo);
-    }
     return getEntityListByType(moduleInfo, entityType);
   }, [moduleInfo, entityType]);
 
