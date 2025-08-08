@@ -6,7 +6,6 @@ import { useRoomExtra } from "@/components/chat/hooks";
 
 import { RoomContext } from "@/components/chat/roomContext";
 import CmdExeCoc from "@/components/common/dicer/cmdExeCoc";
-import { useGlobalContext } from "@/components/globalContextProvider";
 import { use, useEffect, useRef } from "react";
 import { useParams } from "react-router";
 import {
@@ -14,6 +13,7 @@ import {
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
+import { tuanchat } from "../../../../api/instance";
 import { useGetRoleQuery } from "../../../../api/queryHooks";
 import { parseDiceExpression, roll, rollDice } from "./dice";
 
@@ -118,8 +118,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
   const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
   const [initiativeList, setInitiativeList] = useRoomExtra<Initiative[]>(roomId, "initiativeList", []);
 
-  const globalContext = useGlobalContext();
-  const webSocketUtils = globalContext.websocketUtils;
   const roomContext = use(RoomContext);
   const curRoleId = roomContext.curRoleId; // 当前选中的角色id
   const curAvatarId = roomContext.curAvatarId; // 当前选中的角色的立绘id
@@ -136,7 +134,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     messageRequest.content = message;
     messageRequest.roleId = curRoleId;
     messageRequest.avatarId = curAvatarId;
-    webSocketUtils.send({ type: 3, data: messageRequest });
+    tuanchat.chatController.sendMessageAiResponse(messageRequest);
   };
 
   const getRoleAbilityList = (roleId: number): RoleAbility => {

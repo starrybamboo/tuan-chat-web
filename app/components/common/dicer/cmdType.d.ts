@@ -6,16 +6,7 @@ interface CommandInfo { // eslint-disable-line ts/consistent-type-definitions
   description: string;
   examples: string[];
   usage: string;
-};
-
-// interface CommandResult  { // eslint-disable-line
-//   success: boolean; // 执行状态：true 成功，false 失败
-//   data?: any; // 成功时返回的业务结果（如骰子点数、统计数据）
-//   error?: { // 失败时的错误详情
-//     type: string; // 错误类型（如 'paramInvalid'、'ruleNotSupported'）
-//     message: string; // 错误描述（供日志或用户提示）
-//   };
-// }
+}
 
 interface CPI { // eslint-disable-line ts/consistent-type-definitions
   // 发送消息
