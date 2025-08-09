@@ -938,7 +938,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       >
                       </SparklesOutline>
                     </div>
-                    <div className="tooltip " data-tip="切换聊天气泡风格">
+                    <div className="tooltip" data-tip="切换聊天气泡风格">
                       <Bubble2
                         className="size-7 font-light jump_icon"
                         onClick={() => setUseChatBubbleStyle(!useChatBubbleStyle)}
@@ -947,9 +947,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     </div>
                   </div>
                   {/* 发送按钮 */}
-                  <div className="tooltip " data-tip="发送">
+                  <div className="tooltip" data-tip="发送">
                     <SendIcon
-                      className={`size-7 font-light ${disableSendMessage ? "cursor-not-allowed opacity-20 jump_icon" : ""}`}
+                      className={`size-7 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
                       onClick={handleMessageSubmit}
                     >
                     </SendIcon>
