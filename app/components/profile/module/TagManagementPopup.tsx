@@ -15,7 +15,8 @@ interface TagManagementPopupProps {
   targetId?: number;
 }
 
-const TAG_CONTENT_MAX = 20;
+const TAG_CONTENT_MAX = 20; // 标签内容的最大字数，未来可能会往低了调
+const MAX_TAGS = 8; // 最大标签数量
 
 export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
   isOpen,
@@ -35,6 +36,8 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
   const deleteTagMutation = useDeleteTagMutation();
   // Shake it!!!
   const [errorShakeKey, setErrorShakeKey] = useState(0);
+  // 标签数量超出
+  const [maxTagsWarning, setMaxTagsWarning] = useState(false);
   const colorClasses = {
     indigo: "bg-indigo-100 text-indigo-800 ring-indigo-500/10",
     blue: "bg-blue-100 text-blue-800 ring-blue-500/10",
@@ -61,6 +64,12 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
   const handleAddTag = async () => {
     if (newTag.trim() === "")
       return;
+    // 添加标签数量检查
+    if (tags.length >= MAX_TAGS) {
+      setMaxTagsWarning(true);
+      setTimeout(() => setMaxTagsWarning(false), 3000); // 3秒后自动消失
+      return;
+    }
     if (newTag.length > TAG_CONTENT_MAX) {
       setErrorShakeKey(prev => prev + 1);
       return;
@@ -232,6 +241,15 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
             {TAG_CONTENT_MAX}
             个字喔
           </div>
+          {
+            maxTagsWarning && (
+              <div className="text-error text-sm mt-2 animate-bounce pl-2">
+                最多只能创建
+                {MAX_TAGS}
+                个标签，请先删除不需要的标签
+              </div>
+            )
+          }
           {/* 这算彩蛋吗 */}
           <div
             className={`text-pink-800  overflow-hidden transition-all duration-300 ease-in-out pl-2 ${
@@ -354,6 +372,7 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
           <strong> 简短 </strong>
           的介绍你自己的成分，游戏时间，偏好，甚至是底线的地方
         </p>
+        <p>最多只能8个标签哦</p>
         <p>
           <span className="font-medium">示例：</span>
           <span className="tag bg-green-100 text-green-800 mx-1">周末党</span>
