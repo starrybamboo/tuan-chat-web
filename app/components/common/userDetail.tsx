@@ -1,5 +1,6 @@
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
+import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useState } from "react";
 import { Link } from "react-router";
@@ -192,6 +193,10 @@ export function UserDetail({ userId }: UserDetailProps) {
             </div>
           </div>
         </div>
+
+        {/* 用户标签 */}
+        <hr></hr>
+        <TagManagement userId={userId} size="compact"></TagManagement>
 
         {/* 次要信息 */}
         <div className="relative pl-8">
