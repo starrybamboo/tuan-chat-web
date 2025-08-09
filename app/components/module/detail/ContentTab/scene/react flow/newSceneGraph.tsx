@@ -9,7 +9,7 @@ import {
 import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 // import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import dagre from "dagre";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 // import { useParams } from "react-router";
 import { getEntityListByType } from "../../../../detail/moduleUtils";
 import SceneNode from "./NewSceneNode";
@@ -55,6 +55,20 @@ export default function NewSceneGraph(props: NewSceneGraphProps) {
     error,
   } = props;
 
+  // 检测是否为移动端
+  const [isMobile, setIsMobile] = useState(() => {
+    return typeof window !== "undefined" ? window.innerWidth < 768 : false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const { data: moduleInfo } = useModuleInfoQuery(Number(moduleId!));
   // 根据sceneMap和增强场景数据生成节点和边
   const { initialNodes, initialEdges } = useMemo(() => {
@@ -84,13 +98,13 @@ export default function NewSceneGraph(props: NewSceneGraphProps) {
           sceneRoles: sceneData?.entityInfo?.roles || [],
           sceneItems: sceneData?.entityInfo?.items || [],
           moduleSceneName: sceneData?.entityInfo?.moduleSceneName || sceneName,
+          isMobile, // 传递移动端标识
         },
       };
     });
 
     // 根据屏幕宽度动态设置分层方向
-    const isSmallScreen = typeof window !== "undefined" ? window.innerWidth < 768 : false;
-    const rankdir = isSmallScreen ? "TB" : "LR"; // TB: 垂直分层，LR: 水平分层
+    const rankdir = isMobile ? "TB" : "LR"; // TB: 垂直分层，LR: 水平分层
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
     dagreGraph.setGraph({ rankdir, nodesep: 60, ranksep: 120 });
@@ -163,7 +177,7 @@ export default function NewSceneGraph(props: NewSceneGraphProps) {
 
     // 应用布局算法
     return { initialNodes: nodes, initialEdges: edges };
-  }, [moduleInfo, isLoading]);
+  }, [moduleInfo, isLoading, isMobile]);
 
   // const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   // const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);

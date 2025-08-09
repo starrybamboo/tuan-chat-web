@@ -6,8 +6,6 @@ import { useParams } from "react-router";
 import Author from "./author";
 import ContentTab from "./contentTab";
 import IssueTab from "./issueTab";
-// import { useCloneModule } from "./moduleUtils";
-import PrTab from "./prTab";
 import userContent from "./readmeDemo.md?raw";
 
 function MainContent({ moduleData }: { moduleData: ModuleData }) {
@@ -68,7 +66,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
 
   return (
     <div className="flex-grow">
-      <div className="flex flex-col md:flex-row bg-transparent gap-10 mt-2 md:mt-20">
+      <div className="flex flex-col md:flex-row bg-transparent gap-4 md:gap-10 mt-2 md:mt-20">
         <div className="w-full md:w-1/2 flex items-center justify-center">
           <img
             className="aspect-square object-cover w-full"
@@ -84,9 +82,33 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
         <div className="w-full md:w-1/2 flex flex-col justify-between gap-4">
           <div className="flex-1 flex flex-col justify-center">
             {/* 模组名称 */}
-            <h1 className="text-5xl mb-2 font-bold text-accent md:text-white">
-              {moduleData.moduleName}
-            </h1>
+            <div className="flex items-center justify-between mb-2">
+              <h1 className="text-3xl md:text-5xl font-bold text-accent md:text-white flex-1">
+                {moduleData.moduleName}
+              </h1>
+              {/* 移动端应用按钮 */}
+              <button
+                type="button"
+                className="md:hidden cursor-pointer flex items-center px-3 py-2 border-2 border-accent bg-transparent text-accent font-bold text-sm overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0 ml-3"
+              >
+                <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
+                <span className="relative z-10 text-accent group-hover:text-white transition-colors duration-300">应用</span>
+                <svg
+                  className="w-5 h-5 relative z-10 text-accent group-hover:text-white transition-colors duration-300 ml-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </div>
             <div className="divider m-0" />
             {/* 模组简介 */}
             <p className="text-base font-semibold tracking-wide leading-relaxed mt-2 text-accent md:text-white line-clamp-4">
@@ -149,10 +171,10 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
             <span className="ml-1 text-xs bg-base-100 rounded px-1">0</span>
           </button>
         </div>
-        {/* 原有按钮 */}
+        {/* 原有按钮 - 只在桌面端显示 */}
         <button
           type="button"
-          className="cursor-pointer z-50 relative flex items-center px-4 py-4 border-4 border-acctext-accent bg-transparent text-accent font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0"
+          className="hidden md:flex cursor-pointer z-50 relative items-center px-4 py-4 border-4 border-acctext-accent bg-transparent text-accent font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0"
         >
           <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
           {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
@@ -173,37 +195,44 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
           </svg>
         </button>
       </div>
-      <div className="rounded-md overflow-hidden mb-32 flex flex-col gap-2">
+      <div className="rounded-md overflow-hidden mb-4 flex flex-col gap-2">
         {/* 作者信息常规展示 */}
         <div className="mb-2">
-          <div className="card bg-base-200 w-full mb-8">
-            <div className="card-body p-4">
+          <div className="card w-full mb-4 md:mb-8">
+            <div className="card-body p-2">
               <div className="flex flex-col gap-4">
-                <div className="flex flex-col md:flex-row items-center gap-4">
+                {/* 作者信息行 */}
+                <div className="flex flex-row items-center justify-center gap-4 w-full">
                   <Author userId={moduleData.userId} />
-                  <div className="flex gap-4 items-center justify-end flex-1">
+                  {/* 桌面端按钮组 */}
+                  <div className="hidden md:flex gap-4 items-center justify-end flex-1">
                     <button type="button" className="btn btn-outline  btn-ghost rounded-md">
                       Branch
                     </button>
                     <button
                       type="button"
                       className="btn btn-outline btn-ghost rounded-md"
-                      // disabled={isCloning}
-                      // onClick={async () => {
-                      //   try {
-                      //     await cloneModule();
-                      //     navigate("/create");
-                      //   }
-                      //   catch (error) {
-                      //     console.error("克隆模组失败:", error);
-                      //   }
-                      // }}
                     >
                       Clone
                     </button>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+          {/* 移动端按钮组 - 纵向排列 */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {/* Branch和Clone按钮行 */}
+            <div className="flex gap-2 justify-center">
+              <button type="button" className="btn btn-outline btn-ghost btn-sm rounded-md flex-1 max-w-32">
+                Branch
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline btn-ghost btn-sm rounded-md flex-1 max-w-32"
+              >
+                Clone
+              </button>
             </div>
           </div>
 
@@ -245,18 +274,6 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
           </label>
           <div className="tab-content bg-base-100">
             <IssueTab />
-          </div>
-
-          <label className="tab">
-            <input type="radio" name="moduleDetailTab" />
-            {/* Pull Request/合并 icon */}
-            <svg xmlns="http://www.w3.org/2000/svg" className="size-4 me-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 8V7a5 5 0 0 0-10 0v1m10 0v8a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V8m10 0H7" />
-            </svg>
-            Pull Request
-          </label>
-          <div className="tab-content bg-base-100">
-            <PrTab />
           </div>
         </div>
       </div>

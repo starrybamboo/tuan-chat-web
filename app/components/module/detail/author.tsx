@@ -37,20 +37,21 @@ export default function Author({ userId }: { userId?: number }) {
   }, []);
 
   return (
-    <>
+    <div className="flex items-center justify-center gap-4 bg-base-200 rounded-xl w-full md:w-fit min-w-fit p-4">
       {userInfoLoading
         ? (
-            <div className="skeleton w-16 h-16 rounded-full"></div>
+            <div className="skeleton w-16 h-16 rounded-full flex-shrink-0"></div>
           )
         : (
             <img
-              className="w-16 h-16 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+              className="w-16 h-16 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
               src={data.avatar}
               onClick={handleAvatarClick}
               alt="用户头像"
             />
           )}
-      <div className="flex flex-col justify-between">
+
+      <div className="flex flex-col justify-between min-w-0 flex-1">
         {userInfoLoading
           ? (
               <>
@@ -60,14 +61,17 @@ export default function Author({ userId }: { userId?: number }) {
             )
           : (
               <>
-                <h3 className="card-title text-lg">{data.name}</h3>
-                <p className="text-sm text-base-content/80">{data.description}</p>
+                <h3 className="card-title text-lg whitespace-nowrap">{data.name}</h3>
+                <p className="text-sm text-base-content/80 whitespace-nowrap overflow-hidden text-ellipsis">{data.description}</p>
               </>
             )}
       </div>
-      <div className="divider md:divider-horizontal m-0" />
-      {/* 只有userId不等于当前context中的ID时才渲染FollowButton */}
-      {userId && userId !== contextUserId && <FollowButton userId={userId} />}
+      {/* 关注按钮紧跟在用户信息右侧 */}
+      {userId && userId !== contextUserId && (
+        <div className="flex-shrink-0">
+          <FollowButton userId={userId} size="btn-lg" width="w-28" />
+        </div>
+      )}
 
       {/* UserDetail 弹窗 */}
       {userId && (
@@ -75,6 +79,6 @@ export default function Author({ userId }: { userId?: number }) {
           <UserDetail userId={userId} />
         </PopWindow>
       )}
-    </>
+    </div>
   );
 }

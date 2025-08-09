@@ -65,8 +65,29 @@ export default function EntityList({ moduleData: moduleInfo, entityType = "item"
 
   return (
     <div className="flex w-full flex-col max-w-screen md:flex-row md:min-h-128 bg-base-100">
-      {/* 左侧实体列表 */}
-      <div className="basis-92 shrink-0 bg-base-100 max-h-128 overflow-y-auto">
+      {/* 移动端下拉菜单 */}
+      <div className="md:hidden">
+        <select
+          className="select w-full border-0 rounded-none bg-base-200 font-bold text-lg"
+          value={selectedName || ""}
+          onChange={e => setName(e.target.value)}
+        >
+          <option value="" disabled>
+            {entityList.length > 0 ? "请选择一个实体" : "没有数据"}
+          </option>
+          {entityList.map((entity) => {
+            const name: string = entity.name ?? "未命名";
+            return (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            );
+          })}
+        </select>
+      </div>
+
+      {/* 桌面端实体列表 */}
+      <div className="hidden md:block basis-92 shrink-0 bg-base-100 max-h-128 overflow-y-auto">
         {entityList.length > 0
           ? entityList.map((entity) => {
               const name: string = entity.name ?? "未命名";
@@ -87,7 +108,7 @@ export default function EntityList({ moduleData: moduleInfo, entityType = "item"
       </div>
 
       {/* 分隔线 */}
-      <div className="grow p-2 border-l-2 border-base-content/10 border-solid">
+      <div className="grow p-2 md:border-l-2 border-base-content/10 border-solid">
         {selectedName
           ? (
               <ItemDetail itemName={selectedName} itemList={entityList} entityType={entityType} />
