@@ -3,7 +3,6 @@ import ReactMarkdown from "react-markdown";
 // eslint-disable-next-line ts/ban-ts-comment
 // @ts-expect-error
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-// import { dark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
@@ -133,7 +132,6 @@ export function MarkDownViewer({ content }: { content: string }) {
               ? (
                   <SyntaxHighlighter
                     {...rest}
-                    PreTag="div"
                     children={String(children).replace(/\n$/, "")}
                     language={match[1]}
                     // style={dark}
