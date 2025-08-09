@@ -90,7 +90,7 @@ export class RuleNameSpace {
     if (cmd) {
       return cmd.solve(args, mentioned, cpi, prop);
     }
-    throw new Error(`Command ${name} not found in rule ${this.name}`);
+    throw new Error(`${this.name}指令集中没有名为${name}的指令`);
   }
 }
 

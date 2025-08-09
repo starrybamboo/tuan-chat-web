@@ -4,6 +4,7 @@ import type { RuleNameSpace } from "@/components/common/dicer/cmd";
 import type { ChatMessageRequest, RoleAbility, UserRole } from "../../../../api";
 import { useRoomExtra } from "@/components/chat/hooks";
 import CmdExeCoc from "@/components/common/dicer/cmdExeCoc";
+import executorPublic from "@/components/common/dicer/cmdExePublic";
 // type DiceResult = { x: number; y: number; rolls: number[]; total: number };
 
 import { useEffect, useRef } from "react";
@@ -213,11 +214,21 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     const mentioned: UserRole[] = (executorProp.mentionedRoles || []);
     mentioned.push(operator);
 
-    const executor = RULES.get(ruleId);
-    if (!executor) {
+    const ruleExecutor = RULES.get(ruleId);
+    if (!ruleExecutor) {
       return `未知规则 ${ruleId}`;
     }
-    executor.execute(cmdPart, args, mentioned, CmdPreInterface, executorProp);
+    try {
+      ruleExecutor.execute(cmdPart, args, mentioned, CmdPreInterface, executorProp);
+    }
+    catch (err1) {
+      try {
+        executorPublic.execute(cmdPart, args, mentioned, CmdPreInterface, executorProp);
+      }
+      catch (err2) {
+        sendToast(`执行错误：${err1 instanceof Error ? err1.message : String(err1)} 且 ${err2 instanceof Error ? err2.message : String(err2)}`);
+      }
+    }
 
     try {
       switch (cmdPart) {
