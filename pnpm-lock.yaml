@@ -104,6 +104,9 @@ importers:
       remark-gfm:
         specifier: ^4.0.1
         version: 4.0.1
+      ts-md5:
+        specifier: ^2.0.1
+        version: 2.0.1
       use-immer:
         specifier: ^0.11.0
         version: 0.11.0(immer@10.1.1)(react@19.0.0)
@@ -5742,6 +5745,10 @@ packages:
     resolution: {integrity: sha512-EDyGAwH1gO0Ausm9gV6T2nUvBgXT5kGoCMJPllOaooZ+4VvJiKBdZE7wK18N1deEowhcUptS+5GXZK8U/fvpwA==}
     peerDependencies:
       typescript: '>=4.0.0'
+
+  ts-md5@2.0.1:
+    resolution: {integrity: sha512-yF35FCoEOFBzOclSkMNEUbFQZuv89KEQ+5Xz03HrMSGUGB1+r+El+JiGOFwsP4p9RFNzwlrydYoTLvPOuICl9w==}
+    engines: {node: '>=18'}
 
   ts-pattern@5.6.2:
     resolution: {integrity: sha512-d4IxJUXROL5NCa3amvMg6VQW2HVtZYmUTPfvVtO7zJWGYLJ+mry9v2OmYm+z67aniQoQ8/yFNadiEwtNS9qQiw==}
@@ -12972,6 +12979,8 @@ snapshots:
       picomatch: 4.0.2
       typescript: 5.8.2
     optional: true
+
+  ts-md5@2.0.1: {}
 
   ts-pattern@5.6.2:
     optional: true

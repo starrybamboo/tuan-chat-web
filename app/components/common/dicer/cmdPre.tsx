@@ -1,10 +1,12 @@
+import type { RoomContextType } from "@/components/chat/roomContext";
 import type { Initiative } from "@/components/chat/sideDrawer/initiativeList";
 import type { RuleNameSpace } from "@/components/common/dicer/cmd";
 import type { ChatMessageRequest, RoleAbility, UserRole } from "../../../../api";
 import { useRoomExtra } from "@/components/chat/hooks";
-import { RoomContext } from "@/components/chat/roomContext";
 import CmdExeCoc from "@/components/common/dicer/cmdExeCoc";
-import { use, useEffect, useRef } from "react";
+// type DiceResult = { x: number; y: number; rolls: number[]; total: number };
+
+import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router";
 import {
@@ -37,6 +39,41 @@ const RULES: Map<number, RuleNameSpace> = new Map();
 RULES.set(1, CmdExeCoc);
 
 /**
+ * 聊天室部分调用executor的时候, 会传这么一个结构体进去
+ */
+export interface ExecutorProp {
+  /**
+   * 房间ID
+   */
+  roomId?: number;
+  /**
+   * 完整的原始消息
+   */
+  originMessage?: string;
+  /**
+   * 指令消息id;
+   * 用于后续的指令回复,避免消息混乱;
+   */
+  replyMessageId?: number;
+  /**
+   * 骰娘的角色ID
+   */
+  dicerRoleId?: number;
+  /**
+   * 骰娘的头像ID
+   */
+  dicerAvatarId?: number;
+  /**
+   * 命令的主体, 不带前置的标点, 即中英文句号，也不包含@的人
+   */
+  command: string;
+  /**
+   * 聊天框中@的角色
+   */
+  mentionedRoles?: UserRole[];
+}
+
+/**
  * executor返回给聊天室的结构体
  */
 export interface ExecutorReturnResponse {
@@ -56,8 +93,9 @@ export function isCommand(command: string) {
  * 命令执行器钩子函数
  * @param roleId roleId，会根据ruleId来获取对应角色的ability值
  * @param ruleId 规则ID，会根据ruleId来获取对应角色对应规则下的能力组
+ * @param roomContext
  */
-export default function useCommandExecutor(roleId: number, ruleId: number) {
+export default function useCommandExecutor(roleId: number, ruleId: number, roomContext: RoomContextType) {
   const { spaceId: _, roomId: urlRoomId } = useParams();
   const roomId = Number(urlRoomId);
 
@@ -86,7 +124,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
   const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
   const [initiativeList, setInitiativeList] = useRoomExtra<Initiative[]>(roomId, "initiativeList", []);
 
-  const roomContext = use(RoomContext);
   const curRoleId = roomContext.curRoleId; // 当前选中的角色id
   const curAvatarId = roomContext.curAvatarId; // 当前选中的角色的立绘id
 
@@ -111,7 +148,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number) {
     const abilityQuery = await tuanchat.abilityController.listRoleAbility(roleId);
     const abilityList = abilityQuery.data ?? [];
     const ability = abilityList.find(a => a.ruleId === ruleId);
-    return ability?.ability || {};
+    return ability || {};
   };
 
   const setRoleAbilityList = async (roleId: number, ability: RoleAbility): Promise<void> => {
