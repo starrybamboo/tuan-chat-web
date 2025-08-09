@@ -841,118 +841,93 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         <div className="flex-1 w-full flex bg-base-100 overflow-y-auto overflow-x-hidden relative">
           <div className="flex flex-col flex-1 h-full overflow-y-auto overflow-x-hidden">
             {/* 聊天框 */}
-            <div className="bg-base-100 h-[70%] flex-shrink-0">
+            <div className="bg-base-100 flex-1 flex-shrink-0">
               <ChatFrame useChatBubbleStyle={useChatBubbleStyle} key={roomId} virtuosoRef={virtuosoRef}></ChatFrame>
             </div>
             <div className="h-px bg-base-300 flex-shrink-0"></div>
             {/* 输入区域 */}
-            <form className="bg-base-100 p-4 rounded-lg flex flex-col flex-1 ">
-              <div className="flex gap-2 flex-1 ">
+            <form className="bg-base-100 p-4 rounded-lg flex flex-col">
+              <div className="relative flex-1 flex flex-col min-w-0">
+                <CommandPanel
+                  prefix={inputTextWithoutMentions}
+                  handleSelectCommand={handleSelectCommand}
+                  commandMode={
+                    inputTextWithoutMentions.startsWith("%")
+                      ? "webgal"
+                      : (inputTextWithoutMentions.startsWith(".") || inputTextWithoutMentions.startsWith("。"))
+                          ? "dice"
+                          : "none"
+                  }
+                  className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
+                />
                 {/* 顶部工具栏 */}
-                <div className="dropdown dropdown-top flex-shrink-0">
-                  <div role="button" tabIndex={0} className="">
-                    <div
-                      className="tooltip flex justify-center flex-col items-center space-y-2"
-                      data-tip="切换表情差分"
-                    >
-                      <RoleAvatarComponent
-                        avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
-                        width={getScreenSize() === "sm" ? 16 : 24}
-                        isRounded={true}
-                        withTitle={false}
-                        stopPopWindow={true}
-                        alt="无可用头像"
-                      />
-                      <div className="text-sm whitespace-nowrap">
-                        {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
-                      </div>
-                    </div>
-                  </div>
-                  {/* 表情差分展示与选择 */}
-                  <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm">
-                    <ExpressionChooser
-                      roleId={curRoleId}
-                      handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}
-                    >
-                    </ExpressionChooser>
-                  </ul>
-                </div>
-                <div className="relative flex-1 flex flex-col min-w-0">
-                  <CommandPanel
-                    prefix={inputTextWithoutMentions}
-                    handleSelectCommand={handleSelectCommand}
-                    commandMode={
-                      inputTextWithoutMentions.startsWith("%")
-                        ? "webgal"
-                        : (inputTextWithoutMentions.startsWith(".") || inputTextWithoutMentions.startsWith("。"))
-                            ? "dice"
-                            : "none"
-                    }
-                    className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
-                  />
-                  <div className="flex pl-3 pr-6 justify-between ">
-                    <div className="flex gap-2">
-                      {/* 切换角色 */}
-                      <div className="dropdown dropdown-top">
-                        <div className="tooltip" data-tip="切换角色">
-                          <UserSyncOnlineInPerson className="size-7 hover:text-info" tabIndex={1} role="button"></UserSyncOnlineInPerson>
-                        </div>
-                        <ul
+                <div className="flex pl-3 pr-6 justify-between ">
+                  <div className="flex gap-2">
+                    {/* 切换角色 */}
+                    <div className="dropdown dropdown-top">
+                      <div className="tooltip" data-tip="切换角色">
+                        <UserSyncOnlineInPerson
+                          className="size-7 hover:text-info"
                           tabIndex={1}
-                          className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
+                          role="button"
                         >
-                          <RoleChooser handleRoleChange={role => handleRoleChange(role.roleId)}></RoleChooser>
-                        </ul>
+                        </UserSyncOnlineInPerson>
                       </div>
-                      {/* 发送表情 */}
-                      <div className="dropdown dropdown-top">
-                        <div role="button" tabIndex={2} className="">
-                          <div
-                            className="tooltip"
-                            data-tip="发送表情"
-                          >
-                            <EmojiIconWhite className="size-7 jump_icon"></EmojiIconWhite>
-                          </div>
-                        </div>
-                        <ul
-                          tabIndex={2}
-                          className="dropdown-content menu bg-base-100 rounded-box z-1 w-96 p-2 shadow-sm overflow-y-auto"
-                        >
-                          <EmojiWindow onChoose={async (emoji) => {
-                            updateEmojiUrls((draft) => {
-                              const newUrl = emoji?.imageUrl;
-                              if (newUrl && !draft.includes(newUrl)) {
-                                draft.push(newUrl);
-                              }
-                            });
-                          }}
-                          >
-                          </EmojiWindow>
-                        </ul>
-                      </div>
-                      {/* 发送图片 */}
-                      <ImgUploader setImg={newImg => updateImgFiles((draft) => {
-                        draft.push(newImg);
-                      })}
+                      <ul
+                        tabIndex={1}
+                        className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
                       >
-                        <div className="tooltip" data-tip="发送图片">
-                          <GalleryBroken className="size-7 cursor-pointer jump_icon"></GalleryBroken>
+                        <RoleChooser handleRoleChange={role => handleRoleChange(role.roleId)}></RoleChooser>
+                      </ul>
+                    </div>
+                    {/* 发送表情 */}
+                    <div className="dropdown dropdown-top">
+                      <div role="button" tabIndex={2} className="">
+                        <div
+                          className="tooltip"
+                          data-tip="发送表情"
+                        >
+                          <EmojiIconWhite className="size-7 jump_icon"></EmojiIconWhite>
                         </div>
-                      </ImgUploader>
-                      <div className="tooltip" data-tip="浏览所有骰子命令">
-                        <HexagonDice
-                          className="size-7 cursor-pointer jump_icon"
-                          onClick={() => setCommandBrowseWindow("dice")}
-                        >
-                        </HexagonDice>
                       </div>
-                      <div className="tooltip" data-tip="浏览常用webgal命令">
-                        <CommandLine
-                          className="size-7 cursor-pointer jump_icon"
-                          onClick={() => setCommandBrowseWindow("webgal")}
+                      <ul
+                        tabIndex={2}
+                        className="dropdown-content menu bg-base-100 rounded-box z-1 w-96 p-2 shadow-sm overflow-y-auto"
+                      >
+                        <EmojiWindow onChoose={async (emoji) => {
+                          updateEmojiUrls((draft) => {
+                            const newUrl = emoji?.imageUrl;
+                            if (newUrl && !draft.includes(newUrl)) {
+                              draft.push(newUrl);
+                            }
+                          });
+                        }}
                         >
-                        </CommandLine>
+                        </EmojiWindow>
+                      </ul>
+                    </div>
+                    {/* 发送图片 */}
+                    <ImgUploader setImg={newImg => updateImgFiles((draft) => {
+                      draft.push(newImg);
+                    })}
+                    >
+                      <div className="tooltip" data-tip="发送图片">
+                        <GalleryBroken className="size-7 cursor-pointer jump_icon"></GalleryBroken>
                       </div>
+                    </ImgUploader>
+                    <div className="tooltip" data-tip="浏览所有骰子命令">
+                      <HexagonDice
+                        className="size-7 cursor-pointer jump_icon"
+                        onClick={() => setCommandBrowseWindow("dice")}
+                      >
+                      </HexagonDice>
+                    </div>
+                    <div className="tooltip" data-tip="浏览常用webgal命令">
+                      <CommandLine
+                        className="size-7 cursor-pointer jump_icon"
+                        onClick={() => setCommandBrowseWindow("webgal")}
+                      >
+                      </CommandLine>
                     </div>
                     <div className="tooltip " data-tip="切换聊天气泡风格">
                       <Bubble2
@@ -962,40 +937,78 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       </Bubble2>
                     </div>
                   </div>
-                  {/* 预览要发送的图片 */}
-                  {(imgFiles.length > 0 || emojiUrls.length > 0) && (
-                    <div className="flex flex-row gap-x-3 overflow-x-auto pb-2 pl-3">
-                      {imgFiles.map((file, index) => (
-                        <BetterImg
-                          src={file}
-                          className="h-14 w-max rounded"
-                          onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
-                          key={file.name}
-                        />
-                      ))}
-                      {emojiUrls.map((url, index) => (
-                        <BetterImg
-                          src={url}
-                          className="h-14 w-max rounded"
-                          onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
-                          key={url}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  {/* 引用的消息 */}
-                  {
-                    replyMessage && (
-                      <RepliedMessage
-                        replyMessage={replyMessage}
-                        className="flex flex-row gap-2 items-center bg-base-200 p-1 rounded-box shadow-sm text-sm ml-2"
+                  {/* 发送按钮 */}
+                  <div className="tooltip " data-tip="发送消息">
+                    <SendIcon
+                      className={`size-7 font-light jump_icon ${disableSendMessage ? "cursor-not-allowed opacity-50" : ""}`}
+                      onClick={handleMessageSubmit}
+                    >
+                    </SendIcon>
+                  </div>
+                </div>
+                {/* 预览要发送的图片 */}
+                {(imgFiles.length > 0 || emojiUrls.length > 0) && (
+                  <div className="flex flex-row gap-x-3 overflow-x-auto pb-2 pl-3">
+                    {imgFiles.map((file, index) => (
+                      <BetterImg
+                        src={file}
+                        className="h-14 w-max rounded"
+                        onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
+                        key={file.name}
                       />
-                    )
-                  }
+                    ))}
+                    {emojiUrls.map((url, index) => (
+                      <BetterImg
+                        src={url}
+                        className="h-14 w-max rounded"
+                        onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
+                        key={url}
+                      />
+                    ))}
+                  </div>
+                )}
+                {/* 引用的消息 */}
+                {
+                  replyMessage && (
+                    <RepliedMessage
+                      replyMessage={replyMessage}
+                      className="flex flex-row gap-2 items-center bg-base-200 p-1 rounded-box shadow-sm text-sm ml-2"
+                    />
+                  )
+                }
+                <div className="flex">
+                  <div className="dropdown dropdown-top flex-shrink-0">
+                    <div role="button" tabIndex={0} className="">
+                      <div
+                        className="tooltip flex justify-center flex-col items-center space-y-2"
+                        data-tip="切换表情差分"
+                      >
+                        <RoleAvatarComponent
+                          avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
+                          width={getScreenSize() === "sm" ? 12 : 16}
+                          isRounded={true}
+                          withTitle={false}
+                          stopPopWindow={true}
+                          alt="无可用头像"
+                        />
+                        <div className="text-sm whitespace-nowrap">
+                          {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
+                        </div>
+                      </div>
+                    </div>
+                    {/* 表情差分展示与选择 */}
+                    <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm">
+                      <ExpressionChooser
+                        roleId={curRoleId}
+                        handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}
+                      >
+                      </ExpressionChooser>
+                    </ul>
+                  </div>
                   {/* 输入框 */}
                   <div
                     className="textarea chatInputTextarea w-full flex-1 overflow-auto
-                     min-h-[80px] resize-none border-none focus:outline-none focus:ring-0 div-textarea"
+                      h-[40px] lg:h-[80px] resize-none focus:outline-none focus:ring-0 div-textarea"
                     ref={textareaRef}
                     onInput={syncInputText}
                     onKeyDown={handleKeyDown}
@@ -1013,7 +1026,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   </div>
                   {/* at搜索框 */}
                   {showAtDialog && atDialogPosition.x > 0 && searchedRoles.length > 0 && (
-                  // 这里的坐标是全局的坐标，所以mount到根元素
+                    // 这里的坐标是全局的坐标，所以mount到根元素
                     <Mounter targetId="modal-root">
                       <div
                         className="absolute flex flex-col card shadow-md bg-base-100 p-2 gap-2  max-h-[30vh] overflow-auto"
@@ -1028,7 +1041,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                             <div
                               className={`flex flex-row items-center gap-2 hover:bg-base-300 rounded pt-1 pb-1 ${index === atSelectIndex ? "bg-base-300" : ""}`}
                               key={role.roleId}
-                              onClick={() => { handleSelectAt(role); }}
+                              onClick={() => {
+                                handleSelectAt(role);
+                              }}
                               onMouseDown={e => e.preventDefault()}
                             >
                               <RoleAvatarComponent
@@ -1045,23 +1060,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       </div>
                     </Mounter>
                   )}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                    </div>
-
-                    <div className="flex gap-2">
-
-                      {/* 发送按钮 */}
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        disabled={disableSendMessage}
-                        onClick={handleMessageSubmit}
-                      >
-                        <SendIcon className="size-6"></SendIcon>
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
             </form>
