@@ -48,6 +48,7 @@ import {
   PointOnMapPerspectiveLinear,
   SendIcon,
   Setting,
+  SparklesOutline,
   SwordSwing,
   UserSyncOnlineInPerson,
 } from "@/icons";
@@ -57,6 +58,7 @@ import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
 import {
   useGetMemberListQuery,
@@ -929,6 +931,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       >
                       </CommandLine>
                     </div>
+                    <div className="tooltip" data-tip="AI帮写">
+                      <SparklesOutline
+                        className="size-7 cursor-pointer jump_icon"
+                        onClick={() => toast("功能开发中...")}
+                      >
+                      </SparklesOutline>
+                    </div>
                     <div className="tooltip " data-tip="切换聊天气泡风格">
                       <Bubble2
                         className="size-7 font-light jump_icon"
@@ -1007,7 +1016,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   </div>
                   {/* 输入框 */}
                   <div
-                    className="text-sm w-full max-h-[20vh] border border-base-300 rounded-lg flex focus-within:ring-0 focus-within:ring-primary focus-within:border-primary"
+                    className="text-sm w-full max-h-[20vh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-primary focus-within:border-primary"
                   >
                     <div
                       className="w-full overflow-auto resize-none p-2 focus:outline-none div-textarea"

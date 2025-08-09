@@ -1029,3 +1029,24 @@ export function BranchIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function SparklesOutline(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 512 512"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeMiterlimit="10"
+        strokeWidth="32"
+        d="M256 176V336 M176 256H336 M400 64V160 M352 112H448 M112 368V432 M80 400H144"
+      />
+    </svg>
+  );
+}
