@@ -72,7 +72,7 @@ export default function Topbar() {
 
   return (
     <div className="w-full">
-      <div className="navbar bg-base-300">
+      <div className="p-1 bg-base-300">
         {/* 左侧导航区域 */}
         <div className="navbar-start gap-4">
           {/* 移动端下拉菜单按钮 */}

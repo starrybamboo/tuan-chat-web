@@ -976,7 +976,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     />
                   )
                 }
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-stretch">
                   <div className="dropdown dropdown-top flex-shrink-0">
                     <div role="button" tabIndex={0} className="">
                       <div
@@ -985,13 +985,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       >
                         <RoleAvatarComponent
                           avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
-                          width={getScreenSize() === "sm" ? 12 : 14}
+                          width={getScreenSize() === "sm" ? 10 : 14}
                           isRounded={true}
                           withTitle={false}
                           stopPopWindow={true}
                           alt="无可用头像"
                         />
-                        <div className="text-sm whitespace-nowrap">
+                        <div className="text-xs whitespace-nowrap truncate">
                           {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
                         </div>
                       </div>
@@ -1007,22 +1007,24 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   </div>
                   {/* 输入框 */}
                   <div
-                    className="textarea chatInputTextarea w-full flex-1 overflow-auto
-                      h-[40px] lg:h-[80px] resize-none focus:outline-none focus:ring-0 div-textarea"
-                    ref={textareaRef}
-                    onInput={syncInputText}
-                    onKeyDown={handleKeyDown}
-                    onKeyUp={handleKeyUp}
-                    onMouseDown={handleMouseDown}
-                    onCompositionStart={() => isComposingRef.current = true}
-                    onCompositionEnd={() => isComposingRef.current = false}
-                    onPaste={async e => handlePaste(e)}
-                    suppressContentEditableWarning={true}
-                    contentEditable={true}
-                    data-placeholder={(curRoleId <= 0
-                      ? "请先在群聊里拉入你的角色，之后才能发送消息。"
-                      : (curAvatarId <= 0 ? "请给你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"))}
+                    className="text-sm w-full max-h-[20vh] border border-base-300 rounded-lg flex focus-within:ring-0 focus-within:ring-primary focus-within:border-primary"
                   >
+                    <div
+                      className="w-full overflow-auto resize-none p-2 focus:outline-none div-textarea"
+                      ref={textareaRef}
+                      onInput={syncInputText}
+                      onKeyDown={handleKeyDown}
+                      onKeyUp={handleKeyUp}
+                      onMouseDown={handleMouseDown}
+                      onCompositionStart={() => isComposingRef.current = true}
+                      onCompositionEnd={() => isComposingRef.current = false}
+                      onPaste={async e => handlePaste(e)}
+                      suppressContentEditableWarning={true}
+                      contentEditable={true}
+                      data-placeholder={(curRoleId <= 0
+                        ? "请先在群聊里拉入你的角色，之后才能发送消息。"
+                        : (curAvatarId <= 0 ? "请给你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"))}
+                    />
                   </div>
                   {/* at搜索框 */}
                   {showAtDialog && atDialogPosition.x > 0 && searchedRoles.length > 0 && (
