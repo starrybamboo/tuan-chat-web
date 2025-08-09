@@ -15,6 +15,8 @@ interface TagManagementPopupProps {
   targetId?: number;
 }
 
+const TAG_CONTENT_MAX = 20;
+
 export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
   isOpen,
   onClose,
@@ -31,7 +33,8 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
   const addTagMutation = useAddTagMutation();
   const updateTagMutation = useUpdateTagMutation();
   const deleteTagMutation = useDeleteTagMutation();
-
+  // Shake it!!!
+  const [errorShakeKey, setErrorShakeKey] = useState(0);
   const colorClasses = {
     indigo: "bg-indigo-100 text-indigo-800 ring-indigo-500/10",
     blue: "bg-blue-100 text-blue-800 ring-blue-500/10",
@@ -58,7 +61,15 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
   const handleAddTag = async () => {
     if (newTag.trim() === "")
       return;
-
+    if (newTag.length <= TAG_CONTENT_MAX) {
+      if (onClose) {
+        onClose();
+      }
+    }
+    else {
+      setErrorShakeKey(prev => prev + 1);
+      return;
+    }
     try {
       if (isEditMode && editingTagId !== null) {
         await updateTagMutation.mutateAsync({
@@ -215,6 +226,30 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
               </button>
             )}
           </div>
+          <div
+            key={errorShakeKey}
+            style={{
+              animation: newTag.length > TAG_CONTENT_MAX ? "quick-shake 0.4s ease-in-out" : "none",
+            }}
+            className={`text-right text-sm overflow-hidden transition-all duration-300 ease-in-out pt-2 md:text-left md:ml-2 ${
+              newTag.length > TAG_CONTENT_MAX
+                ? "text-error max-h-8 opacity-100 translate-y-0"
+                : "max-h-0 opacity-0 translate-y-2"
+            }`}
+          >
+            标签内容最多
+            {TAG_CONTENT_MAX}
+            个字喔
+          </div>
+          {/* 这算彩蛋吗 */}
+          <div
+            className={`text-pink-800  overflow-hidden transition-all duration-300 ease-in-out pl-2 ${
+              errorShakeKey > 5 && newTag.length > TAG_CONTENT_MAX ? "max-h-8 opacity-100" : "max-h-0 opacity-0"
+            }`}
+          >
+            别玩了（恼）
+          </div>
+
         </div>
 
         <div className="mb-6">
