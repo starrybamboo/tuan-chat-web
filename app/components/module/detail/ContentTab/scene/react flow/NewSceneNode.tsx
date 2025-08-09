@@ -78,8 +78,12 @@ function SceneNode({ data, selected }: SceneNodeProps) {
       </div> */}
 
       {/* 场景大图弹窗 */}
-      <PopWindow isOpen={isPopupOpen} onClose={() => setIsPopupOpen(false)}>
-        <div className="w-[50vw]">
+      <PopWindow
+        isOpen={isPopupOpen}
+        onClose={() => setIsPopupOpen(false)}
+        fullScreen={data.isMobile}
+      >
+        <div className="w-[50vw] ">
           {
             data.children || (
               <ItemDetail
