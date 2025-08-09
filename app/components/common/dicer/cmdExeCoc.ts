@@ -1,4 +1,5 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
+import { parseDiceExpression, rollDice } from "@/components/common/dicer/dice";
 
 // 属性名中英文对照表
 const ABILITY_MAP: { [key: string]: string } = {
@@ -182,3 +183,103 @@ function buildCheckResult(attr: string, roll: number, value: number): string {
 
   return `${attr}检定：D100=${roll}/${value} ${result}`;
 }
+
+const cmdSc = new CommandExecutor(
+  "sc",
+  ["sanchecck"],
+  "进行理智检定",
+  [".sc 1/1d6 : 成功扣1，失败扣1d6"],
+  ".sc [成功扣除]/[失败扣除]",
+  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+    const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
+    // 解析参数
+    const [lossExpr, currentSanArg] = args;
+
+    // 获取当前san值，优先使用参数，其次从角色卡获取
+    let currentSan: number;
+    if (currentSanArg) {
+      currentSan = Number.parseInt(currentSanArg);
+      if (Number.isNaN(currentSan)) {
+        throw new TypeError("无效的当前san值");
+      }
+    }
+    else {
+      if (!curAbility?.ability) {
+        cpi.sendMsg(prop, `未设置角色能力`);
+        return false;
+      }
+      currentSan = curAbility.ability["san值"] || curAbility.ability.san;
+      if (currentSan === undefined) {
+        cpi.sendMsg(prop, `未找到角色的san值`);
+        return false;
+      }
+    }
+
+    // 解析损失表达式
+    const [successLossStr, failureLossStr] = lossExpr.split("/");
+    if (!successLossStr || !failureLossStr) {
+      cpi.sendMsg(prop, `损失表达式格式错误，应为[成功损失]/[失败损失]`);
+      return false;
+    }
+
+    // 解析成功和失败的损失值
+    const successLoss = parseDiceExpression(successLossStr);
+    const failureLoss = parseDiceExpression(failureLossStr);
+
+    // 进行理智检定
+    const roll = rollDice(100);
+    let result: string;
+    let actualLoss: number;
+
+    // 大成功判定
+    if (roll <= 5) {
+      actualLoss = successLoss.possibleRange.min; // 大成功时失去最小san值
+      result = "大成功";
+    }
+    // 大失败判定
+    else if (roll >= 96) {
+      actualLoss = failureLoss.possibleRange.max; // 大失败时失去最大san值
+      result = "大失败";
+    }
+    // 普通成功
+    else if (roll <= currentSan) {
+      actualLoss = successLoss.result.value;
+      result = "成功";
+    }
+    // 普通失败
+    else {
+      actualLoss = failureLoss.result.value;
+      result = "失败";
+    }
+
+    // 计算新san值
+    let newSan = currentSan - actualLoss;
+    if (newSan <= 0) {
+      newSan = 0;
+    }
+
+    // 更新角色卡中的san值
+    if (curAbility) {
+      const ability = { ...curAbility.ability };
+      ability["san值"] = newSan;
+      ability.san = newSan;
+
+      await cpi.setRoleAbilityList(mentioned[0].roleId, ability);
+    }
+
+    // 构建返回信息
+    let res: string = `理智检定：D100=${roll}/${currentSan} ${result}\n`
+      + `损失san值：${actualLoss}\n`
+      + `当前san值：${newSan}`;
+    if (newSan === 0) {
+      res += `\n注意：角色理智值归零，陷入永久性疯狂。`;
+    }
+    else if (actualLoss >= 5) {
+      res += `\n注意：单次失去理智值达到5点，请进行智力检定，若检定成功角色将陷入疯狂。疯狂后请使用\`.ti\`或\`.li\`指令抽取临时症状或总结症状。`;
+    }
+    cpi.sendMsg(prop, res);
+    return true;
+  },
+);
+
+ruleCoc.addCmd(cmdSc);
