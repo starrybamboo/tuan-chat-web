@@ -7,12 +7,12 @@ import { useGetTagsQuery } from "../../../api/hooks/userTagQurryHooks";
 
 interface TagManagementProps {
   userId?: number;
-  size?: "default" | "compact";
+  size?: "default" | "compact"; // 展示的类型，compact会表现的更加紧凑一些
 }
 
 function TagManagement({ userId, size = "default" }: TagManagementProps) {
   // 获取标签数据
-  const { data: tagsData, refetch } = useGetTagsQuery({
+  const { data: tagsData, refetch, isLoading } = useGetTagsQuery({
     tagType: 1,
     targetId: userId ?? -1,
   });
@@ -53,17 +53,16 @@ function TagManagement({ userId, size = "default" }: TagManagementProps) {
     refetch();
   };
 
-  // // 处理加载和错误状态, 不知道为什么这玩意在没标签的时候会弹出来，先搁置着
-  // if (isLoading) {
-  //   return (
-  //     <div className="w-full mx-auto p-6 bg-base-200 rounded-xl opacity-90 shadow-lg">
-  //       <div className="flex justify-center items-center py-8">
-  //         <span className="loading loading-spinner loading-md"></span>
-  //         <span className="ml-2">加载标签中...</span>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  if (isLoading) {
+    return (
+      <div className="w-full mx-auto p-6 bg-base-200 rounded-xl opacity-90 shadow-lg">
+        <div className="flex justify-center items-center py-8">
+          <span className="loading loading-spinner loading-md"></span>
+          <span className="ml-2">加载标签中...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`w-full mx-auto rounded-xl opacity-90 ${size === "default" ? "shadow-lg bg-base-200 p-6" : "p-2"}`}>

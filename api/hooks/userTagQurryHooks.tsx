@@ -4,7 +4,7 @@ import type { TagAddRequest } from "../models/TagAddRequest";
 import type { TagUpdateRequest } from "../models/TagUpdateRequest";
 import type { TagDeleteRequest } from "../models/TagDeleteRequest";
 import type { TagUsageRequest } from "../models/TagUsageRequest";
-import { tuanchat } from "../instance"; // 假设你们也有类似的实例
+import { tuanchat } from "../instance";
 
 /**
  * 获取单个标签信息
@@ -37,7 +37,7 @@ export function useGetTagUsageCountQuery(request: TagUsageRequest) {
     return useQuery({
         queryKey: ["getTagUsageCount", request],
         queryFn: () => tuanchat.tagController.getTagUsageCount(request),
-        staleTime: 30000, // 使用次数变化不频繁，可以设置更长的缓存时间
+        staleTime: 30000,
         enabled: !!request,
     });
 }
