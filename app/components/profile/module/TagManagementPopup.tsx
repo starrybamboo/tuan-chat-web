@@ -61,12 +61,7 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
   const handleAddTag = async () => {
     if (newTag.trim() === "")
       return;
-    if (newTag.length <= TAG_CONTENT_MAX) {
-      if (onClose) {
-        onClose();
-      }
-    }
-    else {
+    if (newTag.length > TAG_CONTENT_MAX) {
       setErrorShakeKey(prev => prev + 1);
       return;
     }
@@ -89,7 +84,6 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
 
         // 不退出编辑模式，只清空输入
         setNewTag("");
-        setSelectedColor("indigo");
         setEditingTagId(null);
       }
       else {
@@ -110,7 +104,6 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
         }
 
         setNewTag("");
-        setSelectedColor("indigo");
       }
     }
     catch (error) {
@@ -141,7 +134,7 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
 
   // 编辑标签
   const handleEditTag = (tag: Tag) => {
-    // setNewTag(tag.content ?? ""); 目前不支持
+    setNewTag(tag.content ?? ""); // 目前不支持
     setSelectedColor(tag.color ?? "blue");
     setIsEditMode(true);
     setEditingTagId(tag.tagId ?? null);
@@ -153,7 +146,6 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
     setIsEditMode(false);
     setEditingTagId(null);
     setNewTag("");
-    setSelectedColor("indigo");
   };
 
   const isLoading
@@ -217,7 +209,6 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
                   setIsEditMode(false);
                   setEditingTagId(null);
                   setNewTag("");
-                  setSelectedColor("indigo");
                 }}
                 className="btn btn-outline"
                 disabled={isLoading}

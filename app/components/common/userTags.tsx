@@ -7,9 +7,10 @@ import { useGetTagsQuery } from "../../../api/hooks/userTagQurryHooks";
 
 interface TagManagementProps {
   userId?: number;
+  size?: "default" | "compact";
 }
 
-function TagManagement({ userId }: TagManagementProps) {
+function TagManagement({ userId, size = "default" }: TagManagementProps) {
   // 获取标签数据
   const { data: tagsData, refetch } = useGetTagsQuery({
     tagType: 1,
@@ -65,12 +66,15 @@ function TagManagement({ userId }: TagManagementProps) {
   // }
 
   return (
-    <div className="w-full mx-auto p-6 bg-base-200 rounded-xl opacity-90 shadow-lg">
+    <div className={`w-full mx-auto rounded-xl opacity-90 ${size === "default" ? "shadow-lg bg-base-200 p-6" : "p-2"}`}>
       {/* 标签展示区域 */}
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">玩家标签</h2>
-          {userId === loginUserId && (
+      <div className="mb-2">
+        <div className={`flex justify-between items-center ${size === "default" ? "mb-4" : ""}`}>
+          {/* compact 不显示 */}
+          {size !== "compact" && (
+            <h2 className="text-lg font-semibold">玩家标签</h2>
+          )}
+          {userId === loginUserId && size === "default" && (
             <button
               type="button"
               onClick={openTagPopup}
@@ -99,7 +103,7 @@ function TagManagement({ userId }: TagManagementProps) {
                 tags.map(tag => (
                   <span
                     key={tag.tagId}
-                    className={`px-3 py-1 rounded-full text-sm font-medium transition-all hover:shadow-md
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-all hover:shadow-md cursor-default
                       bg-${tag.color}-100 text-${tag.color}-800 ring-1 ring-${tag.color}-500/10`}
                   >
                     {tag.content}
