@@ -22,10 +22,10 @@ const MARKDOWN_STYLES = `
   [&_blockquote]:dark:border-gray-600 [&_blockquote]:pl-4 
   [&_blockquote]:my-4 [&_blockquote]:text-gray-600 [&_blockquote]:dark:text-gray-300
   
-  [&_code]:font-mono [&_code]:bg-gray-100 [&_code]:dark:bg-gray-800 
+  [&_code]:font-mono [&_code]:bg-base-200
   [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm
   
-  [&_pre]:font-mono [&_pre]:bg-gray-100 [&_pre]:dark:bg-gray-800 
+  [&_pre]:font-mono [&_pre]:bg-base-200
   [&_pre]:p-4 [&_pre]:rounded [&_pre]:overflow-x-auto [&_pre]:my-4
   
   [&_em]:italic
