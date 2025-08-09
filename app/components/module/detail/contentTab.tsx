@@ -69,7 +69,7 @@ export default function ContentTab({ moduleInfo, moduleId, isLoading, error }: C
         <div className="collapse-content bg-base-200">
           <EntityList moduleData={moduleInfo} entityType="scene" />
           <div className="divider" />
-          <div className="max-w-screen bg-base-100 relative" style={{ height: "50vh" }}>
+          <div className="max-w-screen bg-base-100 relative h-[70vh] md:h-[50vh]">
             <NewSceneGraph
               nodes={nodes}
               edges={edges}
@@ -162,7 +162,7 @@ export default function ContentTab({ moduleInfo, moduleId, isLoading, error }: C
       </div>
 
       <PopWindow isOpen={showSceneGraph} onClose={() => setShowSceneGraph(false)} fullScreen={true}>
-        <div className="p-8" style={{ width: "100%", height: "100%" }}>
+        <div className="md:p-8" style={{ width: "100%", height: "100%" }}>
           <NewSceneGraph
             nodes={nodes}
             edges={edges}

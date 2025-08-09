@@ -15,6 +15,7 @@ interface SceneNodeProps {
     tip?: string;
     moduleSceneName?: string;
     children?: React.ReactNode;
+    isMobile?: boolean; // 新增移动端标识
   };
   selected?: boolean;
 }
@@ -28,39 +29,43 @@ function SceneNode({ data, selected }: SceneNodeProps) {
 
   return (
     <div className="border min-w-[120px] rounded-xs">
-      {/* 右下偏移的背景层，仅作用于本内容区 */}
-      <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 bg-base-300 opacity-50 rounded-xs -z-10"></div>
-      <div className="border-b bg-base-100">
-        {/* 节点索引显示在顶部 */}
-        <span className="text-xl font-black font-mono bg-cyan-400 text-info-content">
-          {(data.idx + 1).toString().padStart(2, "0")}
-          .
-        </span>
-
-        <span className="ml-1 mb-2 text-sm font-semibold text-base-content">场景资源</span>
-      </div>
       <div
-        className={`relative cursor-pointer flex flex-col items-center justify-center h-12 ${selected ? "border-2 border-blue-500" : ""
+        className={`${selected ? "border-2 border-blue-500" : ""
         }`}
         onClick={handleNodeClick}
       >
-        <div className="flex items-center justify-center">
-          <span className="text-xl font-black leading-none mr-4 mb-4">「 </span>
-          <span className="text-2xl font-black tracking-widest">{data.label}</span>
-          <span className="text-xl font-black leading-none ml-4 mt-4"> 」</span>
+        {/* 右下偏移的背景层，仅作用于本内容区 */}
+        <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 bg-base-300 opacity-50 rounded-xs -z-10"></div>
+        <div className="border-b bg-base-100">
+          {/* 节点索引显示在顶部 */}
+          <span className="text-xl font-black font-mono bg-cyan-400 text-info-content">
+            {(data.idx + 1).toString().padStart(2, "0")}
+            .
+          </span>
+
+          <span className="ml-1 mb-2 text-sm font-semibold text-base-content">场景资源</span>
         </div>
-        {/* 连接点... */}
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="!absolute !top-1/2"
-        />
-        <Handle
-          type="target"
-          position={Position.Left}
-          className="!absolute !top-1/2"
-        />
+        <div
+          className="relative cursor-pointer flex flex-col items-center justify-center h-12 "
+        >
+          <div className="flex items-center justify-center">
+            <span className="text-xl font-black leading-none mr-4 mb-4">「 </span>
+            <span className="text-2xl font-black tracking-widest">{data.label}</span>
+            <span className="text-xl font-black leading-none ml-4 mt-4"> 」</span>
+          </div>
+        </div>
       </div>
+      {/* 连接点... */}
+      <Handle
+        type="source"
+        position={data.isMobile ? Position.Bottom : Position.Right}
+        className={data.isMobile ? "!absolute !left-1/2" : "!absolute !top-1/2"}
+      />
+      <Handle
+        type="target"
+        position={data.isMobile ? Position.Top : Position.Left}
+        className={data.isMobile ? "!absolute !left-1/2" : "!absolute !top-1/2"}
+      />
 
       {/* 节点标签显示在下方 */}
       {/* <div
