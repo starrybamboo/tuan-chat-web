@@ -30,6 +30,9 @@ export function ImgUploader({
       return;
     }
     setImg(file);
+    if (e.target) {
+      e.target.value = "";
+    }
   };
 
   return (

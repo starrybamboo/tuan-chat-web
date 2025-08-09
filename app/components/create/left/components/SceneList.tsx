@@ -91,6 +91,26 @@ export default function SceneList({ stageId }: { stageId: number }) {
       entityInfo: {
         description: "无",
         tip: "无",
+        items: [],
+        roles: [],
+        locations: [],
+      },
+    }, {
+      onSuccess: () => {
+        if (mapData) {
+          updateMap({
+            id: mapData.id!,
+            name: mapData.name,
+            entityType: 5,
+            entityInfo: {
+              ...mapData.entityInfo,
+              sceneMap: {
+                ...mapData.entityInfo!.sceneMap,
+                [name]: [],
+              },
+            },
+          });
+        }
       },
     }, {
       onSuccess: () => {

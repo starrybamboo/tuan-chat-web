@@ -145,7 +145,7 @@ export default function UserAvatarComponent({
       {
         withName && (
           <div
-            className={`text-sm ${(userQuery.data?.data?.username ?? "").length > 5 ? "truncate max-w-[7em]" : ""}`}
+            className={`text-sm whitespace-nowrap min-w-0 ${(userQuery.data?.data?.username ?? "").length > 5 ? "truncate max-w-[7em]" : ""}`}
           >
             {userQuery.data?.data?.username}
           </div>

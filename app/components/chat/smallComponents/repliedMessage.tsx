@@ -47,7 +47,7 @@ export default function RepliedMessage({ replyMessage, className }: {
                 {": "}
                 <img
                   src={replyMessage.extra?.imageMessage?.url}
-                  className="size-15 object-contain"
+                  className="size-8 object-contain"
                   alt="img"
                   width={imgMsg?.width}
                   height={imgMsg?.height}

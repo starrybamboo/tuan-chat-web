@@ -320,7 +320,7 @@ export function useUpdateEntityMutation(stageId: number) {
         mutationFn: (req: EntityUpdateRequest) => tuanchat.stageController.update(req),
         mutationKey: ['updateEntity'],
         onSuccess: (_data) => {
-            queryClient.invalidateQueries({ queryKey: ['queryEntities', stageId] });
+            queryClient.invalidateQueries({ queryKey: ['queryEntities', stageId], refetchType: 'all' });
         }
     })
 }
@@ -369,5 +369,15 @@ export function useUploadModuleRoleAvatarMutation() {
             return avatarId;
         },
         mutationKey: ['uploadModuleRoleAvatar'],
+    });
+}
+
+export function useIdToSearchQuery(id: number) {
+    return useQuery({
+        queryKey: ['idToSearch'],
+        queryFn: async () => {
+            const res = await tuanchat.stageController.get(id);
+            return res.data;
+        }
     });
 }

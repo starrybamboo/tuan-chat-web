@@ -5,12 +5,12 @@ import RoleAvatar from "@/components/common/roleAvatar";
 
 import { CharacterCopper } from "@/components/newCharacter/CharacterCopper";
 import { useQuery } from "@tanstack/react-query";
-import { useUpdateEntityMutation, useUploadModuleRoleAvatarMutation } from "api/hooks/moduleQueryHooks";
+import { useQueryEntitiesQuery, useUpdateEntityMutation, useUploadModuleRoleAvatarMutation } from "api/hooks/moduleQueryHooks";
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
 import { useDeleteRoleAvatarMutation } from "api/queryHooks";
 import { useEffect, useState } from "react";
-import { useModuleContext } from "./context/_moduleContext";
+import { useModuleContext } from "../context/_moduleContext";
 
 interface NPCEditProps {
   role: StageEntityResponse;
@@ -23,6 +23,8 @@ export default function NPCEdit({ role }: NPCEditProps) {
   // entityInfo 结构见后端定义
   const entityInfo = role.entityInfo || {};
   const { stageId, removeModuleTabItem } = useModuleContext();
+
+  const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(entity => entity.entityType === 3);
   // 本地状态
   const [localRole, setLocalRole] = useState({ ...entityInfo });
   const [ability, setAbility] = useState(entityInfo.ability || {});
@@ -66,8 +68,15 @@ export default function NPCEdit({ role }: NPCEditProps) {
       const updatedRole = { ...localRole, ability };
       setIsTransitioning(false);
       setIsEditing(false);
-      if (name !== role.name) {
+      const oldName = role.name;
+      if (name !== oldName) {
         removeModuleTabItem(role.id!.toString());
+        // 同步更新scene
+        const newScenes = sceneEntities?.map((scene) => {
+          const newRoles = scene.entityInfo?.roles.map((role: string | undefined) => role === oldName ? name : role);
+          return { ...scene, entityInfo: { ...scene.entityInfo, roles: newRoles } };
+        });
+        newScenes?.forEach(scene => updateRole({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
       }
       updateRole({ id: role.id!, entityType: 2, entityInfo: updatedRole, name });
     }, 300);
