@@ -50,7 +50,7 @@ export default function ContentTab({ moduleInfo, moduleId, isLoading, error }: C
 
       {/* 场景 */}
       <div className="collapse collapse-arrow bg-base-300 mb-2">
-        <input type="checkbox" className="peer" defaultChecked />
+        <input type="checkbox" className="peer" />
         <div className="collapse-title peer-checked:bg-base-200 text-lg font-bold flex items-center gap-2">
           <span className="flex items-center h-7">
             <svg
@@ -96,7 +96,7 @@ export default function ContentTab({ moduleInfo, moduleId, isLoading, error }: C
       </div>
       {/* 物品 */}
       <div className="collapse collapse-arrow bg-base-300 mb-2">
-        <input type="checkbox" className="peer" defaultChecked />
+        <input type="checkbox" className="peer" />
         <div className="collapse-title peer-checked:bg-base-200 text-lg font-bold flex items-center gap-2">
           <span className="flex items-center h-7">
             <svg
@@ -118,7 +118,7 @@ export default function ContentTab({ moduleInfo, moduleId, isLoading, error }: C
       </div>
       {/* 地点 */}
       <div className="collapse collapse-arrow bg-base-300 mb-2">
-        <input type="checkbox" className="peer" defaultChecked />
+        <input type="checkbox" className="peer" />
         <div className="collapse-title peer-checked:bg-base-200 text-lg font-bold flex items-center gap-2">
           <span className="flex items-center h-7">
             <svg
@@ -140,7 +140,7 @@ export default function ContentTab({ moduleInfo, moduleId, isLoading, error }: C
       </div>
       {/* 角色 */}
       <div className="collapse collapse-arrow bg-base-300 mb-2">
-        <input type="checkbox" className="peer" defaultChecked />
+        <input type="checkbox" className="peer" />
         <div className="collapse-title peer-checked:bg-base-200 text-lg font-bold flex items-center gap-2">
           <span className="flex items-center h-7">
             <svg

@@ -242,6 +242,7 @@ export default function ModuleHome() {
   // 分页状态管理
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
+  const [showMobileFilter, setShowMobileFilter] = useState(false);
   const itemsPerPage = 12; // 每页显示12个模组
 
   // 当前活跃的背景图片状态
@@ -399,13 +400,13 @@ export default function ModuleHome() {
 
         {/* 图片卡片区域 */}
         <div id="featured-content">
-          <div className="max-w-6xl mx-auto mb-12 mt-8">
+          <div className="max-w-6xl mx-auto mb-12 mt-2 md:mt-8">
             <div className="flex items-center mb-6">
-              <h1 className="text-3xl font-bold pl-8 relative before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-2 before:bg-primary before:rounded-r-md">
+              <h1 className="text-xl md:text-3xl font-bold pl-4 md:pl-8 relative before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 md:before:w-2 before:bg-primary before:rounded-r-md">
                 模组列表
               </h1>
               <div className="ml-auto flex items-center">
-                <div className="relative w-48 md:w-64 ml-6">
+                <div className="relative w-32 md:w-64 ml-6">
                   <input
                     type="text"
                     className="input input-sm w-full pl-10 bg-base-200 border-2 border-base-300 focus:border-primary focus:bg-base-100 transition-colors"
@@ -429,20 +430,38 @@ export default function ModuleHome() {
                     </svg>
                   </span>
                 </div>
+                {/* 移动端筛选图标 */}
+                <button
+                  type="button"
+                  className="md:hidden p-2 text-base-content/60 hover:text-accent transition-colors"
+                  onClick={() => setShowMobileFilter(!showMobileFilter)}
+                >
+                  <svg className="h-[1.2em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <g
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      strokeWidth="1.5"
+                      fill="none"
+                      stroke="currentColor"
+                    >
+                      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                    </g>
+                  </svg>
+                </button>
               </div>
             </div>
 
             <div className="divider"></div>
             {/* 规则列表展示 */}
-            <div className="flex flex-col gap-6 max-w-6xl mx-auto">
+            <div className={`flex flex-col gap-6 max-w-6xl mx-auto ${showMobileFilter ? "block" : "hidden md:flex"}`}>
               <div className="flex-1">
-                <h2 className="text-xl font-bold mb-4 text-accent">全部规则</h2>
+                <h2 className="text-lg md:text-xl font-bold mb-4 text-accent">全部规则</h2>
                 <div className="flex flex-wrap gap-3">
                   {RuleList.data?.map(rule => (
                     <button
                       key={rule.id}
                       type="button"
-                      className={`px-3 py-1 rounded-full text-accent text-sm font-semibold border border-accent/30 transition-all duration-200 focus:outline-none cursor-pointer ${selectedRuleId === rule.id ? "bg-accent text-white" : "bg-accent/10"}`}
+                      className={`px-3 py-1 rounded-full text-accent text-xs md:text-sm font-semibold border border-accent/30 transition-all duration-200 focus:outline-none cursor-pointer ${selectedRuleId === rule.id ? "bg-accent text-white" : "bg-accent/10"}`}
                       onClick={() => {
                         setSelectedRuleId(selectedRuleId === rule.id ? null : rule.id);
                         setCurrentPage(1);
@@ -454,17 +473,17 @@ export default function ModuleHome() {
                 </div>
               </div>
               <div className="flex-1">
-                <h2 className="text-xl font-bold mb-4 text-accent">全部标签</h2>
+                <h2 className="text-lg md:text-xl font-bold mb-4 text-accent">全部标签</h2>
                 <div className="flex flex-wrap gap-3">
                   {tags.map(tag => (
-                    <span key={tag} className="px-3 py-1 rounded-full bg-accent/10 text-accent text-sm font-semibold">
+                    <span key={tag} className="px-3 py-1 rounded-full bg-accent/10 text-accent text-xs md:text-sm font-semibold">
                       {tag}
                     </span>
                   ))}
                 </div>
               </div>
+              <div className="divider mt-0 mb-8 md:mb-8"></div>
             </div>
-            <div className="divider mb-8"></div>
             <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10">
               {(() => {
                 if (ModuleList.isLoading || !imagesReady) {
