@@ -844,8 +844,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             <div className="bg-base-100 h-[70%] flex-shrink-0">
               <ChatFrame useChatBubbleStyle={useChatBubbleStyle} key={roomId} virtuosoRef={virtuosoRef}></ChatFrame>
             </div>
+            <div className="h-px bg-base-300 flex-shrink-0"></div>
             {/* 输入区域 */}
-            <div className="h-px bg-base-300"></div>
             <form className="bg-base-100 p-4 rounded-lg flex flex-col flex-1 ">
               <div className="flex gap-2 flex-1 ">
                 {/* 顶部工具栏 */}
