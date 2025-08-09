@@ -131,7 +131,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     roomId,
     messageType: 1,
     content: "",
-    replayMessageId: 0,
     extra: {},
   };
 
@@ -139,6 +138,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     messageRequest.extra = {
       result: message,
     };
+    messageRequest.content = prop.originMessage;
     messageRequest.roleId = curRoleId;
     messageRequest.avatarId = curAvatarId;
     tuanchat.chatController.sendMessageAiResponse(messageRequest);
