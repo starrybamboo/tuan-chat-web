@@ -4,8 +4,6 @@ import type { ChatMessageRequest, RoleAbility, UserRole } from "../../../../api"
 import { useRoomExtra } from "@/components/chat/hooks";
 import { RoomContext } from "@/components/chat/roomContext";
 import CmdExeCoc from "@/components/common/dicer/cmdExeCoc";
-// type DiceResult = { x: number; y: number; rolls: number[]; total: number };
-
 import { use, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router";
@@ -37,41 +35,6 @@ const ABILITY_MAP: { [key: string]: string } = {
 
 const RULES: Map<number, RuleNameSpace> = new Map();
 RULES.set(1, CmdExeCoc);
-
-/**
- * 聊天室部分调用executor的时候, 会传这么一个结构体进去
- */
-export interface ExecutorProp {
-  /**
-   * 房间ID
-   */
-  roomId?: number;
-  /**
-   * 完整的原始消息
-   */
-  originMessage?: string;
-  /**
-   * 指令消息id;
-   * 用于后续的指令回复,避免消息混乱;
-   */
-  replyMessageId?: number;
-  /**
-   * 骰娘的角色ID
-   */
-  dicerRoleId?: number;
-  /**
-   * 骰娘的头像ID
-   */
-  dicerAvatarId?: number;
-  /**
-   * 命令的主体, 不带前置的标点, 即中英文句号，也不包含@的人
-   */
-  command: string;
-  /**
-   * 聊天框中@的角色
-   */
-  mentionedRoles?: UserRole[];
-}
 
 /**
  * executor返回给聊天室的结构体
