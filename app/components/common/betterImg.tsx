@@ -134,7 +134,7 @@ function BetterImg({ src, className, onClose, size, popWindowKey, transparent = 
         {onClose && (
           <button
             type="button"
-            className="btn btn-xs btn-circle right-0 top-0 absolute opacity-0 group-hover:opacity-100 duration-200 origin-top-right"
+            className="btn btn-xs btn-circle right-0 top-0 absolute opacity-100 duration-200 origin-top-right"
             onClick={onClose}
           >
             <span className="text-xs">✕</span>

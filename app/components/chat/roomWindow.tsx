@@ -846,7 +846,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             </div>
             <div className="h-px bg-base-300 flex-shrink-0"></div>
             {/* 输入区域 */}
-            <form className="bg-base-100 p-4 rounded-lg flex flex-col">
+            <form className="bg-base-100 px-3 py-2 rounded-lg flex flex-col">
               <div className="relative flex-1 flex flex-col min-w-0">
                 <CommandPanel
                   prefix={inputTextWithoutMentions}
@@ -858,10 +858,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                           ? "dice"
                           : "none"
                   }
-                  className="absolute bottom-full w-[80%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
+                  className="absolute bottom-full w-[100%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
                 />
                 {/* 顶部工具栏 */}
-                <div className="flex pl-3 pr-6 justify-between ">
+                <div className="flex pr-1 justify-between ">
                   <div className="flex gap-2">
                     {/* 切换角色 */}
                     <div className="dropdown dropdown-top">
@@ -938,9 +938,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     </div>
                   </div>
                   {/* 发送按钮 */}
-                  <div className="tooltip " data-tip="发送消息">
+                  <div className="tooltip " data-tip="发送">
                     <SendIcon
-                      className={`size-7 font-light jump_icon ${disableSendMessage ? "cursor-not-allowed opacity-50" : ""}`}
+                      className={`size-7 font-light ${disableSendMessage ? "cursor-not-allowed opacity-20 jump_icon" : ""}`}
                       onClick={handleMessageSubmit}
                     >
                     </SendIcon>
@@ -952,7 +952,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     {imgFiles.map((file, index) => (
                       <BetterImg
                         src={file}
-                        className="h-14 w-max rounded"
+                        className="h-12 w-max rounded"
                         onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
                         key={file.name}
                       />
@@ -960,7 +960,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     {emojiUrls.map((url, index) => (
                       <BetterImg
                         src={url}
-                        className="h-14 w-max rounded"
+                        className="h-12 w-max rounded"
                         onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
                         key={url}
                       />
@@ -972,11 +972,11 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   replyMessage && (
                     <RepliedMessage
                       replyMessage={replyMessage}
-                      className="flex flex-row gap-2 items-center bg-base-200 p-1 rounded-box shadow-sm text-sm ml-2"
+                      className="flex flex-row gap-2 items-center bg-base-200 rounded-box shadow-sm text-sm"
                     />
                   )
                 }
-                <div className="flex">
+                <div className="flex gap-2">
                   <div className="dropdown dropdown-top flex-shrink-0">
                     <div role="button" tabIndex={0} className="">
                       <div
@@ -985,7 +985,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       >
                         <RoleAvatarComponent
                           avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
-                          width={getScreenSize() === "sm" ? 12 : 16}
+                          width={getScreenSize() === "sm" ? 12 : 14}
                           isRounded={true}
                           withTitle={false}
                           stopPopWindow={true}
