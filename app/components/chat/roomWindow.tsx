@@ -27,9 +27,9 @@ import { SpaceContext } from "@/components/chat/spaceContext";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
-import useCommandExecutor, { isCommand } from "@/components/common/commandExecutor";
 import { getLocalStorageValue, useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
 import { Mounter } from "@/components/common/mounter";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
@@ -176,7 +176,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     return roomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
   }, [roomRoles, userRoles]);
   const [curRoleId, setCurRoleId] = useState(roomRolesThatUserOwn[0]?.roleId ?? -1);
-  const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1);
   // 获取当前用户选择角色的所有头像(表情差分)
   const roleAvatarQuery = useGetRoleAvatarsQuery(curRoleId ?? -1);
   const roleAvatars = useMemo(() => roleAvatarQuery.data?.data ?? [], [roleAvatarQuery.data?.data]);
@@ -269,6 +268,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       scrollToGivenMessage,
     };
   }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarIndex, useChatBubbleStyle, spaceId, historyMessages, messagesInfiniteQuery, scrollToGivenMessage]);
+  const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
   /**
    * 当群聊角色列表更新时, 自动设置为第一个角色
    */
@@ -572,45 +572,52 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     if (disableSendMessage)
       return;
     setIsSubmitting(true);
-    // 发送图片
-    for (let i = 0; i < imgFiles.length; i++) {
-      const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
-      const { width, height, size } = await getImageSize(imgFiles[i]);
-      sendImg(imgDownLoadUrl, width, height, size);
-    }
-    // 发送表情
-    updateImgFiles([]);
-    for (let i = 0; i < emojiUrls.length; i++) {
-      const { width, height, size } = await getImageSize(emojiUrls[i]);
-      sendImg(emojiUrls[i], width, height, size);
-    }
-    updateEmojiUrls([]);
-    // 发送文本消息
-    if (inputText.trim() !== "") {
-      const messageRequest: ChatMessageRequest = {
-        roomId,
-        roleId: curRoleId,
-        content: inputText.trim(),
-        avatarId: curAvatarId,
-        messageType: 1,
-        replayMessageId: replyMessage?.messageID || undefined,
-        extra: {},
-      };
-      // 如果是命令，额外发送一条消息给骰娘
-      if (isCommand(inputText)) {
-        const commandResult = commandExecutor({ command: inputTextWithoutMentions, mentionedRoles });
-        messageRequest.extra = {
-          result: commandResult,
+    try {
+      // 发送图片
+      for (let i = 0; i < imgFiles.length; i++) {
+        const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
+        const { width, height, size } = await getImageSize(imgFiles[i]);
+        sendImg(imgDownLoadUrl, width, height, size);
+      }
+      // 发送表情
+      updateImgFiles([]);
+      for (let i = 0; i < emojiUrls.length; i++) {
+        const { width, height, size } = await getImageSize(emojiUrls[i]);
+        sendImg(emojiUrls[i], width, height, size);
+      }
+      updateEmojiUrls([]);
+      // 发送文本消息
+      if (inputText.trim() !== "") {
+        const messageRequest: ChatMessageRequest = {
+          roomId,
+          roleId: curRoleId,
+          content: inputText.trim(),
+          avatarId: curAvatarId,
+          messageType: 1,
+          replayMessageId: replyMessage?.messageID || undefined,
+          extra: {},
         };
-        tuanchat.chatController.sendMessageAiResponse(messageRequest);
+        // 如果是命令，额外发送一条消息给骰娘
+        if (isCommand(inputText)) {
+          const commandResult = commandExecutor({ command: inputTextWithoutMentions, mentionedRoles, originMessage: inputText });
+          messageRequest.extra = {
+            result: commandResult,
+          };
+          tuanchat.chatController.sendMessageAiResponse(messageRequest);
+        }
+        else {
+          send(messageRequest);
+        }
+        setInputText("");
       }
-      else {
-        send(messageRequest);
-      }
-      setInputText("");
+      setReplyMessage(undefined);
     }
-    setReplyMessage(undefined);
-    setIsSubmitting(false);
+    catch (e: any) {
+      toast.error(e.message + e.stack, { duration: 3000 });
+    }
+    finally {
+      setIsSubmitting(false);
+    }
   };
 
   function sendImg(img: string, width: number, height: number, size: number) {
