@@ -60,15 +60,25 @@ export const diceCommands: command[] = [
   },
 ];
 
-export const webgalCommands: command[] = [
-  {
-    name: "changeBg:none -next",
-    importance: 5,
-    description: "取消背景（无停顿）",
-  },
-  {
-    name: "changeBg:none",
-    importance: 5,
-    description: "取消背景",
-  },
-];
+export const webgalCommands: Map<string, CommandInfo> = new Map([
+  [
+    "changeBg:none -next",
+    {
+      name: "changeBg:none -next",
+      alias: [],
+      description: "取消背景（无停顿）",
+      usage: "",
+      examples: [],
+    },
+  ],
+  [
+    "changeBg:none",
+    {
+      name: "changeBg:none",
+      alias: [],
+      description: "取消背景",
+      usage: "",
+      examples: [],
+    },
+  ],
+]);

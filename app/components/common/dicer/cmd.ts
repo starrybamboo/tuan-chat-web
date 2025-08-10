@@ -73,8 +73,8 @@ export class RuleNameSpace {
    */
   getCmdList(): Map<string, CommandInfo> {
     const cmdList = new Map<string, CommandInfo>();
-    this.cmdMap.forEach((cmd) => {
-      cmdList.set(cmd.cmdInfo.name, cmd.cmdInfo);
+    Array.from(this.cmdMap.keys()).forEach((cmd) => {
+      cmdList.set(cmd, this.getCmd(cmd)!);
     });
     return cmdList;
   }

@@ -31,7 +31,7 @@ const cmdRc = new CommandExecutor(
   "rc",
   ["ra"],
   "进行技能检定",
-  [""],
+  [".rc 侦查 50", ".rc 侦查 +10", ".rc p 手枪", ".rc 力量"],
   "rc [奖励/惩罚骰]? [技能名] [技能值]?",
   async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
