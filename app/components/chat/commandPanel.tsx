@@ -41,8 +41,8 @@ export default function CommandPanel({ prefix, handleSelectCommand, commandMode,
   if (prefix.includes(" ")) {
     const suggestions = Array.from(commands.keys())
       .filter(command => prefix.slice(1).startsWith(command))
-      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
-      .slice(0, suggestionNumber);
+      .sort((a, b) => b.length - a.length)
+      .slice(0, 1);
     return (
       <div className={className}>
         {suggestions.map(cmd => (
