@@ -1,5 +1,5 @@
 import type { Initiative } from "@/components/chat/sideDrawer/initiativeList";
-import type { UserRole } from "../../../api";
+import type { UserRole } from "../../../../api";
 import { useRoomExtra } from "@/components/chat/hooks";
 import { useEffect, useRef } from "react";
 // type DiceResult = { x: number; y: number; rolls: number[]; total: number };
@@ -9,9 +9,9 @@ import {
   useGetRoleAbilitiesQuery,
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityMutation,
-} from "../../../api/hooks/abilityQueryHooks";
-import { useGetRoleQuery } from "../../../api/queryHooks";
-import { parseDiceExpression, roll, rollDice } from "./dicer/dice";
+} from "../../../../api/hooks/abilityQueryHooks";
+import { useGetRoleQuery } from "../../../../api/queryHooks";
+import { parseDiceExpression, roll, rollDice } from "./dice";
 
 // 属性名中英文对照表
 const ABILITY_MAP: { [key: string]: string } = {

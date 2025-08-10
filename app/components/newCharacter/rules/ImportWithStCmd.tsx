@@ -1,4 +1,4 @@
-import useCommandExecutor from "@/components/common/commandExecutor";
+import useCommandExecutor from "@/components/common/dicer/cmdPre";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 
