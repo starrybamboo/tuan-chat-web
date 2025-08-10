@@ -414,7 +414,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
           draggable
           && (
             <div
-              className={`absolute left-0 ${useChatBubbleStyle ? "bottom-[30px]" : "top-[30px]"}
+              className={`absolute left-0 ${useChatBubbleStyle ? "top-[12px]" : "top-[30px]"}
                       opacity-0 transition-opacity flex items-center pr-2 cursor-move
                       group-hover:opacity-100 z-100`}
               draggable={draggable}

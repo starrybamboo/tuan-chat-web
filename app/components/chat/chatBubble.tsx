@@ -153,7 +153,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       {useChatBubbleStyle
         ? (
             <div
-              className="flex w-full items-start gap-3 py-1"
+              className="flex w-full items-start gap-1 py-1"
               key={message.messageID}
             >
               {/* Avatar */}
@@ -168,7 +168,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               </div>
               <div className="flex flex-col items-start">
                 <div
-                  className={`text-xs cursor-pointer `}
+                  className={`text-xs pb-1 cursor-pointer `}
                   onClick={handleRoleNameClick}
                 >
                   {role?.roleName?.trim() || "Undefined"}
