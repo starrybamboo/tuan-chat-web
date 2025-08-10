@@ -365,16 +365,16 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
         </div>
       </div>
       {/* 向用户介绍标签组件 */}
-      <div className="p-4 bg-blue-50 rounded-lg space-y-2 text-s mt-4">
+      <div className="p-4 bg-blue-50 rounded-lg space-y-2 text-s mt-4 text-gray-600">
         <h3 className="font-bold text-lg">TIP:</h3>
         <p>
           标签组件是
           <strong> 简短 </strong>
           的介绍你自己的成分，游戏时间，偏好，甚至是底线的地方
+          <p>最多只能8个标签哦</p>
         </p>
-        <p>最多只能8个标签哦</p>
         <p>
-          <span className="font-medium">示例：</span>
+          <span className="font-medium text-gray-700">示例：</span>
           <span className="tag bg-green-100 text-green-800 mx-1">周末党</span>
           <span className="tag bg-pink-100 text-pink-500 mx-1">喜欢抽象</span>
           <span className="tag bg-purple-100 text-purple-500 mx-1">随性</span>
