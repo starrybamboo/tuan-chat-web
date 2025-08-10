@@ -233,12 +233,18 @@ export default function ChatPage() {
         <OpenAbleDrawer isOpen={getScreenSize() === "sm" ? isOpenLeftDrawer : true} className="h-full z-10 w-full bg-base-100">
           <div className="h-full flex flex-row w-full md:w-max">
             {/* 空间列表 */}
-            <div className="flex flex-col p-2 bg-base-300/40 h-full flex-wrap">
+            <div className="flex flex-col p-2 gap-2 bg-base-300/40 h-full flex-wrap">
               {spaces.map(space => (
                 <div
-                  className={`rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""} w-10 mb-2`}
+                  className={`rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""} w-10 relative`}
                   key={space.spaceId}
                 >
+                  <div
+                    className={`absolute -left-[6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${
+                      activeSpaceId === space.spaceId ? "scale-y-100" : "scale-y-0"
+                    }`}
+                  >
+                  </div>
                   <button
                     className="tooltip tooltip-right w-10 btn btn-square"
                     data-tip={space.name}
