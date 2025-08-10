@@ -871,7 +871,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   className="absolute bottom-full w-[100%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
                 />
                 {/* 顶部工具栏 */}
-                <div className="flex pr-1 justify-between ">
+                <div className="flex pr-1 pl-2 justify-between ">
                   <div className="flex gap-2">
                     {/* 切换角色 */}
                     <div className="dropdown dropdown-top">
@@ -968,7 +968,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     <div role="button" tabIndex={0} className="">
                       <div
                         className="tooltip flex justify-center flex-col items-center space-y-2"
-                        data-tip="切换表情差分"
+                        data-tip="切换表情"
                       >
                         <RoleAvatarComponent
                           avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
