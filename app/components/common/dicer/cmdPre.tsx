@@ -68,55 +68,6 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     extra: {},
   };
 
-  const sendMsg = (prop: ExecutorProp, message: string) => {
-    messageRequest.extra = {
-      result: message,
-    };
-    messageRequest.content = prop.originMessage;
-    messageRequest.roleId = curRoleId;
-    messageRequest.avatarId = curAvatarId;
-    tuanchat.chatController.sendMessageAiResponse(messageRequest);
-  };
-
-  const getRoleAbilityList = async (roleId: number): Promise<RoleAbility> => {
-    const abilityQuery = await tuanchat.abilityController.listRoleAbility(roleId);
-    const abilityList = abilityQuery.data ?? [];
-    const ability = abilityList.find(a => a.ruleId === ruleId);
-    return ability || {};
-  };
-
-  const setRoleAbilityList = async (roleId: number, ability: RoleAbility): Promise<void> => {
-    const abilityQuery = await tuanchat.abilityController.listRoleAbility(roleId);
-    const abilityList = abilityQuery.data ?? [];
-    const curAbility = abilityList.find(a => a.ruleId === ruleId);
-    if (curAbility) {
-      updateAbilityMutation.mutate({
-        abilityId: curAbility.abilityId ?? -1,
-        ability: ability.ability,
-        act: {},
-      });
-    }
-    else {
-      setAbilityMutation.mutate({
-        roleId,
-        ruleId,
-        act: {},
-        ability: {},
-      });
-    }
-  };
-
-  const sendToast = (message: string) => {
-    toast(message);
-  };
-
-  const CmdPreInterface = {
-    sendMsg,
-    getRoleAbilityList,
-    setRoleAbilityList,
-    sendToast,
-  };
-
   useEffect(() => {
     try {
       defaultDice.current = Number(localStorage.getItem("defaultDice")) ?? 100;
@@ -130,7 +81,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
    * 返回这个函数
    * @param executorProp
    */
-  function execute(executorProp: ExecutorProp): void {
+  async function execute(executorProp: ExecutorProp): Promise<void> {
     const command = executorProp.command;
     const [cmdPart, ...args] = parseCommand(command);
     const operator: UserRole = {
@@ -146,6 +97,56 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     };
     const mentioned: UserRole[] = (executorProp.mentionedRoles || []);
     mentioned.push(operator);
+    // 获取角色的能力列表
+    const getRoleAbility = async (roleId: number): Promise<RoleAbility> => {
+      const abilityQuery = await tuanchat.abilityController.listRoleAbility(roleId);
+      const abilityList = abilityQuery.data ?? [];
+      const ability = abilityList.find(a => a.ruleId === ruleId);
+      return ability || {};
+    };
+    // 获取所有可能用到的角色能力
+    const mentionedRoles = new Map<number, RoleAbility>();
+    for (const role of mentioned) {
+      mentionedRoles.set(role.userId, role);
+      const ability = await getRoleAbility(role.roleId);
+      mentionedRoles.set(role.roleId, ability);
+    }
+
+    // 定义cpi接口
+    const sendMsg = (prop: ExecutorProp, message: string) => {
+      messageRequest.extra = {
+        result: message,
+      };
+      messageRequest.content = prop.originMessage;
+      messageRequest.roleId = curRoleId;
+      messageRequest.avatarId = curAvatarId;
+      tuanchat.chatController.sendMessageAiResponse(messageRequest);
+    };
+
+    const sendToast = (message: string) => {
+      toast(message);
+    };
+
+    const getRoleAbilityList = (roleId: number): RoleAbility => {
+      if (mentionedRoles.has(roleId)) {
+        return mentionedRoles.get(roleId) as RoleAbility;
+      }
+      return {};
+    };
+
+    const setRoleAbilityList = (roleId: number, ability: RoleAbility) => {
+      if (!mentionedRoles.has(roleId)) {
+        return;
+      }
+      mentionedRoles.set(roleId, ability);
+    };
+
+    const CmdPreInterface = {
+      sendMsg,
+      sendToast,
+      getRoleAbilityList,
+      setRoleAbilityList,
+    };
 
     const ruleExecutor = RULES.get(ruleId);
     if (!ruleExecutor) {
@@ -153,14 +154,32 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
       return;
     }
     try {
-      ruleExecutor.execute(cmdPart, args, mentioned, CmdPreInterface, executorProp);
+      await ruleExecutor.execute(cmdPart, args, mentioned, CmdPreInterface, executorProp);
     }
     catch (err1) {
       try {
-        executorPublic.execute(cmdPart, args, mentioned, CmdPreInterface, executorProp);
+        await executorPublic.execute(cmdPart, args, mentioned, CmdPreInterface, executorProp);
       }
       catch (err2) {
         sendToast(`执行错误：${err1 instanceof Error ? err1.message : String(err1)} 且 ${err2 instanceof Error ? err2.message : String(err2)}`);
+      }
+    }
+    // 遍历mentionedRoles，更新角色能力
+    for (const [_id, ability] of mentionedRoles) {
+      if (ability) {
+        updateAbilityMutation.mutate({
+          abilityId: ability.abilityId ?? -1,
+          act: {},
+          ability: ability.ability,
+        });
+      }
+      else {
+        setAbilityMutation.mutate({
+          roleId,
+          ruleId,
+          act: {},
+          ability,
+        });
       }
     }
   }

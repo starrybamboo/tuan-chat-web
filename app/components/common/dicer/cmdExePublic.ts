@@ -64,6 +64,10 @@ const cmdSt = new CommandExecutor(
     // 使用正则匹配所有属性+数值的组合
     const matches = input.matchAll(/(\D+)(\d+)/g);
     const curAbility = await cpi.getRoleAbilityList(role.roleId);
+    if (!curAbility) {
+      cpi.sendToast("非法操作，当前角色不存在于提及列表中。");
+      return false;
+    }
 
     // st show 实现，目前仍使用聊天文本返回结果
     // TODO 添加弹出窗口响应`st show`的属性展示
@@ -99,17 +103,23 @@ const cmdSt = new CommandExecutor(
       // 统一转换为小写进行比较
       const normalizedKey = rawKey.toLowerCase();
 
+      if (!curAbility?.ability) {
+        curAbility.ability = {};
+      }
+
       // 查找映射关系
       if (ABILITY_MAP[normalizedKey]) {
+        curAbility.ability[ABILITY_MAP[normalizedKey]] = value;
         ability[ABILITY_MAP[normalizedKey]] = value;
       }
       else {
+        curAbility.ability[rawKey] = value;
         ability[rawKey] = value;
       }
     }
 
     cpi.setRoleAbilityList(role.roleId, curAbility);
-    cpi.sendToast(`更新属性: ${JSON.stringify(ability, null, 2)}`);
+    cpi.sendToast(`属性设置成功：${role?.roleName || "当前角色"}的属性已更新: ${JSON.stringify(ability)}`);
     return true;
   },
 );

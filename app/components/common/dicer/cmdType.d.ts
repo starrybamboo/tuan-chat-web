@@ -45,9 +45,9 @@ interface CPI { // eslint-disable-line ts/consistent-type-definitions
   // 发送消息
   sendMsg: (prop: ExecutorProp, msg: string) => void;
   // 获取角色能力列表
-  getRoleAbilityList: (roleId: number) => Promise<RoleAbility>;
+  getRoleAbilityList: (roleId: number) => RoleAbility;
   // 设置角色能力列表
-  setRoleAbilityList: (roleId: number, ability: RoleAbility) => Promise<void>;
+  setRoleAbilityList: (roleId: number, abilityList: RoleAbility) => void;
   // 发送Toast消息
   sendToast: (msg: string) => void;
 }

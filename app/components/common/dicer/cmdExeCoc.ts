@@ -257,14 +257,15 @@ const cmdSc = new CommandExecutor(
       newSan = 0;
     }
 
-    // 更新角色卡中的san值
-    if (curAbility) {
-      const ability = { ...curAbility.ability };
-      ability["san值"] = newSan;
-      ability.san = newSan;
-
-      await cpi.setRoleAbilityList(mentioned[0].roleId, ability);
+    if (!curAbility.ability) {
+      cpi.sendMsg(prop, `未设置角色san值`);
+      return false;
     }
+    // 更新角色卡中的san值
+    curAbility.ability["san值"] = newSan;
+    curAbility.ability.san = newSan;
+
+    await cpi.setRoleAbilityList(mentioned[0].roleId, curAbility);
 
     // 构建返回信息
     let res: string = `理智检定：D100=${roll}/${currentSan} ${result}\n`
