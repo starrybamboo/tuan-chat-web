@@ -4,9 +4,8 @@ import type { RuleNameSpace } from "@/components/common/dicer/cmd";
 import type { ChatMessageRequest, RoleAbility, UserRole } from "../../../../api";
 import { useRoomExtra } from "@/components/chat/hooks";
 import CmdExeCoc from "@/components/common/dicer/cmdExeCoc";
+import executorDnd from "@/components/common/dicer/cmdExeDnd";
 import executorPublic from "@/components/common/dicer/cmdExePublic";
-// type DiceResult = { x: number; y: number; rolls: number[]; total: number };
-
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router";
@@ -38,6 +37,7 @@ const ABILITY_MAP: { [key: string]: string } = {
 
 const RULES: Map<number, RuleNameSpace> = new Map();
 RULES.set(1, CmdExeCoc);
+RULES.set(2, executorDnd); // DnD规则
 
 /**
  * 聊天室部分调用executor的时候, 会传这么一个结构体进去
