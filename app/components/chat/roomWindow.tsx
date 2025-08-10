@@ -1048,7 +1048,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     // 这里的坐标是全局的坐标，所以mount到根元素
                     <Mounter targetId="modal-root">
                       <div
-                        className="absolute flex flex-col card shadow-md bg-base-100 p-2 gap-2  max-h-[30vh] overflow-auto"
+                        className="absolute flex flex-col card shadow-md bg-base-100 p-2 gap-2 z-20 max-h-[30vh] overflow-auto"
                         style={{
                           top: atDialogPosition.y - 5,
                           left: atDialogPosition.x,
