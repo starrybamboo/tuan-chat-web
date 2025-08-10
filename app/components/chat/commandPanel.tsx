@@ -15,19 +15,22 @@ export type commandModeType = "dice" | "webgal" | "none";
  * @param handleSelectCommand 选择命令时的回调函数
  * @param commandMode 当前命令模式，决定显示哪类命令
  * @param suggestionNumber 显示的建议命令数量，默认为10
+ * @param ruleId 规则ID，用于获取特定规则下的命令列表，默认为1
+ * @param className 组件的自定义类名
  */
 
-export default function CommandPanel({ prefix, handleSelectCommand, commandMode, suggestionNumber = 10, className }: {
+export default function CommandPanel({ prefix, handleSelectCommand, commandMode, suggestionNumber = 10, ruleId = 1, className }: {
   prefix: string;
   handleSelectCommand: (cmdName: string) => void;
   commandMode?: commandModeType;
   suggestionNumber?: number;
+  ruleId?: number;
   className?: string;
 }) {
   const commands = (() => {
     switch (commandMode) {
       case "dice":
-        return getCommandList(1);
+        return getCommandList(ruleId);
       case "webgal":
         return webgalCommands;
       case "none":

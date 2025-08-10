@@ -863,10 +863,11 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   commandMode={
                     inputTextWithoutMentions.startsWith("%")
                       ? "webgal"
-                      : (inputTextWithoutMentions.startsWith(".") || inputTextWithoutMentions.startsWith("。"))
+                      : (inputTextWithoutMentions.startsWith(".") || inputTextWithoutMentions.startsWith("。") || inputTextWithoutMentions.startsWith("/"))
                           ? "dice"
                           : "none"
                   }
+                  ruleId={space?.ruleId ?? -1}
                   className="absolute bottom-full w-[100%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
                 />
                 {/* 顶部工具栏 */}
@@ -1111,6 +1112,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           commandMode="dice"
           suggestionNumber={10000}
           className="overflow-x-clip max-h-[80vh] overflow-y-auto"
+          ruleId={space?.ruleId ?? -1}
         >
         </CommandPanel>
       </PopWindow>
