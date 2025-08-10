@@ -963,36 +963,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     </SendIcon>
                   </div>
                 </div>
-                {/* 预览要发送的图片 */}
-                {(imgFiles.length > 0 || emojiUrls.length > 0) && (
-                  <div className="flex flex-row gap-x-3 overflow-x-auto pb-2 pl-3">
-                    {imgFiles.map((file, index) => (
-                      <BetterImg
-                        src={file}
-                        className="h-12 w-max rounded"
-                        onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
-                        key={file.name}
-                      />
-                    ))}
-                    {emojiUrls.map((url, index) => (
-                      <BetterImg
-                        src={url}
-                        className="h-12 w-max rounded"
-                        onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
-                        key={url}
-                      />
-                    ))}
-                  </div>
-                )}
-                {/* 引用的消息 */}
-                {
-                  replyMessage && (
-                    <RepliedMessage
-                      replyMessage={replyMessage}
-                      className="flex flex-row gap-2 items-center bg-base-200 rounded-box shadow-sm text-sm mb-1"
-                    />
-                  )
-                }
                 <div className="flex gap-2 items-stretch">
                   <div className="dropdown dropdown-top flex-shrink-0">
                     <div role="button" tabIndex={0} className="">
@@ -1024,8 +994,40 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   </div>
                   {/* 输入框 */}
                   <div
-                    className="text-sm w-full max-h-[20vh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-primary focus-within:border-primary"
+                    className="text-sm w-full max-h-[20vh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-primary focus-within:border-primary flex flex-col"
                   >
+                    {/* 预览要发送的图片 */}
+                    {(imgFiles.length > 0 || emojiUrls.length > 0) && (
+                      <div className="flex flex-row gap-x-3 overflow-x-auto p-2 pb-1">
+                        {imgFiles.map((file, index) => (
+                          <BetterImg
+                            src={file}
+                            className="h-12 w-max rounded"
+                            onClose={() => updateImgFiles(draft => void draft.splice(index, 1))}
+                            key={file.name}
+                          />
+                        ))}
+                        {emojiUrls.map((url, index) => (
+                          <BetterImg
+                            src={url}
+                            className="h-12 w-max rounded"
+                            onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
+                            key={url}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    {/* 引用的消息 */}
+                    {
+                      replyMessage && (
+                        <div className="p-2 pb-1">
+                          <RepliedMessage
+                            replyMessage={replyMessage}
+                            className="flex flex-row gap-2 items-center bg-base-200 rounded-box shadow-sm text-sm p-1"
+                          />
+                        </div>
+                      )
+                    }
                     <div
                       className="w-full overflow-auto resize-none p-2 focus:outline-none div-textarea"
                       ref={textareaRef}
