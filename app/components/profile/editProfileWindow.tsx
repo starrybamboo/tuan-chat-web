@@ -43,7 +43,25 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
 
   return (
     <div className="card card-body">
-      <h1 className="text-xl text-accent font-bold pb-2">更新个人资料</h1>
+      <div
+        onClick={onClose}
+        className="flex text-lg items-center gap-1 text-primary hover:text-primary-content cursor-pointer transition-colors mb-2 w-18"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          className="w-4 h-4 mr-1"
+        >
+          <path
+            fillRule="evenodd"
+            d="M11.03 3.97a.75.75 0 010 1.06l-6.22 6.22H21a.75.75 0 010 1.5H4.81l6.22 6.22a.75.75 0 11-1.06 1.06l-7.5-7.5a.75.75 0 010-1.06l7.5-7.5a.75.75 0 011.06 0z"
+            clipRule="evenodd"
+          />
+        </svg>
+        返回
+      </div>
+      <h1 className="text-xl text-accent font-bold pb-4">更新个人资料</h1>
       <div className="flex flex-col gap-4">
         {/* 头像部分 */}
         <div className="flex flex-col md:flex-row gap-6 p-2 items-center">
