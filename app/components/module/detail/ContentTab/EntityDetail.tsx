@@ -61,7 +61,15 @@ const EntityDetail: React.FC<EntityDetailProps> = ({ moduleInfo }) => {
                     <>
                       {selectedEntityInfo.image && (
                         <div className="mb-2">
-                          <img src={selectedEntityInfo.image} alt={selectedEntityInfo.name || selectedEntity || ""} className="w-24 h-24 object-cover rounded" />
+                          <img
+                            src={selectedEntityInfo.image}
+                            alt={selectedEntityInfo.name || selectedEntity || ""}
+                            className="w-24 h-24 object-cover rounded"
+                            onError={(e) => {
+                              // 如果图片加载失败，使用默认图片
+                              (e.target as HTMLImageElement).src = "/favicon.ico";
+                            }}
+                          />
                         </div>
                       )}
                       {selectedEntityInfo.description && (

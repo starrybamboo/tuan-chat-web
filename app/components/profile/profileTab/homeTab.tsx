@@ -7,6 +7,7 @@ import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import EditProfileWindow from "@/components/profile/editProfileWindow";
+import GNSSpiderChart from "@/components/profile/module/GNSSpiderChart";
 import React, { useState } from "react";
 import { Link } from "react-router";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../../api/hooks/userFollowQueryHooks";
@@ -267,6 +268,58 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             </button>
           )}
 
+          {/* 成就模块 */}
+          <div className="md:col-span-2 lg:col-span-1 mt-6">
+            <div className="bg-indigo-50 rounded-xl p-5 h-full">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-indigo-800 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  成就勋章（测试）
+                </h2>
+                {userProfile.medals.length > 6 && (
+                  <button
+                    type="button"
+                    onClick={() => setExpandedMedals(!expandedMedals)}
+                    className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 transition-colors"
+                  >
+                    {expandedMedals ? "收起" : `更多 (${userProfile.medals.length - 6}+)`}
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                {visibleMedals.map(medal => (
+                  <div
+                    key={medal.id}
+                    className="group relative flex flex-col items-center"
+                  >
+                    <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110">
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                      </svg>
+                    </div>
+                    <span className="mt-2 text-xs text-center font-medium text-gray-700 group-hover:text-indigo-700 transition-colors truncate w-full">
+                      {medal.name}
+                    </span>
+
+                    {/* 悬停提示 */}
+                    <div className="absolute bottom-full mb-2 hidden group-hover:block bg-white p-3 rounded-lg shadow-lg z-10 w-64">
+                      <p className="font-bold text-indigo-700">{medal.name}</p>
+                      <p className="text-sm mt-1 text-gray-600">{medal.desc}</p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        达成日期:
+                        {medal.date}
+                      </p>
+                      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-3 h-3 bg-white"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {!userQuery.isLoading && user?.userId !== loginUserId && (
             <div className="flex-col w-full mt-4">
               <FollowButton userId={user?.userId || 0} className="w-full" />
@@ -305,7 +358,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
 
           {/* 用户标签 */}
           <div className="mb-4">
-            <TagManagement />
+            <TagManagement userId={userId} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 ">
@@ -367,56 +420,9 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                 </div>
               </div>
             </div>
-            {/* 右侧 - 勋章展示 */}
-            <div className="md:col-span-2 lg:col-span-1">
-              <div className="bg-indigo-50 rounded-xl p-5 h-full">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold text-indigo-800 flex items-center">
-                    <svg className="w-5 h-5 mr-2 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    成就勋章（测试用）
-                  </h2>
-                  {userProfile.medals.length > 6 && (
-                    <button
-                      type="button"
-                      onClick={() => setExpandedMedals(!expandedMedals)}
-                      className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 transition-colors"
-                    >
-                      {expandedMedals ? "收起" : `更多 (${userProfile.medals.length - 6}+)`}
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  {visibleMedals.map(medal => (
-                    <div
-                      key={medal.id}
-                      className="group relative flex flex-col items-center"
-                    >
-                      <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-110">
-                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                        </svg>
-                      </div>
-                      <span className="mt-2 text-xs text-center font-medium text-gray-700 group-hover:text-indigo-700 transition-colors truncate w-full">
-                        {medal.name}
-                      </span>
-
-                      {/* 悬停提示 */}
-                      <div className="absolute bottom-full mb-2 hidden group-hover:block bg-white p-3 rounded-lg shadow-lg z-10 w-64">
-                        <p className="font-bold text-indigo-700">{medal.name}</p>
-                        <p className="text-sm mt-1 text-gray-600">{medal.desc}</p>
-                        <p className="text-xs text-gray-500 mt-2">
-                          达成日期:
-                          {medal.date}
-                        </p>
-                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-3 h-3 bg-white"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            {/* 右侧 - 用户 GNS 雷达图 */}
+            <div className="mb-4">
+              <GNSSpiderChart />
             </div>
           </div>
           {/* 个人主页的Readme */}
@@ -425,7 +431,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             <MarkDownViewer content={user?.readMe || "## Hi, welcome to my personal page!👋"}></MarkDownViewer>
           </div>
         </div>
-        {/* SC余额 - 特殊展示 */}
+        {/* SC余额卡片 */}
         {/* dark:from-gray-800 dark:to-gray-900 */}
         {loginUserId === userId && (
           <div className="mt-8 rounded-xl p-5 shadow-lg opacity-90 relative overflow-hidden bg-gradient-to-r from-purple-500 to-indigo-600">
@@ -456,7 +462,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
         )}
 
       </div>
-      <PopWindow isOpen={isEditWindowOpen} onClose={() => setIsEditWindowOpen(false)}>
+      <PopWindow isOpen={isEditWindowOpen} fullScreen={true} onClose={() => setIsEditWindowOpen(false)}>
         <EditProfileWindow onClose={() => setIsEditWindowOpen(false)}></EditProfileWindow>
       </PopWindow>
       <PopWindow

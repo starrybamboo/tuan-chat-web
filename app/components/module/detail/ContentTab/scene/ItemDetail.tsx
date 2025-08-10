@@ -60,7 +60,7 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
 
   if (!itemData || !normalizedItemInfo) {
     return (
-      <div className="flex h-full w-full items-center justify-center text-base-content/50">
+      <div className="flex h-full w-full items-center justify-center text-base-content/50 text-sm md:text-base">
         未找到信息
       </div>
     );
@@ -68,12 +68,13 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
 
   return (
     <div className="h-full w-full flex gap-2">
-      <div className="flex flex-col gap-4 p-4 bg-base-100 rounded-lg w-full overflow-y-auto">
-        <h1 className="text-3xl font-bold text-accent">{normalizedItemInfo?.name || "未命名"}</h1>
-        <div className="divider my-0" />
+      <div className="flex flex-col gap-4 p-2 md:p-4 bg-base-100 rounded-lg w-full overflow-y-auto">
+        <div className="hidden md:block">
+          <h1 className="text-2xl md:text-3xl font-bold text-accent">{normalizedItemInfo?.name || "未命名"}</h1>
+        </div>
         {entityType !== "scene" && normalizedItemInfo?.image && (
           <div className="flex flex-col gap-2">
-            <h4 className="text-sm font-medium text-base-content/60">图片</h4>
+            <h4 className="text-xs md:text-sm font-medium text-base-content/60">图片</h4>
             <div className="w-32 h-32 rounded-lg overflow-hidden border border-base-300">
               <img
                 src={normalizedItemInfo.image}
@@ -90,8 +91,8 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
         {/* 物品描述（统一为SceneDetail样式） */}
         {normalizedItemInfo?.description && (
           <div className="w-full">
-            <h4 className="font-semibold text-lg text-accent mb-2">描述</h4>
-            <p className="bg-info/10 text-accent p-3 rounded-lg">
+            <h4 className="font-semibold text-base md:text-lg text-accent mb-2">描述</h4>
+            <p className="bg-info/10 text-accent p-3 rounded-lg text-sm md:text-base">
               {normalizedItemInfo.description}
             </p>
           </div>
@@ -99,8 +100,8 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
         {/* KP提示（统一为SceneDetail样式） */}
         {normalizedItemInfo?.tip && (
           <div className="w-full">
-            <h4 className="font-semibold text-lg mb-2 text-orange-600">KP提示</h4>
-            <p className="text-accent bg-orange-50/10 p-3 rounded-lg border-l-4 border-orange-200">
+            <h4 className="font-semibold text-base md:text-lg mb-2 text-orange-600">KP提示</h4>
+            <p className="text-accent bg-orange-50/10 p-3 rounded-lg border-l-4 border-orange-200 text-sm md:text-base">
               {normalizedItemInfo.tip}
             </p>
           </div>
@@ -110,12 +111,12 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
           <>
             {normalizedItemInfo?.sceneItems && normalizedItemInfo.sceneItems.length > 0 && (
               <div>
-                <h4 className="font-semibold text-sm mb-2 text-green-600">场景物品</h4>
+                <h4 className="font-semibold text-xs md:text-sm mb-2 text-green-600">场景物品</h4>
                 <div className="flex flex-wrap gap-2">
                   {normalizedItemInfo.sceneItems.map((item: string) => (
                     <span
                       key={item}
-                      className={`bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium cursor-pointer border border-green-300 ${selectedEntity === item ? "ring-2 ring-green-500" : ""}`}
+                      className={`bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs md:text-sm font-medium cursor-pointer border border-green-300 ${selectedEntity === item ? "ring-2 ring-green-500" : ""}`}
                       onClick={() => {
                         setSelectedEntity(item);
                       }}
@@ -128,12 +129,12 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
             )}
             {normalizedItemInfo?.sceneRoles && normalizedItemInfo.sceneRoles.length > 0 && (
               <div>
-                <h4 className="font-semibold text-sm mb-2 text-blue-600">场景角色</h4>
+                <h4 className="font-semibold text-xs md:text-sm mb-2 text-blue-600">场景角色</h4>
                 <div className="flex flex-wrap gap-2">
                   {normalizedItemInfo.sceneRoles.map((role: string) => (
                     <span
                       key={role}
-                      className={`bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium cursor-pointer border border-blue-300 ${selectedEntity === role ? "ring-2 ring-blue-500" : ""}`}
+                      className={`bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs md:text-sm font-medium cursor-pointer border border-blue-300 ${selectedEntity === role ? "ring-2 ring-blue-500" : ""}`}
                       onClick={() => {
                         setSelectedEntity(role);
                       }}
@@ -146,12 +147,12 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
             )}
             {normalizedItemInfo?.sceneLocations && normalizedItemInfo.sceneLocations.length > 0 && (
               <div>
-                <h4 className="font-semibold text-sm mb-2 text-purple-600">场景地点</h4>
+                <h4 className="font-semibold text-xs md:text-sm mb-2 text-purple-600">场景地点</h4>
                 <div className="flex flex-wrap gap-2">
                   {normalizedItemInfo.sceneLocations.map((location: string) => (
                     <span
                       key={location}
-                      className={`bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium cursor-pointer border border-purple-300 ${selectedEntity === location ? "ring-2 ring-purple-500" : ""}`}
+                      className={`bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs md:text-sm font-medium cursor-pointer border border-purple-300 ${selectedEntity === location ? "ring-2 ring-purple-500" : ""}`}
                       onClick={() => {
                         setSelectedEntity(location);
                       }}
@@ -166,7 +167,7 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
             {selectedEntityInfo
               ? (
                   <div className="mt-6 p-4 rounded-lg border border-base-300 bg-base-200">
-                    <h4 className="font-bold text-lg mb-2 text-primary">{selectedEntity}</h4>
+                    <h4 className="font-bold text-base md:text-lg mb-2 text-primary">{selectedEntity}</h4>
                     {selectedEntityInfo.image && (
                       <div className="mb-2">
                         <img
@@ -182,14 +183,14 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
                     )}
                     {selectedEntityInfo.description && (
                       <div className="mb-2">
-                        <span className="font-semibold text-base-content/70">描述：</span>
-                        <span>{selectedEntityInfo.description}</span>
+                        <span className="font-semibold text-base-content/70 text-xs md:text-sm">描述：</span>
+                        <span className="text-xs md:text-sm">{selectedEntityInfo.description}</span>
                       </div>
                     )}
                     {selectedEntityInfo.tip && (
                       <div className="mb-2">
-                        <span className="font-semibold text-orange-600">KP提示：</span>
-                        <span>{selectedEntityInfo.tip}</span>
+                        <span className="font-semibold text-orange-600 text-xs md:text-sm">KP提示：</span>
+                        <span className="text-xs md:text-sm">{selectedEntityInfo.tip}</span>
                       </div>
                     )}
                   </div>
@@ -199,8 +200,8 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
                     || normalizedItemInfo?.sceneRoles?.length > 0
                     || normalizedItemInfo?.sceneLocations?.length > 0) && (
                     <div className="mt-6 p-4 rounded-lg border border-base-300 bg-base-200">
-                      <h4 className="font-bold text-lg mb-2 text-primary">请选择一个实体以查看详情</h4>
-                      <p className="text-base-content/60 text-sm">点击上方的实体标签来查看详细信息</p>
+                      <h4 className="font-bold text-base md:text-lg mb-2 text-primary">请选择一个实体以查看详情</h4>
+                      <p className="text-base-content/60 text-xs md:text-sm">点击上方的实体标签来查看详细信息</p>
                     </div>
                   )
                 )}

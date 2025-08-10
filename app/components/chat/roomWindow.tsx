@@ -988,7 +988,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   replyMessage && (
                     <RepliedMessage
                       replyMessage={replyMessage}
-                      className="flex flex-row gap-2 items-center bg-base-200 rounded-box shadow-sm text-sm"
+                      className="flex flex-row gap-2 items-center bg-base-200 rounded-box shadow-sm text-sm mb-1"
                     />
                   )
                 }
