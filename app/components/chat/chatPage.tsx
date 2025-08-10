@@ -56,7 +56,7 @@ export default function ChatPage() {
     setActiveRoomId(rooms[0]?.roomId ?? null);
   }, [activeSpaceId, rooms]);
 
-  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState<boolean>("leftDrawer", !(urlSpaceId && urlRoomId), false);
+  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState<boolean>("leftDrawer", !(urlSpaceId && urlRoomId) || getScreenSize() === "sm", false);
 
   // 同步路由状态 并存到localStorage里面
   useEffect(() => {
