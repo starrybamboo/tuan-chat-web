@@ -102,7 +102,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
         {
           message.replyMessageId
           && (
-            <div className="flex flex-row gap-2 my-1 ">
+            <div className="flex flex-row gap-2 py-1 ">
               <span className="opacity-60 inline flex-shrink-0 text-sm">| 回复</span>
               <PreviewMessage
                 message={message.replyMessageId}
@@ -153,7 +153,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       {useChatBubbleStyle
         ? (
             <div
-              className="flex w-full items-start gap-1 py-1"
+              className="flex w-full items-start gap-1 pb-2"
               key={message.messageID}
             >
               {/* Avatar */}
@@ -168,7 +168,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               </div>
               <div className="flex flex-col items-start">
                 <div
-                  className={`text-xs pb-1 cursor-pointer `}
+                  className={`text-sm text-base-content/85 pb-1 cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`}
                   onClick={handleRoleNameClick}
                 >
                   {role?.roleName?.trim() || "Undefined"}
