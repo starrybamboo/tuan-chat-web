@@ -168,14 +168,14 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               </div>
               <div className="flex flex-col items-start">
                 <div
-                  className={`text-xs pb-1 cursor-pointer `}
+                  className={`text-xs cursor-pointer `}
                   onClick={handleRoleNameClick}
                 >
                   {role?.roleName?.trim() || "Undefined"}
                 </div>
                 <div
                   className={`max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow 
-                  bg-white dark:bg-black rounded-bl-none`}
+                  bg-base-300`}
                 >
                   {renderedContent}
                 </div>
