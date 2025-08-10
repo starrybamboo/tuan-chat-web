@@ -90,6 +90,23 @@ export function isCommand(command: string) {
   return (trimmed.startsWith(".") || trimmed.startsWith("。"));
 }
 
+export function getCommandList(ruleId: number): Map<string, CommandInfo> {
+  const cmdList = new Map<string, CommandInfo>();
+  const publicCmdList = executorPublic.getCmdList();
+  for (const [cmd, info] of publicCmdList) {
+    cmdList.set(cmd, info);
+  }
+  const ruleExecutor = RULES.get(ruleId);
+  if (!ruleExecutor) {
+    return cmdList;
+  }
+  const ruleCmdList = ruleExecutor.getCmdList();
+  for (const [cmd, info] of ruleCmdList) {
+    cmdList.set(cmd, info);
+  }
+  return cmdList;
+}
+
 /**
  * 命令执行器钩子函数
  * @param roleId roleId，会根据ruleId来获取对应角色的ability值

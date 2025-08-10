@@ -69,10 +69,14 @@ export class RuleNameSpace {
 
   /**
    * 获取命名空间下所有命令的列表
-   * @returns {CommandInfo[]} 命令信息数组
+   * @returns {string[]} 命令信息数组
    */
-  getCmdList(): CommandInfo[] {
-    return Array.from(this.cmdMap.values()).map(cmd => cmd.cmdInfo);
+  getCmdList(): Map<string, CommandInfo> {
+    const cmdList = new Map<string, CommandInfo>();
+    this.cmdMap.forEach((cmd) => {
+      cmdList.set(cmd.cmdInfo.name, cmd.cmdInfo);
+    });
+    return cmdList;
   }
 
   /**
