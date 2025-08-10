@@ -863,7 +863,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   commandMode={
                     inputTextWithoutMentions.startsWith("%")
                       ? "webgal"
-                      : (inputTextWithoutMentions.startsWith(".") || inputTextWithoutMentions.startsWith("。") || inputTextWithoutMentions.startsWith("/"))
+                      : (inputTextWithoutMentions.startsWith(".") || inputTextWithoutMentions.startsWith("。"))
                           ? "dice"
                           : "none"
                   }
