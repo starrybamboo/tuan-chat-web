@@ -102,7 +102,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
         {
           message.replyMessageId
           && (
-            <div className="flex flex-row gap-2 my-1 ">
+            <div className="flex flex-row gap-2 py-1 ">
               <span className="opacity-60 inline flex-shrink-0 text-sm">| 回复</span>
               <PreviewMessage
                 message={message.replyMessageId}
@@ -152,30 +152,33 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     <div>
       {useChatBubbleStyle
         ? (
-            <div className="chat chat-start " key={message.messageID}>
-              <div className="avatar chat-image" onClick={handleAvatarClick}>
+            <div
+              className="flex w-full items-start gap-1 pb-2"
+              key={message.messageID}
+            >
+              {/* Avatar */}
+              <div className="flex-shrink-0 cursor-pointer" onClick={handleAvatarClick}>
                 <RoleAvatarComponent
                   avatarId={message.avatarId}
                   width={10}
                   isRounded={true}
                   withTitle={false}
                   stopPopWindow={true}
-                >
-                </RoleAvatarComponent>
+                />
               </div>
-              <div className="chat-bubble">
-                {renderedContent}
-              </div>
-              <div className="chat-footer">
+              <div className="flex flex-col items-start">
                 <div
-                  className={`cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`}
+                  className={`text-sm text-base-content/85 pb-1 cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`}
                   onClick={handleRoleNameClick}
                 >
                   {role?.roleName?.trim() || "Undefined"}
                 </div>
-                <time className="text-xs opacity-50">
-                  {message.createTime ?? ""}
-                </time>
+                <div
+                  className={`max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow 
+                  bg-base-300`}
+                >
+                  {renderedContent}
+                </div>
               </div>
             </div>
           )
@@ -198,16 +201,16 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               <div className="flex-1 overflow-auto">
                 {/* 角色名 */}
                 <div
-                  className={`cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`}
+                  className={`cursor-pointer font-semibold ${userId === message.userId ? "hover:underline" : ""}`}
                   onClick={handleRoleNameClick}
                 >
                   {role?.roleName?.trim() || "Undefined"}
                 </div>
                 {renderedContent}
                 {/* 时间 */}
-                <div className="text-xs text-gray-500 dark:text-gray-400 pt-1">
-                  {message.createTime ?? ""}
-                </div>
+                {/* <div className="text-xs text-gray-500 dark:text-gray-400 pt-1"> */}
+                {/*  {message.createTime ?? ""} */}
+                {/* </div> */}
               </div>
             </div>
           )}
