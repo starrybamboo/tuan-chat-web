@@ -16,7 +16,7 @@ export default function ThemeSwitch() {
   useEffect(() => {
     const htmlElement = document.documentElement;
     // 为 DaisyUI 设置 data-theme 属性
-    htmlElement.setAttribute("data-theme", reverseDarkMode !== prefersIsDarkMode ? "dark" : "light");
+    htmlElement.setAttribute("data-theme", reverseDarkMode !== prefersIsDarkMode ? darkTheme : lightTheme);
   }, [lightTheme, darkTheme, reverseDarkMode, prefersIsDarkMode]);
 
   return (
