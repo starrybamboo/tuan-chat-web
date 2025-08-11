@@ -491,7 +491,7 @@ export function useGetRoomRoleQuery(roomId: number) {
 export function useAddSpaceRoleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: SpaceRoleAddRequest) => tuanchat.spaceModuleController.(req),
+        mutationFn: (req: SpaceRoleAddRequest) => tuanchat.spaceModuleController.addRole(req),
         mutationKey: ['addRole'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['getSpaceRoles', variables.spaceId] });

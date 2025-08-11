@@ -1,5 +1,6 @@
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useMediaQuery } from "@uidotdev/usehooks";
+import { useEffect } from "react";
 
 export default function ThemeSwitch() {
   // 是否反转浏览器的暗亮模式，存到localstorage中
@@ -7,13 +8,24 @@ export default function ThemeSwitch() {
   // 浏览器的暗亮模式
   const prefersIsDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
 
+  const lightTheme = "silk";
+  const darkTheme = "forest";
+
+  // 2. 使用 useEffect 来同步 DOM
+  // 每当最终模式 (isEffectivelyDark) 发生变化时，此代码块将运行
+  useEffect(() => {
+    const htmlElement = document.documentElement;
+    // 为 DaisyUI 设置 data-theme 属性
+    htmlElement.setAttribute("data-theme", reverseDarkMode !== prefersIsDarkMode ? "dark" : "light");
+  }, [lightTheme, darkTheme, reverseDarkMode, prefersIsDarkMode]);
+
   return (
     <label className="swap swap-rotate w-8 h-8">
       {/* this hidden checkbox controls the state */}
       <input
         type="checkbox"
         className="theme-controller"
-        value={prefersIsDarkMode ? "silk" : "forest"}
+        value={prefersIsDarkMode ? lightTheme : darkTheme}
         checked={reverseDarkMode}
         onChange={() => { setIsDarkMode(!reverseDarkMode); }}
       />
