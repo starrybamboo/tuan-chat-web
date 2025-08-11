@@ -31,8 +31,8 @@ export function PopWindow({ isOpen, children, onClose, fullScreen = false, trans
     <Mounter targetId="modal-root">
       <div className={`modal ${isOpen ? "modal-open" : ""}`}>
         <div className={`relative overflow-auto
-          ${transparent ? "bg-transparent w-screen h-screen" : "bg-base-100 dark:bg-base-300"}
-          ${fullScreen ? "w-screen h-screen" : "modal-box w-auto max-w-[100vw] lg:max-w-[80vw] lg:h-auto lg:max-h-[90vh]"}`}
+          ${transparent ? "bg-transparent w-screen h-dvh" : "bg-base-100 dark:bg-base-300"}
+          ${fullScreen ? "w-screen h-dvh" : "modal-box w-auto max-w-[100vw] lg:max-w-[80vw] lg:h-auto lg:max-h-[90vh]"}`}
         >
           {/* 关闭按钮 */}
           <button

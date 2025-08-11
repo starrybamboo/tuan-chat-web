@@ -164,8 +164,8 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
 
   return (
     <PopWindow isOpen={isOpen} onClose={handleClose} fullScreen={false}>
-      <div className="w-full mt-8">
-        <div className="mb-8">
+      <div className="w-full">
+        <div className="mb-4">
           <h2 className="text-xl font-bold text-primary">
             {isEditMode ? "编辑标签" : "添加新标签"}
           </h2>
@@ -177,7 +177,7 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
           <p>...修改标签内容要等会，颜色倒是可以</p>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-4">
           <label htmlFor="tagInput" className="block text-sm font-medium mb-2">
             标签内容
           </label>
