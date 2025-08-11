@@ -100,6 +100,38 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   // const [firstStepImage, FirstStepImage] = useState<File | null>(null);
 
   /**
+   * 重置所有状态到初始值
+   */
+  function resetAllStates() {
+    setCurrentStep(1);
+    setImgSrc("");
+    setCrop(undefined);
+    setCompletedCrop(undefined);
+    setisSubmiting(false);
+    // 重置Transform状态
+    setTransform({ scale: 1, positionX: 0, positionY: 0, alpha: 1, rotation: 0 });
+    // 重置聊天气泡样式状态
+    setUseChatBubbleStyle(true);
+    // 重置头像URL状态
+    setCurrentAvatarUrl("");
+    // 清除canvas内容
+    if (previewCanvasRef.current) {
+      const ctx = previewCanvasRef.current.getContext("2d");
+      ctx?.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
+    }
+    // 清除图片引用
+    if (imgRef.current) {
+      imgRef.current.src = "";
+    }
+    // 清除文件输入框
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    // 清除文件引用
+    imgFile.current = null;
+  }
+
+  /**
    * 图片加载完成后的处理函数
    * 设置初始裁剪区域为居中1:1比例
    */
@@ -223,22 +255,8 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
         }
         // 延迟关闭弹窗和重置状态，避免抖动
         setTimeout(() => {
+          resetAllStates();
           setIsOpen(false);
-          setCurrentStep(1);
-          setImgSrc("");
-          setCrop(undefined);
-          setCompletedCrop(undefined);
-          if (previewCanvasRef.current) {
-            const ctx = previewCanvasRef.current.getContext("2d");
-            ctx?.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
-          }
-          if (imgRef.current) {
-            imgRef.current.src = "";
-          }
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
-          imgFile.current = null;
         }, 100);
       }
     }
@@ -333,29 +351,42 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
       <PopWindow
         isOpen={isOpen}
         onClose={() => {
-          setCurrentStep(1);
-          setImgSrc("");
-          setCrop(undefined);
-          setCompletedCrop(undefined);
-          setisSubmiting(false);
-          if (previewCanvasRef.current) {
-            const ctx = previewCanvasRef.current.getContext("2d");
-            ctx?.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
-          }
-          if (imgRef.current) {
-            imgRef.current.src = "";
-          }
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
+          resetAllStates();
           setIsOpen(false);
         }}
       >
-        <ul className="steps mt-2">
-          <li className={`step ${currentStep >= 1 ? "step-primary" : ""}`}>上传立绘</li>
-          <li className={`step ${currentStep >= 2 ? "step-primary" : ""}`}>上传头像</li>
-        </ul>
-        <div className="divider"></div>
+        <div className="flex items-center gap-8">
+          <div className="w-full flex items-center">
+            <h1 className="text-2xl font-bold w-64">
+              {currentStep === 1 ? "1. 上传立绘" : "2. 上传头像"}
+              ：
+            </h1>
+            <ul className="w-full steps">
+              <li className={`step ${currentStep >= 1 ? "step-primary" : ""}`}></li>
+              <li className={`step ${currentStep >= 2 ? "step-primary" : ""}`}></li>
+            </ul>
+          </div>
+          {/* 按钮组 */}
+          {!!completedCrop && (
+            <div className="flex-shrink-0">
+              {isSubmiting
+                ? (
+                    <button className="btn btn-md loading" disabled={true} type="button"></button>
+                  )
+                : (
+                    <div className="flex gap-2">
+                      <button className="btn btn-md btn-info" onClick={handleSubmit} type="button">
+                        {currentStep === 1 ? "下一步" : "创建完成"}
+                      </button>
+                      <button className="btn btn-md btn-outline" onClick={handleDownload} type="button">
+                        下载图像
+                      </button>
+                    </div>
+                  )}
+            </div>
+          )}
+        </div>
+        <div className="divider my-0"></div>
         <div className="flex flex-col md:flex-row gap-8 justify-center">
           {/* 原始图片裁剪区域 */}
           <div className="w-full md:w-1/2 p-3 gap-4 flex flex-col items-center">
@@ -434,7 +465,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                     )
                   : (
                       <>
-                        <h2 className="text-xl font-bold">webgal渲染结果预览</h2>
+                        <h2 className="text-xl font-bold">渲染结果预览</h2>
                         <div className="relative w-full aspect-video overflow-hidden">
                           {/* 裁剪后的图像 - 左侧显示 */}
                           <canvas
@@ -545,28 +576,13 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                               onClick={() => setTransform({ scale: 1, positionX: 0, positionY: 0, alpha: 1, rotation: 0 })}
                               type="button"
                             >
-                              重置
+                              重置Transform
                             </button>
                           </div>
                         </div>
                       </>
                     )
 
-              }
-
-              {
-                isSubmiting
-                  ? (
-                      <button className="btn loading" disabled={true} type="button"></button>
-                    )
-                  : (
-                      <div className="flex flex-row justify-center gap-4 mt-2">
-                        <button className="btn w-max btn-info" onClick={handleSubmit} type="button">完成</button>
-                        <button className="btn w-max btn-info" onClick={handleDownload} type="button">
-                          下载裁切后的图像
-                        </button>
-                      </div>
-                    )
               }
 
             </div>
