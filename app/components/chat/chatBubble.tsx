@@ -174,7 +174,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                   {role?.roleName?.trim() || "Undefined"}
                 </div>
                 <div
-                  className="max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow bg-white dark:bg-black"
+                  className="max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow bg-base-200"
                 >
                   {renderedContent}
                 </div>

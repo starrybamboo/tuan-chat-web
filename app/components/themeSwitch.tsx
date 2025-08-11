@@ -8,7 +8,7 @@ export default function ThemeSwitch() {
   // 浏览器的暗亮模式
   const prefersIsDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
 
-  const lightTheme = "silk";
+  const lightTheme = "light";
   const darkTheme = "forest";
 
   // 2. 使用 useEffect 来同步 DOM
