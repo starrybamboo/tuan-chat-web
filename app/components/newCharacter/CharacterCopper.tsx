@@ -357,7 +357,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
       >
         <div className="flex items-center gap-8">
           <div className="w-full flex items-center">
-            <h1 className="text-2xl font-bold w-64">
+            <h1 className="text-xl md:text-2xl font-bold w-64">
               {currentStep === 1 ? "1. 上传立绘" : "2. 上传头像"}
               ：
             </h1>
@@ -366,9 +366,9 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
               <li className={`step ${currentStep >= 2 ? "step-primary" : ""}`}></li>
             </ul>
           </div>
-          {/* 按钮组 */}
+          {/* 桌面端按钮组 */}
           {!!completedCrop && (
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 hidden md:block">
               {isSubmiting
                 ? (
                     <button className="btn btn-md loading" disabled={true} type="button"></button>
@@ -588,6 +588,26 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
             </div>
           )}
         </div>
+
+        {/* 移动端按钮组 - 底部固定 */}
+        {!!completedCrop && (
+          <div className="mt-6 pt-4 border-t border-base-300 md:hidden">
+            {isSubmiting
+              ? (
+                  <button className="btn btn-lg loading w-full" disabled={true} type="button"></button>
+                )
+              : (
+                  <div className="flex flex-col gap-3 w-full">
+                    <button className="btn btn-lg btn-info w-full" onClick={handleSubmit} type="button">
+                      {currentStep === 1 ? "下一步" : "创建完成"}
+                    </button>
+                    <button className="btn btn-lg btn-outline w-full" onClick={handleDownload} type="button">
+                      下载图像
+                    </button>
+                  </div>
+                )}
+          </div>
+        )}
       </PopWindow>
     </div>
   );
