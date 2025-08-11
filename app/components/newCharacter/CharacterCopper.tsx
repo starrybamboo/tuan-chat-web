@@ -368,7 +368,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                       <canvas
                         ref={previewCanvasRef}
                         style={{ objectFit: "contain" }}
-                        className=" w-full h-[90%]"
+                        className="w-80 h-80 md:w-96 md:h-96"
                       />
                     )
                   : (
@@ -392,7 +392,6 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                           </div>
                         </div>
                       </>
-
                     )
 
               }
