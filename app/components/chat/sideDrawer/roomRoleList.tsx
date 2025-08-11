@@ -24,7 +24,7 @@ export default function RoomRoleList() {
       roleIdList: [roleId],
     }, {
       onSettled: () => {
-        setIsRoleHandleOpen(false);
+        // setIsRoleHandleOpen(false);
         toast("添加角色成功");
       },
     });
