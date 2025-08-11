@@ -60,7 +60,7 @@ export default function RoomUserList() {
         </div>
       ))}
       <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
-        <AddMemberWindow handleAddMember={handleAddMember}></AddMemberWindow>
+        <AddMemberWindow handleAddMember={handleAddMember} showSpace={true}></AddMemberWindow>
       </PopWindow>
     </div>
   );

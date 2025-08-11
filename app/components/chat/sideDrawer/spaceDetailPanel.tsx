@@ -9,6 +9,7 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { GirlIcon, MemberIcon, Setting } from "@/icons";
 import React, { use } from "react";
+import toast from "react-hot-toast";
 import {
   useAddSpaceMemberMutation,
   useAddSpaceRoleMutation,
@@ -39,7 +40,8 @@ export default function SpaceDetailPanel() {
       roleIdList: [roleId],
     }, {
       onSettled: () => {
-        setIsRoleHandleOpen(false);
+        // setIsRoleHandleOpen(false);
+        toast("添加成员成功");
       },
     });
   };

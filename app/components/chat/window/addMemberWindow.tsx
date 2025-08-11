@@ -50,7 +50,17 @@ function MemberBox({ userId, onClickAddMember }: { userId: number; onClickAddMem
   );
 }
 
-export default function AddMemberWindow({ handleAddMember }: { handleAddMember: (userId: number) => void }) {
+/**
+ *
+ * @param handleAddMember
+ * @param showSpace 设置为true后，显示一个面板，从空间中添加成员
+ * @constructor
+ */
+export default function AddMemberWindow({ handleAddMember, showSpace = false }:
+{
+  handleAddMember: (userId: number) => void;
+  showSpace?: boolean;
+}) {
   const spaceContext = use(SpaceContext);
   const spaceMembers = useGetSpaceMembersQuery(spaceContext.spaceId ?? -1).data?.data ?? [];
   const globalContext = useGlobalContext();
@@ -64,21 +74,27 @@ export default function AddMemberWindow({ handleAddMember }: { handleAddMember: 
       <div className="tabs tabs-lift">
 
         {/* --- 从空间添加 --- */}
-        <input type="radio" name="add_member_tabs" className="tab" aria-label="从空间添加" defaultChecked />
-        <div className="tab-content bg-base-100 border-base-300 rounded-box p-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full">
-            {spaceMembers.map(member => (
-              member.userId && (
-                <MemberBox
-                  userId={member.userId}
-                  onClickAddMember={() => handleAddMember(member.userId ?? -1)}
-                  key={`space-${member.userId}`}
-                >
-                </MemberBox>
-              )
-            ))}
-          </div>
-        </div>
+        {
+          showSpace && (
+            <>
+              <input type="radio" name="add_member_tabs" className="tab" aria-label="从空间添加" defaultChecked />
+              <div className="tab-content bg-base-100 border-base-300 rounded-box p-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full">
+                  {spaceMembers.map(member => (
+                    member.userId && (
+                      <MemberBox
+                        userId={member.userId}
+                        onClickAddMember={() => handleAddMember(member.userId ?? -1)}
+                        key={`space-${member.userId}`}
+                      >
+                      </MemberBox>
+                    )
+                  ))}
+                </div>
+              </div>
+            </>
+          )
+        }
 
         {/* --- 从好友列表添加 --- */}
         <input type="radio" name="add_member_tabs" className="tab" aria-label="从好友添加" />
@@ -106,7 +122,7 @@ export default function AddMemberWindow({ handleAddMember }: { handleAddMember: 
               <input
                 type="number"
                 placeholder="输入用户ID..."
-                className="input input-bordered input-primary w-full"
+                className="input input-bordered w-full"
                 min="1"
                 onInput={e => setInputUserId(Number(e.currentTarget.value))}
               />
@@ -118,7 +134,7 @@ export default function AddMemberWindow({ handleAddMember }: { handleAddMember: 
                   <UserDetail userId={inputUserId} />
                   <div className="card-actions justify-end w-full">
                     <button
-                      className="btn btn-primary w-full"
+                      className="btn btn-info w-full"
                       type="button"
                       onClick={() => handleAddMember(Number(inputUserId))}
                     >
