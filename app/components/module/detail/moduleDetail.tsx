@@ -83,18 +83,18 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
           <div className="flex-1 flex flex-col justify-center">
             {/* 模组名称 */}
             <div className="flex items-center justify-between mb-2">
-              <h1 className="text-3xl md:text-5xl font-bold text-accent md:text-white flex-1">
+              <h1 className="text-3xl md:text-5xl font-bold md:text-white flex-1">
                 {moduleData.moduleName}
               </h1>
               {/* 移动端应用按钮 */}
               <button
                 type="button"
-                className="md:hidden cursor-pointer flex items-center px-3 py-2 border-2 border-accent bg-transparent text-accent font-bold text-sm overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0 ml-3"
+                className="md:hidden cursor-pointer flex items-center px-3 py-2 border-2 border-accent bg-transparent font-bold text-sm overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0 ml-3"
               >
                 <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
-                <span className="relative z-10 text-accent group-hover:text-white transition-colors duration-300">应用</span>
+                <span className="relative z-10 group-hover:text-white transition-colors duration-300">应用</span>
                 <svg
-                  className="w-5 h-5 relative z-10 text-accent group-hover:text-white transition-colors duration-300 ml-1"
+                  className="w-5 h-5 relative z-10 group-hover:text-white transition-colors duration-300 ml-1"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -111,7 +111,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
             </div>
             <div className="divider m-0" />
             {/* 模组简介 */}
-            <p className="text-base font-semibold tracking-wide leading-relaxed mt-2 text-accent md:text-white line-clamp-4">
+            <p className="text-base font-semibold tracking-wide leading-relaxed mt-2 md:text-white line-clamp-4">
               {moduleData.description}
             </p>
           </div>
@@ -121,7 +121,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
               {/* 字段名列 */}
               <div className="flex flex-col gap-2">
                 {infos.map(info => (
-                  <h3 key={`label-${info.label}`} className="text-base font-bold text-accent">{info.label}</h3>
+                  <h3 key={`label-${info.label}`} className="text-base font-bold">{info.label}</h3>
                 ))}
               </div>
               {/* 竖直分隔线 */}
@@ -129,7 +129,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
               {/* 字段值列 */}
               <div className="flex flex-col gap-2">
                 {infos.map(info => (
-                  <h4 key={`value-${info.label}`} className="text-base text-accent">{info.value}</h4>
+                  <h4 key={`value-${info.label}`} className="text-base">{info.value}</h4>
                 ))}
               </div>
             </div>
@@ -141,7 +141,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
         {/* tag渲染，最左侧 */}
         <div className="flex flex-row flex-wrap gap-2 md:mr-auto md:ml-0 mb-2 md:mb-0">
           {tags.map(tag => (
-            <span key={tag} className="badge badge-accent badge-outline px-3 py-1 text-xs font-semibold">
+            <span key={tag} className="badge badge-info badge-outline px-3 py-1 text-xs font-semibold">
               {tag}
             </span>
           ))}
@@ -150,7 +150,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
         <div className="inline-flex rounded-md border border-base-300 flex-shrink-0 mr-3">
           <button type="button" className="btn-md flex items-center gap-1 px-4 py-2 rounded-l-md border-r border-base-300 hover:bg-base-200 focus:bg-base-200 transition-colors cursor-pointer">
             {/* 眼睛图标 */}
-            <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
@@ -158,13 +158,13 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
             <span className="ml-1 text-xs bg-base-100 rounded px-1">0</span>
           </button>
           <button type="button" className="btn-md flex items-center gap-1 px-4 py-2 border-r border-base-200 hover:bg-base-200 focus:bg-base-200 transition-colors cursor-pointer">
-            <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
             <span className="text-sm">Fork</span>
             <span className="ml-1 text-xs bg-base-100 rounded px-1">0</span>
           </button>
           <button type="button" className="btn-md flex items-center gap-1 px-4 py-2 rounded-r-md hover:bg-base-200 focus:bg-base-200 transition-colors cursor-pointer">
             {/* 五角星图标 */}
-            <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
             </svg>
             <span className="text-sm">Star</span>
@@ -174,13 +174,13 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
         {/* 原有按钮 - 只在桌面端显示 */}
         <button
           type="button"
-          className="hidden md:flex cursor-pointer z-50 relative items-center px-4 py-4 border-4 border-acctext-accent bg-transparent text-accent font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0"
+          className="hidden md:flex cursor-pointer z-50 relative items-center px-4 py-4 border-4 border-ac bg-transparent font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0"
         >
           <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
           {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
-          <span className="relative z-10 text-accent group-hover:text-white transition-colors duration-300">应用至群聊</span>
+          <span className="relative z-10 group-hover:text-white transition-colors duration-300">应用至群聊</span>
           <svg
-            className="w-8 h-8 relative z-10 text-accent group-hover:text-white transition-colors duration-300"
+            className="w-8 h-8 relative z-10 group-hover:text-white transition-colors duration-300"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
