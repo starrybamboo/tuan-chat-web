@@ -164,8 +164,8 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
 
   return (
     <PopWindow isOpen={isOpen} onClose={handleClose} fullScreen={false}>
-      <div className="w-full">
-        <div className="mb-6">
+      <div className="w-full mt-8">
+        <div className="mb-8">
           <h2 className="text-xl font-bold text-primary">
             {isEditMode ? "编辑标签" : "添加新标签"}
           </h2>
@@ -226,6 +226,7 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
               </button>
             )}
           </div>
+          {/* 超出标签最大输入数的动画提示 */}
           <div
             key={errorShakeKey}
             style={{
@@ -241,6 +242,7 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
             {TAG_CONTENT_MAX}
             个字喔
           </div>
+          {/* 用户创建了过多标签的动画提示 */}
           {
             maxTagsWarning && (
               <div className="text-error text-sm mt-2 animate-bounce pl-2">
@@ -258,9 +260,8 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
           >
             别玩了（恼）
           </div>
-
         </div>
-
+        {/* 标签颜色选择区 */}
         <div className="mb-6">
           <label className="block text-sm font-medium mb-2">选择标签颜色</label>
           <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
@@ -282,7 +283,7 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
             ))}
           </div>
         </div>
-
+        {/* 展示用户当前有的标签 */}
         <div className="mb-4">
           <h3 className="text-lg font-semibold text-primary mb-3">所有标签</h3>
           <div className="rounded-lg p-4 max-h-60 overflow-y-auto shadow-inner">
