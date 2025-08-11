@@ -84,8 +84,6 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   // 提交状态
   const [isSubmiting, setisSubmiting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  // 聊天气泡样式切换状态
-  const [useChatBubbleStyle, setUseChatBubbleStyle] = useState(true);
   // 当前头像URL状态
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState("");
   // Transform控制状态
@@ -110,8 +108,6 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
     setisSubmiting(false);
     // 重置Transform状态
     setTransform({ scale: 1, positionX: 0, positionY: 0, alpha: 1, rotation: 0 });
-    // 重置聊天气泡样式状态
-    setUseChatBubbleStyle(true);
     // 重置头像URL状态
     setCurrentAvatarUrl("");
     // 清除canvas内容
@@ -429,36 +425,49 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                         {/* 隐藏的 canvas 用于图像处理 */}
                         <canvas
                           ref={previewCanvasRef}
-                          style={{ objectFit: "contain" }}
+                          style={{ display: "none" }}
                           className="w-64 h-64"
                         />
                         <div className="relative w-full max-w-md bg-gray-100 dark:bg-gray-800 rounded-lg p-4 space-y-2">
-                          {/* 样式切换按钮 - 绝对定位到右上角 */}
-                          <button
-                            className="btn btn-xs btn-outline absolute top-2 right-2 z-10"
-                            onClick={() => setUseChatBubbleStyle(!useChatBubbleStyle)}
-                            type="button"
-                          >
-                            {useChatBubbleStyle ? "传统" : "气泡"}
-                          </button>
                           {/* 使用裁剪后的图像作为头像 */}
                           <DisplayChatBubble
                             roleName="角色名"
                             avatarUrl={currentAvatarUrl}
                             content="这是使用新头像的聊天消息！"
-                            useChatBubbleStyle={useChatBubbleStyle}
+                            useChatBubbleStyle={true}
                           />
                           <DisplayChatBubble
                             roleName="角色名"
                             avatarUrl={currentAvatarUrl}
                             content="头像看起来怎么样？"
-                            useChatBubbleStyle={useChatBubbleStyle}
+                            useChatBubbleStyle={true}
                           />
                           <DisplayChatBubble
                             roleName="角色名"
                             avatarUrl={currentAvatarUrl}
                             content="完成后就可以开始聊天了~"
-                            useChatBubbleStyle={useChatBubbleStyle}
+                            useChatBubbleStyle={true}
+                          />
+                        </div>
+                        <div className="relative w-full max-w-md bg-gray-100 dark:bg-gray-800 rounded-lg p-4 space-y-2">
+                          {/* 使用裁剪后的图像作为头像 */}
+                          <DisplayChatBubble
+                            roleName="角色名"
+                            avatarUrl={currentAvatarUrl}
+                            content="这是使用新头像的聊天消息！"
+                            useChatBubbleStyle={false}
+                          />
+                          <DisplayChatBubble
+                            roleName="角色名"
+                            avatarUrl={currentAvatarUrl}
+                            content="头像看起来怎么样？"
+                            useChatBubbleStyle={false}
+                          />
+                          <DisplayChatBubble
+                            roleName="角色名"
+                            avatarUrl={currentAvatarUrl}
+                            content="完成后就可以开始聊天了~"
+                            useChatBubbleStyle={false}
                           />
                         </div>
                       </>
@@ -569,14 +578,44 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                             </span>
                           </div>
 
-                          {/* 重置按钮 */}
-                          <div className="flex justify-center mt-3">
+                          {/* 控制按钮组 */}
+                          <div className="flex justify-center gap-2 mt-3">
                             <button
                               className="btn btn-xs btn-outline"
                               onClick={() => setTransform({ scale: 1, positionX: 0, positionY: 0, alpha: 1, rotation: 0 })}
                               type="button"
                             >
                               重置Transform
+                            </button>
+                            <button
+                              className="btn btn-xs btn-outline"
+                              onClick={() => {
+                                // 计算使图片底部对齐到容器底部的Y位置
+                                // 假设容器高度为100%，图片经过scale后的有效高度需要计算
+                                // 由于图片是object-contain且h-full，我们需要考虑缩放因子
+                                const canvas = previewCanvasRef.current;
+                                if (canvas) {
+                                  // 获取canvas的实际显示尺寸和父容器尺寸
+                                  const canvasRect = canvas.getBoundingClientRect();
+                                  const parentRect = canvas.parentElement?.getBoundingClientRect();
+
+                                  if (parentRect) {
+                                    // 计算需要的Y偏移，使图片底部贴到容器底部
+                                    const containerHeight = parentRect.height;
+                                    const scaledCanvasHeight = canvasRect.height * transform.scale;
+                                    const yOffset = (containerHeight - scaledCanvasHeight) / 2;
+
+                                    setTransform(prev => ({
+                                      ...prev,
+                                      positionY: Math.round(yOffset),
+                                      rotation: 0,
+                                    }));
+                                  }
+                                }
+                              }}
+                              type="button"
+                            >
+                              贴底对齐
                             </button>
                           </div>
                         </div>
