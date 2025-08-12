@@ -247,7 +247,7 @@ export default function ChatPage() {
           <div className="h-full flex flex-row w-full md:w-max">
             {/* 空间列表 */}
             <div className="flex flex-col p-2 gap-2 bg-base-300/40 h-full flex-wrap">
-              {/* 私聊入口 */}
+              {/* 私信入口 */}
               <div className="rounded w-10 relative">
                 <div
                   className={`absolute -left-[6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${isPrivateChatMode ? "scale-y-100" : "scale-y-0"
@@ -255,7 +255,7 @@ export default function ChatPage() {
                 />
                 <button
                   className="tooltip tooltip-right w-10 btn btn-square"
-                  data-tip="私聊"
+                  data-tip="私信"
                   type="button"
                   onClick={() => {
                     setActiveSpaceId(null);

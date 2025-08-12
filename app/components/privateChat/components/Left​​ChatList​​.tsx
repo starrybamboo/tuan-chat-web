@@ -59,7 +59,7 @@ export default function LeftChatList() {
       {/* 私聊列表 */}
       <div className="flex-1 w-full overflow-auto">
         <div className="w-full h-8 font-bold flex items-start justify-center border-b border-base-300">
-          <span className="text-lg transform -translate-y-0.5">私聊</span>
+          <span className="text-lg transform -translate-y-0.5">私信</span>
         </div>
         {false
           ? (
