@@ -78,7 +78,7 @@ export default function LeftChatList() {
               )
             : (
               // 显示好友列表
-                <div className="p-2 flex flex-col gap-2">
+                <div className="p-2 pt-4 flex flex-col gap-2">
                   {
                     sortedFriendInfos.map(friend => (
                       <FriendItem

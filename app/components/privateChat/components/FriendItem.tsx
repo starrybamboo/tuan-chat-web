@@ -1,4 +1,3 @@
-import UserAvatarComponent from "@/components/common/userAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetUserInfoQuery } from "api/queryHooks";
 import { useCallback, useEffect } from "react";
@@ -75,17 +74,17 @@ export default function FriendItem({
       }}
     >
       {/* 头像 */}
-      <UserAvatarComponent
-        userId={id}
-        width={8}
-        isRounded={true}
-        uniqueKey={`chatlist-${id}`}
-      />
+      <div className="avatar mask mask-squircle w-8">
+        <img
+          src={userInfo?.avatar}
+          alt={userInfo?.username}
+        />
+      </div>
       {/* 用户名和最新消息 */}
       <div className="flex-1 flex flex-col gap-1 justify-center min-w-0">
         {/* 用户名和未读消息数 */}
         <div className="flex items-center gap-2">
-          <span className="font-medium whitespace-nowrap">
+          <span className="truncate">
             {userInfoQuery.isLoading
               ? (
                   <div className="skeleton h-4 w-20"></div>
