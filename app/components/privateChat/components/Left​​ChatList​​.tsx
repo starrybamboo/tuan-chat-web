@@ -1,5 +1,4 @@
 import type { DirectMessageEvent } from "api/wsModels";
-import { SideDrawer } from "@/components/common/sideDrawer";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetMessageDirectPageQueries } from "api/hooks/MessageDirectQueryHooks";
 import { useGetUserFollowingsQuery } from "api/hooks/userFollowQueryHooks";
@@ -56,41 +55,45 @@ export default function LeftChatList() {
   const sortedFriendInfos = sortFriendInfos(friendInfos);
 
   return (
-    <SideDrawer sideDrawerId="private-chat">
-      <div className="flex flex-col w-[300px] h-full bg-base-100">
-        {/* 私聊列表 */}
-        <div className="flex-1 w-full overflow-auto">
-          {/* {followingQuery.isLoading */}
-          {false
+    <div className="flex flex-col h-full bg-base-100">
+      {/* 私聊列表 */}
+      <div className="flex-1 w-full overflow-auto">
+        <div className="w-full h-8 font-bold flex items-start justify-center border-b border-base-300">
+          <span className="text-lg transform -translate-y-0.5">私聊</span>
+        </div>
+        {false
+          ? (
+              <div className="flex items-center justify-center h-32">
+                <span className="loading loading-spinner loading-md"></span>
+                <span className="ml-2">加载好友列表...</span>
+              </div>
+            )
+          : friends.length === 0
             ? (
-                <div className="flex items-center justify-center h-32">
-                  <span className="loading loading-spinner loading-md"></span>
-                  <span className="ml-2">加载好友列表...</span>
+          // 没有好友
+                <div className="flex flex-col items-center justify-center h-32 text-base-content/70">
+                  <span>暂无好友</span>
+                  <span className="text-sm">快去添加一些好友吧</span>
                 </div>
               )
-            : friends.length === 0
-              ? (
-            // 没有好友
-                  <div className="flex flex-col items-center justify-center h-32 text-base-content/70">
-                    <span>暂无好友</span>
-                    <span className="text-sm">快去添加一些好友吧</span>
-                  </div>
-                )
-              : (
-            // 显示好友列表
-                  sortedFriendInfos.map(friend => (
-                    <FriendItem
-                      key={friend.userId}
-                      id={friend.userId || -1}
-                      // latestMessage={friend.latestMessage}
-                      // latestMessageTime={friend.latestMessageTime}
-                      currentContactUserId={currentContactUserId}
-                    />
-                  ))
-                )}
-        </div>
+            : (
+              // 显示好友列表
+                <div className="p-2 flex flex-col gap-2">
+                  {
+                    sortedFriendInfos.map(friend => (
+                      <FriendItem
+                        key={friend.userId}
+                        id={friend.userId || -1}
+                        // latestMessage={friend.latestMessage}
+                        // latestMessageTime={friend.latestMessageTime}
+                        currentContactUserId={currentContactUserId}
+                      />
+                    ))
+                  }
+                </div>
+              )}
       </div>
-    </SideDrawer>
+    </div>
   );
 }
 

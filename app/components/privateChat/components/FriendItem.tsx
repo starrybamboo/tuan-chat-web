@@ -58,9 +58,17 @@ export default function FriendItem({
   // };
 
   return (
-    <div
-      className={`h-16 w-full border-b border-base-300 flex items-center gap-4 px-4 hover:bg-base-200 cursor-pointer transition-colors 
-                ${currentContactUserId === id ? "bg-base-200" : ""}`}
+    // <div
+    //   className={`h-16 w-full border-b border-base-300 flex items-center gap-4 px-4 hover:bg-base-200 cursor-pointer transition-colors
+    //             ${currentContactUserId === id ? "bg-base-200" : ""}`}
+    //   onClick={() => {
+    //     clearUnread();
+    //     navigate(`/chat/private/${id}`);
+    //   }}
+    // >
+    <button
+      className={`btn btn-ghost flex justify-start w-full gap-2 ${currentContactUserId === id ? "bg-info-content/30" : ""}`}
+      type="button"
       onClick={() => {
         clearUnread();
         navigate(`/chat/private/${id}`);
@@ -69,7 +77,7 @@ export default function FriendItem({
       {/* 头像 */}
       <UserAvatarComponent
         userId={id}
-        width={12}
+        width={8}
         isRounded={true}
         uniqueKey={`chatlist-${id}`}
       />
@@ -77,7 +85,7 @@ export default function FriendItem({
       <div className="flex-1 flex flex-col gap-1 justify-center min-w-0">
         {/* 用户名和未读消息数 */}
         <div className="flex items-center gap-2">
-          <span className="font-medium">
+          <span className="font-medium whitespace-nowrap">
             {userInfoQuery.isLoading
               ? (
                   <div className="skeleton h-4 w-20"></div>
@@ -98,7 +106,11 @@ export default function FriendItem({
       {/* 最新消息时间 */}
       {/* <span className="text-sm text-base-content/70 truncate">
         {formatLatestMessageTime(latestMessageTime)}
-      </span> */}
-    </div>
+      </span> */
+      }
+      {/*
+        </div>
+      */}
+    </button>
   );
 }
