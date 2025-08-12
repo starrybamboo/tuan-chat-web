@@ -63,7 +63,7 @@ export default function FriendItem({
                 ${currentContactUserId === id ? "bg-base-200" : ""}`}
       onClick={() => {
         clearUnread();
-        navigate(`/privatechat/${id}`);
+        navigate(`/chat/private/${id}`);
       }}
     >
       {/* 头像 */}
