@@ -43,7 +43,7 @@ export default function ChatPage() {
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
   // 当前选中的空间ID
   const [activeSpaceId, setActiveSpaceId] = useState<number | null>(
-    isPrivateChatMode ? null : (urlSpaceId ? Number(urlSpaceId) : (storedIds.spaceId ?? null)),
+    urlSpaceId ? Number(urlSpaceId) : (storedIds.spaceId ?? null),
   );
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
@@ -55,13 +55,11 @@ export default function ChatPage() {
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
   // 当前选中的房间ID，初始化的时候，按照路由参数，localStorage里的数据，rooms的第一个，null的优先级来初始化
   const [activeRoomId, setActiveRoomId] = useState<number | null>(
-    isPrivateChatMode
-      ? null
-      : (urlSpaceId
-          ? (urlRoomId
-              ? Number(urlRoomId)
-              : (storedIds.roomId ?? rooms[0]?.roomId ?? null))
-          : null),
+    urlSpaceId
+      ? (urlRoomId
+          ? Number(urlRoomId)
+          : (storedIds.roomId ?? rooms[0]?.roomId ?? null))
+      : null,
   );
   useEffect(() => {
     setActiveRoomId(rooms[0]?.roomId ?? null);
@@ -71,12 +69,13 @@ export default function ChatPage() {
 
   // 同步路由状态 并存到localStorage里面
   useEffect(() => {
-    if (!isPrivateChatMode) {
-      setStoredChatIds({ spaceId: activeSpaceId, roomId: activeRoomId });
-      if (activeSpaceId) {
-        const path = `/chat/${activeSpaceId || ""}/${activeRoomId || ""}`;
-        navigate(path.replace(/\/+$/, ""), { replace: true });
-      }
+    setStoredChatIds({ spaceId: activeSpaceId, roomId: activeRoomId });
+    if (activeSpaceId) {
+      const path = `/chat/${activeSpaceId || ""}/${activeRoomId || ""}`;
+      navigate(path.replace(/\/+$/, ""), { replace: true });
+    }
+    else {
+      navigate("/chat/private", { replace: true });
     }
   }, [activeSpaceId, activeRoomId, navigate, setStoredChatIds, isPrivateChatMode]);
 
