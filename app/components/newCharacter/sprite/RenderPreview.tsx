@@ -27,8 +27,7 @@ export function RenderPreview({
 }: RenderPreviewProps) {
   return (
     <>
-      <h2 className="text-xl font-bold">渲染结果预览</h2>
-      <div className="relative w-full aspect-video overflow-hidden">
+      <div className="relative w-full aspect-video overflow-hidden bg-base-200">
         {/* 裁剪后的图像 - 左侧显示 */}
         <canvas
           ref={previewCanvasRef}

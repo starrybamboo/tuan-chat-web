@@ -1,8 +1,11 @@
+import type { Transform } from "./sprite/TransformControl";
 import type { Role } from "./types";
 import { useUpdateRoleWithLocalMutation } from "api/queryHooks";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CharacterAvatar from "./CharacterAvatar";
 import ExpansionModule from "./rules/ExpansionModule";
+import { RenderPreview } from "./sprite/RenderPreview";
+import { TransformControl } from "./sprite/TransformControl";
 // import Section from "./Section";
 
 interface CharacterDetailProps {
@@ -26,16 +29,47 @@ export default function CharacterDetail({
   // 编辑状态过渡
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // 字数统计状态
-  const [charCount, setCharCount] = useState(role.description?.length || 0);
+  // 字数统计：由描述派生，避免在 useEffect 中 setState
+  const charCount = useMemo(() => localRole.description?.length || 0, [localRole.description]);
   // 描述的最大储存量
   const MAX_DESCRIPTION_LENGTH = 140;
 
-  // 当角色变化时，更新本地状态和字数统计
+  // 立绘预览相关状态
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [transform, setTransform] = useState<Transform>({
+    scale: 1,
+    positionX: 0,
+    positionY: 0,
+    alpha: 1,
+    rotation: 0,
+  });
+
+  // 立绘URL状态
+  const [spriteUrl, setSpriteUrl] = useState<string | null>(null);
+
+  // 当切换到不同角色时，更新本地状态（避免在 effect 中频繁 setState）
   useEffect(() => {
     setLocalRole(role);
-    setCharCount(role.description?.length || 0);
   }, [role]);
+
+  // 当立绘URL变化时，加载到预览Canvas
+  useEffect(() => {
+    if (spriteUrl && previewCanvasRef.current) {
+      const canvas = previewCanvasRef.current;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+        };
+        img.src = spriteUrl;
+      }
+    }
+  }, [spriteUrl, localRole.avatarId]);
 
   // 接口部分
   // 发送post数据部分,保存角色数据
@@ -103,6 +137,7 @@ export default function CharacterDetail({
             <CharacterAvatar
               role={localRole}
               onchange={handleAvatarChange}
+              onSpritePreviewChange={url => setSpriteUrl(url)}
             />
             <div className="card-sm md:card flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               {/* <Section title="基本信息"> */}
@@ -127,7 +162,6 @@ export default function CharacterDetail({
                         value={localRole.description}
                         onChange={(e) => {
                           setLocalRole(prev => ({ ...prev, description: e.target.value }));
-                          setCharCount(e.target.value.length);
                         }}
                         placeholder="角色描述"
                         className="textarea textarea-bordered w-full h-24 resize-none mt-2"
@@ -222,6 +256,24 @@ export default function CharacterDetail({
           </div>
         </div>
 
+      </div>
+      <div className="card-sm md:card bg-base-100 shadow-xl">
+        <div className="card-body">
+          <h2 className="text-xl font-bold">渲染结果预览</h2>
+          <div className="w-full p-3 gap-4 flex">
+            <RenderPreview
+              previewCanvasRef={previewCanvasRef}
+              transform={transform}
+              characterName={localRole.name || "未命名角色"}
+              dialogContent="这是一段示例对话内容。"
+            />
+            <TransformControl
+              transform={transform}
+              setTransform={setTransform}
+              previewCanvasRef={previewCanvasRef}
+            />
+          </div>
+        </div>
       </div>
       <div className="card-sm md:card bg-base-100 shadow-xl">
         <ExpansionModule
