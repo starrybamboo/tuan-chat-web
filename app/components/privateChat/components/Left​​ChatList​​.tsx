@@ -82,8 +82,8 @@ export default function LeftChatList() {
                     <FriendItem
                       key={friend.userId}
                       id={friend.userId || -1}
-                      latestMessage={friend.latestMessage}
-                      latestMessageTime={friend.latestMessageTime}
+                      // latestMessage={friend.latestMessage}
+                      // latestMessageTime={friend.latestMessageTime}
                       currentContactUserId={currentContactUserId}
                     />
                   ))

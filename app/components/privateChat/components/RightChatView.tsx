@@ -2,7 +2,7 @@ import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
 import type { DirectMessageEvent } from "api/wsModels";
 import { SideDrawerToggle } from "@/components/common/sideDrawer";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { ChevronRight, MoreMenu } from "@/icons";
+import { ChevronRight } from "@/icons";
 import { useGetMessageDirectPageQuery } from "api/hooks/MessageDirectQueryHooks";
 import { useGetUserInfoQuery } from "api/queryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -127,9 +127,9 @@ export default function RightChatView() {
         <span className="absolute left-1/2 transform -translate-x-1/2">
           {currentContactUserInfo ? `${currentContactUserInfo.username}` : "选择联系人"}
         </span>
-        <span className="absolute right-0 transform -translate-x-4">
+        {/* <span className="absolute right-0 transform -translate-x-4">
           <MoreMenu className="size-6 cursor-pointer rotate-90" />
-        </span>
+        </span> */}
       </div>
 
       {/* 聊天消息区域 */}
