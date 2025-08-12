@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useEffect, useState } from "react";
 import { PopWindow } from "../common/popWindow";
-import { CharacterCopper } from "./CharacterCopper";
+import { CharacterCopper } from "./sprite/CharacterCopper";
 
 export default function CharacterAvatar({ role, onchange }: {
   role: Role;

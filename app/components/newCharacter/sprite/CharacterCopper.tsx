@@ -1,5 +1,6 @@
 // 导入必要的类型和组件
 import type { Crop, PixelCrop } from "react-image-crop";
+import type { Transform } from "./TransformControl";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
@@ -7,7 +8,9 @@ import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDeb
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useRef, useState } from "react";
 import { centerCrop, makeAspectCrop, ReactCrop } from "react-image-crop";
-import { DisplayChatBubble } from "./displayChatBubble";
+import { AvatarPreview } from "./AvatarPreview";
+import { RenderPreview } from "./RenderPreview";
+import { TransformControl } from "./TransformControl";
 import "react-image-crop/dist/ReactCrop.css";
 
 /**
@@ -87,7 +90,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   // 当前头像URL状态
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState("");
   // Transform控制状态
-  const [transform, setTransform] = useState({
+  const [transform, setTransform] = useState<Transform>({
     scale: 1,
     positionX: 0,
     positionY: 0,
@@ -420,205 +423,25 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
               {
                 currentStep !== 1
                   ? (
-                      <>
-                        <h2 className="text-xl font-bold">头像预览</h2>
-                        {/* 隐藏的 canvas 用于图像处理 */}
-                        <canvas
-                          ref={previewCanvasRef}
-                          style={{ display: "none" }}
-                          className="w-64 h-64"
-                        />
-                        <div className="relative w-full max-w-md bg-gray-100 dark:bg-gray-800 rounded-lg p-4 space-y-2">
-                          {/* 使用裁剪后的图像作为头像 */}
-                          <DisplayChatBubble
-                            roleName="角色名"
-                            avatarUrl={currentAvatarUrl}
-                            content="这是使用新头像的聊天消息！"
-                            useChatBubbleStyle={true}
-                          />
-                          <DisplayChatBubble
-                            roleName="角色名"
-                            avatarUrl={currentAvatarUrl}
-                            content="头像看起来怎么样？"
-                            useChatBubbleStyle={true}
-                          />
-                          <DisplayChatBubble
-                            roleName="角色名"
-                            avatarUrl={currentAvatarUrl}
-                            content="完成后就可以开始聊天了~"
-                            useChatBubbleStyle={true}
-                          />
-                        </div>
-                        <div className="relative w-full max-w-md bg-gray-100 dark:bg-gray-800 rounded-lg p-4 space-y-2">
-                          {/* 使用裁剪后的图像作为头像 */}
-                          <DisplayChatBubble
-                            roleName="角色名"
-                            avatarUrl={currentAvatarUrl}
-                            content="这是使用新头像的聊天消息！"
-                            useChatBubbleStyle={false}
-                          />
-                          <DisplayChatBubble
-                            roleName="角色名"
-                            avatarUrl={currentAvatarUrl}
-                            content="头像看起来怎么样？"
-                            useChatBubbleStyle={false}
-                          />
-                          <DisplayChatBubble
-                            roleName="角色名"
-                            avatarUrl={currentAvatarUrl}
-                            content="完成后就可以开始聊天了~"
-                            useChatBubbleStyle={false}
-                          />
-                        </div>
-                      </>
+                      <AvatarPreview
+                        previewCanvasRef={previewCanvasRef}
+                        currentAvatarUrl={currentAvatarUrl}
+                        characterName="角色名"
+                      />
                     )
                   : (
                       <>
-                        <h2 className="text-xl font-bold">渲染结果预览</h2>
-                        <div className="relative w-full aspect-video overflow-hidden">
-                          {/* 裁剪后的图像 - 左侧显示 */}
-                          <canvas
-                            ref={previewCanvasRef}
-                            className="absolute left-0 h-full object-contain"
-                            style={{
-                              objectPosition: "left center",
-                              transform: `scale(${transform.scale}) translate(${transform.positionX}px, ${transform.positionY}px) rotate(${transform.rotation}deg)`,
-                              opacity: transform.alpha,
-                            }}
-                          />
-                          {/* 底部1/3的黑色半透明遮罩 */}
-                          <div className="absolute bottom-0 w-full h-[30%] bg-black/50">
-                            <div className="absolute top-0 left-[6%] text-white">
-                              <p className="text-white leading-snug">
-                                <span className="block text-xs font-medium">角色名</span>
-                                <span className="block text-xs mt-1">对话内容</span>
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        {/* Transform控制区域 */}
-                        <div className="w-full mt-4 p-4 bg-base-200 rounded-lg space-y-3">
-                          <h3 className="text-sm font-semibold text-center">Transform 控制</h3>
-
-                          {/* Scale控制 */}
-                          <div className="flex items-center gap-3">
-                            <label className="text-xs w-16 flex-shrink-0">Scale:</label>
-                            <input
-                              type="range"
-                              min="0.5"
-                              max="1"
-                              step="0.1"
-                              value={transform.scale}
-                              onChange={e => setTransform(prev => ({ ...prev, scale: Number.parseFloat(e.target.value) }))}
-                              className="range range-xs range-info flex-1"
-                            />
-                            <span className="text-xs w-12 text-right">{transform.scale.toFixed(1)}</span>
-                          </div>
-
-                          {/* Position X控制 */}
-                          <div className="flex items-center gap-3">
-                            <label className="text-xs w-16 flex-shrink-0">X位置:</label>
-                            <input
-                              type="range"
-                              min="-100"
-                              max="100"
-                              step="5"
-                              value={transform.positionX}
-                              onChange={e => setTransform(prev => ({ ...prev, positionX: Number.parseInt(e.target.value) }))}
-                              className="range range-xs range-info flex-1"
-                            />
-                            <span className="text-xs w-12 text-right">{transform.positionX}</span>
-                          </div>
-
-                          {/* Position Y控制 */}
-                          <div className="flex items-center gap-3">
-                            <label className="text-xs w-16 flex-shrink-0">Y位置:</label>
-                            <input
-                              type="range"
-                              min="-100"
-                              max="100"
-                              step="5"
-                              value={transform.positionY}
-                              onChange={e => setTransform(prev => ({ ...prev, positionY: Number.parseInt(e.target.value) }))}
-                              className="range range-xs range-info flex-1"
-                            />
-                            <span className="text-xs w-12 text-right">{transform.positionY}</span>
-                          </div>
-
-                          {/* Alpha控制 */}
-                          <div className="flex items-center gap-3">
-                            <label className="text-xs w-16 flex-shrink-0">透明度:</label>
-                            <input
-                              type="range"
-                              min="0"
-                              max="1"
-                              step="0.1"
-                              value={transform.alpha}
-                              onChange={e => setTransform(prev => ({ ...prev, alpha: Number.parseFloat(e.target.value) }))}
-                              className="range range-xs range-info flex-1"
-                            />
-                            <span className="text-xs w-12 text-right">{transform.alpha.toFixed(1)}</span>
-                          </div>
-
-                          {/* Rotation控制 */}
-                          <div className="flex items-center gap-3">
-                            <label className="text-xs w-16 flex-shrink-0">旋转:</label>
-                            <input
-                              type="range"
-                              min="0"
-                              max="360"
-                              step="15"
-                              value={transform.rotation}
-                              onChange={e => setTransform(prev => ({ ...prev, rotation: Number.parseInt(e.target.value) }))}
-                              className="range range-xs range-info flex-1"
-                            />
-                            <span className="text-xs w-12 text-right">
-                              {transform.rotation}
-                              °
-                            </span>
-                          </div>
-
-                          {/* 控制按钮组 */}
-                          <div className="flex justify-center gap-2 mt-3">
-                            <button
-                              className="btn btn-xs btn-outline"
-                              onClick={() => setTransform({ scale: 1, positionX: 0, positionY: 0, alpha: 1, rotation: 0 })}
-                              type="button"
-                            >
-                              重置Transform
-                            </button>
-                            <button
-                              className="btn btn-xs btn-outline"
-                              onClick={() => {
-                                // 计算使图片底部对齐到容器底部的Y位置
-                                // 假设容器高度为100%，图片经过scale后的有效高度需要计算
-                                // 由于图片是object-contain且h-full，我们需要考虑缩放因子
-                                const canvas = previewCanvasRef.current;
-                                if (canvas) {
-                                  // 获取canvas的实际显示尺寸和父容器尺寸
-                                  const canvasRect = canvas.getBoundingClientRect();
-                                  const parentRect = canvas.parentElement?.getBoundingClientRect();
-
-                                  if (parentRect) {
-                                    // 计算需要的Y偏移，使图片底部贴到容器底部
-                                    const containerHeight = parentRect.height;
-                                    const scaledCanvasHeight = canvasRect.height * transform.scale;
-                                    const yOffset = (containerHeight - scaledCanvasHeight) / 2;
-
-                                    setTransform(prev => ({
-                                      ...prev,
-                                      positionY: Math.round(yOffset),
-                                      rotation: 0,
-                                    }));
-                                  }
-                                }
-                              }}
-                              type="button"
-                            >
-                              贴底对齐
-                            </button>
-                          </div>
-                        </div>
+                        <RenderPreview
+                          previewCanvasRef={previewCanvasRef}
+                          transform={transform}
+                          characterName="角色名"
+                          dialogContent="对话内容"
+                        />
+                        <TransformControl
+                          transform={transform}
+                          setTransform={setTransform}
+                          previewCanvasRef={previewCanvasRef}
+                        />
                       </>
                     )
 
