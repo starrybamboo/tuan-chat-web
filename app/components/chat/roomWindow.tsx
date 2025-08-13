@@ -22,6 +22,7 @@ import InitiativeList from "@/components/chat/sideDrawer/initiativeList";
 import RoomRoleList from "@/components/chat/sideDrawer/roomRoleList";
 import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
 import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
+import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
 import UserIdToName from "@/components/chat/smallComponents/userIdToName";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
@@ -250,6 +251,17 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     if (messageIndex >= 0) {
       virtuosoRef.current?.scrollToIndex(messageIndex);
     }
+    setTimeout(() => {
+      const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+      if (messageElement) {
+        // 添加动画类以开始动画
+        messageElement.classList.add("highlight-animation");
+        // 动画结束后移除该类，使用 'animationend' 事件更可靠
+        messageElement.addEventListener("animationend", () => {
+          messageElement.classList.remove("highlight-animation");
+        }, { once: true }); // 'once: true' 确保监听器在触发一次后自动移除
+      }
+    }, 50);// 使用一个短暂的延迟来确保 Virtuoso 已经渲染了目标元素
   }, [historyMessages]);
 
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
@@ -365,22 +377,33 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
    * @returns { before: string; after: string } 光标前后的文本
    */
   const getTextAroundCursor = (): { before: string; after: string } => {
+    const editor = textareaRef.current;
+    if (!editor) {
+      return { before: "", after: "" };
+    }
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0)
-      return { before: "", after: "" };
+    if (!selection || selection.rangeCount === 0) {
+      // 如果没有选区，则返回整个编辑器的文本作为 "before"
+      return { before: editor.textContent ?? "", after: "" };
+    }
 
-    const range = selection.getRangeAt(0);
-    const node = range.startContainer;
+    // 创建两个range来获取光标前后的文本
+    const currentRange = selection.getRangeAt(0);
+    const beforeRange = document.createRange();
+    beforeRange.setStart(editor, 0);
+    // 将终点设置为当前光标的起点位置
+    beforeRange.setEnd(currentRange.startContainer, currentRange.startOffset);
+    const afterRange = document.createRange();
+    afterRange.setStart(currentRange.endContainer, currentRange.endOffset);
+    // 将终点设置为编辑器的最末尾
+    // editor.childNodes.length 是 editor 中子节点的数量，可以有效定位到末尾
+    afterRange.setEnd(editor, editor.childNodes.length);
 
-    // 只处理文本节点
-    if (node.nodeType !== Node.TEXT_NODE)
-      return { before: "", after: "" };
+    // range.toString() 会智能地处理 <br> 为换行符 \n，并提取所有子节点中的文本内容。
+    const before = beforeRange.toString();
+    const after = afterRange.toString();
 
-    const text = node.textContent || "";
-    return {
-      before: text.substring(0, range.startOffset),
-      after: text.substring(range.startOffset),
-    };
+    return { before, after };
   };
 
   /**
@@ -448,23 +471,58 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   /**
    * ai自动补全
    */
-  const [LLMMessage, setLLMMessage] = useState("");
+  const [LLMMessage, setLLMMessageRaw] = useState("");
+  // 将补全的文本插入到光标处
   const isAutoCompletingRef = useRef(false);
+  const hintNodeRef = useRef<HTMLSpanElement>(null);
+  const setLLMMessage = (newLLMMessage: string) => {
+    if (hintNodeRef.current)
+      hintNodeRef.current.remove();
+    setLLMMessageRaw(newLLMMessage);
+    const hintNode = document.createElement("span");
+    hintNode.textContent = newLLMMessage;
+    hintNode.className = "opacity-60";
+    hintNode.contentEditable = "false";
+    hintNode.style.pointerEvents = "none"; // 防止干扰用户输入
+    insertNodeAtCursor(hintNode);
+    hintNodeRef.current = hintNode;
+    // 开始输入时移除自动补全的文本
+    const handleInput = () => {
+      hintNode.remove();
+      textareaRef.current?.removeEventListener("input", handleInput);
+      isAutoCompletingRef.current = false;
+    };
+    textareaRef.current?.addEventListener("input", handleInput);
+  };
+  const getRoleSmartly = useGetRoleSmartly();
   const autoComplete = async () => {
     const llmSettings = getLocalStorageValue<LLMProperty>("llmSettings", {});
     const apiKey = llmSettings.openaiApiKey;
     const apiUrl = llmSettings.openaiApiBaseUrl ?? "";
     const model = llmSettings.openaiModelName;
-    if (!inputText.trim() || isAutoCompletingRef.current)
+    if (isAutoCompletingRef.current)
       return;
     isAutoCompletingRef.current = true;
     setLLMMessage(""); // 清空之前的消息
-    const { before: beforeMessage, after: afterMessage } = getTextAroundCursor();
-    const prompt = beforeMessage === ""
-      ? `请根据以下文本内容，提供一段自然连贯的续写或灵感提示。重点关注上下文的逻辑和主题发展。只提供续写内容，不要额外解释,
-       你所输出的文本会被直接插入到已有文字末尾，所以也不要重复已有文本的任何句子或词语。文本内容：${inputText}`
-      : `请根据以下文本内容，插入一段自然连贯的文本的或灵感提示。重点关注上下文的逻辑和主题发展。只提插入的内容，不要额外解释，
-      你所输出的文本会被直接插入到已有文字中间，所以也不要重复已有文本的任何句子或词语。插入点前的文本：${beforeMessage},插入点后的文本${afterMessage}`;
+    const { before: beforeMessage, after: afterMessage } = getTextAroundCursor(); // 输入光标前后的文本
+    const historyMessagesString = (await Promise.all(
+      historyMessages.slice(historyMessages.length - 20).map(async (m) => {
+        const role = await getRoleSmartly(m.message.roleId);
+        return `${role?.roleName ?? role?.roleId}: ${m.message.content}`;
+      }),
+    )).join("\n"); // 最近的20条历史消息，拼接成字符串
+    const insertAtMiddle = afterMessage !== ""; // 是否插入输入框的中间
+    const curRoleName = userRoles?.find(r => r.roleId === curRoleId)?.roleName; // 当前角色的名字
+    const prompt = `
+      你现在在进行一个跑团对话，请根据以下文本内容，提供一段自然连贯的${insertAtMiddle ? "插入语句" : "续写"}。
+      重点关注上下文的逻辑和主题发展。只提供续写内容，不要额外解释，不要输入任何多余不属于跑团内容的文本信息。
+      这是已有的历史聊天信息：
+      === 聊天记录开始 ===
+      ${historyMessagesString}.
+      === 聊天记录结束 ===
+      这是你所扮演的角色的名字：${curRoleName}.
+      你所输出的文本会被直接插入到已输入的文字${insertAtMiddle ? "中间" : "末尾"}，所以也不要重复已有文本的任何句子或词语。
+      ${insertAtMiddle ? `插入点前的文本：${beforeMessage},插入点后的文本${afterMessage}` : `已输入的文本内容：${inputText}`}`;
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -506,7 +564,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               const data = JSON.parse(line.substring(5));
               if (data.choices?.[0]?.delta?.content) {
                 fullMessage += data.choices[0].delta.content;
-                setLLMMessage(fullMessage); // 更新显示的内容
+                setLLMMessage(fullMessage); // 更新显示的内容}
               }
             }
             catch (e) {
@@ -524,35 +582,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       isAutoCompletingRef.current = false;
     }
   };
-  useEffect(() => {
-    // 创建提示文本节点
-    const hintNode = document.createElement("span");
-    hintNode.textContent = LLMMessage;
-    hintNode.className = "opacity-60";
-    hintNode.contentEditable = "false";
-    hintNode.style.pointerEvents = "none"; // 防止干扰用户输入
-    insertNodeAtCursor(hintNode);
-    // 开始输入时移除自动补全的文本
-    const handleInput = () => {
-      if (hintNode.parentNode) {
-        hintNode.parentNode.removeChild(hintNode);
-      }
-      textareaRef.current?.removeEventListener("input", handleInput);
-      isAutoCompletingRef.current = false;
-    };
-    textareaRef.current?.addEventListener("input", handleInput);
-    return () => {
-      if (hintNode.parentNode) {
-        hintNode.parentNode.removeChild(hintNode);
-      }
-      textareaRef.current?.removeEventListener("input", handleInput);
-    };
-  }, [LLMMessage]);
-
   const insertLLMMessageIntoText = () => {
     insertNodeAtCursor(LLMMessage, { moveCursorToEnd: true });
-    syncInputText();
     setLLMMessage(""); // 清空补全提示
+    syncInputText();
   };
 
   /**

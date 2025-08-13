@@ -73,6 +73,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     }
   }
   const imgMsg = message.extra?.imageMessage;
+  const scrollToGivenMessage = roomContext.scrollToGivenMessage;
 
   const renderedContent = useMemo(() => {
     if (message.messageType === 2) {
@@ -96,7 +97,10 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
         {
           message.replyMessageId
           && (
-            <div className="flex flex-row gap-2 py-1 ">
+            <div
+              className="flex flex-row gap-2 py-1 "
+              onClick={() => (message.replyMessageId && scrollToGivenMessage) && scrollToGivenMessage(message.replyMessageId)}
+            >
               <span className="opacity-60 inline flex-shrink-0 text-sm">| 回复</span>
               <PreviewMessage
                 message={message.replyMessageId}
