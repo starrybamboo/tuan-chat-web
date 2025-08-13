@@ -65,13 +65,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     }
   }
   function handleContentUpdate(content: string) {
-    if (content.trim() === "") {
-      updateMessageMutation.mutate({
-        ...message,
-        status: 1,
-      });
-    }
-    else if (message.content !== content) {
+    if (message.content !== content) {
       updateMessageMutation.mutate({
         ...message,
         content,

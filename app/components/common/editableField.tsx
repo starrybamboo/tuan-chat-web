@@ -78,7 +78,7 @@ export function EditableField({
             )
           : (
               <textarea
-                className={`${className} min-w-xs sm:min-w-md bg-transparent p-2 border-0 border-base-300 rounded-[8px] w-full overflow-hidden resize-none`}
+                className={`${className} min-w-[18rem] sm:min-w-[26rem] bg-transparent p-2 border-0 border-base-300 rounded-[8px] w-full overflow-hidden resize-none`}
                 ref={textareaRef}
                 value={editContent}
                 onChange={e => setEditContent(e.target.value)}
