@@ -250,6 +250,17 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     if (messageIndex >= 0) {
       virtuosoRef.current?.scrollToIndex(messageIndex);
     }
+    setTimeout(() => {
+      const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+      if (messageElement) {
+        // 添加动画类以开始动画
+        messageElement.classList.add("highlight-animation");
+        // 动画结束后移除该类，使用 'animationend' 事件更可靠
+        messageElement.addEventListener("animationend", () => {
+          messageElement.classList.remove("highlight-animation");
+        }, { once: true }); // 'once: true' 确保监听器在触发一次后自动移除
+      }
+    }, 50);// 使用一个短暂的延迟来确保 Virtuoso 已经渲染了目标元素
   }, [historyMessages]);
 
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
