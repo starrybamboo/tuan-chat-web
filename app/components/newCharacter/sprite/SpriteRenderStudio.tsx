@@ -122,7 +122,6 @@ export function SpriteRenderStudio({
         transform={transform}
         characterName={characterName}
         dialogContent={dialogContent}
-        isLoading={isImageLoading}
       />
       <TransformControl
         transform={transform}

@@ -13,8 +13,6 @@ interface RenderPreviewProps {
   characterName?: string;
   // 对话内容，用于遮罩中的显示
   dialogContent?: string;
-  // 加载状态
-  isLoading?: boolean;
 }
 
 /**
@@ -26,21 +24,10 @@ export function RenderPreview({
   transform,
   characterName = "角色名",
   dialogContent = "对话内容",
-  isLoading = false,
 }: RenderPreviewProps) {
   return (
     <>
       <div className="relative w-full aspect-video overflow-hidden bg-base-200">
-        {/* Loading 状态显示 */}
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-base-200/80 z-10">
-            <div className="flex flex-col items-center gap-2">
-              <span className="loading loading-spinner loading-md"></span>
-              <span className="text-sm opacity-70">加载图片中...</span>
-            </div>
-          </div>
-        )}
-
         {/* 裁剪后的图像 - 左侧显示 */}
         <canvas
           ref={previewCanvasRef}
