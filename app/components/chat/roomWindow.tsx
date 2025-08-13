@@ -461,8 +461,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     setLLMMessage(""); // 清空之前的消息
     const { before: beforeMessage, after: afterMessage } = getTextAroundCursor();
     const prompt = beforeMessage === ""
-      ? `请根据以下文本内容，提供一段自然连贯的续写或灵感提示。重点关注上下文的逻辑和主题发展。只提供续写内容，不要额外解释。文本内容：${inputText}`
-      : `请根据以下文本内容，插入一段自然连贯的文本的或灵感提示。重点关注上下文的逻辑和主题发展。只提插入的内容，不要额外解释。插入点前的文本：${beforeMessage},插入点后的文本${afterMessage}`;
+      ? `请根据以下文本内容，提供一段自然连贯的续写或灵感提示。重点关注上下文的逻辑和主题发展。只提供续写内容，不要额外解释,
+       你所输出的文本会被直接插入到已有文字末尾，所以也不要重复已有文本的任何句子或词语。文本内容：${inputText}`
+      : `请根据以下文本内容，插入一段自然连贯的文本的或灵感提示。重点关注上下文的逻辑和主题发展。只提插入的内容，不要额外解释，
+      你所输出的文本会被直接插入到已有文字中间，所以也不要重复已有文本的任何句子或词语。插入点前的文本：${beforeMessage},插入点后的文本${afterMessage}`;
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -477,7 +479,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             content: prompt,
           }],
           stream: true,
-          max_tokens: 1024,
+          max_tokens: 2048,
           temperature: 0.7,
         }),
       });
@@ -994,7 +996,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   </div>
                   {/* 输入框 */}
                   <div
-                    className="text-sm w-full max-h-[20vh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-primary focus-within:border-primary flex flex-col"
+                    className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-primary focus-within:border-primary flex flex-col"
                   >
                     {/* 预览要发送的图片 */}
                     {(imgFiles.length > 0 || emojiUrls.length > 0) && (
@@ -1029,7 +1031,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       )
                     }
                     <div
-                      className="w-full overflow-auto resize-none p-2 focus:outline-none div-textarea"
+                      className="w-full overflow-auto resize-none p-2 focus:outline-none div-textarea chatInputTextarea"
                       ref={textareaRef}
                       onInput={syncInputText}
                       onKeyDown={handleKeyDown}
