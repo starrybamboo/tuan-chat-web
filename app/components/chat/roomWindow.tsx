@@ -377,22 +377,33 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
    * @returns { before: string; after: string } 光标前后的文本
    */
   const getTextAroundCursor = (): { before: string; after: string } => {
+    const editor = textareaRef.current;
+    if (!editor) {
+      return { before: "", after: "" };
+    }
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0)
-      return { before: "", after: "" };
+    if (!selection || selection.rangeCount === 0) {
+      // 如果没有选区，则返回整个编辑器的文本作为 "before"
+      return { before: editor.textContent ?? "", after: "" };
+    }
 
-    const range = selection.getRangeAt(0);
-    const node = range.startContainer;
+    // 创建两个range来获取光标前后的文本
+    const currentRange = selection.getRangeAt(0);
+    const beforeRange = document.createRange();
+    beforeRange.setStart(editor, 0);
+    // 将终点设置为当前光标的起点位置
+    beforeRange.setEnd(currentRange.startContainer, currentRange.startOffset);
+    const afterRange = document.createRange();
+    afterRange.setStart(currentRange.endContainer, currentRange.endOffset);
+    // 将终点设置为编辑器的最末尾
+    // editor.childNodes.length 是 editor 中子节点的数量，可以有效定位到末尾
+    afterRange.setEnd(editor, editor.childNodes.length);
 
-    // 只处理文本节点
-    if (node.nodeType !== Node.TEXT_NODE)
-      return { before: "", after: "" };
+    // range.toString() 会智能地处理 <br> 为换行符 \n，并提取所有子节点中的文本内容。
+    const before = beforeRange.toString();
+    const after = afterRange.toString();
 
-    const text = node.textContent || "";
-    return {
-      before: text.substring(0, range.startOffset),
-      after: text.substring(range.startOffset),
-    };
+    return { before, after };
   };
 
   /**
@@ -493,14 +504,14 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       return;
     isAutoCompletingRef.current = true;
     setLLMMessage(""); // 清空之前的消息
-    const { before: beforeMessage, after: afterMessage } = getTextAroundCursor();
+    const { before: beforeMessage, after: afterMessage } = getTextAroundCursor(); // 输入光标前后的文本
     const historyMessagesString = (await Promise.all(
       historyMessages.slice(historyMessages.length - 20).map(async (m) => {
         const role = await getRoleSmartly(m.message.roleId);
         return `${role?.roleName ?? role?.roleId}: ${m.message.content}`;
       }),
-    )).join("\n");
-    const insertAtMiddle = afterMessage !== ""; // 是否插入输入框的末尾
+    )).join("\n"); // 最近的20条历史消息，拼接成字符串
+    const insertAtMiddle = afterMessage !== ""; // 是否插入输入框的中间
     const curRoleName = userRoles?.find(r => r.roleId === curRoleId)?.roleName; // 当前角色的名字
     const prompt = `
       你现在在进行一个跑团对话，请根据以下文本内容，提供一段自然连贯的${insertAtMiddle ? "插入语句" : "续写"}。
@@ -553,7 +564,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               const data = JSON.parse(line.substring(5));
               if (data.choices?.[0]?.delta?.content) {
                 fullMessage += data.choices[0].delta.content;
-                setLLMMessage(fullMessage); // 更新显示的内容
+                setLLMMessage(fullMessage); // 更新显示的内容}
               }
             }
             catch (e) {
