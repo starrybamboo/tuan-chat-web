@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 interface EditableFieldProps {
   /** 显示的内容 */
@@ -36,6 +36,20 @@ export function EditableField({
 
   const [editContent, setEditContent] = useState(content);
 
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // 2. 使用 useEffect 在内容变化时调整高度
+  useEffect(() => {
+    // 仅当处于编辑模式且 textarea 存在时执行
+    if (isEditing && !usingInput && textareaRef.current) {
+      const textarea = textareaRef.current;
+      // 先重置高度，以正确计算缩小时的高度
+      textarea.style.height = "auto";
+      // 将高度设置为内容所需的实际高度
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  }, [isEditing, usingInput, editContent]); // 依赖项包含 editContent，每次输入都会触发
+
   function handleDoubleClick() {
     if (canEdit) {
       setIsEditing(true);
@@ -64,7 +78,8 @@ export function EditableField({
             )
           : (
               <textarea
-                className={`${className} border-none bg-transparent textarea w-max editable-textarea`}
+                className={`${className} min-w-xs sm:min-w-md bg-transparent p-2 border-0 border-base-300 rounded-[8px] w-full overflow-hidden resize-none`}
+                ref={textareaRef}
                 value={editContent}
                 onChange={e => setEditContent(e.target.value)}
                 onKeyDown={(e) => {

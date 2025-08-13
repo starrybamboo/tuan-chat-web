@@ -174,7 +174,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                   {role?.roleName?.trim() || "Undefined"}
                 </div>
                 <div
-                  className="max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow bg-base-200"
+                  className="max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow bg-base-200 text-base"
                 >
                   {renderedContent}
                 </div>
@@ -197,7 +197,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 </div>
               </div>
               {/* 消息内容 */}
-              <div className="flex-1 overflow-auto">
+              <div className="flex-1 overflow-auto p-1">
                 {/* 角色名 */}
                 <div
                   className={`cursor-pointer font-semibold ${userId === message.userId ? "hover:underline" : ""}`}
@@ -206,10 +206,6 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                   {role?.roleName?.trim() || "Undefined"}
                 </div>
                 {renderedContent}
-                {/* 时间 */}
-                {/* <div className="text-xs text-gray-500 dark:text-gray-400 pt-1"> */}
-                {/*  {message.createTime ?? ""} */}
-                {/* </div> */}
               </div>
             </div>
           )}
