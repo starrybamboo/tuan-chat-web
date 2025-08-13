@@ -460,8 +460,29 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   /**
    * ai自动补全
    */
-  const [LLMMessage, setLLMMessage] = useState("");
+  const [LLMMessage, setLLMMessageRaw] = useState("");
+  // 将补全的文本插入到光标处
   const isAutoCompletingRef = useRef(false);
+  const hintNodeRef = useRef<HTMLSpanElement>(null);
+  const setLLMMessage = (newLLMMessage: string) => {
+    if (hintNodeRef.current)
+      hintNodeRef.current.remove();
+    setLLMMessageRaw(newLLMMessage);
+    const hintNode = document.createElement("span");
+    hintNode.textContent = newLLMMessage;
+    hintNode.className = "opacity-60";
+    hintNode.contentEditable = "false";
+    hintNode.style.pointerEvents = "none"; // 防止干扰用户输入
+    insertNodeAtCursor(hintNode);
+    hintNodeRef.current = hintNode;
+    // 开始输入时移除自动补全的文本
+    const handleInput = () => {
+      hintNode.remove();
+      textareaRef.current?.removeEventListener("input", handleInput);
+      isAutoCompletingRef.current = false;
+    };
+    textareaRef.current?.addEventListener("input", handleInput);
+  };
   const getRoleSmartly = useGetRoleSmartly();
   const autoComplete = async () => {
     const llmSettings = getLocalStorageValue<LLMProperty>("llmSettings", {});
@@ -550,35 +571,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       isAutoCompletingRef.current = false;
     }
   };
-  useEffect(() => {
-    // 创建提示文本节点
-    const hintNode = document.createElement("span");
-    hintNode.textContent = LLMMessage;
-    hintNode.className = "opacity-60";
-    hintNode.contentEditable = "false";
-    hintNode.style.pointerEvents = "none"; // 防止干扰用户输入
-    insertNodeAtCursor(hintNode);
-    // 开始输入时移除自动补全的文本
-    const handleInput = () => {
-      if (hintNode.parentNode) {
-        hintNode.parentNode.removeChild(hintNode);
-      }
-      textareaRef.current?.removeEventListener("input", handleInput);
-      isAutoCompletingRef.current = false;
-    };
-    textareaRef.current?.addEventListener("input", handleInput);
-    return () => {
-      if (hintNode.parentNode) {
-        hintNode.parentNode.removeChild(hintNode);
-      }
-      textareaRef.current?.removeEventListener("input", handleInput);
-    };
-  }, [LLMMessage]);
-
   const insertLLMMessageIntoText = () => {
     insertNodeAtCursor(LLMMessage, { moveCursorToEnd: true });
-    syncInputText();
     setLLMMessage(""); // 清空补全提示
+    syncInputText();
   };
 
   /**

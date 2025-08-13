@@ -11,7 +11,7 @@ export default function useGetRoleSmartly() {
   return async (roleId: number) => {
     if (roleId <= 0)
       return null;
-    const tempRole = (queryClient.getQueryData(["getRole", roleId]) as UseQueryResult<ApiResultRoleResponse, Error>).data?.data;
+    const tempRole = (queryClient.getQueryData(["getRole", roleId]) as UseQueryResult<ApiResultRoleResponse, Error>)?.data?.data;
     if (tempRole) {
       return tempRole;
     }
