@@ -4,7 +4,7 @@
   themes: all;
 }
 @plugin "daisyui/theme" {
-  name: "silk";
+  name: "light";
   default: true;
   prefersdark: false;
   color-scheme: "light";
