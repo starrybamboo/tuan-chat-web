@@ -22,6 +22,7 @@ import InitiativeList from "@/components/chat/sideDrawer/initiativeList";
 import RoomRoleList from "@/components/chat/sideDrawer/roomRoleList";
 import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
 import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
+import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
 import UserIdToName from "@/components/chat/smallComponents/userIdToName";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
@@ -461,21 +462,35 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
    */
   const [LLMMessage, setLLMMessage] = useState("");
   const isAutoCompletingRef = useRef(false);
+  const getRoleSmartly = useGetRoleSmartly();
   const autoComplete = async () => {
     const llmSettings = getLocalStorageValue<LLMProperty>("llmSettings", {});
     const apiKey = llmSettings.openaiApiKey;
     const apiUrl = llmSettings.openaiApiBaseUrl ?? "";
     const model = llmSettings.openaiModelName;
-    if (!inputText.trim() || isAutoCompletingRef.current)
+    if (isAutoCompletingRef.current)
       return;
     isAutoCompletingRef.current = true;
     setLLMMessage(""); // 清空之前的消息
     const { before: beforeMessage, after: afterMessage } = getTextAroundCursor();
-    const prompt = beforeMessage === ""
-      ? `请根据以下文本内容，提供一段自然连贯的续写或灵感提示。重点关注上下文的逻辑和主题发展。只提供续写内容，不要额外解释,
-       你所输出的文本会被直接插入到已有文字末尾，所以也不要重复已有文本的任何句子或词语。文本内容：${inputText}`
-      : `请根据以下文本内容，插入一段自然连贯的文本的或灵感提示。重点关注上下文的逻辑和主题发展。只提插入的内容，不要额外解释，
-      你所输出的文本会被直接插入到已有文字中间，所以也不要重复已有文本的任何句子或词语。插入点前的文本：${beforeMessage},插入点后的文本${afterMessage}`;
+    const historyMessagesString = (await Promise.all(
+      historyMessages.slice(historyMessages.length - 20).map(async (m) => {
+        const role = await getRoleSmartly(m.message.roleId);
+        return `${role?.roleName ?? role?.roleId}: ${m.message.content}`;
+      }),
+    )).join("\n");
+    const insertAtMiddle = afterMessage !== ""; // 是否插入输入框的末尾
+    const curRoleName = userRoles?.find(r => r.roleId === curRoleId)?.roleName; // 当前角色的名字
+    const prompt = `
+      你现在在进行一个跑团对话，请根据以下文本内容，提供一段自然连贯的${insertAtMiddle ? "插入语句" : "续写"}。
+      重点关注上下文的逻辑和主题发展。只提供续写内容，不要额外解释，不要输入任何多余不属于跑团内容的文本信息。
+      这是已有的历史聊天信息：
+      === 聊天记录开始 ===
+      ${historyMessagesString}.
+      === 聊天记录结束 ===
+      这是你所扮演的角色的名字：${curRoleName}.
+      你所输出的文本会被直接插入到已输入的文字${insertAtMiddle ? "中间" : "末尾"}，所以也不要重复已有文本的任何句子或词语。
+      ${insertAtMiddle ? `插入点前的文本：${beforeMessage},插入点后的文本${afterMessage}` : `已输入的文本内容：${inputText}`}`;
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
