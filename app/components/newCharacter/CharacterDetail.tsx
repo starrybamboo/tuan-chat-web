@@ -5,6 +5,7 @@ import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/quer
 import { useEffect, useMemo, useRef, useState } from "react";
 import CharacterAvatar from "./CharacterAvatar";
 import ExpansionModule from "./rules/ExpansionModule";
+import Section from "./Section";
 import { SpriteRenderStudio } from "./sprite/SpriteRenderStudio";
 // import Section from "./Section";
 
@@ -36,7 +37,7 @@ export default function CharacterDetail({
   const [selectedSpriteUrl, setSelectedSpriteUrl] = useState<string | null>("");
 
   // 获取角色所有头像
-  const { data: roleAvatarsResponse, isSuccess, isLoading } = useGetRoleAvatarsQuery(role.id);
+  const { data: roleAvatarsResponse, isSuccess } = useGetRoleAvatarsQuery(role.id);
 
   // 字数统计：由描述派生，避免在 useEffect 中 setState
   const charCount = useMemo(() => localRole.description?.length || 0, [localRole.description]);
@@ -90,6 +91,7 @@ export default function CharacterDetail({
       .replace(/\n{2,}/g, "\n") // 压缩多个换行为单个换行
       .replace(/\s+$/g, ""); // 移除末尾空格
   };
+
   const handleSave = () => {
     setIsTransitioning(true);
     const cleanedRole = {
@@ -175,7 +177,6 @@ export default function CharacterDetail({
               selectedAvatarId={selectedAvatarId}
               selectedAvatarUrl={selectedAvatarUrl}
               selectedSpriteUrl={selectedSpriteUrl}
-              isLoading={isLoading}
               onchange={handleAvatarChange}
               onSpritePreviewChange={url => setSelectedSpriteUrl(url)}
               onAvatarSelect={handleAvatarSelect}
@@ -302,16 +303,18 @@ export default function CharacterDetail({
       </div>
       <div className="card-sm md:card bg-base-100 shadow-xl">
         <div className="card-body">
-          <h2 className="text-xl font-bold">渲染结果预览</h2>
-          {/* 使用SpriteRenderStudio组件封装预览与控制逻辑 */}
-          <SpriteRenderStudio
-            characterName={localRole.name || "未命名角色"}
-            spriteUrl={selectedSpriteUrl}
-            avatarId={selectedAvatarId}
-            externalCanvasRef={previewCanvasRef}
-            className="w-full p-3 gap-4 flex"
-          />
+          <Section title="渲染结果预览">
+            {/* 使用SpriteRenderStudio组件封装预览与控制逻辑 */}
+            <SpriteRenderStudio
+              characterName={localRole.name || "未命名角色"}
+              roleAvatars={roleAvatars}
+              initialAvatarId={localRole.avatarId}
+              externalCanvasRef={previewCanvasRef}
+              className="w-full p-3 gap-4 flex"
+            />
+          </Section>
         </div>
+
       </div>
       <div className="card-sm md:card bg-base-100 shadow-xl">
         <ExpansionModule

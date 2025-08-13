@@ -13,6 +13,10 @@ interface RenderPreviewProps {
   characterName?: string;
   // 对话内容，用于遮罩中的显示
   dialogContent?: string;
+  // 角色名称文字大小类名，默认为 text-xs
+  characterNameTextSize?: string;
+  // 对话内容文字大小类名，默认为 text-xs
+  dialogTextSize?: string;
 }
 
 /**
@@ -24,6 +28,8 @@ export function RenderPreview({
   transform,
   characterName = "角色名",
   dialogContent = "对话内容",
+  characterNameTextSize = "text-xs",
+  dialogTextSize = "text-xs",
 }: RenderPreviewProps) {
   return (
     <>
@@ -42,8 +48,8 @@ export function RenderPreview({
         <div className="absolute bottom-0 w-full h-[30%] bg-black/50">
           <div className="absolute top-0 left-[6%] text-white">
             <p className="text-white leading-snug">
-              <span className="block text-xs font-medium">{characterName}</span>
-              <span className="block text-xs mt-1">{dialogContent}</span>
+              <span className={`block ${characterNameTextSize} font-medium`}>{characterName}</span>
+              <span className={`block ${dialogTextSize} mt-1`}>{dialogContent}</span>
             </p>
           </div>
         </div>

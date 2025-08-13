@@ -388,7 +388,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
         <div className="divider my-0"></div>
         <div className="flex flex-col md:flex-row gap-8 justify-center">
           {/* 原始图片裁剪区域 */}
-          <div className="w-full md:w-1/2 p-3 gap-4 flex flex-col items-center">
+          <div className="w-full md:w-1/2 p-2 gap-4 flex flex-col items-center">
             {!!imgSrc && (
               <>
                 <h2 className="text-xl font-bold">裁剪预览</h2>
@@ -419,7 +419,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
           </div>
           {/* 裁剪预览和操作按钮 */}
           {!!completedCrop && (
-            <div className="w-full md:w-1/2 p-3 gap-4 flex flex-col items-center">
+            <div className="w-full md:w-1/2 p-2 gap-4 flex flex-col items-center">
               {
                 currentStep !== 1
                   ? (
@@ -431,17 +431,20 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                     )
                   : (
                       <>
-                        <RenderPreview
-                          previewCanvasRef={previewCanvasRef}
-                          transform={transform}
-                          characterName="角色名"
-                          dialogContent="对话内容"
-                        />
-                        <TransformControl
-                          transform={transform}
-                          setTransform={setTransform}
-                          previewCanvasRef={previewCanvasRef}
-                        />
+                        <h2 className="text-xl font-bold">渲染预览</h2>
+                        <div className="w-full h-full bg-info/30 rounded-lg p-4 flex flex-col gap-4">
+                          <RenderPreview
+                            previewCanvasRef={previewCanvasRef}
+                            transform={transform}
+                            characterName="角色名"
+                            dialogContent="对话内容"
+                          />
+                          <TransformControl
+                            transform={transform}
+                            setTransform={setTransform}
+                            previewCanvasRef={previewCanvasRef}
+                          />
+                        </div>
                       </>
                     )
 
@@ -459,7 +462,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                   <button className="btn btn-lg loading w-full" disabled={true} type="button"></button>
                 )
               : (
-                  <div className="flex flex-col gap-3 w-full">
+                  <div className="flex flex-col gap-2 w-full">
                     <button className="btn btn-lg btn-info w-full" onClick={handleSubmit} type="button">
                       {currentStep === 1 ? "下一步" : "创建完成"}
                     </button>

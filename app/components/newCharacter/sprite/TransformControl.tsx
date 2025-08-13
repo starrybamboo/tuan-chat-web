@@ -64,7 +64,7 @@ export function TransformControl({ transform, setTransform, previewCanvasRef, di
   };
 
   return (
-    <div className={`w-full mt-4 p-4 bg-base-200 rounded-lg space-y-3 ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
+    <div className={`w-full p-4 bg-base-200 rounded-lg space-y-3 ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
       <h3 className="text-sm font-semibold text-center">Transform 控制</h3>
 
       {/* Scale控制 */}

@@ -29,7 +29,6 @@ export default function CharacterAvatar({
   selectedAvatarId,
   selectedAvatarUrl,
   selectedSpriteUrl,
-  isLoading: _isLoading = false,
   onchange,
   onSpritePreviewChange,
   onAvatarSelect,
