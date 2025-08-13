@@ -21,13 +21,15 @@ interface TransformControlProps {
   setTransform: React.Dispatch<React.SetStateAction<Transform>>;
   // 预览Canvas引用，用于贴底对齐计算
   previewCanvasRef: React.RefObject<HTMLCanvasElement | null>;
+  // 是否禁用控制
+  disabled?: boolean;
 }
 
 /**
  * Transform控制组件
  * 提供缩放、位置、透明度、旋转等控制功能
  */
-export function TransformControl({ transform, setTransform, previewCanvasRef }: TransformControlProps) {
+export function TransformControl({ transform, setTransform, previewCanvasRef, disabled = false }: TransformControlProps) {
   /**
    * 重置所有Transform参数到默认值
    */
@@ -62,7 +64,7 @@ export function TransformControl({ transform, setTransform, previewCanvasRef }: 
   };
 
   return (
-    <div className="w-full mt-4 p-4 bg-base-200 rounded-lg space-y-3">
+    <div className={`w-full mt-4 p-4 bg-base-200 rounded-lg space-y-3 ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
       <h3 className="text-sm font-semibold text-center">Transform 控制</h3>
 
       {/* Scale控制 */}
@@ -70,12 +72,13 @@ export function TransformControl({ transform, setTransform, previewCanvasRef }: 
         <label className="text-xs w-16 flex-shrink-0">Scale:</label>
         <input
           type="range"
-          min="0.5"
+          min="0"
           max="2"
           step="0.1"
           value={transform.scale}
           onChange={e => setTransform(prev => ({ ...prev, scale: Number.parseFloat(e.target.value) }))}
           className="range range-xs range-info flex-1"
+          disabled={disabled}
         />
         <span className="text-xs w-12 text-right">{transform.scale.toFixed(1)}</span>
       </div>
@@ -85,12 +88,13 @@ export function TransformControl({ transform, setTransform, previewCanvasRef }: 
         <label className="text-xs w-16 flex-shrink-0">X位置:</label>
         <input
           type="range"
-          min="-100"
-          max="100"
+          min="-300"
+          max="300"
           step="5"
           value={transform.positionX}
           onChange={e => setTransform(prev => ({ ...prev, positionX: Number.parseInt(e.target.value) }))}
           className="range range-xs range-info flex-1"
+          disabled={disabled}
         />
         <span className="text-xs w-12 text-right">{transform.positionX}</span>
       </div>
@@ -100,12 +104,13 @@ export function TransformControl({ transform, setTransform, previewCanvasRef }: 
         <label className="text-xs w-16 flex-shrink-0">Y位置:</label>
         <input
           type="range"
-          min="-100"
-          max="100"
+          min="-300"
+          max="300"
           step="5"
           value={transform.positionY}
           onChange={e => setTransform(prev => ({ ...prev, positionY: Number.parseInt(e.target.value) }))}
           className="range range-xs range-info flex-1"
+          disabled={disabled}
         />
         <span className="text-xs w-12 text-right">{transform.positionY}</span>
       </div>
@@ -121,6 +126,7 @@ export function TransformControl({ transform, setTransform, previewCanvasRef }: 
           value={transform.alpha}
           onChange={e => setTransform(prev => ({ ...prev, alpha: Number.parseFloat(e.target.value) }))}
           className="range range-xs range-info flex-1"
+          disabled={disabled}
         />
         <span className="text-xs w-12 text-right">{transform.alpha.toFixed(1)}</span>
       </div>
@@ -136,6 +142,7 @@ export function TransformControl({ transform, setTransform, previewCanvasRef }: 
           value={transform.rotation}
           onChange={e => setTransform(prev => ({ ...prev, rotation: Number.parseInt(e.target.value) }))}
           className="range range-xs range-info flex-1"
+          disabled={disabled}
         />
         <span className="text-xs w-12 text-right">
           {transform.rotation}
@@ -149,6 +156,7 @@ export function TransformControl({ transform, setTransform, previewCanvasRef }: 
           className="btn btn-xs btn-outline"
           onClick={handleReset}
           type="button"
+          disabled={disabled}
         >
           重置Transform
         </button>
@@ -156,6 +164,7 @@ export function TransformControl({ transform, setTransform, previewCanvasRef }: 
           className="btn btn-xs btn-outline"
           onClick={handleBottomAlign}
           type="button"
+          disabled={disabled}
         >
           贴底对齐
         </button>

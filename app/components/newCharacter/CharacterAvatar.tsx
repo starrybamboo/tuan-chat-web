@@ -1,6 +1,6 @@
 import type { RoleAvatar } from "api";
 import type { Role } from "./types";
-import { useGetRoleAvatarsQuery, useUploadAvatarMutation } from "@/../api/queryHooks";
+import { useUploadAvatarMutation } from "@/../api/queryHooks";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
@@ -9,23 +9,46 @@ import { PopWindow } from "../common/popWindow";
 import { AvatarPreview } from "./sprite/AvatarPreview";
 import { CharacterCopper } from "./sprite/CharacterCopper";
 
-export default function CharacterAvatar({ role, onchange, onSpritePreviewChange }: {
+interface CharacterAvatarProps {
   role: Role;
+  roleAvatars: RoleAvatar[];
+  selectedAvatarId: number;
+  selectedAvatarUrl: string;
+  selectedSpriteUrl: string | null;
+  isLoading?: boolean;
   onchange: (avatarUrl: string, avatarId: number, spriteUrl?: string | null) => void;
   onSpritePreviewChange?: (spriteUrl: string | null) => void;
-}) {
-  const queryClient = useQueryClient();
-  // const [downloadUrl, setDownloadUrl] = useState<string>("");
-  const [avatarId, setAvatarId] = useState<number>(role.avatarId);
-  const [copperedUrl, setCopperedUrl] = useState<string>(role.avatar || "/favicon.ico"); // 修正变量名
+  onAvatarSelect: (avatarUrl: string, avatarId: number, spriteUrl: string | null) => void;
+  onAvatarDelete: (avatarId: number) => void;
+  onAvatarUpload: (data: any) => void;
+}
 
-  // head组件的迁移
-  const [previewSrc, setPreviewSrc] = useState<string | null>("");
-  const [roleAvatars, setRoleAvatars] = useState<RoleAvatar[]>([]);
+export default function CharacterAvatar({
+  role,
+  roleAvatars,
+  selectedAvatarId,
+  selectedAvatarUrl,
+  selectedSpriteUrl,
+  isLoading: _isLoading = false,
+  onchange,
+  onSpritePreviewChange,
+  onAvatarSelect,
+  onAvatarDelete,
+  onAvatarUpload,
+}: CharacterAvatarProps) {
+  const queryClient = useQueryClient();
+
+  // 保留一些内部 UI 状态
   const [showSprite, setShowSprite] = useState(() => {
     // PC端默认显示立绘，移动端显示头像
     return window.matchMedia("(min-width: 768px)").matches;
   });
+
+  // 使用传入的状态作为内部 UI 状态
+  const copperedUrl = selectedAvatarUrl || "/favicon.ico";
+  const previewSrc = selectedSpriteUrl || "";
+  const avatarId = selectedAvatarId;
+
   // 弹窗的打开和关闭
   const [changeAvatarConfirmOpen, setChangeAvatarConfirmOpen] = useSearchParamsState<boolean>(`changeAvatarPop`, false);
   // 删除弹窗用
@@ -44,41 +67,9 @@ export default function CharacterAvatar({ role, onchange, onSpritePreviewChange 
     return () => mediaQuery.removeEventListener("change", handleResize);
   }, []);
 
-  // 获取角色所有头像
-  const { data: roleAvatarsResponse, isSuccess } = useGetRoleAvatarsQuery(role.id);
-
-  // 处理角色头像数据更新
-  useEffect(() => {
-    if (isSuccess && roleAvatarsResponse?.success && Array.isArray(roleAvatarsResponse.data)) {
-      const avatarsData = roleAvatarsResponse.data;
-
-      setRoleAvatars((prev) => {
-        // 只有当数据真正变化时才更新
-        if (JSON.stringify(prev) !== JSON.stringify(avatarsData)) {
-          return avatarsData;
-        }
-        return prev;
-      });
-
-      if (role.avatarId !== 0) {
-        const currentAvatar = avatarsData.find(ele => ele.avatarId === role.avatarId);
-        const newCopperedUrl = currentAvatar?.avatarUrl || "/favicon.ico";
-        const newPreviewSrc = currentAvatar?.spriteUrl || null;
-
-        setCopperedUrl(prev => prev !== newCopperedUrl ? newCopperedUrl : prev);
-        setPreviewSrc(prev => prev !== newPreviewSrc ? newPreviewSrc : prev);
-      }
-      else {
-        setCopperedUrl(prev => prev !== "/favicon.ico" ? "/favicon.ico" : prev);
-        setPreviewSrc(prev => prev !== "" ? "" : prev);
-      }
-    }
-  }, [isSuccess, roleAvatarsResponse, role.avatarId]);
-
   // 使用新的 hook
   const { mutate } = useUploadAvatarMutation();
 
-  // 迁移
   // post删除头像请求
   const { mutate: deleteAvatar } = useMutation({
     mutationKey: ["deleteRoleAvatar"],
@@ -87,7 +78,7 @@ export default function CharacterAvatar({ role, onchange, onSpritePreviewChange 
       if (res.success) {
         console.warn("删除头像成功");
         queryClient.invalidateQueries({
-          queryKey: ["roleAvatar", role.id],
+          queryKey: ["getRoleAvatars", role.id],
           exact: true, // 确保精确匹配查询键
         });
       }
@@ -97,20 +88,13 @@ export default function CharacterAvatar({ role, onchange, onSpritePreviewChange 
     },
   });
 
-  // 点击头像处理 (新增预览文字更新)
+  // 点击头像处理
   const handleAvatarClick = (avatarUrl: string, index: number) => {
     const targetAvatar = roleAvatars[index];
     const nextSprite = targetAvatar.spriteUrl || avatarUrl || null;
-    setPreviewSrc(nextSprite || null);
-    setCopperedUrl(roleAvatars[index]?.avatarUrl || "");
-    setAvatarId(roleAvatars[index]?.avatarId || 0);
-    // 移除实时预览回调，改为在确认时触发
-    // onSpritePreviewChange?.(nextSprite);
-    // 选中的头像移到最前面
-    const newRoleAvatars = [...roleAvatars];
-    const [selectedAvatar] = newRoleAvatars.splice(index, 1);
-    newRoleAvatars.unshift(selectedAvatar);
-    setRoleAvatars(newRoleAvatars);
+
+    // 直接通知父组件状态变化，不再维护本地状态
+    onAvatarSelect(targetAvatar.avatarUrl || "", targetAvatar.avatarId || 0, nextSprite);
   };
 
   // 删除操作处理
@@ -121,10 +105,10 @@ export default function CharacterAvatar({ role, onchange, onSpritePreviewChange 
 
   const confirmDeleteAvatar = () => {
     if (avatarToDeleteIndex !== null && avatarToDeleteIndex >= 0 && avatarToDeleteIndex < roleAvatars.length) {
-      setRoleAvatars(prevRoleAvatars =>
-        prevRoleAvatars.filter((_, i) => i !== avatarToDeleteIndex),
-      );
-      deleteAvatar(roleAvatars[avatarToDeleteIndex]?.avatarId || 0);
+      const avatarToDelete = roleAvatars[avatarToDeleteIndex];
+      // 通知父组件和服务器删除头像
+      onAvatarDelete(avatarToDelete.avatarId || 0);
+      deleteAvatar(avatarToDelete.avatarId || 0);
       setAvatarToDeleteIndex(null);
       setIsDeleteModalOpen(false);
     }
@@ -241,10 +225,13 @@ export default function CharacterAvatar({ role, onchange, onSpritePreviewChange 
                 <li className="relative w-full max-w-[128px] aspect-square flex flex-col items-center rounded-lg transition-colors">
                   <CharacterCopper
                     setDownloadUrl={() => { }}
-                    setCopperedDownloadUrl={setCopperedUrl}
+                    setCopperedDownloadUrl={() => {}}
                     fileName={uniqueFileName}
                     scene={3} // 角色差分
                     mutate={(data) => {
+                      // 通知父组件处理上传
+                      onAvatarUpload({ ...data, roleId: role.id });
+                      // 同时执行本地的上传逻辑
                       mutate({ ...data, roleId: role.id });
                     }}
                   >
