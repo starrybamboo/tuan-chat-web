@@ -168,7 +168,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               </div>
               <div className="flex flex-col items-start">
                 <div
-                  className={`text-sm text-base-content/85 pb-1 cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`}
+                  className={`text-sm text-base-content/85 pb-1 cursor-pointer ${canEdit ? "hover:underline" : ""}`}
                   onClick={handleRoleNameClick}
                 >
                   {role?.roleName?.trim() || "Undefined"}
