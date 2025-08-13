@@ -1,5 +1,5 @@
 import type { Transform } from "./TransformControl";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RenderPreview } from "./RenderPreview";
 import { TransformControl } from "./TransformControl";
 
@@ -10,6 +10,8 @@ interface SpriteRenderStudioProps {
   className?: string;
   // 可选的外部 canvas 引用，用于从外部 canvas 获取立绘内容
   externalCanvasRef?: React.RefObject<HTMLCanvasElement | null>;
+  // 头像ID，用于触发重新加载
+  avatarId?: number;
 }
 
 /**
@@ -18,12 +20,17 @@ interface SpriteRenderStudioProps {
  */
 export function SpriteRenderStudio({
   characterName,
+  spriteUrl,
   dialogContent = "这是一段示例对话内容。",
   className = "",
   externalCanvasRef,
+  avatarId,
 }: SpriteRenderStudioProps) {
   // 内部状态管理
-  const previewCanvasRef = useRef<HTMLCanvasElement>(externalCanvasRef?.current || null);
+  const internalCanvasRef = useRef<HTMLCanvasElement>(null);
+  // 优先使用外部Canvas引用，否则使用内部引用
+  const previewCanvasRef = externalCanvasRef || internalCanvasRef;
+
   const [transform, setTransform] = useState<Transform>({
     scale: 1,
     positionX: 0,
@@ -31,6 +38,25 @@ export function SpriteRenderStudio({
     alpha: 1,
     rotation: 0,
   });
+
+  // 当立绘URL变化时，加载到预览Canvas
+  useEffect(() => {
+    if (spriteUrl && previewCanvasRef.current) {
+      const canvas = previewCanvasRef.current;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+        };
+        img.src = spriteUrl;
+      }
+    }
+  }, [spriteUrl, avatarId, previewCanvasRef]);
 
   return (
     <div className={className}>

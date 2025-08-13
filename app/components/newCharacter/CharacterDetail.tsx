@@ -1,11 +1,10 @@
-import type { Transform } from "./sprite/TransformControl";
+// import type { Transform } from "./sprite/TransformControl";
 import type { Role } from "./types";
 import { useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 import CharacterAvatar from "./CharacterAvatar";
 import ExpansionModule from "./rules/ExpansionModule";
-import { RenderPreview } from "./sprite/RenderPreview";
-import { TransformControl } from "./sprite/TransformControl";
+import { SpriteRenderStudio } from "./sprite/SpriteRenderStudio";
 // import Section from "./Section";
 
 interface CharacterDetailProps {
@@ -36,13 +35,7 @@ export default function CharacterDetail({
 
   // 立绘预览相关状态
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [transform, setTransform] = useState<Transform>({
-    scale: 1,
-    positionX: 0,
-    positionY: 0,
-    alpha: 1,
-    rotation: 0,
-  });
+  // 已由SpriteRenderStudio内部管理transform相关状态
 
   // 立绘URL状态
   const [spriteUrl, setSpriteUrl] = useState<string | null>(null);
@@ -51,25 +44,6 @@ export default function CharacterDetail({
   useEffect(() => {
     setLocalRole(role);
   }, [role]);
-
-  // 当立绘URL变化时，加载到预览Canvas
-  useEffect(() => {
-    if (spriteUrl && previewCanvasRef.current) {
-      const canvas = previewCanvasRef.current;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        img.onload = () => {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0);
-        };
-        img.src = spriteUrl;
-      }
-    }
-  }, [spriteUrl, localRole.avatarId]);
 
   // 接口部分
   // 发送post数据部分,保存角色数据
@@ -107,13 +81,17 @@ export default function CharacterDetail({
   };
 
   // 更新url和avatarId,方便更改服务器数据
-  const handleAvatarChange = (previewUrl: string, avatarId: number) => {
+  const handleAvatarChange = (previewUrl: string, avatarId: number, spriteUrl?: string | null) => {
     const updatedRole = {
       ...localRole,
       avatar: previewUrl,
       avatarId,
     };
     setLocalRole(updatedRole);
+    // 同时更新立绘URL
+    if (spriteUrl !== undefined) {
+      setSpriteUrl(spriteUrl);
+    }
     const cleanedRole = {
       ...updatedRole,
       name: cleanText(localRole.name),
@@ -260,19 +238,14 @@ export default function CharacterDetail({
       <div className="card-sm md:card bg-base-100 shadow-xl">
         <div className="card-body">
           <h2 className="text-xl font-bold">渲染结果预览</h2>
-          <div className="w-full p-3 gap-4 flex">
-            <RenderPreview
-              previewCanvasRef={previewCanvasRef}
-              transform={transform}
-              characterName={localRole.name || "未命名角色"}
-              dialogContent="这是一段示例对话内容。"
-            />
-            <TransformControl
-              transform={transform}
-              setTransform={setTransform}
-              previewCanvasRef={previewCanvasRef}
-            />
-          </div>
+          {/* 使用SpriteRenderStudio组件封装预览与控制逻辑 */}
+          <SpriteRenderStudio
+            characterName={localRole.name || "未命名角色"}
+            spriteUrl={spriteUrl}
+            avatarId={localRole.avatarId}
+            externalCanvasRef={previewCanvasRef}
+            className="w-full p-3 gap-4 flex"
+          />
         </div>
       </div>
       <div className="card-sm md:card bg-base-100 shadow-xl">

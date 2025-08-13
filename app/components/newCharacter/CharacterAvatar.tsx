@@ -1,8 +1,8 @@
 import type { RoleAvatar } from "api";
 import type { Role } from "./types";
-import { useUploadAvatarMutation } from "@/../api/queryHooks";
+import { useGetRoleAvatarsQuery, useUploadAvatarMutation } from "@/../api/queryHooks";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useEffect, useState } from "react";
 import { PopWindow } from "../common/popWindow";
@@ -44,25 +44,36 @@ export default function CharacterAvatar({ role, onchange, onSpritePreviewChange 
     return () => mediaQuery.removeEventListener("change", handleResize);
   }, []);
 
-  // 获取角色所有老头像
-  useQuery({
-    queryKey: ["roleAvatar", role.id],
-    queryFn: async () => {
-      const res = await tuanchat.avatarController.getRoleAvatars(role.id);
-      setRoleAvatars(res.data || []);
-      if (res.success && Array.isArray(res.data)) {
-        if (role.avatarId !== 0) {
-          setCopperedUrl(res.data.find(ele => ele.avatarId === role.avatarId)?.avatarUrl || "/favicon.ico");
-          setPreviewSrc(res.data.find(ele => ele.avatarId === role.avatarId)?.spriteUrl || null);
+  // 获取角色所有头像
+  const { data: roleAvatarsResponse, isSuccess } = useGetRoleAvatarsQuery(role.id);
+
+  // 处理角色头像数据更新
+  useEffect(() => {
+    if (isSuccess && roleAvatarsResponse?.success && Array.isArray(roleAvatarsResponse.data)) {
+      const avatarsData = roleAvatarsResponse.data;
+
+      setRoleAvatars((prev) => {
+        // 只有当数据真正变化时才更新
+        if (JSON.stringify(prev) !== JSON.stringify(avatarsData)) {
+          return avatarsData;
         }
-        else {
-          setCopperedUrl("/favicon.ico");
-          setPreviewSrc("");
-        }
+        return prev;
+      });
+
+      if (role.avatarId !== 0) {
+        const currentAvatar = avatarsData.find(ele => ele.avatarId === role.avatarId);
+        const newCopperedUrl = currentAvatar?.avatarUrl || "/favicon.ico";
+        const newPreviewSrc = currentAvatar?.spriteUrl || null;
+
+        setCopperedUrl(prev => prev !== newCopperedUrl ? newCopperedUrl : prev);
+        setPreviewSrc(prev => prev !== newPreviewSrc ? newPreviewSrc : prev);
       }
-      return null;
-    },
-  });
+      else {
+        setCopperedUrl(prev => prev !== "/favicon.ico" ? "/favicon.ico" : prev);
+        setPreviewSrc(prev => prev !== "" ? "" : prev);
+      }
+    }
+  }, [isSuccess, roleAvatarsResponse, role.avatarId]);
 
   // 使用新的 hook
   const { mutate } = useUploadAvatarMutation();

@@ -71,7 +71,7 @@ export function TransformControl({ transform, setTransform, previewCanvasRef }: 
         <input
           type="range"
           min="0.5"
-          max="1"
+          max="2"
           step="0.1"
           value={transform.scale}
           onChange={e => setTransform(prev => ({ ...prev, scale: Number.parseFloat(e.target.value) }))}
