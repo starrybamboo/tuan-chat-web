@@ -216,6 +216,56 @@ export function SpriteRenderStudio({
           </span>
         </button>
 
+        {/* 头像列表面板 - 位于编辑按钮下方 */}
+        {spritesAvatars.length > 0 && (
+          <div className="absolute top-14 right-2 bg-base-100/90 backdrop-blur-sm rounded-lg shadow-lg border border-base-300 p-2 z-30 max-w-xs">
+            <h4 className="text-sm font-semibold mb-2 text-center">立绘列表</h4>
+            <div className="grid grid-cols-4 gap-2 overflow-y-auto">
+              {spritesAvatars.map((avatar, index) => (
+                <button
+                  type="button"
+                  key={avatar.avatarId}
+                  onClick={() => {
+                    setIsManualSwitch(true);
+                    setManualIndexOffset(index);
+                  }}
+                  className={`relative aspect-square rounded-md overflow-hidden border-2 transition-[border-color,box-shadow] duration-200 ${
+                    index === currentSpriteIndex
+                      ? "border-primary shadow-lg"
+                      : "border-base-300 hover:border-primary/50 hover:shadow-md"
+                  }`}
+                  title={`切换到立绘 ${index + 1}`}
+                >
+                  {avatar.avatarUrl
+                    ? (
+                        <img
+                          src={avatar.avatarUrl}
+                          alt={`头像 ${index + 1}`}
+                          className="w-full h-full object-cover pointer-events-none"
+                          loading="lazy"
+                          style={{ aspectRatio: "1 / 1" }}
+                        />
+                      )
+                    : (
+                        <div className="w-full h-full bg-base-200 flex items-center justify-center">
+                          <svg className="w-4 h-4 text-base-content/50" viewBox="0 0 24 24" fill="none">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" />
+                            <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
+                          </svg>
+                        </div>
+                      )}
+                </button>
+              ))}
+            </div>
+            <div className="text-xs text-center mt-2 text-base-content/70">
+              {currentSpriteIndex + 1}
+              {" "}
+              /
+              {spritesAvatars.length}
+            </div>
+          </div>
+        )}
+
         {/* 数据加载中的提示 */}
         {initialAvatarId && !currentSprite && spritesAvatars.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center bg-base-200/50 z-10">
@@ -311,11 +361,17 @@ export function SpriteRenderStudio({
             ? (
                 <SpriteCropper
                   spriteUrl={spriteUrl}
+                  roleAvatars={roleAvatars}
                   characterName={characterName}
                   dialogContent={dialogContent}
                   onCropComplete={(croppedImageUrl) => {
-                    // TODO: 处理裁剪完成的图片
-                    console.warn("裁剪完成:", croppedImageUrl);
+                    // TODO: 处理单体裁剪完成的图片
+                    console.warn("单体裁剪完成:", croppedImageUrl);
+                    handleClosePopWindow();
+                  }}
+                  onBatchCropComplete={(croppedImages) => {
+                    // TODO: 处理批量裁剪完成的图片
+                    console.warn("批量裁剪完成:", croppedImages);
                     handleClosePopWindow();
                   }}
                   onClose={handleClosePopWindow}

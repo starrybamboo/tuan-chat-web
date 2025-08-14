@@ -1,3 +1,4 @@
+import type { RoleAvatar } from "api";
 import type { Crop, PixelCrop } from "react-image-crop";
 import type { Transform } from "./TransformControl";
 import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
@@ -39,28 +40,65 @@ function centerAspectCrop(
  * 立绘裁剪组件的属性接口
  */
 interface SpriteCropperProps {
-  // 要裁剪的立绘URL
-  spriteUrl: string;
+  // 要裁剪的立绘URL（单体模式）
+  spriteUrl?: string;
+  // 角色头像列表（批量模式）
+  roleAvatars?: RoleAvatar[];
   // 角色名称，用于预览
   characterName: string;
   // 对话内容，用于预览
   dialogContent?: string;
-  // 裁剪完成回调
+  // 裁剪完成回调（单体模式）
   onCropComplete?: (croppedImageUrl: string) => void;
+  // 批量裁剪完成回调
+  onBatchCropComplete?: (croppedImages: { avatarId: number; croppedImageUrl: string }[]) => void;
   // 关闭组件回调
   onClose?: () => void;
 }
 
+// 默认空数组，避免重新渲染
+const DEFAULT_AVATARS: RoleAvatar[] = [];
+
 /**
  * 立绘裁剪组件
  * 用于裁剪现有立绘，支持预览和变换控制
+ * 支持单体裁剪和批量裁剪模式
  */
 export function SpriteCropper({
   spriteUrl,
+  roleAvatars = DEFAULT_AVATARS,
   characterName,
   dialogContent = "这是一段示例对话内容。",
   onCropComplete,
+  onBatchCropComplete,
 }: SpriteCropperProps) {
+  // 确定工作模式
+  const isBatchMode = roleAvatars.length > 0;
+  const spritesAvatars = roleAvatars.filter(avatar => avatar.spriteUrl);
+
+  // 批量模式下的当前立绘索引
+  const [currentSpriteIndex, setCurrentSpriteIndex] = useState(0);
+  // 批量裁剪的结果存储
+  const [batchResults, setBatchResults] = useState<{ avatarId: number; croppedImageUrl: string }[]>([]);
+
+  // 获取当前立绘URL
+  const getCurrentSpriteUrl = () => {
+    if (isBatchMode && spritesAvatars.length > 0) {
+      return spritesAvatars[currentSpriteIndex]?.spriteUrl || "";
+    }
+    return spriteUrl || "";
+  };
+
+  // 获取当前立绘的avatarId
+  const getCurrentAvatarId = () => {
+    if (isBatchMode && spritesAvatars.length > 0) {
+      return spritesAvatars[currentSpriteIndex]?.avatarId || 0;
+    }
+    return 0;
+  };
+
+  const currentUrl = getCurrentSpriteUrl();
+  const currentAvatarId = getCurrentAvatarId();
   // Canvas 引用
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -202,7 +240,32 @@ export function SpriteCropper({
     try {
       setIsProcessing(true);
       const dataUrl = await getCroppedImageDataUrl();
-      onCropComplete?.(dataUrl);
+
+      if (isBatchMode) {
+        // 批量模式：保存当前立绘的裁剪结果
+        const newResult = { avatarId: currentAvatarId, croppedImageUrl: dataUrl };
+        const updatedResults = [...batchResults];
+
+        // 更新或添加结果
+        const existingIndex = updatedResults.findIndex(r => r.avatarId === currentAvatarId);
+        if (existingIndex >= 0) {
+          updatedResults[existingIndex] = newResult;
+        }
+        else {
+          updatedResults.push(newResult);
+        }
+
+        setBatchResults(updatedResults);
+
+        // 自动切换到下一个立绘（如果有的话）
+        if (currentSpriteIndex < spritesAvatars.length - 1) {
+          setCurrentSpriteIndex(currentSpriteIndex + 1);
+        }
+      }
+      else {
+        // 单体模式：直接回调
+        onCropComplete?.(dataUrl);
+      }
     }
     catch (error) {
       console.error("应用裁剪失败:", error);
@@ -212,16 +275,232 @@ export function SpriteCropper({
     }
   }
 
+  /**
+   * 处理批量裁剪完成
+   */
+  async function handleBatchComplete() {
+    if (isBatchMode && batchResults.length > 0) {
+      onBatchCropComplete?.(batchResults);
+    }
+  }
+
+  /**
+   * 获取指定图片的裁剪结果（通用函数）
+   */
+  async function getCroppedImageFromImg(img: HTMLImageElement): Promise<string> {
+    if (!completedCrop) {
+      throw new Error("No completed crop");
+    }
+
+    // 如果是当前显示的图片，直接使用现有的处理逻辑
+    if (imgRef.current && img.src === imgRef.current.src) {
+      return await getCroppedImageDataUrl();
+    }
+
+    // 对于其他图片，确保尺寸和当前图片一致
+    const currentImg = imgRef.current;
+    if (!currentImg) {
+      throw new Error("No current image reference");
+    }
+
+    // 设置临时图片的显示尺寸和当前图片一致
+    const tempDisplayWidth = currentImg.width;
+    const tempDisplayHeight = currentImg.height;
+
+    // 计算缩放比例
+    const scaleToCurrentDisplay = Math.min(
+      tempDisplayWidth / img.naturalWidth,
+      tempDisplayHeight / img.naturalHeight,
+    );
+
+    img.width = img.naturalWidth * scaleToCurrentDisplay;
+    img.height = img.naturalHeight * scaleToCurrentDisplay;
+
+    // 创建临时预览canvas
+    const tempPreviewCanvas = document.createElement("canvas");
+
+    // 使用canvasPreview处理图片（和当前预览完全相同的逻辑）
+    await canvasPreview(
+      img,
+      tempPreviewCanvas,
+      completedCrop,
+      1,
+      0,
+    );
+
+    // 创建最终输出canvas
+    const scaleX = img.naturalWidth / img.width;
+    const scaleY = img.naturalHeight / img.height;
+
+    const outputCanvas = new OffscreenCanvas(
+      completedCrop.width * scaleX,
+      completedCrop.height * scaleY,
+    );
+    const outputCtx = outputCanvas.getContext("2d");
+    if (!outputCtx) {
+      throw new Error("No 2d context");
+    }
+
+    // 将预览canvas的内容复制到输出canvas
+    outputCtx.drawImage(
+      tempPreviewCanvas,
+      0,
+      0,
+      tempPreviewCanvas.width,
+      tempPreviewCanvas.height,
+      0,
+      0,
+      outputCanvas.width,
+      outputCanvas.height,
+    );
+
+    const blob = await outputCanvas.convertToBlob({
+      type: "image/png",
+    });
+
+    return new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  /**
+   * 应用相同裁剪参数到所有立绘
+   */
+  async function handleBatchCropAll() {
+    if (!isBatchMode || !completedCrop)
+      return;
+
+    try {
+      setIsProcessing(true);
+      const results: { avatarId: number; croppedImageUrl: string }[] = [];
+
+      // 为每个立绘应用相同的裁剪参数
+      for (let i = 0; i < spritesAvatars.length; i++) {
+        const avatar = spritesAvatars[i];
+        if (!avatar.spriteUrl || !avatar.avatarId)
+          continue;
+
+        // 创建临时图片元素
+        const tempImg = new Image();
+        tempImg.crossOrigin = "anonymous";
+
+        await new Promise<void>((resolve, reject) => {
+          tempImg.onload = () => resolve();
+          tempImg.onerror = () => reject(new Error(`Failed to load image: ${avatar.spriteUrl}`));
+          tempImg.src = avatar.spriteUrl!;
+        });
+
+        // 使用通用函数获取裁剪结果
+        const dataUrl = await getCroppedImageFromImg(tempImg);
+        results.push({ avatarId: avatar.avatarId, croppedImageUrl: dataUrl });
+      }
+
+      setBatchResults(results);
+      // 批量应用后不自动调用回调，让用户手动确认
+    }
+    catch (error) {
+      console.error("批量裁剪失败:", error);
+    }
+    finally {
+      setIsProcessing(false);
+    }
+  }
+
+  /**
+   * 批量下载：将当前裁剪参数应用到所有立绘并下载
+   */
+  async function handleBatchDownload() {
+    if (!isBatchMode || !completedCrop)
+      return;
+
+    try {
+      setIsProcessing(true);
+
+      // 为每个立绘应用相同的裁剪参数并下载
+      for (let i = 0; i < spritesAvatars.length; i++) {
+        const avatar = spritesAvatars[i];
+        if (!avatar.spriteUrl || !avatar.avatarId)
+          continue;
+
+        // 创建临时图片元素
+        const tempImg = new Image();
+        tempImg.crossOrigin = "anonymous";
+
+        await new Promise<void>((resolve, reject) => {
+          tempImg.onload = () => resolve();
+          tempImg.onerror = () => reject(new Error(`Failed to load image: ${avatar.spriteUrl}`));
+          tempImg.src = avatar.spriteUrl!;
+        });
+
+        // 使用通用函数获取裁剪结果
+        const dataUrl = await getCroppedImageFromImg(tempImg);
+
+        // 下载当前立绘
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = `${characterName}-sprite-${i + 1}-cropped.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // 添加延迟避免浏览器阻止多次下载
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+    catch (error) {
+      console.error("批量下载失败:", error);
+    }
+    finally {
+      setIsProcessing(false);
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto">
-      {/* 标题栏 */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl md:text-2xl font-bold">
-          立绘裁剪 -
-          {" "}
-          {characterName}
-        </h1>
-      </div>
+      {/* 批量模式下的立绘选择器 - 移动到分隔线上方 */}
+      {isBatchMode && spritesAvatars.length > 1 && (
+        <div className="flex w-full justify-between">
+          <div className="flex items-center mb-4 gap-4">
+            <h1 className="text-xl md:text-2xl font-bold">
+              立绘选择 -
+              {" "}
+              {characterName}
+            </h1>
+            {/* 批量裁剪进度显示 */}
+            <div className="badge badge-primary badge-outline">
+              已裁剪:
+              {" "}
+              {batchResults.length}
+              {" "}
+              /
+              {" "}
+              {spritesAvatars.length}
+            </div>
+          </div>
+          <div className="flex gap-2 overflow-x-auto justify-center">
+            {spritesAvatars.map((avatar, index) => (
+              <button
+                key={avatar.avatarId}
+                type="button"
+                onClick={() => setCurrentSpriteIndex(index)}
+                className={`flex-shrink-0 w-12 h-12 rounded-md overflow-hidden border-2 transition-all ${
+                  index === currentSpriteIndex
+                    ? "border-primary"
+                    : "border-base-300 hover:border-primary/50"
+                }`}
+              >
+                <img
+                  src={avatar.avatarUrl || "/favicon.ico"}
+                  alt={`立绘 ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="divider my-0"></div>
 
@@ -230,7 +509,7 @@ export function SpriteCropper({
         <div className="w-full lg:w-1/2 p-2 gap-4 flex flex-col items-center">
           <h2 className="text-xl font-bold">裁剪预览</h2>
           <div className="w-full rounded-lg flex items-center justify-center">
-            {spriteUrl && (
+            {currentUrl && (
               <ReactCrop
                 crop={crop}
                 onChange={(_, percentCrop) => setCrop(percentCrop)}
@@ -241,7 +520,7 @@ export function SpriteCropper({
                 <img
                   ref={imgRef}
                   alt="Sprite to crop"
-                  src={spriteUrl}
+                  src={currentUrl}
                   onLoad={onImageLoad}
                   style={{
                     maxHeight: "70vh",
@@ -273,40 +552,82 @@ export function SpriteCropper({
                 previewCanvasRef={previewCanvasRef}
               />
 
-              {/* 批量操作按钮 - 在剩余空间中居中 */}
+              {/* 操作按钮 - 在剩余空间中居中 */}
               <div className="flex-1 flex items-center justify-center">
-                <div className="flex gap-2">
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => {
-                      // TODO: 实现应用功能，下面两行只是为了解决未应用的lint错误以进行阶段的提交
-                      handleApplyCrop();
-                      if (isProcessing)
-                        console.warn("批量位移功能开发中...");
-                    }}
-                    type="button"
-                    disabled={!completedCrop}
-                  >
-                    单体应用
-                  </button>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => {
-                      // TODO: 实现批量裁剪功能
-                      console.warn("批量裁剪功能开发中...");
-                    }}
-                    type="button"
-                    disabled={!completedCrop}
-                  >
-                    一键应用
-                  </button>
-                  <button
-                    className="btn btn-outline"
-                    onClick={handleDownload}
-                    type="button"
-                  >
-                    下载图像
-                  </button>
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <button
+                      className="btn btn-accent"
+                      onClick={handleApplyCrop}
+                      type="button"
+                      disabled={!completedCrop || isProcessing}
+                    >
+                      {isProcessing
+                        ? (
+                            <span className="loading loading-spinner loading-xs"></span>
+                          )
+                        : (
+                            isBatchMode ? "单独裁剪" : "应用裁剪"
+                          )}
+                    </button>
+
+                    {isBatchMode && (
+                      <>
+                        <button
+                          className="btn btn-primary"
+                          onClick={handleBatchCropAll}
+                          type="button"
+                          disabled={!completedCrop || isProcessing}
+                        >
+                          {isProcessing
+                            ? (
+                                <span className="loading loading-spinner loading-xs"></span>
+                              )
+                            : (
+                                "批量应用"
+                              )}
+                        </button>
+
+                        <button
+                          className="btn btn-success"
+                          onClick={handleBatchComplete}
+                          type="button"
+                          disabled={batchResults.length === 0}
+                        >
+                          完成
+                        </button>
+                      </>
+                    )}
+
+                    <button
+                      className="btn btn-outline"
+                      onClick={handleDownload}
+                      type="button"
+                      disabled={isProcessing}
+                    >
+                      下载图像
+                    </button>
+                  </div>
+
+                  {/* 批量下载按钮单独一行 */}
+                  {isBatchMode && (
+                    <div className="flex justify-center">
+                      <button
+                        className="btn btn-info"
+                        onClick={handleBatchDownload}
+                        type="button"
+                        disabled={!completedCrop || isProcessing}
+                      >
+                        {isProcessing
+                          ? (
+                              <span className="loading loading-spinner loading-xs"></span>
+                            )
+                          : (
+                              "批量下载"
+                            )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
