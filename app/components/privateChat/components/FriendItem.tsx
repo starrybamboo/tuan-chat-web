@@ -82,16 +82,23 @@ export default function FriendItem({
       }}
     >
       {/* 头像 */}
-      <div className="avatar mask mask-squircle w-8">
-        <img
-          src={userInfo?.avatar}
-          alt={userInfo?.username}
-        />
+      <div className="indicator">
+        <div className="avatar mask mask-squircle w-8">
+          <img
+            src={userInfo?.avatar}
+            alt={userInfo?.username}
+          />
+        </div>
+        {unreadMessageNumber > 0 && (
+          <span className="indicator-item badge badge-xs bg-error">
+            {unreadMessageNumber > 99 ? "99+" : unreadMessageNumber}
+          </span>
+        )}
       </div>
-      {/* 用户名和最新消息 */}
+      { }
       <div className="flex-1 flex flex-col gap-1 justify-center min-w-0">
-        {/* 用户名和未读消息数 */}
-        <div className="flex items-center gap-2">
+        {/* 用户名 */}
+        <div className="flex items-center ">
           <span className="truncate">
             {userInfoQuery.isLoading
               ? (
@@ -99,11 +106,6 @@ export default function FriendItem({
                 )
               : (userInfo?.username || `用户${id}`)}
           </span>
-          {unreadMessageNumber > 0 && (
-            <span className="badge badge-error badge-sm text-white">
-              {unreadMessageNumber > 99 ? "99+" : unreadMessageNumber}
-            </span>
-          )}
         </div>
         {/* 最新消息内容 */}
         {/* <span className="text-sm text-base-content/70 truncate">
