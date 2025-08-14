@@ -44,15 +44,14 @@ export function TransformControl({ transform, setTransform, previewCanvasRef, di
   const handleBottomAlign = () => {
     const canvas = previewCanvasRef.current;
     if (canvas) {
-      // 获取canvas的实际显示尺寸和父容器尺寸
-      const canvasRect = canvas.getBoundingClientRect();
       const parentRect = canvas.parentElement?.getBoundingClientRect();
-
       if (parentRect) {
-        // 计算需要的Y偏移，使图片底部贴到容器底部
-        const containerHeight = parentRect.height;
-        const scaledCanvasHeight = canvasRect.height * transform.scale;
-        const yOffset = (containerHeight - scaledCanvasHeight) / 2;
+        const canvasOriginalHeight = canvas.offsetHeight;
+        const scaledCanvasHeight = canvasOriginalHeight * transform.scale;
+
+        // 计算Y偏移：1个transform单位等于scale个像素
+        const yOffsetInPixels = -((scaledCanvasHeight - canvasOriginalHeight) / 2);
+        const yOffset = yOffsetInPixels / transform.scale;
 
         setTransform(prev => ({
           ...prev,
