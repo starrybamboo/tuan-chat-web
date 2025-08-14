@@ -1,7 +1,7 @@
 import type { RoleAvatar } from "api";
 import type { Transform } from "./TransformControl";
 import { PopWindow } from "@/components/common/popWindow";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RenderPreview } from "./RenderPreview";
 import { SpriteCropper } from "./SpriteCropper";
 // import { TransformControl } from "./TransformControl";
@@ -36,8 +36,22 @@ export function SpriteRenderStudio({
   // 过滤出有立绘的头像
   const spritesAvatars = roleAvatars.filter(avatar => avatar.spriteUrl);
 
-  // 当前选中的立绘索引
-  const [currentSpriteIndex, setCurrentSpriteIndex] = useState(0);
+  // 使用useMemo计算正确的立绘索引，响应数据变化
+  const correctSpriteIndex = useMemo(() => {
+    if (spritesAvatars.length === 0)
+      return 0;
+    if (!initialAvatarId)
+      return 0;
+
+    const index = spritesAvatars.findIndex(avatar => avatar.avatarId === initialAvatarId);
+    return index !== -1 ? index : 0;
+  }, [spritesAvatars, initialAvatarId]);
+
+  // 手动切换的立绘索引偏移量，默认为null表示使用自动计算的索引
+  const [manualIndexOffset, setManualIndexOffset] = useState<number | null>(null);
+
+  // 当前实际使用的立绘索引
+  const currentSpriteIndex = manualIndexOffset !== null ? manualIndexOffset : correctSpriteIndex;
   // 记录上一次的initialAvatarId，用于检测外部变化
   const [lastInitialAvatarId, setLastInitialAvatarId] = useState(initialAvatarId);
   // 标记是否是用户手动切换（而非外部initialAvatarId变化）
@@ -45,39 +59,43 @@ export function SpriteRenderStudio({
   // 弹窗显示状态
   const [isPopWindowOpen, setIsPopWindowOpen] = useState(false);
 
-  // 根据initialAvatarId找到初始索引，只在外部initialAvatarId变化时执行
+  // 处理立绘索引同步 - 当initialAvatarId变化时重置手动偏移
   useEffect(() => {
-    // 只有当initialAvatarId真正变化且不是用户手动切换时才更新
-    if (initialAvatarId !== lastInitialAvatarId && !isManualSwitch) {
-      if (initialAvatarId && spritesAvatars.length > 0) {
-        const index = spritesAvatars.findIndex(avatar => avatar.avatarId === initialAvatarId);
-        if (index !== -1) {
-          // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-          setCurrentSpriteIndex(index);
-        }
-        else {
-          // 如果找不到匹配的avatarId，使用第一个立绘
-          // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-          setCurrentSpriteIndex(0);
-        }
-      }
-      else if (spritesAvatars.length > 0) {
-        // 如果没有initialAvatarId但有立绘，使用第一个
-        // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-        setCurrentSpriteIndex(0);
-      }
+    // 当initialAvatarId变化时，清除手动偏移，回到自动计算的索引
+    if (initialAvatarId !== lastInitialAvatarId) {
+      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+      setManualIndexOffset(null);
       // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setLastInitialAvatarId(initialAvatarId);
     }
+
     // 如果是手动切换触发的，重置标记
     if (isManualSwitch) {
       // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setIsManualSwitch(false);
     }
-  }, [initialAvatarId, spritesAvatars, lastInitialAvatarId, isManualSwitch]); // 依赖所有相关状态
+  }, [initialAvatarId, lastInitialAvatarId, isManualSwitch]);
 
-  // 获取当前立绘
-  const currentSprite = spritesAvatars[currentSpriteIndex];
+  // 获取当前立绘 - 添加数据一致性检查
+  const currentSprite = useMemo(() => {
+    // 确保索引有效且数据一致
+    if (currentSpriteIndex >= 0 && currentSpriteIndex < spritesAvatars.length) {
+      const sprite = spritesAvatars[currentSpriteIndex];
+      // 如果有initialAvatarId，验证当前立绘是否匹配
+      if (initialAvatarId && manualIndexOffset === null) {
+        // 在自动模式下，验证当前立绘是否匹配initialAvatarId
+        if (sprite?.avatarId === initialAvatarId) {
+          return sprite;
+        }
+        // 如果不匹配，可能是数据还没同步，返回null等待
+        return null;
+      }
+      // 手动模式下直接返回
+      return sprite;
+    }
+    return null;
+  }, [spritesAvatars, currentSpriteIndex, initialAvatarId, manualIndexOffset]);
+
   const spriteUrl = currentSprite?.spriteUrl || null;
 
   const [transform, setTransform] = useState<Transform>({
@@ -95,7 +113,10 @@ export function SpriteRenderStudio({
   const handlePreviousSprite = () => {
     if (spritesAvatars.length > 1) {
       setIsManualSwitch(true);
-      setCurrentSpriteIndex(prev => (prev - 1 + spritesAvatars.length) % spritesAvatars.length);
+      setManualIndexOffset((prev) => {
+        const currentIndex = prev !== null ? prev : correctSpriteIndex;
+        return (currentIndex - 1 + spritesAvatars.length) % spritesAvatars.length;
+      });
     }
   };
 
@@ -103,7 +124,10 @@ export function SpriteRenderStudio({
   const handleNextSprite = () => {
     if (spritesAvatars.length > 1) {
       setIsManualSwitch(true);
-      setCurrentSpriteIndex(prev => (prev + 1) % spritesAvatars.length);
+      setManualIndexOffset((prev) => {
+        const currentIndex = prev !== null ? prev : correctSpriteIndex;
+        return (currentIndex + 1) % spritesAvatars.length;
+      });
     }
   };
 
@@ -125,7 +149,14 @@ export function SpriteRenderStudio({
 
   // 当立绘URL变化时，加载到预览Canvas
   useEffect(() => {
-    if (spriteUrl && previewCanvasRef.current) {
+    // 添加数据一致性检查，确保spriteUrl对应正确的角色
+    if (spriteUrl && previewCanvasRef.current && currentSprite) {
+      // 在自动模式下，验证当前立绘确实属于当前角色
+      if (initialAvatarId && manualIndexOffset === null && currentSprite.avatarId !== initialAvatarId) {
+        // 数据不一致，不渲染，等待正确数据
+        return;
+      }
+
       const canvas = previewCanvasRef.current;
       const ctx = canvas.getContext("2d");
       if (ctx) {
@@ -139,10 +170,23 @@ export function SpriteRenderStudio({
           ctx.drawImage(img, 0, 0);
         };
 
+        img.onerror = () => {
+          // 图片加载失败时清空canvas
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        };
+
         img.src = spriteUrl;
       }
     }
-  }, [spriteUrl, previewCanvasRef]);
+    else if (!spriteUrl && previewCanvasRef.current) {
+      // 没有spriteUrl时清空canvas
+      const canvas = previewCanvasRef.current;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+  }, [spriteUrl, previewCanvasRef, currentSprite, initialAvatarId, manualIndexOffset]);
 
   // 处理打开弹窗
   const handleOpenPopWindow = () => {
@@ -171,6 +215,17 @@ export function SpriteRenderStudio({
             立绘校正
           </span>
         </button>
+
+        {/* 数据加载中的提示 */}
+        {initialAvatarId && !currentSprite && spritesAvatars.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center bg-base-200/50 z-10">
+            <div className="flex flex-col items-center gap-2">
+              <span className="loading loading-spinner loading-md"></span>
+              <span className="text-sm text-base-content/70">加载立绘数据中...</span>
+            </div>
+          </div>
+        )}
+
         <RenderPreview
           previewCanvasRef={previewCanvasRef}
           transform={transform}
@@ -231,7 +286,7 @@ export function SpriteRenderStudio({
                   key={avatar.avatarId}
                   onClick={() => {
                     setIsManualSwitch(true);
-                    setCurrentSpriteIndex(index);
+                    setManualIndexOffset(index);
                   }}
                   className={`w-2 h-2 rounded-full transition-all ${
                     index === currentSpriteIndex
