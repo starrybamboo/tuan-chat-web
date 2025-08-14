@@ -44,6 +44,8 @@ interface SpriteCropperProps {
   spriteUrl?: string;
   // 角色头像列表（批量模式）
   roleAvatars?: RoleAvatar[];
+  // 初始立绘索引（批量模式下使用）
+  initialSpriteIndex?: number;
   // 角色名称，用于预览
   characterName: string;
   // 对话内容，用于预览
@@ -67,6 +69,7 @@ const DEFAULT_AVATARS: RoleAvatar[] = [];
 export function SpriteCropper({
   spriteUrl,
   roleAvatars = DEFAULT_AVATARS,
+  initialSpriteIndex = 0,
   characterName,
   dialogContent = "这是一段示例对话内容。",
   onCropComplete,
@@ -76,8 +79,14 @@ export function SpriteCropper({
   const isBatchMode = roleAvatars.length > 0;
   const spritesAvatars = roleAvatars.filter(avatar => avatar.spriteUrl);
 
-  // 批量模式下的当前立绘索引
-  const [currentSpriteIndex, setCurrentSpriteIndex] = useState(0);
+  // 批量模式下的当前立绘索引，使用传入的初始索引
+  const [currentSpriteIndex, setCurrentSpriteIndex] = useState(() => {
+    // 确保初始索引在有效范围内
+    if (isBatchMode && spritesAvatars.length > 0) {
+      return Math.max(0, Math.min(initialSpriteIndex, spritesAvatars.length - 1));
+    }
+    return 0;
+  });
   // 批量裁剪的结果存储
   const [batchResults, setBatchResults] = useState<{ avatarId: number; croppedImageUrl: string }[]>([]);
   // 操作模式：'single' | 'batch'

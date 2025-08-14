@@ -362,6 +362,7 @@ export function SpriteRenderStudio({
                 <SpriteCropper
                   spriteUrl={spriteUrl}
                   roleAvatars={roleAvatars}
+                  initialSpriteIndex={currentSpriteIndex}
                   characterName={characterName}
                   dialogContent={dialogContent}
                   onCropComplete={(croppedImageUrl) => {
