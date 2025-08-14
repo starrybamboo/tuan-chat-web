@@ -80,6 +80,8 @@ export function SpriteCropper({
   const [currentSpriteIndex, setCurrentSpriteIndex] = useState(0);
   // 批量裁剪的结果存储
   const [batchResults, setBatchResults] = useState<{ avatarId: number; croppedImageUrl: string }[]>([]);
+  // 操作模式：'single' | 'batch'
+  const [operationMode, setOperationMode] = useState<"single" | "batch">("single");
 
   // 获取当前立绘URL
   const getCurrentSpriteUrl = () => {
@@ -536,7 +538,7 @@ export function SpriteCropper({
         {completedCrop && (
           <div className="w-full lg:w-1/2 p-2 gap-4 flex flex-col items-center">
             <h2 className="text-xl font-bold">渲染预览</h2>
-            <div className="w-full h-full bg-info/30 rounded-lg p-4 gap-4 flex flex-col">
+            <div className="w-full h-full bg-info/30 rounded-lg p-4 gap-4 flex flex-col relative">
               <RenderPreview
                 previewCanvasRef={previewCanvasRef}
                 transform={transform}
@@ -552,53 +554,91 @@ export function SpriteCropper({
                 previewCanvasRef={previewCanvasRef}
               />
 
+              {/* 模式切换滑动块 - 绝对定位在TransformControl左下角下方 */}
+              <div className="absolute left-4 bottom-[64px] flex flex-col items-center gap-1 z-10">
+                <div className="text-xs font-bold text-base-content">
+                  {operationMode === "single" ? "单体模式" : "批量模式"}
+                </div>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary toggle-sm"
+                  checked={operationMode === "batch"}
+                  onChange={e => setOperationMode(e.target.checked ? "batch" : "single")}
+                  disabled={!isBatchMode || isProcessing}
+                />
+              </div>
+
               {/* 操作按钮 - 在剩余空间中居中 */}
               <div className="flex-1 flex items-center justify-center">
                 <div className="flex flex-col gap-2">
-                  <div className="flex gap-2">
-                    <button
-                      className="btn btn-accent"
-                      onClick={handleApplyCrop}
-                      type="button"
-                      disabled={!completedCrop || isProcessing}
-                    >
-                      {isProcessing
-                        ? (
-                            <span className="loading loading-spinner loading-xs"></span>
-                          )
-                        : (
-                            isBatchMode ? "单独裁剪" : "应用裁剪"
-                          )}
-                    </button>
+                  {/* 第一行：主要操作按钮 */}
+                  <div className="flex gap-2 justify-center">
+                    {/* 根据模式显示不同的操作按钮 */}
+                    {operationMode === "single"
+                      ? (
+                          <>
+                            <button
+                              className="btn btn-accent"
+                              onClick={handleApplyCrop}
+                              type="button"
+                              disabled={!completedCrop || isProcessing}
+                            >
+                              {isProcessing
+                                ? (
+                                    <span className="loading loading-spinner loading-xs"></span>
+                                  )
+                                : (
+                                    "应用裁剪"
+                                  )}
+                            </button>
+                            <button
+                              className="btn btn-info"
+                              onClick={() => { /* TODO: 应用位移逻辑 */ }}
+                              type="button"
+                              disabled={isProcessing}
+                            >
+                              应用位移
+                            </button>
+                          </>
+                        )
+                      : (
+                          <>
+                            <button
+                              className="btn btn-accent"
+                              onClick={handleBatchCropAll}
+                              type="button"
+                              disabled={!completedCrop || isProcessing}
+                            >
+                              {isProcessing
+                                ? (
+                                    <span className="loading loading-spinner loading-xs"></span>
+                                  )
+                                : (
+                                    "一键裁剪"
+                                  )}
+                            </button>
+                            <button
+                              className="btn btn-info"
+                              onClick={() => { /* TODO: 批量应用位移逻辑 */ }}
+                              type="button"
+                              disabled={isProcessing}
+                            >
+                              一键位移
+                            </button>
+                            <button
+                              className="btn btn-success"
+                              onClick={handleBatchComplete}
+                              type="button"
+                              disabled={batchResults.length === 0}
+                            >
+                              完成
+                            </button>
+                          </>
+                        )}
+                  </div>
 
-                    {isBatchMode && (
-                      <>
-                        <button
-                          className="btn btn-primary"
-                          onClick={handleBatchCropAll}
-                          type="button"
-                          disabled={!completedCrop || isProcessing}
-                        >
-                          {isProcessing
-                            ? (
-                                <span className="loading loading-spinner loading-xs"></span>
-                              )
-                            : (
-                                "批量应用"
-                              )}
-                        </button>
-
-                        <button
-                          className="btn btn-success"
-                          onClick={handleBatchComplete}
-                          type="button"
-                          disabled={batchResults.length === 0}
-                        >
-                          完成
-                        </button>
-                      </>
-                    )}
-
+                  {/* 第二行：下载按钮 */}
+                  <div className="flex justify-center gap-2">
                     <button
                       className="btn btn-outline"
                       onClick={handleDownload}
@@ -607,13 +647,10 @@ export function SpriteCropper({
                     >
                       下载图像
                     </button>
-                  </div>
 
-                  {/* 批量下载按钮单独一行 */}
-                  {isBatchMode && (
-                    <div className="flex justify-center">
+                    {isBatchMode && (
                       <button
-                        className="btn btn-info"
+                        className="btn btn-outline btn-info"
                         onClick={handleBatchDownload}
                         type="button"
                         disabled={!completedCrop || isProcessing}
@@ -626,8 +663,8 @@ export function SpriteCropper({
                               "批量下载"
                             )}
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
