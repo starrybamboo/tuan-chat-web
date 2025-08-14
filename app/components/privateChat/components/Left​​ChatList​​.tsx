@@ -13,7 +13,7 @@ interface contactInfo {
   latestMessageTime: string | undefined;
 }
 
-export default function LeftChatList() {
+export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDrawer: (isOpen: boolean) => void }) {
   const globalContext = useGlobalContext();
   const userId = globalContext.userId || -1;
   const webSocketUtils = globalContext.websocketUtils;
@@ -87,6 +87,7 @@ export default function LeftChatList() {
                         // latestMessage={friend.latestMessage}
                         // latestMessageTime={friend.latestMessageTime}
                         currentContactUserId={currentContactUserId}
+                        setIsOpenLeftDrawer={setIsOpenLeftDrawer}
                       />
                     ))
                   }

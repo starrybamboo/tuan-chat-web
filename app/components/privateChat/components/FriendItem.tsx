@@ -1,4 +1,5 @@
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { getScreenSize } from "@/utils/getScreenSize";
 import { useGetUserInfoQuery } from "api/queryHooks";
 import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router";
@@ -8,11 +9,13 @@ export default function FriendItem({
   currentContactUserId,
   // latestMessage,
   // latestMessageTime,
+  setIsOpenLeftDrawer,
 }: {
   id: number;
   currentContactUserId: number | null;
   // latestMessage?: string; // 可选的最新消息
   // latestMessageTime?: string; // 可选的最新消息时间
+  setIsOpenLeftDrawer: (isOpen: boolean) => void;
 }) {
   const userInfoQuery = useGetUserInfoQuery(id);
   const userInfo = userInfoQuery.data?.data;
@@ -69,8 +72,13 @@ export default function FriendItem({
       className={`btn btn-ghost flex justify-start w-full gap-2 ${currentContactUserId === id ? "bg-info-content/30" : ""}`}
       type="button"
       onClick={() => {
-        clearUnread();
         navigate(`/chat/private/${id}`);
+        clearUnread();
+        if (getScreenSize() === "sm") {
+          setTimeout(() => {
+            setIsOpenLeftDrawer(false);
+          }, 0);
+        }
       }}
     >
       {/* 头像 */}

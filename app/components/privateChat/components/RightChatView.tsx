@@ -1,6 +1,5 @@
 import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
 import type { DirectMessageEvent } from "api/wsModels";
-import { SideDrawerToggle } from "@/components/common/sideDrawer";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ChevronRight } from "@/icons";
 import { useGetMessageDirectPageQuery } from "api/hooks/MessageDirectQueryHooks";
@@ -11,7 +10,7 @@ import { usePrivateMessageSender } from "../hooks/usePrivateMessageSender";
 import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
 
-export default function RightChatView() {
+export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDrawer: (isOpen: boolean) => void }) {
   const globalContext = useGlobalContext();
   const userId = globalContext.userId || -1;
   const webSocketUtils = globalContext.websocketUtils;
@@ -121,9 +120,10 @@ export default function RightChatView() {
     <div className="flex-1 bg-base-100 border-l border-base-300 flex flex-col">
       {/* 聊天顶部栏 */}
       <div className="h-10 w-full bg-base-100 border-b border-base-300 flex items-center px-4 relative">
-        <SideDrawerToggle htmlFor="private-chat">
-          <ChevronRight className="size-6" />
-        </SideDrawerToggle>
+        <ChevronRight
+          onClick={() => setIsOpenLeftDrawer(true)}
+          className="size-6"
+        />
         <span className="absolute left-1/2 transform -translate-x-1/2">
           {currentContactUserInfo ? `${currentContactUserInfo.username}` : "选择联系人"}
         </span>

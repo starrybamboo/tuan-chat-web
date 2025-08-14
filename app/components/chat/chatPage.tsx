@@ -349,7 +349,11 @@ export default function ChatPage() {
             {/* 房间列表 */}
             <div className="flex flex-col gap-2 py-2 w-full md:w-[200px] h-full flex-1 bg-base-200/40 min-h-0">
               {isPrivateChatMode
-                ? <LeftChatList />
+                ? (
+                    <LeftChatList
+                      setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                    />
+                  )
                 : (
                     <>
                       {
@@ -422,7 +426,11 @@ export default function ChatPage() {
         </OpenAbleDrawer>
         {/* 聊天记录窗口，输入窗口，侧边栏 */}
         {isPrivateChatMode
-          ? <RightChatView />
+          ? (
+              <RightChatView
+                setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+              />
+            )
           : (
               <>
                 {
