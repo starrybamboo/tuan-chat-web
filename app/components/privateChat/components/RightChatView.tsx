@@ -2,7 +2,7 @@ import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
 import type { DirectMessageEvent } from "api/wsModels";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ChevronRight } from "@/icons";
-import { useGetMessageDirectPageQuery } from "api/hooks/MessageDirectQueryHooks";
+import { useGetMessageDirectPageQuery, useRecallMessageDirectMutation } from "api/hooks/MessageDirectQueryHooks";
 import { useGetUserInfoQuery } from "api/queryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router";
@@ -116,8 +116,34 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
     directMessageQuery.fetchNextPage();
   };
 
+  /**
+   * 右键菜单
+   */
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null);
+  const recallMessageMutation = useRecallMessageDirectMutation();
+  function handleRevokeMessage(messageId: number) {
+    recallMessageMutation.mutate(messageId, {
+      onSuccess: () => {
+        // 强制刷新并清除缓存
+        directMessageQuery.refetch();
+      },
+    });
+  }
+  function handleContextMenu(e: React.MouseEvent) {
+    e.preventDefault();
+    const target = e.target as HTMLElement;
+    const messageElement = target.closest("[data-message-id]");
+    const messageId = Number(messageElement?.getAttribute("data-message-id"));
+    if (messageId) {
+      setContextMenu({ x: e.clientX, y: e.clientY, messageId });
+    }
+  }
+
   return (
-    <div className="flex-1 bg-base-100 border-l border-base-300 flex flex-col">
+    <div
+      className="flex-1 bg-base-100 border-l border-base-300 flex flex-col"
+      onContextMenu={handleContextMenu}
+    >
       {/* 聊天顶部栏 */}
       <div className="h-10 w-full bg-base-100 border-b border-base-300 flex items-center px-4 relative">
         <ChevronRight
@@ -194,6 +220,40 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
         emojiUrls={emojiUrls}
         updateEmojiUrls={updateEmojiUrls}
       />
+      {/* 右键菜单 */}
+      {contextMenu && (() => {
+        const message = allMessages.find(msg => msg.messageId === contextMenu.messageId);
+        return (
+          <div
+            className="fixed bg-base-100 shadow-lg rounded-md z-50"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+          >
+            <ul className="menu p-2 w-40">
+              {message?.senderId === userId && (
+                <li>
+                  <a onClick={(e) => {
+                    e.preventDefault();
+                    handleRevokeMessage(contextMenu.messageId);
+                    setContextMenu(null);
+                  }}
+                  >
+                    撤回
+                  </a>
+                </li>
+              )}
+              <li>
+                <a onClick={(e) => {
+                  e.preventDefault();
+                  setContextMenu(null);
+                }}
+                >
+                  回复
+                </a>
+              </li>
+            </ul>
+          </div>
+        );
+      })()}
     </div>
   );
 }

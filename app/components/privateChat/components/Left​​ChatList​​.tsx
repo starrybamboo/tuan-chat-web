@@ -54,6 +54,28 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   // 根据最新消息时间排序好友列表
   const sortedFriendInfos = sortFriendInfos(friendInfos);
 
+  // 消息信箱
+  // const inboxQuery = useGetInboxMessagePageQuery({
+  //   cursor: 999,
+  //   pageSize: 96,
+  // });
+
+  // const inboxMessages = useMemo(() => inboxQuery.data?.data?.list ?? [], [inboxQuery.data]);
+  // const allContactors = useMemo(() => {
+  //   const contactors = new Set<number>();
+  //   inboxMessages.forEach((msg) => {
+  //     if (msg.senderId !== userId) {
+  //       contactors.add(msg.senderId || -1);
+  //     }
+  //     if (msg.receiverId !== userId) {
+  //       contactors.add(msg.receiverId || -1);
+  //     }
+  //   });
+  //   return Array.from(contactors);
+  // }, [inboxMessages, userId]);
+
+  // const inboxUnreadCount = inboxMessages.filter(msg => msg.receiverId === userId && !msg.isRead).length;
+
   return (
     <div className="flex flex-col h-full bg-base-100">
       {/* 私聊列表 */}
