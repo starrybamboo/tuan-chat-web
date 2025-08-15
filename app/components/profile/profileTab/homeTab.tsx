@@ -166,7 +166,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
 
         {/* 关注粉丝统计 - 小屏幕显示在顶部栏下方 */}
         <div className="md:hidden flex justify-center gap-8 py-3 rounded-2xl mt-2">
-          <div className="btn-active bg-base-300 flex flex-row gap-2 items-center hover:text-info transition-colors cursor-pointer" onClick={handleFollowingClick}>
+          <div className="btn-active flex flex-row gap-2 items-center hover:text-info transition-colors cursor-pointer" onClick={handleFollowingClick}>
             <div className="stat-value text-sm">{followStats.following}</div>
             <div className="stat-title text-sm">关注</div>
           </div>
