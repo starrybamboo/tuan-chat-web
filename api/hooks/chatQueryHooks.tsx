@@ -213,7 +213,7 @@ export function useExitSpaceMutation() {
 export function useGetSpaceRolesQuery(spaceId: number) {
     return useQuery({
         queryKey: ['spaceRole', spaceId],
-        queryFn: () => tuanchat.spaceRoleController.spaceRole(spaceId),
+        queryFn: () => tuanchat.spaceModuleController.spaceRole(spaceId),
         staleTime: 300000 // 5分钟缓存
     });
 }
@@ -418,7 +418,7 @@ export function useRoomRoleQuery(roomId: number) {
 export function useAddRoomRoleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: RoomRoleAddRequest) => tuanchat.roomRoleController.addRole1(req),
+        mutationFn: (req: RoomRoleAddRequest) => tuanchat.roomRoleController.addRole(req),
         mutationKey: ['addRole1'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
@@ -432,7 +432,7 @@ export function useAddRoomRoleMutation() {
 export function useDeleteRole1Mutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: RoomRoleDeleteRequest) => tuanchat.roomRoleController.deleteRole1(req),
+        mutationFn: (req: RoomRoleDeleteRequest) => tuanchat.roomRoleController.deleteRole(req),
         mutationKey: ['deleteRole1'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
@@ -491,7 +491,7 @@ export function useGetRoomRoleQuery(roomId: number) {
 export function useAddSpaceRoleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: SpaceRoleAddRequest) => tuanchat.spaceRoleController.addRole(req),
+        mutationFn: (req: SpaceRoleAddRequest) => tuanchat.spaceModuleController.addRole(req),
         mutationKey: ['addRole'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['getSpaceRoles', variables.spaceId] });

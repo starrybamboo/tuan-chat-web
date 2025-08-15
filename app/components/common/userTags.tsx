@@ -65,7 +65,7 @@ function TagManagement({ userId, size = "default" }: TagManagementProps) {
   }
 
   return (
-    <div className={`w-full mx-auto rounded-xl opacity-90 ${size === "default" ? "shadow-lg bg-base-200 p-6" : "p-2"}`}>
+    <div className="w-full mx-auto rounded-xl opacity-90 p-2">
       {/* 标签展示区域 */}
       <div className="mb-2">
         <div className={`flex justify-between items-center ${size === "default" ? "mb-4" : ""}`}>

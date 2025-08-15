@@ -442,7 +442,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
       >
         {selectedMessageIds.size > 0 && (
           <div
-            className="absolute top-0 bg-base-300 w-full p-2 shadow-sm z-10 flex justify-between items-center rounded"
+            className="absolute top-0 bg-base-300 w-full p-2 shadow-sm z-5 flex justify-between items-center rounded"
           >
             <span>{`已选择${selectedMessageIds.size} 条消息`}</span>
             <div className="gap-x-4 flex">

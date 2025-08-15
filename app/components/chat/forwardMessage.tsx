@@ -35,7 +35,7 @@ export default function ForwardMessage({ messageResponse }: { messageResponse: C
 
   return (
     <div>
-      <div className="bg-base-200 rounded-box p-4 max-w-md" onClick={() => setIsOpen(true)}>
+      <div className="bg-base-200 rounded-box p-1 max-w-md" onClick={() => setIsOpen(true)}>
         <div className="flex items-center pb-2">
           <div className="text-sm font-semibold text-base-content">
             转发消息

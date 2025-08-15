@@ -17698,45 +17698,9 @@
               }
             },
             "description": "存储场景名，到相邻场景的list"
-          },
-          "sceneItem": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "description": "存储场景名，到场景内物品list",
-              "items": {
-                "type": "string",
-                "description": "存储场景名，到场景内物品list"
-              }
-            },
-            "description": "存储场景名，到场景内物品list"
-          },
-          "sceneRole": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "description": "存储场景名，到场景内人物list",
-              "items": {
-                "type": "string",
-                "description": "存储场景名，到场景内人物list"
-              }
-            },
-            "description": "存储场景名，到场景内人物list"
-          },
-          "sceneLocation": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "description": "一个场景包含了哪些地点",
-              "items": {
-                "type": "string",
-                "description": "一个场景包含了哪些地点"
-              }
-            },
-            "description": "一个场景包含了哪些地点"
           }
         },
-        "description": "一个场景是一个逻辑上的概念，没有实体，包含各个实体的引用，聚合了一个阶段的跑团可能用到的所有物品、NPC、和地点信息"
+        "description": "返回对象"
       },
       "SpaceMemberAddRequest": {
         "required": [
