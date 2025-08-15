@@ -79,8 +79,7 @@ export class MessageDirectControllerService {
         });
     }
     /**
-     * 获取收件箱消息分页
-     * 获取收件箱消息分页
+     * 获取收件箱消息全量数据
      * @param requestBody
      * @returns ApiResultCursorPageBaseResponseMessageDirectResponse OK
      * @throws ApiError
@@ -90,7 +89,29 @@ export class MessageDirectControllerService {
     ): CancelablePromise<ApiResultCursorPageBaseResponseMessageDirectResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/message/direct/inbox/page',
+            url: '/capi/message/direct/inbox',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 更新已读位置
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public updateReadPosition(
+        requestBody: { targetUserId: number },
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/message/direct/updateReadPosition',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
