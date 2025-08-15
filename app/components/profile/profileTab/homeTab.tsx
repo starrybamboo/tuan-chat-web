@@ -150,7 +150,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                 : (
                     <div className="flex-col">
                       <FollowButton userId={user?.userId || -1} />
-                      <Link to={`/privatechat/${userId}`} className="flex btn btn-sm btn-ghost mt-4 bg-base-100 border-gray-300">
+                      <Link to={`/chat/private/${userId}`} className="flex btn btn-sm btn-ghost mt-4 bg-base-100 border-gray-300">
                         <svg width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                           <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">
                             <rect width="20" height="16" x="2" y="4" rx="2"></rect>
@@ -269,7 +269,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
           {!userQuery.isLoading && user?.userId !== loginUserId && (
             <div className="flex-col w-full mt-4">
               <FollowButton userId={user?.userId || 0} className="w-full" />
-              <Link to={`/privatechat/${userId}`} className="flex w-full flex-shrink-0 mt-4">
+              <Link to={`/chat/private/${userId}`} className="flex w-full flex-shrink-0 mt-4">
                 <button
                   type="button"
                   className="btn flex border w-full border-gray-300 rounded-3 hover:text-primary transition-colors h-8 cursor-pointer"
