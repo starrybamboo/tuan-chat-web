@@ -4,7 +4,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { ChevronRight } from "@/icons";
 import { useGetMessageDirectPageQuery, useRecallMessageDirectMutation } from "api/hooks/MessageDirectQueryHooks";
 import { useGetUserInfoQuery } from "api/queryHooks";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router";
 import { usePrivateMessageSender } from "../hooks/usePrivateMessageSender";
 import MessageBubble from "./MessageBubble";
@@ -60,21 +60,35 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
     currentContactUserId,
   });
 
+  // 加载更多历史消息
+  const loadMoreMessages = useCallback(() => {
+    directMessageQuery.fetchNextPage();
+  }, [directMessageQuery]);
+
   // 滚动相关
   const messagesLatestRef = useRef<HTMLDivElement>(null); // 用于滚动到最新消息的引用
   const scrollContainerRef = useRef<HTMLDivElement>(null); // 控制消息列表滚动行为的容器
   // const [showScrollToBottom, setShowScrollToBottom] = useState(false); // 是否显示滚动到底部按钮
   const [isAtBottom, setIsAtBottom] = useState(false); // 是否在底部
+  // 保持滚动位置
+  const prevScrollHeightRef = useRef(0);
 
-  // 检查是否在底部并处理未读消息
-  const checkIfAtBottom = () => {
+  // 检查是否在底部并处理未读消息，同时处理自动加载
+  const checkScrollPosition = useCallback(() => {
     if (!scrollContainerRef.current)
       return;
+
     const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-    const atBottom = scrollHeight - scrollTop - clientHeight < 100; // 100px容差
+
+    const atBottom = scrollHeight - scrollTop - clientHeight < 100;
     setIsAtBottom(atBottom);
-    // setShowScrollToBottom(!atBottom && allMessages.length > 0);
-  };
+
+    const atTop = scrollTop < 10;
+
+    if (atTop && !directMessageQuery.isLastPage && !directMessageQuery.isFetchingNextPage) {
+      loadMoreMessages();
+    }
+  }, [directMessageQuery.isLastPage, directMessageQuery.isFetchingNextPage, loadMoreMessages]);
 
   // 开启监听滚动事件
   useEffect(() => {
@@ -82,9 +96,9 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
     if (!container)
       return;
 
-    container.addEventListener("scroll", checkIfAtBottom);
-    return () => container.removeEventListener("scroll", checkIfAtBottom);
-  });
+    container.addEventListener("scroll", checkScrollPosition);
+    return () => container.removeEventListener("scroll", checkScrollPosition);
+  }, [checkScrollPosition]);
 
   // 滚动到底部
   const scrollToBottom = (smooth = false) => {
@@ -97,9 +111,31 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
 
   // 切换联系人时滚动到底部
   useEffect(() => {
-    const timeoutId = setTimeout(() => scrollToBottom(false), 0);
-    return () => clearTimeout(timeoutId);
+    if (currentContactUserId) {
+      const timeoutId = setTimeout(() => scrollToBottom(false), 0);
+      return () => clearTimeout(timeoutId);
+    }
   }, [currentContactUserId]);
+
+  // 处理加载更多消息时的滚动位置保持
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container)
+      return;
+
+    // 保存当前滚动高度（开始加载时）
+    if (directMessageQuery.isFetchingNextPage && prevScrollHeightRef.current === 0) {
+      prevScrollHeightRef.current = container.scrollHeight;
+    }
+
+    // 加载完成后恢复滚动位置
+    if (!directMessageQuery.isFetchingNextPage && prevScrollHeightRef.current > 0) {
+      const newScrollHeight = container.scrollHeight;
+      const heightDiff = newScrollHeight - prevScrollHeightRef.current;
+      container.scrollTop = heightDiff;
+      prevScrollHeightRef.current = 0;
+    }
+  }, [directMessageQuery.isFetchingNextPage, allMessages.length]);
 
   // 有新消息时自动滚动到底部。只有当用户在底部时才自动滚动，避免打断用户查看历史消息
   useEffect(() => {
@@ -110,11 +146,6 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
   }, [allMessages.length, isAtBottom]);
 
   // 如果有新消息且不在底部，显示滚动到底部按钮
-
-  // 加载更多历史消息
-  const loadMoreMessages = () => {
-    directMessageQuery.fetchNextPage();
-  };
 
   /**
    * 右键菜单
@@ -130,11 +161,11 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
     });
   }
   function handleContextMenu(e: React.MouseEvent) {
-    e.preventDefault();
     const target = e.target as HTMLElement;
     const messageElement = target.closest("[data-message-id]");
     const messageId = Number(messageElement?.getAttribute("data-message-id"));
     if (messageId) {
+      e.preventDefault();
       setContextMenu({ x: e.clientX, y: e.clientY, messageId });
     }
   }
@@ -143,15 +174,16 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
     <div
       className="flex-1 bg-base-100 border-l border-base-300 flex flex-col"
       onContextMenu={handleContextMenu}
+      onClick={() => setContextMenu(null)}
     >
       {/* 聊天顶部栏 */}
       <div className="h-10 w-full bg-base-100 border-b border-base-300 flex items-center px-4 relative">
         <ChevronRight
           onClick={() => setIsOpenLeftDrawer(true)}
-          className="size-6"
+          className="size-6 sm:hidden"
         />
-        <span className="absolute left-1/2 transform -translate-x-1/2">
-          {currentContactUserInfo ? `${currentContactUserInfo.username}` : "选择联系人"}
+        <span className="text-center font-semibold line-clamp-1 absolute left-1/2 transform -translate-x-1/2">
+          {currentContactUserInfo ? `${currentContactUserInfo.username}` : "请选择联系人"}
         </span>
         {/* <span className="absolute right-0 transform -translate-x-4">
           <MoreMenu className="size-6 cursor-pointer rotate-90" />
@@ -180,12 +212,9 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
                         ? (
                             <>
                               <span className="loading loading-spinner loading-sm"></span>
-                              加载中...
                             </>
                           )
-                        : (
-                            "加载更多历史消息"
-                          )}
+                        : null}
                     </button>
                   </div>
                 )}
@@ -204,7 +233,7 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
             )
           : (
               <div className="flex items-center justify-center w-full h-full text-gray-500">
-                请选择一个联系人开始聊天
+                快找小伙伴聊天吧💬
               </div>
             )}
       </div>

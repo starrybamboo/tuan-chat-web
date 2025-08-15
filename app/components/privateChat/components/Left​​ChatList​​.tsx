@@ -56,8 +56,8 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
 
   // 消息信箱
   // const inboxQuery = useGetInboxMessagePageQuery({
-  //   cursor: 999,
-  //   pageSize: 96,
+  //   cursor: undefined,
+  //   pageSize: 999,
   // });
 
   // const inboxMessages = useMemo(() => inboxQuery.data?.data?.list ?? [], [inboxQuery.data]);
@@ -73,6 +73,8 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   //   });
   //   return Array.from(contactors);
   // }, [inboxMessages, userId]);
+
+  // console.warn("allContactors", allContactors);
 
   // const inboxUnreadCount = inboxMessages.filter(msg => msg.receiverId === userId && !msg.isRead).length;
 
