@@ -10,6 +10,8 @@ import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import LeftChatList from "@/components/privateChat/components/Left​​ChatList​​";
+import RightChatView from "@/components/privateChat/components/RightChatView";
 import { DotsHorizontalOutline } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import {
@@ -35,9 +37,14 @@ import { MemberSelect } from "../common/memberSelect";
 export default function ChatPage() {
   const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
   const navigate = useNavigate();
+
+  const isPrivateChatMode = urlSpaceId === "private";
+
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
   // 当前选中的空间ID
-  const [activeSpaceId, setActiveSpaceId] = useState<number | null>(urlSpaceId ? Number(urlSpaceId) : (storedIds.spaceId ?? null));
+  const [activeSpaceId, setActiveSpaceId] = useState<number | null>(
+    urlSpaceId ? Number(urlSpaceId) : (storedIds.spaceId ?? null),
+  );
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
   // 当前激活的space对应的rooms。
@@ -47,11 +54,13 @@ export default function ChatPage() {
   const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
   // 当前选中的房间ID，初始化的时候，按照路由参数，localStorage里的数据，rooms的第一个，null的优先级来初始化
-  const [activeRoomId, setActiveRoomId] = useState<number | null>(urlSpaceId
-    ? (urlRoomId
-        ? Number(urlRoomId)
-        : (storedIds.roomId ?? rooms[0]?.roomId ?? null))
-    : null);
+  const [activeRoomId, setActiveRoomId] = useState<number | null>(
+    urlSpaceId
+      ? (urlRoomId
+          ? Number(urlRoomId)
+          : (storedIds.roomId ?? rooms[0]?.roomId ?? null))
+      : null,
+  );
   useEffect(() => {
     setActiveRoomId(rooms[0]?.roomId ?? null);
   }, [activeSpaceId, rooms]);
@@ -65,7 +74,10 @@ export default function ChatPage() {
       const path = `/chat/${activeSpaceId || ""}/${activeRoomId || ""}`;
       navigate(path.replace(/\/+$/, ""), { replace: true });
     }
-  }, [activeSpaceId, activeRoomId, navigate, setStoredChatIds]);
+    else {
+      navigate("/chat/private", { replace: true });
+    }
+  }, [activeSpaceId, activeRoomId, navigate, setStoredChatIds, isPrivateChatMode]);
 
   // 当前激活的空间对应的房间列表
   const userRoomQueries = useGetUserRoomsQueries(spaces);
@@ -234,6 +246,32 @@ export default function ChatPage() {
           <div className="h-full flex flex-row w-full md:w-max">
             {/* 空间列表 */}
             <div className="flex flex-col p-2 gap-2 bg-base-300/40 h-full flex-wrap">
+              {/* 私信入口 */}
+              <div className="rounded w-10 relative">
+                <div
+                  className={`absolute -left-[6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${isPrivateChatMode ? "scale-y-100" : "scale-y-0"
+                  }`}
+                />
+                <button
+                  className="tooltip tooltip-right w-10 btn btn-square"
+                  data-tip="私信"
+                  type="button"
+                  onClick={() => {
+                    setActiveSpaceId(null);
+                    setActiveRoomId(null);
+                    navigate("/chat/private");
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* 分隔线 */}
+              <div className="w-8 h-px bg-base-300 mx-1"></div>
+
+              {/* 全部空间列表 */}
               {spaces.map(space => (
                 <div
                   className={`rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""} w-10 relative`}
@@ -250,6 +288,9 @@ export default function ChatPage() {
                     data-tip={space.name}
                     type="button"
                     onClick={() => {
+                      if (isPrivateChatMode) {
+                        navigate("/chat");
+                      }
                       setActiveSpaceId(space.spaceId ?? -1);
                       setActiveRoomId(null);
                     }}
@@ -307,82 +348,102 @@ export default function ChatPage() {
             <div className="w-px bg-base-300"></div>
             {/* 房间列表 */}
             <div className="flex flex-col gap-2 py-2 w-full md:w-[200px] h-full flex-1 bg-base-200/40 min-h-0">
-              {
-                activeSpaceId && (
-                  <div className="self-center font-bold flex gap-2">
-                    <span className="text-lg">{activeSpace?.name}</span>
-                    <DotsHorizontalOutline className="size-7 hover:bg-base-300 rounded" onClick={() => { setIsShowSpacePanel(!isShowSpacePanel); }} />
-                  </div>
-                )
-              }
-
-              <div className="h-px bg-base-300"></div>
-              <div className="flex flex-col gap-2 p-2 overflow-auto">
-                {rooms.map(room => (
-                  <div key={room.roomId}>
-                    {activeSpaceId === room.spaceId && (
-                      <button
-                        key={room.roomId}
-                        className={`btn btn-ghost flex justify-start w-full gap-2 ${activeRoomId === room.roomId ? "bg-info-content/30" : ""}`}
-                        type="button"
-                        onClick={() => {
-                          setActiveRoomId(room.roomId ?? -1);
-                          setIsOpenLeftDrawer(false);
-                        }}
-                      >
-                        <div className="indicator">
-                          {(activeRoomId !== room.roomId && unreadMessagesNumber[room.roomId ?? -1] > 0)
-                            && (
-                              <span
-                                className="indicator-item badge badge-xs bg-error"
-                              >
-                                {unreadMessagesNumber[room.roomId ?? -1]}
-                              </span>
-                            )}
-
-                          <div className="avatar mask mask-squircle w-8">
-                            <img
-                              src={room.avatar}
-                              alt={room.name}
-                            />
+              {isPrivateChatMode
+                ? (
+                    <LeftChatList
+                      setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                    />
+                  )
+                : (
+                    <>
+                      {
+                        activeSpaceId && (
+                          <div className="self-center font-bold flex gap-2">
+                            <span className="text-lg">{activeSpace?.name}</span>
+                            <DotsHorizontalOutline className="size-7 hover:bg-base-300 rounded" onClick={() => { setIsShowSpacePanel(!isShowSpacePanel); }} />
                           </div>
-                        </div>
-                        <span className="truncate flex-1 text-left">{room.name}</span>
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-              {activeSpaceId !== null && spaceContext.isSpaceOwner && (
-                <button
-                  className="btn btn-dash btn-info flex mx-2"
-                  type="button"
-                  onClick={() => {
-                    if (activeSpaceId) {
-                      setIsRoomHandleOpen(true);
-                      setRoomAvatar(String(spaces.find(space => (space.spaceId === activeSpaceId))?.avatar));
-                      setRoomName(`${String(userInfo?.username)}的房间`);
-                      setInputUserId(-1);
-                      setSelectedUserIds(new Set());
-                    }
-                  }}
-                >
-                  创建房间
-                </button>
-              )}
+                        )
+                      }
+
+                      <div className="h-px bg-base-300"></div>
+                      <div className="flex flex-col gap-2 p-2 overflow-auto">
+                        {rooms.map(room => (
+                          <div key={room.roomId}>
+                            {activeSpaceId === room.spaceId && (
+                              <button
+                                key={room.roomId}
+                                className={`btn btn-ghost flex justify-start w-full gap-2 ${activeRoomId === room.roomId ? "bg-info-content/30" : ""}`}
+                                type="button"
+                                onClick={() => {
+                                  setActiveRoomId(room.roomId ?? -1);
+                                  setIsOpenLeftDrawer(false);
+                                }}
+                              >
+                                <div className="indicator">
+                                  {(activeRoomId !== room.roomId && unreadMessagesNumber[room.roomId ?? -1] > 0)
+                                    && (
+                                      <span
+                                        className="indicator-item badge badge-xs bg-error"
+                                      >
+                                        {unreadMessagesNumber[room.roomId ?? -1]}
+                                      </span>
+                                    )}
+
+                                  <div className="avatar mask mask-squircle w-8">
+                                    <img
+                                      src={room.avatar}
+                                      alt={room.name}
+                                    />
+                                  </div>
+                                </div>
+                                <span className="truncate flex-1 text-left">{room.name}</span>
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {activeSpaceId !== null && spaceContext.isSpaceOwner && (
+                        <button
+                          className="btn btn-dash btn-info flex mx-2"
+                          type="button"
+                          onClick={() => {
+                            if (activeSpaceId) {
+                              setIsRoomHandleOpen(true);
+                              setRoomAvatar(String(spaces.find(space => (space.spaceId === activeSpaceId))?.avatar));
+                              setRoomName(`${String(userInfo?.username)}的房间`);
+                              setInputUserId(-1);
+                              setSelectedUserIds(new Set());
+                            }
+                          }}
+                        >
+                          创建房间
+                        </button>
+                      )}
+                    </>
+                  )}
             </div>
           </div>
         </OpenAbleDrawer>
         {/* 聊天记录窗口，输入窗口，侧边栏 */}
-        {
-          activeSpaceId
-            ? <RoomWindow roomId={activeRoomId ?? -1} spaceId={activeSpaceId ?? -1} />
-            : (
-                <div className="flex items-center justify-center w-full h-full font-bold">
-                  <span className="text-center lg:hidden">请从右侧选择房间</span>
-                </div>
-              )
-        }
+        {isPrivateChatMode
+          ? (
+              <RightChatView
+                setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+              />
+            )
+          : (
+              <>
+                {
+                  activeSpaceId
+                    ? <RoomWindow roomId={activeRoomId ?? -1} spaceId={activeSpaceId ?? -1} />
+                    : (
+                        <div className="flex items-center justify-center w-full h-full font-bold">
+                          <span className="text-center lg:hidden">请从右侧选择房间</span>
+                        </div>
+                      )
+                }
+              </>
+            )}
 
         {/* 创建空间弹出窗口 */}
         <PopWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>

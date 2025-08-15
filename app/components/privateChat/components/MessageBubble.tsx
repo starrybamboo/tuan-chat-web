@@ -14,7 +14,9 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
       // 图片消息
       const imgData = message.extra?.imageMessage;
       return (
-        <div>
+        <div
+          data-message-id={message.messageId}
+        >
           <BetterImg
             src={imgData?.url}
             size={{ width: imgData?.width, height: imgData?.height }}
@@ -27,7 +29,10 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
     else {
       // 文本消息
       return (
-        <div className="whitespace-pre-wrap break-words">
+        <div
+          className="whitespace-pre-wrap break-words"
+          data-message-id={message.messageId}
+        >
           {message.content}
         </div>
       );

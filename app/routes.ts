@@ -19,6 +19,5 @@ export default [
     route("community/:communityId?/:postId?", "routes/community.tsx"),
     route("settings", "routes/settings.tsx"),
     route("collection", "routes/collection.tsx"),
-    route("privatechat/:targetUserId?", "routes/privateChat.tsx"),
   ]),
 ] satisfies RouteConfig;
