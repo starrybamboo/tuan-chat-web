@@ -85,7 +85,7 @@ export class MessageDirectControllerService {
      * @throws ApiError
      */
     public getInboxMessagePage(
-        requestBody: CursorPageBaseRequest,
+        requestBody: String,
     ): CancelablePromise<ApiResultCursorPageBaseResponseMessageDirectResponse> {
         return this.httpRequest.request({
             method: 'POST',
