@@ -937,7 +937,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       </div>
                       <ul
                         tabIndex={2}
-                        className="dropdown-content menu bg-base-100 rounded-box z-1 w-96 p-2 shadow-sm overflow-y-auto"
+                        className="dropdown-content menu bg-base-100 rounded-box z-1 w-96 p-2 shadow-sm overflow-y-auto transform -translate-x-1/3 md:translate-x-0"
                       >
                         <EmojiWindow onChoose={async (emoji) => {
                           updateEmojiUrls((draft) => {

@@ -180,7 +180,7 @@ function Emoji({ children, updateEmojiUrls }: { children: React.ReactNode; updat
       {/* dropdown 表情选择窗口 */}
       <ul
         tabIndex={0}
-        className="dropdown-content menu bg-base-100 rounded-box z-1 w-96 p-2 shadow-sm overflow-y-auto"
+        className="dropdown-content menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto w-96 transform -translate-x-1/3 md:translate-x-0"
       >
         <EmojiWindow onChoose={onChoose}></EmojiWindow>
       </ul>
