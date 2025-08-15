@@ -111,11 +111,11 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
 
   // 切换联系人时滚动到底部
   useEffect(() => {
-    if (currentContactUserId) {
-      const timeoutId = setTimeout(() => scrollToBottom(false), 0);
-      return () => clearTimeout(timeoutId);
+    // 等待消息加载完成
+    if (currentContactUserId && allMessages.length > 0 && !directMessageQuery.isLoading) {
+      scrollToBottom(false);
     }
-  }, [currentContactUserId]);
+  }, [currentContactUserId, allMessages.length, directMessageQuery.isLoading]);
 
   // 处理加载更多消息时的滚动位置保持
   useEffect(() => {
