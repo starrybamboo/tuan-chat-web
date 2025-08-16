@@ -1,18 +1,18 @@
-import { useGlobalContext } from "@/components/globalContextProvider";
 import { useState } from "react";
 import ActivitiesTab from "./profileTab/activitiesTab";
 import HomeTab from "./profileTab/homeTab";
 import WorksTab from "./profileTab/worksTab";
 
 interface Props {
-  userId?: number; // 可选
+  userId?: number;
 }
 /**
  * 个人主页的入口，这里是根据 导航栏的活跃按钮 来判断渲染什么组件，如主页，动态等等...
  */
 function ProfilePage({ userId }: Props) {
-  const currentUserId = useGlobalContext().userId ?? -1;
-  const finalUserId = userId ?? currentUserId;
+  // 整个用户主页，都依赖这个用户Id
+  const finalUserId = userId ?? -1;
+
   const [activeTab, setActiveTab] = useState(0);
 
   const scrollToTop = () => {

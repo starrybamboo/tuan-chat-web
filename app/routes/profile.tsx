@@ -1,4 +1,5 @@
 import type { Route } from "./+types/home";
+import { RedirectErrorPage } from "@/components/common/RedirectErrorPage";
 import ProfilePage from "@/components/profile/profilePage";
 import { useParams } from "react-router";
 
@@ -14,9 +15,14 @@ export default function Profile() {
   const userId = Number(urlUserId);
 
   // 如果 userId 无效，显示错误提示
-  if (!urlUserId || Number.isNaN(userId)) {
-    // 未来应该跳转到 404 页面
-    return <div className="text-red-500 p-4">无效的用户 ID</div>;
+  if (Number.isNaN(userId) || userId <= 0) {
+    // 跳转到 404 页面
+    return (
+      <RedirectErrorPage
+        errorMessage="您访问的用户ID无效或不存在"
+        countdownSeconds={3}
+      />
+    );
   }
 
   return (
