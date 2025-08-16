@@ -1029,7 +1029,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   </div>
                   {/* 输入框 */}
                   <div
-                    className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-primary focus-within:border-primary flex flex-col"
+                    className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-info focus-within:border-info flex flex-col"
                   >
                     {/* 预览要发送的图片 */}
                     {(imgFiles.length > 0 || emojiUrls.length > 0) && (
