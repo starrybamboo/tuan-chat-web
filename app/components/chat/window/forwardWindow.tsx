@@ -1,6 +1,7 @@
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import React, { useState } from "react";
+import toast from "react-hot-toast";
 import {
   useGetUserRoomsQueries,
   useGetUserSpacesQuery,
@@ -8,7 +9,7 @@ import {
 
 function ForwardWindow({ onClickRoom, handlePublishFeed }:
 { onClickRoom: (roomId: number) => void
-;handlePublishFeed: ({ title, description }: { title: string; description: string }) => void; }) {
+;handlePublishFeed: ({ title, description }: { title: string; description: string }) => Promise<boolean>; }) {
   const userSpacesQuery = useGetUserSpacesQuery();
   const spaces = userSpacesQuery.data?.data ?? [];
   const userRoomsQueries = useGetUserRoomsQueries(spaces);
@@ -26,10 +27,21 @@ function ForwardWindow({ onClickRoom, handlePublishFeed }:
       [name]: value,
     }));
   };
-  const handleSubmit = () => {
-    handlePublishFeed(feedData);
-    setIsOpenPublishFeedWindow(false);
-    setFeedData({ title: "", description: "" });
+  const [isPublish, setIsPublish] = useState(false);
+  const handleSubmit = async () => {
+    setIsPublish(true);
+    try {
+      const success = await handlePublishFeed(feedData);
+      if (success)
+        toast.success("分享成功");
+      else
+        toast.error("分享失败");
+    }
+    finally {
+      setIsPublish(false);
+      setIsOpenPublishFeedWindow(false);
+      setFeedData({ title: "", description: "" });
+    }
   };
   return (
     <div className="gap-2 flex flex-col items-center overflow-auto">
@@ -94,7 +106,7 @@ function ForwardWindow({ onClickRoom, handlePublishFeed }:
             <button
               className="btn btn-primary"
               onClick={handleSubmit}
-              disabled={!feedData.title}
+              disabled={!feedData.title || isPublish}
               type="button"
             >
               确认分享
