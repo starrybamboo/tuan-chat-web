@@ -141,7 +141,7 @@ const cmdSt = new CommandExecutor(
     const changeEntries = Object.entries(abilityChanges)
       .map(([key, { old, op, val, new: newValue }]) => {
         if (op !== "=") {
-          return `${key}: ${old}${op}${val}=${newValue}`; // 拼接格式："力量: 70+10=80" 或 "敏捷: 50-5=45" 或 "智力: =90"
+          return `${key}: ${old}${op}${val}->${newValue}`; // 拼接格式："力量: 70+10=80" 或 "敏捷: 50-5=45" 或 "智力: =90"
         }
         else {
           return `${key}: ${old}->${newValue}`;
