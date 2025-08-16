@@ -31,6 +31,10 @@
       "description": "用户相关接口"
     },
     {
+      "name": "AIWritingController",
+      "description": "AI帮写相关接口"
+    },
+    {
       "name": "CommunityPost",
       "description": "社区帖子管理"
     },
@@ -3832,7 +3836,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
+                  "$ref": "#/components/schemas/ApiResultMessage"
                 }
               }
             }
@@ -7390,6 +7394,78 @@
         }
       }
     },
+    "/capi/message/direct/updateReadPosition": {
+      "post": {
+        "tags": [
+          "MessageDirectController"
+        ],
+        "summary": "更新私聊已读位置",
+        "description": "插入消息已读线，并删除之前的已读线",
+        "operationId": "updateReadPosition",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageDirectReadUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultBoolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/message/direct/send": {
       "post": {
         "tags": [
@@ -7472,8 +7548,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "integer",
-                "format": "int64"
+                "$ref": "#/components/schemas/MessageDirectRecallRequest"
               }
             }
           },
@@ -7604,23 +7679,22 @@
         }
       }
     },
-    "/capi/message/direct/inbox/page": {
+    "/capi/message/direct/inbox": {
       "post": {
         "tags": [
           "MessageDirectController"
         ],
-        "summary": "获取收件箱消息分页",
-        "description": "获取收件箱消息分页",
-        "operationId": "getInboxMessagePage",
+        "summary": "获取收件箱消息全量数据",
+        "description": "拉取当前用户收件箱从最新消息到指定cursor位置的所有消息",
+        "operationId": "getInboxMessages",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CursorPageBaseRequest"
+                "type": "string"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -7628,7 +7702,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseMessageDirectResponse"
+                  "$ref": "#/components/schemas/ApiResultListMessageDirectResponse"
                 }
               }
             }
@@ -11055,7 +11129,7 @@
           "message-session"
         ],
         "description": "更新已读位置",
-        "operationId": "updateReadPosition",
+        "operationId": "updateReadPosition_1",
         "requestBody": {
           "content": {
             "application/json": {
@@ -11073,6 +11147,78 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultBoolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/chat/message/sync": {
+      "post": {
+        "tags": [
+          "ChatController"
+        ],
+        "summary": "根据syncId获取单条消息",
+        "description": "用于在收到syncId间隔的消息时，重新获取缺失的消息",
+        "operationId": "getMessageBySyncId",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageBySyncIdRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultChatMessageResponse"
                 }
               }
             }
@@ -11192,6 +11338,78 @@
         }
       }
     },
+    "/capi/chat/message/history": {
+      "post": {
+        "tags": [
+          "ChatController"
+        ],
+        "summary": "获取历史消息",
+        "description": "返回房间下syncId大于等于请求中syncId的消息，用于重新上线时获取历史消息",
+        "operationId": "getHistoryMessages",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HistoryMessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListChatMessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/chat/message/ai": {
       "post": {
         "tags": [
@@ -11216,7 +11434,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
+                  "$ref": "#/components/schemas/ApiResultMessage"
                 }
               }
             }
@@ -11415,6 +11633,366 @@
         ],
         "description": "生成WebSocket API文档",
         "operationId": "generateDoc",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/writing/rewrite": {
+      "post": {
+        "tags": [
+          "AIWritingController"
+        ],
+        "summary": "ai润色",
+        "description": "根据跑团聊天记录和用户输入润色文本",
+        "operationId": "rewrite",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RewriteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/writing/middleCompletion": {
+      "post": {
+        "tags": [
+          "AIWritingController"
+        ],
+        "summary": "虚影补全（中间插入）",
+        "description": "根据跑团聊天记录和用户上下文输入自动补全文本",
+        "operationId": "middleCompletion",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MiddleCompletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/writing/max": {
+      "post": {
+        "tags": [
+          "AIWritingController"
+        ],
+        "summary": "直接调用qwen-max",
+        "description": "直接调用ai生成文本，无预设提示词",
+        "operationId": "max",
+        "parameters": [
+          {
+            "name": "result",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/writing/flash": {
+      "post": {
+        "tags": [
+          "AIWritingController"
+        ],
+        "summary": "直接调用qwen-flash",
+        "description": "直接调用ai生成文本，无预设提示词",
+        "operationId": "flash",
+        "parameters": [
+          {
+            "name": "result",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/writing/completion": {
+      "post": {
+        "tags": [
+          "AIWritingController"
+        ],
+        "summary": "虚影补全",
+        "description": "根据跑团聊天记录自动补全文本",
+        "operationId": "completion",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -18930,6 +19508,20 @@
         },
         "description": "基础翻页返回"
       },
+      "MessageDirectReadUpdateRequest": {
+        "required": [
+          "targetUserId"
+        ],
+        "type": "object",
+        "properties": {
+          "targetUserId": {
+            "type": "integer",
+            "description": "目标用户ID",
+            "format": "int64"
+          }
+        },
+        "description": "私聊已读位置更新请求"
+      },
       "MessageDirectSendRequest": {
         "required": [
           "content",
@@ -19001,6 +19593,16 @@
             "description": "消息ID",
             "format": "int64"
           },
+          "userId": {
+            "type": "integer",
+            "description": "收件箱用户ID",
+            "format": "int64"
+          },
+          "syncId": {
+            "type": "integer",
+            "description": "会话级别的消息递增ID",
+            "format": "int32"
+          },
           "senderId": {
             "type": "integer",
             "description": "发送者ID",
@@ -19041,6 +19643,20 @@
           }
         },
         "description": "私聊消息响应"
+      },
+      "MessageDirectRecallRequest": {
+        "required": [
+          "messageId"
+        ],
+        "type": "object",
+        "properties": {
+          "messageId": {
+            "type": "integer",
+            "description": "消息ID",
+            "format": "int64"
+          }
+        },
+        "description": "撤回私聊消息请求"
       },
       "MessageDirectPageRequest": {
         "required": [
@@ -19113,21 +19729,34 @@
         },
         "description": "游标翻页返回"
       },
-      "CursorPageBaseRequest": {
+      "ApiResultListMessageDirectResponse": {
+        "required": [
+          "success"
+        ],
         "type": "object",
         "properties": {
-          "cursor": {
-            "type": "number",
-            "description": "游标（上次翻页的最后一条记录的标识）",
-            "format": "double"
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
           },
-          "pageSize": {
+          "errCode": {
             "type": "integer",
-            "description": "每页大小",
+            "description": "错误码",
             "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/MessageDirectResponse"
+            }
           }
         },
-        "description": "游标翻页请求"
+        "description": "基础返回体"
       },
       "LikeRecordRequest": {
         "required": [
@@ -20789,6 +21418,51 @@
           }
         }
       },
+      "MessageBySyncIdRequest": {
+        "required": [
+          "roomId",
+          "syncId"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "房间ID",
+            "format": "int64"
+          },
+          "syncId": {
+            "type": "integer",
+            "description": "消息同步ID",
+            "format": "int64"
+          }
+        },
+        "description": "根据房间ID和syncId获取单条消息的请求"
+      },
+      "ApiResultChatMessageResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ChatMessageResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
       "ChatMessagePageRequest": {
         "required": [
           "roomId"
@@ -20860,6 +21534,55 @@
         },
         "description": "游标翻页返回"
       },
+      "HistoryMessageRequest": {
+        "required": [
+          "roomId",
+          "syncId"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "房间ID",
+            "format": "int64"
+          },
+          "syncId": {
+            "type": "integer",
+            "description": "消息同步ID，返回大于或等于此ID的消息",
+            "format": "int64"
+          }
+        },
+        "description": "根据房间ID和syncId获取历史消息的请求"
+      },
+      "ApiResultListChatMessageResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/ChatMessageResponse"
+            }
+          }
+        },
+        "description": "基础返回体"
+      },
       "RoleAvatarCreateRequest": {
         "type": "object",
         "properties": {
@@ -20921,6 +21644,73 @@
           }
         },
         "description": "基础返回体"
+      },
+      "RewriteRequest": {
+        "required": [
+          "chatHistory",
+          "roleName",
+          "userInput"
+        ],
+        "type": "object",
+        "properties": {
+          "roleName": {
+            "type": "string",
+            "description": "角色姓名"
+          },
+          "chatHistory": {
+            "type": "string",
+            "description": "聊天记录"
+          },
+          "userInput": {
+            "type": "string",
+            "description": "用户输入"
+          }
+        },
+        "description": "ai润色请求"
+      },
+      "MiddleCompletionRequest": {
+        "required": [
+          "chatHistory",
+          "roleName"
+        ],
+        "type": "object",
+        "properties": {
+          "roleName": {
+            "type": "string",
+            "description": "角色姓名"
+          },
+          "chatHistory": {
+            "type": "string",
+            "description": "聊天记录"
+          },
+          "preInput": {
+            "type": "string",
+            "description": "插入前文本"
+          },
+          "postInput": {
+            "type": "string",
+            "description": "插入后文本"
+          }
+        },
+        "description": "虚影补全请求（中间插入）"
+      },
+      "CompletionRequest": {
+        "required": [
+          "chatHistory",
+          "roleName"
+        ],
+        "type": "object",
+        "properties": {
+          "roleName": {
+            "type": "string",
+            "description": "角色姓名"
+          },
+          "chatHistory": {
+            "type": "string",
+            "description": "聊天记录"
+          }
+        },
+        "description": "虚影补全请求"
       },
       "SimpleTTSRequest": {
         "required": [
@@ -21929,60 +22719,6 @@
             "description": "返回对象",
             "items": {
               "$ref": "#/components/schemas/MessageSessionResponse"
-            }
-          }
-        },
-        "description": "基础返回体"
-      },
-      "ApiResultChatMessageResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/ChatMessageResponse"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "ApiResultListChatMessageResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "$ref": "#/components/schemas/ChatMessageResponse"
             }
           }
         },

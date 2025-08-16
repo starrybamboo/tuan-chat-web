@@ -24,6 +24,8 @@ import type { FightRoomAddRequest } from "../models/FightRoomAddRequest";
 import type { Initiative } from "@/components/chat/sideDrawer/initiativeList";
 import type { SpaceArchiveRequest } from "api/models/SpaceArchiveRequest";
 import type { LeaderTransferRequest } from "api/models/LeaderTransferRequest";
+import type {HistoryMessageRequest} from "../models/HistoryMessageRequest";
+import type {MessageBySyncIdRequest} from "../models/MessageBySyncIdRequest";
 
 /**
  * 创建空间
@@ -333,6 +335,33 @@ export function useUpdateMessageMutation() {
         mutationFn: (req: Message) => tuanchat.chatController.updateMessage(req),
         mutationKey: ["updateMessage"],
     })
+}
+
+/**
+ * 根据syncId获取单条消息
+ * 用于在收到syncId间隔的消息时，重新获取缺失的消息
+ * @param requestBody 请求参数
+ */
+export function useGetMessageBySyncIdQuery(requestBody: MessageBySyncIdRequest) {
+    return useQuery({
+        queryKey: ['getMessageBySyncId', requestBody],
+        queryFn: () => tuanchat.chatController.getMessageBySyncId(requestBody),
+        staleTime: 0, // 实时数据不缓存
+        enabled: !!requestBody.syncId // 当有syncId时才启用查询
+    });
+}
+/**
+ * 获取历史消息
+ * 返回房间下syncId大于等于请求中syncId的消息，用于重新上线时获取历史消息
+ * @param requestBody 请求参数
+ */
+export function useGetHistoryMessagesQuery(requestBody: HistoryMessageRequest) {
+    return useQuery({
+        queryKey: ['getHistoryMessages', requestBody],
+        queryFn: () => tuanchat.chatController.getHistoryMessages(requestBody),
+        staleTime: 30000, // 30秒缓存
+        enabled: !!requestBody.syncId // 当有syncId时才启用查询
+    });
 }
 
 // ==================== 权限管理 ====================
