@@ -419,7 +419,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             </div>
             {/* 右侧 - 用户 GNS 雷达图 */}
             <div className="mb-4">
-              <GNSSpiderChart />
+              <GNSSpiderChart userId={userId} />
             </div>
           </div>
           {/* 个人主页的Readme */}

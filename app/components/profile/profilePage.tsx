@@ -7,7 +7,9 @@ import WorksTab from "./profileTab/worksTab";
 interface Props {
   userId?: number; // 可选
 }
-
+/**
+ * 个人主页的入口，这里是根据 导航栏的活跃按钮 来判断渲染什么组件，如主页，动态等等...
+ */
 function ProfilePage({ userId }: Props) {
   const currentUserId = useGlobalContext().userId ?? -1;
   const finalUserId = userId ?? currentUserId;
@@ -24,7 +26,7 @@ function ProfilePage({ userId }: Props) {
   const TABS = [
     {
       id: 0,
-      name: "个人主页",
+      name: "主页",
       component: <HomeTab userId={finalUserId} />,
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -34,7 +36,7 @@ function ProfilePage({ userId }: Props) {
     },
     {
       id: 1,
-      name: "跑团动态",
+      name: "动态",
       component: <ActivitiesTab userId={finalUserId} />,
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
