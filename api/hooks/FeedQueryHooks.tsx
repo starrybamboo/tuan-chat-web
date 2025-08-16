@@ -9,7 +9,7 @@ export function usePublishFeedMutation(){
     return useMutation({
         mutationKey: ["publishFeed"],
         mutationFn: async (feed: FeedRequest) => {
-            const res = await tuanchat.feedController.publishFeed(feed);
+            return tuanchat.feedController.publishFeed(feed);
         }
     })
 }

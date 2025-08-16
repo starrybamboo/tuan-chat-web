@@ -188,23 +188,39 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
       } },
     });
   }
-  async function handlePublishFeed({ title, description }: { title: string; description: string }) {
-    sendMessageMutation.mutate({
+  async function handlePublishFeed({ title, description }: { title: string; description: string }): Promise<boolean> {
+    // 发送提示信息
+    const firstMessageResult = await sendMessageMutation.mutateAsync({
       roomId,
       messageType: 1,
       roleId: curRoleId,
       avatarId: curAvatarId,
       content: "转发了以下消息到社区",
       extra: {},
-    }, { onSuccess: () => { sendMessageMutation.mutate(constructForwardRequest(roomId)); } });
+    });
+    if (!firstMessageResult.success)
+      return false;
+
+    // 发送转发请求
+    const forwardResult = await sendMessageMutation.mutateAsync(
+      constructForwardRequest(roomId),
+    );
+    if (!forwardResult.success || !forwardResult.data)
+      return false;
+
+    // 发布feed
     const feedRequest: FeedRequest = {
-      messageId: selectedMessageIds.values().next().value,
+      messageId: forwardResult.data.messageID,
       title: title || "default",
       description: description || "default",
     };
-    publishFeedMutation.mutate(feedRequest);
+    const publishResult = await publishFeedMutation.mutateAsync(feedRequest);
+
+    // 清理状态
     setIsForwardWindowOpen(false);
     updateSelectedMessageIds(new Set());
+
+    return publishResult.success;
   }
   async function handleAddEmoji(imgMessage: ImageMessage) {
     if (emojiList.find(emoji => emoji.imageUrl === imgMessage.url)) {
