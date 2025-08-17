@@ -24,6 +24,7 @@ import {
 } from "../../../api/hooks/chatQueryHooks";
 import { useCreateEmojiMutation, useGetUserEmojisQuery } from "../../../api/hooks/emojiQueryHooks";
 import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
+import { tuanchat } from "../../../api/instance";
 
 export const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
 function Header() {
@@ -82,6 +83,36 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    * 分页获取消息
    * cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
    */
+  const chatHistory = roomContext.chatHistory;
+  const webSocketUtils = globalContext.websocketUtils;
+  const [isInitializing, setIsInitializing] = useState(true);
+  // 当前本地存储的消息的最大syncId
+  const maxSyncId = useMemo(() => {
+    if (!chatHistory?.messages || chatHistory?.messages.length === 0) {
+      return -1;
+    }
+    return (Math.max(...chatHistory.messages.map(msg => msg.message.syncId)) ?? 0);
+  }, [chatHistory?.messages]);
+  // 在组件被挂载的时候，获取maxSyncId之后的所有消息
+  useEffect(() => {
+    setIsInitializing(true);
+    if (chatHistory?.loading)
+      return;
+    const fetchNewestMessages = async () => {
+      const messages = await tuanchat.chatController.getHistoryMessages({ roomId, syncId: maxSyncId + 1 });
+      await chatHistory?.addOrUpdateMessages(messages.data?.map(msg => msg.message) ?? []);
+    };
+    fetchNewestMessages().then(() => setIsInitializing(false));
+  }, [roomId, chatHistory?.loading]);
+
+  // 监听 WebSocket 接收到的消息
+  const receivedMessages = useMemo(() => webSocketUtils.receivedMessages[roomId] ?? [], [roomId, webSocketUtils.receivedMessages]);
+  useEffect(() => {
+    chatHistory?.addOrUpdateMessages(
+      receivedMessages.filter(msg => msg.message.syncId > maxSyncId)
+        .map(msg => msg.message),
+    );
+  }, [receivedMessages]);
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     return roomContext.chatHistory?.messages ?? [];
   }, [roomContext.chatHistory?.messages]);
@@ -112,18 +143,18 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     virtuosoRef?.current?.scrollToIndex(messageIndexToVirtuosoIndex(historyMessages.length - 1));
     updateUnreadMessagesNumber(roomId, 0);
   };
-  useEffect(() => {
-    let timer = null;
-    if (roomContext.chatHistory?.loading) {
-      timer = setTimeout(() => {
-        scrollToBottom();
-      }, 1000);
-    }
-    return () => {
-      if (timer)
-        clearTimeout(timer);
-    };
-  }, [roomContext.chatHistory?.loading]);
+  // useEffect(() => {
+  //   let timer = null;
+  //   if (isInitializing) {
+  //     timer = setTimeout(() => {
+  //       scrollToBottom();
+  //     }, 1000);
+  //   }
+  //   return () => {
+  //     if (timer)
+  //       clearTimeout(timer);
+  //   };
+  // }, [isInitializing]);
 
   /**
    * 消息选择
@@ -389,6 +420,22 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   // 关闭右键菜单
   function closeContextMenu() {
     setContextMenu(null);
+  }
+
+  if (isInitializing) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-base-200">
+        <div className="flex flex-col items-center gap-2">
+          {/* 加载动画 */}
+          <span className="loading loading-spinner loading-lg text-info"></span>
+          {/* 提示文字 */}
+          <div className="text-center space-y-1">
+            <h3 className="text-lg font-medium text-base-content">正在获取历史消息</h3>
+            <p className="text-sm text-base-content/70">请稍候...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   /**

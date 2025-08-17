@@ -62,7 +62,6 @@ import {
   useGetRoomRoleQuery,
   useGetSpaceInfoQuery,
 } from "../../../api/hooks/chatQueryHooks";
-import { tuanchat } from "../../../api/instance";
 import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
 
 // const PAGE_SIZE = 50; // 每页消息数量
@@ -196,29 +195,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
    */
   const chatHistory = useChatHistory(roomId);
   const historyMessages: ChatMessageResponse[] = chatHistory.messages;
-  const maxSyncId = useMemo(() => {
-    if (!chatHistory.messages || chatHistory.messages.length === 0) {
-      return -1;
-    }
-    return (Math.max(...chatHistory.messages.map(msg => msg.message.syncId)) ?? 0);
-  }, [chatHistory.messages, roomId]);
-  useEffect(() => {
-    if (chatHistory.loading)
-      return;
-    const fetchNewestMessages = async () => {
-      const messages = await tuanchat.chatController.getHistoryMessages({ roomId, syncId: maxSyncId + 1 });
-      await chatHistory.addOrUpdateMessages(messages.data?.map(msg => msg.message) ?? []);
-    };
-    fetchNewestMessages();
-  }, [roomId, chatHistory.loading]);
-
-  const receivedMessages = webSocketUtils.receivedMessages[roomId] ?? [];
-  useEffect(() => {
-    chatHistory.addOrUpdateMessages(
-      receivedMessages.filter(msg => msg.message.syncId > maxSyncId)
-        .map(msg => msg.message),
-    );
-  }, [receivedMessages]);
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollToGivenMessage = useCallback((messageId: number) => {
