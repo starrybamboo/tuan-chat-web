@@ -1,26 +1,21 @@
 import type { commandModeType } from "@/components/chat/commandPanel";
 import type { RoomContextType } from "@/components/chat/roomContext";
-
 import type { LLMProperty } from "@/components/settings/settingsPage";
 import type { VirtuosoHandle } from "react-virtuoso";
-import type {
-  ChatMessagePageRequest,
-  ChatMessageRequest,
-  ChatMessageResponse,
-  Message,
-  RoomMember,
-  UserRole,
-} from "../../../api";
+
+import type { ChatMessageRequest, ChatMessageResponse, Message, RoomMember, UserRole } from "../../../api";
 import type { ChatStatusEvent } from "../../../api/wsModels";
 import ChatFrame from "@/components/chat/chatFrame";
 import CommandPanel from "@/components/chat/commandPanel";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
+import { useChatHistory } from "@/components/chat/indexedDB/useChatHistory";
 import DNDMap from "@/components/chat/map/DNDMap";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import InitiativeList from "@/components/chat/sideDrawer/initiativeList";
 import RoomRoleList from "@/components/chat/sideDrawer/roomRoleList";
 import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
+import SearchPanel from "@/components/chat/sideDrawer/searchPanel";
 import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
 import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
 import UserIdToName from "@/components/chat/smallComponents/userIdToName";
@@ -47,6 +42,7 @@ import {
   HexagonDice,
   MemberIcon,
   PointOnMapPerspectiveLinear,
+  SearchFilled,
   SendIcon,
   Setting,
   SparklesOutline,
@@ -57,7 +53,6 @@ import { getImageSize } from "@/utils/getImgSize";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
-import { useInfiniteQuery } from "@tanstack/react-query";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
@@ -67,13 +62,9 @@ import {
   useGetRoomRoleQuery,
   useGetSpaceInfoQuery,
 } from "../../../api/hooks/chatQueryHooks";
-import { tuanchat } from "../../../api/instance";
-import {
-  useGetRoleAvatarsQuery,
-  useGetUserRolesQuery,
-} from "../../../api/queryHooks";
+import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
 
-const PAGE_SIZE = 50; // 每页消息数量
+// const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
   const spaceContext = use(SpaceContext);
 
@@ -185,7 +176,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [commandBrowseWindow, setCommandBrowseWindow] = useSearchParamsState<commandModeType>("commandPop", "none");
   const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
 
-  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "initiative" | "map">("rightSideDrawer", "none");
+  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
 
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useLocalStorage("useChatBubbleStyle", true);
 
@@ -201,49 +192,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   /**
    * 获取历史消息
-   * 分页获取消息
-   * cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
    */
-  // 你说的对，我什么要这里定义一个莫名奇妙的ref呢？因为该死的virtuoso不知道为什么，里面的函数指针会会指向一个旧的fetchNextPage，并不能随着重新渲染而更新。导致里面的cursor也是旧的。
-  // 定义这个ref只是为了绕开virtuoso这个问题的hack。
-  const cursorRef = useRef<number | undefined>(undefined);
-  useEffect(() => {
-    cursorRef.current = undefined;
-  }, [spaceId]);
-  const messagesInfiniteQuery = useInfiniteQuery({
-    queryKey: ["getMsgPage", roomId],
-    queryFn: async ({ pageParam }) => {
-      const result = await tuanchat.chatController.getMsgPage(pageParam);
-      cursorRef.current = result.data?.cursor;
-      return result;
-    },
-    getNextPageParam: (lastPage) => {
-      if (lastPage.data === undefined || lastPage.data?.isLast) {
-        return undefined;
-      }
-      else {
-        const params: ChatMessagePageRequest = { roomId, pageSize: PAGE_SIZE, cursor: cursorRef.current };
-        return params;
-      }
-    },
-    initialPageParam: { roomId, pageSize: PAGE_SIZE, cursor: undefined } as unknown as ChatMessagePageRequest,
-    refetchOnWindowFocus: false,
-    staleTime: Infinity,
-  });
-  const receivedMessages = useMemo(() => webSocketUtils.receivedMessages[roomId] ?? [], [roomId, webSocketUtils.receivedMessages]);
-  // 合并所有分页消息 同时更新重复的消息
-  const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    const historyMessages = (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
-    const messageMap = new Map<number, ChatMessageResponse>();
-    // 这是为了更新历史消息(ws发过来的消息有可能是带有相同的messageId的, 代表消息的更新)
-    historyMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
-    receivedMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
-    return Array.from(messageMap.values())
-      .sort((a, b) => a.message.position - b.message.position)
-    // 过滤掉删除的消息和不符合规则的消息
-      .filter(msg => msg.message.status !== 1);
-    // .reverse();
-  }, [receivedMessages, messagesInfiniteQuery.data?.pages]);
+  const chatHistory = useChatHistory(roomId);
+  const historyMessages: ChatMessageResponse[] = chatHistory.messages;
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollToGivenMessage = useCallback((messageId: number) => {
@@ -275,11 +226,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       useChatBubbleStyle,
       spaceId,
       setReplyMessage,
-      historyMessages,
-      messagesInfiniteQuery,
+      chatHistory,
       scrollToGivenMessage,
     };
-  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarIndex, useChatBubbleStyle, spaceId, historyMessages, messagesInfiniteQuery, scrollToGivenMessage]);
+  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarIndex, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
   /**
    * 当群聊角色列表更新时, 自动设置为第一个角色
@@ -828,7 +778,15 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         <div className="flex justify-between py-2 px-5 bg-base-100">
           <div className="flex gap-2">
             {getScreenSize() === "sm"
-              && <BaselineArrowBackIosNew className="size-7" onClick={spaceContext.toggleLeftDrawer}></BaselineArrowBackIosNew>}
+              && (
+                <BaselineArrowBackIosNew
+                  className="size-7"
+                  onClick={
+                    sideDrawerState === "none" ? spaceContext.toggleLeftDrawer : () => setSideDrawerState("none")
+                  }
+                >
+                </BaselineArrowBackIosNew>
+              )}
             <span className="text-center font-semibold text-lg line-clamp-1">{room?.name}</span>
           </div>
           <div className="line-clamp-1 flex-shrink-0">
@@ -871,6 +829,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
             >
               <GirlIcon className="size-7"></GirlIcon>
+            </div>
+            <div
+              className="tooltip tooltip-bottom hover:text-info"
+              data-tip="搜索"
+              onClick={() => setSideDrawerState(sideDrawerState === "search" ? "none" : "search")}
+            >
+              <SearchFilled className="size-7"></SearchFilled>
             </div>
             {spaceContext.isSpaceOwner && (
               <Setting
@@ -999,7 +964,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   </div>
                 </div>
                 <div className="flex gap-2 items-stretch">
-                  <div className="dropdown dropdown-top flex-shrink-0">
+                  <div className="dropdown dropdown-top flex-shrink-0 max-w-10 md:max-w-14 ">
                     <div role="button" tabIndex={0} className="">
                       <div
                         className="tooltip flex justify-center flex-col items-center space-y-2"
@@ -1013,7 +978,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                           stopPopWindow={true}
                           alt="无可用头像"
                         />
-                        <div className="text-xs whitespace-nowrap truncate">
+                        <div className="text-xs truncate w-full">
                           {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
                         </div>
                       </div>
@@ -1135,6 +1100,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           <OpenAbleDrawer isOpen={sideDrawerState === "map"} className="h-full overflow-auto z-20" overWrite>
             <div className="w-px bg-base-300"></div>
             <DNDMap></DNDMap>
+          </OpenAbleDrawer>
+          <OpenAbleDrawer isOpen={sideDrawerState === "search"} className="h-full overflow-auto z-20" overWrite>
+            <div className="w-px bg-base-300"></div>
+            <SearchPanel></SearchPanel>
           </OpenAbleDrawer>
         </div>
       </div>

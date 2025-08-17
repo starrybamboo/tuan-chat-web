@@ -430,18 +430,6 @@ export function useTransferLeader() {
 
 // ==================== 群组角色管理 ====================
 /**
- * 获取群聊角色列表
- * @param roomId 群聊ID
- */
-export function useRoomRoleQuery(roomId: number) {
-    return useQuery({
-        queryKey: ['roomRole', roomId],
-        queryFn: () => tuanchat.roomRoleController.roomRole(roomId),
-        staleTime: 300000 // 5分钟缓存
-    });
-}
-
-/**
  * 添加群组角色
  */
 export function useAddRoomRoleMutation() {
