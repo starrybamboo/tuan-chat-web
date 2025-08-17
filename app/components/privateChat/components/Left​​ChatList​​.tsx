@@ -1,7 +1,9 @@
+import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
+import type { UserFollowResponse } from "api/models/UserFollowResponse";
 import type { DirectMessageEvent } from "api/wsModels";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { useGetMessageDirectPageQueries } from "api/hooks/MessageDirectQueryHooks";
-import { useGetUserFollowingsQuery } from "api/hooks/userFollowQueryHooks";
+import { useGetInboxMessagePageQuery, useGetMessageDirectPageQueries } from "api/hooks/MessageDirectQueryHooks";
+import { useGetUserFriendsQuery } from "api/hooks/userFollowQueryHooks";
 import { useMemo } from "react";
 import { useParams } from "react-router";
 import FriendItem from "./FriendItem";
@@ -20,13 +22,35 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   const { targetUserId: urlTargetUserId, roomId: urlRoomId } = useParams();
   const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : (urlTargetUserId ? Number.parseInt(urlTargetUserId) : null);
 
-  // 好友列表
-  const followingQuery = useGetUserFollowingsQuery(userId ?? -1, { pageNo: 1, pageSize: 100 });
-  const friendsRaw = followingQuery.data?.data?.list?.filter(user => user.status === 2) ?? [];
-  const friends = friendsRaw.map(friend => ({
-    userId: friend.userId || -1,
-    status: friend.status || 0,
-  }));
+  // 获取并缓存好友列表
+  const followingQuery = useGetUserFriendsQuery(userId, { pageNo: 1, pageSize: 100 });
+  const friends: UserFollowResponse[] = useMemo(() => Array.isArray(followingQuery.data?.data?.list) ? followingQuery.data.data.list : [], [followingQuery.data]);
+
+  // 从消息信箱获取私聊列表
+  const inboxQuery = useGetInboxMessagePageQuery();
+  const inboxMessages: MessageDirectResponse[] = useMemo(() => Array.isArray(inboxQuery.data?.data) ? inboxQuery.data.data : [], [inboxQuery.data]);
+  // 格式化私聊消息，按联系人分组
+  const sortedInboxMessages = useMemo(() => {
+    const contacts = new Map<number, MessageDirectResponse[]>();
+    for (const msg of inboxMessages) {
+      // 本条消息的联系人
+      const contactId = (msg.senderId === msg.userId ? msg.receiverId : msg.senderId) || -1;
+      if (!contacts.has(contactId)) {
+        contacts.set(contactId, []);
+      }
+      contacts.get(contactId)?.push(msg);
+    }
+    return Object.fromEntries(contacts);
+  }, [inboxMessages]);
+
+  // 加入从 WebSocket 接收到的实时消息
+  const wsMessages = webSocketUtils.receivedDirectMessages;
+  const realTimeMessages = useMemo(() => mergeMessages(sortedInboxMessages, wsMessages), [sortedInboxMessages, wsMessages]);
+
+  // 实时的联系人
+  const realTimeContacts = useMemo(() => {
+    return Array.from(Object.keys(realTimeMessages).map(Number));
+  }, [realTimeMessages]);
 
   // 计算所有好友的从 WebSocket 接收到的实时消息
   const allReceivedMessages = useMemo(() => {
@@ -42,8 +66,9 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
     return allMessages;
   }, [webSocketUtils.receivedDirectMessages, userId]);
 
-  // 获取每个好友的最新私聊消息
   const messageQueries = useGetMessageDirectPageQueries(friends);
+
+  // 获取每个好友的最新私聊消息
   const latestMessages = messageQueries.map(query => query.data?.data?.list?.[0] || null);
   // 合并messageQueries的latestMessages消息和allReceivedMessages
   const mergedLatestMessages = useMemo(() => {
@@ -53,30 +78,6 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   const friendInfos = mapFriendInfos(friends, mergedLatestMessages);
   // 根据最新消息时间排序好友列表
   const sortedFriendInfos = sortFriendInfos(friendInfos);
-
-  // 消息信箱
-  // const inboxQuery = useGetInboxMessagePageQuery({
-  //   cursor: undefined,
-  //   pageSize: 999,
-  // });
-
-  // const inboxMessages = useMemo(() => inboxQuery.data?.data?.list ?? [], [inboxQuery.data]);
-  // const allContactors = useMemo(() => {
-  //   const contactors = new Set<number>();
-  //   inboxMessages.forEach((msg) => {
-  //     if (msg.senderId !== userId) {
-  //       contactors.add(msg.senderId || -1);
-  //     }
-  //     if (msg.receiverId !== userId) {
-  //       contactors.add(msg.receiverId || -1);
-  //     }
-  //   });
-  //   return Array.from(contactors);
-  // }, [inboxMessages, userId]);
-
-  // console.warn("allContactors", allContactors);
-
-  // const inboxUnreadCount = inboxMessages.filter(msg => msg.receiverId === userId && !msg.isRead).length;
 
   return (
     <div className="flex flex-col h-full bg-base-100">
@@ -101,33 +102,69 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
                 </div>
               )
             : (
-              // 显示好友列表
-                <div className="p-2 pt-4 flex flex-col gap-2">
-                  {
-                    sortedFriendInfos.map(friend => (
-                      <FriendItem
-                        key={friend.userId}
-                        id={friend.userId || -1}
-                        // latestMessage={friend.latestMessage}
-                        // latestMessageTime={friend.latestMessageTime}
-                        currentContactUserId={currentContactUserId}
-                        setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                      />
-                    ))
-                  }
-                </div>
+                <>
+                  {/* 显示静态的好友列表，不会有消息提示 */}
+                  <div className="p-2 pt-4 flex flex-col gap-2">
+                    {
+                      realTimeContacts.map(contactId => (
+                        <FriendItem
+                          key={contactId}
+                          id={contactId}
+                          currentContactUserId={currentContactUserId}
+                          setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                        />
+                      ))
+                    }
+                  </div>
+                  私聊列表
+                  {/* 显示私聊列表 */}
+                  <div className="p-2 pt-4 flex flex-col gap-2">
+                    {
+                      sortedFriendInfos.map(friend => (
+                        <FriendItem
+                          key={friend.userId}
+                          id={friend.userId || -1}
+                          // latestMessage={friend.latestMessage}
+                          // latestMessageTime={friend.latestMessageTime}
+                          currentContactUserId={currentContactUserId}
+                          setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                        />
+                      ))
+                    }
+                  </div>
+                </>
               )}
       </div>
     </div>
   );
 }
 
-function mapFriendInfos(friends: { userId: number; status: number }[], latestMessages: any[]): contactInfo[] {
+function mergeMessages(
+  sortedMessages: Record<number, MessageDirectResponse[]>,
+  wsMessages: Record<number, DirectMessageEvent[]>,
+): Record<number, MessageDirectResponse[]> {
+  const mergedMessages = new Map<number, MessageDirectResponse[]>();
+
+  // 获取所有联系人ID
+  const contactIds = new Set<number>([
+    ...Object.keys(sortedMessages).map(Number),
+    ...Object.keys(wsMessages).map(Number),
+  ]);
+
+  for (const contactId of contactIds) {
+    const historyMessages = sortedMessages[contactId] || [];
+    const wsContactMessages = wsMessages[contactId] || [];
+    mergedMessages.set(contactId, [...historyMessages, ...wsContactMessages]);
+  }
+  return Object.fromEntries(mergedMessages);
+}
+
+function mapFriendInfos(friends: UserFollowResponse[], latestMessages: any[]): contactInfo[] {
   return friends.map((friend) => {
     const latestMessage = latestMessages.find(msg => msg && (msg.senderId === friend.userId || msg.receiverId === friend.userId));
     return {
-      userId: friend.userId,
-      status: friend.status,
+      userId: friend.userId || -1,
+      status: friend.status || 0,
       latestMessage: latestMessage ? String(latestMessage.content) : "",
       latestMessageTime: latestMessage ? latestMessage.createTime : undefined,
     };
