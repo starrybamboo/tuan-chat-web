@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 import { RedirectErrorPage } from "@/components/common/RedirectErrorPage";
-import { useGlobalContext } from "@/components/globalContextProvider";
+// import { useGlobalContext } from "@/components/globalContextProvider";
 import ProfilePage from "@/components/profile/profilePage";
 import { useParams } from "react-router";
 
@@ -16,7 +16,7 @@ export default function Profile() {
   const { userId: urlUserId } = useParams();
   const userId = Number(urlUserId);
   // 获取用户登录的ID
-  const { userId: loginId } = useGlobalContext();
+  // const { userId: loginId } = useGlobalContext();
 
   if (Number.isNaN(userId) || userId <= 0) {
     // 跳转到 404 页面
@@ -28,14 +28,14 @@ export default function Profile() {
     );
   }
 
-  if (!loginId) {
-    return (
-      <RedirectErrorPage
-        errorMessage="抱歉，您尚未登录"
-        countdownSeconds={3}
-      />
-    );
-  }
+  // if (!loginId) {
+  //   return (
+  //     <RedirectErrorPage
+  //       errorMessage="抱歉，您尚未登录"
+  //       countdownSeconds={3}
+  //     />
+  //   );
+  // }
 
   return (
     <div className="h-full bg-base-200 overflow-auto">
