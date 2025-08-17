@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueries, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
+import type { UserFollowResponse } from "api/models/UserFollowResponse";
 import type { MessageDirectPageRequest, MessageDirectSendRequest } from "api";
 import { tuanchat } from "../instance";
 import { useMemo } from "react";
@@ -59,17 +60,17 @@ export function useGetMessageDirectPageQuery(targetUserId: number, pageSize: num
 }
 
 /** 
- * 查询与多个人的私聊消息
+ * 查询与多个人的私聊消息，方便进行私聊列表排序
  * @param friends - 好友列表，包含 userId 和 status
  */
-export function useGetMessageDirectPageQueries(friends: { userId: number, status: number }[]) {
+export function useGetMessageDirectPageQueries(friends: UserFollowResponse[]) {
   return useQueries({
     queries: friends.map((friend) => ({
       queryKey: ["getMessageDirectPage", { cursor: undefined, pageSize: 1, targetUserId: friend.userId }],
       queryFn: () => tuanchat.messageDirectController.getMessagePage({
         cursor: undefined,
         pageSize: 1,
-        targetUserId: friend.userId
+        targetUserId: friend.userId || -1
       }),
       staleTime: Infinity,
     })),
