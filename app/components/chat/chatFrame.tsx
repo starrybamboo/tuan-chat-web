@@ -26,20 +26,10 @@ import { useCreateEmojiMutation, useGetUserEmojisQuery } from "../../../api/hook
 import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
 
 export const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
-function Header({ context }: { context:
-{
-  fetchNextPage: () => void;
-  isFetching: boolean;
-  isAtTopRef:
-  React.RefObject<boolean>;
-}; }) {
+function Header() {
   return (
     <div className="text-center">
-      {
-        context.isFetching
-          ? "加载中"
-          : "已经到顶了~(,,・ω・,,)"
-      }
+      已经到顶了~(,,・ω・,,)
     </div>
   );
 }
@@ -95,12 +85,6 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     return roomContext.chatHistory?.messages ?? [];
   }, [roomContext.chatHistory?.messages]);
-  const messagesInfiniteQuery = roomContext.messagesInfiniteQuery;
-  const fetchNextPage = () => {
-    if (messagesInfiniteQuery?.hasNextPage && !messagesInfiniteQuery?.isFetching) {
-      messagesInfiniteQuery?.fetchNextPage();
-    }
-  };
   /**
    * 虚拟列表
    */
@@ -129,12 +113,17 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     updateUnreadMessagesNumber(roomId, 0);
   };
   useEffect(() => {
-    if (messagesInfiniteQuery?.isFetchedAfterMount) {
-      setTimeout(() => {
+    let timer = null;
+    if (roomContext.chatHistory?.loading) {
+      timer = setTimeout(() => {
         scrollToBottom();
       }, 1000);
     }
-  }, [messagesInfiniteQuery?.isFetchedAfterMount, roomId]);
+    return () => {
+      if (timer)
+        clearTimeout(timer);
+    };
+  }, [roomContext.chatHistory?.loading]);
 
   /**
    * 消息选择
@@ -500,8 +489,8 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
             overscan={2000}
             ref={virtuosoRef}
             context={{
-              fetchNextPage: () => messagesInfiniteQuery?.fetchNextPage(),
-              isFetching: messagesInfiniteQuery?.isFetching || false,
+              // fetchNextPage: () => messagesInfiniteQuery?.fetchNextPage(),
+              // isFetching: messagesInfiniteQuery?.isFetching || false,
               isAtTopRef: isAtBottomRef,
             }}
             itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
@@ -510,7 +499,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
               isAtBottomRef.current = atBottom;
             }}
             atTopStateChange={(atTop) => {
-              (atTop) && fetchNextPage();
+              // (atTop) && fetchNextPage();
               isAtTopRef.current = atTop;
             }}
             components={{
@@ -521,11 +510,11 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
               enter: velocity => Math.abs(velocity) > 600, // 滚动速度阈值
               exit: velocity => Math.abs(velocity) < 50,
             }}
-            onWheel={(e) => {
-              if (e.deltaY < 0 && isAtTopRef.current) {
-                fetchNextPage();
-              }
-            }}
+            // onWheel={(e) => {
+            //   if (e.deltaY < 0 && isAtTopRef.current) {
+            //     fetchNextPage();
+            //   }
+            // }}
             atTopThreshold={1200}
             atBottomThreshold={200}
           />

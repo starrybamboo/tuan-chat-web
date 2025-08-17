@@ -1,9 +1,7 @@
 import type { UseChatHistoryReturn } from "@/components/chat/indexedDB/useChatHistory";
-import type { InfiniteData, UseInfiniteQueryResult } from "@tanstack/react-query";
 // src/context/chat-context.tsx
 import type React from "react";
 import type {
-  ApiResultCursorPageBaseResponseChatMessageResponse,
   Message,
   RoomMember,
   UserRole,
@@ -44,15 +42,6 @@ export interface RoomContextType {
   chatHistory?: UseChatHistoryReturn;
 
   /**
-   * 无限滚动查询结果
-   * 用于获取历史消息的分页数据
-   * 由于infiniteQuery是有状态的，不能重复定义，所以放在context中共享
-   */
-  messagesInfiniteQuery?: UseInfiniteQueryResult<
-    InfiniteData<ApiResultCursorPageBaseResponseChatMessageResponse, unknown>,
-    Error
-  >;
-  /**
    * 滚动到指定消息
    * @param messageId 消息ID
    */
@@ -70,6 +59,5 @@ export const RoomContext = createContext<RoomContextType>({
   spaceId: undefined,
   setReplyMessage: undefined,
   chatHistory: undefined,
-  messagesInfiniteQuery: undefined,
   scrollToGivenMessage: undefined,
 });
