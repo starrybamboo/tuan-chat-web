@@ -4,15 +4,12 @@ import HomeTab from "./profileTab/homeTab";
 import WorksTab from "./profileTab/worksTab";
 
 interface Props {
-  userId?: number;
+  userId: number;
 }
 /**
  * 个人主页的入口，这里是根据 导航栏的活跃按钮 来判断渲染什么组件，如主页，动态等等...
  */
 function ProfilePage({ userId }: Props) {
-  // 整个用户主页，都依赖这个用户Id
-  const finalUserId = userId ?? -1;
-
   const [activeTab, setActiveTab] = useState(0);
 
   const scrollToTop = () => {
@@ -27,7 +24,7 @@ function ProfilePage({ userId }: Props) {
     {
       id: 0,
       name: "主页",
-      component: <HomeTab userId={finalUserId} />,
+      component: <HomeTab userId={userId} />,
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
           <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
@@ -37,7 +34,7 @@ function ProfilePage({ userId }: Props) {
     {
       id: 1,
       name: "动态",
-      component: <ActivitiesTab userId={finalUserId} />,
+      component: <ActivitiesTab userId={userId} />,
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
@@ -47,7 +44,7 @@ function ProfilePage({ userId }: Props) {
     {
       id: 2,
       name: "作品",
-      component: <WorksTab userId={finalUserId} />,
+      component: <WorksTab userId={userId} />,
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
