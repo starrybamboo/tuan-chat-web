@@ -9,6 +9,13 @@ import { useParams } from "react-router";
 import FriendItem from "./FriendItem";
 
 export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDrawer: (isOpen: boolean) => void }) {
+  // 设置自定义样式
+  const customScrollbarStyle: React.CSSProperties = {
+    overflowY: "auto",
+    scrollbarWidth: "none",
+    msOverflowStyle: "none",
+  };
+
   const globalContext = useGlobalContext();
   const userId = globalContext.userId || -1;
   const webSocketUtils = globalContext.websocketUtils;
@@ -56,10 +63,18 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
     return sortedRealTimeMessages.map(([contactId]) => Number.parseInt(contactId));
   }, [sortedRealTimeMessages]);
 
+  // 更新未读消息 Readline 位置
+  function updateReadlinePosition() {
+
+  }
+
   return (
     <div className="flex flex-col h-full bg-base-100">
       {/* 私聊列表 */}
-      <div className="flex-1 w-full overflow-auto">
+      <div
+        className="flex-1 w-full"
+        style={customScrollbarStyle} // 应用自定义滚动条样式
+      >
         <div className="w-full h-8 font-bold flex items-start justify-center border-b border-base-300">
           <span className="text-lg transform -translate-y-0.5">私信</span>
         </div>
@@ -80,7 +95,6 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
               )
             : (
                 <>
-                  私聊列表
                   {/* 显示私聊列表 */}
                   <div className="p-2 pt-4 flex flex-col gap-2">
                     {
@@ -88,22 +102,27 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
                         <FriendItem
                           key={contactId}
                           id={contactId}
+                          unreadMessageNumber={getUnreadMessageNumber(sortedRealTimeMessages, contactId)}
                           currentContactUserId={currentContactUserId}
                           setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                          updateReadlinePosition={updateReadlinePosition}
                         />
                       ))
                     }
                   </div>
-                  好友列表
+
                   {/* 显示静态的好友列表，不会有消息提示 */}
+                  好友列表
                   <div className="p-2 pt-4 flex flex-col gap-2">
                     {
                       friends.map(friend => (
                         <FriendItem
                           key={friend.userId}
                           id={friend.userId || -1}
+                          unreadMessageNumber={0}
                           currentContactUserId={currentContactUserId}
                           setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                          updateReadlinePosition={updateReadlinePosition}
                         />
                       ))
                     }
@@ -133,4 +152,12 @@ function mergeMessages(
     mergedMessages.set(contactId, [...historyMessages, ...wsContactMessages]);
   }
   return Object.fromEntries(mergedMessages);
+}
+
+function getUnreadMessageNumber(sortedRealTimeMessages: Array<[string, MessageDirectResponse[]]>, contactId: number) {
+  const targetArray = sortedRealTimeMessages.find(([id]) => Number.parseInt(id) === contactId);
+  const messages = targetArray ? targetArray[1] : [];
+  const targetMessages = messages.filter(msg => msg.senderId !== contactId);
+  const unreadCount = targetMessages.findIndex(msg => msg.messageType === 10000);
+  return unreadCount > 0 ? unreadCount : 0;
 }
