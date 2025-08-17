@@ -964,7 +964,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   </div>
                 </div>
                 <div className="flex gap-2 items-stretch">
-                  <div className="dropdown dropdown-top flex-shrink-0">
+                  <div className="dropdown dropdown-top flex-shrink-0 max-w-10 md:max-w-14 ">
                     <div role="button" tabIndex={0} className="">
                       <div
                         className="tooltip flex justify-center flex-col items-center space-y-2"
@@ -978,7 +978,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                           stopPopWindow={true}
                           alt="无可用头像"
                         />
-                        <div className="text-xs whitespace-nowrap truncate">
+                        <div className="text-xs truncate w-full">
                           {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
                         </div>
                       </div>
