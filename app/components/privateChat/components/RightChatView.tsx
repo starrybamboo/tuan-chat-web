@@ -1,11 +1,13 @@
 import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
+import type { UserFollowResponse } from "api/models/UserFollowResponse";
 import type { DirectMessageEvent } from "api/wsModels";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ChevronRight } from "@/icons";
-import { useGetMessageDirectPageQuery, useRecallMessageDirectMutation } from "api/hooks/MessageDirectQueryHooks";
+import { useGetFriendsUserInfoQuery, useGetMessageDirectPageQuery, useRecallMessageDirectMutation } from "api/hooks/MessageDirectQueryHooks";
+import { useGetUserFriendsQuery } from "api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "api/queryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { usePrivateMessageSender } from "../hooks/usePrivateMessageSender";
 import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
@@ -15,6 +17,13 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
   const userId = globalContext.userId || -1;
   const webSocketUtils = globalContext.websocketUtils;
   const PAGE_SIZE = 30; // 每页消息数量
+  const navigate = useNavigate();
+
+  // 获取并缓存好友列表
+  const followingQuery = useGetUserFriendsQuery(userId, { pageNo: 1, pageSize: 100 });
+  const friends: UserFollowResponse[] = useMemo(() => Array.isArray(followingQuery.data?.data?.list) ? followingQuery.data.data.list : [], [followingQuery.data]);
+  const friendUserQueries = useGetFriendsUserInfoQuery(friends.map(f => f.userId));
+  const friendUserInfos = friendUserQueries.map(f => f.data?.data);
 
   const { targetUserId: urlTargetUserId, roomId: urlRoomId } = useParams();
   // 当前联系人信息
@@ -176,24 +185,20 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
       onContextMenu={handleContextMenu}
       onClick={() => setContextMenu(null)}
     >
-      {/* 聊天顶部栏 */}
+      {/* 顶部信息栏 */}
       <div className="h-10 w-full bg-base-100 border-b border-base-300 flex items-center px-4 relative">
         <ChevronRight
           onClick={() => setIsOpenLeftDrawer(true)}
           className="size-6 sm:hidden"
         />
         <span className="text-center font-semibold line-clamp-1 absolute left-1/2 transform -translate-x-1/2">
-          {currentContactUserInfo ? `${currentContactUserInfo.username}` : "请选择联系人"}
+          {currentContactUserInfo ? `${currentContactUserInfo.username}` : "好友"}
         </span>
-        {/* <span className="absolute right-0 transform -translate-x-4">
-          <MoreMenu className="size-6 cursor-pointer rotate-90" />
-        </span> */}
       </div>
-
       {/* 聊天消息区域 */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 w-full overflow-auto p-4 relative"
+        className="flex-1 w-full overflow-auto p-4 relative bg-base-100"
       >
         {currentContactUserId
           ? (
@@ -232,8 +237,27 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
               </div>
             )
           : (
-              <div className="flex items-center justify-center w-full h-full text-gray-500">
-                快找小伙伴聊天吧💬
+              <div className="flex flex-col w-full h-full">
+                {
+                  friendUserInfos.map((friend) => {
+                    return (
+                      <div
+                        key={friend?.userId}
+                        className="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded-md border-t-2 border-base-300"
+                        onClick={() => navigate(`/chat/private/${friend?.userId}`)}
+                      >
+                        <img
+                          className="rounded-full"
+                          src={friend?.avatar}
+                          alt="FriendAvatar"
+                          width={40}
+                          height={40}
+                        />
+                        <span className="font-bold">{friend?.username}</span>
+                      </div>
+                    );
+                  })
+                }
               </div>
             )}
       </div>

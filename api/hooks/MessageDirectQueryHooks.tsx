@@ -129,3 +129,16 @@ export function useGetInboxMessagePageQuery() {
     staleTime: 300000
   });
 }
+
+/**
+ * 获取所有好友的用户信息
+ */
+export function useGetFriendsUserInfoQuery(friends: (number | undefined)[]) {
+  return useQueries({
+    queries: friends.map(friendId => ({
+      queryKey: ['getAllMyFriendsInfo', friendId],
+      queryFn: () => tuanchat.userController.getUserInfo(friendId || -1),
+      staleTime: 300000,
+    }))
+  });
+}

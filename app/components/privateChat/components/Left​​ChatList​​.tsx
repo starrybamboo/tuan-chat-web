@@ -1,9 +1,7 @@
 import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
-import type { UserFollowResponse } from "api/models/UserFollowResponse";
 import type { DirectMessageEvent } from "api/wsModels";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useGetInboxMessagePageQuery } from "api/hooks/MessageDirectQueryHooks";
-import { useGetUserFriendsQuery } from "api/hooks/userFollowQueryHooks";
 import { useMemo } from "react";
 import { useParams } from "react-router";
 import FriendItem from "./FriendItem";
@@ -17,14 +15,9 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   };
 
   const globalContext = useGlobalContext();
-  const userId = globalContext.userId || -1;
   const webSocketUtils = globalContext.websocketUtils;
   const { targetUserId: urlTargetUserId, roomId: urlRoomId } = useParams();
   const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : (urlTargetUserId ? Number.parseInt(urlTargetUserId) : null);
-
-  // 获取并缓存好友列表
-  const followingQuery = useGetUserFriendsQuery(userId, { pageNo: 1, pageSize: 100 });
-  const friends: UserFollowResponse[] = useMemo(() => Array.isArray(followingQuery.data?.data?.list) ? followingQuery.data.data.list : [], [followingQuery.data]);
 
   // 从消息信箱获取私聊列表
   const inboxQuery = useGetInboxMessagePageQuery();
@@ -82,52 +75,33 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
           ? (
               <div className="flex items-center justify-center h-32">
                 <span className="loading loading-spinner loading-md"></span>
-                <span className="ml-2">加载好友列表...</span>
+                <span className="ml-2">加载私聊列表...</span>
               </div>
             )
-          : friends.length === 0
+          : realTimeContacts.length === 0
             ? (
-          // 没有好友
+                // 私聊列表为空
                 <div className="flex flex-col items-center justify-center h-32 text-base-content/70">
-                  <span>暂无好友</span>
-                  <span className="text-sm">快去添加一些好友吧</span>
+                  <span>暂无私聊列表</span>
+                  <span className="text-sm">快去聊天吧</span>
                 </div>
               )
             : (
-                <>
-                  {/* 显示私聊列表 */}
-                  <div className="p-2 pt-4 flex flex-col gap-2">
-                    {
-                      realTimeContacts.map(contactId => (
-                        <FriendItem
-                          key={contactId}
-                          id={contactId}
-                          unreadMessageNumber={getUnreadMessageNumber(sortedRealTimeMessages, contactId)}
-                          currentContactUserId={currentContactUserId}
-                          setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                          updateReadlinePosition={updateReadlinePosition}
-                        />
-                      ))
-                    }
-                  </div>
-
-                  {/* 显示静态的好友列表，不会有消息提示 */}
-                  好友列表
-                  <div className="p-2 pt-4 flex flex-col gap-2">
-                    {
-                      friends.map(friend => (
-                        <FriendItem
-                          key={friend.userId}
-                          id={friend.userId || -1}
-                          unreadMessageNumber={0}
-                          currentContactUserId={currentContactUserId}
-                          setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                          updateReadlinePosition={updateReadlinePosition}
-                        />
-                      ))
-                    }
-                  </div>
-                </>
+                // 显示私聊列表
+                <div className="p-2 pt-4 flex flex-col gap-2">
+                  {
+                    realTimeContacts.map(contactId => (
+                      <FriendItem
+                        key={contactId}
+                        id={contactId}
+                        unreadMessageNumber={getUnreadMessageNumber(sortedRealTimeMessages, contactId)}
+                        currentContactUserId={currentContactUserId}
+                        setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                        updateReadlinePosition={updateReadlinePosition}
+                      />
+                    ))
+                  }
+                </div>
               )}
       </div>
     </div>
