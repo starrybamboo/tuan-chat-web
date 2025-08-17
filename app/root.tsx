@@ -51,6 +51,7 @@ const queryClient = new QueryClient(
     defaultOptions: {
       queries: {
         retry: 2, // 请求失败重试次数
+        staleTime: 1000 * 60 * 5,
       },
     },
   },

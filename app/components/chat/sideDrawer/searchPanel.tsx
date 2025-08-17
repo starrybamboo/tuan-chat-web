@@ -1,9 +1,11 @@
+import type { RoleResponse } from "../../../../api";
 import { RoomContext } from "@/components/chat/roomContext";
 import SearchedMessage from "@/components/chat/smallComponents/searchedMessage";
+import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { SearchFilled } from "@/icons";
 import { useDebounce } from "ahooks";
-import { use, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 
 export default function SearchPanel() {
   const roomContext = use(RoomContext);
@@ -12,17 +14,37 @@ export default function SearchPanel() {
   const [_, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
 
   const [searchText, setSearchText] = useState<string>("");
-  const debouncedSearchText = useDebounce<string>(searchText, { wait: 500 });
+  const debouncedSearchText = useDebounce<string>(searchText, { wait: 1000 });
+
+  const [roles, setRoles] = useState<RoleResponse[]>([]);
+  const getRoleSmartly = useGetRoleSmartly();
+  useEffect(() => {
+    const getAllRoles = async () => {
+      for (const msg of historyMessages) {
+        if (roles.find(r => r.roleId === msg.message.roleId))
+          return;
+        const role = await getRoleSmartly(msg.message.roleId);
+        if (!role)
+          return;
+        setRoles(prev => [...prev, role]);
+      }
+    };
+    getAllRoles();
+  }, [historyMessages]);
+
   const searchResult = useMemo(() => {
     if (!debouncedSearchText || debouncedSearchText.length === 0)
       return [];
     return historyMessages.filter(message =>
-      message.message.content.includes(debouncedSearchText));
-  }, [historyMessages, debouncedSearchText]);
+      message.message.content.includes(debouncedSearchText)
+      || roles.find(role => role.roleId === message.message.roleId)
+        ?.roleName
+        ?.includes(debouncedSearchText));
+  }, [debouncedSearchText, historyMessages, roles]);
 
   return (
-    <div className="w-full h-full flex flex-col bg-base-200 p-4 gap-4">
-      <div className="flex flex-col gap-2">
+    <div className="w-full h-full flex flex-col bg-base-200 py-4 gap-4">
+      <div className="flex flex-col gap-2 px-4">
         <h2 className="text-xl font-semibold text-base-content">搜索聊天记录</h2>
         <input
           type="text"
@@ -42,7 +64,7 @@ export default function SearchPanel() {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-4">
+      <div className="flex-1 overflow-y-auto">
         {searchResult.length > 0
           ? (
               searchResult.map(message => (
@@ -54,6 +76,7 @@ export default function SearchPanel() {
                     roomContext.scrollToGivenMessage && roomContext.scrollToGivenMessage(message.message.messageID);
                     setSideDrawerState("none");
                   }}
+                  className="px-4 py-2 border-b-1 border-base-content/15"
                 >
                 </SearchedMessage>
               ))

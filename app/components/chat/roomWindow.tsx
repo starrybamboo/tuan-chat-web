@@ -832,7 +832,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             </div>
             <div
               className="tooltip tooltip-bottom hover:text-info"
-              data-tip="搜索聊天记录"
+              data-tip="搜索"
               onClick={() => setSideDrawerState(sideDrawerState === "search" ? "none" : "search")}
             >
               <SearchFilled className="size-7"></SearchFilled>

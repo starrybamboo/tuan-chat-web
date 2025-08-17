@@ -29,19 +29,24 @@ export default function SearchedMessage({
   message,
   keyword,
   onClick,
+  className,
 }: {
   message: ChatMessageResponse;
   keyword: string;
   onClick?: () => void;
+  className?: string;
 }) {
   const useRoleRequest = useGetRoleQuery(message.message.roleId);
   const role = useRoleRequest.data?.data;
   return (
-    <div className="flex flex-col hover:bg-base-300/70 rounded-lg transition-colors" onClick={onClick}>
+    <div className={`flex flex-col hover:bg-base-300 transition-colors ${className}`} onClick={onClick}>
       <div className="flex items-center gap-2">
         <RoleAvatarComponent avatarId={message.message.avatarId} width={8} isRounded={true} stopPopWindow withTitle={true}></RoleAvatarComponent>
         <div className="font-medium text-sm">
-          {role?.roleName}
+          <HighlightText
+            text={role?.roleName ?? ""}
+            keyword={keyword}
+          />
           <span className="text-xs opacity-70 ml-2">
             {new Date(message.message.createTime || "").toLocaleString()}
           </span>
