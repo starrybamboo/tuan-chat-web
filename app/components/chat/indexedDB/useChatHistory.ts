@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { Message } from "../../../../api";
+import type { ChatMessageResponse, Message } from "../../../../api";
 
 import {
   addOrUpdateMessagesBatch as dbAddOrUpdateMessages,
@@ -9,7 +9,7 @@ import {
 } from "./chatHistoryDb";
 
 export type UseChatHistoryReturn = {
-  messages: Message[];
+  messages: ChatMessageResponse[];
   loading: boolean;
   error: Error | null;
   addOrUpdateMessage: (message: Message) => Promise<void>;
@@ -21,7 +21,11 @@ export type UseChatHistoryReturn = {
  * @param roomId 要管理的房间ID
  */
 export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messagesRaw, setMessages] = useState<Message[]>([]);
+  const messages = useMemo(() =>
+    messagesRaw
+      .filter(msg => msg.status !== 1)
+      .map((msg) => { return { message: msg }; }), [messagesRaw]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -64,7 +68,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       if (roomId === null || newMessages.length === 0)
         return;
 
-      // 1. 优化UI更新逻辑
+      // 1. 先更新UI·
       setMessages((prevMessages) => {
         const messageMap = new Map(prevMessages.map(msg => [msg.messageID, msg]));
         newMessages.forEach(msg => messageMap.set(msg.messageID, msg));
@@ -80,7 +84,6 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       catch (err) {
         setError(err as Error);
         console.error(`Failed to batch save messages for room ${roomId}:`, err);
-        // 可选：添加保存失败的回滚或错误提示逻辑
       }
     },
     [roomId],

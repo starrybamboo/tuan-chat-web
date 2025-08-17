@@ -1,9 +1,9 @@
+import type { UseChatHistoryReturn } from "@/components/chat/indexedDB/useChatHistory";
 import type { InfiniteData, UseInfiniteQueryResult } from "@tanstack/react-query";
 // src/context/chat-context.tsx
 import type React from "react";
 import type {
   ApiResultCursorPageBaseResponseChatMessageResponse,
-  ChatMessageResponse,
   Message,
   RoomMember,
   UserRole,
@@ -39,11 +39,9 @@ export interface RoomContextType {
   setReplyMessage?: React.Dispatch<React.SetStateAction<Message | undefined>>;
 
   /**
-   * 历史消息列表
-   * 包含通过HTML请求获取的消息和WebSocket接收的新消息
-   * 已按照位置(pos)排序
+   * 历史消息
    */
-  historyMessages?: ChatMessageResponse[];
+  chatHistory?: UseChatHistoryReturn;
 
   /**
    * 无限滚动查询结果
@@ -71,7 +69,7 @@ export const RoomContext = createContext<RoomContextType>({
   useChatBubbleStyle: false,
   spaceId: undefined,
   setReplyMessage: undefined,
-  historyMessages: [],
+  chatHistory: undefined,
   messagesInfiniteQuery: undefined,
   scrollToGivenMessage: undefined,
 });

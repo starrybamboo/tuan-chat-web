@@ -193,11 +193,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
    * 获取历史消息
    */
   const chatHistory = useChatHistory(roomId);
+  const historyMessages: ChatMessageResponse[] = chatHistory.messages;
   const maxSyncId = useMemo(() => {
     if (!chatHistory.messages || chatHistory.messages.length === 0) {
       return -1;
     }
-    return (Math.max(...chatHistory.messages.map(msg => msg.syncId)) ?? 0);
+    return (Math.max(...chatHistory.messages.map(msg => msg.message.syncId)) ?? 0);
   }, [chatHistory.messages, roomId]);
   useEffect(() => {
     if (chatHistory.loading)
@@ -216,12 +217,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         .map(msg => msg.message),
     );
   }, [receivedMessages]);
-  // 合并所有分页消息 同时更新重复的消息
-  const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    return chatHistory.messages
-      .filter(msg => msg.status !== 1)
-      .map((msg) => { return { message: msg, messageMark: [] }; });
-  }, [chatHistory.messages]);
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollToGivenMessage = useCallback((messageId: number) => {
@@ -253,10 +248,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       useChatBubbleStyle,
       spaceId,
       setReplyMessage,
-      historyMessages,
+      chatHistory,
       scrollToGivenMessage,
     };
-  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarIndex, useChatBubbleStyle, spaceId, historyMessages, scrollToGivenMessage]);
+  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarIndex, useChatBubbleStyle, spaceId, scrollToGivenMessage]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
   /**
    * 当群聊角色列表更新时, 自动设置为第一个角色

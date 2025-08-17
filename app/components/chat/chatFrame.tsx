@@ -93,8 +93,8 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    * cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
    */
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    return roomContext.historyMessages ?? [];
-  }, [roomContext.historyMessages]);
+    return roomContext.chatHistory?.messages ?? [];
+  }, [roomContext.chatHistory?.messages]);
   const messagesInfiniteQuery = roomContext.messagesInfiniteQuery;
   const fetchNextPage = () => {
     if (messagesInfiniteQuery?.hasNextPage && !messagesInfiniteQuery?.isFetching) {
@@ -440,7 +440,6 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
             </div>
           )
         }
-
         <ChatBubble chatMessageResponse={chatMessageResponse} />
       </div>
     )
