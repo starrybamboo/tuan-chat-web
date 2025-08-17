@@ -6,9 +6,9 @@ import { PopWindow } from "@/components/common/popWindow";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import EditProfileWindow from "@/components/profile/editProfileWindow";
-import GNSSpiderChart from "@/components/profile/module/GNSSpiderChart";
-import ScCurrencyDisplay from "@/components/profile/module/ScCurrencyDisplay";
+import GNSSpiderChart from "@/components/profile/cards/GNSSpiderChart";
+import ScCurrencyDisplay from "@/components/profile/cards/ScCurrencyDisplay";
+import EditProfilePop from "@/components/profile/popWindows/editProfilePop";
 import React, { useState } from "react";
 import { Link } from "react-router";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../../api/hooks/userFollowQueryHooks";
@@ -438,7 +438,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
       </div>
 
       <PopWindow isOpen={isEditWindowOpen} fullScreen={true} onClose={() => setIsEditWindowOpen(false)}>
-        <EditProfileWindow onClose={() => setIsEditWindowOpen(false)}></EditProfileWindow>
+        <EditProfilePop onClose={() => setIsEditWindowOpen(false)}></EditProfilePop>
       </PopWindow>
       <PopWindow
         isOpen={isFFWindowOpen}

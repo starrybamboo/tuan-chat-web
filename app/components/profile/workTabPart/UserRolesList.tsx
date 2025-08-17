@@ -1,6 +1,6 @@
 import Pagination from "@/components/common/pagination";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { UserRoleCard } from "@/components/profile/module/userRoleCard";
+import { UserRoleCard } from "@/components/profile/cards/userRoleCard";
 import { Link } from "react-router";
 
 interface UserRolesListProps {
