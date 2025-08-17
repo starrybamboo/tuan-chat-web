@@ -1,20 +1,14 @@
 import type { commandModeType } from "@/components/chat/commandPanel";
 import type { RoomContextType } from "@/components/chat/roomContext";
-
 import type { LLMProperty } from "@/components/settings/settingsPage";
 import type { VirtuosoHandle } from "react-virtuoso";
-import type {
-  ChatMessagePageRequest,
-  ChatMessageRequest,
-  ChatMessageResponse,
-  Message,
-  RoomMember,
-  UserRole,
-} from "../../../api";
+
+import type { ChatMessageRequest, ChatMessageResponse, Message, RoomMember, UserRole } from "../../../api";
 import type { ChatStatusEvent } from "../../../api/wsModels";
 import ChatFrame from "@/components/chat/chatFrame";
 import CommandPanel from "@/components/chat/commandPanel";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
+import { useChatHistory } from "@/components/chat/indexedDB/useChatHistory";
 import DNDMap from "@/components/chat/map/DNDMap";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
@@ -57,7 +51,6 @@ import { getImageSize } from "@/utils/getImgSize";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
-import { useInfiniteQuery } from "@tanstack/react-query";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
@@ -68,12 +61,9 @@ import {
   useGetSpaceInfoQuery,
 } from "../../../api/hooks/chatQueryHooks";
 import { tuanchat } from "../../../api/instance";
-import {
-  useGetRoleAvatarsQuery,
-  useGetUserRolesQuery,
-} from "../../../api/queryHooks";
+import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
 
-const PAGE_SIZE = 50; // 每页消息数量
+// const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
   const spaceContext = use(SpaceContext);
 
@@ -201,49 +191,37 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   /**
    * 获取历史消息
-   * 分页获取消息
-   * cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
    */
-  // 你说的对，我什么要这里定义一个莫名奇妙的ref呢？因为该死的virtuoso不知道为什么，里面的函数指针会会指向一个旧的fetchNextPage，并不能随着重新渲染而更新。导致里面的cursor也是旧的。
-  // 定义这个ref只是为了绕开virtuoso这个问题的hack。
-  const cursorRef = useRef<number | undefined>(undefined);
+  const chatHistory = useChatHistory(roomId);
+  const maxSyncId = useMemo(() => {
+    if (!chatHistory.messages || chatHistory.messages.length === 0) {
+      return -1;
+    }
+    return (Math.max(...chatHistory.messages.map(msg => msg.syncId)) ?? 0);
+  }, [chatHistory.messages, roomId]);
   useEffect(() => {
-    cursorRef.current = undefined;
-  }, [spaceId]);
-  const messagesInfiniteQuery = useInfiniteQuery({
-    queryKey: ["getMsgPage", roomId],
-    queryFn: async ({ pageParam }) => {
-      const result = await tuanchat.chatController.getMsgPage(pageParam);
-      cursorRef.current = result.data?.cursor;
-      return result;
-    },
-    getNextPageParam: (lastPage) => {
-      if (lastPage.data === undefined || lastPage.data?.isLast) {
-        return undefined;
-      }
-      else {
-        const params: ChatMessagePageRequest = { roomId, pageSize: PAGE_SIZE, cursor: cursorRef.current };
-        return params;
-      }
-    },
-    initialPageParam: { roomId, pageSize: PAGE_SIZE, cursor: undefined } as unknown as ChatMessagePageRequest,
-    refetchOnWindowFocus: false,
-    staleTime: Infinity,
-  });
-  const receivedMessages = useMemo(() => webSocketUtils.receivedMessages[roomId] ?? [], [roomId, webSocketUtils.receivedMessages]);
+    if (chatHistory.loading)
+      return;
+    const fetchNewestMessages = async () => {
+      const messages = await tuanchat.chatController.getHistoryMessages({ roomId, syncId: maxSyncId + 1 });
+      await chatHistory.addOrUpdateMessages(messages.data?.map(msg => msg.message) ?? []);
+    };
+    fetchNewestMessages();
+  }, [roomId, chatHistory.loading]);
+
+  const receivedMessages = webSocketUtils.receivedMessages[roomId] ?? [];
+  useEffect(() => {
+    chatHistory.addOrUpdateMessages(
+      receivedMessages.filter(msg => msg.message.syncId > maxSyncId)
+        .map(msg => msg.message),
+    );
+  }, [receivedMessages]);
   // 合并所有分页消息 同时更新重复的消息
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    const historyMessages = (messagesInfiniteQuery.data?.pages.reverse().flatMap(p => p.data?.list ?? []) ?? []);
-    const messageMap = new Map<number, ChatMessageResponse>();
-    // 这是为了更新历史消息(ws发过来的消息有可能是带有相同的messageId的, 代表消息的更新)
-    historyMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
-    receivedMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
-    return Array.from(messageMap.values())
-      .sort((a, b) => a.message.position - b.message.position)
-    // 过滤掉删除的消息和不符合规则的消息
-      .filter(msg => msg.message.status !== 1);
-    // .reverse();
-  }, [receivedMessages, messagesInfiniteQuery.data?.pages]);
+    return chatHistory.messages
+      .filter(msg => msg.status !== 1)
+      .map((msg) => { return { message: msg, messageMark: [] }; });
+  }, [chatHistory.messages]);
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollToGivenMessage = useCallback((messageId: number) => {
@@ -276,10 +254,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       spaceId,
       setReplyMessage,
       historyMessages,
-      messagesInfiniteQuery,
       scrollToGivenMessage,
     };
-  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarIndex, useChatBubbleStyle, spaceId, historyMessages, messagesInfiniteQuery, scrollToGivenMessage]);
+  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarIndex, useChatBubbleStyle, spaceId, historyMessages, scrollToGivenMessage]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
   /**
    * 当群聊角色列表更新时, 自动设置为第一个角色
