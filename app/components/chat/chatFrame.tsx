@@ -264,10 +264,10 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     let topMessageIndex: number = targetIndex;
     let bottomMessageIndex: number = targetIndex + 1;
     while (selectedMessageIds.has(historyMessages[topMessageIndex]?.message.messageID)) {
-      topMessageIndex++;
+      topMessageIndex--;
     }
     while (selectedMessageIds.has(historyMessages[bottomMessageIndex]?.message.messageID)) {
-      bottomMessageIndex--;
+      bottomMessageIndex++;
     }
     const topMessagePosition = historyMessages[topMessageIndex]?.message.position
       ?? historyMessages[0].message.position - 1;
