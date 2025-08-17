@@ -243,7 +243,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
         }
         if (setCopperedDownloadUrl) {
           const copperedImgFile = await getCopperedImg();
-          copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, scene, 70, 768);
+          copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, scene, 60, 512);
           setCopperedDownloadUrl(copperedDownloadUrl);
         }
         if (mutate !== undefined) {

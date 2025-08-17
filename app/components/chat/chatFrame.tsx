@@ -70,6 +70,10 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   const deleteMessageMutation = useDeleteMessageMutation();
   const publishFeedMutation = usePublishFeedMutation();
   const updateMessageMutation = useUpdateMessageMutation();
+  const updateMessage = (message: Message) => {
+    updateMessageMutation.mutate(message);
+    roomContext.chatHistory?.addOrUpdateMessage(message);
+  };
 
   // 获取用户自定义表情列表
   const { data: emojisData } = useGetUserEmojisQuery();
@@ -181,7 +185,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     const message = historyMessages.find(m => m.message.messageID === messageId)?.message;
     if (!message || !message.extra?.imageMessage)
       return;
-    updateMessageMutation.mutate({
+    updateMessage({
       ...message,
       extra: { imageMessage: {
         ...message.extra.imageMessage,
@@ -277,7 +281,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
 
     for (const selectedMessage of selectedMessages) {
       const index = selectedMessages.indexOf(selectedMessage);
-      updateMessageMutation.mutate({
+      updateMessage({
         ...selectedMessage,
         position: (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1) * (index + 1) + topMessagePosition,
       });
