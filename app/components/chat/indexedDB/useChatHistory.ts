@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { ChatMessageResponse, Message } from "../../../../api";
 
+import { tuanchat } from "../../../../api/instance";
 import {
   addOrUpdateMessagesBatch as dbAddOrUpdateMessages,
   clearMessagesByRoomId as dbClearMessages,
@@ -10,6 +11,7 @@ import {
 
 export type UseChatHistoryReturn = {
   messages: ChatMessageResponse[];
+  maxSyncId: number;
   loading: boolean;
   error: Error | null;
   addOrUpdateMessage: (message: Message) => Promise<void>;
@@ -22,42 +24,20 @@ export type UseChatHistoryReturn = {
  */
 export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   const [messagesRaw, setMessages] = useState<Message[]>([]);
-  const messages = useMemo(() =>
+  const messages: ChatMessageResponse[] = useMemo(() =>
     messagesRaw
       .filter(msg => msg.status !== 1)
       .map((msg) => { return { message: msg }; }), [messagesRaw]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // 初始加载聊天记录
-  useEffect(() => {
-    if (roomId === null) {
-      setMessages([]);
-      setLoading(false);
-      return;
-    };
-
-    let isMounted = true;
-    setLoading(true);
-
-    dbGetMessagesByRoomId(roomId)
-      .then((history) => {
-        if (isMounted)
-          setMessages(history);
-      })
-      .catch((err) => {
-        if (isMounted)
-          setError(err);
-      })
-      .finally(() => {
-        if (isMounted)
-          setLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [roomId]);
+  // 当前本地存储的消息的最大syncId
+  const maxSyncId = useMemo(() => {
+    if (!messages || messages.length === 0) {
+      return -1;
+    }
+    return Math.max(...messages.map(msg => msg.message.syncId));
+  }, [messages, roomId]);
 
   /**
    * 批量添加或更新消息到当前房间，并同步更新UI状态
@@ -68,7 +48,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       if (roomId === null || newMessages.length === 0)
         return;
 
-      // 1. 先更新UI·
+      // 先更新状态
       setMessages((prevMessages) => {
         const messageMap = new Map(prevMessages.map(msg => [msg.messageID, msg]));
         newMessages.forEach(msg => messageMap.set(msg.messageID, msg));
@@ -77,7 +57,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         return updatedMessages.sort((a, b) => a.position - b.position);
       });
 
-      // 2. 异步将消息批量存入数据库
+      // 异步将消息批量存入数据库
       try {
         await dbAddOrUpdateMessages(newMessages);
       }
@@ -118,8 +98,62 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     }
   }, [roomId]);
 
+  // 初始加载聊天记录
+  useEffect(() => {
+    if (roomId === null) {
+      setMessages([]);
+      setLoading(false);
+      return;
+    };
+
+    setLoading(true);
+    let isCancelled = false; // Flag to prevent state updates from stale effects
+
+    const loadAndFetch = async () => {
+      try {
+        // IndexedDB 加载本地历史记录
+        const localHistory = await dbGetMessagesByRoomId(roomId);
+        if (isCancelled)
+          return;
+        setMessages(localHistory);
+
+        const localMaxSyncId = localHistory.length > 0
+          ? Math.max(...localHistory.map(msg => msg.syncId))
+          : -1;
+
+        // 从服务器获取最新消息
+        const serverResponse = await tuanchat.chatController.getHistoryMessages({
+          roomId,
+          syncId: localMaxSyncId + 1,
+        });
+        if (isCancelled)
+          return;
+
+        const newMessages = serverResponse.data?.map(msg => msg.message) ?? [];
+        if (newMessages.length > 0) {
+          await addOrUpdateMessages(newMessages);
+        }
+      }
+      catch (err) {
+        if (!isCancelled) {
+          setError(err as Error);
+        }
+      }
+      finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    };
+    loadAndFetch();
+    return () => {
+      isCancelled = true;
+    };
+  }, [addOrUpdateMessages, roomId]);
+
   return {
     messages,
+    maxSyncId,
     loading,
     error,
     addOrUpdateMessage, // 用于单条消息
