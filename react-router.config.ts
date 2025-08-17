@@ -10,6 +10,7 @@ export default {
     "/chat",
     "/community",
     "/create",
+    "/activities",
     "/feed",
     "/module/create",
     "/role",
