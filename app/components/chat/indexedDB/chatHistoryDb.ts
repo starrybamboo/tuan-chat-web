@@ -9,7 +9,7 @@ const ROOM_ID_INDEX = "roomId_idx";
  */
 function openChatDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 2); // 版本号增加，以触发 onupgradeneeded
+    const request = indexedDB.open(DB_NAME, 3);
 
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
@@ -81,7 +81,7 @@ export async function getMessagesByRoomId(roomId: number): Promise<ChatMessageRe
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {
       // 获取后按 position 排序，确保消息顺序正确
-      const sortedMessages = request.result.sort((a, b) => a.messsage.position - b.message.position);
+      const sortedMessages = request.result.sort((a, b) => a.message.position - b.message.position);
       resolve(sortedMessages);
     };
     request.onerror = () => reject(request.error);
