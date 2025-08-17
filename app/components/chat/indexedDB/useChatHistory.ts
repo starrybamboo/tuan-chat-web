@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { ChatMessageResponse, Message } from "../../../../api";
+import type { ChatMessageResponse } from "../../../../api";
 
 import { tuanchat } from "../../../../api/instance";
 import {
@@ -14,8 +14,8 @@ export type UseChatHistoryReturn = {
   maxSyncId: number;
   loading: boolean;
   error: Error | null;
-  addOrUpdateMessage: (message: Message) => Promise<void>;
-  addOrUpdateMessages: (messages: Message[]) => Promise<void>;
+  addOrUpdateMessage: (message: ChatMessageResponse) => Promise<void>;
+  addOrUpdateMessages: (messages: ChatMessageResponse[]) => Promise<void>;
   clearHistory: () => Promise<void>;
 };
 /**
@@ -23,11 +23,7 @@ export type UseChatHistoryReturn = {
  * @param roomId 要管理的房间ID
  */
 export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
-  const [messagesRaw, setMessages] = useState<Message[]>([]);
-  const messages: ChatMessageResponse[] = useMemo(() =>
-    messagesRaw
-      .filter(msg => msg.status !== 1)
-      .map((msg) => { return { message: msg }; }), [messagesRaw]);
+  const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -44,17 +40,17 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
    * @param newMessages 要处理的消息数组
    */
   const addOrUpdateMessages = useCallback(
-    async (newMessages: Message[]) => {
+    async (newMessages: ChatMessageResponse[]) => {
       if (roomId === null || newMessages.length === 0)
         return;
 
       // 先更新状态
       setMessages((prevMessages) => {
-        const messageMap = new Map(prevMessages.map(msg => [msg.messageID, msg]));
-        newMessages.forEach(msg => messageMap.set(msg.messageID, msg));
+        const messageMap = new Map(prevMessages.map(msg => [msg.message.messageID, msg]));
+        newMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
         const updatedMessages = Array.from(messageMap.values());
         // 按 position 排序确保顺序
-        return updatedMessages.sort((a, b) => a.position - b.position);
+        return updatedMessages.sort((a, b) => a.message.position - b.message.position);
       });
 
       // 异步将消息批量存入数据库
@@ -74,7 +70,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
    * @param message 要处理的单条消息
    */
   const addOrUpdateMessage = useCallback(
-    async (message: Message) => {
+    async (message: ChatMessageResponse) => {
       if (roomId === null)
         return;
       // 调用批量处理函数
@@ -118,7 +114,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         setMessages(localHistory);
 
         const localMaxSyncId = localHistory.length > 0
-          ? Math.max(...localHistory.map(msg => msg.syncId))
+          ? Math.max(...localHistory.map(msg => msg.message.syncId))
           : -1;
 
         // 从服务器获取最新消息
@@ -129,7 +125,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         if (isCancelled)
           return;
 
-        const newMessages = serverResponse.data?.map(msg => msg.message) ?? [];
+        const newMessages = serverResponse.data ?? [];
         if (newMessages.length > 0) {
           await addOrUpdateMessages(newMessages);
         }

@@ -72,7 +72,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   const updateMessageMutation = useUpdateMessageMutation();
   const updateMessage = (message: Message) => {
     updateMessageMutation.mutate(message);
-    roomContext.chatHistory?.addOrUpdateMessage(message);
+    roomContext.chatHistory?.addOrUpdateMessage({ message });
   };
 
   // 获取用户自定义表情列表
@@ -93,8 +93,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   const receivedMessages = useMemo(() => webSocketUtils.receivedMessages[roomId] ?? [], [roomId, webSocketUtils.receivedMessages]);
   useEffect(() => {
     chatHistory?.addOrUpdateMessages(
-      receivedMessages.filter(msg => msg.message.syncId > chatHistory.maxSyncId)
-        .map(msg => msg.message),
+      receivedMessages.filter(msg => msg.message.syncId > chatHistory.maxSyncId),
     );
   }, [receivedMessages, roomId]);
 

@@ -1,4 +1,4 @@
-import type { Message } from "../../../../api";
+import type { ChatMessageResponse } from "../../../../api";
 
 const DB_NAME = "chatHistoryDB";
 const STORE_NAME = "messages";
@@ -17,7 +17,7 @@ function openChatDB(): Promise<IDBDatabase> {
 
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         // 创建新的对象存储，使用 messageID 作为主键
-        store = db.createObjectStore(STORE_NAME, { keyPath: "messageID" });
+        store = db.createObjectStore(STORE_NAME, { keyPath: "message.messageID" });
       }
       else {
         store = (event.target as any).transaction.objectStore(STORE_NAME);
@@ -26,7 +26,7 @@ function openChatDB(): Promise<IDBDatabase> {
       // 确保索引存在
       if (!store.indexNames.contains(ROOM_ID_INDEX)) {
         // 在 'roomId' 字段上创建索引，用于按房间查询
-        store.createIndex(ROOM_ID_INDEX, "roomId", { unique: false });
+        store.createIndex(ROOM_ID_INDEX, "message.roomId", { unique: false });
       }
     };
 
@@ -40,7 +40,7 @@ function openChatDB(): Promise<IDBDatabase> {
  * 如果消息的 messageID 已存在，则更新该消息；否则，插入新消息。
  * @param messages 要添加或更新的消息数组
  */
-export async function addOrUpdateMessagesBatch(messages: Message[]): Promise<void> {
+export async function addOrUpdateMessagesBatch(messages: ChatMessageResponse[]): Promise<void> {
   if (!messages || messages.length === 0) {
     return;
   }
@@ -71,7 +71,7 @@ export async function addOrUpdateMessagesBatch(messages: Message[]): Promise<voi
  * @param roomId 房间ID
  * @returns 返回一个Promise，解析为该房间的消息数组
  */
-export async function getMessagesByRoomId(roomId: number): Promise<Message[]> {
+export async function getMessagesByRoomId(roomId: number): Promise<ChatMessageResponse[]> {
   const db = await openChatDB();
   const transaction = db.transaction(STORE_NAME, "readonly");
   const store = transaction.objectStore(STORE_NAME);
@@ -81,7 +81,7 @@ export async function getMessagesByRoomId(roomId: number): Promise<Message[]> {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {
       // 获取后按 position 排序，确保消息顺序正确
-      const sortedMessages = request.result.sort((a, b) => a.position - b.position);
+      const sortedMessages = request.result.sort((a, b) => a.messsage.position - b.message.position);
       resolve(sortedMessages);
     };
     request.onerror = () => reject(request.error);
