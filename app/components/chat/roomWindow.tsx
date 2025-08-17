@@ -15,6 +15,7 @@ import { RoomContext } from "@/components/chat/roomContext";
 import InitiativeList from "@/components/chat/sideDrawer/initiativeList";
 import RoomRoleList from "@/components/chat/sideDrawer/roomRoleList";
 import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
+import SearchPanel from "@/components/chat/sideDrawer/searchPanel";
 import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
 import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
 import UserIdToName from "@/components/chat/smallComponents/userIdToName";
@@ -41,6 +42,7 @@ import {
   HexagonDice,
   MemberIcon,
   PointOnMapPerspectiveLinear,
+  SearchFilled,
   SendIcon,
   Setting,
   SparklesOutline,
@@ -175,7 +177,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [commandBrowseWindow, setCommandBrowseWindow] = useSearchParamsState<commandModeType>("commandPop", "none");
   const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
 
-  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "initiative" | "map">("rightSideDrawer", "none");
+  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
 
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useLocalStorage("useChatBubbleStyle", true);
 
@@ -800,7 +802,15 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         <div className="flex justify-between py-2 px-5 bg-base-100">
           <div className="flex gap-2">
             {getScreenSize() === "sm"
-              && <BaselineArrowBackIosNew className="size-7" onClick={spaceContext.toggleLeftDrawer}></BaselineArrowBackIosNew>}
+              && (
+                <BaselineArrowBackIosNew
+                  className="size-7"
+                  onClick={
+                    sideDrawerState === "none" ? spaceContext.toggleLeftDrawer : () => setSideDrawerState("none")
+                  }
+                >
+                </BaselineArrowBackIosNew>
+              )}
             <span className="text-center font-semibold text-lg line-clamp-1">{room?.name}</span>
           </div>
           <div className="line-clamp-1 flex-shrink-0">
@@ -843,6 +853,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
             >
               <GirlIcon className="size-7"></GirlIcon>
+            </div>
+            <div
+              className="tooltip tooltip-bottom hover:text-info"
+              data-tip="搜索聊天记录"
+              onClick={() => setSideDrawerState(sideDrawerState === "search" ? "none" : "search")}
+            >
+              <SearchFilled className="size-7"></SearchFilled>
             </div>
             {spaceContext.isSpaceOwner && (
               <Setting
@@ -1107,6 +1124,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           <OpenAbleDrawer isOpen={sideDrawerState === "map"} className="h-full overflow-auto z-20" overWrite>
             <div className="w-px bg-base-300"></div>
             <DNDMap></DNDMap>
+          </OpenAbleDrawer>
+          <OpenAbleDrawer isOpen={sideDrawerState === "search"} className="h-full overflow-auto z-20" overWrite>
+            <div className="w-px bg-base-300"></div>
+            <SearchPanel></SearchPanel>
           </OpenAbleDrawer>
         </div>
       </div>
