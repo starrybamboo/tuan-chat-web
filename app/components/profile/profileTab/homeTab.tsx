@@ -150,7 +150,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                 : (
                     <div className="flex-col">
                       <FollowButton userId={user?.userId || -1} />
-                      <Link to={`/privatechat/${userId}`} className="flex btn btn-sm btn-ghost mt-4 bg-base-100 border-gray-300">
+                      <Link to={`/chat/private/${userId}`} className="flex btn btn-sm btn-ghost mt-4 bg-base-100 border-gray-300">
                         <svg width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                           <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">
                             <rect width="20" height="16" x="2" y="4" rx="2"></rect>
@@ -269,7 +269,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
           {!userQuery.isLoading && user?.userId !== loginUserId && (
             <div className="flex-col w-full mt-4">
               <FollowButton userId={user?.userId || 0} className="w-full" />
-              <Link to={`/privatechat/${userId}`} className="flex w-full flex-shrink-0 mt-4">
+              <Link to={`/chat/private/${userId}`} className="flex w-full flex-shrink-0 mt-4">
                 <button
                   type="button"
                   className="btn flex border w-full border-gray-300 rounded-3 hover:text-primary transition-colors h-8 cursor-pointer"
@@ -419,7 +419,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             </div>
             {/* 右侧 - 用户 GNS 雷达图 */}
             <div className="mb-4">
-              <GNSSpiderChart />
+              <GNSSpiderChart userId={userId} />
             </div>
           </div>
           {/* 个人主页的Readme */}
@@ -429,9 +429,8 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
           </div>
         </div>
         {/* SC余额卡片 */}
-        {/* dark:from-gray-800 dark:to-gray-900 */}
         {loginUserId === userId && (
-          <div className="mt-8 rounded-xl p-5 shadow-lg opacity-90 relative overflow-hidden bg-gradient-to-r from-purple-500 to-indigo-600">
+          <div className="mt-8 rounded-xl p-5 shadow-lg opacity-90 relative overflow-hidden bg-gradient-to-r from-purple-500 to-indigo-600 dark:from-gray-800 dark:to-gray-900 transition-colors">
             {/* 装饰性背景元素 */}
             <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-indigo-500/20"></div>
             <div className="absolute top-0 right-0 w-32 h-32 bg-purple-300/10 rounded-full transform translate-x-1/2 -translate-y-1/2"></div>
