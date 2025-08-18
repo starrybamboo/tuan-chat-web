@@ -1,7 +1,7 @@
 import React from "react";
 
 /**
- * 热榜的卡片
+ * 热榜的卡片 - 纯内容组件，容器由父组件处理
  */
 export default function TrendingTopics() {
   const topics = [
@@ -13,32 +13,43 @@ export default function TrendingTopics() {
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+    <div className="space-y-2">
       <div className="flex items-center space-x-2 mb-4">
-        <h3 className="font-bold text-gray-900">热门话题</h3>
+        <h3 className="font-bold text-base-400 p-2">热门话题</h3>
       </div>
-      <div className="space-y-3">
-        {topics.map((topic, index) => (
-          <div key={topic.id} className="flex items-center justify-between hover:bg-gray-50 p-2 rounded-lg cursor-pointer transition-colors">
-            <div className="flex items-center space-x-3">
-              <span className="text-sm font-medium text-gray-400 w-4">{index + 1}</span>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium text-gray-900">
-                    #
-                    {topic.name}
-                  </span>
-                  {topic.isHot && <span>🔥</span>}
-                </div>
-                <span className="text-xs text-gray-500">
-                  {topic.posts}
-                  条动态
+      {topics.map((topic, index) => (
+        <div
+          key={topic.id}
+          className="flex items-center justify-between hover:bg-base-200 p-2 rounded-lg cursor-pointer transition-colors group"
+        >
+          <div className="flex items-center space-x-3">
+            <span
+              className={`text-sm font-medium w-4 text-center ${
+                index < 3 ? "text-primary font-bold" : "text-base-content/60"
+              }`}
+            >
+              {index + 1}
+            </span>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="font-medium text-base-content group-hover:text-primary transition-colors text-sm">
+                  #
+                  {topic.name}
                 </span>
+                {topic.isHot && (
+                  <span className="text-xs" role="img" aria-label="热门">
+                    🔥
+                  </span>
+                )}
               </div>
+              <span className="text-xs text-base-content/60">
+                {topic.posts.toLocaleString()}
+                条动态
+              </span>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
-};
+}
