@@ -114,7 +114,7 @@ export class MessageDirectControllerService {
     ): CancelablePromise<ApiResultCursorPageBaseResponseMessageDirectResponse> {
         return this.httpRequest.request({
             method: 'POST',
-            url: '/capi/message/direct/inbox/page',
+            url: '/capi/message/direct/inbox',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

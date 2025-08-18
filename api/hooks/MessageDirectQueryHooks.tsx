@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueries, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import type { UserFollowResponse } from "api/models/UserFollowResponse";
-import type { MessageDirectPageRequest, MessageDirectSendRequest } from "api";
+import type { MessageDirectPageRequest, MessageDirectReadUpdateRequest, MessageDirectRecallRequest, MessageDirectSendRequest } from "api";
 import { tuanchat } from "../instance";
 import { useMemo } from "react";
 
@@ -98,7 +98,7 @@ export function useSendMessageDirectMutation() {
 export function useRecallMessageDirectMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (messageId: number) => tuanchat.messageDirectController.recallMessage(messageId),
+    mutationFn: (messageId: MessageDirectRecallRequest) => tuanchat.messageDirectController.recallMessage(messageId),
     mutationKey: ["recallMessageDirect"],
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["getMessageDirectPage"] });
@@ -127,6 +127,22 @@ export function useGetInboxMessagePageQuery() {
     queryKey: ["getInboxMessagePage"],
     queryFn: () => tuanchat.messageDirectController.getInboxMessagePage("ANY_STRING"),
     staleTime: 300000
+  });
+}
+
+/**
+ * 更新私聊线消息
+ */
+export function useUpdateReadPositionMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (requestBody: MessageDirectReadUpdateRequest) => tuanchat.messageDirectController.updateReadPosition(requestBody),
+    mutationKey: ["updateReadPosition"],
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["getInboxMessagePage"] });
+      queryClient.invalidateQueries({ queryKey: ["directMessages", variables.targetUserId] });
+      queryClient.invalidateQueries({ queryKey: ["getMessageDirectPage"] });
+    }
   });
 }
 
