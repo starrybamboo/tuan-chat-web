@@ -253,6 +253,7 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
                           width={40}
                           height={40}
                         />
+                        <span>{friend?.userId}</span>
                         <span className="font-bold">{friend?.username}</span>
                       </div>
                     );

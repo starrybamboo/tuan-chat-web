@@ -32,10 +32,6 @@ const GlobalContext = createContext<GlobalContextType>({
     updateChatStatus(chatStatusEvent: ChatStatusEvent): void {
       console.error(`Function not implemented.${chatStatusEvent}`);
     },
-    unreadDirectMessagesNumber: {},
-    updateUnreadDirectMessagesNumber(senderId: number, newNumber: number): void {
-      console.error(`Function not implemented.${senderId}${newNumber}`);
-    },
   },
   setUserId: () => {},
 });
