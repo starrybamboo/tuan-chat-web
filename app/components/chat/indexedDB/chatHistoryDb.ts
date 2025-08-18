@@ -76,9 +76,7 @@ export async function getMessagesByRoomId(roomId: number): Promise<ChatMessageRe
 
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {
-      // 获取后按 position 排序，确保消息顺序正确
-      const sortedMessages = request.result.sort((a, b) => a.message.position - b.message.position);
-      resolve(sortedMessages);
+      resolve(request.result);
     };
     request.onerror = () => reject(request.error);
 

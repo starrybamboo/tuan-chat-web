@@ -11,6 +11,7 @@ import { EditableField } from "@/components/common/editableField";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { formatTimeSmartly } from "@/utils/dataUtil";
 import { useGetRoleQuery } from "api/queryHooks";
 import React, { use, useMemo } from "react";
 import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
@@ -146,6 +147,10 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     }
   }
 
+  const formattedTime = useMemo(() => {
+    return message.updateTime ? formatTimeSmartly(message.updateTime) : "未知时间";
+  }, [message.updateTime]);
+
   return (
     <div>
       {useChatBubbleStyle
@@ -165,11 +170,13 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 />
               </div>
               <div className="flex flex-col items-start">
-                <div
-                  className={`text-sm text-base-content/85 pb-1 cursor-pointer ${canEdit ? "hover:underline" : ""}`}
-                  onClick={handleRoleNameClick}
-                >
-                  {role?.roleName?.trim() || "Undefined"}
+                <div>
+                  <span onClick={handleRoleNameClick} className={`text-sm text-base-content/85 pb-1 cursor-pointer ${canEdit ? "hover:underline" : ""}`}>
+                    {role?.roleName?.trim() || "Undefined"}
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 pl-2">
+                    {formattedTime}
+                  </span>
                 </div>
                 <div
                   className="max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow bg-base-200 text-base"
@@ -204,6 +211,9 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                   {role?.roleName?.trim() || "Undefined"}
                 </div>
                 {renderedContent}
+                <div className="text-xs text-gray-500 dark:text-gray-400 pt-1">
+                  {formattedTime}
+                </div>
               </div>
             </div>
           )}
