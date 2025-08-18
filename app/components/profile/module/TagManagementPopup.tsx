@@ -15,7 +15,7 @@ interface TagManagementPopupProps {
   targetId?: number;
 }
 
-const TAG_CONTENT_MAX = 20; // 标签内容的最大字数，未来可能会往低了调
+const TAG_CONTENT_MAX = 16; // 标签内容的最大字数，未来可能会往低了调
 const MAX_TAGS = 8; // 最大标签数量
 
 export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
@@ -74,11 +74,12 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
       setErrorShakeKey(prev => prev + 1);
       return;
     }
+
     try {
       if (isEditMode && editingTagId !== null) {
         await updateTagMutation.mutateAsync({
           tagId: editingTagId,
-          // content: newTag, 后端暂时不支持更改内容
+          content: newTag,
           color: selectedColor,
         });
         if (setTags) {
@@ -90,7 +91,6 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
             ),
           );
         }
-
         // 不退出编辑模式，只清空输入
         setNewTag("");
         setEditingTagId(null);
@@ -143,7 +143,7 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
 
   // 编辑标签
   const handleEditTag = (tag: Tag) => {
-    setNewTag(tag.content ?? ""); // 目前不支持
+    setNewTag(tag.content ?? "");
     setSelectedColor(tag.color ?? "blue");
     setIsEditMode(true);
     setEditingTagId(tag.tagId ?? null);

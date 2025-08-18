@@ -419,7 +419,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             </div>
             {/* 右侧 - 用户 GNS 雷达图 */}
             <div className="mb-4">
-              <GNSSpiderChart />
+              <GNSSpiderChart userId={userId} />
             </div>
           </div>
           {/* 个人主页的Readme */}
@@ -429,9 +429,8 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
           </div>
         </div>
         {/* SC余额卡片 */}
-        {/* dark:from-gray-800 dark:to-gray-900 */}
         {loginUserId === userId && (
-          <div className="mt-8 rounded-xl p-5 shadow-lg opacity-90 relative overflow-hidden bg-gradient-to-r from-purple-500 to-indigo-600">
+          <div className="mt-8 rounded-xl p-5 shadow-lg opacity-90 relative overflow-hidden bg-gradient-to-r from-purple-500 to-indigo-600 dark:from-gray-800 dark:to-gray-900 transition-colors">
             {/* 装饰性背景元素 */}
             <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-indigo-500/20"></div>
             <div className="absolute top-0 right-0 w-32 h-32 bg-purple-300/10 rounded-full transform translate-x-1/2 -translate-y-1/2"></div>

@@ -1,6 +1,9 @@
 import { PopWindow } from "@/components/common/popWindow";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import GNSPreferenceEditor from "@/components/profile/module/GNSEditor";
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
+import { useGetGNSQuery, useUpsertGNSMutation } from "../../../../api/hooks/userGNSQuerryHooks";
 
 type RatingCategory = "Gamism" | "Narrativism" | "Simulationism";
 
@@ -10,13 +13,35 @@ interface Ratings {
   Simulationism: number;
 }
 
-function GNSSpiderChart() {
+interface GNSSpiderChartProps {
+  userId: number;
+}
+
+function GNSSpiderChart({ userId }: GNSSpiderChartProps) {
   const [ratings, setRatings] = useState<Ratings>({
-    Gamism: 3,
-    Narrativism: 2,
-    Simulationism: 4,
+    Gamism: 0,
+    Narrativism: 0,
+    Simulationism: 0,
   });
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const loginUserId = useGlobalContext().userId ?? -1;
+
+  // API hooks
+  const { data: gnsData, isLoading, error } = useGetGNSQuery(userId);
+  const upsertMutation = useUpsertGNSMutation();
+
+  // 初始化时从API加载数据
+  useEffect(() => {
+    if (gnsData?.data) {
+      const apiData = gnsData.data;
+      const loadedRatings = {
+        Gamism: Number(apiData.gameplayScore) || 0,
+        Narrativism: Number(apiData.narrativeScore) || 0,
+        Simulationism: Number(apiData.simulationScore) || 0,
+      };
+      setRatings(loadedRatings);
+    }
+  }, [gnsData]);
 
   const categories: RatingCategory[] = ["Gamism", "Narrativism", "Simulationism"];
   const categoryNames = {
@@ -29,11 +54,38 @@ function GNSSpiderChart() {
   const highlightedCategory = (Object.entries(ratings) as [RatingCategory, number][])
     .find(([_, value]) => value === maxRating)?.[0] || "";
 
-  const handleRatingChange = (category: RatingCategory, value: string) => {
-    setRatings(prev => ({
-      ...prev,
-      [category]: Number.parseInt(value, 10),
-    }));
+  // 检查是否所有评分都是0（未设置状态）
+  const isNotConfigured = !gnsData?.data || Object.values(ratings).every(rating => rating === 0);
+
+  const handleSaveChanges = async (newRatings: Ratings) => {
+    try {
+      const updateData = {
+        userId,
+        gameplayScore: newRatings.Gamism.toString(),
+        narrativeScore: newRatings.Narrativism.toString(),
+        simulationScore: newRatings.Simulationism.toString(),
+        preferenceDesc: gnsData?.data?.preferenceDesc || "",
+        isCreate: !gnsData?.data,
+      };
+
+      await upsertMutation.mutateAsync(updateData);
+
+      // 保存成功后更新本地状态并关闭编辑器
+      setRatings(newRatings);
+      setIsEditOpen(false);
+    }
+    catch (error) {
+      console.error("保存GNS偏好失败:", error);
+      // 这里可以添加错误提示
+    }
+  };
+
+  const handleOpenEditor = () => {
+    setIsEditOpen(true);
+  };
+
+  const handleCloseEditor = () => {
+    setIsEditOpen(false);
   };
 
   // 计算正三角形的顶点坐标
@@ -75,19 +127,128 @@ function GNSSpiderChart() {
     { x: 240, y: 220 }, // 右下
   ];
 
+  // 加载状态
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center p-6 rounded-lg shadow-md">
+        <div className="text-center">加载中...</div>
+      </div>
+    );
+  }
+
+  // 真正的错误状态（排除用户未设置的情况）
+  if (error && !isNotConfigured) {
+    return (
+      <div className="flex flex-col items-center p-6 rounded-lg shadow-md">
+        <div className="text-center text-red-500">加载失败，请稍后重试</div>
+      </div>
+    );
+  }
+
+  // 未配置状态的引导界面
+  if (isNotConfigured) {
+    // 只有登录用户本人才显示设置引导，其他人显示"未设置"状态
+    if (loginUserId === userId) {
+      return (
+        <div className="flex flex-col items-center p-4 rounded-lg shadow-md bg-gradient-to-br from-blue-50 to-indigo-50">
+          <div className="text-center mb-2">
+            <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">设置你的游戏偏好</h2>
+            <p className="text-gray-600 max-w-md">
+              还没有设置 GNS 偏好？立即设置来发现你的游戏风格！
+            </p>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 mb-4 shadow-sm">
+            <h3 className="font-semibold text-gray-700 mb-2">GNS 理论简介</h3>
+            <div className="space-y-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-red-400 rounded-full"></span>
+                <span>
+                  <strong>游戏性 (G)</strong>
+                  {" "}
+                  - 追求挑战、策略和竞争
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                <span>
+                  <strong>叙事性 (N)</strong>
+                  {" "}
+                  - 重视故事情节和角色发展
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                <span>
+                  <strong>模拟性 (S)</strong>
+                  {" "}
+                  - 享受真实感和沉浸体验
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleOpenEditor}
+            className="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors shadow-md font-medium"
+          >
+            开始设置 GNS 偏好
+          </button>
+
+          {/* 编辑弹窗 */}
+          <PopWindow isOpen={isEditOpen} onClose={handleCloseEditor}>
+            <GNSPreferenceEditor
+              initialRatings={ratings}
+              onSave={handleSaveChanges}
+              onCancel={handleCloseEditor}
+              isLoading={upsertMutation.isPending}
+            />
+          </PopWindow>
+        </div>
+      );
+    }
+    else {
+      // 查看其他用户的未设置状态
+      return (
+        <div className="flex flex-col items-center p-6 rounded-lg border border-gray-200 bg-gray-50">
+          <div className="text-center">
+            <div className="w-12 h-12 mx-auto mb-3 bg-gray-200 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-600 mb-2">暂未设置 GNS 偏好</h3>
+            {/* <p className="text-sm text-gray-500">该用户还没有设置游戏偏好</p> */}
+            <p className="text-sm text-gray-500">暂时无法获取其他用户游戏偏好，下个版本才能开始修</p>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // 已配置状态的雷达图
   return (
-    <div className="flex flex-col items-center p-6 rounded-lg shadow-md">
+    <div className="flex flex-col items-center p-6 rounded-lg border border-gray-200 hover:shadow-md duration-200">
       <div className="flex items-center gap-4 mb-4">
         <h1 className="text-xl font-bold text-center">
-          {highlightedCategory ? `${categoryNames[highlightedCategory]}玩家` : "GMS 三角图"}
+          {highlightedCategory ? `${categoryNames[highlightedCategory]}玩家` : "GNS 三角图"}
         </h1>
-        <button
-          type="button"
-          onClick={() => setIsEditOpen(true)}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-        >
-          编辑
-        </button>
+        {loginUserId === userId && (
+          <button
+            type="button"
+            onClick={handleOpenEditor}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm disabled:opacity-50 cursor-pointer duration-200"
+            disabled={upsertMutation.isPending}
+          >
+            编辑
+          </button>
+        )}
       </div>
 
       <div className="relative">
@@ -194,11 +355,12 @@ function GNSSpiderChart() {
       </div>
 
       {/* 编辑弹窗 */}
-      <PopWindow isOpen={isEditOpen} onClose={() => setIsEditOpen(false)}>
+      <PopWindow isOpen={isEditOpen} onClose={handleCloseEditor}>
         <GNSPreferenceEditor
-          ratings={ratings}
-          onRatingChange={handleRatingChange}
-          onClose={() => setIsEditOpen(false)}
+          initialRatings={ratings}
+          onSave={handleSaveChanges}
+          onCancel={handleCloseEditor}
+          isLoading={upsertMutation.isPending}
         />
       </PopWindow>
     </div>

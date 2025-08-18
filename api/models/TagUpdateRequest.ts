@@ -14,5 +14,9 @@ export type TagUpdateRequest = {
      * 标签颜色
      */
     color?: string;
+    /**
+     * 标签内容
+     * */
+    content?: string;
 };
 
