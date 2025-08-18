@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { ChatMessageResponse } from "../../../../api";
 
@@ -11,7 +11,6 @@ import {
 
 export type UseChatHistoryReturn = {
   messages: ChatMessageResponse[];
-  maxSyncId: number;
   loading: boolean;
   error: Error | null;
   addOrUpdateMessage: (message: ChatMessageResponse) => Promise<void>;
@@ -26,14 +25,6 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
-
-  // 当前本地存储的消息的最大syncId
-  const maxSyncId = useMemo(() => {
-    if (!messages || messages.length === 0) {
-      return -1;
-    }
-    return Math.max(...messages.map(msg => msg.message.syncId));
-  }, [messages, roomId]);
 
   /**
    * 批量添加或更新消息到当前房间，并同步更新UI状态
@@ -98,16 +89,13 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   /**
    * 从服务器全量获取最新的消息
    */
-  const fetchNewestMessages = async () => {
+  const fetchNewestMessages = async (maxSyncId: number) => {
     if (roomId === null)
       return;
-    const localMaxSyncId = messages.length > 0
-      ? Math.max(...messages.map(msg => msg.message.syncId))
-      : -1;
     // 从服务器获取最新消息
     const serverResponse = await tuanchat.chatController.getHistoryMessages({
       roomId,
-      syncId: localMaxSyncId + 1,
+      syncId: maxSyncId + 1,
     });
     const newMessages = serverResponse.data ?? [];
     if (newMessages.length > 0) {
@@ -135,7 +123,10 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         if (isCancelled)
           return;
         setMessages(localHistory);
-        await fetchNewestMessages();
+        const localMaxSyncId = localHistory.length > 0
+          ? Math.max(...messages.map(msg => msg.message.syncId))
+          : -1;
+        await fetchNewestMessages(localMaxSyncId);
       }
       catch (err) {
         if (!isCancelled) {
@@ -159,13 +150,15 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   // 监听页面状态, 如果重新页面处于可见状态，则尝试重新获取最新消息
   useEffect(() => {
     if (document.visibilityState === "visible") {
-      fetchNewestMessages();
+      const maxSyncId = messages.length > 0
+        ? Math.max(...messages.map(msg => msg.message.syncId))
+        : -1;
+      fetchNewestMessages(maxSyncId);
     }
   }, [documentVisibility]);
 
   return {
     messages,
-    maxSyncId,
     loading,
     error,
     addOrUpdateMessage, // 用于单条消息
