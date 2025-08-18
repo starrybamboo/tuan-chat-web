@@ -1184,8 +1184,8 @@ export function BarChartOutlineIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-// 柱状统计图标
-// 其他关键词：数据可视化，图表，分析，投票
+// 搜索图标（填充样式）
+// 其他关键词：查找，查询，放大镜，检索，搜索栏
 export function SearchFilled(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
