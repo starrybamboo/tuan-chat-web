@@ -9,25 +9,21 @@ const ROOM_ID_INDEX = "roomId_idx";
  */
 function openChatDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 3);
+    const request = indexedDB.open(DB_NAME, 5);
 
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
-      let store: IDBObjectStore;
 
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        // 创建新的对象存储，使用 messageID 作为主键
-        store = db.createObjectStore(STORE_NAME, { keyPath: "message.messageID" });
-      }
-      else {
-        store = (event.target as any).transaction.objectStore(STORE_NAME);
+      if (db.objectStoreNames.contains(STORE_NAME)) {
+        // 如果存在旧的 store，则删除重建以更新 keyPath 和索引
+        db.deleteObjectStore(STORE_NAME);
       }
 
-      // 确保索引存在
-      if (!store.indexNames.contains(ROOM_ID_INDEX)) {
-        // 在 'roomId' 字段上创建索引，用于按房间查询
-        store.createIndex(ROOM_ID_INDEX, "message.roomId", { unique: false });
-      }
+      // 创建新的对象存储，使用嵌套的 message.messageId 作为主键
+      const store = db.createObjectStore(STORE_NAME, { keyPath: "message.messageId" });
+
+      // 在 'message.roomId' 字段上创建索引
+      store.createIndex(ROOM_ID_INDEX, "message.roomId", { unique: false });
     };
 
     request.onsuccess = () => resolve(request.result);
@@ -37,7 +33,7 @@ function openChatDB(): Promise<IDBDatabase> {
 
 /**
  * 批量插入或更新消息。
- * 如果消息的 messageID 已存在，则更新该消息；否则，插入新消息。
+ * 如果消息的 messageId 已存在，则更新该消息；否则，插入新消息。
  * @param messages 要添加或更新的消息数组
  */
 export async function addOrUpdateMessagesBatch(messages: ChatMessageResponse[]): Promise<void> {

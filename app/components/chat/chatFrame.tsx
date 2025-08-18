@@ -91,11 +91,15 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
 
   // 监听 WebSocket 接收到的消息
   const receivedMessages = useMemo(() => webSocketUtils.receivedMessages[roomId] ?? [], [roomId, webSocketUtils.receivedMessages]);
+  // roomId ==> 上一次存储消息的时候的receivedMessages[roomId].length
+  const lastLengthMapRef = useRef<Record<number, number>>({});
   useEffect(() => {
-    chatHistory?.addOrUpdateMessages(
-      receivedMessages.filter(msg => msg.message.syncId > chatHistory.maxSyncId),
-    );
-  }, [receivedMessages, roomId]);
+    const lastLength = lastLengthMapRef.current[roomId] ?? 0;
+    if (lastLength < receivedMessages.length) {
+      chatHistory?.addOrUpdateMessages(receivedMessages.slice(lastLength));
+      lastLengthMapRef.current[roomId] = receivedMessages.length;
+    }
+  }, [chatHistory, receivedMessages, roomId]);
 
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     return roomContext.chatHistory?.messages ?? [];
@@ -161,7 +165,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
 
   const constructForwardRequest = (forwardRoomId: number) => {
     const forwardMessages = Array.from(selectedMessageIds)
-      .map(id => historyMessages.find(m => m.message.messageID === id))
+      .map(id => historyMessages.find(m => m.message.messageId === id))
       .filter((msg): msg is ChatMessageResponse => msg !== undefined);
     const forwardMessageRequest: ChatMessageRequest = {
       roomId: forwardRoomId,
@@ -181,7 +185,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     updateSelectedMessageIds(new Set());
   }
   function toggleBackground(messageId: number) {
-    const message = historyMessages.find(m => m.message.messageID === messageId)?.message;
+    const message = historyMessages.find(m => m.message.messageId === messageId)?.message;
     if (!message || !message.extra?.imageMessage)
       return;
     updateMessage({
@@ -214,7 +218,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
 
     // 发布feed
     const feedRequest: FeedRequest = {
-      messageId: forwardResult.data.messageID,
+      messageId: forwardResult.data.messageId,
       title: title || "default",
       description: description || "default",
     };
@@ -261,16 +265,16 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     messageIds: number[],
   ) => {
     const selectedMessages = Array.from(messageIds)
-      .map(id => historyMessages.find(m => m.message.messageID === id)?.message)
+      .map(id => historyMessages.find(m => m.message.messageId === id)?.message)
       .filter((msg): msg is Message => msg !== undefined)
       .sort((a, b) => a.position - b.position);
     // 寻找到不位于，messageIds中且离dropPosition最近的消息
     let topMessageIndex: number = targetIndex;
     let bottomMessageIndex: number = targetIndex + 1;
-    while (selectedMessageIds.has(historyMessages[topMessageIndex]?.message.messageID)) {
+    while (selectedMessageIds.has(historyMessages[topMessageIndex]?.message.messageId)) {
       topMessageIndex--;
     }
-    while (selectedMessageIds.has(historyMessages[bottomMessageIndex]?.message.messageID)) {
+    while (selectedMessageIds.has(historyMessages[bottomMessageIndex]?.message.messageId)) {
       bottomMessageIndex++;
     }
     const topMessagePosition = historyMessages[topMessageIndex]?.message.position
@@ -319,7 +323,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   const handleDragStart = useCallback ((e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.stopPropagation();
     e.dataTransfer.effectAllowed = "move";
-    dragStartMessageIdRef.current = historyMessages[index].message.messageID;
+    dragStartMessageIdRef.current = historyMessages[index].message.messageId;
     // 设置拖动预览图像
     const parent = e.currentTarget.parentElement!;
     let clone: HTMLElement;
@@ -427,17 +431,17 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    * @param chatMessageResponse
    */
   const renderMessage = (index: number, chatMessageResponse: ChatMessageResponse) => {
-    const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageID);
+    const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageId);
     const draggable = spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId;
     const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
     return ((
       <div
-        key={chatMessageResponse.message.messageID}
+        key={chatMessageResponse.message.messageId}
         className={`pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""}`}
-        data-message-id={chatMessageResponse.message.messageID}
+        data-message-id={chatMessageResponse.message.messageId}
         onClick={(e) => {
           if (isSelecting || e.ctrlKey) {
-            toggleMessageSelection(chatMessageResponse.message.messageID);
+            toggleMessageSelection(chatMessageResponse.message.messageId);
           }
         }}
         onDragOver={handleDragOver}
@@ -568,7 +572,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
       </PopWindow>
       {/* 右键菜单 */}
       {contextMenu && (() => {
-        const message = historyMessages.find(message => message.message.messageID === contextMenu.messageId);
+        const message = historyMessages.find(message => message.message.messageId === contextMenu.messageId);
         return (
           <div
             className="fixed bg-base-100 shadow-lg rounded-md z-50"
@@ -617,7 +621,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
                     <a onClick={(e) => {
                       e.preventDefault();
                       handleMoveMessages(
-                        historyMessages.findIndex(message => message.message.messageID === contextMenu.messageId),
+                        historyMessages.findIndex(message => message.message.messageId === contextMenu.messageId),
                         Array.from(selectedMessageIds),
                       );
                       closeContextMenu();

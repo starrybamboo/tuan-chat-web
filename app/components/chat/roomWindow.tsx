@@ -198,7 +198,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollToGivenMessage = useCallback((messageId: number) => {
-    const messageIndex = historyMessages.findIndex(m => m.message.messageID === messageId);
+    const messageIndex = historyMessages.findIndex(m => m.message.messageId === messageId);
     if (messageIndex >= 0) {
       virtuosoRef.current?.scrollToIndex(messageIndex);
     }
@@ -579,7 +579,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           content: inputText.trim(),
           avatarId: curAvatarId,
           messageType: 1,
-          replayMessageId: replyMessage?.messageID || undefined,
+          replayMessageId: replyMessage?.messageId || undefined,
           extra: {},
         };
         // 如果是命令，额外发送一条消息给骰娘

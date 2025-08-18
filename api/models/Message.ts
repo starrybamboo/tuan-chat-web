@@ -10,7 +10,7 @@ export type Message = {
     /**
      * 全局的ID，全局唯一，用于表示
      */
-    messageID: number;
+    messageId: number;
     /**
      * 用于确定用户发送的消息顺序，是万有一失的严格递增，session级别的Id
      */

@@ -230,17 +230,7 @@ export function useWebSocket() {
       // 把接受消息放到接收消息缓存列表里面
       updateReceivedMessages((draft) => {
         if (roomId in draft) {
-          // 查找已存在消息的索引
-          const existingIndex = draft[roomId].findIndex(
-            msg => msg.message.messageID === chatMessageResponse.message.messageID,
-          );
-          if (existingIndex !== -1) {
-            // 更新已存在的消息
-            draft[roomId][existingIndex] = chatMessageResponse;
-          }
-          else {
-            draft[roomId].push(chatMessageResponse);
-          }
+          draft[roomId].push(chatMessageResponse);
         }
         else {
           draft[roomId] = [chatMessageResponse];

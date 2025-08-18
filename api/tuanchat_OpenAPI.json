@@ -17168,7 +17168,7 @@
         "required": [
           "avatarId",
           "content",
-          "messageID",
+          "messageId",
           "messageType",
           "position",
           "roleId",
@@ -17179,7 +17179,7 @@
         ],
         "type": "object",
         "properties": {
-          "messageID": {
+          "messageId": {
             "type": "integer",
             "description": "全局的ID，全局唯一，用于表示",
             "format": "int64"

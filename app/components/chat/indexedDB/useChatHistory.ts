@@ -41,13 +41,14 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
    */
   const addOrUpdateMessages = useCallback(
     async (newMessages: ChatMessageResponse[]) => {
-      if (roomId === null || newMessages.length === 0)
+      if (newMessages.length === 0)
         return;
 
       // 先更新状态
       setMessages((prevMessages) => {
-        const messageMap = new Map(prevMessages.map(msg => [msg.message.messageID, msg]));
-        newMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
+        const messageMap = new Map(prevMessages.map(msg => [msg.message.messageId, msg]));
+        newMessages.filter(msg => msg.message.roomId === roomId)
+          .forEach(msg => messageMap.set(msg.message.messageId, msg));
         const updatedMessages = Array.from(messageMap.values());
         // 按 position 排序确保顺序
         return updatedMessages.sort((a, b) => a.message.position - b.message.position);
