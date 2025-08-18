@@ -124,7 +124,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
           return;
         setMessages(localHistory);
         const localMaxSyncId = localHistory.length > 0
-          ? Math.max(...messages.map(msg => msg.message.syncId))
+          ? Math.max(...localHistory.map(msg => msg.message.syncId))
           : -1;
         await fetchNewestMessages(localMaxSyncId);
       }

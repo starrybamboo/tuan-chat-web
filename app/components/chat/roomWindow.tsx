@@ -18,7 +18,6 @@ import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
 import SearchPanel from "@/components/chat/sideDrawer/searchPanel";
 import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
 import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
-import UserIdToName from "@/components/chat/smallComponents/userIdToName";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
@@ -801,18 +800,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                 </BaselineArrowBackIosNew>
               )}
             <span className="text-center font-semibold text-lg line-clamp-1">{room?.name}</span>
-          </div>
-          <div className="line-clamp-1 flex-shrink-0">
-            {
-              roomChatStatues
-                .filter(status => status.status === "input" && status.userId !== userId)
-                .map((status, index) => (
-                  <span key={status.userId}>
-                    <UserIdToName userId={status.userId} className="text-info"></UserIdToName>
-                    {index === roomChatStatues.length - 1 ? " 正在输入..." : ", "}
-                  </span>
-                ))
-            }
           </div>
           <div className="flex gap-2">
             <div
