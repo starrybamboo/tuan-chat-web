@@ -232,7 +232,7 @@ export function useWebSocket() {
         if (roomId in draft) {
           // 查找已存在消息的索引
           const existingIndex = draft[roomId].findIndex(
-            msg => msg.message.messageID === chatMessageResponse.message.messageID,
+            msg => msg.message.messageId === chatMessageResponse.message.messageId,
           );
           if (existingIndex !== -1) {
             // 更新已存在的消息

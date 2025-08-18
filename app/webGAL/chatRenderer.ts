@@ -147,7 +147,7 @@ export class ChatRenderer {
           continue;
         // 获取回复的消息
         const repliedMessage = message.replyMessageId
-          ? messages.find(m => m.message.messageID === message.replyMessageId)?.message
+          ? messages.find(m => m.message.messageId === message.replyMessageId)?.message
           : null;
         // 处理背景图片的消息
         if (message.messageType === 2) {

@@ -71,9 +71,9 @@ export default function SearchPanel() {
                 <SearchedMessage
                   message={message}
                   keyword={debouncedSearchText}
-                  key={message.message.messageID}
+                  key={message.message.messageId}
                   onClick={() => {
-                    roomContext.scrollToGivenMessage && roomContext.scrollToGivenMessage(message.message.messageID);
+                    roomContext.scrollToGivenMessage && roomContext.scrollToGivenMessage(message.message.messageId);
                     setSideDrawerState("none");
                   }}
                   className="px-4 py-2 border-b-1 border-base-content/15"
