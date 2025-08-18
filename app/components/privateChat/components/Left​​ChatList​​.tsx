@@ -1,8 +1,8 @@
 import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
 import type { DirectMessageEvent } from "api/wsModels";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { useGetInboxMessagePageQuery } from "api/hooks/MessageDirectQueryHooks";
-import { useMemo } from "react";
+import { useGetInboxMessagePageQuery, useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useParams } from "react-router";
 import FriendItem from "./FriendItem";
 
@@ -18,6 +18,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   const userId = globalContext.userId || -1;
   const webSocketUtils = globalContext.websocketUtils;
   const { targetUserId: urlTargetUserId, roomId: urlRoomId } = useParams();
+  const prevUrlRoomIdRef = useRef<string | undefined>(urlRoomId);
   const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : (urlTargetUserId ? Number.parseInt(urlTargetUserId) : null);
 
   // 从消息信箱获取私聊列表
@@ -44,9 +45,17 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   // 按最新消息时间排列，数组
   const sortedRealTimeMessages = useMemo(() => {
     let sortedMessages = Object.entries(realTimeMessages);
+
+    sortedMessages = sortedMessages.filter(([, messages]) => {
+      return messages.filter(m => m.messageType !== 10000).length > 0;
+    });
+
     sortedMessages = sortedMessages.sort(([, messagesA], [, messagesB]) => {
-      const latestA = new Date(messagesA[0]?.createTime ?? 0).getTime();
-      const latestB = new Date(messagesB[0]?.createTime ?? 0).getTime();
+      const validMessagesA = messagesA.filter(m => m.messageType !== 10000);
+      const validMessagesB = messagesB.filter(m => m.messageType !== 10000);
+
+      const latestA = new Date(validMessagesA[0]?.createTime ?? 0).getTime();
+      const latestB = new Date(validMessagesB[0]?.createTime ?? 0).getTime();
       return latestB - latestA;
     });
     return sortedMessages;
@@ -57,10 +66,34 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
     return sortedRealTimeMessages.map(([contactId]) => Number.parseInt(contactId));
   }, [sortedRealTimeMessages]);
 
-  // 更新未读消息 Readline 位置
-  function updateReadlinePosition() {
+  // 未读消息数
+  const unreadMessageNumbers = useMemo(() => {
+    const counts: Record<number, number> = {};
+    for (const contactId of realTimeContacts) {
+      counts[contactId] = getUnreadMessageNumber(sortedRealTimeMessages, contactId, userId);
+    }
+    return counts;
+  }, [realTimeContacts, sortedRealTimeMessages, userId]);
 
-  }
+  // 更新未读消息 Readline 位置
+  const updateReadPositionMutation = useUpdateReadPositionMutation();
+
+  const updateReadlinePosition = useCallback((contactId: number) => {
+    if (contactId !== userId) {
+      updateReadPositionMutation.mutate({ targetUserId: contactId });
+    }
+  }, [updateReadPositionMutation, userId]);
+
+  // 监听 urlRoomId 变化，更新之前的已读位置
+  useEffect(() => {
+    const prevUrlRoomId = prevUrlRoomIdRef.current;
+
+    if (prevUrlRoomId && prevUrlRoomId !== urlRoomId) {
+      const prevContactId = Number.parseInt(prevUrlRoomId);
+      updateReadlinePosition(prevContactId);
+    }
+    prevUrlRoomIdRef.current = urlRoomId;
+  }, [urlRoomId, updateReadlinePosition, userId]);
 
   return (
     <div className="flex flex-col h-full bg-base-100">
@@ -95,7 +128,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
                       <FriendItem
                         key={contactId}
                         id={contactId}
-                        unreadMessageNumber={getUnreadMessageNumber(sortedRealTimeMessages, contactId)}
+                        unreadMessageNumber={unreadMessageNumbers[contactId] || 0}
                         currentContactUserId={currentContactUserId}
                         setIsOpenLeftDrawer={setIsOpenLeftDrawer}
                         updateReadlinePosition={updateReadlinePosition}
@@ -132,10 +165,13 @@ function mergeMessages(
   return Object.fromEntries(mergedMessages);
 }
 
-function getUnreadMessageNumber(sortedRealTimeMessages: Array<[string, MessageDirectResponse[]]>, contactId: number) {
+function getUnreadMessageNumber(sortedRealTimeMessages: Array<[string, MessageDirectResponse[]]>, contactId: number, userId: number) {
   const targetArray = sortedRealTimeMessages.find(([id]) => Number.parseInt(id) === contactId);
   const messages = targetArray ? targetArray[1] : [];
-  const targetMessages = messages.filter(msg => msg.senderId !== contactId);
-  const unreadCount = targetMessages.findIndex(msg => msg.messageType === 10000);
+  const latestMessage = messages.find(msg => msg.senderId === contactId);
+  const readline = messages.find(msg => msg.messageType === 10000 && msg.senderId === userId);
+  const latestMessageSync = latestMessage?.syncId || 0;
+  const readlineSync = readline?.syncId || 0;
+  const unreadCount = latestMessageSync - readlineSync;
   return unreadCount > 0 ? unreadCount : 0;
 }

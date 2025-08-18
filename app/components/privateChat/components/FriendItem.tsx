@@ -13,7 +13,7 @@ export default function FriendItem({
   unreadMessageNumber: number;
   currentContactUserId: number | null;
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
-  updateReadlinePosition: () => void;
+  updateReadlinePosition: (contactId: number) => void;
 }) {
   const userInfoQuery = useGetUserInfoQuery(id);
   const userInfo = userInfoQuery.data?.data;
@@ -21,8 +21,6 @@ export default function FriendItem({
 
   // 初始化未读消息数
   let showedUnreadMessageNumber = unreadMessageNumber;
-
-  // 重置未读消息数
 
   // 如果已经选中联系人，不再触发新消息提醒
   if (currentContactUserId === id) {
@@ -35,7 +33,7 @@ export default function FriendItem({
       type="button"
       onClick={() => {
         navigate(`/chat/private/${id}`);
-        updateReadlinePosition();
+        updateReadlinePosition(id);
         if (getScreenSize() === "sm") {
           setTimeout(() => {
             setIsOpenLeftDrawer(false);

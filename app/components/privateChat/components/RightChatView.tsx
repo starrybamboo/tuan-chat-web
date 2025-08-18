@@ -1,3 +1,4 @@
+import type { MessageDirectRecallRequest } from "api";
 import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
 import type { UserFollowResponse } from "api/models/UserFollowResponse";
 import type { DirectMessageEvent } from "api/wsModels";
@@ -161,7 +162,7 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
    */
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null);
   const recallMessageMutation = useRecallMessageDirectMutation();
-  function handleRevokeMessage(messageId: number) {
+  function handleRevokeMessage(messageId: MessageDirectRecallRequest) {
     recallMessageMutation.mutate(messageId, {
       onSuccess: () => {
         // 强制刷新并清除缓存
@@ -287,7 +288,7 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
                 <li>
                   <a onClick={(e) => {
                     e.preventDefault();
-                    handleRevokeMessage(contextMenu.messageId);
+                    handleRevokeMessage({ messageId: contextMenu.messageId });
                     setContextMenu(null);
                   }}
                   >
@@ -321,7 +322,7 @@ function mergeMessages(historyMessages: MessageDirectResponse[], currentContactM
   // 按消息位置排序，确保消息显示顺序正确
   const allMessages = Array.from(messageMap.values())
     .sort((a, b) => (a.messageId ?? 0) - (b.messageId ?? 0))
-    .filter(msg => msg.status !== 1);
+    .filter(msg => msg.messageType !== 10000);
 
   return allMessages;
 }
