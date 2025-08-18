@@ -99,7 +99,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
       chatHistory?.addOrUpdateMessages(receivedMessages.slice(lastLength));
       lastLengthMapRef.current[roomId] = receivedMessages.length;
     }
-  }, [receivedMessages, roomId]);
+  }, [chatHistory, receivedMessages, roomId]);
 
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
     return roomContext.chatHistory?.messages ?? [];
