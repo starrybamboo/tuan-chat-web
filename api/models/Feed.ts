@@ -2,8 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { MetaData } from './MetaData';
 /**
- * 返回对象
+ * feed
  */
 export type Feed = {
     /**
@@ -13,19 +14,24 @@ export type Feed = {
     /**
      * 发布者用户ID
      */
-    userId?: number;
+    fromUserId?: number;
     /**
-     * feed对应的转发消息id
+     * 接收者用户ID
      */
-    messageId?: number;
+    toUserId?: number;
     /**
-     * 标题
+     * Feed状态，1.正常 0.已删除
      */
-    title?: string;
+    status?: string;
     /**
-     * 描述
+     * 0.首页feed 1.ThumbsUpEvent  2.CommentEvent 3. CollectEvent
      */
-    description?: string;
+    type?: number;
+    meta?: MetaData;
+    /**
+     * 同一feed来源的唯一表示符
+     */
+    token?: string;
     /**
      * 创建时间
      */

@@ -12,7 +12,7 @@
   },
   "servers": [
     {
-      "url": "http://39.103.58.31:8081",
+      "url": "http://localhost:8081",
       "description": "Generated server url"
     }
   ],
@@ -2765,216 +2765,6 @@
             "name": "id",
             "in": "query",
             "description": "物品ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/feed": {
-      "put": {
-        "tags": [
-          "FeedController"
-        ],
-        "summary": "修改Feed",
-        "operationId": "updateFeed",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FeedRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultFeed"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "FeedController"
-        ],
-        "summary": "发布Feed",
-        "operationId": "publishFeed",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FeedRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultFeed"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "FeedController"
-        ],
-        "summary": "删除Feed",
-        "operationId": "deleteFeed",
-        "parameters": [
-          {
-            "name": "feedId",
-            "in": "query",
             "required": true,
             "schema": {
               "type": "integer",
@@ -7322,6 +7112,78 @@
         }
       }
     },
+    "/capi/module/user/page": {
+      "post": {
+        "tags": [
+          "moduleController"
+        ],
+        "summary": "根据用户ID获取剧本列表",
+        "description": "获取指定用户创建的剧本列表",
+        "operationId": "pageByUserId",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModulePageByUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespModule"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/module/page": {
       "post": {
         "tags": [
@@ -8324,12 +8186,153 @@
         }
       }
     },
+    "/capi/feed": {
+      "post": {
+        "tags": [
+          "FeedController"
+        ],
+        "summary": "发布图文/聊天消息Feed",
+        "operationId": "publishFeed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageFeedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultMessageFeedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "FeedController"
+        ],
+        "summary": "删除图文/聊天消息Feed",
+        "operationId": "deleteFeed",
+        "parameters": [
+          {
+            "name": "feedId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/feed/stats/batch": {
       "post": {
         "tags": [
           "FeedController"
         ],
-        "summary": "批量获取Feed统计信息",
+        "summary": "批量获取图文/聊天消息Feed统计信息",
         "operationId": "batchGetFeedStats",
         "requestBody": {
           "content": {
@@ -8404,7 +8407,7 @@
         "tags": [
           "FeedController"
         ],
-        "summary": "分页查询Feed列表",
+        "summary": "分页查询图文/聊天消息Feed列表",
         "description": "使用游标翻页",
         "operationId": "pageFeed",
         "requestBody": {
@@ -8423,7 +8426,361 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseFeedWithStatsResponse"
+                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseMessageFeedWithStatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/feed/moment": {
+      "post": {
+        "tags": [
+          "FeedController"
+        ],
+        "summary": "获取当前用户关注者的动态Feed时间线",
+        "operationId": "getFollowingMomentFeed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedPageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseMomentFeedWithStatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "FeedController"
+        ],
+        "summary": "删除一篇动态Feed",
+        "operationId": "deleteMomentFeed",
+        "parameters": [
+          {
+            "name": "feedId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/feed/moment/user": {
+      "post": {
+        "tags": [
+          "FeedController"
+        ],
+        "summary": "获取特定用户的动态Feed时间线",
+        "operationId": "getUserMomentFeed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedPageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseMomentFeedWithStatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/feed/moment/publish": {
+      "post": {
+        "tags": [
+          "FeedController"
+        ],
+        "summary": "发布动态Feed",
+        "operationId": "publishMomentFeed",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MomentFeedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultMomentFeedWithStatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/feed/activity/user": {
+      "post": {
+        "tags": [
+          "FeedController"
+        ],
+        "summary": "获取用户的用户活动Feed时间线",
+        "operationId": "getUserFeedTimeline",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedPageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseFeed"
                 }
               }
             }
@@ -14692,7 +15049,7 @@
         "tags": [
           "FeedController"
         ],
-        "summary": "获取Feed统计信息",
+        "summary": "获取图文/聊天消息Feed统计信息",
         "operationId": "getFeedStats",
         "parameters": [
           {
@@ -14764,7 +15121,7 @@
         "tags": [
           "FeedController"
         ],
-        "summary": "根据ID获取Feed详情",
+        "summary": "根据ID获取图文/聊天消息Feed详情",
         "operationId": "getFeedById",
         "parameters": [
           {
@@ -14783,7 +15140,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultFeedWithStatsResponse"
+                  "$ref": "#/components/schemas/ApiResultMessageFeedWithStatsResponse"
                 }
               }
             }
@@ -16042,7 +16399,7 @@
   },
   "components": {
     "schemas": {
-      "ApiResultVoid": {
+      "ApiResultObject": {
         "required": [
           "success"
         ],
@@ -16094,7 +16451,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultObject": {
+      "ApiResultVoid": {
         "required": [
           "success"
         ],
@@ -16275,18 +16632,23 @@
       },
       "TagUpdateRequest": {
         "required": [
+          "color",
+          "content",
           "tagId"
         ],
         "type": "object",
         "properties": {
           "tagId": {
             "type": "integer",
-            "description": "标签ID",
             "format": "int64"
           },
           "color": {
             "type": "string",
             "description": "标签颜色"
+          },
+          "content": {
+            "type": "string",
+            "description": "tag的内容"
           }
         },
         "description": "更新标签请求"
@@ -16828,101 +17190,6 @@
           }
         },
         "description": "更新物品请求"
-      },
-      "FeedRequest": {
-        "required": [
-          "title"
-        ],
-        "type": "object",
-        "properties": {
-          "feedId": {
-            "type": "integer",
-            "description": "Feed ID，创建时不需要传，修改时必传",
-            "format": "int64"
-          },
-          "messageId": {
-            "type": "integer",
-            "description": "关联的消息ID，无法修改",
-            "format": "int64"
-          },
-          "title": {
-            "maxLength": 100,
-            "minLength": 0,
-            "type": "string",
-            "description": "标题"
-          },
-          "description": {
-            "maxLength": 1000,
-            "minLength": 0,
-            "type": "string",
-            "description": "描述"
-          }
-        },
-        "description": "Feed创建/修改请求"
-      },
-      "ApiResultFeed": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/Feed"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "Feed": {
-        "type": "object",
-        "properties": {
-          "feedId": {
-            "type": "integer",
-            "description": "Feed唯一ID",
-            "format": "int64"
-          },
-          "userId": {
-            "type": "integer",
-            "description": "发布者用户ID",
-            "format": "int64"
-          },
-          "messageId": {
-            "type": "integer",
-            "description": "feed对应的转发消息id",
-            "format": "int64"
-          },
-          "title": {
-            "type": "string",
-            "description": "标题"
-          },
-          "description": {
-            "type": "string",
-            "description": "描述"
-          },
-          "createTime": {
-            "type": "string",
-            "description": "创建时间",
-            "format": "date-time"
-          },
-          "updateTime": {
-            "type": "string",
-            "description": "更新时间",
-            "format": "date-time"
-          }
-        },
-        "description": "返回对象"
       },
       "Collection": {
         "type": "object",
@@ -19350,7 +19617,10 @@
         },
         "description": "新建模组请求"
       },
-      "ModulePageRequest": {
+      "ModulePageByUserRequest": {
+        "required": [
+          "userId"
+        ],
         "type": "object",
         "properties": {
           "pageNo": {
@@ -19368,9 +19638,9 @@
             "format": "int32",
             "default": 10
           },
-          "ruleId": {
+          "userId": {
             "type": "integer",
-            "description": "规则id，可选",
+            "description": "查询的用户ID",
             "format": "int64"
           }
         },
@@ -19507,6 +19777,32 @@
           }
         },
         "description": "基础翻页返回"
+      },
+      "ModulePageRequest": {
+        "type": "object",
+        "properties": {
+          "pageNo": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "页码",
+            "format": "int32",
+            "default": 1
+          },
+          "pageSize": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "description": "每页大小",
+            "format": "int32",
+            "default": 10
+          },
+          "ruleId": {
+            "type": "integer",
+            "description": "规则id，可选",
+            "format": "int64"
+          }
+        },
+        "description": "模组查询翻页请求"
       },
       "MessageDirectReadUpdateRequest": {
         "required": [
@@ -20187,6 +20483,96 @@
         },
         "description": "基础返回体"
       },
+      "MessageFeedRequest": {
+        "required": [
+          "title"
+        ],
+        "type": "object",
+        "properties": {
+          "feedId": {
+            "type": "integer",
+            "description": "Feed ID，创建时不需要传，修改时必传",
+            "format": "int64"
+          },
+          "messageId": {
+            "type": "integer",
+            "description": "关联的消息ID，无法修改",
+            "format": "int64"
+          },
+          "title": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "description": "标题"
+          },
+          "description": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": "string",
+            "description": "描述"
+          }
+        },
+        "description": "Feed创建/修改请求"
+      },
+      "ApiResultMessageFeedResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MessageFeedResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "MessageFeedResponse": {
+        "type": "object",
+        "properties": {
+          "feedId": {
+            "type": "integer",
+            "description": "Feed ID",
+            "format": "int64"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "发布者用户ID",
+            "format": "int64"
+          },
+          "messageId": {
+            "type": "integer",
+            "description": "关联的消息ID",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string",
+            "description": "标题"
+          },
+          "description": {
+            "type": "string",
+            "description": "描述"
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间",
+            "format": "date-time"
+          }
+        },
+        "description": "消息转发Feed响应"
+      },
       "ApiResultMapLongFeedStatsResponse": {
         "required": [
           "success"
@@ -20262,11 +20648,16 @@
             "type": "integer",
             "description": "每页大小",
             "format": "int32"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "用户ID，用于查询特定用户的用户活动timeline时间线/特定用户动态列表时使用, 可选",
+            "format": "int64"
           }
         },
         "description": "Feed分页请求"
       },
-      "ApiResultCursorPageBaseResponseFeedWithStatsResponse": {
+      "ApiResultCursorPageBaseResponseMessageFeedWithStatsResponse": {
         "required": [
           "success"
         ],
@@ -20286,12 +20677,12 @@
             "description": "错误消息"
           },
           "data": {
-            "$ref": "#/components/schemas/CursorPageBaseResponseFeedWithStatsResponse"
+            "$ref": "#/components/schemas/CursorPageBaseResponseMessageFeedWithStatsResponse"
           }
         },
         "description": "基础返回体"
       },
-      "CursorPageBaseResponseFeedWithStatsResponse": {
+      "CursorPageBaseResponseMessageFeedWithStatsResponse": {
         "type": "object",
         "properties": {
           "cursor": {
@@ -20307,23 +20698,516 @@
             "type": "array",
             "description": "数据列表",
             "items": {
-              "$ref": "#/components/schemas/FeedWithStatsResponse"
+              "$ref": "#/components/schemas/MessageFeedWithStatsResponse"
             }
           }
         },
         "description": "游标翻页返回"
       },
-      "FeedWithStatsResponse": {
+      "MessageFeedWithStatsResponse": {
         "type": "object",
         "properties": {
           "feed": {
-            "$ref": "#/components/schemas/Feed"
+            "$ref": "#/components/schemas/MessageFeedResponse"
           },
           "stats": {
             "$ref": "#/components/schemas/FeedStatsResponse"
           }
         },
-        "description": "Feed详情响应（包含统计信息）"
+        "description": "转发消息Feed详情响应（包含统计信息）"
+      },
+      "ApiResultCursorPageBaseResponseMomentFeedWithStatsResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CursorPageBaseResponseMomentFeedWithStatsResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "CursorPageBaseResponseMomentFeedWithStatsResponse": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "number",
+            "description": "游标（下次翻页带上这参数）",
+            "format": "double"
+          },
+          "isLast": {
+            "type": "boolean",
+            "description": "是否最后一页"
+          },
+          "list": {
+            "type": "array",
+            "description": "数据列表",
+            "items": {
+              "$ref": "#/components/schemas/MomentFeedWithStatsResponse"
+            }
+          }
+        },
+        "description": "游标翻页返回"
+      },
+      "ModuleVo": {
+        "type": "object",
+        "properties": {
+          "moduleId": {
+            "type": "integer",
+            "description": "模组ID",
+            "format": "int64"
+          },
+          "moduleName": {
+            "type": "string",
+            "description": "模组名称"
+          },
+          "authorName": {
+            "type": "string",
+            "description": "模组作者名字"
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "模组封面URL"
+          },
+          "moduleDescription": {
+            "type": "string",
+            "description": "模组描述"
+          }
+        },
+        "description": "模组信息VO"
+      },
+      "MomentFeedResponse": {
+        "type": "object",
+        "properties": {
+          "feedId": {
+            "type": "integer",
+            "description": "Feed ID",
+            "format": "int64"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "发布者用户ID",
+            "format": "int64"
+          },
+          "content": {
+            "type": "string",
+            "description": "动态文字内容"
+          },
+          "imageUrls": {
+            "type": "array",
+            "description": "上传图片url",
+            "items": {
+              "type": "string",
+              "description": "上传图片url"
+            }
+          },
+          "moduleVO": {
+            "$ref": "#/components/schemas/ModuleVo"
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间",
+            "format": "date-time"
+          }
+        },
+        "description": "用户动态Feed响应"
+      },
+      "MomentFeedWithStatsResponse": {
+        "type": "object",
+        "properties": {
+          "feed": {
+            "$ref": "#/components/schemas/MomentFeedResponse"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/MomentStatsResponse"
+          }
+        },
+        "description": "动态feed详情响应（包含统计信息）"
+      },
+      "MomentStatsResponse": {
+        "type": "object",
+        "properties": {
+          "feedId": {
+            "type": "integer",
+            "description": "Feed ID",
+            "format": "int64"
+          },
+          "likeCount": {
+            "type": "integer",
+            "description": "点赞数量",
+            "format": "int32"
+          },
+          "commentCount": {
+            "type": "integer",
+            "description": "评论数量",
+            "format": "int32"
+          },
+          "isLiked": {
+            "type": "boolean",
+            "description": "当前用户是否已点赞"
+          }
+        },
+        "description": "用户动态统计信息响应"
+      },
+      "MomentFeedRequest": {
+        "required": [
+          "content"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": "string",
+            "description": "动态文字内容"
+          },
+          "imageUrls": {
+            "type": "array",
+            "description": "上传图片url",
+            "items": {
+              "type": "string",
+              "description": "上传图片url"
+            }
+          },
+          "moduleId": {
+            "type": "integer",
+            "description": "相关模组id",
+            "format": "int64"
+          }
+        },
+        "description": "动态创建请求"
+      },
+      "ApiResultMomentFeedWithStatsResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MomentFeedWithStatsResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ApiResultCursorPageBaseResponseFeed": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CursorPageBaseResponseFeed"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "CollectEventMeta": {
+        "type": "object",
+        "properties": {
+          "contentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "contentTitle": {
+            "type": "string"
+          },
+          "contentDescription": {
+            "type": "string"
+          },
+          "coverImageUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "ContributeEventMeta": {
+        "type": "object",
+        "properties": {
+          "moduleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "contentTitle": {
+            "type": "string"
+          },
+          "contentDescription": {
+            "type": "string"
+          }
+        }
+      },
+      "CursorPageBaseResponseFeed": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "number",
+            "description": "游标（下次翻页带上这参数）",
+            "format": "double"
+          },
+          "isLast": {
+            "type": "boolean",
+            "description": "是否最后一页"
+          },
+          "list": {
+            "type": "array",
+            "description": "数据列表",
+            "items": {
+              "$ref": "#/components/schemas/Feed"
+            }
+          }
+        },
+        "description": "游标翻页返回"
+      },
+      "Feed": {
+        "type": "object",
+        "properties": {
+          "feedId": {
+            "type": "integer",
+            "description": "Feed唯一ID",
+            "format": "int64"
+          },
+          "fromUserId": {
+            "type": "integer",
+            "description": "发布者用户ID",
+            "format": "int64"
+          },
+          "toUserId": {
+            "type": "integer",
+            "description": "接收者用户ID",
+            "format": "int64"
+          },
+          "status": {
+            "type": "string",
+            "description": "Feed状态，1.正常 0.已删除",
+            "format": "byte"
+          },
+          "type": {
+            "type": "integer",
+            "description": "0.首页feed 1.ThumbsUpEvent  2.CommentEvent 3. CollectEvent",
+            "format": "int32"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaData"
+          },
+          "token": {
+            "type": "string",
+            "description": "同一feed来源的唯一表示符"
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "description": "更新时间",
+            "format": "date-time"
+          }
+        },
+        "description": "feed"
+      },
+      "FollowEventMeta": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "userName": {
+            "type": "string"
+          },
+          "userAvatar": {
+            "type": "string"
+          }
+        }
+      },
+      "MessageFeedEventMeta": {
+        "type": "object",
+        "properties": {
+          "feedId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "MessageFeedMeta": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "messageId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "MetaData": {
+        "type": "object",
+        "properties": {
+          "messageFeedMeta": {
+            "$ref": "#/components/schemas/MessageFeedMeta"
+          },
+          "postFeedMeta": {
+            "$ref": "#/components/schemas/PostFeedMeta"
+          },
+          "momentFeedMeta": {
+            "$ref": "#/components/schemas/MomentFeedMeta"
+          },
+          "contributeEventMeta": {
+            "$ref": "#/components/schemas/ContributeEventMeta"
+          },
+          "followEventMeta": {
+            "$ref": "#/components/schemas/FollowEventMeta"
+          },
+          "collectEventMeta": {
+            "$ref": "#/components/schemas/CollectEventMeta"
+          },
+          "moduleEventMeta": {
+            "$ref": "#/components/schemas/ModuleEventMeta"
+          },
+          "playEventMeta": {
+            "$ref": "#/components/schemas/PlayEventMeta"
+          },
+          "postEventMeta": {
+            "$ref": "#/components/schemas/PostEventMeta"
+          },
+          "messageFeedEventMeta": {
+            "$ref": "#/components/schemas/MessageFeedEventMeta"
+          }
+        },
+        "description": "Feed元数据，JSON格式"
+      },
+      "ModuleEventMeta": {
+        "type": "object",
+        "properties": {
+          "moduleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "moduleName": {
+            "type": "string"
+          },
+          "moduleImage": {
+            "type": "string"
+          },
+          "moduleDescription": {
+            "type": "string"
+          }
+        }
+      },
+      "MomentFeedMeta": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "imageUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "moduleId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "PlayEventMeta": {
+        "type": "object",
+        "properties": {
+          "spaceId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "spaceName": {
+            "type": "string"
+          },
+          "gameImage": {
+            "type": "string"
+          }
+        }
+      },
+      "PostEventMeta": {
+        "type": "object",
+        "properties": {
+          "postId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "PostFeedMeta": {
+        "type": "object",
+        "properties": {
+          "postId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "coverImageUrl": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
       },
       "EmojiCreateRequest": {
         "required": [
@@ -22428,7 +23312,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultFeedWithStatsResponse": {
+      "ApiResultMessageFeedWithStatsResponse": {
         "required": [
           "success"
         ],
@@ -22448,7 +23332,7 @@
             "description": "错误消息"
           },
           "data": {
-            "$ref": "#/components/schemas/FeedWithStatsResponse"
+            "$ref": "#/components/schemas/MessageFeedWithStatsResponse"
           }
         },
         "description": "基础返回体"
