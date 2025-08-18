@@ -6,6 +6,21 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useParams } from "react-router";
 import FriendItem from "./FriendItem";
 
+interface MessageDirectType {
+  messageId?: number;
+  userId?: number;
+  syncId?: number;
+  senderId?: number;
+  receiverId?: number;
+  content?: string;
+  messageType?: number;
+  replyMessageId?: number;
+  status?: number;
+  extra?: Record<string, any>;
+  createTime?: string;
+  updateTime?: string;
+}
+
 export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDrawer: (isOpen: boolean) => void }) {
   // 设置自定义样式
   const customScrollbarStyle: React.CSSProperties = {
@@ -146,21 +161,21 @@ function mergeMessages(
   sortedMessages: Record<number, MessageDirectResponse[]>,
   wsMessages: Record<number, DirectMessageEvent[]>,
   userId: number,
-): Record<number, MessageDirectResponse[]> {
-  const mergedMessages = new Map<number, MessageDirectResponse[]>();
+): Record<number, MessageDirectType[]> {
+  const mergedMessages = new Map<number, MessageDirectType[]>();
 
   // 获取所有联系人ID
   const contactIds = new Set<number>([
-    ...Object.keys(sortedMessages).map(Number),
     ...Object.keys(wsMessages).map(Number),
+    ...Object.keys(sortedMessages).map(Number),
   ]);
 
   contactIds.delete(userId);
 
   for (const contactId of contactIds) {
-    const historyMessages = sortedMessages[contactId] || [];
     const wsContactMessages = wsMessages[contactId] || [];
-    mergedMessages.set(contactId, [...historyMessages, ...wsContactMessages]);
+    const historyMessages = sortedMessages[contactId] || [];
+    mergedMessages.set(contactId, [...wsContactMessages, ...historyMessages]);
   }
   return Object.fromEntries(mergedMessages);
 }
