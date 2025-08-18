@@ -33,6 +33,7 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
+  AddRingLight,
   BaselineArrowBackIosNew,
   Bubble2,
   CommandLine,
@@ -55,6 +56,7 @@ import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
+import { useNavigate } from "react-router";
 import { useImmer } from "use-immer";
 import {
   useGetMemberListQuery,
@@ -66,6 +68,8 @@ import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/query
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
+  const navigate = useNavigate();
+
   const spaceContext = use(SpaceContext);
 
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
@@ -964,34 +968,48 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   </div>
                 </div>
                 <div className="flex gap-2 items-stretch">
-                  <div className="dropdown dropdown-top flex-shrink-0 max-w-10 md:max-w-14 ">
-                    <div role="button" tabIndex={0} className="">
-                      <div
-                        className="tooltip flex justify-center flex-col items-center space-y-2"
-                        data-tip="切换表情"
-                      >
-                        <RoleAvatarComponent
-                          avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
-                          width={getScreenSize() === "sm" ? 10 : 14}
-                          isRounded={true}
-                          withTitle={false}
-                          stopPopWindow={true}
-                          alt="无可用头像"
-                        />
-                        <div className="text-xs truncate w-full">
-                          {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
-                        </div>
-                      </div>
-                    </div>
-                    {/* 表情差分展示与选择 */}
-                    <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm">
-                      <ExpressionChooser
-                        roleId={curRoleId}
-                        handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}
-                      >
-                      </ExpressionChooser>
-                    </ul>
-                  </div>
+                  {
+                    curRoleId > 0
+                      ? (
+                          <div className="dropdown dropdown-top flex-shrink-0 w-10 md:w-14 ">
+                            <div role="button" tabIndex={0} className="">
+                              <div
+                                className="tooltip flex justify-center flex-col items-center space-y-2"
+                                data-tip="切换表情"
+                              >
+                                <RoleAvatarComponent
+                                  avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
+                                  width={getScreenSize() === "sm" ? 10 : 14}
+                                  isRounded={true}
+                                  withTitle={false}
+                                  stopPopWindow={true}
+                                  alt={curRoleId > 0 ? "无可用头像" : "无可用角色"}
+                                />
+                                <div className="text-sm truncate w-full">
+                                  {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
+                                </div>
+                              </div>
+                            </div>
+                            {/* 表情差分展示与选择 */}
+                            <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm">
+                              <ExpressionChooser
+                                roleId={curRoleId}
+                                handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}
+                              >
+                              </ExpressionChooser>
+                            </ul>
+                          </div>
+                        )
+                      : (
+                          <div className="w-10 md:w-14" onClick={() => navigate("/role")}>
+                            <AddRingLight className="size-10 md:size-14 jump_icon"></AddRingLight>
+                            <div className="text-sm truncate w-full">
+                              创建角色
+                            </div>
+                          </div>
+                        )
+                  }
+
                   {/* 输入框 */}
                   <div
                     className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-info focus-within:border-info flex flex-col"
@@ -1041,8 +1059,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       suppressContentEditableWarning={true}
                       contentEditable={true}
                       data-placeholder={(curRoleId <= 0
-                        ? "请先在群聊里拉入你的角色，之后才能发送消息。"
-                        : (curAvatarId <= 0 ? "请给你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"))}
+                        ? "请先拉入你的角色，之后才能发送消息。"
+                        : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"))}
                     />
                   </div>
                   {/* at搜索框 */}
