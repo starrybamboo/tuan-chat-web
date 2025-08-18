@@ -553,13 +553,22 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const disableSendMessage = (curRoleId <= 0) // 没有选中角色
-    || ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3) // 没有权限
-    || !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0) // 没有内容
-    || isSubmitting;
+  const notMember = ((members.find(member => member.userId === userId)?.memberType ?? 3) >= 3); // 没有权限
+  const noRole = curRoleId <= 0;
+  const noInput = !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0); // 没有内容
+  const disableSendMessage = noRole || notMember || noInput || isSubmitting;
   const handleMessageSubmit = async () => {
-    if (disableSendMessage)
+    if (disableSendMessage) {
+      if (notMember)
+        toast.error("您是观战，不能发送消息");
+      else if (noRole)
+        toast.error("请先拉入你的角色，之后才能发送消息。");
+      else if (noInput)
+        toast.error("请输入内容");
+      else if (isSubmitting)
+        toast.error("正在发送中，请稍等");
       return;
+    }
     setIsSubmitting(true);
     try {
       // 发送图片
