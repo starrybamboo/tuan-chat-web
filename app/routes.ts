@@ -11,6 +11,7 @@ export default [
     route("feed/:feedId?", "routes/feed.tsx"),
     route("role", "routes/role.tsx"),
     route("create", "routes/create.tsx"),
+    route("activities", "routes/activities.tsx"),
     route("profile/:userId", "routes/profile.tsx"),
     route("module", "routes/module/index.tsx"),
     route("module/create", "routes/module/create.tsx"),

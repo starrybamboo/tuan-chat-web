@@ -14,5 +14,9 @@ export type FeedPageRequest = {
      * 每页大小
      */
     pageSize?: number;
+    /**
+     * 用户ID，用于查询特定用户的用户活动timeline时间线/特定用户动态列表时使用, 可选
+     */
+    userId?: number;
 };
 
