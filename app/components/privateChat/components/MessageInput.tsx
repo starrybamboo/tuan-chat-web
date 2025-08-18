@@ -40,9 +40,9 @@ export default function MessageInput({
   return (
     <>
       {/* 移动端样式 */}
-      <div className="md:hidden w-full border-t border-base-300 flex flex-col px-4 py-2">
-        {/* 预览要发送的图片 */}
-        {imgFiles.length > 0 && (
+      <div className="md:hidden w-full border-t border-base-300 flex flex-col px-4 py-2 max-h-36">
+        {/* 预览要发送的图片和表情 */}
+        {(imgFiles.length > 0 || emojiUrls.length > 0) && (
           <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
             {imgFiles.map((file, index) => (
               <BetterImg
@@ -52,12 +52,19 @@ export default function MessageInput({
                 key={file.name}
               />
             ))}
+            {emojiUrls.map((url, index) => (
+              <BetterImg
+                src={url}
+                className="h-14 w-max rounded"
+                onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
+                key={url}
+              />
+            ))}
           </div>
         )}
-        {/* 预览要发送的表情 */}
 
         {/* 下方输入框和按钮 */}
-        <div className="flex items-center gap-3 w-full">
+        <div className="flex items-center gap-3 w-full max-h-16">
           <div className="flex-1">
             <input
               type="text"
@@ -173,7 +180,7 @@ function Emoji({ children, updateEmojiUrls }: { children: React.ReactNode; updat
       {/* dropdown 表情选择窗口 */}
       <ul
         tabIndex={0}
-        className="dropdown-content menu bg-base-100 rounded-box z-1 w-96 p-2 shadow-sm overflow-y-auto"
+        className="dropdown-content menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto w-96 transform -translate-x-1/3 md:translate-x-0"
       >
         <EmojiWindow onChoose={onChoose}></EmojiWindow>
       </ul>

@@ -27,6 +27,14 @@ export type MessageDirectResponse = {
      */
     receiverId?: number;
     /**
+     * 当前用户ID
+     */
+    userId?: number;
+    /**
+     * 会话内消息序号
+     */
+    syncId?: number;
+    /**
      * 消息内容
      */
     content?: string;
@@ -50,5 +58,9 @@ export type MessageDirectResponse = {
      * 创建时间
      */
     createTime?: string;
+    /**
+     * 更新时间
+     */
+    updateTime?: string;
 };
 
