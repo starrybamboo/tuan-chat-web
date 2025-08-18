@@ -5,6 +5,7 @@ import React from "react";
  * 每个Icon图标都用AI生成了一些关键词方便搜索
  * 应该有点用
  * 吧？
+ * 我是建议在末尾加 Icon 方便区分正常组件
  */
 
 // 终端命令图标
@@ -1155,6 +1156,30 @@ export function SparklesOutline(props: SVGProps<SVGSVGElement>) {
         strokeWidth="32"
         d="M256 176V336 M176 256H336 M400 64V160 M352 112H448 M112 368V432 M80 400H144"
       />
+    </svg>
+  );
+}
+
+// 柱状统计图标
+// 其他关键词：数据可视化，图表，分析，投票
+export function BarChartOutlineIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <rect x="5" y="12" width="3" height="7" rx="1" />
+      <rect x="10" y="9" width="3" height="10" rx="1" />
+      <rect x="15" y="5" width="3" height="14" rx="1" />
     </svg>
   );
 }

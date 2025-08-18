@@ -2,6 +2,9 @@ import type { Dynamic } from "@/components/activities/activitiesPage";
 import { DynamicType } from "@/components/activities/activitiesPage";
 import React from "react";
 
+/**
+ * 发布的动态预览卡片组件
+ */
 const DynamicCard: React.FC<{ dynamic: Dynamic }> = ({
   dynamic,
 }) => {

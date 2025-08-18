@@ -1,5 +1,8 @@
 import React from "react";
 
+/**
+ * 热榜的卡片
+ */
 export default function TrendingTopics() {
   const topics = [
     { id: "1", name: "2", posts: 1234, isHot: true },
