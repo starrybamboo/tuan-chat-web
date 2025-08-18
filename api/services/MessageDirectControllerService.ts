@@ -4,7 +4,6 @@
 /* eslint-disable */
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
 import type { ApiResultCursorPageBaseResponseMessageDirectResponse } from '../models/ApiResultCursorPageBaseResponseMessageDirectResponse';
-import type { ApiResultListMessageDirectResponse } from '../models/ApiResultListMessageDirectResponse';
 import type { ApiResultMessageDirectResponse } from '../models/ApiResultMessageDirectResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { MessageDirectPageRequest } from '../models/MessageDirectPageRequest';
@@ -105,15 +104,14 @@ export class MessageDirectControllerService {
         });
     }
     /**
-     * 获取收件箱消息全量数据
-     * 拉取当前用户收件箱从最新消息到指定cursor位置的所有消息
+     * 获取收件箱消息分页
      * @param requestBody
      * @returns ApiResultListMessageDirectResponse OK
      * @throws ApiError
      */
-    public getInboxMessages(
-        requestBody?: string,
-    ): CancelablePromise<ApiResultListMessageDirectResponse> {
+    public getInboxMessagePage(
+        requestBody: String,
+    ): CancelablePromise<ApiResultCursorPageBaseResponseMessageDirectResponse> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/message/direct/inbox',

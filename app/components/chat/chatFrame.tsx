@@ -26,20 +26,10 @@ import { useCreateEmojiMutation, useGetUserEmojisQuery } from "../../../api/hook
 import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
 
 export const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
-function Header({ context }: { context:
-{
-  fetchNextPage: () => void;
-  isFetching: boolean;
-  isAtTopRef:
-  React.RefObject<boolean>;
-}; }) {
+function Header() {
   return (
     <div className="text-center">
-      {
-        context.isFetching
-          ? "加载中"
-          : "已经到顶了~(,,・ω・,,)"
-      }
+      已经到顶了~(,,・ω・,,)
     </div>
   );
 }
@@ -80,6 +70,10 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   const deleteMessageMutation = useDeleteMessageMutation();
   const publishFeedMutation = usePublishFeedMutation();
   const updateMessageMutation = useUpdateMessageMutation();
+  const updateMessage = (message: Message) => {
+    updateMessageMutation.mutate(message);
+    roomContext.chatHistory?.addOrUpdateMessage({ message });
+  };
 
   // 获取用户自定义表情列表
   const { data: emojisData } = useGetUserEmojisQuery();
@@ -92,15 +86,24 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    * 分页获取消息
    * cursor用于获取当前的消息列表, 在往后端的请求中, 第一次发送null, 然后接受后端返回的cursor作为新的值
    */
-  const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    return roomContext.historyMessages ?? [];
-  }, [roomContext.historyMessages]);
-  const messagesInfiniteQuery = roomContext.messagesInfiniteQuery;
-  const fetchNextPage = () => {
-    if (messagesInfiniteQuery?.hasNextPage && !messagesInfiniteQuery?.isFetching) {
-      messagesInfiniteQuery?.fetchNextPage();
+  const chatHistory = roomContext.chatHistory;
+  const webSocketUtils = globalContext.websocketUtils;
+
+  // 监听 WebSocket 接收到的消息
+  const receivedMessages = useMemo(() => webSocketUtils.receivedMessages[roomId] ?? [], [roomId, webSocketUtils.receivedMessages]);
+  // roomId ==> 上一次存储消息的时候的receivedMessages[roomId].length
+  const lastLengthMapRef = useRef<Record<number, number>>({});
+  useEffect(() => {
+    const lastLength = lastLengthMapRef.current[roomId] ?? 0;
+    if (lastLength < receivedMessages.length) {
+      chatHistory?.addOrUpdateMessages(receivedMessages.slice(lastLength));
+      lastLengthMapRef.current[roomId] = receivedMessages.length;
     }
-  };
+  }, [chatHistory, receivedMessages, roomId]);
+
+  const historyMessages: ChatMessageResponse[] = useMemo(() => {
+    return roomContext.chatHistory?.messages ?? [];
+  }, [roomContext.chatHistory?.messages]);
   /**
    * 虚拟列表
    */
@@ -129,12 +132,17 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     updateUnreadMessagesNumber(roomId, 0);
   };
   useEffect(() => {
-    if (messagesInfiniteQuery?.isFetchedAfterMount) {
-      setTimeout(() => {
+    let timer = null;
+    if (chatHistory?.loading) {
+      timer = setTimeout(() => {
         scrollToBottom();
       }, 1000);
     }
-  }, [messagesInfiniteQuery?.isFetchedAfterMount, roomId]);
+    return () => {
+      if (timer)
+        clearTimeout(timer);
+    };
+  }, [chatHistory?.loading]);
 
   /**
    * 消息选择
@@ -157,7 +165,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
 
   const constructForwardRequest = (forwardRoomId: number) => {
     const forwardMessages = Array.from(selectedMessageIds)
-      .map(id => historyMessages.find(m => m.message.messageID === id))
+      .map(id => historyMessages.find(m => m.message.messageId === id))
       .filter((msg): msg is ChatMessageResponse => msg !== undefined);
     const forwardMessageRequest: ChatMessageRequest = {
       roomId: forwardRoomId,
@@ -177,10 +185,10 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     updateSelectedMessageIds(new Set());
   }
   function toggleBackground(messageId: number) {
-    const message = historyMessages.find(m => m.message.messageID === messageId)?.message;
+    const message = historyMessages.find(m => m.message.messageId === messageId)?.message;
     if (!message || !message.extra?.imageMessage)
       return;
-    updateMessageMutation.mutate({
+    updateMessage({
       ...message,
       extra: { imageMessage: {
         ...message.extra.imageMessage,
@@ -210,7 +218,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
 
     // 发布feed
     const feedRequest: FeedRequest = {
-      messageId: forwardResult.data.messageID,
+      messageId: forwardResult.data.messageId,
       title: title || "default",
       description: description || "default",
     };
@@ -257,17 +265,17 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     messageIds: number[],
   ) => {
     const selectedMessages = Array.from(messageIds)
-      .map(id => historyMessages.find(m => m.message.messageID === id)?.message)
+      .map(id => historyMessages.find(m => m.message.messageId === id)?.message)
       .filter((msg): msg is Message => msg !== undefined)
       .sort((a, b) => a.position - b.position);
     // 寻找到不位于，messageIds中且离dropPosition最近的消息
     let topMessageIndex: number = targetIndex;
     let bottomMessageIndex: number = targetIndex + 1;
-    while (selectedMessageIds.has(historyMessages[topMessageIndex]?.message.messageID)) {
-      topMessageIndex++;
+    while (selectedMessageIds.has(historyMessages[topMessageIndex]?.message.messageId)) {
+      topMessageIndex--;
     }
-    while (selectedMessageIds.has(historyMessages[bottomMessageIndex]?.message.messageID)) {
-      bottomMessageIndex--;
+    while (selectedMessageIds.has(historyMessages[bottomMessageIndex]?.message.messageId)) {
+      bottomMessageIndex++;
     }
     const topMessagePosition = historyMessages[topMessageIndex]?.message.position
       ?? historyMessages[0].message.position - 1;
@@ -276,7 +284,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
 
     for (const selectedMessage of selectedMessages) {
       const index = selectedMessages.indexOf(selectedMessage);
-      updateMessageMutation.mutate({
+      updateMessage({
         ...selectedMessage,
         position: (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1) * (index + 1) + topMessagePosition,
       });
@@ -315,7 +323,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   const handleDragStart = useCallback ((e: React.DragEvent<HTMLDivElement>, index: number) => {
     e.stopPropagation();
     e.dataTransfer.effectAllowed = "move";
-    dragStartMessageIdRef.current = historyMessages[index].message.messageID;
+    dragStartMessageIdRef.current = historyMessages[index].message.messageId;
     // 设置拖动预览图像
     const parent = e.currentTarget.parentElement!;
     let clone: HTMLElement;
@@ -402,22 +410,38 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     setContextMenu(null);
   }
 
+  if (chatHistory?.loading) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-base-200">
+        <div className="flex flex-col items-center gap-2">
+          {/* 加载动画 */}
+          <span className="loading loading-spinner loading-lg text-info"></span>
+          {/* 提示文字 */}
+          <div className="text-center space-y-1">
+            <h3 className="text-lg font-medium text-base-content">正在获取历史消息</h3>
+            <p className="text-sm text-base-content/70">请稍候...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   /**
    * @param index 虚拟列表中的index，为了实现反向滚动，进行了偏移
    * @param chatMessageResponse
    */
   const renderMessage = (index: number, chatMessageResponse: ChatMessageResponse) => {
-    const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageID);
+    const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageId);
     const draggable = spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId;
     const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
     return ((
       <div
-        key={chatMessageResponse.message.messageID}
+        key={chatMessageResponse.message.messageId}
         className={`pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""}`}
-        data-message-id={chatMessageResponse.message.messageID}
+        data-message-id={chatMessageResponse.message.messageId}
         onClick={(e) => {
           if (isSelecting || e.ctrlKey) {
-            toggleMessageSelection(chatMessageResponse.message.messageID);
+            toggleMessageSelection(chatMessageResponse.message.messageId);
           }
         }}
         onDragOver={handleDragOver}
@@ -440,7 +464,6 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
             </div>
           )
         }
-
         <ChatBubble chatMessageResponse={chatMessageResponse} />
       </div>
     )
@@ -501,8 +524,8 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
             overscan={2000}
             ref={virtuosoRef}
             context={{
-              fetchNextPage: () => messagesInfiniteQuery?.fetchNextPage(),
-              isFetching: messagesInfiniteQuery?.isFetching || false,
+              // fetchNextPage: () => messagesInfiniteQuery?.fetchNextPage(),
+              // isFetching: messagesInfiniteQuery?.isFetching || false,
               isAtTopRef: isAtBottomRef,
             }}
             itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
@@ -511,7 +534,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
               isAtBottomRef.current = atBottom;
             }}
             atTopStateChange={(atTop) => {
-              (atTop) && fetchNextPage();
+              // (atTop) && fetchNextPage();
               isAtTopRef.current = atTop;
             }}
             components={{
@@ -522,11 +545,11 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
               enter: velocity => Math.abs(velocity) > 600, // 滚动速度阈值
               exit: velocity => Math.abs(velocity) < 50,
             }}
-            onWheel={(e) => {
-              if (e.deltaY < 0 && isAtTopRef.current) {
-                fetchNextPage();
-              }
-            }}
+            // onWheel={(e) => {
+            //   if (e.deltaY < 0 && isAtTopRef.current) {
+            //     fetchNextPage();
+            //   }
+            // }}
             atTopThreshold={1200}
             atBottomThreshold={200}
           />
@@ -549,7 +572,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
       </PopWindow>
       {/* 右键菜单 */}
       {contextMenu && (() => {
-        const message = historyMessages.find(message => message.message.messageID === contextMenu.messageId);
+        const message = historyMessages.find(message => message.message.messageId === contextMenu.messageId);
         return (
           <div
             className="fixed bg-base-100 shadow-lg rounded-md z-50"
@@ -598,7 +621,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
                     <a onClick={(e) => {
                       e.preventDefault();
                       handleMoveMessages(
-                        historyMessages.findIndex(message => message.message.messageID === contextMenu.messageId),
+                        historyMessages.findIndex(message => message.message.messageId === contextMenu.messageId),
                         Array.from(selectedMessageIds),
                       );
                       closeContextMenu();

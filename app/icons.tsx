@@ -1160,6 +1160,7 @@ export function SparklesOutline(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+
 // 柱状统计图标
 // 其他关键词：数据可视化，图表，分析，投票
 export function BarChartOutlineIcon(props: SVGProps<SVGSVGElement>) {

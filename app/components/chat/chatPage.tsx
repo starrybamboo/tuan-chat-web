@@ -42,9 +42,12 @@ export default function ChatPage() {
 
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
   // 当前选中的空间ID
-  const [activeSpaceId, setActiveSpaceId] = useState<number | null>(
-    urlSpaceId ? Number(urlSpaceId) : (storedIds.spaceId ?? null),
-  );
+  const [activeSpaceId, setActiveSpaceId] = useState<number | null>(() => {
+    if (isPrivateChatMode) {
+      return null;
+    }
+    return urlSpaceId ? Number(urlSpaceId) : (storedIds.spaceId ?? null);
+  });
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
   // 当前激活的space对应的rooms。
@@ -62,7 +65,12 @@ export default function ChatPage() {
       : null,
   );
   useEffect(() => {
-    setActiveRoomId(rooms[0]?.roomId ?? null);
+    if (isPrivateChatMode) {
+      setActiveRoomId(Number(urlRoomId));
+    }
+    else {
+      setActiveRoomId(rooms[0]?.roomId ?? null);
+    }
   }, [activeSpaceId, rooms]);
 
   const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState<boolean>("leftDrawer", !(urlSpaceId && urlRoomId) || getScreenSize() === "sm", false);
@@ -75,7 +83,12 @@ export default function ChatPage() {
       navigate(path.replace(/\/+$/, ""), { replace: true });
     }
     else {
-      navigate("/chat/private", { replace: true });
+      if (activeRoomId) {
+        navigate(`/chat/private/${activeRoomId}`, { replace: true });
+      }
+      else {
+        navigate("/chat/private", { replace: true });
+      }
     }
   }, [activeSpaceId, activeRoomId, navigate, setStoredChatIds, isPrivateChatMode]);
 

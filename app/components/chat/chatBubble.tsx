@@ -25,8 +25,8 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId);
 
   const role = useRoleRequest.data?.data;
-  const [isExpressionChooserOpen, setIsExpressionChooserOpen] = useSearchParamsState<boolean>(`exprPop${message.messageID}`, false);
-  const [isRoleChooserOpen, setIsRoleChooserOpen] = useSearchParamsState<boolean>(`roleChoosePop${message.messageID}`, false);
+  const [isExpressionChooserOpen, setIsExpressionChooserOpen] = useSearchParamsState<boolean>(`exprPop${message.messageId}`, false);
+  const [isRoleChooserOpen, setIsRoleChooserOpen] = useSearchParamsState<boolean>(`roleChoosePop${message.messageId}`, false);
 
   const updateMessageMutation = useUpdateMessageMutation();
 
@@ -83,7 +83,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
             src={imgMsg?.url || message.extra?.fileMessage?.url}
             size={{ width: imgMsg?.width, height: imgMsg?.height }}
             className="max-h-[40vh] w-full"
-            popWindowKey={`${message.messageID}img_${imgMsg?.url}`}
+            popWindowKey={`${message.messageId}img_${imgMsg?.url}`}
           />
           {imgMsg?.background && <div className="text-xs text-gray-500 dark:text-gray-400">已设置为背景</div>}
         </div>
@@ -115,7 +115,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
           handleContentUpdate={handleContentUpdate}
           className="whitespace-pre-wrap editable-field overflow-auto" // 为了方便select到这个节点
           canEdit={canEdit}
-          fieldId={`msg${message.messageID}`}
+          fieldId={`msg${message.messageId}`}
         >
         </EditableField>
       </>
@@ -152,7 +152,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
         ? (
             <div
               className="flex w-full items-start gap-1 pb-2"
-              key={message.messageID}
+              key={message.messageId}
             >
               {/* Avatar */}
               <div className="flex-shrink-0 cursor-pointer" onClick={handleAvatarClick}>
@@ -180,7 +180,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
             </div>
           )
         : (
-            <div className="flex w-full pb-4" key={message.messageID}>
+            <div className="flex w-full pb-4" key={message.messageId}>
               {/* 圆角矩形头像 */}
               <div className="flex-shrink-0 mr-3">
                 <div className="w-20 h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
