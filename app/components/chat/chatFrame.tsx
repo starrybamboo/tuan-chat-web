@@ -303,14 +303,16 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     const relativeY = e.clientY - rect.top;
 
     const indicator = document.createElement("div");
-    indicator.className = "drag-indicator absolute left-0 right-0 h-0.5 bg-info pointer-events-none";
+    indicator.className = "drag-indicator absolute left-0 right-0 h-[2px] bg-info pointer-events-none";
     indicator.style.zIndex = "50";
     if (relativeY < rect.height / 2) {
-      indicator.style.top = "0";
+      indicator.style.top = "-1px";
+      indicator.style.bottom = "auto";
       dropPositionRef.current = "before";
     }
     else {
-      indicator.style.top = "0";
+      indicator.style.top = "auto";
+      indicator.style.bottom = "-1px";
       dropPositionRef.current = "after";
     }
     indicatorRef.current?.remove();
