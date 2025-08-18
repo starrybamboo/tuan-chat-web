@@ -79,14 +79,6 @@ export function useWebSocket() {
   const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
 
-  // 在页面长时间处于非活动状态后再切回来， 很可能发生ws断联的情况， 所以需要监听document的状态
-  const documentVisibility = typeof document  !== "undefined" ? document.visibilityState : "visible";
-  useEffect(() => {
-    if (document.visibilityState === "visible" &&  wsRef.current?.readyState !== WebSocket.OPEN) {
-      connect();
-    }
-  }, [documentVisibility]);
-
   useEffect(() => {
     connect();
     return () => {

@@ -95,13 +95,35 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     }
   }, [roomId]);
 
-  // 初始加载聊天记录
+  /**
+   * 从服务器全量获取最新的消息
+   */
+  const fetchNewestMessages = async () => {
+    if (roomId === null)
+      return;
+    const localMaxSyncId = messages.length > 0
+      ? Math.max(...messages.map(msg => msg.message.syncId))
+      : -1;
+    // 从服务器获取最新消息
+    const serverResponse = await tuanchat.chatController.getHistoryMessages({
+      roomId,
+      syncId: localMaxSyncId + 1,
+    });
+    const newMessages = serverResponse.data ?? [];
+    if (newMessages.length > 0) {
+      await addOrUpdateMessages(newMessages);
+    }
+  };
+
+  /**
+   * 初始加载聊天记录
+   */
   useEffect(() => {
     if (roomId === null) {
       setMessages([]);
       setLoading(false);
       return;
-    };
+    }
 
     setLoading(true);
     let isCancelled = false; // Flag to prevent state updates from stale effects
@@ -113,23 +135,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         if (isCancelled)
           return;
         setMessages(localHistory);
-
-        const localMaxSyncId = localHistory.length > 0
-          ? Math.max(...localHistory.map(msg => msg.message.syncId))
-          : -1;
-
-        // 从服务器获取最新消息
-        const serverResponse = await tuanchat.chatController.getHistoryMessages({
-          roomId,
-          syncId: localMaxSyncId + 1,
-        });
-        if (isCancelled)
-          return;
-
-        const newMessages = serverResponse.data ?? [];
-        if (newMessages.length > 0) {
-          await addOrUpdateMessages(newMessages);
-        }
+        await fetchNewestMessages();
       }
       catch (err) {
         if (!isCancelled) {
@@ -147,6 +153,15 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       isCancelled = true;
     };
   }, [addOrUpdateMessages, roomId]);
+
+  // 在页面长时间处于非活动状态后再切回来， 很可能发生ws断联的情况， 所以需要监听document的状态
+  const documentVisibility = typeof document !== "undefined" ? document.visibilityState : "visible";
+  // 监听页面状态, 如果重新页面处于可见状态，则尝试重新获取最新消息
+  useEffect(() => {
+    if (document.visibilityState === "visible") {
+      fetchNewestMessages();
+    }
+  }, [documentVisibility]);
 
   return {
     messages,
