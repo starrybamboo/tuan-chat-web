@@ -15,6 +15,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   };
 
   const globalContext = useGlobalContext();
+  const userId = globalContext.userId || -1;
   const webSocketUtils = globalContext.websocketUtils;
   const { targetUserId: urlTargetUserId, roomId: urlRoomId } = useParams();
   const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : (urlTargetUserId ? Number.parseInt(urlTargetUserId) : null);
@@ -38,7 +39,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
 
   // 加入从 WebSocket 接收到的实时消息
   const wsMessages = webSocketUtils.receivedDirectMessages;
-  const realTimeMessages = useMemo(() => mergeMessages(sortedInboxMessages, wsMessages), [sortedInboxMessages, wsMessages]);
+  const realTimeMessages = useMemo(() => mergeMessages(sortedInboxMessages, wsMessages, userId), [sortedInboxMessages, wsMessages, userId]);
 
   // 按最新消息时间排列，数组
   const sortedRealTimeMessages = useMemo(() => {
@@ -111,6 +112,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
 function mergeMessages(
   sortedMessages: Record<number, MessageDirectResponse[]>,
   wsMessages: Record<number, DirectMessageEvent[]>,
+  userId: number,
 ): Record<number, MessageDirectResponse[]> {
   const mergedMessages = new Map<number, MessageDirectResponse[]>();
 
@@ -119,6 +121,8 @@ function mergeMessages(
     ...Object.keys(sortedMessages).map(Number),
     ...Object.keys(wsMessages).map(Number),
   ]);
+
+  contactIds.delete(userId);
 
   for (const contactId of contactIds) {
     const historyMessages = sortedMessages[contactId] || [];

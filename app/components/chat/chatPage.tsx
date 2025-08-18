@@ -43,7 +43,7 @@ export default function ChatPage() {
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
   // 当前选中的空间ID
   const [activeSpaceId, setActiveSpaceId] = useState<number | null>(() => {
-    if (Number.isNaN(Number(urlSpaceId))) {
+    if (isPrivateChatMode) {
       return null;
     }
     return urlSpaceId ? Number(urlSpaceId) : (storedIds.spaceId ?? null);
