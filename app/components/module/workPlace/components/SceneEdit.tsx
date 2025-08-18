@@ -1,13 +1,15 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import EntityList from "../../detail/ContentTab/entityLists";
 import { useModuleContext } from "../context/_moduleContext";
 import AddEntityToScene from "./addEntityToScene";
 import EntityDetailList from "./EntityDetailList"; // 引入 EntityDetailList 组件
+import Veditor from "./veditor";
 
 interface SceneEditProps {
   scene: StageEntityResponse;
+  id: string | number; // 当前sceneEdit在moduleTabs中的id
 }
 
 const types = {
@@ -75,8 +77,8 @@ function Folder({ moduleData, entityType, onClick }:
   );
 }
 
-export default function SceneEdit({ scene }: SceneEditProps) {
-  const entityInfo = scene.entityInfo || {};
+export default function SceneEdit({ scene, id }: SceneEditProps) {
+  const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
   const { stageId, removeModuleTabItem } = useModuleContext();
 
   // 本地状态
@@ -87,6 +89,7 @@ export default function SceneEdit({ scene }: SceneEditProps) {
   const [charCount, setCharCount] = useState(entityInfo.tip?.length || 0);
   const [editEntityType, setEditEntityType] = useState<"item" | "role" | "location">("role");
   const MAX_TIP_LENGTH = 300;
+  const VeditorId = `scene-description-editor-${id}`;
 
   // 接入接口
   const { mutate: updateScene } = useUpdateEntityMutation(stageId as number);
@@ -273,7 +276,7 @@ export default function SceneEdit({ scene }: SceneEditProps) {
                     <>
                       <div>
                         <label className="label">
-                          <span className="label-text font-bold">场景名称</span>
+                          <span className="label-text font-bold mb-1">场景名称</span>
                         </label>
                         <input
                           type="text"
@@ -285,19 +288,23 @@ export default function SceneEdit({ scene }: SceneEditProps) {
                       </div>
                       <div>
                         <label className="label">
-                          <span className="label-text font-bold">场景描述（玩家可见）</span>
+                          <span className="label-text font-bold mb-1">场景描述（玩家可见）</span>
                         </label>
-                        <textarea
+                        {/* <textarea
                           value={localScene.description || ""}
                           onChange={e =>
                             setLocalScene(prev => ({ ...prev, description: e.target.value }))}
                           placeholder="可以直接展示给玩家的描述"
                           className="textarea textarea-bordered w-full h-24 resize-none"
+                        /> */}
+                        <Veditor
+                          id={VeditorId}
+                          placeholder="场景描述（玩家可见）"
                         />
                       </div>
                       <div>
                         <label className="label">
-                          <span className="label-text font-bold">提示（仅KP可见）</span>
+                          <span className="label-text font-bold mb-1">提示（仅KP可见）</span>
                         </label>
                         <textarea
                           value={localScene.tip || ""}
