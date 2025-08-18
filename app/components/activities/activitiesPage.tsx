@@ -77,18 +77,18 @@ const ActivitiesPage: React.FC = () => {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-6 duration-300">
         <div className="grid grid-cols-12 gap-6">
           {/* 主内容区 */}
-          <div className="col-span-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">动态</h1>
+          <div className="col-span-9">
+            <h1 className="text-2xl font-bold mb-4">动态</h1>
             {/* 发布动态框 */}
             <PublishBox />
 
             {/* 导航标签 */}
             <div className="mb-6">
-              <div className="flex space-x-6 text-sm border-b border-gray-200">
-                <button className="text-pink-500 font-medium border-b-2 border-pink-500 pb-2" type="button">
+              <div className="flex space-x-6 text-sm border-b border-primary">
+                <button className="text-primary font-medium border-b-2 border-primary pb-2" type="button">
                   全部
                 </button>
                 <button className="text-gray-500 hover:text-gray-700 pb-2" type="button">
@@ -107,7 +107,7 @@ const ActivitiesPage: React.FC = () => {
           </div>
 
           {/* 右侧边栏 */}
-          <div className="col-span-4">
+          <div className="col-span-3">
             <div className="sticky top-6 space-y-6">
               <ActivityNotice />
               <TrendingTopics />

@@ -10,7 +10,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Activities() {
   return (
-    <div className="h-full bg-base-200 overflow-auto">
+    <div className="bg-base-200 h-full w-full overflow-y-auto overflow-x-hidden">
       <ActivitiesPage />
     </div>
   );

@@ -15,7 +15,6 @@ export default function TrendingTopics() {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
       <div className="flex items-center space-x-2 mb-4">
-        <span className="text-orange-500 text-lg">📈</span>
         <h3 className="font-bold text-gray-900">热门话题</h3>
       </div>
       <div className="space-y-3">
@@ -29,7 +28,7 @@ export default function TrendingTopics() {
                     #
                     {topic.name}
                   </span>
-                  {topic.isHot && <span className="text-orange-500">🔥</span>}
+                  {topic.isHot && <span>🔥</span>}
                 </div>
                 <span className="text-xs text-gray-500">
                   {topic.posts}

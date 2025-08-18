@@ -32,7 +32,7 @@ const DynamicCard: React.FC<{ dynamic: Dynamic }> = ({
 
     return (
       <div className="mb-4">
-        <div className="text-gray-800 leading-relaxed mb-3">{content}</div>
+        <div className="text-gray-400 mb-3">{content}</div>
 
         {type === DynamicType.IMAGE && images && (
           <div className="grid grid-cols-3 gap-2">
@@ -95,7 +95,7 @@ const DynamicCard: React.FC<{ dynamic: Dynamic }> = ({
   );
 
   return (
-    <div className="bg-base-300 rounded-xl shadow-sm border border-gray-100 p-6 mb-4 hover:shadow-md transition-shadow">
+    <div className="bg-base-300 rounded-xl shadow-sm p-6 mb-4 hover:shadow-md transition-shadow">
       {renderUserHeader()}
       {renderContent()}
       {renderActions()}
