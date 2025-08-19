@@ -13,10 +13,9 @@ import { useGetFollowingMomentFeedInfiniteQuery } from "../../../api/hooks/activ
 export default function ActivitiesPage() {
   const [activeTab, setActiveTab] = useState<"all" | "module">("all");
 
-  // 👉 固定请求参数引用，避免 queryKey 抖动导致重复拉第一页
+  // 固定请求参数引用，避免 queryKey 抖动导致重复拉第一页
   const feedRequest = useMemo<FeedPageRequest>(() => ({
     pageSize: 10,
-    // 不放 cursor 字段；首次请求 pageParam 为 undefined，Hook 会按规范不带 cursor
   }), []);
 
   const {
@@ -160,13 +159,9 @@ export default function ActivitiesPage() {
                 </div>
               )}
 
-              {dynamics.map((item, idx) => {
+              {dynamics.map((item) => {
                 const feedId = item?.feed?.feedId;
-                // key 优先使用后端的全局唯一 feedId；无则用稳健 fallback
-                const key
-                      = feedId !== null && feedId !== undefined
-                        ? `feed-${feedId}`
-                        : `anon-${idx}-${item?.feed?.createTime ?? ""}`;
+                const key = `feed-${feedId}`;
                 return <PostsCard key={key} dynamic={item} />;
               })}
 

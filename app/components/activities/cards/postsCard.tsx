@@ -1,6 +1,6 @@
-import UserAvatarComponent from "@/components/common/userAvatar";
 import React, { useState } from "react";
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
+import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 
 /**
  * 发布的动态预览卡片组件
@@ -8,6 +8,7 @@ import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFee
 function PostsCard({ dynamic }: { dynamic: any }) {
   const feed = dynamic?.feed ?? {};
   const stats = dynamic?.stats ?? {};
+  const userId = dynamic?.feed.userId ?? -1;
 
   const initialIsLiked = Boolean(stats?.isLiked);
   const initialLikeCount = Number(stats?.likeCount ?? 0);
@@ -16,6 +17,16 @@ function PostsCard({ dynamic }: { dynamic: any }) {
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [showMenu, setShowMenu] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // 获取用户信息
+  const { data: userInfoData, isLoading: userInfoLoading } = useGetUserInfoQuery(userId || 0);
+
+  // 使用API获取的数据或默认数据
+  const userData = userInfoData?.data;
+  const data = {
+    name: userData?.username || "未知用户",
+    avatar: userData?.avatar || "favicon.ico",
+  };
 
   const deleteMutation = useDeleteMomentFeedMutation();
 
@@ -63,9 +74,6 @@ function PostsCard({ dynamic }: { dynamic: any }) {
   const handleComment = () => 0;
   const handleShare = () => 0;
 
-  // 显示 userId 作为用户名（不要虚构），avatar 未提供时标注 TODO
-  const displayUser = feed?.userId !== undefined ? String(feed.userId) : "TODO";
-
   // 图片数组字段名（后端示例是 imageUrls
   const images = Array.isArray(feed?.imageUrls) ? feed.imageUrls : [];
   // 时间字段 createTime
@@ -84,14 +92,37 @@ function PostsCard({ dynamic }: { dynamic: any }) {
       )}
 
       <div className="flex items-center space-x-3 mb-4">
-        {/* 用户头像 */}
-        <div className="pointer-events-none relative flex-shrink-0">
-          <UserAvatarComponent userId={feed?.userId} width={12} isRounded={true} />
-        </div>
+        {/* 发布者的信息 */}
+        <div className="flex flex-row items-center gap-2">
+          {userInfoLoading
+            ? (
+                <div className="skeleton w-12 h-12 rounded-full flex-shrink-0"></div>
+              )
+            : (
+                <img
+                  className="w-12 h-12 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
+                  src={data.avatar}
+                  // TODO: 接入 UserDetail
+                  // onClick={handleAvatarClick}
+                  alt="用户头像"
+                />
+              )}
 
-        <div className="flex-1">
-          <h3 className="font-medium text-base-content">{displayUser}</h3>
-          <p className="text-sm text-base-content/60">{publishTime}</p>
+          <div className="flex flex-col justify-between min-w-0 flex-1">
+            {userInfoLoading
+              ? (
+                  <>
+                    <div className="skeleton h-6 w-24 mb-2"></div>
+                    <div className="skeleton h-4 w-32"></div>
+                  </>
+                )
+              : (
+                  <>
+                    <h3 className="card-title text-lg whitespace-nowrap">{data.name}</h3>
+                    <p className="flex-1 text-sm text-base-content/60">{publishTime}</p>
+                  </>
+                )}
+          </div>
         </div>
 
         <div className="relative">
