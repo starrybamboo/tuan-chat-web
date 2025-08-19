@@ -55,17 +55,30 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
 
   // 加入从 WebSocket 接收到的实时消息
   const wsMessages = webSocketUtils.receivedDirectMessages;
-  const realTimeMessages = useMemo(() => mergeMessages(sortedInboxMessages, wsMessages, userId), [sortedInboxMessages, wsMessages, userId]);
+  const sortedWsMessages = useMemo(() => {
+    const sorted: Record<number, DirectMessageEvent[]> = {};
+    // 遍历每个联系人的消息
+    Object.entries(wsMessages).forEach(([contactId, messages]) => {
+      const sortedMessages = [...messages].sort((a, b) => {
+        return b.syncId - a.syncId;
+      });
+      sorted[Number(contactId)] = sortedMessages;
+    });
+    return sorted;
+  }, [wsMessages]);
+
+  const realTimeMessages = useMemo(() => mergeMessages(sortedInboxMessages, sortedWsMessages, userId), [sortedInboxMessages, sortedWsMessages, userId]);
 
   // 按最新消息时间排列，数组
   const sortedRealTimeMessages = useMemo(() => {
-    let sortedMessages = Object.entries(realTimeMessages);
+    let realTimeMsg = Object.entries(realTimeMessages);
 
-    sortedMessages = sortedMessages.filter(([, messages]) => {
+    // 先过滤掉只有 messageType === 10000 的联系人
+    realTimeMsg = realTimeMsg.filter(([, messages]) => {
       return messages.filter(m => m.messageType !== 10000).length > 0;
     });
 
-    sortedMessages = sortedMessages.sort(([, messagesA], [, messagesB]) => {
+    realTimeMsg = realTimeMsg.sort(([, messagesA], [, messagesB]) => {
       const validMessagesA = messagesA.filter(m => m.messageType !== 10000);
       const validMessagesB = messagesB.filter(m => m.messageType !== 10000);
 
@@ -73,7 +86,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
       const latestB = new Date(validMessagesB[0]?.createTime ?? 0).getTime();
       return latestB - latestA;
     });
-    return sortedMessages;
+    return realTimeMsg;
   }, [realTimeMessages]);
 
   // 实时的联系人
@@ -175,18 +188,51 @@ function mergeMessages(
   for (const contactId of contactIds) {
     const wsContactMessages = wsMessages[contactId] || [];
     const historyMessages = sortedMessages[contactId] || [];
-    mergedMessages.set(contactId, [...wsContactMessages, ...historyMessages]);
+
+    // mergedMessages.set(contactId, [...wsContactMessages, ...historyMessages]);
+
+    // 使用 Map 进行去重，key 为 messageId
+    const messageMap = new Map<number, MessageDirectType>();
+
+    wsContactMessages.forEach((msg) => {
+      if (msg.messageId) {
+        messageMap.set(msg.messageId, msg);
+      }
+    });
+
+    historyMessages.forEach((msg) => {
+      if (msg.messageId && !messageMap.has(msg.messageId)) {
+        messageMap.set(msg.messageId, msg);
+      }
+    });
+
+    // 将 Map 转化为数组
+    const messageArray = Array.from(messageMap.values());
+
+    mergedMessages.set(contactId, messageArray);
   }
+
   return Object.fromEntries(mergedMessages);
 }
 
 function getUnreadMessageNumber(sortedRealTimeMessages: Array<[string, MessageDirectResponse[]]>, contactId: number, userId: number) {
   const targetArray = sortedRealTimeMessages.find(([id]) => Number.parseInt(id) === contactId);
   const messages = targetArray ? targetArray[1] : [];
-  const latestMessage = messages.find(msg => msg.senderId === contactId);
-  const readline = messages.find(msg => msg.messageType === 10000 && msg.senderId === userId);
-  const latestMessageSync = latestMessage?.syncId || 0;
-  const readlineSync = readline?.syncId || 0;
-  const unreadCount = latestMessageSync - readlineSync;
+  const latestMessageIndex = messages.findIndex(msg => msg.messageType !== 10000 && msg.senderId === contactId);
+  const latestMessageSync = messages.find(msg => msg.messageType !== 10000 && msg.senderId === contactId)?.syncId || 0;
+  const readlineIndex = messages.findIndex(msg => msg.messageType === 10000 && msg.senderId === userId);
+  const readlineSync = messages.find(msg => msg.messageType === 10000 && msg.senderId === userId)?.syncId || 0;
+  let unreadCount = 0;
+  let index = readlineIndex;
+  while (index >= latestMessageIndex || index > -1) {
+    if (messages[index]?.senderId === contactId && messages[index]?.messageType !== 10000) {
+      unreadCount++;
+    }
+    index--;
+  }
+  if (latestMessageSync < readlineSync) {
+    return 0;
+  }
+
   return unreadCount > 0 ? unreadCount : 0;
 }
