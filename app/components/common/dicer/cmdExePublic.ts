@@ -1,5 +1,6 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
 import { roll } from "@/components/common/dicer/dice";
+import UNTIL from "@/components/common/dicer/until";
 
 // 属性名中英文对照表
 const ABILITY_MAP: { [key: string]: string } = {
@@ -34,12 +35,18 @@ const cmdR = new CommandExecutor(
   [".r 1d100", ".r 3d6*5"],
   ".r [掷骰表达式]",
   async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+    const isForceToast = UNTIL.doesHaveArg(args, "h");
     let input = args.join("");
     if (!input) {
-      input = "1d";
+      input = "1d100";
     }
     try {
       const diceResult = roll(input);
+      if (isForceToast) {
+        cpi.sendToast(`掷骰结果：${input} = ${diceResult.expanded} = ${diceResult.result}`);
+        cpi.sendMsg(prop, `${mentioned[mentioned.length - 1].roleName}进行了一次暗骰`);
+        return true;
+      }
       cpi.sendMsg(prop, `掷骰结果：${input} = ${diceResult.expanded} = ${diceResult.result}`);
       return true;
     }
