@@ -24,6 +24,7 @@ import type { UserRole } from './models/UserRole';
 import type { AbilitySetRequest } from "./models/AbilitySetRequest";
 import type { AbilityUpdateRequest } from "./models/AbilityUpdateRequest";
 import type { UseQueryResult } from "@tanstack/react-query";
+import type { Transform } from '../app/components/newCharacter/sprite/TransformControl';
 
 import {
   type AbilityFieldUpdateRequest,
@@ -306,16 +307,25 @@ export function useDeleteRoleAvatarMutation(roleId?: number) {
 
 /**
  * 上传头像
+ * 支持Transform参数：scale, positionX, positionY, alpha, rotation
+ * Transform参数会被验证并转换为后端所需的字符串格式
  */
 export function useUploadAvatarMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["uploadAvatar"],
-    mutationFn: async ({ avatarUrl, spriteUrl, roleId }: { avatarUrl: string; spriteUrl: string; roleId: number }) => {
+    mutationFn: async ({ avatarUrl, spriteUrl, roleId, transform }: { avatarUrl: string; spriteUrl: string; roleId: number; transform?: Transform }) => {
       if (!avatarUrl || !roleId || !spriteUrl) {
         console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;
       }
+
+      console.log("useUploadAvatarMutation: 开始上传", { 
+        hasTransform: !!transform,
+        roleId,
+        avatarUrl: avatarUrl.substring(0, 50) + "...",
+        spriteUrl: spriteUrl.substring(0, 50) + "..."
+      });
 
       try {
         const res = await tuanchat.avatarController.setRoleAvatar({
@@ -330,20 +340,81 @@ export function useUploadAvatarMutation() {
         const avatarId = res.data;
 
         if (avatarId) {
+          // Set default transform values if not provided
+          const defaultTransform: Transform = {
+            scale: 1,
+            positionX: 0,
+            positionY: 0,
+            alpha: 1,
+            rotation: 0
+          };
+          
+          // Validate and clamp transform values to acceptable ranges
+          const validateTransform = (t: Transform): Transform => {
+            return {
+              scale: Math.max(0, Math.min(2, t.scale || 1)),
+              positionX: Math.max(-300, Math.min(300, t.positionX || 0)),
+              positionY: Math.max(-300, Math.min(300, t.positionY || 0)),
+              alpha: Math.max(0, Math.min(1, t.alpha || 1)),
+              rotation: Math.max(0, Math.min(360, t.rotation || 0))
+            };
+          };
+          
+          const finalTransform = transform ? validateTransform(transform) : defaultTransform;
+          
+          console.log("useUploadAvatarMutation: 处理Transform数据", {
+            original: transform,
+            validated: finalTransform,
+            mapped: {
+              spriteXPosition: finalTransform.positionX.toString(),
+              spriteYPosition: finalTransform.positionY.toString(),
+              spriteScale: finalTransform.scale.toString(),
+              spriteTransparency: finalTransform.alpha.toString(),
+              spriteRotation: finalTransform.rotation.toString(),
+            }
+          });
+          
           const uploadRes = await tuanchat.avatarController.updateRoleAvatar({
             roleId: roleId,
             avatarId,
             avatarUrl,
             spriteUrl,
+            spriteXPosition: finalTransform.positionX.toString(),
+            spriteYPosition: finalTransform.positionY.toString(),
+            spriteScale: finalTransform.scale.toString(),
+            spriteTransparency: finalTransform.alpha.toString(),
+            spriteRotation: finalTransform.rotation.toString(),
           });
 
           if (!uploadRes.success) {
             console.error("头像更新失败", uploadRes);
+            // If transform parameters caused the failure, try again with defaults
+            if (transform) {
+              console.warn("尝试使用默认Transform参数重新上传");
+              const retryRes = await tuanchat.avatarController.updateRoleAvatar({
+                roleId: roleId,
+                avatarId,
+                avatarUrl,
+                spriteUrl,
+                spriteXPosition: defaultTransform.positionX.toString(),
+                spriteYPosition: defaultTransform.positionY.toString(),
+                spriteScale: defaultTransform.scale.toString(),
+                spriteTransparency: defaultTransform.alpha.toString(),
+                spriteRotation: defaultTransform.rotation.toString(),
+              });
+              
+              if (retryRes.success) {
+                console.warn("使用默认Transform参数上传成功");
+                await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
+                return retryRes;
+              }
+            }
             return undefined;
           }
 
-          console.warn("头像上传成功");
+          console.warn("头像上传成功，包含Transform参数");
           await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
+          console.log("缓存已刷新，roleId:", roleId);
           return uploadRes;
         }
         else {

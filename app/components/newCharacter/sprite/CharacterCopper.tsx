@@ -250,7 +250,8 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
           setCopperedDownloadUrl(copperedDownloadUrl);
         }
         if (mutate !== undefined) {
-          mutate({ avatarUrl: copperedDownloadUrl, spriteUrl: downloadUrl });
+          console.warn("CharacterCopper: 传递Transform数据", transform);
+          mutate({ avatarUrl: copperedDownloadUrl, spriteUrl: downloadUrl, transform });
         }
         // 延迟关闭弹窗和重置状态，避免抖动
         setTimeout(() => {
