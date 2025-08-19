@@ -7,6 +7,7 @@ import {useCallback, useEffect, useRef, useState} from "react";
 import { useImmer } from "use-immer";
 import {useGlobalContext} from "@/components/globalContextProvider";
 import type {ChatStatusEvent, ChatStatusType, DirectMessageEvent, RoomExtraChangeEvent} from "./wsModels";
+import {tuanchat} from "./instance";
 
 /**
  * 成员的输入状态（不包含roomId）
@@ -200,25 +201,45 @@ export function useWebSocket() {
    * 处理群聊消息
    * @param chatMessageResponse
    */
-  const handleChatMessage = (chatMessageResponse: ChatMessageResponse) => {
+  const handleChatMessage = async (chatMessageResponse: ChatMessageResponse) => {
     if (!(chatMessageResponse?.message.createTime) && chatMessageResponse != undefined) {
       chatMessageResponse.message.createTime = formatLocalDateTime(new Date());
     }
     if (chatMessageResponse != undefined && chatMessageResponse) {
       const roomId = chatMessageResponse.message.roomId;
+      // TODO: 重构未读消息数
       if (chatMessageResponse.message.status === 0) {
         setUnreadMessagesNumber(prev => ({
           ...prev,
           [roomId]: (prev[roomId] || 0) + 1,
         }));
       }
-      // 把接受消息放到接收消息缓存列表里面
-      updateReceivedMessages((draft) => {
-        if (roomId in draft) {
-          draft[roomId].push(chatMessageResponse);
+
+      let messagesToAdd: ChatMessageResponse[] = [];
+      const currentMessages = receivedMessages[roomId] || [];
+      // 检查syncId是否连续
+      if (currentMessages.length > 0) {
+        const lastSyncId = currentMessages[currentMessages.length - 1].message.syncId;
+        if (chatMessageResponse.message.syncId - lastSyncId > 1) {
+          // 直接获取所有syncId大于lastsSyncId的消息。
+          const lostMessagesResponse = await tuanchat.chatController.getHistoryMessages({
+            roomId,
+            syncId: lastSyncId + 1
+          });
+          const lostMessages = lostMessagesResponse.data ?? [];
+          messagesToAdd.push(...lostMessages);
         }
-        else {
-          draft[roomId] = [chatMessageResponse];
+      }
+      if (messagesToAdd.length === 0 || messagesToAdd[messagesToAdd.length-1].message.messageId !== chatMessageResponse.message.messageId){
+        messagesToAdd.push(chatMessageResponse);
+      }
+
+
+      updateReceivedMessages(draft => {
+        if (draft[roomId]) {
+          draft[roomId].push(...messagesToAdd);
+        } else {
+          draft[roomId] = messagesToAdd;
         }
       });
       // 更新发送用户的输入状态
@@ -316,7 +337,7 @@ export function useWebSocket() {
             [roomId]: newNumber,
           }));
         };
-        
+
   const webSocketUtils: WebsocketUtils = {
     connect,
     send,
