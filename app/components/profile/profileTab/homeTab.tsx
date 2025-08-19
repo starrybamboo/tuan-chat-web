@@ -60,8 +60,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
     rating: 0,
     sessions: 0,
     kpSessions: 0,
-    scBalance: 0,
-    tags: ["悬疑团", "搞笑团", "抽象团", "奇幻团", "科幻团", "历史团"],
     medals: [
       { id: 1, name: "Your Story", desc: "首次设计了一个模组", date: "2025-07-21" },
       { id: 2, name: "神秘观测者", desc: "围观了一场跑团超过2个小时", date: "2025-06-15" },
