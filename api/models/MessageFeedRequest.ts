@@ -5,7 +5,7 @@
 /**
  * Feed创建/修改请求
  */
-export type FeedRequest = {
+export type MessageFeedRequest = {
     /**
      * Feed ID，创建时不需要传，修改时必传
      */

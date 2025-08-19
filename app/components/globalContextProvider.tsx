@@ -1,11 +1,11 @@
 import type { WebsocketUtils } from "../../api/useWebSocket";
 import type { ChatStatusEvent } from "../../api/wsModels";
-import { createContext, use, useEffect, useMemo, useState } from "react";
+import { getLocalStorageValue } from "@/components/common/customHooks/useLocalStorage";
+import { createContext, use, useMemo } from "react";
 import { useWebSocket } from "../../api/useWebSocket";
 
 interface GlobalContextType {
   userId: number | null;
-  setUserId: (userId: number | null) => void;
   websocketUtils: WebsocketUtils;
 }
 
@@ -32,28 +32,17 @@ const GlobalContext = createContext<GlobalContextType>({
     updateChatStatus(chatStatusEvent: ChatStatusEvent): void {
       console.error(`Function not implemented.${chatStatusEvent}`);
     },
-    unreadDirectMessagesNumber: {},
-    updateUnreadDirectMessagesNumber(senderId: number, newNumber: number): void {
-      console.error(`Function not implemented.${senderId}${newNumber}`);
-    },
   },
-  setUserId: () => {},
 });
 // eslint-disable-next-line react-refresh/only-export-components
 export const useGlobalContext = () => use(GlobalContext);
 export function GlobalContextProvider({ children }: { children: React.ReactNode }) {
-  const [userId, setUserId] = useState<number | null>(null);
-  // 自动同步 localStorage 变化
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-    setUserId(token ? Number(token) : null);
-  }, []);
+  const token = getLocalStorageValue<string | null>("token", null);
+  const userId = Number(token);
   const websocketUtils = useWebSocket();
   const roomContext: GlobalContextType = useMemo((): GlobalContextType => {
     return {
       userId,
-      setUserId,
       websocketUtils,
     };
   }, [userId, websocketUtils]);

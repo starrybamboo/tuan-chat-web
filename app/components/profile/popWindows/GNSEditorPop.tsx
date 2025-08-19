@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 type RatingCategory = "Gamism" | "Narrativism" | "Simulationism";
 
 interface Ratings {
@@ -5,6 +7,7 @@ interface Ratings {
   Narrativism: number;
   Simulationism: number;
 }
+
 // GNS排序表达
 function getGNSOrder(ratings: Ratings): string {
   const entries = Object.entries(ratings) as [RatingCategory, number][];
@@ -29,16 +32,44 @@ function getGNSOrder(ratings: Ratings): string {
   return result;
 }
 
-function GNSPreferenceEditor({ ratings, onRatingChange, onClose }: {
-  ratings: Ratings;
-  onRatingChange: (category: RatingCategory, value: string) => void;
-  onClose: () => void;
-}) {
+interface GNSPreferenceEditorProps {
+  initialRatings: Ratings;
+  onSave: (ratings: Ratings) => Promise<void>;
+  onCancel: () => void;
+  isLoading?: boolean;
+}
+
+function GNSPreferenceEditor({
+  initialRatings,
+  onSave,
+  onCancel,
+  isLoading = false,
+}: GNSPreferenceEditorProps) {
+  // 编辑器内部状态，独立于外部组件
+  const [ratings, setRatings] = useState<Ratings>(initialRatings);
+
   const categories = [
     { key: "Gamism" as RatingCategory, name: "游戏性 (G)", desc: "追求挑战、竞争和策略" },
     { key: "Narrativism" as RatingCategory, name: "叙事性 (N)", desc: "重视故事、角色和情感体验" },
     { key: "Simulationism" as RatingCategory, name: "模拟性 (S)", desc: "享受真实感、沉浸和探索" },
   ];
+
+  const handleRatingChange = (category: RatingCategory, value: string) => {
+    setRatings(prev => ({
+      ...prev,
+      [category]: Number.parseInt(value, 10),
+    }));
+  };
+
+  const handleSave = async () => {
+    await onSave(ratings);
+  };
+
+  const handleCancel = () => {
+    // 重置到初始状态
+    setRatings(initialRatings);
+    onCancel();
+  };
 
   const order = getGNSOrder(ratings);
 
@@ -78,8 +109,9 @@ function GNSPreferenceEditor({ ratings, onRatingChange, onClose }: {
                 min="0"
                 max="5"
                 value={ratings[category.key]}
-                onChange={e => onRatingChange(category.key, e.target.value)}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                onChange={e => handleRatingChange(category.key, e.target.value)}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer disabled:opacity-50"
+                disabled={isLoading}
               />
               <div className="flex justify-between text-xs text-gray-400">
                 <span>0</span>
@@ -94,16 +126,6 @@ function GNSPreferenceEditor({ ratings, onRatingChange, onClose }: {
         </div>
       </div>
 
-      {/* 底部按钮 */}
-      <div className="flex justify-center mt-6 pt-4 border-t">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/70 cursor-pointer transition-colors"
-        >
-          完成设置
-        </button>
-      </div>
       {/* GNS理论介绍 */}
       <div className="p-4 rounded-lg text-sm mt-4">
         <p className="text-primary mb-2">TIP: 什么是 GNS 理论？</p>
@@ -116,6 +138,25 @@ function GNSPreferenceEditor({ ratings, onRatingChange, onClose }: {
           <strong>模拟性</strong>
           （享受沉浸）
         </p>
+      </div>
+      {/* 操作按钮 */}
+      <div className="flex justify-center gap-4 mt-6 pt-4 border-t">
+        <button
+          type="button"
+          onClick={handleCancel}
+          className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 transition-colors"
+          disabled={isLoading}
+        >
+          取消
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          className="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/70 cursor-pointer transition-colors disabled:opacity-50"
+          disabled={isLoading}
+        >
+          {isLoading ? "保存中..." : "完成设置"}
+        </button>
       </div>
     </div>
   );

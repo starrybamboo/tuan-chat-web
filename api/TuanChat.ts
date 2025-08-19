@@ -6,6 +6,7 @@ import type { BaseHttpRequest } from './core/BaseHttpRequest';
 import type { OpenAPIConfig } from './core/OpenAPI';
 import { FetchHttpRequest } from './core/FetchHttpRequest';
 import { AbilityControllerService } from './services/AbilityControllerService';
+import { AiWritingControllerService } from './services/AiWritingControllerService';
 import { AvatarControllerService } from './services/AvatarControllerService';
 import { ChatControllerService } from './services/ChatControllerService';
 import { CollectionControllerService } from './services/CollectionControllerService';
@@ -50,6 +51,7 @@ import { WebsocketDocService } from './services/WebsocketDocService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class TuanChat {
     public readonly abilityController: AbilityControllerService;
+    public readonly aiWritingController: AiWritingControllerService;
     public readonly avatarController: AvatarControllerService;
     public readonly chatController: ChatControllerService;
     public readonly collectionController: CollectionControllerService;
@@ -94,7 +96,7 @@ export class TuanChat {
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
         this.request = new HttpRequest({
-            BASE: config?.BASE ?? 'http://39.103.58.31:8081',
+            BASE: config?.BASE ?? 'http://localhost:8081',
             VERSION: config?.VERSION ?? '1.0',
             WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
             CREDENTIALS: config?.CREDENTIALS ?? 'include',
@@ -105,6 +107,7 @@ export class TuanChat {
             ENCODE_PATH: config?.ENCODE_PATH,
         });
         this.abilityController = new AbilityControllerService(this.request);
+        this.aiWritingController = new AiWritingControllerService(this.request);
         this.avatarController = new AvatarControllerService(this.request);
         this.chatController = new ChatControllerService(this.request);
         this.collectionController = new CollectionControllerService(this.request);

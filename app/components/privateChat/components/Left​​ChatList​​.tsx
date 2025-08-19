@@ -1,148 +1,238 @@
-import { SideDrawer } from "@/components/common/sideDrawer";
-import { useGetMessageDirectPageQueries } from "api/hooks/MessageDirectQueryHooks";
-import { useMemo } from "react";
+import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
+import type { DirectMessageEvent } from "api/wsModels";
+import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGetInboxMessagePageQuery, useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useParams } from "react-router";
 import FriendItem from "./FriendItem";
 
-interface contactInfo {
-  userId: number;
-  status: number;
-  latestMessage: string;
-  latestMessageTime: string | undefined;
+interface MessageDirectType {
+  messageId?: number;
+  userId?: number;
+  syncId?: number;
+  senderId?: number;
+  receiverId?: number;
+  content?: string;
+  messageType?: number;
+  replyMessageId?: number;
+  status?: number;
+  extra?: Record<string, any>;
+  createTime?: string;
+  updateTime?: string;
 }
 
-export default function LeftChatList({
-  currentContactUserId,
-  friends,
-  allReceivedMessages,
-}: {
-  currentContactUserId: number | null;
-  friends: { userId: number; status: number }[];
-  allReceivedMessages: { senderId: number; receiverId: number; content: string; createTime: string }[];
-}) {
-  // 获取每个好友的最新私聊消息
-  const messageQueries = useGetMessageDirectPageQueries(friends);
-  const latestMessages = messageQueries.map(query => query.data?.data?.list?.[0] || null);
-  // 合并messageQueries的latestMessages消息和allReceivedMessages
-  const mergedLatestMessages = useMemo(() => {
-    return mergeLatestMessages(latestMessages, allReceivedMessages);
-  }, [latestMessages, allReceivedMessages]);
-  // 将好友信息和最新消息合并
-  const friendInfos = mapFriendInfos(friends, mergedLatestMessages);
-  // 根据最新消息时间排序好友列表
-  const sortedFriendInfos = sortFriendInfos(friendInfos);
+export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDrawer: (isOpen: boolean) => void }) {
+  // 设置自定义样式
+  const customScrollbarStyle: React.CSSProperties = {
+    overflowY: "auto",
+    scrollbarWidth: "none",
+    msOverflowStyle: "none",
+  };
+
+  const globalContext = useGlobalContext();
+  const userId = globalContext.userId || -1;
+  const webSocketUtils = globalContext.websocketUtils;
+  const { targetUserId: urlTargetUserId, roomId: urlRoomId } = useParams();
+  const prevUrlRoomIdRef = useRef<string | undefined>(urlRoomId);
+  const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : (urlTargetUserId ? Number.parseInt(urlTargetUserId) : null);
+
+  // 从消息信箱获取私聊列表
+  const inboxQuery = useGetInboxMessagePageQuery();
+  const inboxMessages: MessageDirectResponse[] = useMemo(() => Array.isArray(inboxQuery.data?.data) ? inboxQuery.data.data : [], [inboxQuery.data]);
+  // 格式化私聊消息，按联系人分组
+  const sortedInboxMessages = useMemo(() => {
+    const contacts = new Map<number, MessageDirectResponse[]>();
+    for (const msg of inboxMessages) {
+      // 本条消息的联系人
+      const contactId = (msg.senderId === msg.userId ? msg.receiverId : msg.senderId) || -1;
+      if (!contacts.has(contactId)) {
+        contacts.set(contactId, []);
+      }
+      contacts.get(contactId)?.push(msg);
+    }
+    return Object.fromEntries(contacts);
+  }, [inboxMessages]);
+
+  // 加入从 WebSocket 接收到的实时消息
+  const wsMessages = webSocketUtils.receivedDirectMessages;
+  const sortedWsMessages = useMemo(() => {
+    const sorted: Record<number, DirectMessageEvent[]> = {};
+    // 遍历每个联系人的消息
+    Object.entries(wsMessages).forEach(([contactId, messages]) => {
+      const sortedMessages = [...messages].sort((a, b) => {
+        return b.syncId - a.syncId;
+      });
+      sorted[Number(contactId)] = sortedMessages;
+    });
+    return sorted;
+  }, [wsMessages]);
+
+  const realTimeMessages = useMemo(() => mergeMessages(sortedInboxMessages, sortedWsMessages, userId), [sortedInboxMessages, sortedWsMessages, userId]);
+
+  // 按最新消息时间排列，数组
+  const sortedRealTimeMessages = useMemo(() => {
+    let realTimeMsg = Object.entries(realTimeMessages);
+
+    // 先过滤掉只有 messageType === 10000 的联系人
+    realTimeMsg = realTimeMsg.filter(([, messages]) => {
+      return messages.filter(m => m.messageType !== 10000).length > 0;
+    });
+
+    realTimeMsg = realTimeMsg.sort(([, messagesA], [, messagesB]) => {
+      const validMessagesA = messagesA.filter(m => m.messageType !== 10000);
+      const validMessagesB = messagesB.filter(m => m.messageType !== 10000);
+
+      const latestA = new Date(validMessagesA[0]?.createTime ?? 0).getTime();
+      const latestB = new Date(validMessagesB[0]?.createTime ?? 0).getTime();
+      return latestB - latestA;
+    });
+    return realTimeMsg;
+  }, [realTimeMessages]);
+
+  // 实时的联系人
+  const realTimeContacts = useMemo(() => {
+    return sortedRealTimeMessages.map(([contactId]) => Number.parseInt(contactId));
+  }, [sortedRealTimeMessages]);
+
+  // 未读消息数
+  const unreadMessageNumbers = useMemo(() => {
+    const counts: Record<number, number> = {};
+    for (const contactId of realTimeContacts) {
+      counts[contactId] = getUnreadMessageNumber(sortedRealTimeMessages, contactId, userId);
+    }
+    return counts;
+  }, [realTimeContacts, sortedRealTimeMessages, userId]);
+
+  // 更新未读消息 Readline 位置
+  const updateReadPositionMutation = useUpdateReadPositionMutation();
+
+  const updateReadlinePosition = useCallback((contactId: number) => {
+    if (contactId !== userId) {
+      updateReadPositionMutation.mutate({ targetUserId: contactId });
+    }
+  }, [updateReadPositionMutation, userId]);
+
+  // 监听 urlRoomId 变化，更新之前的已读位置
+  useEffect(() => {
+    const prevUrlRoomId = prevUrlRoomIdRef.current;
+
+    if (prevUrlRoomId && prevUrlRoomId !== urlRoomId) {
+      const prevContactId = Number.parseInt(prevUrlRoomId);
+      updateReadlinePosition(prevContactId);
+    }
+    prevUrlRoomIdRef.current = urlRoomId;
+  }, [urlRoomId, updateReadlinePosition, userId]);
 
   return (
-    <SideDrawer sideDrawerId="private-chat">
-      <div className="flex flex-col w-[300px] h-full bg-base-100">
-        {/* 私聊列表 */}
-        <div className="flex-1 w-full overflow-auto">
-          {/* {followingQuery.isLoading */}
-          {false
+    <div className="flex flex-col h-full bg-base-100">
+      {/* 私聊列表 */}
+      <div
+        className="flex-1 w-full"
+        style={customScrollbarStyle} // 应用自定义滚动条样式
+      >
+        <div className="w-full h-8 font-bold flex items-start justify-center border-b border-base-300">
+          <span className="text-lg transform -translate-y-0.5">私信</span>
+        </div>
+        {false
+          ? (
+              <div className="flex items-center justify-center h-32">
+                <span className="loading loading-spinner loading-md"></span>
+                <span className="ml-2">加载私聊列表...</span>
+              </div>
+            )
+          : realTimeContacts.length === 0
             ? (
-                <div className="flex items-center justify-center h-32">
-                  <span className="loading loading-spinner loading-md"></span>
-                  <span className="ml-2">加载好友列表...</span>
+                // 私聊列表为空
+                <div className="flex flex-col items-center justify-center h-32 text-base-content/70">
+                  <span>暂无私聊列表</span>
+                  <span className="text-sm">快去聊天吧</span>
                 </div>
               )
-            : friends.length === 0
-              ? (
-            // 没有好友
-                  <div className="flex flex-col items-center justify-center h-32 text-base-content/70">
-                    <span>暂无好友</span>
-                    <span className="text-sm">快去添加一些好友吧</span>
-                  </div>
-                )
-              : (
-            // 显示好友列表
-                  sortedFriendInfos.map(friend => (
-                    <FriendItem
-                      key={friend.userId}
-                      id={friend.userId || -1}
-                      latestMessage={friend.latestMessage}
-                      latestMessageTime={friend.latestMessageTime}
-                      currentContactUserId={currentContactUserId}
-                    />
-                  ))
-                )}
-        </div>
-        {/* 功能栏目 */}
-        {/* <div className="h-20 w-full border-t border-base-300 bg-base-200">
-                    <div className="grid grid-cols-2 grid-rows-2 h-full cursor-pointer">
-                        <div className="flex items-center justify-center border-r border-b border-base-300 hover:bg-base-300 transition-colors gap-2">
-                        <div className="text-sm font-medium">回复我的</div>
-                        <div className="text-xs text-gray-500">5</div>
-                        </div>
-                        <div className="flex items-center justify-center border-b border-base-300 hover:bg-base-300 transition-colors gap-2">
-                        <div className="text-sm font-medium">@我的</div>
-                        <div className="text-xs text-gray-500">3</div>
-                        </div>
-                        <div className="flex items-center justify-center border-r border-base-300 hover:bg-base-300 transition-colors gap-2">
-                        <div className="text-sm font-medium">收到的赞</div>
-                        <div className="text-xs text-gray-500">12</div>
-                        </div>
-                        <div className="flex items-center justify-center hover:bg-base-300 transition-colors gap-2">
-                        <div className="text-sm font-medium">系统通知</div>
-                        <div className="text-xs text-gray-500">2</div>
-                        </div>
-                    </div>
-                </div> */}
+            : (
+                // 显示私聊列表
+                <div className="p-2 pt-4 flex flex-col gap-2">
+                  {
+                    realTimeContacts.map(contactId => (
+                      <FriendItem
+                        key={contactId}
+                        id={contactId}
+                        unreadMessageNumber={unreadMessageNumbers[contactId] || 0}
+                        currentContactUserId={currentContactUserId}
+                        setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                        updateReadlinePosition={updateReadlinePosition}
+                      />
+                    ))
+                  }
+                </div>
+              )}
       </div>
-    </SideDrawer>
+    </div>
   );
 }
 
-function mapFriendInfos(friends: { userId: number; status: number }[], latestMessages: any[]): contactInfo[] {
-  return friends.map((friend) => {
-    const latestMessage = latestMessages.find(msg => msg && (msg.senderId === friend.userId || msg.receiverId === friend.userId));
-    return {
-      userId: friend.userId,
-      status: friend.status,
-      latestMessage: latestMessage ? String(latestMessage.content) : "",
-      latestMessageTime: latestMessage ? latestMessage.createTime : undefined,
-    };
-  });
-}
+function mergeMessages(
+  sortedMessages: Record<number, MessageDirectResponse[]>,
+  wsMessages: Record<number, DirectMessageEvent[]>,
+  userId: number,
+): Record<number, MessageDirectType[]> {
+  const mergedMessages = new Map<number, MessageDirectType[]>();
 
-function sortFriendInfos(friendInfos: contactInfo[]): contactInfo[] {
-  return friendInfos.sort((a, b) => {
-    if (a.latestMessageTime && b.latestMessageTime) {
-      return new Date(b.latestMessageTime).getTime() - new Date(a.latestMessageTime).getTime();
-    }
-    else if (a.latestMessageTime) {
-      return -1;
-    }
-    return 1;
-  });
-}
+  // 获取所有联系人ID
+  const contactIds = new Set<number>([
+    ...Object.keys(wsMessages).map(Number),
+    ...Object.keys(sortedMessages).map(Number),
+  ]);
 
-function mergeLatestMessages(latestMessages: any[], allReceivedMessages: any[]) {
-  const messageMap = new Map<number, any>();
-  latestMessages.forEach((msg) => {
-    if (msg) { // 确保 msg 不为 null
-      messageMap.set(msg.messageId, msg);
-    }
-  });
-  allReceivedMessages.forEach((msg) => {
-    const sameMessageId = findSameTwoContacter(msg);
-    if (sameMessageId) {
-      messageMap.set(sameMessageId, msg);
-    }
-  });
-  return Array.from(messageMap.values());
+  contactIds.delete(userId);
 
-  // 查找是否有可以覆盖的消息记录，覆盖为最新消息
-  function findSameTwoContacter(msg: any) {
-    for (const [messageId, message] of messageMap) {
-      const msgTime = new Date(msg.createTime);
-      const messageTime = new Date(message.createTime);
+  for (const contactId of contactIds) {
+    const wsContactMessages = wsMessages[contactId] || [];
+    const historyMessages = sortedMessages[contactId] || [];
 
-      if (message.senderId === msg.senderId && message.receiverId === msg.receiverId && msgTime > messageTime) {
-        return messageId;
+    // mergedMessages.set(contactId, [...wsContactMessages, ...historyMessages]);
+
+    // 使用 Map 进行去重，key 为 messageId
+    const messageMap = new Map<number, MessageDirectType>();
+
+    wsContactMessages.forEach((msg) => {
+      if (msg.messageId) {
+        messageMap.set(msg.messageId, msg);
       }
-      else if (message.receiverId === msg.senderId && message.senderId === msg.receiverId && msgTime > messageTime) {
-        return messageId;
+    });
+
+    historyMessages.forEach((msg) => {
+      if (msg.messageId && !messageMap.has(msg.messageId)) {
+        messageMap.set(msg.messageId, msg);
       }
-    }
-    return null;
+    });
+
+    // 将 Map 转化为数组
+    const messageArray = Array.from(messageMap.values());
+
+    mergedMessages.set(contactId, messageArray);
   }
+
+  return Object.fromEntries(mergedMessages);
+}
+
+function getUnreadMessageNumber(sortedRealTimeMessages: Array<[string, MessageDirectResponse[]]>, contactId: number, userId: number) {
+  const targetArray = sortedRealTimeMessages.find(([id]) => Number.parseInt(id) === contactId);
+  const messages = targetArray ? targetArray[1] : [];
+  const latestMessageIndex = messages.findIndex(msg => msg.messageType !== 10000 && msg.senderId === contactId);
+  const latestMessageSync = messages.find(msg => msg.messageType !== 10000 && msg.senderId === contactId)?.syncId || 0;
+  const readlineIndex = messages.findIndex(msg => msg.messageType === 10000 && msg.senderId === userId);
+  const readlineSync = messages.find(msg => msg.messageType === 10000 && msg.senderId === userId)?.syncId || 0;
+  let unreadCount = 0;
+  let index = readlineIndex;
+  while (index >= latestMessageIndex || index > -1) {
+    if (messages[index]?.senderId === contactId && messages[index]?.messageType !== 10000) {
+      unreadCount++;
+    }
+    index--;
+  }
+  if (latestMessageSync < readlineSync) {
+    return 0;
+  }
+
+  return unreadCount > 0 ? unreadCount : 0;
 }

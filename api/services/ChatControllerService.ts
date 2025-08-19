@@ -10,7 +10,9 @@ import type { ApiResultMessage } from '../models/ApiResultMessage';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { ChatMessagePageRequest } from '../models/ChatMessagePageRequest';
 import type { ChatMessageRequest } from '../models/ChatMessageRequest';
+import type { HistoryMessageRequest } from '../models/HistoryMessageRequest';
 import type { Message } from '../models/Message';
+import type { MessageBySyncIdRequest } from '../models/MessageBySyncIdRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class ChatControllerService {
@@ -89,12 +91,12 @@ export class ChatControllerService {
      * 发送消息（备用）
      * 从设计上是为了弱网环境的处理，但实际上没怎么用
      * @param requestBody
-     * @returns ApiResultVoid OK
+     * @returns ApiResultMessage OK
      * @throws ApiError
      */
     public sendMessage1(
         requestBody: ChatMessageRequest,
-    ): CancelablePromise<ApiResultVoid> {
+    ): CancelablePromise<ApiResultMessage> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/chat/message',
@@ -132,6 +134,29 @@ export class ChatControllerService {
         });
     }
     /**
+     * 根据syncId获取单条消息
+     * 用于在收到syncId间隔的消息时，重新获取缺失的消息
+     * @param requestBody
+     * @returns ApiResultChatMessageResponse OK
+     * @throws ApiError
+     */
+    public getMessageBySyncId(
+        requestBody: MessageBySyncIdRequest,
+    ): CancelablePromise<ApiResultChatMessageResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/chat/message/sync',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
      * 按页获取消息列表
      * 用的是游标翻页
      * @param requestBody
@@ -155,15 +180,38 @@ export class ChatControllerService {
         });
     }
     /**
+     * 获取历史消息
+     * 返回房间下syncId大于等于请求中syncId的消息，用于重新上线时获取历史消息
+     * @param requestBody
+     * @returns ApiResultListChatMessageResponse OK
+     * @throws ApiError
+     */
+    public getHistoryMessages(
+        requestBody: HistoryMessageRequest,
+    ): CancelablePromise<ApiResultListChatMessageResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/chat/message/history',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
      * 发送消息（备用）,骰娘回复
      * 从设计上是为了弱网环境的处理，但实际上没怎么用
      * @param requestBody
-     * @returns ApiResultVoid OK
+     * @returns ApiResultMessage OK
      * @throws ApiError
      */
     public sendMessageAiResponse(
         requestBody: ChatMessageRequest,
-    ): CancelablePromise<ApiResultVoid> {
+    ): CancelablePromise<ApiResultMessage> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/chat/message/ai',

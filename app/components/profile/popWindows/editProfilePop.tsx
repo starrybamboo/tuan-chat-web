@@ -1,13 +1,14 @@
-import type { UserInfoResponse } from "../../../api";
+import type { UserInfoResponse } from "../../../../api";
 import MarkdownEditor from "@/components/common/markdown/markdownEditor";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useState } from "react";
-import { useGetUserInfoQuery, useUpdateUserInfoMutation } from "../../../api/queryHooks";
+import { useGetUserInfoQuery, useUpdateUserInfoMutation } from "../../../../api/queryHooks";
 
 const DESCRIPTION_MAX = 253;
+const NAME_MAX = 18;
 
-export default function EditProfileWindow({ onClose }: { onClose?: () => void }) {
+export default function EditProfilePop({ onClose }: { onClose?: () => void }) {
   // 当前登录用户的userId
   const userId = useGlobalContext().userId ?? -1;
 
@@ -22,7 +23,7 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
   const [userDescription, setUserDescription] = useState(user?.description || "");
   const [newAvtarUrl, setNewAvtarUrl] = useState(user?.avatar || undefined);
   const handleSave = () => {
-    if (userDescription.length <= DESCRIPTION_MAX && username.length <= 30) {
+    if (userDescription.length <= DESCRIPTION_MAX && username.length <= NAME_MAX) {
       if (onClose) {
         onClose();
       }
@@ -99,7 +100,7 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
                   onChange={e => setUsername(e.target.value)}
                   placeholder="请输入新昵称"
                   className={`input input-bordered input-lg w-full transition-all duration-200 ${
-                    username.length > 30
+                    username.length > NAME_MAX
                       ? "border-error focus:border-primary"
                       : "focus:border-primary"
                   }`}
@@ -108,10 +109,10 @@ export default function EditProfileWindow({ onClose }: { onClose?: () => void })
               <div
                 key={errorShakeKey}
                 style={{
-                  animation: username.length > 30 ? "quick-shake 0.4s ease-in-out" : "none",
+                  animation: username.length > NAME_MAX ? "quick-shake 0.4s ease-in-out" : "none",
                 }}
                 className={`text-right text-sm overflow-hidden transition-all duration-300 ease-in-out pt-1 md:text-left md:ml-20 ${
-                  username.length > 30
+                  username.length > NAME_MAX
                     ? "text-error max-h-8 opacity-100 translate-y-0"
                     : "max-h-0 opacity-0 translate-y-2"
                 }`}

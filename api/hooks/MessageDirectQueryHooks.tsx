@@ -1,13 +1,12 @@
 import { useMutation, useQuery, useQueries, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
-import type { MessageDirectPageRequest } from "api/models/MessageDirectPageRequest";
-import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
-import type { MessageDirectSendRequest } from "api/models/MessageDirectSendRequest";
+import type { UserFollowResponse } from "api/models/UserFollowResponse";
+import type { MessageDirectPageRequest, MessageDirectReadUpdateRequest, MessageDirectRecallRequest, MessageDirectSendRequest } from "api";
 import { tuanchat } from "../instance";
 import { useMemo } from "react";
 
 
 /**
- * 私聊消息无限分页查询，只会调用一次
+ * 私聊消息无限分页查询
  */
 export function useGetMessageDirectPageQuery(targetUserId: number, pageSize: number) {
   const initialPageParam: MessageDirectPageRequest = {
@@ -15,11 +14,6 @@ export function useGetMessageDirectPageQuery(targetUserId: number, pageSize: num
     pageSize,
     targetUserId
   }
-  // 创建这样的层次结构：
-  // directMessages
-  //   └── 10008 (targetUserId)
-  //   └── 10013 (targetUserId)
-  //   └── 15043 (targetUserId)
   const infiniteQuery = useInfiniteQuery({
     queryKey: ["directMessages", targetUserId],
     queryFn: async ({ pageParam }) => {
@@ -36,12 +30,11 @@ export function useGetMessageDirectPageQuery(targetUserId: number, pageSize: num
       }
       return undefined;
     },
-    initialPageParam, // 初始请求参数
-    refetchOnWindowFocus: false, // 窗口重新聚焦时不会自动获取数据
-    staleTime: Infinity,  // 永不过期，使过了很长时间，也不会因为数据过期而自动重新查询
+    initialPageParam,
+    refetchOnWindowFocus: false,
+    staleTime: Infinity,
   });
 
-  // 基于服务器返回的 isLast 字段
   const isLastPage = useMemo(() => {
     const pages = infiniteQuery.data?.pages;
     if (!pages || pages.length === 0) return true;
@@ -49,11 +42,9 @@ export function useGetMessageDirectPageQuery(targetUserId: number, pageSize: num
     return lastPage.data?.isLast === true;
   }, [infiniteQuery.data?.pages]);
 
-  // 处理历史消息
   const historyMessages = useMemo(() => {
     const pages = infiniteQuery.data?.pages;
     if (!pages) return [];
-    // 创建新数组，不修改原数组
     return [...pages].reverse().flatMap(p => p.data?.list ?? []);
   }, [infiniteQuery.data?.pages]);
 
@@ -68,21 +59,20 @@ export function useGetMessageDirectPageQuery(targetUserId: number, pageSize: num
   }
 }
 
-
 /** 
- * 查询与多个人的私聊消息
+ * 查询与多个人的私聊消息，方便进行私聊列表排序
  * @param friends - 好友列表，包含 userId 和 status
  */
-export function useGetMessageDirectPageQueries(friends: { userId: number, status: number }[]) {
+export function useGetMessageDirectPageQueries(friends: UserFollowResponse[]) {
   return useQueries({
     queries: friends.map((friend) => ({
       queryKey: ["getMessageDirectPage", { cursor: undefined, pageSize: 1, targetUserId: friend.userId }],
       queryFn: () => tuanchat.messageDirectController.getMessagePage({
         cursor: undefined,
         pageSize: 1,
-        targetUserId: friend.userId
+        targetUserId: friend.userId || -1
       }),
-      staleTime: Infinity, // 永不过期
+      staleTime: Infinity,
     })),
   });
 }
@@ -96,9 +86,7 @@ export function useSendMessageDirectMutation() {
     mutationFn: (requestBody: MessageDirectSendRequest) => tuanchat.messageDirectController.sendMessage(requestBody),
     mutationKey: ["sendMessageDirect"],
     onSuccess: (_, variables) => {
-      // 刷新对应的私聊消息列表
       queryClient.invalidateQueries({ queryKey: ["getMessageDirectPage"] });
-      // 刷新收件箱消息列表
       queryClient.invalidateQueries({ queryKey: ["getInboxMessagePage"] });
     },
   });
@@ -107,34 +95,66 @@ export function useSendMessageDirectMutation() {
 /**
  * 撤回私聊消息
  */
-// export function useRecallMessageDirectMutation() {
-//   const queryClient = useQueryClient();
-//   return useMutation({
-//     mutationFn: (messageId: number) => tuanchat.messageDirectController.recallMessage(messageId),
-//     mutationKey: ["recallMessageDirect"],
-//     onSuccess: () => {
-//       // 刷新私聊消息列表
-//       queryClient.invalidateQueries({ queryKey: ["getMessageDirectPage"] });
-//       // 刷新收件箱消息列表
-//       queryClient.invalidateQueries({ queryKey: ["getInboxMessagePage"] });
-//     },
-//   });
-// }
-
+export function useRecallMessageDirectMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (messageId: MessageDirectRecallRequest) => tuanchat.messageDirectController.recallMessage(messageId),
+    mutationKey: ["recallMessageDirect"],
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["getMessageDirectPage"] });
+      queryClient.invalidateQueries({ queryKey: ["getInboxMessagePage"] });
+    },
+  });
+}
 
 /**
- * 获取收件箱消息分页查询（普通查询）
- * @param requestBody - 分页请求体
- * 格式：
- * {
- *   cursor?: number; // 可选，分页游标
- *   pageSize?: number; // 可选，页面大小
- *  }
+ * 分页查询会话消息
+ * @param requestBody MessageDirectPageRequest - 分页请求体
  */
-// export function useGetInboxMessagePageQuery(requestBody: CursorPageBaseRequest) {
-//   return useQuery({
-//     queryKey: ["getInboxMessagePage", requestBody],
-//     queryFn: () => tuanchat.messageDirectController.getInboxMessagePage(requestBody),
-//     staleTime: 300000 // 5分钟缓存
-//   });
-// }
+export function useGetMessagePageQuery(requestBody: MessageDirectPageRequest) {
+  return useQuery({
+    queryKey: ["getMessagePage", requestBody],
+    queryFn: () => tuanchat.messageDirectController.getMessagePage(requestBody),
+    staleTime: 300000
+  });
+}
+
+/**
+ * 获取收件箱消息全量数据
+ */
+export function useGetInboxMessagePageQuery() {
+  return useQuery({
+    queryKey: ["getInboxMessagePage"],
+    queryFn: () => tuanchat.messageDirectController.getInboxMessagePage("ANY_STRING"),
+    staleTime: 300000
+  });
+}
+
+/**
+ * 更新私聊线消息
+ */
+export function useUpdateReadPositionMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (requestBody: MessageDirectReadUpdateRequest) => tuanchat.messageDirectController.updateReadPosition(requestBody),
+    mutationKey: ["updateReadPosition"],
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["getInboxMessagePage"] });
+      queryClient.invalidateQueries({ queryKey: ["directMessages", variables.targetUserId] });
+      queryClient.invalidateQueries({ queryKey: ["getMessageDirectPage"] });
+    }
+  });
+}
+
+/**
+ * 获取所有好友的用户信息
+ */
+export function useGetFriendsUserInfoQuery(friends: (number | undefined)[]) {
+  return useQueries({
+    queries: friends.map(friendId => ({
+      queryKey: ['getAllMyFriendsInfo', friendId],
+      queryFn: () => tuanchat.userController.getUserInfo(friendId || -1),
+      staleTime: 300000,
+    }))
+  });
+}
