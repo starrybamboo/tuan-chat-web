@@ -1,68 +1,100 @@
+import type { FeedPageRequest } from "../../../api";
 import ActivityNotice from "@/components/activities/cards/activituNoticeCard";
 import PostsCard from "@/components/activities/cards/postsCard";
 import PublishBox from "@/components/activities/cards/publishPostCard";
 import TrendingTopics from "@/components/activities/cards/trendingTopicsCard";
-import React, { useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
+import { useGetFollowingMomentFeedInfiniteQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
 
 /**
  * 动态页面的入口文件
  */
 
-// 动态类型枚举
-export enum DynamicType {
-  TEXT = "text",
-  IMAGE = "image",
-  FORWARD = "forward",
-}
-
-// 用户信息接口
-export interface User {
-  id: string;
-  username: string;
-  avatar: string;
-}
-
-// 动态数据接口
-export interface Dynamic {
-  id: string;
-  user: User;
-  publishTime: string;
-  type: DynamicType;
-  content: string;
-  images?: string[];
-  forwardedDynamic?: Dynamic;
-  stats: {
-    likes: number;
-    comments: number;
-    shares: number;
-  };
-  isLiked: boolean;
-}
-
 export default function ActivitiesPage() {
-  const [dynamics] = useState<Dynamic[]>([
-    {
-      id: "1",
-      user: {
-        id: "user2",
-        username: "测试",
-        avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face",
-      },
-      publishTime: "5小时前",
-      type: DynamicType.IMAGE,
-      content: "你好",
-      images: [
-        "https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=400&h=300&fit=crop",
-      ],
-      stats: { likes: 256, comments: 45, shares: 18 },
-      isLiked: true,
-    },
-  ]);
+  const [activeTab, setActiveTab] = useState<"all" | "module">("all");
+
+  // 👉 固定请求参数引用，避免 queryKey 抖动导致重复拉第一页
+  const feedRequest = useMemo<FeedPageRequest>(() => ({
+    pageSize: 10,
+    // 不放 cursor 字段；首次请求 pageParam 为 undefined，Hook 会按规范不带 cursor
+  }), []);
+
+  const {
+    data: feedData,
+    // fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    error,
+  } = useGetFollowingMomentFeedInfiniteQuery(feedRequest);
+
+  // 本地记录上一次发起“加载更多”时使用的 cursor，防止重复请求同一个游标
+  const lastRequestedCursorRef = useRef<number | null>(null);
+
+  // 合并分页并按 feedId 去重（保留首次出现顺序）
+  const dynamics = useMemo(() => {
+    const pages = (feedData?.pages ?? []) as any[];
+    const all = pages.flatMap((p: any) => p?.data?.list ?? []);
+
+    const seen = new Set<number | string>();
+    const seenFp = new Set<string>();
+    const out: any[] = [];
+
+    for (const item of all) {
+      const id = item?.feed?.feedId;
+      if (id !== null && id !== undefined) {
+        if (!seen.has(id)) {
+          seen.add(id);
+          out.push(item);
+        }
+      }
+      else {
+        // 极少数没有 feedId 的情况，用 createTime+content 做指纹避免重复
+        const fp = `${item?.feed?.createTime ?? ""}::${String(item?.feed?.content ?? "")}`;
+        if (!seenFp.has(fp)) {
+          seenFp.add(fp);
+          out.push(item);
+        }
+      }
+    }
+    return out;
+  }, [feedData]);
+
+  // 点击“加载更多”
+  const handleLoadMore = async () => {
+    if (!hasNextPage || isFetchingNextPage)
+      return;
+
+    // 读取“下一页”的 cursor（由后端在上一页返回的 data.cursor 提供）
+    const pages = feedData?.pages ?? [];
+    const lastPage = pages[pages.length - 1] as any;
+    const nextCursorRaw = lastPage?.data?.cursor; // 文档：number<double>
+    const nextCursor: number | null
+        = nextCursorRaw === null || nextCursorRaw === undefined ? null : Number(nextCursorRaw);
+
+    // 后端如果意外重复给相同 cursor，就不要重复请求
+    if (nextCursor !== null && lastRequestedCursorRef.current === nextCursor) {
+      return;
+    }
+    lastRequestedCursorRef.current = nextCursor;
+
+    // try { TODO API异常，暂时无法使用
+    //   // 显式把后端返回的 cursor 作为 pageParam 传给 fetchNextPage
+    //   await fetchNextPage(
+    //     nextCursor !== null ? { pageParam: nextCursor } : undefined,
+    //   );
+    // }
+    // catch {
+    //   // 出错允许重试
+    //   lastRequestedCursorRef.current = null;
+    // }
+  };
 
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-        {/* 移动端固定顶部侧边栏，桌面端正常布局 */}
+        {/* 布局 */}
         <div className="block lg:grid lg:grid-cols-12 lg:gap-6">
           {/* 移动端顶部侧边栏 */}
           <div className="lg:hidden mb-4">
@@ -87,13 +119,23 @@ export default function ActivitiesPage() {
             <div className="mb-4 sm:mb-6">
               <div className="flex space-x-4 sm:space-x-6 text-sm bg-base-100 rounded-t-lg px-3 sm:px-4 pt-3">
                 <button
-                  className="text-primary font-medium border-b-2 border-primary pb-2 transition-colors"
+                  className={`font-medium border-b-2 pb-2 transition-colors ${
+                    activeTab === "all"
+                      ? "text-primary border-primary"
+                      : "text-base-content/70 hover:text-primary border-transparent"
+                  }`}
+                  onClick={() => setActiveTab("all")}
                   type="button"
                 >
                   全部
                 </button>
                 <button
-                  className="text-base-content/70 hover:text-primary pb-2 transition-colors"
+                  className={`font-medium border-b-2 pb-2 transition-colors ${
+                    activeTab === "module"
+                      ? "text-primary border-primary"
+                      : "text-base-content/70 hover:text-primary border-transparent"
+                  }`}
+                  onClick={() => setActiveTab("module")}
                   type="button"
                 >
                   模组动态
@@ -103,12 +145,64 @@ export default function ActivitiesPage() {
 
             {/* 动态列表 */}
             <div className="space-y-3 sm:space-y-4">
-              {dynamics.map(dynamic => (
-                <PostsCard
-                  key={dynamic.id}
-                  dynamic={dynamic}
-                />
-              ))}
+              {isLoading && (
+                <div className="flex justify-center py-8">
+                  <div className="loading loading-spinner loading-lg text-primary"></div>
+                </div>
+              )}
+
+              {isError && (
+                <div className="bg-error/10 border border-error/20 rounded-lg p-4 text-center">
+                  <p className="text-error font-medium">加载失败</p>
+                  <p className="text-error/80 text-sm mt-1">
+                    {error?.message || "请检查网络连接后重试"}
+                  </p>
+                </div>
+              )}
+
+              {dynamics.map((item, idx) => {
+                const feedId = item?.feed?.feedId;
+                // key 优先使用后端的全局唯一 feedId；无则用稳健 fallback
+                const key
+                      = feedId !== null && feedId !== undefined
+                        ? `feed-${feedId}`
+                        : `anon-${idx}-${item?.feed?.createTime ?? ""}`;
+                return <PostsCard key={key} dynamic={item} />;
+              })}
+
+              {!isLoading && !isError && dynamics.length === 0 && (
+                <div className="text-center py-12">
+                  <div className="text-base-content/40 text-lg mb-2">📱</div>
+                  <p className="text-base-content/60">还没有动态</p>
+                  <p className="text-base-content/40 text-sm">关注一些用户来查看他们的动态吧</p>
+                </div>
+              )}
+
+              {hasNextPage && (
+                <div className="flex justify-center py-4">
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={!hasNextPage || isFetchingNextPage}
+                    className="btn btn-outline btn-primary"
+                    type="button"
+                  >
+                    {isFetchingNextPage
+                      ? (
+                          <>
+                            <div className="loading loading-spinner loading-sm"></div>
+                            加载中...
+                          </>
+                        )
+                      : (
+                          "加载更多"
+                        )}
+                  </button>
+                </div>
+              )}
+
+              {!hasNextPage && dynamics.length > 0 && (
+                <div className="text-center py-4 text-base-content/40 text-sm">已经到底了</div>
+              )}
             </div>
           </div>
 
