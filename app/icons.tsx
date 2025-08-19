@@ -1204,3 +1204,20 @@ export function SearchFilled(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function AddRingLight(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <g fill="none" stroke="currentColor">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path strokeLinecap="square" d="M12 15V9m3 3H9"></path>
+      </g>
+    </svg>
+  );
+}
