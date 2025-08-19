@@ -127,10 +127,25 @@ export function SpriteRenderStudio({
     };
   };
 
-  // Get transform data from current sprite, or use defaults
-  const transform = useMemo(() => {
-    return parseTransformFromAvatar(currentSprite);
+  // 当前显示的transform状态，用于平滑切换
+  const [displayTransform, setDisplayTransform] = useState<Transform>(() => ({
+    scale: 1,
+    positionX: 0,
+    positionY: 0,
+    alpha: 1,
+    rotation: 0,
+  }));
+
+  // 当currentSprite变化时，如果没有spriteUrl则立即更新transform
+  useEffect(() => {
+    if (currentSprite && !currentSprite.spriteUrl) {
+      const newTransform = parseTransformFromAvatar(currentSprite);
+      setDisplayTransform(newTransform);
+    }
   }, [currentSprite]);
+
+  // 使用displayTransform作为实际的transform
+  const transform = displayTransform;
 
   // 记录上一个currentSpriteIndex，用于检测立绘切换
   const [lastSpriteIndex, setLastSpriteIndex] = useState(currentSpriteIndex);
@@ -171,6 +186,9 @@ export function SpriteRenderStudio({
     }
   }, [currentSpriteIndex, lastSpriteIndex, currentSprite]);
 
+  // 图片加载状态
+  const [isImageLoading, setIsImageLoading] = useState(false);
+
   // 当立绘URL变化时，加载到预览Canvas
   useEffect(() => {
     // 添加数据一致性检查，确保spriteUrl对应正确的角色
@@ -184,19 +202,31 @@ export function SpriteRenderStudio({
       const canvas = previewCanvasRef.current;
       const ctx = canvas.getContext("2d");
       if (ctx) {
+        setIsImageLoading(true);
         const img = new Image();
         img.crossOrigin = "anonymous";
 
         img.onload = () => {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0);
+          // 确保这个回调对应的还是当前的spriteUrl（避免竞态条件）
+          if (img.src === spriteUrl) {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+
+            // 图片加载完成后，确保transform已经更新
+            const newTransform = parseTransformFromAvatar(currentSprite);
+            setDisplayTransform(newTransform);
+          }
+          setIsImageLoading(false);
         };
 
         img.onerror = () => {
           // 图片加载失败时清空canvas
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          if (img.src === spriteUrl) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+          }
+          setIsImageLoading(false);
         };
 
         img.src = spriteUrl;
@@ -209,6 +239,7 @@ export function SpriteRenderStudio({
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
+      setIsImageLoading(false);
     }
   }, [spriteUrl, previewCanvasRef, currentSprite, initialAvatarId, manualIndexOffset]);
 
@@ -299,6 +330,16 @@ export function SpriteRenderStudio({
           </div>
         )}
 
+        {/* 图片切换加载指示器 */}
+        {isImageLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-base-200/30 z-15">
+            <div className="flex flex-col items-center gap-2">
+              <span className="loading loading-spinner loading-sm"></span>
+              <span className="text-xs text-base-content/70">切换立绘中...</span>
+            </div>
+          </div>
+        )}
+
         <RenderPreview
           previewCanvasRef={previewCanvasRef}
           transform={transform}
@@ -321,6 +362,7 @@ export function SpriteRenderStudio({
           <div>
             spriteUrl:
             {spriteUrl ? "有" : "无"}
+            {isImageLoading && " (加载中)"}
           </div>
           <div>
             Transform: S:
