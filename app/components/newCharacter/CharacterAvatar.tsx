@@ -105,9 +105,22 @@ export default function CharacterAvatar({
   const confirmDeleteAvatar = () => {
     if (avatarToDeleteIndex !== null && avatarToDeleteIndex >= 0 && avatarToDeleteIndex < roleAvatars.length) {
       const avatarToDelete = roleAvatars[avatarToDeleteIndex];
+      const isCurrentlySelected = avatarToDelete.avatarId === selectedAvatarId;
+
       // 通知父组件和服务器删除头像
       onAvatarDelete(avatarToDelete.avatarId || 0);
       deleteAvatar(avatarToDelete.avatarId || 0);
+
+      // 如果删除的是当前选中的头像，且还有其他头像，则选择第一个头像
+      if (isCurrentlySelected && roleAvatars.length > 1) {
+        // 找到第一个不是被删除头像的头像
+        const firstAvatar = roleAvatars.find((avatar, index) => index !== avatarToDeleteIndex);
+        if (firstAvatar) {
+          const nextSprite = firstAvatar.spriteUrl || firstAvatar.avatarUrl || null;
+          onAvatarSelect(firstAvatar.avatarUrl || "", firstAvatar.avatarId || 0, nextSprite);
+        }
+      }
+
       setAvatarToDeleteIndex(null);
       setIsDeleteModalOpen(false);
     }
@@ -195,22 +208,24 @@ export default function CharacterAvatar({
                         alt="头像"
                         className={`w-full h-full object-contain rounded-lg transition-all duration-300 group-hover:scale-105 ${item.avatarUrl === copperedUrl ? "border-2 border-primary" : "border"}`}
                       />
-                      {/* 删除按钮  */}
-                      <button
-                        type="button"
-                        className="absolute -top-2 -right-2 w-5 h-5 md:w-7 md:h-7 bg-gray-700 md:bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800 z-2"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteAvatar(index);
-                        }}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
-                          <path
-                            fill="currentColor"
-                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-                          />
-                        </svg>
-                      </button>
+                      {/* 删除按钮 - 只有多个头像时才显示 */}
+                      {roleAvatars.length > 1 && (
+                        <button
+                          type="button"
+                          className="absolute -top-2 -right-2 w-5 h-5 md:w-7 md:h-7 bg-gray-700 md:bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800 z-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteAvatar(index);
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+                            <path
+                              fill="currentColor"
+                              d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                            />
+                          </svg>
+                        </button>
+                      )}
                       {/* 添加悬浮遮罩 */}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 rounded-lg"></div>
                     </div>
@@ -224,7 +239,7 @@ export default function CharacterAvatar({
                 <li className="relative w-full max-w-[128px] aspect-square flex flex-col items-center rounded-lg transition-colors">
                   <CharacterCopper
                     setDownloadUrl={() => { }}
-                    setCopperedDownloadUrl={() => {}}
+                    setCopperedDownloadUrl={() => { }}
                     fileName={uniqueFileName}
                     scene={3} // 角色差分
                     mutate={(data) => {
