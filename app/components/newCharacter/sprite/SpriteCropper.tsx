@@ -3,6 +3,7 @@ import type { Crop, PixelCrop } from "react-image-crop";
 import type { Transform } from "./TransformControl";
 import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
 import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
+import { useUpdateAvatarTransformMutation } from "api/queryHooks";
 import React, { useRef, useState } from "react";
 import { centerCrop, makeAspectCrop, ReactCrop } from "react-image-crop";
 import { RenderPreview } from "./RenderPreview";
@@ -129,6 +130,9 @@ export function SpriteCropper({
 
   // 加载状态
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Transform更新mutation hook
+  const updateTransformMutation = useUpdateAvatarTransformMutation();
 
   /**
    * 图片加载完成后的处理函数
@@ -292,6 +296,89 @@ export function SpriteCropper({
   async function handleBatchComplete() {
     if (isBatchMode && batchResults.length > 0) {
       onBatchCropComplete?.(batchResults);
+    }
+  }
+
+  /**
+   * 处理应用位移（单体模式）
+   */
+  async function handleApplyTransform() {
+    if (!isBatchMode && !currentAvatarId) {
+      console.error("单体模式下缺少avatarId");
+      return;
+    }
+
+    if (isBatchMode && spritesAvatars.length === 0) {
+      console.error("批量模式下没有可用的立绘");
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+
+      const currentAvatar = isBatchMode
+        ? spritesAvatars[currentSpriteIndex]
+        : roleAvatars.find(avatar => avatar.avatarId === currentAvatarId);
+
+      if (!currentAvatar) {
+        console.error("找不到当前头像数据");
+        return;
+      }
+
+      console.warn("应用Transform到单个头像", {
+        avatarId: currentAvatar.avatarId,
+        transform,
+      });
+
+      await updateTransformMutation.mutateAsync({
+        roleId: currentAvatar.roleId!,
+        avatarId: currentAvatar.avatarId!,
+        transform,
+        currentAvatar,
+      });
+
+      console.warn("Transform应用成功");
+    }
+    catch (error) {
+      console.error("应用Transform失败:", error);
+    }
+    finally {
+      setIsProcessing(false);
+    }
+  }
+
+  /**
+   * 处理批量应用位移
+   */
+  async function handleBatchApplyTransform() {
+    if (!isBatchMode || spritesAvatars.length === 0) {
+      console.error("批量模式下没有可用的立绘");
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+
+      console.warn("开始批量应用Transform", {
+        avatarCount: spritesAvatars.length,
+        transform,
+      });
+
+      // 批量应用当前transform到所有立绘
+      for (const avatar of spritesAvatars) {
+        await updateTransformMutation.mutateAsync({
+          roleId: avatar.roleId!,
+          avatarId: avatar.avatarId!,
+          transform,
+          currentAvatar: avatar,
+        });
+      }
+    }
+    catch (error) {
+      console.error("批量应用Transform失败:", error);
+    }
+    finally {
+      setIsProcessing(false);
     }
   }
 
@@ -602,11 +689,17 @@ export function SpriteCropper({
                             </button>
                             <button
                               className="btn btn-info"
-                              onClick={() => { /* TODO: 应用位移逻辑 */ }}
+                              onClick={handleApplyTransform}
                               type="button"
                               disabled={isProcessing}
                             >
-                              应用位移
+                              {isProcessing && updateTransformMutation.isPending
+                                ? (
+                                    <span className="loading loading-spinner loading-xs"></span>
+                                  )
+                                : (
+                                    "应用位移"
+                                  )}
                             </button>
                           </>
                         )
@@ -628,11 +721,17 @@ export function SpriteCropper({
                             </button>
                             <button
                               className="btn btn-info"
-                              onClick={() => { /* TODO: 批量应用位移逻辑 */ }}
+                              onClick={handleBatchApplyTransform}
                               type="button"
                               disabled={isProcessing}
                             >
-                              一键位移
+                              {isProcessing && updateTransformMutation.isPending
+                                ? (
+                                    <span className="loading loading-spinner loading-xs"></span>
+                                  )
+                                : (
+                                    "一键位移"
+                                  )}
                             </button>
                             <button
                               className="btn btn-success"

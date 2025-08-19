@@ -62,7 +62,7 @@ export function useGetRoleQuery(roleId: number) {
     queryKey: ['getRole', roleId],
     queryFn: () => tuanchat.roleController.getRole(roleId),
     staleTime: 600000, // 10分钟缓存
-    enabled: roleId>0
+    enabled: roleId > 0
   });
 }
 
@@ -107,10 +107,10 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: any) => void)
  */
 export function useCreateRoleMutation() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationKey: ["createRole"],
-    mutationFn: async(req: RoleCreateRequest) => {
+    mutationFn: async (req: RoleCreateRequest) => {
       const res = await tuanchat.roleController.createRole(req);
       if (res.success) {
         console.warn("角色创建成功");
@@ -155,7 +155,7 @@ export function useCreateRoleMutation() {
  */
 export function useDeleteRolesMutation(onSuccess?: () => void) {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationKey: ["deleteRoles"],
     mutationFn: async (roleIds: number[]) => {
@@ -310,6 +310,87 @@ export function useDeleteRoleAvatarMutation(roleId?: number) {
  * 支持Transform参数：scale, positionX, positionY, alpha, rotation
  * Transform参数会被验证并转换为后端所需的字符串格式
  */
+export function useUpdateAvatarTransformMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["updateAvatarTransform"],
+    mutationFn: async ({ roleId, avatarId, transform, currentAvatar }: {
+      roleId: number;
+      avatarId: number;
+      transform: Transform;
+      currentAvatar: RoleAvatar;
+    }) => {
+      if (!roleId || !avatarId || !transform || !currentAvatar) {
+        console.error("参数错误：缺少必要参数");
+        return undefined;
+      }
+
+      console.log("useUpdateAvatarTransformMutation: 开始更新Transform", {
+        roleId,
+        avatarId,
+        transform
+      });
+
+      try {
+        // Validate and clamp transform values to acceptable ranges
+        const validateTransform = (t: Transform): Transform => {
+          return {
+            scale: Math.max(0, Math.min(2, t.scale || 1)),
+            positionX: Math.max(-300, Math.min(300, t.positionX || 0)),
+            positionY: Math.max(-300, Math.min(300, t.positionY || 0)),
+            alpha: Math.max(0, Math.min(1, t.alpha || 1)),
+            rotation: Math.max(0, Math.min(360, t.rotation || 0))
+          };
+        };
+
+        const validatedTransform = validateTransform(transform);
+
+        console.log("useUpdateAvatarTransformMutation: 处理Transform数据", {
+          original: transform,
+          validated: validatedTransform,
+          mapped: {
+            spriteXPosition: validatedTransform.positionX.toString(),
+            spriteYPosition: validatedTransform.positionY.toString(),
+            spriteScale: validatedTransform.scale.toString(),
+            spriteTransparency: validatedTransform.alpha.toString(),
+            spriteRotation: validatedTransform.rotation.toString(),
+          }
+        });
+
+        // Use existing avatar data and only update transform parameters
+        const updateRes = await tuanchat.avatarController.updateRoleAvatar({
+          roleId: roleId,
+          avatarId,
+          avatarUrl: currentAvatar.avatarUrl,
+          spriteUrl: currentAvatar.spriteUrl,
+          spriteXPosition: validatedTransform.positionX.toString(),
+          spriteYPosition: validatedTransform.positionY.toString(),
+          spriteScale: validatedTransform.scale.toString(),
+          spriteTransparency: validatedTransform.alpha.toString(),
+          spriteRotation: validatedTransform.rotation.toString(),
+        });
+
+        if (!updateRes.success) {
+          console.error("Transform更新失败", updateRes);
+          return undefined;
+        }
+
+        console.log("Transform更新成功");
+        await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
+        console.log("缓存已刷新，roleId:", roleId);
+        return updateRes;
+      }
+      catch (error) {
+        console.error("Transform更新请求失败", error);
+        throw error;
+      }
+    },
+    onError: (error) => {
+      console.error("Transform update mutation failed:", error.message || error);
+    },
+  });
+}
+
 export function useUploadAvatarMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -320,7 +401,7 @@ export function useUploadAvatarMutation() {
         return undefined;
       }
 
-      console.log("useUploadAvatarMutation: 开始上传", { 
+      console.log("useUploadAvatarMutation: 开始上传", {
         hasTransform: !!transform,
         roleId,
         avatarUrl: avatarUrl.substring(0, 50) + "...",
@@ -348,7 +429,7 @@ export function useUploadAvatarMutation() {
             alpha: 1,
             rotation: 0
           };
-          
+
           // Validate and clamp transform values to acceptable ranges
           const validateTransform = (t: Transform): Transform => {
             return {
@@ -359,9 +440,9 @@ export function useUploadAvatarMutation() {
               rotation: Math.max(0, Math.min(360, t.rotation || 0))
             };
           };
-          
+
           const finalTransform = transform ? validateTransform(transform) : defaultTransform;
-          
+
           console.log("useUploadAvatarMutation: 处理Transform数据", {
             original: transform,
             validated: finalTransform,
@@ -373,7 +454,7 @@ export function useUploadAvatarMutation() {
               spriteRotation: finalTransform.rotation.toString(),
             }
           });
-          
+
           const uploadRes = await tuanchat.avatarController.updateRoleAvatar({
             roleId: roleId,
             avatarId,
@@ -402,7 +483,7 @@ export function useUploadAvatarMutation() {
                 spriteTransparency: defaultTransform.alpha.toString(),
                 spriteRotation: defaultTransform.rotation.toString(),
               });
-              
+
               if (retryRes.success) {
                 console.warn("使用默认Transform参数上传成功");
                 await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });

@@ -65,6 +65,18 @@ interface UpdateRoleAvatarRequest {
 - **Enhancement**: Accept additional transform parameters and map them to backend format
 - **Data Flow**: Transform frontend Transform interface to backend string format
 
+#### SpriteRenderStudio Component
+- **Current State**: Renders sprites based on basic avatar data
+- **Enhancement**: Extract and apply transform parameters from roleAvatars data for rendering
+- **Data Flow**: Parse transform strings from API response and apply to canvas rendering
+
+#### SpriteCropper Component
+- **Current State**: Has placeholder buttons for applying transforms and crops
+- **Enhancement**: Implement actual transform update and crop functionality using server API
+- **Data Flow**: 
+  - Transform updates: Send current transform state to server via mutation hooks
+  - Crop operations: Generate cropped image, upload to server, update avatar with new spriteUrl
+
 ## Data Models
 
 ### Frontend Transform Model
@@ -89,13 +101,68 @@ interface BackendTransform {
 }
 ```
 
-### Mutation Function Signature
+### Mutation Function Signatures
+
+All operations use the same `tuanchat.avatarController.updateRoleAvatar` API with different parameter combinations:
+
 ```typescript
 interface UploadAvatarParams {
   avatarUrl: string;
   spriteUrl: string;
   roleId: number;
   transform?: Transform; // Optional for backward compatibility
+}
+
+interface UpdateAvatarTransformParams {
+  roleId: number;
+  avatarId: number;
+  transform: Transform;
+  // Uses existing avatarUrl and spriteUrl, only updates transform parameters
+}
+
+interface ApplyCropParams {
+  roleId: number;
+  avatarId: number;
+  newSpriteUrl: string; // New cropped sprite URL after upload
+  transform?: Transform; // Optional transform to apply with the new sprite
+  // Uses existing avatarUrl, updates spriteUrl and optionally transform parameters
+}
+```
+
+### Unified API Call Pattern
+
+All mutations call `tuanchat.avatarController.updateRoleAvatar` with the complete parameter set:
+
+```typescript
+interface UpdateRoleAvatarRequest {
+  roleId: number;
+  avatarId: number;
+  avatarTitle?: string;        // Optional, use existing if not provided
+  avatarUrl: string;           // Required, use existing for transform-only updates
+  spriteUrl: string;           // Required, use new URL for crop operations
+  originUrl?: string;          // Optional, use existing if not provided
+  spriteXPosition: string;     // Transform parameter
+  spriteYPosition: string;     // Transform parameter
+  spriteScale: string;         // Transform parameter
+  spriteTransparency: string;  // Transform parameter
+  spriteRotation: string;      // Transform parameter
+}
+```
+
+### API Response Model
+```typescript
+interface RoleAvatar {
+  roleId: number;
+  avatarId: number;
+  avatarTitle: string;
+  avatarUrl: string;
+  spriteUrl: string;
+  originUrl: string;
+  spriteXPosition: string;
+  spriteYPosition: string;
+  spriteScale: string;
+  spriteTransparency: string;
+  spriteRotation: string;
 }
 ```
 
@@ -126,6 +193,13 @@ interface UploadAvatarParams {
 
 ## Implementation Approach
 
+### Unified API Strategy
+All avatar operations (upload, transform update, crop application) use the same `tuanchat.avatarController.updateRoleAvatar` API with different parameter combinations:
+
+1. **New Avatar Upload**: Provides new avatarUrl, spriteUrl, and transform parameters
+2. **Transform Update Only**: Uses existing avatarUrl and spriteUrl, updates only transform parameters
+3. **Crop Application**: Uses existing avatarUrl, provides new spriteUrl from cropped image, optionally updates transform parameters
+
 ### Phase 1: Data Flow Enhancement
 1. Modify CharacterCopper to pass transform data in mutate callback
 2. Update CharacterAvatar to forward transform data
@@ -136,7 +210,12 @@ interface UploadAvatarParams {
 2. Include transform parameters in updateRoleAvatar API call
 3. Handle default values and validation
 
-### Phase 3: Error Handling & Testing
+### Phase 3: Additional Mutation Hooks
+1. Create useUpdateAvatarTransformMutation for transform-only updates
+2. Create useApplyCropMutation for crop operations with new sprite upload
+3. Both hooks use the same updateRoleAvatar API with appropriate parameters
+
+### Phase 4: Error Handling & Testing
 1. Implement comprehensive error handling
 2. Add validation and default value logic
 3. Ensure backward compatibility

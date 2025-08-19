@@ -38,3 +38,39 @@ This feature enhancement will extend the existing avatar upload functionality to
 2. WHEN an upload fails due to transform parameter issues THEN the system SHALL provide clear error messages to the user
 3. WHEN the upload is successful THEN the system SHALL invalidate relevant queries to refresh the UI with updated data
 4. WHEN transform parameters are not provided THEN the system SHALL use sensible default values to ensure backward compatibility
+
+### Requirement 4
+
+**User Story:** As a user viewing character avatars, I want the sprites to be rendered with their saved transform parameters, so that I can see the avatars exactly as I configured them.
+
+#### Acceptance Criteria
+
+1. WHEN SpriteRenderStudio receives roleAvatars data THEN the system SHALL extract transform parameters from the avatar data
+2. WHEN rendering a sprite THEN the system SHALL apply the saved transform values (position, scale, transparency, rotation) to the canvas rendering
+3. WHEN no transform data is available THEN the system SHALL use default transform values for rendering
+4. WHEN switching between different avatars THEN the system SHALL update the rendering with the correct transform parameters for each avatar
+
+### Requirement 5
+
+**User Story:** As a user editing sprite positioning in SpriteCropper, I want to apply position and transform changes directly to the server, so that my adjustments are immediately saved and visible.
+
+#### Acceptance Criteria
+
+1. WHEN a user clicks "应用位移" in single mode THEN the system SHALL update the current avatar's transform parameters on the server
+2. WHEN a user clicks "一键位移" in batch mode THEN the system SHALL apply the current transform to all avatars in the batch
+3. WHEN transform updates are successful THEN the system SHALL refresh the avatar data to reflect the changes
+4. WHEN transform updates fail THEN the system SHALL display appropriate error messages to the user
+5. WHEN processing transform updates THEN the system SHALL show loading states to indicate progress
+
+### Requirement 6
+
+**User Story:** As a user cropping sprites in SpriteCropper, I want to apply crop changes that generate new sprite images and upload them to the server, so that my cropped sprites are permanently saved.
+
+#### Acceptance Criteria
+
+1. WHEN a user clicks "应用裁剪" in single mode THEN the system SHALL generate a new cropped sprite image and upload it as the new spriteUrl for the current avatar
+2. WHEN a user clicks "一键裁剪" in batch mode THEN the system SHALL generate new cropped sprite images for all avatars in the batch and upload them as new spriteUrls
+3. WHEN crop operations are successful THEN the system SHALL update the avatar records with the new spriteUrl and refresh the avatar data
+4. WHEN crop operations fail THEN the system SHALL display appropriate error messages to the user
+5. WHEN processing crop operations THEN the system SHALL show loading states to indicate progress
+6. WHEN generating cropped images THEN the system SHALL maintain image quality and format consistency

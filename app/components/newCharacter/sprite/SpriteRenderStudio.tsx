@@ -98,13 +98,39 @@ export function SpriteRenderStudio({
 
   const spriteUrl = currentSprite?.spriteUrl || null;
 
-  const [transform, setTransform] = useState<Transform>({
-    scale: 1,
-    positionX: 0,
-    positionY: 0,
-    alpha: 1,
-    rotation: 0,
-  });
+  // Helper function to parse transform data from API response
+  const parseTransformFromAvatar = (avatar: RoleAvatar | null): Transform => {
+    if (!avatar) {
+      return {
+        scale: 1,
+        positionX: 0,
+        positionY: 0,
+        alpha: 1,
+        rotation: 0,
+      };
+    }
+
+    // Parse transform parameters from string values, with fallbacks to defaults
+    const scale = avatar.spriteScale ? Number.parseFloat(avatar.spriteScale) : 1;
+    const positionX = avatar.spriteXPosition ? Number.parseFloat(avatar.spriteXPosition) : 0;
+    const positionY = avatar.spriteYPosition ? Number.parseFloat(avatar.spriteYPosition) : 0;
+    const alpha = avatar.spriteTransparency ? Number.parseFloat(avatar.spriteTransparency) : 1;
+    const rotation = avatar.spriteRotation ? Number.parseFloat(avatar.spriteRotation) : 0;
+
+    // Validate and clamp values to acceptable ranges
+    return {
+      scale: Math.max(0, Math.min(2, Number.isNaN(scale) ? 1 : scale)),
+      positionX: Math.max(-300, Math.min(300, Number.isNaN(positionX) ? 0 : positionX)),
+      positionY: Math.max(-300, Math.min(300, Number.isNaN(positionY) ? 0 : positionY)),
+      alpha: Math.max(0, Math.min(1, Number.isNaN(alpha) ? 1 : alpha)),
+      rotation: Math.max(0, Math.min(360, Number.isNaN(rotation) ? 0 : rotation)),
+    };
+  };
+
+  // Get transform data from current sprite, or use defaults
+  const transform = useMemo(() => {
+    return parseTransformFromAvatar(currentSprite);
+  }, [currentSprite]);
 
   // 记录上一个currentSpriteIndex，用于检测立绘切换
   const [lastSpriteIndex, setLastSpriteIndex] = useState(currentSpriteIndex);
@@ -131,21 +157,19 @@ export function SpriteRenderStudio({
     }
   };
 
-  // 当立绘切换时，重置Transform
+  // Track sprite index changes for debugging
   useEffect(() => {
     if (currentSpriteIndex !== lastSpriteIndex) {
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-      setTransform({
-        scale: 1,
-        positionX: 0,
-        positionY: 0,
-        alpha: 1,
-        rotation: 0,
+      console.warn("SpriteRenderStudio: Sprite switched", {
+        from: lastSpriteIndex,
+        to: currentSpriteIndex,
+        currentSprite,
+        transform: parseTransformFromAvatar(currentSprite),
       });
       // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setLastSpriteIndex(currentSpriteIndex);
     }
-  }, [currentSpriteIndex, lastSpriteIndex]);
+  }, [currentSpriteIndex, lastSpriteIndex, currentSprite]);
 
   // 当立绘URL变化时，加载到预览Canvas
   useEffect(() => {
@@ -229,10 +253,9 @@ export function SpriteRenderStudio({
                     setIsManualSwitch(true);
                     setManualIndexOffset(index);
                   }}
-                  className={`relative aspect-square rounded-md overflow-hidden border-2 transition-[border-color,box-shadow] duration-200 ${
-                    index === currentSpriteIndex
-                      ? "border-primary shadow-lg"
-                      : "border-base-300 hover:border-primary/50 hover:shadow-md"
+                  className={`relative aspect-square rounded-md overflow-hidden border-2 transition-[border-color,box-shadow] duration-200 ${index === currentSpriteIndex
+                    ? "border-primary shadow-lg"
+                    : "border-base-300 hover:border-primary/50 hover:shadow-md"
                   }`}
                   title={`切换到立绘 ${index + 1}`}
                 >
@@ -299,6 +322,23 @@ export function SpriteRenderStudio({
             spriteUrl:
             {spriteUrl ? "有" : "无"}
           </div>
+          <div>
+            Transform: S:
+            {transform.scale.toFixed(2)}
+            {" "}
+            X:
+            {transform.positionX}
+            {" "}
+            Y:
+            {transform.positionY}
+            {" "}
+            A:
+            {transform.alpha.toFixed(2)}
+            {" "}
+            R:
+            {transform.rotation}
+            °
+          </div>
         </div>
 
         {/* 立绘切换箭头 - 只在有多个立绘时显示 */}
@@ -338,10 +378,9 @@ export function SpriteRenderStudio({
                     setIsManualSwitch(true);
                     setManualIndexOffset(index);
                   }}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    index === currentSpriteIndex
-                      ? "bg-white scale-125"
-                      : "bg-white/50 hover:bg-white/70"
+                  className={`w-2 h-2 rounded-full transition-all ${index === currentSpriteIndex
+                    ? "bg-white scale-125"
+                    : "bg-white/50 hover:bg-white/70"
                   }`}
                   title={`立绘 ${index + 1}`}
                 />
@@ -366,12 +405,12 @@ export function SpriteRenderStudio({
                   characterName={characterName}
                   dialogContent={dialogContent}
                   onCropComplete={(croppedImageUrl) => {
-                    // TODO: 处理单体裁剪完成的图片
+                  // TODO: 处理单体裁剪完成的图片
                     console.warn("单体裁剪完成:", croppedImageUrl);
                     handleClosePopWindow();
                   }}
                   onBatchCropComplete={(croppedImages) => {
-                    // TODO: 处理批量裁剪完成的图片
+                  // TODO: 处理批量裁剪完成的图片
                     console.warn("批量裁剪完成:", croppedImages);
                     handleClosePopWindow();
                   }}
