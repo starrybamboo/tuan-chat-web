@@ -40,7 +40,7 @@ export default function MessageInput({
   return (
     <>
       {/* 移动端样式 */}
-      <div className="md:hidden w-full border-t border-base-300 flex flex-col px-4 py-2 max-h-14">
+      <div className="md:hidden w-full border-t border-base-300 flex flex-col px-4 py-2 max-h-32">
         {/* 预览要发送的图片和表情 */}
         {(imgFiles.length > 0 || emojiUrls.length > 0) && (
           <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
@@ -64,7 +64,7 @@ export default function MessageInput({
         )}
 
         {/* 下方输入框和按钮 */}
-        <div className="flex items-center gap-3 w-full max-h-16">
+        <div className="flex items-center gap-3 w-full h-10">
           <div className="flex-1">
             <input
               type="text"
