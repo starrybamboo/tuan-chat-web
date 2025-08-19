@@ -1,9 +1,11 @@
 import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
 import type { DirectMessageEvent } from "api/wsModels";
+import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { MemberIcon, XMarkICon } from "@/icons";
 import { useGetInboxMessagePageQuery, useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { useParams } from "react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router";
 import FriendItem from "./FriendItem";
 
 interface MessageDirectType {
@@ -35,6 +37,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   const { targetUserId: urlTargetUserId, roomId: urlRoomId } = useParams();
   const prevUrlRoomIdRef = useRef<string | undefined>(urlRoomId);
   const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : (urlTargetUserId ? Number.parseInt(urlTargetUserId) : null);
+  const navigate = useNavigate();
 
   // 从消息信箱获取私聊列表
   const inboxQuery = useGetInboxMessagePageQuery();
@@ -52,6 +55,19 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
     }
     return Object.fromEntries(contacts);
   }, [inboxMessages]);
+
+  // 删除私聊列表项
+  const [deletedContactIds, setDeletedContactIds] = useLocalStorage<number[]>("deletedContactIds", []);
+  function deletedthisContactId(contactId: number) {
+    if (deletedContactIds.length === 0) {
+      setDeletedContactIds([contactId]);
+      return;
+    }
+    if (!deletedContactIds.includes(contactId)) {
+      setDeletedContactIds([...deletedContactIds, contactId]);
+    }
+  }
+  // setDeletedContactIds([10017, 15037, 10013, 10001, 15046])
 
   // 加入从 WebSocket 接收到的实时消息
   const wsMessages = webSocketUtils.receivedDirectMessages;
@@ -91,8 +107,10 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
 
   // 实时的联系人
   const realTimeContacts = useMemo(() => {
-    return sortedRealTimeMessages.map(([contactId]) => Number.parseInt(contactId));
-  }, [sortedRealTimeMessages]);
+    const allContacts = sortedRealTimeMessages.map(([contactId]) => Number.parseInt(contactId));
+    const needContacts = allContacts.filter(contactId => !deletedContactIds.includes(contactId));
+    return needContacts;
+  }, [sortedRealTimeMessages, deletedContactIds]);
 
   // 未读消息数
   const unreadMessageNumbers = useMemo(() => {
@@ -123,6 +141,19 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
     prevUrlRoomIdRef.current = urlRoomId;
   }, [urlRoomId, updateReadlinePosition, userId]);
 
+  const [isDeleteContats, setIsDeleteContacts] = useState(false);
+
+  // 图标点击事件
+  function handleMemberClick() {
+    if (currentContactUserId) {
+      navigate("/chat/private");
+    }
+  }
+
+  function handleXMarkClick() {
+    setIsDeleteContacts(!isDeleteContats);
+  }
+
   return (
     <div className="flex flex-col h-full bg-base-100">
       {/* 私聊列表 */}
@@ -143,23 +174,48 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
           : realTimeContacts.length === 0
             ? (
                 // 私聊列表为空
-                <div className="flex flex-col items-center justify-center h-32 text-base-content/70">
+                <div className="flex flex-col items-center justify-center text-base-content/70 px-4 py-2">
+                  <button
+                    className="btn btn-ghost flex justify-center w-full gap-2"
+                    type="button"
+                    onClick={handleMemberClick}
+                  >
+                    <MemberIcon />
+                  </button>
                   <span>暂无私聊列表</span>
                   <span className="text-sm">快去聊天吧</span>
                 </div>
               )
             : (
-                // 显示私聊列表
                 <div className="p-2 pt-4 flex flex-col gap-2">
+                  <div className="flex">
+                    <button
+                      className="btn btn-ghost btn-sm flex justify-center w-1/2 gap-2"
+                      type="button"
+                      onClick={handleMemberClick}
+                    >
+                      <MemberIcon />
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-sm flex justify-center w-1/2 gap-2"
+                      type="button"
+                      onClick={handleXMarkClick}
+                    >
+                      <XMarkICon />
+                    </button>
+                  </div>
+                  {/* 显示私聊列表 */}
                   {
                     realTimeContacts.map(contactId => (
                       <FriendItem
                         key={contactId}
                         id={contactId}
+                        isDeleteContats={isDeleteContats}
                         unreadMessageNumber={unreadMessageNumbers[contactId] || 0}
                         currentContactUserId={currentContactUserId}
                         setIsOpenLeftDrawer={setIsOpenLeftDrawer}
                         updateReadlinePosition={updateReadlinePosition}
+                        deletedContactId={deletedthisContactId}
                       />
                     ))
                   }
