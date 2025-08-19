@@ -67,7 +67,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
 
   // 删除私聊列表项
   const [deletedContactIds, setDeletedContactIds] = useLocalStorage<number[]>("deletedContactIds", []);
-  function deletedthisContactId(contactId: number) {
+  function deletedThisContactId(contactId: number) {
     if (deletedContactIds.length === 0) {
       setDeletedContactIds([contactId]);
       return;
@@ -92,7 +92,6 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   }, [wsMessages]);
 
   const realTimeMessages = useMemo(() => mergeMessages(sortedInboxMessages, sortedWsMessages, userId), [sortedInboxMessages, sortedWsMessages, userId]);
-
   // 按最新消息时间排列，数组
   const sortedRealTimeMessages = useMemo(() => {
     let realTimeMsg = Object.entries(realTimeMessages);
@@ -275,7 +274,7 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
                               currentContactUserId={currentContactUserId}
                               setIsOpenLeftDrawer={setIsOpenLeftDrawer}
                               updateReadlinePosition={updateReadlinePosition}
-                              deletedContactId={deletedthisContactId}
+                              deletedContactId={deletedThisContactId}
                             />
                           ))
                         )
@@ -326,7 +325,7 @@ function mergeMessages(
   sortedMessages: Record<number, MessageDirectResponse[]>,
   wsMessages: Record<number, DirectMessageEvent[]>,
   userId: number,
-): Record<number, MessageDirectType[]> {
+): Record<string, MessageDirectType[]> {
   const mergedMessages = new Map<number, MessageDirectType[]>();
 
   // 获取所有联系人ID
@@ -340,8 +339,6 @@ function mergeMessages(
   for (const contactId of contactIds) {
     const wsContactMessages = wsMessages[contactId] || [];
     const historyMessages = sortedMessages[contactId] || [];
-
-    // mergedMessages.set(contactId, [...wsContactMessages, ...historyMessages]);
 
     // 使用 Map 进行去重，key 为 messageId
     const messageMap = new Map<number, MessageDirectType>();
@@ -361,19 +358,27 @@ function mergeMessages(
     // 将 Map 转化为数组
     const messageArray = Array.from(messageMap.values());
 
-    mergedMessages.set(contactId, messageArray);
+    if (messageArray.length > 0) {
+      mergedMessages.set(contactId, messageArray);
+    }
   }
 
   return Object.fromEntries(mergedMessages);
 }
 
-function getUnreadMessageNumber(sortedRealTimeMessages: Array<[string, MessageDirectResponse[]]>, contactId: number, userId: number) {
+function getUnreadMessageNumber(sortedRealTimeMessages: Array<[string, MessageDirectType[]]>, contactId: number, userId: number) {
   const targetArray = sortedRealTimeMessages.find(([id]) => Number.parseInt(id) === contactId);
   const messages = targetArray ? targetArray[1] : [];
   const latestMessageIndex = messages.findIndex(msg => msg.messageType !== 10000 && msg.senderId === contactId);
   const latestMessageSync = messages.find(msg => msg.messageType !== 10000 && msg.senderId === contactId)?.syncId || 0;
   const readlineIndex = messages.findIndex(msg => msg.messageType === 10000 && msg.senderId === userId);
   const readlineSync = messages.find(msg => msg.messageType === 10000 && msg.senderId === userId)?.syncId || 0;
+
+  // 如果没有未读消息
+  if (latestMessageSync <= readlineSync) {
+    return 0;
+  }
+
   let unreadCount = 0;
   let index = readlineIndex;
   while (index >= latestMessageIndex || index > -1) {
@@ -382,9 +387,6 @@ function getUnreadMessageNumber(sortedRealTimeMessages: Array<[string, MessageDi
     }
     index--;
   }
-  if (latestMessageSync < readlineSync) {
-    return 0;
-  }
 
-  return unreadCount > 0 ? unreadCount : 0;
+  return unreadCount;
 }
