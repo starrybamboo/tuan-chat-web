@@ -23,5 +23,29 @@ export type RoleAvatar = {
      * 立绘的url
      */
     spriteUrl?: string;
+    /**
+     * 头像原始url
+     */
+    originUrl?: string;
+    /**
+     * 立绘x坐标
+     */
+    spriteXPosition?: string;
+    /**
+     * 立绘y坐标
+     */
+    spriteYPosition?: string;
+    /**
+     * 立绘缩放
+     */
+    spriteScale?: string;
+    /**
+     * 立绘透明度
+     */
+    spriteTransparency?: string;
+    /**
+     * 立绘旋转角度
+     */
+    spriteRotation?: string;
 };
 

@@ -12,7 +12,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8081",
+      "url": "http://39.103.58.31:8081",
       "description": "Generated server url"
     }
   ],
@@ -16399,32 +16399,6 @@
   },
   "components": {
     "schemas": {
-      "ApiResultObject": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "object",
-            "description": "返回对象"
-          }
-        },
-        "description": "基础返回体"
-      },
       "ApiResult": {
         "required": [
           "success"
@@ -16452,6 +16426,32 @@
         "description": "基础返回体"
       },
       "ApiResultVoid": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "object",
+            "description": "返回对象"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ApiResultObject": {
         "required": [
           "success"
         ],
@@ -17697,6 +17697,30 @@
           "spriteUrl": {
             "type": "string",
             "description": "立绘的url"
+          },
+          "originUrl": {
+            "type": "string",
+            "description": "头像原始url"
+          },
+          "spriteXPosition": {
+            "type": "string",
+            "description": "立绘x坐标"
+          },
+          "spriteYPosition": {
+            "type": "string",
+            "description": "立绘y坐标"
+          },
+          "spriteScale": {
+            "type": "string",
+            "description": "立绘缩放"
+          },
+          "spriteTransparency": {
+            "type": "string",
+            "description": "立绘透明度"
+          },
+          "spriteRotation": {
+            "type": "string",
+            "description": "立绘旋转角度"
           }
         }
       },
