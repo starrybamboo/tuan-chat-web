@@ -33,7 +33,6 @@ import {
   type Message,
   type RoleResponse,
   type SpaceOwnerTransferRequest,
-  type FeedRequest,
   type Space,
   type SpaceAddRequest,
   type SpaceMemberAddRequest,
@@ -344,7 +343,7 @@ export function useUploadAvatarMutation() {
           }
 
           console.warn("头像上传成功");
-          await queryClient.invalidateQueries({ queryKey: ["roleAvatar", roleId] });
+          await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
           return uploadRes;
         }
         else {
