@@ -664,19 +664,23 @@ export function SpriteCropper({
         <div className="flex w-full justify-between">
           <div className="flex items-center mb-4 gap-4">
             <h1 className="text-xl md:text-2xl font-bold">
-              立绘选择 -
+              {operationMode === "single" ? "单体模式" : "批量模式"}
+              {" "}
+              -
               {" "}
               {characterName}
             </h1>
-            {/* 批量裁剪进度显示 */}
-            <div className="badge badge-primary badge-outline">
-              已裁剪:
-              {" "}
-              {batchResults.length}
-              {" "}
-              /
-              {" "}
-              {spritesAvatars.length}
+            {/* 模式切换控件 */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">单体</span>
+              <input
+                type="checkbox"
+                className="toggle toggle-primary toggle-sm"
+                checked={operationMode === "batch"}
+                onChange={e => setOperationMode(e.target.checked ? "batch" : "single")}
+                disabled={!isBatchMode || isProcessing}
+              />
+              <span className="text-sm font-medium">批量</span>
             </div>
           </div>
           <div className="flex gap-2 overflow-x-auto justify-center">
@@ -733,7 +737,7 @@ export function SpriteCropper({
 
         {/* 右侧：裁剪预览和控制 */}
         {completedCrop && (
-          <div className="w-full lg:w-1/2 p-2 gap-4 flex flex-col items-center">
+          <div className="w-full lg:w-2/3 p-2 gap-4 flex flex-col items-center">
             <h2 className="text-xl font-bold">渲染预览</h2>
             <div className="w-full h-full bg-info/30 rounded-lg p-4 gap-4 flex flex-col relative">
               <RenderPreview
@@ -750,20 +754,6 @@ export function SpriteCropper({
                 setTransform={setTransform}
                 previewCanvasRef={previewCanvasRef}
               />
-
-              {/* 模式切换滑动块 - 绝对定位在TransformControl左下角下方 */}
-              <div className="absolute left-4 bottom-[64px] flex flex-col items-center gap-1 z-10">
-                <div className="text-xs font-bold text-base-content">
-                  {operationMode === "single" ? "单体模式" : "批量模式"}
-                </div>
-                <input
-                  type="checkbox"
-                  className="toggle toggle-primary toggle-sm"
-                  checked={operationMode === "batch"}
-                  onChange={e => setOperationMode(e.target.checked ? "batch" : "single")}
-                  disabled={!isBatchMode || isProcessing}
-                />
-              </div>
 
               {/* 操作按钮 - 在剩余空间中居中 */}
               <div className="flex-1 flex items-center justify-center">
