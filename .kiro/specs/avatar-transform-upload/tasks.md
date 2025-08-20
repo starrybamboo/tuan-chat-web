@@ -74,13 +74,18 @@
   - Add loading states and error handling for transform update operations
   - _Requirements: 5.1, 5.2, 5.4, 5.5_
 
-- [ ] 9. Create mutation hook for applying crop operations
+- [x] 9. Create mutation hook for applying crop operations
+
+
 
   - Create useApplyCropMutation hook for uploading cropped sprite images
   - Accept roleId, avatarId, cropped image blob, and optional transform parameters
   - Handle image upload and avatar record update with new spriteUrl
   - Include proper error handling and cache invalidation
   - _Requirements: 6.1, 6.2, 6.3_
+
+
+
 
 - [ ] 10. Implement SpriteCropper crop application buttons
 

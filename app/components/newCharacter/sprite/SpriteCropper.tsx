@@ -3,7 +3,7 @@ import type { Crop, PixelCrop } from "react-image-crop";
 import type { Transform } from "./TransformControl";
 import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
 import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
-import { useUpdateAvatarTransformMutation } from "api/queryHooks";
+import { useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/queryHooks";
 import React, { useRef, useState } from "react";
 import { centerCrop, makeAspectCrop, ReactCrop } from "react-image-crop";
 import { RenderPreview } from "./RenderPreview";
@@ -134,6 +134,9 @@ export function SpriteCropper({
   // Transform更新mutation hook
   const updateTransformMutation = useUpdateAvatarTransformMutation();
 
+  // 裁剪应用mutation hook
+  const applyCropMutation = useApplyCropMutation();
+
   /**
    * 图片加载完成后的处理函数
    * 设置初始裁剪区域
@@ -254,15 +257,47 @@ export function SpriteCropper({
   async function handleApplyCrop() {
     try {
       setIsProcessing(true);
-      const dataUrl = await getCroppedImageDataUrl();
+
+      // 获取裁剪后的canvas
+      const canvas = previewCanvasRef.current;
+      if (!canvas) {
+        throw new Error("Canvas not found");
+      }
+
+      // 将canvas转换为Blob
+      const croppedBlob = await canvasToBlob(canvas);
 
       if (isBatchMode) {
-        // 批量模式：保存当前立绘的裁剪结果
-        const newResult = { avatarId: currentAvatarId, croppedImageUrl: dataUrl };
+        // 批量模式：上传并更新当前立绘
+        const currentAvatar = spritesAvatars[currentSpriteIndex];
+        if (!currentAvatar) {
+          throw new Error("当前立绘数据不存在");
+        }
+
+        console.warn("批量模式：应用裁剪到当前立绘", {
+          avatarId: currentAvatar.avatarId,
+          currentSpriteIndex,
+        });
+
+        if (!currentAvatar.avatarId || !currentAvatar.roleId) {
+          throw new Error("当前立绘数据缺少必要字段");
+        }
+
+        await applyCropMutation.mutateAsync({
+          roleId: currentAvatar.roleId,
+          avatarId: currentAvatar.avatarId,
+          croppedImageBlob: croppedBlob,
+          transform, // 同时应用当前的transform设置
+          currentAvatar,
+        });
+
+        // 保存结果用于UI显示
+        const dataUrl = await getCroppedImageDataUrl();
+        const newResult = { avatarId: currentAvatar.avatarId!, croppedImageUrl: dataUrl };
         const updatedResults = [...batchResults];
 
         // 更新或添加结果
-        const existingIndex = updatedResults.findIndex(r => r.avatarId === currentAvatarId);
+        const existingIndex = updatedResults.findIndex(r => r.avatarId === currentAvatar.avatarId);
         if (existingIndex >= 0) {
           updatedResults[existingIndex] = newResult;
         }
@@ -278,7 +313,30 @@ export function SpriteCropper({
         }
       }
       else {
-        // 单体模式：直接回调
+        // 单体模式：上传并更新立绘
+        if (!currentAvatarId) {
+          throw new Error("单体模式下缺少avatarId");
+        }
+
+        const currentAvatar = roleAvatars.find(avatar => avatar.avatarId === currentAvatarId);
+        if (!currentAvatar) {
+          throw new Error("找不到当前头像数据");
+        }
+
+        if (!currentAvatar.roleId) {
+          throw new Error("当前头像数据缺少roleId");
+        }
+
+        await applyCropMutation.mutateAsync({
+          roleId: currentAvatar.roleId,
+          avatarId: currentAvatarId,
+          croppedImageBlob: croppedBlob,
+          transform, // 同时应用当前的transform设置
+          currentAvatar,
+        });
+
+        // 获取dataUrl用于回调
+        const dataUrl = await getCroppedImageDataUrl();
         onCropComplete?.(dataUrl);
       }
     }
@@ -288,6 +346,22 @@ export function SpriteCropper({
     finally {
       setIsProcessing(false);
     }
+  }
+
+  /**
+   * 将canvas数据转换为Blob
+   */
+  async function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob);
+        }
+        else {
+          reject(new Error("Failed to convert canvas to blob"));
+        }
+      }, "image/png", 0.9);
+    });
   }
 
   /**
@@ -474,11 +548,18 @@ export function SpriteCropper({
       setIsProcessing(true);
       const results: { avatarId: number; croppedImageUrl: string }[] = [];
 
-      // 为每个立绘应用相同的裁剪参数
+      console.warn("开始批量裁剪所有立绘", {
+        avatarCount: spritesAvatars.length,
+        transform,
+      });
+
+      // 为每个立绘应用相同的裁剪参数并上传
       for (let i = 0; i < spritesAvatars.length; i++) {
         const avatar = spritesAvatars[i];
         if (!avatar.spriteUrl || !avatar.avatarId)
           continue;
+
+        console.warn(`处理立绘 ${i + 1}/${spritesAvatars.length}:`, avatar.avatarId);
 
         // 创建临时图片元素
         const tempImg = new Image();
@@ -490,12 +571,33 @@ export function SpriteCropper({
           tempImg.src = avatar.spriteUrl!;
         });
 
-        // 使用通用函数获取裁剪结果
+        // 使用通用函数获取裁剪结果的dataUrl（用于UI显示）
         const dataUrl = await getCroppedImageFromImg(tempImg);
+
+        // 将dataUrl转换为Blob用于上传
+        const response = await fetch(dataUrl);
+        const croppedBlob = await response.blob();
+
+        // 检查必要字段
+        if (!avatar.roleId) {
+          console.error(`立绘 ${i + 1} 缺少roleId，跳过处理`);
+          continue;
+        }
+
+        // 上传裁剪后的图片并更新头像记录
+        await applyCropMutation.mutateAsync({
+          roleId: avatar.roleId,
+          avatarId: avatar.avatarId,
+          croppedImageBlob: croppedBlob,
+          transform, // 同时应用当前的transform设置
+          currentAvatar: avatar,
+        });
+
         results.push({ avatarId: avatar.avatarId, croppedImageUrl: dataUrl });
       }
 
       setBatchResults(results);
+
       // 批量应用后不自动调用回调，让用户手动确认
     }
     catch (error) {
@@ -583,10 +685,9 @@ export function SpriteCropper({
                 key={avatar.avatarId}
                 type="button"
                 onClick={() => setCurrentSpriteIndex(index)}
-                className={`flex-shrink-0 w-12 h-12 rounded-md overflow-hidden border-2 transition-all ${
-                  index === currentSpriteIndex
-                    ? "border-primary"
-                    : "border-base-300 hover:border-primary/50"
+                className={`flex-shrink-0 w-12 h-12 rounded-md overflow-hidden border-2 transition-all ${index === currentSpriteIndex
+                  ? "border-primary"
+                  : "border-base-300 hover:border-primary/50"
                 }`}
               >
                 <img
@@ -677,9 +778,9 @@ export function SpriteCropper({
                               className="btn btn-accent"
                               onClick={handleApplyCrop}
                               type="button"
-                              disabled={!completedCrop || isProcessing}
+                              disabled={!completedCrop || isProcessing || applyCropMutation.isPending}
                             >
-                              {isProcessing
+                              {(isProcessing || applyCropMutation.isPending)
                                 ? (
                                     <span className="loading loading-spinner loading-xs"></span>
                                   )
@@ -709,9 +810,9 @@ export function SpriteCropper({
                               className="btn btn-accent"
                               onClick={handleBatchCropAll}
                               type="button"
-                              disabled={!completedCrop || isProcessing}
+                              disabled={!completedCrop || isProcessing || applyCropMutation.isPending}
                             >
-                              {isProcessing
+                              {(isProcessing || applyCropMutation.isPending)
                                 ? (
                                     <span className="loading loading-spinner loading-xs"></span>
                                   )

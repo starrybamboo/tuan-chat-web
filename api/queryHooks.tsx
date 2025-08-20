@@ -310,6 +310,114 @@ export function useDeleteRoleAvatarMutation(roleId?: number) {
  * 支持Transform参数：scale, positionX, positionY, alpha, rotation
  * Transform参数会被验证并转换为后端所需的字符串格式
  */
+export function useApplyCropMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["applyCrop"],
+    mutationFn: async ({ roleId, avatarId, croppedImageBlob, transform, currentAvatar }: { 
+      roleId: number; 
+      avatarId: number; 
+      croppedImageBlob: Blob;
+      transform?: Transform;
+      currentAvatar: RoleAvatar;
+    }) => {
+      if (!roleId || !avatarId || !croppedImageBlob || !currentAvatar) {
+        console.error("参数错误：缺少必要参数");
+        return undefined;
+      }
+
+      console.log("useApplyCropMutation: 开始上传裁剪后的图片", { 
+        roleId,
+        avatarId,
+        blobSize: croppedImageBlob.size,
+        hasTransform: !!transform
+      });
+
+      try {
+        // 首先上传裁剪后的图片
+        // 将Blob转换为File对象
+        const croppedFile = new File([croppedImageBlob], `cropped_sprite_${avatarId}_${Date.now()}.png`, {
+          type: 'image/png'
+        });
+        
+        // 使用UploadUtils上传图片，场景3表示角色差分
+        const { UploadUtils } = await import('../app/utils/UploadUtils');
+        const uploadUtils = new UploadUtils();
+        const newSpriteUrl = await uploadUtils.uploadImg(croppedFile, 3, 0.9, 2560);
+
+        console.log("图片上传成功，新URL:", newSpriteUrl);
+
+        // 准备transform参数
+        let finalTransform: Transform;
+        if (transform) {
+          // Validate and clamp transform values to acceptable ranges
+          const validateTransform = (t: Transform): Transform => {
+            return {
+              scale: Math.max(0, Math.min(2, t.scale || 1)),
+              positionX: Math.max(-300, Math.min(300, t.positionX || 0)),
+              positionY: Math.max(-300, Math.min(300, t.positionY || 0)),
+              alpha: Math.max(0, Math.min(1, t.alpha || 1)),
+              rotation: Math.max(0, Math.min(360, t.rotation || 0))
+            };
+          };
+          finalTransform = validateTransform(transform);
+        } else {
+          // 使用默认transform值
+          finalTransform = {
+            scale: 1,
+            positionX: 0,
+            positionY: 0,
+            alpha: 1,
+            rotation: 0
+          };
+        }
+        
+        console.log("useApplyCropMutation: 处理Transform数据", {
+          original: transform,
+          validated: finalTransform,
+          mapped: {
+            spriteXPosition: finalTransform.positionX.toString(),
+            spriteYPosition: finalTransform.positionY.toString(),
+            spriteScale: finalTransform.scale.toString(),
+            spriteTransparency: finalTransform.alpha.toString(),
+            spriteRotation: finalTransform.rotation.toString(),
+          }
+        });
+        
+        // 使用新的spriteUrl和transform参数更新头像记录
+        const updateRes = await tuanchat.avatarController.updateRoleAvatar({
+          roleId: roleId,
+          avatarId,
+          avatarUrl: currentAvatar.avatarUrl, // 保持原有的avatarUrl
+          spriteUrl: newSpriteUrl, // 使用新的spriteUrl
+          spriteXPosition: finalTransform.positionX.toString(),
+          spriteYPosition: finalTransform.positionY.toString(),
+          spriteScale: finalTransform.scale.toString(),
+          spriteTransparency: finalTransform.alpha.toString(),
+          spriteRotation: finalTransform.rotation.toString(),
+        });
+
+        if (!updateRes.success) {
+          console.error("头像记录更新失败", updateRes);
+          return undefined;
+        }
+
+        console.log("裁剪应用成功，头像记录已更新");
+        await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
+        console.log("缓存已刷新，roleId:", roleId);
+        return updateRes;
+      }
+      catch (error) {
+        console.error("裁剪应用请求失败", error);
+        throw error;
+      }
+    },
+    onError: (error) => {
+      console.error("Crop application mutation failed:", error.message || error);
+    },
+  });
+}
+
 export function useUpdateAvatarTransformMutation() {
   const queryClient = useQueryClient();
   return useMutation({
