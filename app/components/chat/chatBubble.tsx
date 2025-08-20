@@ -189,7 +189,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
         : (
             <div className="flex w-full pb-4" key={message.messageId}>
               {/* 圆角矩形头像 */}
-              <div className="flex-shrink-0 mr-3">
+              <div className="flex-shrink-0 pr-3">
                 <div className="w-20 h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
                   <RoleAvatarComponent
                     avatarId={message.avatarId}
@@ -202,7 +202,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 </div>
               </div>
               {/* 消息内容 */}
-              <div className="flex-1 overflow-auto p-1">
+              <div className="flex-1 overflow-auto p-1 pr-5">
                 {/* 角色名 */}
                 <div
                   className={`cursor-pointer font-semibold ${userId === message.userId ? "hover:underline" : ""}`}
