@@ -665,14 +665,11 @@ export function SpriteCropper({
           <div className="flex items-center mb-4 gap-4">
             <h1 className="text-xl md:text-2xl font-bold">
               {operationMode === "single" ? "单体模式" : "批量模式"}
-              {" "}
-              -
-              {" "}
-              {characterName}
             </h1>
+            <div className="border-l-2 border-primary h-6 mx-2"></div>
             {/* 模式切换控件 */}
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">单体</span>
+              <span className="text-sm font-bold">单体</span>
               <input
                 type="checkbox"
                 className="toggle toggle-primary toggle-sm"
@@ -680,7 +677,7 @@ export function SpriteCropper({
                 onChange={e => setOperationMode(e.target.checked ? "batch" : "single")}
                 disabled={!isBatchMode || isProcessing}
               />
-              <span className="text-sm font-medium">批量</span>
+              <span className="text-sm font-bold">批量</span>
             </div>
           </div>
           <div className="flex gap-2 overflow-x-auto justify-center">
