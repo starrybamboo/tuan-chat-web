@@ -125,7 +125,7 @@ export function useGetMessagePageQuery(requestBody: MessageDirectPageRequest) {
 export function useGetInboxMessagePageQuery() {
   return useQuery({
     queryKey: ["getInboxMessagePage"],
-    queryFn: () => tuanchat.messageDirectController.getInboxMessagePage("ANY_STRING"),
+    queryFn: () => tuanchat.messageDirectController.getInboxMessages("ANY_STRING"),
     staleTime: 300000
   });
 }
@@ -154,7 +154,7 @@ export function useGetFriendsUserInfoQuery(friends: (number | undefined)[]) {
     queries: friends.map(friendId => ({
       queryKey: ['getAllMyFriendsInfo', friendId],
       queryFn: () => tuanchat.userController.getUserInfo(friendId || -1),
-      staleTime: 300000,
+      staleTime: 300000, 
     }))
   });
 }
