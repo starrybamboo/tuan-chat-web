@@ -20,7 +20,7 @@ export default function ActivitiesPage() {
 
   const {
     data: feedData,
-    // fetchNextPage,
+    fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     isLoading,
@@ -77,17 +77,16 @@ export default function ActivitiesPage() {
       return;
     }
     lastRequestedCursorRef.current = nextCursor;
-
-    // try { TODO API异常，暂时无法使用
-    //   // 显式把后端返回的 cursor 作为 pageParam 传给 fetchNextPage
-    //   await fetchNextPage(
-    //     nextCursor !== null ? { pageParam: nextCursor } : undefined,
-    //   );
-    // }
-    // catch {
-    //   // 出错允许重试
-    //   lastRequestedCursorRef.current = null;
-    // }
+    try {
+      await fetchNextPage(
+        nextCursor !== null
+          ? { pageParam: nextCursor } as any
+          : undefined,
+      );
+    }
+    catch {
+      lastRequestedCursorRef.current = null;
+    }
   };
 
   return (
