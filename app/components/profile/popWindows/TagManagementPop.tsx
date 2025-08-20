@@ -174,7 +174,6 @@ export const TagManagementPop: React.FC<TagManagementPopupProps> = ({
               ? "修改您的标签内容和颜色"
               : "创建新的玩家标签并选择颜色"}
           </p>
-          <p>...修改标签内容要等会，颜色倒是可以</p>
         </div>
 
         <div className="mb-4">

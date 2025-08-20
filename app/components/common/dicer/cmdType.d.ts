@@ -42,13 +42,33 @@ interface ExecutorProp { // eslint-disable-line ts/consistent-type-definitions
 }
 
 interface CPI { // eslint-disable-line ts/consistent-type-definitions
-  // 发送消息
+  /**
+   * 发送消息到聊天框
+   * @param {ExecutorProp} prop - 执行器属性
+   * @param {string} msg - 要发送的消息
+   * @return {void}
+   * 说明：调用此方法发送消息时会同时发送原始指令到群聊中，在需要多次发送消息的场景请注意这一点
+   */
   sendMsg: (prop: ExecutorProp, msg: string) => void;
-  // 获取角色能力列表
+  /**
+   * 获取指定用户的角色信息
+   * @param {number} userId - 用户ID
+   * @returns {UserRole} 用户角色信息，如果不存在则返回一个空对象
+   */
   getRoleAbilityList: (roleId: number) => RoleAbility;
-  // 设置角色能力列表
+  /**
+   * 设置指定用户的角色能力列表
+   * @param {number} roleId - 角色ID
+   * @param {RoleAbility} abilityList - 角色能力列表
+   * @return {void}
+   */
   setRoleAbilityList: (roleId: number, abilityList: RoleAbility) => void;
-  // 发送Toast消息
+  /**
+   * 发送Toast消息
+   * @param {string} msg - 要发送的消息
+   * @return {void}
+   * 说明：调用此方法时原始指令不会发送到群聊中，并且唤起弹窗后会自动关闭
+   */
   sendToast: (msg: string) => void;
 }
 

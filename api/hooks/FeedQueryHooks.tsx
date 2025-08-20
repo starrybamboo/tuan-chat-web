@@ -1,18 +1,22 @@
 import {useMutation, useQuery} from "@tanstack/react-query";
-import type {FeedRequest} from "../models/FeedRequest";
+import type { MessageFeedRequest } from "../models/MessageFeedRequest";
 import {tuanchat} from "../instance";
 
 /**
- * feed
+ * 发布图文/聊天消息 Feed
  */
 export function usePublishFeedMutation(){
     return useMutation({
         mutationKey: ["publishFeed"],
-        mutationFn: async (feed: FeedRequest) => {
+        mutationFn: async (feed: MessageFeedRequest ) => {
             return tuanchat.feedController.publishFeed(feed);
         }
     })
 }
+
+/**
+ * 根据ID获取图文/聊天消息Feed详情
+ */
 export function useGetFeedByIdQuery(feedId: number){
     return useQuery({
         queryKey: ["getFeedById", feedId],
