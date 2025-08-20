@@ -110,6 +110,7 @@ export default function SpaceDetailPanel() {
               )
             }
           </div>
+          {/* TODO: 适配新的角色列表 */}
           {spaceRoles.map(role => (
             <div
               key={role.roleId}
