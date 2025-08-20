@@ -266,6 +266,7 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
 
       {/* 输入区域 */}
       <MessageInput
+        key={currentContactUserId}
         currentContactUserId={currentContactUserId}
         setMessageInput={setMessageInput}
         messageInput={messageInput}

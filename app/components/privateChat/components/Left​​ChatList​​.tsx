@@ -119,14 +119,6 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
     return needContacts;
   }, [sortedRealTimeMessages, deletedContactIds]);
 
-  useEffect(() => {
-    console.warn("inboxMessages", inboxMessages);
-    console.warn("sortedInboxMessages", sortedInboxMessages);
-    console.warn("realTimeMessages", realTimeMessages);
-    console.warn("sortedRealTimeMessages", sortedRealTimeMessages);
-    console.warn("realTimeContacts", realTimeContacts);
-  }, [inboxMessages, sortedInboxMessages, realTimeMessages, sortedRealTimeMessages, realTimeContacts]);
-
   // 未读消息数
   const unreadMessageNumbers = useMemo(() => {
     const counts: Record<number, number> = {};

@@ -3,6 +3,7 @@ import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import BetterImg from "@/components/common/betterImg";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { EmojiIcon, Image2Fill } from "@/icons";
+import { useState } from "react";
 
 export default function MessageInput({
   currentContactUserId,
@@ -23,6 +24,8 @@ export default function MessageInput({
   emojiUrls: string[]; // 表情图片 URL 列表
   updateEmojiUrls: (recipe: (draft: string[]) => void) => void;
 }) {
+  // 输入框显示的消息
+  const [currentMessage, setCurrentMessage] = useState<string>("");
   /**
    * 文本消息发送
    */
@@ -70,8 +73,11 @@ export default function MessageInput({
               type="text"
               className="w-full h-10 px-3 py-2 rounded-full border border-base-300 focus:outline-none focus:border-info text-sm"
               placeholder="输入消息..."
-              onChange={e => setMessageInput(e.target.value)}
-              value={messageInput}
+              onChange={(e) => {
+                setCurrentMessage(e.target.value);
+                setMessageInput(e.target.value);
+              }}
+              value={currentMessage}
               onKeyDown={handleKeyDown}
             />
           </div>
@@ -125,8 +131,11 @@ export default function MessageInput({
           <textarea
             className="w-full h-full resize-none px-2 py-1 rounded-lg focus:outline-none"
             placeholder="输入消息内容，按 Enter 发送，Shift+Enter 换行"
-            onChange={e => setMessageInput(e.target.value)}
-            value={messageInput}
+            onChange={(e) => {
+              setMessageInput(e.target.value);
+              setCurrentMessage(e.target.value);
+            }}
+            value={currentMessage}
             onKeyDown={handleKeyDown}
           />
         </div>
