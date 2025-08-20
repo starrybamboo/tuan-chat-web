@@ -73,7 +73,11 @@ export default function ChatPage() {
     }
   }, [activeSpaceId, rooms]);
 
-  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState<boolean>("leftDrawer", !(urlSpaceId && urlRoomId) || getScreenSize() === "sm", false);
+  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState<boolean>(
+    "leftDrawer",
+    !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (getScreenSize() === "sm" && !isPrivateChatMode),
+    false,
+  );
 
   // 同步路由状态 并存到localStorage里面
   useEffect(() => {

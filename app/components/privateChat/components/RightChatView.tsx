@@ -240,10 +240,10 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
           : (
               <div className="flex flex-col w-full h-full">
                 {
-                  friendUserInfos.map((friend) => {
+                  friendUserInfos.map((friend, index) => {
                     return (
                       <div
-                        key={friend?.userId}
+                        key={friend?.userId || index}
                         className="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded-md border-t-2 border-base-300"
                         onClick={() => navigate(`/chat/private/${friend?.userId}`)}
                       >

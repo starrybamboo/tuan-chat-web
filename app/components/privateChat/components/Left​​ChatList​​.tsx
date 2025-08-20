@@ -1,10 +1,15 @@
 import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
+import type { UserFollowResponse } from "api/models/UserFollowResponse";
 import type { DirectMessageEvent } from "api/wsModels";
+import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { useGetInboxMessagePageQuery, useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { useParams } from "react-router";
-import FriendItem from "./FriendItem";
+import { MemberIcon, XMarkICon } from "@/icons";
+import { getScreenSize } from "@/utils/getScreenSize";
+import { useGetFriendsUserInfoQuery, useGetInboxMessagePageQuery, useUpdateReadPositionMutation } from "api/hooks/MessageDirectQueryHooks";
+import { useGetUserFriendsQuery } from "api/hooks/userFollowQueryHooks";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router";
+import ChatItem from "./ChatItem";
 
 interface MessageDirectType {
   messageId?: number;
@@ -35,6 +40,13 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   const { targetUserId: urlTargetUserId, roomId: urlRoomId } = useParams();
   const prevUrlRoomIdRef = useRef<string | undefined>(urlRoomId);
   const currentContactUserId = urlRoomId ? Number.parseInt(urlRoomId) : (urlTargetUserId ? Number.parseInt(urlTargetUserId) : null);
+  const navigate = useNavigate();
+
+  // 好友列表
+  const followingQuery = useGetUserFriendsQuery(userId, { pageNo: 1, pageSize: 100 });
+  const friends: UserFollowResponse[] = useMemo(() => Array.isArray(followingQuery.data?.data?.list) ? followingQuery.data.data.list : [], [followingQuery.data]);
+  const friendUserQueries = useGetFriendsUserInfoQuery(friends.map(f => f.userId));
+  const friendUserInfos = friendUserQueries.map(f => f.data?.data);
 
   // 从消息信箱获取私聊列表
   const inboxQuery = useGetInboxMessagePageQuery();
@@ -53,6 +65,18 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
     return Object.fromEntries(contacts);
   }, [inboxMessages]);
 
+  // 删除私聊列表项
+  const [deletedContactIds, setDeletedContactIds] = useLocalStorage<number[]>("deletedContactIds", []);
+  function deletedThisContactId(contactId: number) {
+    if (deletedContactIds.length === 0) {
+      setDeletedContactIds([contactId]);
+      return;
+    }
+    if (!deletedContactIds.includes(contactId)) {
+      setDeletedContactIds([...deletedContactIds, contactId]);
+    }
+  }
+
   // 加入从 WebSocket 接收到的实时消息
   const wsMessages = webSocketUtils.receivedDirectMessages;
   const sortedWsMessages = useMemo(() => {
@@ -68,7 +92,6 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   }, [wsMessages]);
 
   const realTimeMessages = useMemo(() => mergeMessages(sortedInboxMessages, sortedWsMessages, userId), [sortedInboxMessages, sortedWsMessages, userId]);
-
   // 按最新消息时间排列，数组
   const sortedRealTimeMessages = useMemo(() => {
     let realTimeMsg = Object.entries(realTimeMessages);
@@ -91,8 +114,10 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
 
   // 实时的联系人
   const realTimeContacts = useMemo(() => {
-    return sortedRealTimeMessages.map(([contactId]) => Number.parseInt(contactId));
-  }, [sortedRealTimeMessages]);
+    const allContacts = sortedRealTimeMessages.map(([contactId]) => Number.parseInt(contactId));
+    const needContacts = allContacts.filter(contactId => !deletedContactIds.includes(contactId));
+    return needContacts;
+  }, [sortedRealTimeMessages, deletedContactIds]);
 
   // 未读消息数
   const unreadMessageNumbers = useMemo(() => {
@@ -123,6 +148,27 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
     prevUrlRoomIdRef.current = urlRoomId;
   }, [urlRoomId, updateReadlinePosition, userId]);
 
+  // 是否展示删除按钮
+  const [isDeleteContats, setIsDeleteContacts] = useState(false);
+  // 移动端是否展示好友列表
+  const [isShowFriendsList, setIsShowFriendsList] = useState(false);
+
+  // 图标点击事件
+  function handleMemberClick() {
+    if (getScreenSize() === "sm") {
+      setIsShowFriendsList(!isShowFriendsList);
+    }
+    else {
+      if (currentContactUserId) {
+        navigate("/chat/private");
+      }
+    }
+  }
+
+  function handleXMarkClick() {
+    setIsDeleteContacts(!isDeleteContats);
+  }
+
   return (
     <div className="flex flex-col h-full bg-base-100">
       {/* 私聊列表 */}
@@ -131,9 +177,11 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
         style={customScrollbarStyle} // 应用自定义滚动条样式
       >
         <div className="w-full h-8 font-bold flex items-start justify-center border-b border-base-300">
-          <span className="text-lg transform -translate-y-0.5">私信</span>
+          <span className="text-lg transform -translate-y-0.5">
+            {isShowFriendsList ? "好友" : "私信"}
+          </span>
         </div>
-        {false
+        {inboxQuery.isLoading
           ? (
               <div className="flex items-center justify-center h-32">
                 <span className="loading loading-spinner loading-md"></span>
@@ -143,25 +191,128 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
           : realTimeContacts.length === 0
             ? (
                 // 私聊列表为空
-                <div className="flex flex-col items-center justify-center h-32 text-base-content/70">
-                  <span>暂无私聊列表</span>
-                  <span className="text-sm">快去聊天吧</span>
+                <div className="flex flex-col items-center justify-center text-base-content/70 px-4 py-2">
+                  <button
+                    className="btn btn-ghost flex justify-center w-full gap-2"
+                    type="button"
+                    onClick={handleMemberClick}
+                  >
+                    <MemberIcon />
+                  </button>
+
+                  {!isShowFriendsList
+                    ? (
+                        <>
+                          <span>暂无私聊列表</span>
+                          <span className="text-sm">快去聊天吧</span>
+                        </>
+                      )
+                    : (
+                        friendUserInfos.map((friend, index) => (
+                          <button
+                            key={friend?.userId || index}
+                            className="btn btn-ghost flex justify-start w-full gap-2"
+                            type="button"
+                            onClick={() => {
+                              navigate(`/chat/private/${friend?.userId}`);
+                              updateReadlinePosition(friend?.userId || -1);
+                              if (getScreenSize() === "sm") {
+                                setTimeout(() => {
+                                  setIsOpenLeftDrawer(false);
+                                }, 0);
+                              }
+                            }}
+                          >
+                            <div className="indicator">
+                              <div className="avatar mask mask-squircle w-8">
+                                <img
+                                  src={friend?.avatar}
+                                  alt={friend?.username}
+                                />
+                              </div>
+                            </div>
+                            <div className="flex-1 flex flex-col gap-1 justify-center min-w-0 relative">
+                              <div className="flex items-center ">
+                                <span className="truncate">
+                                  {friend?.username || `用户${friend?.userId}`}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        ))
+                      )}
                 </div>
               )
             : (
-                // 显示私聊列表
                 <div className="p-2 pt-4 flex flex-col gap-2">
+                  <div className="flex">
+                    <button
+                      className="btn btn-ghost btn-sm flex justify-center w-1/2 gap-2"
+                      type="button"
+                      onClick={handleMemberClick}
+                    >
+                      <MemberIcon />
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-sm flex justify-center w-1/2 gap-2"
+                      type="button"
+                      onClick={handleXMarkClick}
+                    >
+                      <XMarkICon />
+                    </button>
+                  </div>
+                  {/* 显示私聊列表 */}
                   {
-                    realTimeContacts.map(contactId => (
-                      <FriendItem
-                        key={contactId}
-                        id={contactId}
-                        unreadMessageNumber={unreadMessageNumbers[contactId] || 0}
-                        currentContactUserId={currentContactUserId}
-                        setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                        updateReadlinePosition={updateReadlinePosition}
-                      />
-                    ))
+                    !isShowFriendsList
+                      ? (
+                          realTimeContacts.map(contactId => (
+                            <ChatItem
+                              key={contactId}
+                              id={contactId}
+                              isDeleteContats={isDeleteContats}
+                              unreadMessageNumber={unreadMessageNumbers[contactId] || 0}
+                              currentContactUserId={currentContactUserId}
+                              setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                              updateReadlinePosition={updateReadlinePosition}
+                              deletedContactId={deletedThisContactId}
+                            />
+                          ))
+                        )
+                      : (
+                          friendUserInfos.map((friend, index) => (
+                            <button
+                              key={friend?.userId || index}
+                              className="btn btn-ghost flex justify-start w-full gap-2"
+                              type="button"
+                              onClick={() => {
+                                navigate(`/chat/private/${friend?.userId}`);
+                                updateReadlinePosition(friend?.userId || -1);
+                                if (getScreenSize() === "sm") {
+                                  setTimeout(() => {
+                                    setIsOpenLeftDrawer(false);
+                                  }, 0);
+                                }
+                              }}
+                            >
+                              <div className="indicator">
+                                <div className="avatar mask mask-squircle w-8">
+                                  <img
+                                    src={friend?.avatar}
+                                    alt={friend?.username}
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex-1 flex flex-col gap-1 justify-center min-w-0 relative">
+                                {/* 用户名 */}
+                                <div className="flex items-center ">
+                                  <span className="truncate">
+                                    {friend?.username || `用户${friend?.userId}`}
+                                  </span>
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                        )
                   }
                 </div>
               )}
@@ -174,7 +325,7 @@ function mergeMessages(
   sortedMessages: Record<number, MessageDirectResponse[]>,
   wsMessages: Record<number, DirectMessageEvent[]>,
   userId: number,
-): Record<number, MessageDirectType[]> {
+): Record<string, MessageDirectType[]> {
   const mergedMessages = new Map<number, MessageDirectType[]>();
 
   // 获取所有联系人ID
@@ -188,8 +339,6 @@ function mergeMessages(
   for (const contactId of contactIds) {
     const wsContactMessages = wsMessages[contactId] || [];
     const historyMessages = sortedMessages[contactId] || [];
-
-    // mergedMessages.set(contactId, [...wsContactMessages, ...historyMessages]);
 
     // 使用 Map 进行去重，key 为 messageId
     const messageMap = new Map<number, MessageDirectType>();
@@ -209,19 +358,27 @@ function mergeMessages(
     // 将 Map 转化为数组
     const messageArray = Array.from(messageMap.values());
 
-    mergedMessages.set(contactId, messageArray);
+    if (messageArray.length > 0) {
+      mergedMessages.set(contactId, messageArray);
+    }
   }
 
   return Object.fromEntries(mergedMessages);
 }
 
-function getUnreadMessageNumber(sortedRealTimeMessages: Array<[string, MessageDirectResponse[]]>, contactId: number, userId: number) {
+function getUnreadMessageNumber(sortedRealTimeMessages: Array<[string, MessageDirectType[]]>, contactId: number, userId: number) {
   const targetArray = sortedRealTimeMessages.find(([id]) => Number.parseInt(id) === contactId);
   const messages = targetArray ? targetArray[1] : [];
   const latestMessageIndex = messages.findIndex(msg => msg.messageType !== 10000 && msg.senderId === contactId);
   const latestMessageSync = messages.find(msg => msg.messageType !== 10000 && msg.senderId === contactId)?.syncId || 0;
   const readlineIndex = messages.findIndex(msg => msg.messageType === 10000 && msg.senderId === userId);
   const readlineSync = messages.find(msg => msg.messageType === 10000 && msg.senderId === userId)?.syncId || 0;
+
+  // 如果没有未读消息
+  if (latestMessageSync <= readlineSync) {
+    return 0;
+  }
+
   let unreadCount = 0;
   let index = readlineIndex;
   while (index >= latestMessageIndex || index > -1) {
@@ -230,9 +387,6 @@ function getUnreadMessageNumber(sortedRealTimeMessages: Array<[string, MessageDi
     }
     index--;
   }
-  if (latestMessageSync < readlineSync) {
-    return 0;
-  }
 
-  return unreadCount > 0 ? unreadCount : 0;
+  return unreadCount;
 }
