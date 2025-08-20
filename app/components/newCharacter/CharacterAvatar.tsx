@@ -105,21 +105,39 @@ export default function CharacterAvatar({
   const confirmDeleteAvatar = () => {
     if (avatarToDeleteIndex !== null && avatarToDeleteIndex >= 0 && avatarToDeleteIndex < roleAvatars.length) {
       const avatarToDelete = roleAvatars[avatarToDeleteIndex];
+      const isCurrentRoleAvatar = avatarToDelete.avatarUrl === role.avatar;
       const isCurrentlySelected = avatarToDelete.avatarId === selectedAvatarId;
 
-      // 通知父组件和服务器删除头像
-      onAvatarDelete(avatarToDelete.avatarId || 0);
-      deleteAvatar(avatarToDelete.avatarId || 0);
-
-      // 如果删除的是当前选中的头像，且还有其他头像，则选择第一个头像
-      if (isCurrentlySelected && roleAvatars.length > 1) {
-        // 找到第一个不是被删除头像的头像
-        const firstAvatar = roleAvatars.find((avatar, index) => index !== avatarToDeleteIndex);
-        if (firstAvatar) {
-          const nextSprite = firstAvatar.spriteUrl || firstAvatar.avatarUrl || null;
-          onAvatarSelect(firstAvatar.avatarUrl || "", firstAvatar.avatarId || 0, nextSprite);
+      // 如果删除的是角色当前使用的头像或当前选中的头像，需要找到替代头像
+      let replacementAvatar: RoleAvatar | null = null;
+      if ((isCurrentRoleAvatar || isCurrentlySelected) && roleAvatars.length > 1) {
+        // 优先选择删除项前面的头像，如果没有则选择后面的头像
+        if (avatarToDeleteIndex > 0) {
+          replacementAvatar = roleAvatars[avatarToDeleteIndex - 1];
+        }
+        else if (avatarToDeleteIndex < roleAvatars.length - 1) {
+          replacementAvatar = roleAvatars[avatarToDeleteIndex + 1];
         }
       }
+
+      // 如果需要替换头像，先设置新的头像
+      if (replacementAvatar) {
+        const nextSprite = replacementAvatar.spriteUrl || replacementAvatar.avatarUrl || null;
+
+        // 如果删除的是角色当前使用的头像，需要通知父组件更新角色头像
+        if (isCurrentRoleAvatar) {
+          onchange(replacementAvatar.avatarUrl || "", replacementAvatar.avatarId || 0, nextSprite);
+        }
+
+        // 如果删除的是当前选中的头像，或者删除的是角色头像（保持选中状态同步）
+        if (isCurrentlySelected || isCurrentRoleAvatar) {
+          onAvatarSelect(replacementAvatar.avatarUrl || "", replacementAvatar.avatarId || 0, nextSprite);
+        }
+      }
+
+      // 执行删除操作
+      onAvatarDelete(avatarToDelete.avatarId || 0);
+      deleteAvatar(avatarToDelete.avatarId || 0);
 
       setAvatarToDeleteIndex(null);
       setIsDeleteModalOpen(false);
