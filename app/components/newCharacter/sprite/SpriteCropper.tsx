@@ -5,37 +5,10 @@ import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPrev
 import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
 import { useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/queryHooks";
 import React, { useRef, useState } from "react";
-import { centerCrop, makeAspectCrop, ReactCrop } from "react-image-crop";
+import { ReactCrop } from "react-image-crop";
 import { RenderPreview } from "./RenderPreview";
 import { TransformControl } from "./TransformControl";
 import "react-image-crop/dist/ReactCrop.css";
-
-/**
- * 创建并居中裁剪区域的辅助函数
- * @param mediaWidth - 媒体宽度
- * @param mediaHeight - 媒体高度
- * @param aspect - 宽高比
- * @returns 居中的裁剪区域配置
- */
-function centerAspectCrop(
-  mediaWidth: number,
-  mediaHeight: number,
-  aspect: number,
-) {
-  return centerCrop(
-    makeAspectCrop(
-      {
-        unit: "%",
-        width: 90,
-      },
-      aspect,
-      mediaWidth,
-      mediaHeight,
-    ),
-    mediaWidth,
-    mediaHeight,
-  );
-}
 
 /**
  * 立绘裁剪组件的属性接口
@@ -143,20 +116,23 @@ export function SpriteCropper({
    */
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
-    // 立绘裁剪不限制宽高比，使用2:3作为初始比例
-    const aspect = 2 / 3;
-    const newCrop = centerAspectCrop(width, height, aspect);
+    // 立绘裁剪初始覆盖整个原图
+    const newCrop = {
+      unit: "%" as const,
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+    };
     setCrop(newCrop);
 
     // 在图片加载完成时设置completedCrop
-    const cropWidth = (width * newCrop.width) / 100;
-    const cropHeight = (height * newCrop.height) / 100;
     setCompletedCrop({
       unit: "px",
-      x: (width - cropWidth) / 2,
-      y: (height - cropHeight) / 2,
-      width: cropWidth,
-      height: cropHeight,
+      x: 0,
+      y: 0,
+      width,
+      height,
     });
   }
 
@@ -680,7 +656,16 @@ export function SpriteCropper({
               <span className="text-sm font-bold">批量</span>
             </div>
           </div>
-          <div className="flex gap-2 overflow-x-auto justify-center">
+          <div
+            className="flex gap-2 overflow-x-auto justify-start max-w-[416px] scrollbar-thin scrollbar-track-transparent scrollbar-thumb-primary/30 hover:scrollbar-thumb-primary/50"
+            onWheel={(e) => {
+              // 防止页面滚动
+              e.preventDefault();
+              // 横向滚动，减小滚动幅度
+              const container = e.currentTarget;
+              container.scrollLeft += e.deltaY * 0.3;
+            }}
+          >
             {spritesAvatars.map((avatar, index) => (
               <button
                 key={avatar.avatarId}
@@ -752,117 +737,111 @@ export function SpriteCropper({
                 previewCanvasRef={previewCanvasRef}
               />
 
-              {/* 操作按钮 - 在剩余空间中居中 */}
+              {/* 操作按钮区 */}
               <div className="flex-1 flex items-center justify-center">
-                <div className="flex flex-col gap-2">
-                  {/* 第一行：主要操作按钮 */}
-                  <div className="flex gap-2 justify-center">
-                    {/* 根据模式显示不同的操作按钮 */}
-                    {operationMode === "single"
-                      ? (
-                          <>
-                            <button
-                              className="btn btn-accent"
-                              onClick={handleApplyCrop}
-                              type="button"
-                              disabled={!completedCrop || isProcessing || applyCropMutation.isPending}
-                            >
-                              {(isProcessing || applyCropMutation.isPending)
-                                ? (
-                                    <span className="loading loading-spinner loading-xs"></span>
-                                  )
-                                : (
-                                    "应用裁剪"
-                                  )}
-                            </button>
-                            <button
-                              className="btn btn-info"
-                              onClick={handleApplyTransform}
-                              type="button"
-                              disabled={isProcessing}
-                            >
-                              {isProcessing && updateTransformMutation.isPending
-                                ? (
-                                    <span className="loading loading-spinner loading-xs"></span>
-                                  )
-                                : (
-                                    "应用位移"
-                                  )}
-                            </button>
-                          </>
-                        )
-                      : (
-                          <>
-                            <button
-                              className="btn btn-accent"
-                              onClick={handleBatchCropAll}
-                              type="button"
-                              disabled={!completedCrop || isProcessing || applyCropMutation.isPending}
-                            >
-                              {(isProcessing || applyCropMutation.isPending)
-                                ? (
-                                    <span className="loading loading-spinner loading-xs"></span>
-                                  )
-                                : (
-                                    "一键裁剪"
-                                  )}
-                            </button>
-                            <button
-                              className="btn btn-info"
-                              onClick={handleBatchApplyTransform}
-                              type="button"
-                              disabled={isProcessing}
-                            >
-                              {isProcessing && updateTransformMutation.isPending
-                                ? (
-                                    <span className="loading loading-spinner loading-xs"></span>
-                                  )
-                                : (
-                                    "一键位移"
-                                  )}
-                            </button>
-                            <button
-                              className="btn btn-success"
-                              onClick={handleBatchComplete}
-                              type="button"
-                              disabled={batchResults.length === 0}
-                            >
-                              完成
-                            </button>
-                          </>
-                        )}
-                  </div>
-
-                  {/* 第二行：下载按钮 */}
-                  <div className="flex justify-center gap-2">
-                    <button
-                      className="btn btn-outline"
-                      onClick={handleDownload}
-                      type="button"
-                      disabled={isProcessing}
-                    >
-                      下载图像
-                    </button>
-
-                    {isBatchMode && (
-                      <button
-                        className="btn btn-outline btn-info"
-                        onClick={handleBatchDownload}
-                        type="button"
-                        disabled={!completedCrop || isProcessing}
-                      >
-                        {isProcessing
-                          ? (
-                              <span className="loading loading-spinner loading-xs"></span>
-                            )
-                          : (
-                              "批量下载"
-                            )}
-                      </button>
-                    )}
-                  </div>
+                <div className="flex gap-2 justify-center">
+                  {operationMode === "single"
+                    ? (
+                        <>
+                          <button
+                            className="btn btn-accent"
+                            onClick={handleApplyCrop}
+                            type="button"
+                            disabled={!completedCrop || isProcessing || applyCropMutation.isPending}
+                          >
+                            {(isProcessing || applyCropMutation.isPending)
+                              ? (
+                                  <span className="loading loading-spinner loading-xs"></span>
+                                )
+                              : (
+                                  "应用裁剪"
+                                )}
+                          </button>
+                          <button
+                            className="btn btn-info"
+                            onClick={handleApplyTransform}
+                            type="button"
+                            disabled={isProcessing}
+                          >
+                            {isProcessing && updateTransformMutation.isPending
+                              ? (
+                                  <span className="loading loading-spinner loading-xs"></span>
+                                )
+                              : (
+                                  "应用位移"
+                                )}
+                          </button>
+                          <button
+                            className="btn btn-outline"
+                            onClick={handleDownload}
+                            type="button"
+                            disabled={isProcessing}
+                          >
+                            下载图像
+                          </button>
+                        </>
+                      )
+                    : (
+                        <>
+                          <button
+                            className="btn btn-accent"
+                            onClick={handleBatchCropAll}
+                            type="button"
+                            disabled={!completedCrop || isProcessing || applyCropMutation.isPending}
+                          >
+                            {(isProcessing || applyCropMutation.isPending)
+                              ? (
+                                  <span className="loading loading-spinner loading-xs"></span>
+                                )
+                              : (
+                                  "一键裁剪"
+                                )}
+                          </button>
+                          <button
+                            className="btn btn-info"
+                            onClick={handleBatchApplyTransform}
+                            type="button"
+                            disabled={isProcessing}
+                          >
+                            {isProcessing && updateTransformMutation.isPending
+                              ? (
+                                  <span className="loading loading-spinner loading-xs"></span>
+                                )
+                              : (
+                                  "一键位移"
+                                )}
+                          </button>
+                          <button
+                            className="btn btn-outline btn-info"
+                            onClick={handleBatchDownload}
+                            type="button"
+                            disabled={!completedCrop || isProcessing}
+                          >
+                            {isProcessing
+                              ? (
+                                  <span className="loading loading-spinner loading-xs"></span>
+                                )
+                              : (
+                                  "批量下载"
+                                )}
+                          </button>
+                        </>
+                      )}
                 </div>
               </div>
+              {/* 批量模式下单独显示“完成”按钮在操作区下方 */}
+              {operationMode === "batch" && (
+                <div className="flex justify-center items-center">
+                  <button
+                    className="btn btn-success btn-block md:max-w-[288px]"
+                    onClick={handleBatchComplete}
+                    type="button"
+                    disabled={batchResults.length === 0}
+                  >
+                    完成
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
