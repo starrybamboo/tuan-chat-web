@@ -3,14 +3,16 @@ import ActivityNotice from "@/components/activities/cards/activituNoticeCard";
 import PostsCard from "@/components/activities/cards/postsCard";
 import PublishBox from "@/components/activities/cards/publishPostCard";
 import TrendingTopics from "@/components/activities/cards/trendingTopicsCard";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useGetFollowingMomentFeedInfiniteQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
 
 /**
  * 动态页面的入口文件（自动在剩 RENDER_MIN 个动态时加载更多）
  */
-export default function ActivitiesPage() {
+function ActivitiesPage() {
   const [activeTab, setActiveTab] = useState<"all" | "module">("all");
+  const loginUserId = useGlobalContext().userId ?? -1;
   const RENDER_MIN = 3;
   // 固定请求参数引用，避免 queryKey 抖动导致重复拉第一页
   const feedRequest = useMemo<FeedPageRequest>(() => ({
@@ -56,7 +58,7 @@ export default function ActivitiesPage() {
     return out;
   }, [feedData]);
 
-  // sentinel ref：用于监听倒数第 3 个动态何时进入视口
+  // sentinel ref：用于监听倒数第 RENDER_MIN 个动态何时进入视口
   const sentinelRef = useRef<HTMLElement | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
@@ -87,7 +89,7 @@ export default function ActivitiesPage() {
       },
       {
         root: null,
-        rootMargin: "0px", // 不提前加载，确保用户确实滚动到倒数第3个
+        rootMargin: "0px", // 不提前加载，确保用户确实滚动到倒数第 RENDER_MIN 个
         threshold: 0.1, // 小部分可见即可触发
       },
     );
@@ -129,7 +131,7 @@ export default function ActivitiesPage() {
 
             {/* 发布动态框 */}
             <div className="mb-4 sm:mb-6">
-              <PublishBox />
+              <PublishBox loginUserId={loginUserId} />
             </div>
 
             {/* 导航标签 */}
@@ -185,17 +187,16 @@ export default function ActivitiesPage() {
                 if (idx === sentinelIndex) {
                   return (
                     <div key={key} ref={(el) => { sentinelRef.current = el as HTMLElement; }}>
-                      <PostsCard dynamic={item} />
+                      <PostsCard dynamic={item} loginUserId={loginUserId} />
                     </div>
                   );
                 }
 
-                return <PostsCard key={key} dynamic={item} />;
+                return <PostsCard key={key} dynamic={item} loginUserId={loginUserId} />;
               })}
 
               {!isLoading && !isError && activities.length === 0 && (
                 <div className="text-center py-12">
-                  <div className="text-base-content/40 text-lg mb-2">📱</div>
                   <p className="text-base-content/60">还没有动态</p>
                   <p className="text-base-content/40 text-sm">关注一些用户来查看他们的动态吧</p>
                 </div>
@@ -226,4 +227,6 @@ export default function ActivitiesPage() {
       </div>
     </div>
   );
-}
+};
+
+export default ActivitiesPage;

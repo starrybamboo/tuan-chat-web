@@ -2,10 +2,15 @@ import React, { useState } from "react";
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 
+interface PostsCardProp {
+  dynamic: any;
+  loginUserId: number;
+}
+
 /**
  * 发布的动态预览卡片组件
  */
-function PostsCard({ dynamic }: { dynamic: any }) {
+export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => {
   const feed = dynamic?.feed ?? {};
   const stats = dynamic?.stats ?? {};
   const userId = dynamic?.feed.userId ?? -1;
@@ -134,23 +139,29 @@ function PostsCard({ dynamic }: { dynamic: any }) {
             ⋯
           </button>
 
-          {/* TODO: 删除动态权限 */}
+          {/* 每个动态的二级菜单 */}
           {showMenu && (
             <div className="absolute right-0 top-full mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg py-1 z-20 min-w-[120px]">
-              <button
-                onClick={handleDelete}
-                className="w-full px-4 py-2 text-left text-sm text-error hover:bg-error/10 transition-colors"
-                type="button"
-              >
-                删除动态
-              </button>
-              <button
-                onClick={() => setShowMenu(false)}
-                className="w-full px-4 py-2 text-left text-sm text-base-content/60 hover:bg-base-200 transition-colors"
-                type="button"
-              >
-                举报
-              </button>
+              {loginUserId !== userId
+                ? (
+                    <button
+                      onClick={handleDelete}
+                      className="w-full px-4 py-2 text-left text-sm text-error hover:bg-error/10 transition-colors"
+                      type="button"
+                    >
+                      删除动态
+                    </button>
+                  )
+                : (
+                    <button
+                      onClick={() => setShowMenu(false)}
+                      className="w-full px-4 py-2 text-left text-sm text-base-content/60 hover:bg-base-200 transition-colors"
+                      type="button"
+                    >
+                      举报
+                    </button>
+                  )}
+
             </div>
           )}
         </div>
@@ -212,6 +223,6 @@ function PostsCard({ dynamic }: { dynamic: any }) {
       </div>
     </div>
   );
-}
+};
 
 export default PostsCard;

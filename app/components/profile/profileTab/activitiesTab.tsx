@@ -200,7 +200,7 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                                 key={wrapperKey}
                                 ref={isSentinel ? lastThirdRef : undefined}
                               >
-                                <PostsCard dynamic={dynamic} />
+                                <PostsCard dynamic={dynamic} loginUserId={userId} />
                               </div>
                             );
                           })}

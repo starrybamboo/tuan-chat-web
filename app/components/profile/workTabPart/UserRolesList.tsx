@@ -1,6 +1,7 @@
 import Pagination from "@/components/common/pagination";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { UserRoleCard } from "@/components/profile/cards/userRoleCard";
+import React from "react";
 import { Link } from "react-router";
 
 interface UserRolesListProps {
@@ -14,14 +15,14 @@ interface UserRolesListProps {
 /**
  * 在workTab使用的角色列表，卡片本身来源于userRoleCard
  */
-export function UserRolesList({
+export const UserRolesList: React.FC<UserRolesListProps> = ({
   userId,
   roleIds,
   totalRecords,
   currentPage,
   onPageChange,
   isLoading,
-}: UserRolesListProps) {
+}) => {
   const currentUserId = useGlobalContext().userId ?? -1;
   const totalPages = Math.ceil(totalRecords / 10);
 
@@ -99,4 +100,6 @@ export function UserRolesList({
       )}
     </>
   );
-}
+};
+
+export default UserRolesList;
