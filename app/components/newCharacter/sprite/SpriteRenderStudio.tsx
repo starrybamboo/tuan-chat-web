@@ -314,8 +314,6 @@ export function SpriteRenderStudio({
           transform={transform}
           characterName={characterName}
           dialogContent="这是一段示例对话内容。"
-          characterNameTextSize="text-2xl"
-          dialogTextSize="text-xl"
         />
 
         {/* 调试信息 - 显示当前状态 */}

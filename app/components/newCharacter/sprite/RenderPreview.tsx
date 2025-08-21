@@ -18,10 +18,6 @@ interface RenderPreviewProps {
   characterName?: string;
   // 对话内容，用于遮罩中的显示
   dialogContent?: string;
-  // 角色名称文字大小类名，默认为 text-xs
-  characterNameTextSize?: string;
-  // 对话内容文字大小类名，默认为 text-xs
-  dialogTextSize?: string;
 }
 
 /**
@@ -33,8 +29,6 @@ export function RenderPreview({
   transform,
   characterName = "角色名",
   dialogContent = "对话内容",
-  characterNameTextSize = "text-xs",
-  dialogTextSize = "text-xs",
 }: RenderPreviewProps) {
   // --- 关键步骤 2: 创建 ref 和 state ---
   const containerRef = useRef<HTMLDivElement>(null);
@@ -85,7 +79,7 @@ export function RenderPreview({
 
   return (
     <>
-      <div ref={containerRef} className="relative w-full aspect-video overflow-hidden bg-base-200">
+      <div ref={containerRef} className="relative w-full aspect-video overflow-hidden bg-black">
         {/* 裁剪后的图像 - 左侧显示 */}
         <canvas
           ref={previewCanvasRef}
@@ -97,11 +91,11 @@ export function RenderPreview({
           }}
         />
         {/* 底部1/3的黑色半透明遮罩 */}
-        <div className="absolute bottom-0 w-full h-[30%] bg-black/50">
-          <div className="absolute top-0 left-[6%] text-white">
+        <div className="absolute bottom-0 w-full h-[29%] bg-black/30 mx-[1%] mb-[1%] rounded">
+          <div className="absolute top-0 left-[8%] text-white" style={{ fontSize: "100%" }}>
             <p className="text-white leading-snug">
-              <span className={`block ${characterNameTextSize} font-medium`}>{characterName}</span>
-              <span className={`block ${dialogTextSize} mt-1`}>{dialogContent}</span>
+              <span className="block font-medium mt-[3%] text-transparent bg-clip-text bg-gradient-to-b from-white to-cyan-100" style={{ fontSize: "1.3em" }}>{characterName}</span>
+              <span className="block mt-[1%]" style={{ fontSize: "1.3em" }}>{dialogContent}</span>
             </p>
           </div>
         </div>
