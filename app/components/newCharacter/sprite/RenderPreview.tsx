@@ -40,7 +40,7 @@ export function RenderPreview({
           className="absolute left-0 h-full object-contain"
           style={{
             objectPosition: "left center",
-            transform: `scale(${transform.scale}) translate(${transform.positionX}px, ${transform.positionY}px) rotate(${transform.rotation}deg)`,
+            transform: `translate(${transform.positionX}px, ${transform.positionY}px) scale(${transform.scale}) rotate(${transform.rotation}deg)`,
             opacity: transform.alpha,
           }}
         />

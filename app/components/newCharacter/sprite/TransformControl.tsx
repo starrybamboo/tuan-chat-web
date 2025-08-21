@@ -49,13 +49,12 @@ export function TransformControl({ transform, setTransform, previewCanvasRef, di
         const canvasOriginalHeight = canvas.offsetHeight;
         const scaledCanvasHeight = canvasOriginalHeight * transform.scale;
 
-        // 计算Y偏移：1个transform单位等于scale个像素
+        // 由于现在translate在scale之前，Y偏移不需要除以scale
         const yOffsetInPixels = -((scaledCanvasHeight - canvasOriginalHeight) / 2);
-        const yOffset = yOffsetInPixels / transform.scale;
 
         setTransform(prev => ({
           ...prev,
-          positionY: Math.round(yOffset),
+          positionY: Math.round(yOffsetInPixels),
           rotation: 0,
         }));
       }

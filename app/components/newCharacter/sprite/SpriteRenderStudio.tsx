@@ -4,13 +4,13 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RenderPreview } from "./RenderPreview";
 import { SpriteCropper } from "./SpriteCropper";
+import { parseTransformFromAvatar } from "./utils";
 // import { TransformControl } from "./TransformControl";
 
 interface SpriteRenderStudioProps {
   characterName: string;
   roleAvatars: RoleAvatar[];
   initialAvatarId?: number;
-  dialogContent?: string;
   className?: string;
   // 可选的外部 canvas 引用，用于从外部 canvas 获取立绘内容
   externalCanvasRef?: React.RefObject<HTMLCanvasElement | null>;
@@ -24,7 +24,6 @@ export function SpriteRenderStudio({
   characterName,
   roleAvatars,
   initialAvatarId,
-  dialogContent = "这是一段示例对话内容。",
   className = "",
   externalCanvasRef,
 }: SpriteRenderStudioProps) {
@@ -87,8 +86,13 @@ export function SpriteRenderStudio({
         if (sprite?.avatarId === initialAvatarId) {
           return sprite;
         }
-        // 如果不匹配，可能是数据还没同步，返回null等待
-        return null;
+        // 如果不匹配，尝试找到匹配的立绘
+        const matchingSprite = spritesAvatars.find(s => s.avatarId === initialAvatarId);
+        if (matchingSprite) {
+          return matchingSprite;
+        }
+        // 如果找不到匹配的，返回当前索引的立绘（回退策略）
+        return sprite;
       }
       // 手动模式下直接返回
       return sprite;
@@ -97,35 +101,6 @@ export function SpriteRenderStudio({
   }, [spritesAvatars, currentSpriteIndex, initialAvatarId, manualIndexOffset]);
 
   const spriteUrl = currentSprite?.spriteUrl || null;
-
-  // Helper function to parse transform data from API response
-  const parseTransformFromAvatar = (avatar: RoleAvatar | null): Transform => {
-    if (!avatar) {
-      return {
-        scale: 1,
-        positionX: 0,
-        positionY: 0,
-        alpha: 1,
-        rotation: 0,
-      };
-    }
-
-    // Parse transform parameters from string values, with fallbacks to defaults
-    const scale = avatar.spriteScale ? Number.parseFloat(avatar.spriteScale) : 1;
-    const positionX = avatar.spriteXPosition ? Number.parseFloat(avatar.spriteXPosition) : 0;
-    const positionY = avatar.spriteYPosition ? Number.parseFloat(avatar.spriteYPosition) : 0;
-    const alpha = avatar.spriteTransparency ? Number.parseFloat(avatar.spriteTransparency) : 1;
-    const rotation = avatar.spriteRotation ? Number.parseFloat(avatar.spriteRotation) : 0;
-
-    // Validate and clamp values to acceptable ranges
-    return {
-      scale: Math.max(0, Math.min(2, Number.isNaN(scale) ? 1 : scale)),
-      positionX: Math.max(-300, Math.min(300, Number.isNaN(positionX) ? 0 : positionX)),
-      positionY: Math.max(-300, Math.min(300, Number.isNaN(positionY) ? 0 : positionY)),
-      alpha: Math.max(0, Math.min(1, Number.isNaN(alpha) ? 1 : alpha)),
-      rotation: Math.max(0, Math.min(360, Number.isNaN(rotation) ? 0 : rotation)),
-    };
-  };
 
   // 当前显示的transform状态，用于平滑切换
   const [displayTransform, setDisplayTransform] = useState<Transform>(() => ({
@@ -191,14 +166,8 @@ export function SpriteRenderStudio({
 
   // 当立绘URL变化时，加载到预览Canvas
   useEffect(() => {
-    // 添加数据一致性检查，确保spriteUrl对应正确的角色
+    // 加载立绘到预览Canvas
     if (spriteUrl && previewCanvasRef.current && currentSprite) {
-      // 在自动模式下，验证当前立绘确实属于当前角色
-      if (initialAvatarId && manualIndexOffset === null && currentSprite.avatarId !== initialAvatarId) {
-        // 数据不一致，不渲染，等待正确数据
-        return;
-      }
-
       const canvas = previewCanvasRef.current;
       const ctx = canvas.getContext("2d");
       if (ctx) {
@@ -241,7 +210,7 @@ export function SpriteRenderStudio({
       }
       setIsImageLoading(false);
     }
-  }, [spriteUrl, previewCanvasRef, currentSprite, initialAvatarId, manualIndexOffset]);
+  }, [spriteUrl, previewCanvasRef, currentSprite]);
 
   // 处理打开弹窗
   const handleOpenPopWindow = () => {
@@ -344,7 +313,7 @@ export function SpriteRenderStudio({
           previewCanvasRef={previewCanvasRef}
           transform={transform}
           characterName={characterName}
-          dialogContent={dialogContent}
+          dialogContent="这是一段示例对话内容。"
           characterNameTextSize="text-2xl"
           dialogTextSize="text-xl"
         />
@@ -445,14 +414,11 @@ export function SpriteRenderStudio({
                   roleAvatars={roleAvatars}
                   initialSpriteIndex={currentSpriteIndex}
                   characterName={characterName}
-                  dialogContent={dialogContent}
                   onCropComplete={(croppedImageUrl) => {
-                  // TODO: 处理单体裁剪完成的图片
                     console.warn("单体裁剪完成:", croppedImageUrl);
                     handleClosePopWindow();
                   }}
                   onBatchCropComplete={(croppedImages) => {
-                  // TODO: 处理批量裁剪完成的图片
                     console.warn("批量裁剪完成:", croppedImages);
                     handleClosePopWindow();
                   }}

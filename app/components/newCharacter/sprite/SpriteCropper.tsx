@@ -4,10 +4,11 @@ import type { Transform } from "./TransformControl";
 import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
 import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
 import { useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/queryHooks";
-import React, { useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
 import { RenderPreview } from "./RenderPreview";
 import { TransformControl } from "./TransformControl";
+import { parseTransformFromAvatar } from "./utils";
 import "react-image-crop/dist/ReactCrop.css";
 
 /**
@@ -17,13 +18,11 @@ interface SpriteCropperProps {
   // 要裁剪的立绘URL（单体模式）
   spriteUrl?: string;
   // 角色头像列表（批量模式）
-  roleAvatars?: RoleAvatar[];
+  roleAvatars: RoleAvatar[];
   // 初始立绘索引（批量模式下使用）
   initialSpriteIndex?: number;
   // 角色名称，用于预览
   characterName: string;
-  // 对话内容，用于预览
-  dialogContent?: string;
   // 裁剪完成回调（单体模式）
   onCropComplete?: (croppedImageUrl: string) => void;
   // 批量裁剪完成回调
@@ -32,9 +31,6 @@ interface SpriteCropperProps {
   onClose?: () => void;
 }
 
-// 默认空数组，避免重新渲染
-const DEFAULT_AVATARS: RoleAvatar[] = [];
-
 /**
  * 立绘裁剪组件
  * 用于裁剪现有立绘，支持预览和变换控制
@@ -42,10 +38,9 @@ const DEFAULT_AVATARS: RoleAvatar[] = [];
  */
 export function SpriteCropper({
   spriteUrl,
-  roleAvatars = DEFAULT_AVATARS,
+  roleAvatars,
   initialSpriteIndex = 0,
   characterName,
-  dialogContent = "这是一段示例对话内容。",
   onCropComplete,
   onBatchCropComplete,
 }: SpriteCropperProps) {
@@ -92,15 +87,6 @@ export function SpriteCropper({
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
 
-  // Transform控制状态
-  const [transform, setTransform] = useState<Transform>({
-    scale: 1,
-    positionX: 0,
-    positionY: 0,
-    alpha: 1,
-    rotation: 0,
-  });
-
   // 加载状态
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -109,6 +95,100 @@ export function SpriteCropper({
 
   // 裁剪应用mutation hook
   const applyCropMutation = useApplyCropMutation();
+
+  const [displayTransform, setDisplayTransform] = useState<Transform>(() => ({
+    scale: 1,
+    positionX: 0,
+    positionY: 0,
+    alpha: 1,
+    rotation: 0,
+  }));
+
+  // 使用displayTransform作为实际的transform
+  const transform = displayTransform;
+
+  /**
+   * 处理应用位移（单体模式）
+   */
+  async function handleApplyTransform() {
+    if (!isBatchMode && !currentAvatarId) {
+      console.error("单体模式下缺少avatarId");
+      return;
+    }
+
+    if (isBatchMode && spritesAvatars.length === 0) {
+      console.error("批量模式下没有可用的立绘");
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+
+      const currentAvatar = isBatchMode
+        ? spritesAvatars[currentSpriteIndex]
+        : roleAvatars.find(avatar => avatar.avatarId === currentAvatarId);
+
+      if (!currentAvatar) {
+        console.error("找不到当前头像数据");
+        return;
+      }
+
+      console.warn("应用Transform到单个头像", {
+        avatarId: currentAvatar.avatarId,
+        transform,
+      });
+
+      await updateTransformMutation.mutateAsync({
+        roleId: currentAvatar.roleId!,
+        avatarId: currentAvatar.avatarId!,
+        transform,
+        currentAvatar,
+      });
+
+      console.warn("Transform应用成功");
+    }
+    catch (error) {
+      console.error("应用Transform失败:", error);
+    }
+    finally {
+      setIsProcessing(false);
+    }
+  }
+
+  /**
+   * 处理批量应用位移
+   */
+  async function handleBatchApplyTransform() {
+    if (!isBatchMode || spritesAvatars.length === 0) {
+      console.error("批量模式下没有可用的立绘");
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+
+      console.warn("开始批量应用Transform", {
+        avatarCount: spritesAvatars.length,
+        transform,
+      });
+
+      // 批量应用当前transform到所有立绘
+      for (const avatar of spritesAvatars) {
+        await updateTransformMutation.mutateAsync({
+          roleId: avatar.roleId!,
+          avatarId: avatar.avatarId!,
+          transform,
+          currentAvatar: avatar,
+        });
+      }
+    }
+    catch (error) {
+      console.error("批量应用Transform失败:", error);
+    }
+    finally {
+      setIsProcessing(false);
+    }
+  }
 
   /**
    * 图片加载完成后的处理函数
@@ -127,13 +207,32 @@ export function SpriteCropper({
     setCrop(newCrop);
 
     // 在图片加载完成时设置completedCrop
-    setCompletedCrop({
+    const initialCompletedCrop: PixelCrop = {
       unit: "px",
       x: 0,
       y: 0,
       width,
       height,
-    });
+    };
+    setCompletedCrop(initialCompletedCrop);
+    // 3. 立即将完整的原始图像绘制到右侧的预览Canvas上
+    //    因为此时 `completedCrop` 状态可能还没更新，所以我们直接使用刚创建的 `initialCompletedCrop`
+    if (imgRef.current && previewCanvasRef.current) {
+      canvasPreview(
+        imgRef.current,
+        previewCanvasRef.current,
+        initialCompletedCrop, // 使用代表全图的 crop 对象
+        1,
+        0,
+      );
+    }
+
+    // 4. 在同一时间点，从当前立绘数据中解析并设置Transform
+    const currentSprite = spritesAvatars[currentSpriteIndex];
+    if (currentSprite) {
+      const newTransform = parseTransformFromAvatar(currentSprite);
+      setDisplayTransform(newTransform);
+    }
   }
 
   // 使用防抖效果更新预览画布
@@ -346,89 +445,6 @@ export function SpriteCropper({
   async function handleBatchComplete() {
     if (isBatchMode && batchResults.length > 0) {
       onBatchCropComplete?.(batchResults);
-    }
-  }
-
-  /**
-   * 处理应用位移（单体模式）
-   */
-  async function handleApplyTransform() {
-    if (!isBatchMode && !currentAvatarId) {
-      console.error("单体模式下缺少avatarId");
-      return;
-    }
-
-    if (isBatchMode && spritesAvatars.length === 0) {
-      console.error("批量模式下没有可用的立绘");
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-
-      const currentAvatar = isBatchMode
-        ? spritesAvatars[currentSpriteIndex]
-        : roleAvatars.find(avatar => avatar.avatarId === currentAvatarId);
-
-      if (!currentAvatar) {
-        console.error("找不到当前头像数据");
-        return;
-      }
-
-      console.warn("应用Transform到单个头像", {
-        avatarId: currentAvatar.avatarId,
-        transform,
-      });
-
-      await updateTransformMutation.mutateAsync({
-        roleId: currentAvatar.roleId!,
-        avatarId: currentAvatar.avatarId!,
-        transform,
-        currentAvatar,
-      });
-
-      console.warn("Transform应用成功");
-    }
-    catch (error) {
-      console.error("应用Transform失败:", error);
-    }
-    finally {
-      setIsProcessing(false);
-    }
-  }
-
-  /**
-   * 处理批量应用位移
-   */
-  async function handleBatchApplyTransform() {
-    if (!isBatchMode || spritesAvatars.length === 0) {
-      console.error("批量模式下没有可用的立绘");
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-
-      console.warn("开始批量应用Transform", {
-        avatarCount: spritesAvatars.length,
-        transform,
-      });
-
-      // 批量应用当前transform到所有立绘
-      for (const avatar of spritesAvatars) {
-        await updateTransformMutation.mutateAsync({
-          roleId: avatar.roleId!,
-          avatarId: avatar.avatarId!,
-          transform,
-          currentAvatar: avatar,
-        });
-      }
-    }
-    catch (error) {
-      console.error("批量应用Transform失败:", error);
-    }
-    finally {
-      setIsProcessing(false);
     }
   }
 
@@ -726,14 +742,14 @@ export function SpriteCropper({
                 previewCanvasRef={previewCanvasRef}
                 transform={transform}
                 characterName={characterName}
-                dialogContent={dialogContent}
+                dialogContent="这是一段示例对话内容。"
                 characterNameTextSize="text-sm"
                 dialogTextSize="text-sm"
               />
 
               <TransformControl
                 transform={transform}
-                setTransform={setTransform}
+                setTransform={setDisplayTransform}
                 previewCanvasRef={previewCanvasRef}
               />
 
