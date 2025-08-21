@@ -153,9 +153,12 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   // 移动端是否展示好友列表
   const [isShowFriendsList, setIsShowFriendsList] = useState(false);
 
+  // 屏幕大小
+  const isSmallScreen = getScreenSize() === "sm";
+
   // 图标点击事件
   function handleMemberClick() {
-    if (getScreenSize() === "sm") {
+    if (isSmallScreen) {
       setIsShowFriendsList(!isShowFriendsList);
     }
     else {
@@ -169,12 +172,119 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
     setIsDeleteContacts(!isDeleteContats);
   }
 
+  // 移动端样式
+  if (isSmallScreen) {
+    return (
+      <div className="flex flex-col h-full bg-base-100">
+        <div
+          className="flex-1 w-full"
+          style={customScrollbarStyle}
+        >
+          <div className="w-full h-8 font-bold flex items-start justify-center border-b border-base-300">
+            <span className="text-lg transform -translate-y-0.5">
+              {isShowFriendsList ? "好友" : "私信"}
+            </span>
+          </div>
+          {isShowFriendsList
+            // 1.显示好友列表
+            ? (
+                <div className="p-2 pt-4 flex flex-col gap-2">
+                  <button
+                    className="btn btn-ghost flex justify-center w-full gap-2"
+                    type="button"
+                    onClick={handleMemberClick}
+                  >
+                    <MemberIcon />
+                  </button>
+                  {
+                    friendUserInfos.map((friend, index) => (
+                      <button
+                        key={friend?.userId || index}
+                        className="btn btn-ghost flex justify-start w-full gap-2"
+                        type="button"
+                        onClick={() => {
+                          navigate(`/chat/private/${friend?.userId}`);
+                          updateReadlinePosition(friend?.userId || -1);
+                          setTimeout(() => {
+                            setIsOpenLeftDrawer(false);
+                          }, 0);
+                        }}
+                      >
+                        <div className="indicator">
+                          <div className="avatar mask mask-squircle w-8">
+                            <img
+                              src={friend?.avatar}
+                              alt={friend?.username}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex-1 flex flex-col gap-1 justify-center min-w-0 relative">
+                          <div className="flex items-center ">
+                            <span className="truncate">
+                              {friend?.username || `用户${friend?.userId}`}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  }
+                </div>
+              )
+            // 2.显示私聊列表
+            : (
+                <div className="p-2 pt-4 flex flex-col gap-2">
+                  <div className="flex">
+                    <button
+                      className="btn btn-ghost flex justify-center w-1/2 gap-2"
+                      type="button"
+                      onClick={handleMemberClick}
+                    >
+                      <MemberIcon />
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-sm flex justify-center w-1/2 gap-2"
+                      type="button"
+                      onClick={handleXMarkClick}
+                    >
+                      <XMarkICon />
+                    </button>
+                  </div>
+                  {
+                    realTimeContacts.length === 0
+                      ? (
+                          <>
+                            <span>暂无私聊列表</span>
+                            <span className="text-sm">快去聊天吧</span>
+                          </>
+                        )
+                      : (
+                          realTimeContacts.map(contactId => (
+                            <ChatItem
+                              key={contactId}
+                              id={contactId}
+                              isDeleteContats={isDeleteContats}
+                              unreadMessageNumber={unreadMessageNumbers[contactId] || 0}
+                              currentContactUserId={currentContactUserId}
+                              setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                              updateReadlinePosition={updateReadlinePosition}
+                              deletedContactId={deletedThisContactId}
+                            />
+                          ))
+                        )
+                  }
+                </div>
+              )}
+        </div>
+      </div>
+    );
+  }
+
+  // 大屏样式
   return (
     <div className="flex flex-col h-full bg-base-100">
-      {/* 私聊列表 */}
       <div
         className="flex-1 w-full"
-        style={customScrollbarStyle} // 应用自定义滚动条样式
+        style={customScrollbarStyle}
       >
         <div className="w-full h-8 font-bold flex items-start justify-center border-b border-base-300">
           <span className="text-lg transform -translate-y-0.5">
@@ -189,8 +299,8 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
               </div>
             )
           : realTimeContacts.length === 0
+            // 私聊列表为空
             ? (
-                // 私聊列表为空
                 <div className="flex flex-col items-center justify-center text-base-content/70 px-4 py-2">
                   <button
                     className="btn btn-ghost flex justify-center w-full gap-2"
@@ -199,55 +309,18 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
                   >
                     <MemberIcon />
                   </button>
-
-                  {!isShowFriendsList
-                    ? (
-                        <>
-                          <span>暂无私聊列表</span>
-                          <span className="text-sm">快去聊天吧</span>
-                        </>
-                      )
-                    : (
-                        friendUserInfos.map((friend, index) => (
-                          <button
-                            key={friend?.userId || index}
-                            className="btn btn-ghost flex justify-start w-full gap-2"
-                            type="button"
-                            onClick={() => {
-                              navigate(`/chat/private/${friend?.userId}`);
-                              updateReadlinePosition(friend?.userId || -1);
-                              if (getScreenSize() === "sm") {
-                                setTimeout(() => {
-                                  setIsOpenLeftDrawer(false);
-                                }, 0);
-                              }
-                            }}
-                          >
-                            <div className="indicator">
-                              <div className="avatar mask mask-squircle w-8">
-                                <img
-                                  src={friend?.avatar}
-                                  alt={friend?.username}
-                                />
-                              </div>
-                            </div>
-                            <div className="flex-1 flex flex-col gap-1 justify-center min-w-0 relative">
-                              <div className="flex items-center ">
-                                <span className="truncate">
-                                  {friend?.username || `用户${friend?.userId}`}
-                                </span>
-                              </div>
-                            </div>
-                          </button>
-                        ))
-                      )}
+                  <>
+                    <span>暂无私聊列表</span>
+                    <span className="text-sm">快去聊天吧</span>
+                  </>
                 </div>
               )
+            // 私聊列表不为空
             : (
                 <div className="p-2 pt-4 flex flex-col gap-2">
                   <div className="flex">
                     <button
-                      className="btn btn-ghost btn-sm flex justify-center w-1/2 gap-2"
+                      className="btn btn-ghost flex justify-center w-1/2 gap-2"
                       type="button"
                       onClick={handleMemberClick}
                     >
@@ -261,58 +334,19 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
                       <XMarkICon />
                     </button>
                   </div>
-                  {/* 显示私聊列表 */}
                   {
-                    !isShowFriendsList
-                      ? (
-                          realTimeContacts.map(contactId => (
-                            <ChatItem
-                              key={contactId}
-                              id={contactId}
-                              isDeleteContats={isDeleteContats}
-                              unreadMessageNumber={unreadMessageNumbers[contactId] || 0}
-                              currentContactUserId={currentContactUserId}
-                              setIsOpenLeftDrawer={setIsOpenLeftDrawer}
-                              updateReadlinePosition={updateReadlinePosition}
-                              deletedContactId={deletedThisContactId}
-                            />
-                          ))
-                        )
-                      : (
-                          friendUserInfos.map((friend, index) => (
-                            <button
-                              key={friend?.userId || index}
-                              className="btn btn-ghost flex justify-start w-full gap-2"
-                              type="button"
-                              onClick={() => {
-                                navigate(`/chat/private/${friend?.userId}`);
-                                updateReadlinePosition(friend?.userId || -1);
-                                if (getScreenSize() === "sm") {
-                                  setTimeout(() => {
-                                    setIsOpenLeftDrawer(false);
-                                  }, 0);
-                                }
-                              }}
-                            >
-                              <div className="indicator">
-                                <div className="avatar mask mask-squircle w-8">
-                                  <img
-                                    src={friend?.avatar}
-                                    alt={friend?.username}
-                                  />
-                                </div>
-                              </div>
-                              <div className="flex-1 flex flex-col gap-1 justify-center min-w-0 relative">
-                                {/* 用户名 */}
-                                <div className="flex items-center ">
-                                  <span className="truncate">
-                                    {friend?.username || `用户${friend?.userId}`}
-                                  </span>
-                                </div>
-                              </div>
-                            </button>
-                          ))
-                        )
+                    realTimeContacts.map(contactId => (
+                      <ChatItem
+                        key={contactId}
+                        id={contactId}
+                        isDeleteContats={isDeleteContats}
+                        unreadMessageNumber={unreadMessageNumbers[contactId] || 0}
+                        currentContactUserId={currentContactUserId}
+                        setIsOpenLeftDrawer={setIsOpenLeftDrawer}
+                        updateReadlinePosition={updateReadlinePosition}
+                        deletedContactId={deletedThisContactId}
+                      />
+                    ))
                   }
                 </div>
               )}
