@@ -3,16 +3,15 @@ import ActivityNotice from "@/components/activities/cards/activituNoticeCard";
 import PostsCard from "@/components/activities/cards/postsCard";
 import PublishBox from "@/components/activities/cards/publishPostCard";
 import TrendingTopics from "@/components/activities/cards/trendingTopicsCard";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useGetFollowingMomentFeedInfiniteQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
 
 /**
- * 动态页面的入口文件
+ * 动态页面的入口文件（自动在剩 RENDER_MIN 个动态时加载更多）
  */
-
 export default function ActivitiesPage() {
   const [activeTab, setActiveTab] = useState<"all" | "module">("all");
-
+  const RENDER_MIN = 3;
   // 固定请求参数引用，避免 queryKey 抖动导致重复拉第一页
   const feedRequest = useMemo<FeedPageRequest>(() => ({
     pageSize: 10,
@@ -28,11 +27,8 @@ export default function ActivitiesPage() {
     error,
   } = useGetFollowingMomentFeedInfiniteQuery(feedRequest);
 
-  // 本地记录上一次发起“加载更多”时使用的 cursor，防止重复请求同一个游标
-  const lastRequestedCursorRef = useRef<number | null>(null);
-
   // 合并分页并按 feedId 去重（保留首次出现顺序）
-  const dynamics = useMemo(() => {
+  const activities = useMemo(() => {
     const pages = (feedData?.pages ?? []) as any[];
     const all = pages.flatMap((p: any) => p?.data?.list ?? []);
 
@@ -60,34 +56,57 @@ export default function ActivitiesPage() {
     return out;
   }, [feedData]);
 
-  // 点击“加载更多”
-  const handleLoadMore = async () => {
+  // sentinel ref：用于监听倒数第 3 个动态何时进入视口
+  const sentinelRef = useRef<HTMLElement | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    // 清理旧 observer
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+
+    // 若没有下一页或正在加载下一页，则不创建 observer（避免重复触发）
     if (!hasNextPage || isFetchingNextPage)
       return;
 
-    // 读取“下一页”的 cursor（由后端在上一页返回的 data.cursor 提供）
-    const pages = feedData?.pages ?? [];
-    const lastPage = pages[pages.length - 1] as any;
-    const nextCursorRaw = lastPage?.data?.cursor; // 文档：number<double>
-    const nextCursor: number | null
-        = nextCursorRaw === null || nextCursorRaw === undefined ? null : Number(nextCursorRaw);
+    // 当倒数第 RENDER_MIN 个元素进入视口时触发加载
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            // 再次确认条件，避免 race
+            if (hasNextPage && !isFetchingNextPage) {
+              fetchNextPage().catch(() => {
+                // 忽略错误，React Query 会在 hook 层记录 isError / error
+              });
+            }
+          }
+        }
+      },
+      {
+        root: null,
+        rootMargin: "0px", // 不提前加载，确保用户确实滚动到倒数第3个
+        threshold: 0.1, // 小部分可见即可触发
+      },
+    );
 
-    // 后端如果意外重复给相同 cursor，就不要重复请求
-    if (nextCursor !== null && lastRequestedCursorRef.current === nextCursor) {
-      return;
-    }
-    lastRequestedCursorRef.current = nextCursor;
-    try {
-      await fetchNextPage(
-        nextCursor !== null
-          ? { pageParam: nextCursor } as any
-          : undefined,
-      );
-    }
-    catch {
-      lastRequestedCursorRef.current = null;
-    }
-  };
+    const el = sentinelRef.current;
+    if (el)
+      observerRef.current.observe(el);
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
+    };
+    // 这些依赖项足以在分页数据 / 加载状态 / 是否还有下一页变化时重新建立 observer
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, activities.length]);
+
+  // 计算需要挂载 sentinel 的索引（当 items <= RENDER_MIN 时，挂到索引 0 上以尽快触发加载）
+  const sentinelIndex = Math.max(0, activities.length - RENDER_MIN);
 
   return (
     <div className="min-h-screen">
@@ -158,13 +177,23 @@ export default function ActivitiesPage() {
                 </div>
               )}
 
-              {dynamics.map((item) => {
+              {activities.map((item, idx) => {
                 const feedId = item?.feed?.feedId;
-                const key = `feed-${feedId}`;
+                const key = `feed-${feedId ?? idx}`;
+
+                // 将 sentinelRef 挂载在倒数第 RENDER_MIN 个 item（或长度 <= RENDER_MIN 时挂在第 0 个）
+                if (idx === sentinelIndex) {
+                  return (
+                    <div key={key} ref={(el) => { sentinelRef.current = el as HTMLElement; }}>
+                      <PostsCard dynamic={item} />
+                    </div>
+                  );
+                }
+
                 return <PostsCard key={key} dynamic={item} />;
               })}
 
-              {!isLoading && !isError && dynamics.length === 0 && (
+              {!isLoading && !isError && activities.length === 0 && (
                 <div className="text-center py-12">
                   <div className="text-base-content/40 text-lg mb-2">📱</div>
                   <p className="text-base-content/60">还没有动态</p>
@@ -172,30 +201,16 @@ export default function ActivitiesPage() {
                 </div>
               )}
 
-              {hasNextPage && (
-                <div className="flex justify-center py-4">
-                  <button
-                    onClick={handleLoadMore}
-                    disabled={!hasNextPage || isFetchingNextPage}
-                    className="btn btn-outline btn-primary"
-                    type="button"
-                  >
-                    {isFetchingNextPage
-                      ? (
-                          <>
-                            <div className="loading loading-spinner loading-sm"></div>
-                            加载中...
-                          </>
-                        )
-                      : (
-                          "加载更多"
-                        )}
-                  </button>
-                </div>
+              {/* 取消了手动“加载更多”按钮 —— 由倒数第 RENDER_MIN 个元素进入视口自动触发加载 */}
+              {!hasNextPage && activities.length > 0 && (
+                <div className="text-center py-4 text-base-content/40 text-sm">已经到底了</div>
               )}
 
-              {!hasNextPage && dynamics.length > 0 && (
-                <div className="text-center py-4 text-base-content/40 text-sm">已经到底了</div>
+              {/* 显示正在加载下一页的 spinner */}
+              {isFetchingNextPage && (
+                <div className="flex justify-center py-4">
+                  <div className="loading loading-spinner loading-md text-primary"></div>
+                </div>
               )}
             </div>
           </div>
