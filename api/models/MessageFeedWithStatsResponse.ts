@@ -2,13 +2,13 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { Feed } from './Feed';
 import type { FeedStatsResponse } from './FeedStatsResponse';
+import type { MessageFeedResponse } from './MessageFeedResponse';
 /**
- * Feed详情响应（包含统计信息）
+ * 转发消息Feed详情响应（包含统计信息）
  */
-export type FeedWithStatsResponse = {
-    feed?: Feed;
+export type MessageFeedWithStatsResponse = {
+    feed?: MessageFeedResponse;
     stats?: FeedStatsResponse;
 };
 

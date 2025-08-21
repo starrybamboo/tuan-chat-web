@@ -2,13 +2,12 @@
 import type { Crop, PixelCrop } from "react-image-crop";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
-
 import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
 import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
-
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useRef, useState } from "react";
 import { centerCrop, makeAspectCrop, ReactCrop } from "react-image-crop";
+import { DisplayChatBubble } from "./displayChatBubble";
 import "react-image-crop/dist/ReactCrop.css";
 
 /**
@@ -85,8 +84,48 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   // 提交状态
   const [isSubmiting, setisSubmiting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  // 当前头像URL状态
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState("");
+  // Transform控制状态
+  const [transform, setTransform] = useState({
+    scale: 1,
+    positionX: 0,
+    positionY: 0,
+    alpha: 1,
+    rotation: 0,
+  });
   // 移除未使用的状态
   // const [firstStepImage, FirstStepImage] = useState<File | null>(null);
+
+  /**
+   * 重置所有状态到初始值
+   */
+  function resetAllStates() {
+    setCurrentStep(1);
+    setImgSrc("");
+    setCrop(undefined);
+    setCompletedCrop(undefined);
+    setisSubmiting(false);
+    // 重置Transform状态
+    setTransform({ scale: 1, positionX: 0, positionY: 0, alpha: 1, rotation: 0 });
+    // 重置头像URL状态
+    setCurrentAvatarUrl("");
+    // 清除canvas内容
+    if (previewCanvasRef.current) {
+      const ctx = previewCanvasRef.current.getContext("2d");
+      ctx?.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
+    }
+    // 清除图片引用
+    if (imgRef.current) {
+      imgRef.current.src = "";
+    }
+    // 清除文件输入框
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    // 清除文件引用
+    imgFile.current = null;
+  }
 
   /**
    * 图片加载完成后的处理函数
@@ -125,6 +164,13 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
           1,
           0,
         );
+        // 在 canvas 更新后，更新头像URL状态
+        const timeoutId = setTimeout(() => {
+          if (previewCanvasRef.current) {
+            setCurrentAvatarUrl(previewCanvasRef.current.toDataURL());
+          }
+        }, 50);
+        return () => clearTimeout(timeoutId);
       }
     },
     100,
@@ -197,7 +243,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
         }
         if (setCopperedDownloadUrl) {
           const copperedImgFile = await getCopperedImg();
-          copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, scene, 70, 768);
+          copperedDownloadUrl = await uploadUtils.uploadImg(copperedImgFile, scene, 60, 512);
           setCopperedDownloadUrl(copperedDownloadUrl);
         }
         if (mutate !== undefined) {
@@ -205,22 +251,8 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
         }
         // 延迟关闭弹窗和重置状态，避免抖动
         setTimeout(() => {
+          resetAllStates();
           setIsOpen(false);
-          setCurrentStep(1);
-          setImgSrc("");
-          setCrop(undefined);
-          setCompletedCrop(undefined);
-          if (previewCanvasRef.current) {
-            const ctx = previewCanvasRef.current.getContext("2d");
-            ctx?.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
-          }
-          if (imgRef.current) {
-            imgRef.current.src = "";
-          }
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
-          imgFile.current = null;
         }, 100);
       }
     }
@@ -315,71 +347,144 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
       <PopWindow
         isOpen={isOpen}
         onClose={() => {
-          setCurrentStep(1);
-          setImgSrc("");
-          setCrop(undefined);
-          setCompletedCrop(undefined);
-          setisSubmiting(false);
-          if (previewCanvasRef.current) {
-            const ctx = previewCanvasRef.current.getContext("2d");
-            ctx?.clearRect(0, 0, previewCanvasRef.current.width, previewCanvasRef.current.height);
-          }
-          if (imgRef.current) {
-            imgRef.current.src = "";
-          }
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
+          resetAllStates();
           setIsOpen(false);
         }}
       >
-        <div className="flex flex-col md:flex-row gap-8 justify-center">
-          {/* 原始图片裁剪区域 */}
-          {!!imgSrc && (
-            <div className="w-full md:w-1/2 rounded-lg flex items-center justify-center">
-              <ReactCrop
-                crop={crop}
-                onChange={(_, percentCrop) => setCrop(percentCrop)}
-                onComplete={c => setCompletedCrop(c)}
-                aspect={currentStep === 2 ? 1 : undefined}// 第一步不限制比例，第二步固定1:1
-                minHeight={10}
-              >
-                <img
-                  ref={imgRef}
-                  alt="Crop me"
-                  src={imgSrc}
-                  // style={{ transform: `scale(${scale})` }}
-                  onLoad={onImageLoad}
-                  // className="max-w-[50vw] max-h-[70vh]"
-                  // 不能用className设置, 否则会出问题, 见鬼!!!
-                  style={{
-                    maxHeight: "70vh",
-                  }}
-                />
-              </ReactCrop>
+        <div className="flex items-center gap-8">
+          <div className="w-full flex items-center">
+            <h1 className="text-xl md:text-2xl font-bold w-64">
+              {currentStep === 1 ? "1. 上传立绘" : "2. 上传头像"}
+              ：
+            </h1>
+            <ul className="w-full steps">
+              <li className={`step ${currentStep >= 1 ? "step-primary" : ""}`}></li>
+              <li className={`step ${currentStep >= 2 ? "step-primary" : ""}`}></li>
+            </ul>
+          </div>
+          {/* 桌面端按钮组 */}
+          {!!completedCrop && (
+            <div className="flex-shrink-0 hidden md:block">
+              {isSubmiting
+                ? (
+                    <button className="btn btn-md loading" disabled={true} type="button"></button>
+                  )
+                : (
+                    <div className="flex gap-2">
+                      <button className="btn btn-md btn-info" onClick={handleSubmit} type="button">
+                        {currentStep === 1 ? "下一步" : "创建完成"}
+                      </button>
+                      <button className="btn btn-md btn-outline" onClick={handleDownload} type="button">
+                        下载图像
+                      </button>
+                    </div>
+                  )}
             </div>
           )}
+        </div>
+        <div className="divider my-0"></div>
+        <div className="flex flex-col md:flex-row gap-8 justify-center">
+          {/* 原始图片裁剪区域 */}
+          <div className="w-full md:w-1/2 p-3 gap-4 flex flex-col items-center">
+            {!!imgSrc && (
+              <>
+                <h2 className="text-xl font-bold">裁剪预览</h2>
+                <div className="w-full rounded-lg flex items-center justify-center">
+                  <ReactCrop
+                    crop={crop}
+                    onChange={(_, percentCrop) => setCrop(percentCrop)}
+                    onComplete={c => setCompletedCrop(c)}
+                    aspect={currentStep === 2 ? 1 : undefined}// 第一步不限制比例，第二步固定1:1
+                    minHeight={10}
+                  >
+                    <img
+                      ref={imgRef}
+                      alt="Crop me"
+                      src={imgSrc}
+                      // style={{ transform: `scale(${scale})` }}
+                      onLoad={onImageLoad}
+                      // className="max-w-[50vw] max-h-[70vh]"
+                      // 不能用className设置, 否则会出问题, 见鬼!!!
+                      style={{
+                        maxHeight: "70vh",
+                      }}
+                    />
+                  </ReactCrop>
+                </div>
+              </>
+            )}
+          </div>
           {/* 裁剪预览和操作按钮 */}
           {!!completedCrop && (
-            <div className="w-full md:w-1/2 p-3 gap-4 flex flex-col items-center justify-center">
+            <div className="w-full md:w-1/2 p-3 gap-4 flex flex-col items-center">
               {
                 currentStep !== 1
                   ? (
-                      <canvas
-                        ref={previewCanvasRef}
-                        style={{ objectFit: "contain" }}
-                        className=" w-full h-[90%]"
-                      />
+                      <>
+                        <h2 className="text-xl font-bold">头像预览</h2>
+                        {/* 隐藏的 canvas 用于图像处理 */}
+                        <canvas
+                          ref={previewCanvasRef}
+                          style={{ display: "none" }}
+                          className="w-64 h-64"
+                        />
+                        <div className="relative w-full max-w-md bg-gray-100 dark:bg-gray-800 rounded-lg p-4 space-y-2">
+                          {/* 使用裁剪后的图像作为头像 */}
+                          <DisplayChatBubble
+                            roleName="角色名"
+                            avatarUrl={currentAvatarUrl}
+                            content="这是使用新头像的聊天消息！"
+                            useChatBubbleStyle={true}
+                          />
+                          <DisplayChatBubble
+                            roleName="角色名"
+                            avatarUrl={currentAvatarUrl}
+                            content="头像看起来怎么样？"
+                            useChatBubbleStyle={true}
+                          />
+                          <DisplayChatBubble
+                            roleName="角色名"
+                            avatarUrl={currentAvatarUrl}
+                            content="完成后就可以开始聊天了~"
+                            useChatBubbleStyle={true}
+                          />
+                        </div>
+                        <div className="relative w-full max-w-md bg-gray-100 dark:bg-gray-800 rounded-lg p-4 space-y-2">
+                          {/* 使用裁剪后的图像作为头像 */}
+                          <DisplayChatBubble
+                            roleName="角色名"
+                            avatarUrl={currentAvatarUrl}
+                            content="这是使用新头像的聊天消息！"
+                            useChatBubbleStyle={false}
+                          />
+                          <DisplayChatBubble
+                            roleName="角色名"
+                            avatarUrl={currentAvatarUrl}
+                            content="头像看起来怎么样？"
+                            useChatBubbleStyle={false}
+                          />
+                          <DisplayChatBubble
+                            roleName="角色名"
+                            avatarUrl={currentAvatarUrl}
+                            content="完成后就可以开始聊天了~"
+                            useChatBubbleStyle={false}
+                          />
+                        </div>
+                      </>
                     )
                   : (
                       <>
-                        <h2 className="text-xl font-bold">webgal渲染结果预览</h2>
-                        <div className="relative w-full aspect-video ">
+                        <h2 className="text-xl font-bold">渲染结果预览</h2>
+                        <div className="relative w-full aspect-video overflow-hidden">
                           {/* 裁剪后的图像 - 左侧显示 */}
                           <canvas
                             ref={previewCanvasRef}
                             className="absolute left-0 h-full object-contain"
-                            style={{ objectPosition: "left center" }}
+                            style={{
+                              objectPosition: "left center",
+                              transform: `scale(${transform.scale}) translate(${transform.positionX}px, ${transform.positionY}px) rotate(${transform.rotation}deg)`,
+                              opacity: transform.alpha,
+                            }}
                           />
                           {/* 底部1/3的黑色半透明遮罩 */}
                           <div className="absolute bottom-0 w-full h-[30%] bg-black/50">
@@ -391,35 +496,157 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                             </div>
                           </div>
                         </div>
+                        {/* Transform控制区域 */}
+                        <div className="w-full mt-4 p-4 bg-base-200 rounded-lg space-y-3">
+                          <h3 className="text-sm font-semibold text-center">Transform 控制</h3>
+
+                          {/* Scale控制 */}
+                          <div className="flex items-center gap-3">
+                            <label className="text-xs w-16 flex-shrink-0">Scale:</label>
+                            <input
+                              type="range"
+                              min="0.5"
+                              max="1"
+                              step="0.1"
+                              value={transform.scale}
+                              onChange={e => setTransform(prev => ({ ...prev, scale: Number.parseFloat(e.target.value) }))}
+                              className="range range-xs range-info flex-1"
+                            />
+                            <span className="text-xs w-12 text-right">{transform.scale.toFixed(1)}</span>
+                          </div>
+
+                          {/* Position X控制 */}
+                          <div className="flex items-center gap-3">
+                            <label className="text-xs w-16 flex-shrink-0">X位置:</label>
+                            <input
+                              type="range"
+                              min="-100"
+                              max="100"
+                              step="5"
+                              value={transform.positionX}
+                              onChange={e => setTransform(prev => ({ ...prev, positionX: Number.parseInt(e.target.value) }))}
+                              className="range range-xs range-info flex-1"
+                            />
+                            <span className="text-xs w-12 text-right">{transform.positionX}</span>
+                          </div>
+
+                          {/* Position Y控制 */}
+                          <div className="flex items-center gap-3">
+                            <label className="text-xs w-16 flex-shrink-0">Y位置:</label>
+                            <input
+                              type="range"
+                              min="-100"
+                              max="100"
+                              step="5"
+                              value={transform.positionY}
+                              onChange={e => setTransform(prev => ({ ...prev, positionY: Number.parseInt(e.target.value) }))}
+                              className="range range-xs range-info flex-1"
+                            />
+                            <span className="text-xs w-12 text-right">{transform.positionY}</span>
+                          </div>
+
+                          {/* Alpha控制 */}
+                          <div className="flex items-center gap-3">
+                            <label className="text-xs w-16 flex-shrink-0">透明度:</label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="1"
+                              step="0.1"
+                              value={transform.alpha}
+                              onChange={e => setTransform(prev => ({ ...prev, alpha: Number.parseFloat(e.target.value) }))}
+                              className="range range-xs range-info flex-1"
+                            />
+                            <span className="text-xs w-12 text-right">{transform.alpha.toFixed(1)}</span>
+                          </div>
+
+                          {/* Rotation控制 */}
+                          <div className="flex items-center gap-3">
+                            <label className="text-xs w-16 flex-shrink-0">旋转:</label>
+                            <input
+                              type="range"
+                              min="0"
+                              max="360"
+                              step="15"
+                              value={transform.rotation}
+                              onChange={e => setTransform(prev => ({ ...prev, rotation: Number.parseInt(e.target.value) }))}
+                              className="range range-xs range-info flex-1"
+                            />
+                            <span className="text-xs w-12 text-right">
+                              {transform.rotation}
+                              °
+                            </span>
+                          </div>
+
+                          {/* 控制按钮组 */}
+                          <div className="flex justify-center gap-2 mt-3">
+                            <button
+                              className="btn btn-xs btn-outline"
+                              onClick={() => setTransform({ scale: 1, positionX: 0, positionY: 0, alpha: 1, rotation: 0 })}
+                              type="button"
+                            >
+                              重置Transform
+                            </button>
+                            <button
+                              className="btn btn-xs btn-outline"
+                              onClick={() => {
+                                // 计算使图片底部对齐到容器底部的Y位置
+                                // 假设容器高度为100%，图片经过scale后的有效高度需要计算
+                                // 由于图片是object-contain且h-full，我们需要考虑缩放因子
+                                const canvas = previewCanvasRef.current;
+                                if (canvas) {
+                                  // 获取canvas的实际显示尺寸和父容器尺寸
+                                  const canvasRect = canvas.getBoundingClientRect();
+                                  const parentRect = canvas.parentElement?.getBoundingClientRect();
+
+                                  if (parentRect) {
+                                    // 计算需要的Y偏移，使图片底部贴到容器底部
+                                    const containerHeight = parentRect.height;
+                                    const scaledCanvasHeight = canvasRect.height * transform.scale;
+                                    const yOffset = (containerHeight - scaledCanvasHeight) / 2;
+
+                                    setTransform(prev => ({
+                                      ...prev,
+                                      positionY: Math.round(yOffset),
+                                      rotation: 0,
+                                    }));
+                                  }
+                                }
+                              }}
+                              type="button"
+                            >
+                              贴底对齐
+                            </button>
+                          </div>
+                        </div>
                       </>
-
                     )
 
-              }
-
-              {
-                isSubmiting
-                  ? (
-                      <button className="btn loading" disabled={true} type="button"></button>
-                    )
-                  : (
-                      <div className="flex flex-row justify-center gap-4 mt-2">
-                        <button className="btn w-max btn-info" onClick={handleSubmit} type="button">完成</button>
-                        <button className="btn w-max btn-info" onClick={handleDownload} type="button">
-                          下载裁切后的图像
-                        </button>
-                      </div>
-                    )
               }
 
             </div>
           )}
         </div>
-        <ul className="steps mt-2">
-          <li className={`step ${currentStep >= 1 ? "step-primary" : ""}`}>上传立绘</li>
-          <li className={`step ${currentStep >= 2 ? "step-primary" : ""}`}>上传头像</li>
-        </ul>
 
+        {/* 移动端按钮组 - 底部固定 */}
+        {!!completedCrop && (
+          <div className="mt-6 pt-4 border-t border-base-300 md:hidden">
+            {isSubmiting
+              ? (
+                  <button className="btn btn-lg loading w-full" disabled={true} type="button"></button>
+                )
+              : (
+                  <div className="flex flex-col gap-3 w-full">
+                    <button className="btn btn-lg btn-info w-full" onClick={handleSubmit} type="button">
+                      {currentStep === 1 ? "下一步" : "创建完成"}
+                    </button>
+                    <button className="btn btn-lg btn-outline w-full" onClick={handleDownload} type="button">
+                      下载图像
+                    </button>
+                  </div>
+                )}
+          </div>
+        )}
       </PopWindow>
     </div>
   );

@@ -11,6 +11,7 @@ import { EditableField } from "@/components/common/editableField";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { formatTimeSmartly } from "@/utils/dataUtil";
 import { useGetRoleQuery } from "api/queryHooks";
 import React, { use, useMemo } from "react";
 import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
@@ -25,8 +26,8 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId);
 
   const role = useRoleRequest.data?.data;
-  const [isExpressionChooserOpen, setIsExpressionChooserOpen] = useSearchParamsState<boolean>(`exprPop${message.messageID}`, false);
-  const [isRoleChooserOpen, setIsRoleChooserOpen] = useSearchParamsState<boolean>(`roleChoosePop${message.messageID}`, false);
+  const [isExpressionChooserOpen, setIsExpressionChooserOpen] = useSearchParamsState<boolean>(`exprPop${message.messageId}`, false);
+  const [isRoleChooserOpen, setIsRoleChooserOpen] = useSearchParamsState<boolean>(`roleChoosePop${message.messageId}`, false);
 
   const updateMessageMutation = useUpdateMessageMutation();
 
@@ -65,13 +66,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     }
   }
   function handleContentUpdate(content: string) {
-    if (content.trim() === "") {
-      updateMessageMutation.mutate({
-        ...message,
-        status: 1,
-      });
-    }
-    else if (message.content !== content) {
+    if (message.content !== content) {
       updateMessageMutation.mutate({
         ...message,
         content,
@@ -79,6 +74,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     }
   }
   const imgMsg = message.extra?.imageMessage;
+  const scrollToGivenMessage = roomContext.scrollToGivenMessage;
 
   const renderedContent = useMemo(() => {
     if (message.messageType === 2) {
@@ -88,7 +84,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
             src={imgMsg?.url || message.extra?.fileMessage?.url}
             size={{ width: imgMsg?.width, height: imgMsg?.height }}
             className="max-h-[40vh] w-full"
-            popWindowKey={`${message.messageID}img_${imgMsg?.url}`}
+            popWindowKey={`${message.messageId}img_${imgMsg?.url}`}
           />
           {imgMsg?.background && <div className="text-xs text-gray-500 dark:text-gray-400">已设置为背景</div>}
         </div>
@@ -102,7 +98,10 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
         {
           message.replyMessageId
           && (
-            <div className="flex flex-row gap-2 py-1 ">
+            <div
+              className="flex flex-row gap-2 py-1 "
+              onClick={() => (message.replyMessageId && scrollToGivenMessage) && scrollToGivenMessage(message.replyMessageId)}
+            >
               <span className="opacity-60 inline flex-shrink-0 text-sm">| 回复</span>
               <PreviewMessage
                 message={message.replyMessageId}
@@ -117,7 +116,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
           handleContentUpdate={handleContentUpdate}
           className="whitespace-pre-wrap editable-field overflow-auto" // 为了方便select到这个节点
           canEdit={canEdit}
-          fieldId={`msg${message.messageID}`}
+          fieldId={`msg${message.messageId}`}
         >
         </EditableField>
       </>
@@ -148,13 +147,17 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     }
   }
 
+  const formattedTime = useMemo(() => {
+    return message.updateTime ? formatTimeSmartly(message.updateTime) : "未知时间";
+  }, [message.updateTime]);
+
   return (
     <div>
       {useChatBubbleStyle
         ? (
             <div
               className="flex w-full items-start gap-1 pb-2"
-              key={message.messageID}
+              key={message.messageId}
             >
               {/* Avatar */}
               <div className="flex-shrink-0 cursor-pointer" onClick={handleAvatarClick}>
@@ -167,15 +170,16 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 />
               </div>
               <div className="flex flex-col items-start">
-                <div
-                  className={`text-sm text-base-content/85 pb-1 cursor-pointer ${userId === message.userId ? "hover:underline" : ""}`}
-                  onClick={handleRoleNameClick}
-                >
-                  {role?.roleName?.trim() || "Undefined"}
+                <div>
+                  <span onClick={handleRoleNameClick} className={`text-sm text-base-content/85 pb-1 cursor-pointer ${canEdit ? "hover:underline" : ""}`}>
+                    {role?.roleName?.trim() || "Undefined"}
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 pl-2">
+                    {formattedTime}
+                  </span>
                 </div>
                 <div
-                  className={`max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow 
-                  bg-base-300`}
+                  className="max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow bg-base-200 text-base"
                 >
                   {renderedContent}
                 </div>
@@ -183,9 +187,9 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
             </div>
           )
         : (
-            <div className="flex w-full pb-4" key={message.messageID}>
+            <div className="flex w-full pb-4" key={message.messageId}>
               {/* 圆角矩形头像 */}
-              <div className="flex-shrink-0 mr-3">
+              <div className="flex-shrink-0 pr-3">
                 <div className="w-20 h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
                   <RoleAvatarComponent
                     avatarId={message.avatarId}
@@ -198,7 +202,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 </div>
               </div>
               {/* 消息内容 */}
-              <div className="flex-1 overflow-auto">
+              <div className="flex-1 overflow-auto p-1 pr-5">
                 {/* 角色名 */}
                 <div
                   className={`cursor-pointer font-semibold ${userId === message.userId ? "hover:underline" : ""}`}
@@ -207,10 +211,9 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                   {role?.roleName?.trim() || "Undefined"}
                 </div>
                 {renderedContent}
-                {/* 时间 */}
-                {/* <div className="text-xs text-gray-500 dark:text-gray-400 pt-1"> */}
-                {/*  {message.createTime ?? ""} */}
-                {/* </div> */}
+                <div className="text-xs text-gray-500 dark:text-gray-400 pt-1">
+                  {formattedTime}
+                </div>
               </div>
             </div>
           )}

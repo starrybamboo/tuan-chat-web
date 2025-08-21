@@ -1,8 +1,9 @@
 import { RoomContext } from "@/components/chat/roomContext";
+import RoleList from "@/components/chat/smallComponents/roleLists";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { getScreenSize } from "@/utils/getScreenSize";
 import React, { use, useMemo } from "react";
 import toast from "react-hot-toast";
 import { useAddRoomRoleMutation, useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
@@ -24,7 +25,7 @@ export default function RoomRoleList() {
       roleIdList: [roleId],
     }, {
       onSettled: () => {
-        setIsRoleHandleOpen(false);
+        // setIsRoleHandleOpen(false);
         toast("添加角色成功");
       },
     });
@@ -46,23 +47,7 @@ export default function RoomRoleList() {
           </button>
         )}
       </div>
-      {roomRoles.map(role => (
-        <div
-          key={role.roleId}
-          className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center "
-        >
-          {/* role列表 */}
-          <RoleAvatarComponent
-            avatarId={role.avatarId ?? 0}
-            width={10}
-            isRounded={true}
-            withTitle={false}
-          />
-          <div className="flex flex-col items-center gap-2">
-            <span>{role.roleName}</span>
-          </div>
-        </div>
-      ))}
+      <RoleList roles={roomRoles} className={getScreenSize() === "sm" ? "w-full" : "w-60"}></RoleList>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
         <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
       </PopWindow>

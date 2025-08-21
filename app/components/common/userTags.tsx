@@ -1,7 +1,7 @@
 import type { Tag } from "../../../api";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { TagManagementPopup } from "@/components/profile/module/TagManagementPopup";
+import { TagManagementPop } from "@/components/profile/popWindows/TagManagementPop";
 import React, { useState } from "react";
 import { useGetTagsQuery } from "../../../api/hooks/userTagQurryHooks";
 
@@ -21,7 +21,7 @@ function TagManagement({ userId, size = "default" }: TagManagementProps) {
 
   // 使用唯一的key来控制弹窗
   const [isTagPopupOpen, setIsTagPopupOpen] = useSearchParamsState<boolean>(
-    "TagManagementPopup",
+    "TagManagementPop",
     false,
   );
 
@@ -65,7 +65,7 @@ function TagManagement({ userId, size = "default" }: TagManagementProps) {
   }
 
   return (
-    <div className={`w-full mx-auto rounded-xl opacity-90 ${size === "default" ? "shadow-lg bg-base-200 p-6" : "p-2"}`}>
+    <div className="w-full mx-auto rounded-xl opacity-90 p-2">
       {/* 标签展示区域 */}
       <div className="mb-2">
         <div className={`flex justify-between items-center ${size === "default" ? "mb-4" : ""}`}>
@@ -118,7 +118,7 @@ function TagManagement({ userId, size = "default" }: TagManagementProps) {
       </div>
 
       {/* 标签管理弹窗 */}
-      <TagManagementPopup
+      <TagManagementPop
         isOpen={isTagPopupOpen}
         onClose={handleClosePopup}
         tags={tags}

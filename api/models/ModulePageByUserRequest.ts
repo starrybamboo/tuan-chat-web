@@ -3,16 +3,20 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 游标翻页请求
+ * 模组查询翻页请求
  */
-export type CursorPageBaseRequest = {
+export type ModulePageByUserRequest = {
     /**
-     * 游标（上次翻页的最后一条记录的标识）
+     * 页码
      */
-    cursor?: number;
+    pageNo?: number;
     /**
      * 每页大小
      */
     pageSize?: number;
+    /**
+     * 查询的用户ID
+     */
+    userId: number;
 };
 

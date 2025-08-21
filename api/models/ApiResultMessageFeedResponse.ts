@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { FeedWithStatsResponse } from './FeedWithStatsResponse';
+import type { MessageFeedResponse } from './MessageFeedResponse';
 /**
  * 基础返回体
  */
-export type ApiResultFeedWithStatsResponse = {
+export type ApiResultMessageFeedResponse = {
     /**
      * 成功标识true or false
      */
@@ -19,6 +19,6 @@ export type ApiResultFeedWithStatsResponse = {
      * 错误消息
      */
     errMsg?: string;
-    data?: FeedWithStatsResponse;
+    data?: MessageFeedResponse;
 };
 

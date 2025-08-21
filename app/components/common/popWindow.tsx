@@ -14,6 +14,7 @@ import React from "react";
  * @param children 弹窗显示的内容
  * @param onClose 当关闭的时候的回调函数，一般类似setIsOpen(false)
  * @param fullScreen 开启后会变成全屏，并且只能靠右上角的关闭按钮关闭
+ * @param transparent 背景透明
  * @constructor
  */
 export function PopWindow({ isOpen, children, onClose, fullScreen = false, transparent = false }: {
@@ -30,9 +31,15 @@ export function PopWindow({ isOpen, children, onClose, fullScreen = false, trans
   return (
     <Mounter targetId="modal-root">
       <div className={`modal ${isOpen ? "modal-open" : ""}`}>
-        <div className={`relative overflow-auto
-          ${transparent ? "bg-transparent w-screen h-dvh" : "bg-base-100 dark:bg-base-300"}
-          ${fullScreen ? "w-screen h-dvh" : "modal-box w-auto max-w-[100vw] lg:max-w-[80vw] lg:h-auto lg:max-h-[90vh]"}`}
+        <div
+          className={`relative flex flex-col
+               ${transparent ? "bg-transparent w-screen h-dvh" : "bg-base-100 dark:bg-base-300"}
+               ${fullScreen ? "w-screen h-dvh" : "modal-box w-auto max-w-[100vw] lg:max-w-[80vw] lg:h-auto lg:max-h-[90vh]"}`}
+          style={{
+          // 移动端避开浏览器UI的优化
+            height: fullScreen ? "100dvh" : undefined,
+            maxHeight: !fullScreen ? "min(90vh, 100dvh - 2rem)" : undefined,
+          }}
         >
           {/* 关闭按钮 */}
           <button
@@ -40,10 +47,22 @@ export function PopWindow({ isOpen, children, onClose, fullScreen = false, trans
             className="btn btn-sm btn-circle absolute right-2 top-2 bg-base-200 hover:bg-base-300 dark:bg-base-200 dark:hover:bg-base-100 z-20"
             onClick={onClose}
           >
-            ✕
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 6L6 18" />
+              <path d="M6 6l12 12" />
+            </svg>
           </button>
           {/* 卡片内容 */}
-          <div className="card-body p-4 w-full h-full">
+          <div className="card-body p-4 w-full h-full overflow-auto min-h-0">
             {children}
           </div>
         </div>

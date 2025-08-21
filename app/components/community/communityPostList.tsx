@@ -85,7 +85,7 @@ export default function CommunityPostList() {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-base-content">社区帖子</h2>
         <button
-          className="btn btn-primary gap-2 shadow-lg hover:shadow-primary/30"
+          className="btn btn-info gap-2 shadow-lg hover:shadow/30"
           onClick={() => setIsPublishWindowOpen(true)}
         >
           <svg
@@ -104,7 +104,7 @@ export default function CommunityPostList() {
       {/* Loading State */}
       {pageCommunityPostsQuery.isLoading && (
         <div className="flex flex-col items-center justify-center py-16">
-          <span className="loading loading-spinner loading-lg text-primary mb-4"></span>
+          <span className="loading loading-spinner loading-lg mb-4"></span>
           <p className="text-base-content/60">正在加载帖子...</p>
         </div>
       )}
@@ -128,7 +128,7 @@ export default function CommunityPostList() {
           </svg>
           <h3 className="text-xl text-base-content/50 mb-2">暂无帖子</h3>
           <p className="text-base-content/40 mb-4">成为第一个在此社区发帖的人</p>
-          <button className="btn btn-primary btn-sm" onClick={() => setIsPublishWindowOpen(true)}>
+          <button className="btn btn-info btn-sm" onClick={() => setIsPublishWindowOpen(true)}>
             发布帖子
           </button>
         </div>
@@ -139,14 +139,14 @@ export default function CommunityPostList() {
           {posts.map(post => (
             <div
               key={post.communityPostId}
-              className="bg-base-100 rounded-2xl border border-base-200 shadow-sm p-6 transition-all duration-300 hover:shadow-lg hover:border-primary/30 cursor-pointer group"
+              className="bg-base-100 rounded-2xl border border-base-200 shadow-sm p-6 transition-all duration-300 hover:shadow-lg hover:border cursor-pointer group"
             >
               <div className="flex items-start gap-4">
                 <UserAvatarComponent userId={post.userId ?? -1} width={12} isRounded={true}></UserAvatarComponent>
                 <div className="flex-1" onClick={() => navigate(`/community/${communityId}/${post.communityPostId}`)}>
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="text-xl font-bold group-hover:text-primary transition-colors line-clamp-1">
+                      <h3 className="text-xl font-bold group-hover:text-info transition-colors line-clamp-1">
                         {post.title || "无标题帖子"}
                       </h3>
                       <p className="text-base-content/80 mt-2 line-clamp-3 break-all lg:break-normal">

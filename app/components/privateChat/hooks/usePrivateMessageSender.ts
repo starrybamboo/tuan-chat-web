@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useImmer } from "use-immer";
 
+import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { getImageSize } from "@/utils/getImgSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 
@@ -21,6 +22,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
   const [imgFiles, updateImgFiles] = useImmer<File[]>([]);
   const [emojiUrls, updateEmojiUrls] = useImmer<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletedContactIds, setDeletedContactIds] = useLocalStorage<number[]>("deletedContactIds", []);
 
   // 发送消息函数
   const send = (message: MessageDirectSendRequest) => webSocketUtils.send({ type: WEBSOCKET_TYPE, data: message });
@@ -95,6 +97,9 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
     }
     finally {
       setIsSubmitting(false);
+      if (deletedContactIds.includes(currentContactUserId)) {
+        setDeletedContactIds(deletedContactIds.filter(id => id === currentContactUserId));
+      }
     }
   };
   return {

@@ -1,9 +1,9 @@
 import { RoomContext } from "@/components/chat/roomContext";
-import { MemberTypeTag } from "@/components/chat/smallComponents/memberTypeTag";
+import MemberLists from "@/components/chat/smallComponents/memberLists";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
-import UserAvatarComponent from "@/components/common/userAvatar";
+import { getScreenSize } from "@/utils/getScreenSize";
 import React, { use } from "react";
 import toast from "react-hot-toast";
 import { useAddRoomMemberMutation } from "../../../../api/hooks/chatQueryHooks";
@@ -47,20 +47,9 @@ export default function RoomUserList() {
           </button>
         )}
       </div>
-      {members.map(member => (
-        <div
-          key={member.userId}
-          className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center "
-        >
-          {/* 成员列表 */}
-          <UserAvatarComponent userId={member.userId ?? 0} width={10} isRounded={true} withName={true}>
-          </UserAvatarComponent>
-          <div className="flex flex-col items-center gap-2"></div>
-          <MemberTypeTag memberType={member.memberType}></MemberTypeTag>
-        </div>
-      ))}
+      <MemberLists members={members} className={getScreenSize() === "sm" ? "w-full" : "w-60"}></MemberLists>
       <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
-        <AddMemberWindow handleAddMember={handleAddMember}></AddMemberWindow>
+        <AddMemberWindow handleAddMember={handleAddMember} showSpace={true}></AddMemberWindow>
       </PopWindow>
     </div>
   );
