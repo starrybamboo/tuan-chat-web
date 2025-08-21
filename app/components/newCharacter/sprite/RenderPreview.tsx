@@ -57,16 +57,16 @@ export function RenderPreview({
     return () => resizeObserver.disconnect();
   }, []); // 空依赖数组，确保 effect 只运行一次来设置观察者
 
+  // 计算缩放比例, 二者应该是相等的
+  const scaleX = containerSize.width / REFERENCE_WIDTH;
+  const scaleY = containerSize.height / REFERENCE_HEIGHT;
+
   // --- 关键步骤 4: 根据当前容器尺寸计算缩放后的 transform ---
   const scaledTransform = useMemo(() => {
     // 在容器尺寸未知时（初始渲染），避免除以0，直接返回原始transform
     if (containerSize.width === 0 || containerSize.height === 0) {
       return transform;
     }
-
-    // 计算缩放比例
-    const scaleX = containerSize.width / REFERENCE_WIDTH;
-    const scaleY = containerSize.height / REFERENCE_HEIGHT;
 
     // 返回一个新的 transform 对象，其中位置信息已被缩放
     // 注意：scale, rotation, alpha 保持不变，因为它们本身就是相对值
@@ -92,10 +92,10 @@ export function RenderPreview({
         />
         {/* 底部1/3的黑色半透明遮罩 */}
         <div className="absolute bottom-0 w-full h-[29%] bg-black/30 mx-[1%] mb-[1%] rounded">
-          <div className="absolute top-0 left-[8%] text-white" style={{ fontSize: "100%" }}>
+          <div className="absolute top-0 left-[8%] text-white">
             <p className="text-white leading-snug">
-              <span className="block font-medium mt-[3%] text-transparent bg-clip-text bg-gradient-to-b from-white to-cyan-100" style={{ fontSize: "1.3em" }}>{characterName}</span>
-              <span className="block mt-[1%]" style={{ fontSize: "1.3em" }}>{dialogContent}</span>
+              <span className="block font-medium mt-[3%] text-transparent bg-clip-text bg-gradient-to-b from-white to-cyan-100" style={{ fontSize: `${55 * scaleX}px` }}>{characterName}</span>
+              <span className="block mt-[1%]" style={{ fontSize: `${55 * scaleX}px` }}>{dialogContent}</span>
             </p>
           </div>
         </div>
