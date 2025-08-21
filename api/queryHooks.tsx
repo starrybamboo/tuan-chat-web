@@ -33,7 +33,7 @@ import {
   type Message,
   type RoleResponse,
   type SpaceOwnerTransferRequest,
-  type FeedRequest,
+  type MessageFeedRequest,
   type Space,
   type SpaceAddRequest,
   type SpaceMemberAddRequest,
