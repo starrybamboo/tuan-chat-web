@@ -3,8 +3,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react"; // 引入 R
 
 // --- 关键步骤 1: 定义你的基准尺寸 ---
 // 假设所有的 transform 值都是在 1280x720 (16:9) 的画布上设定的
-const REFERENCE_WIDTH = 1280;
-const REFERENCE_HEIGHT = 720;
+const REFERENCE_WIDTH = 2560;
+const REFERENCE_HEIGHT = 1440;
 
 /**
  * 渲染预览组件的属性接口
