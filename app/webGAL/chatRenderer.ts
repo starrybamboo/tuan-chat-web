@@ -2,7 +2,7 @@ import type { RenderProps } from "@/components/chat/window/renderWindow";
 
 import { Renderer } from "@/webGAL/renderer";
 
-import type { ChatMessageResponse, Message, RoleResponse } from "../../api";
+import type { ChatMessageResponse, ImageMessage, Message, RoleAvatar, RoleResponse } from "../../api";
 
 import { tuanchat } from "../../api/instance";
 
@@ -15,7 +15,8 @@ export class ChatRenderer {
 
   private roomId: number;
   private renderer: Renderer;
-  private uploadedSpritesNameSet: Set<string> = new Set<string>();
+  private uploadedSpritesFileNameMap = new Map<number, string>(); // avatarId -> spriteFileName
+  private roleAvatarsMap = new Map<number, RoleAvatar>(); // 渲染时候获取的avatar信息
   private roleMap: Map<number, RoleResponse> = new Map();
   private renderProps: RenderProps;
 
@@ -27,26 +28,15 @@ export class ChatRenderer {
 
   public async initializeRenderer(): Promise<void> {
     await this.renderer.initRender();
-    await this.fetchAndProcessAllData();
+    await this.fetchMessages();
   }
 
-  private async fetchAndProcessAllData(): Promise<void> {
+  private async fetchMessages(): Promise<void> {
     try {
       // 获取所有消息
       const messagesResponse = await tuanchat.chatController.getAllMessage(this.roomId);
       if (!messagesResponse.success || !messagesResponse.data) {
         throw new Error("Failed to fetch messages");
-      }
-      // 获取所有的角色信息
-      for (const message of messagesResponse.data) {
-        const roleId = message.message.roleId;
-        if (this.roleMap.has(roleId)) {
-          continue;
-        }
-        const roleQuery = await tuanchat.roleController.getRole(roleId);
-        if (roleQuery.success && roleQuery.data) {
-          this.roleMap.set(roleId, roleQuery.data);
-        }
       }
       await this.renderMessages(messagesResponse.data);
     }
@@ -56,8 +46,32 @@ export class ChatRenderer {
     }
   }
 
+  private async fetchAvatar(avatarId: number): Promise<RoleAvatar | null> {
+    // 获取立绘信息
+    let avatar: RoleAvatar | undefined = this.roleAvatarsMap.get(avatarId);
+    if (!avatar) {
+      avatar = (await tuanchat.avatarController.getRoleAvatar(avatarId)).data;
+      if (avatar) {
+        this.roleAvatarsMap.set(avatarId, avatar);
+      }
+    }
+    return avatar || null;
+  }
+
+  private async fetchRole(roleId: number): Promise<RoleResponse | null> {
+    // 获取角色信息
+    let role: RoleResponse | undefined = this.roleMap.get(roleId);
+    if (!role) {
+      role = (await tuanchat.roleController.getRole(roleId)).data;
+      if (role) {
+        this.roleMap.set(roleId, role);
+      }
+    }
+    return role || null;
+  }
+
   /**
-   * 从avatarId获取储存在webgal引擎内的立绘名称（不带后缀）
+   * 从avatarId获取储存在webgal引擎内的立绘名称, 不带文件后缀
    * @param roleId
    * @param avatarId
    * @private
@@ -68,17 +82,37 @@ export class ChatRenderer {
     return `role_${roleId}_sprites_${avatarId}`;
   }
 
-  private async uploadSprite(message: Message) {
-    const spritesName = this.getSpriteName(message.roleId, message.avatarId);
-    if (!spritesName || this.uploadedSpritesNameSet.has(spritesName)) {
-      return;
+  /**
+   * @param message
+   * @private
+   * @returns filename
+   */
+  private async uploadSprite(message: Message): Promise<string | null> {
+    const avatar = await this.fetchAvatar(message.avatarId);
+    const spriteUrl = avatar?.spriteUrl || avatar?.avatarUrl;
+    const spriteName = this.getSpriteName(message.roleId, message.avatarId);
+    if (!spriteName || !spriteUrl || !avatar?.avatarId) {
+      return null;
     }
-    const role = await tuanchat.avatarController.getRoleAvatar(message.avatarId);
-    const spriteUrl = role.data?.spriteUrl || role.data?.avatarUrl;
-    if (spriteUrl) {
-      await this.renderer.uploadSprites(spriteUrl, spritesName);
-      this.uploadedSpritesNameSet.add(spritesName);
+    if (this.uploadedSpritesFileNameMap.has(avatar.avatarId)) {
+      return this.uploadedSpritesFileNameMap.get(avatar?.avatarId) ?? null;
     }
+    const fileName = await this.renderer.uploadSprites(spriteUrl, spriteName);
+    this.uploadedSpritesFileNameMap.set(avatar.avatarId, fileName);
+    return fileName;
+  }
+
+  /**
+   * 获取立绘在webgal中的fileName，如果没有，则上传立绘并返回fileName
+   * @param message
+   * @private
+   * @returns filename
+   */
+  private async getAndUploadSprite(message: Message): Promise<string | null> {
+    if (this.uploadedSpritesFileNameMap.has(message.avatarId)) {
+      return this.uploadedSpritesFileNameMap.get(message.avatarId) ?? null;
+    }
+    return this.uploadSprite(message);
   }
 
   /**
@@ -145,17 +179,14 @@ export class ChatRenderer {
 
         if (skipRegex && skipRegex.test(message.content))
           continue;
-        // 获取回复的消息
+        // 获取回复的消息, 会对立绘位置作特殊处理
         const repliedMessage = message.replyMessageId
           ? messages.find(m => m.message.messageId === message.replyMessageId)?.message
           : null;
         // 处理背景图片的消息
         if (message.messageType === 2) {
           const imageMessage = message.extra?.imageMessage;
-          if (imageMessage && imageMessage.background) {
-            const bgFileName = await this.renderer.uploadBackground(imageMessage.url);
-            await this.renderer.addLineToRenderer(`changeBg:${bgFileName}`);
-          }
+          await this.handleImgMessages(imageMessage);
         }
         // 处理一般的对话
         else if (message.messageType === 1) {
@@ -164,9 +195,8 @@ export class ChatRenderer {
             await this.renderer.addLineToRenderer(message.content.slice(1));
             continue;
           }
-          // 上传立绘，会检测是否已经上传。如果已经上传则忽略。
-          await this.uploadSprite(message);
-          const role = this.roleMap.get(message.roleId);
+
+          const role = await this.fetchRole(message.roleId);
 
           // 以下处理是为了防止被webGal判断为新一段的对话
           const processedContent = message.content
@@ -191,14 +221,18 @@ export class ChatRenderer {
                 vocalFileName = undefined;
               }
 
-              const messageSpriteName = this.getSpriteName(message.roleId, message.avatarId);
-              const repliedSpriteName = repliedMessage ? this.getSpriteName(repliedMessage.roleId, repliedMessage.avatarId) : undefined;
+              const messageSpriteName = (await this.getAndUploadSprite(message)) ?? undefined;
+              const repliedSpriteName = repliedMessage
+                ? (await this.getAndUploadSprite(repliedMessage)) ?? undefined
+                : undefined;
               const noNeedChangeSprite
                   = repliedSpriteName
                     ? (spriteState.has(messageSpriteName || "") && spriteState.has(repliedSpriteName))
                     : (spriteState.has(messageSpriteName || ""));
+              const avatar = await this.fetchAvatar(message.avatarId);
               await this.renderer.addDialog(
                 role.roleName,
+                avatar || undefined,
                 segment, // 使用分割后的段落
                 noNeedChangeSprite ? undefined : messageSpriteName,
                 noNeedChangeSprite ? undefined : repliedSpriteName,
@@ -221,6 +255,13 @@ export class ChatRenderer {
     catch (error) {
       console.error("Error rendering messages:", error);
       throw error;
+    }
+  }
+
+  private async handleImgMessages(imageMessage: ImageMessage | undefined) {
+    if (imageMessage && imageMessage.background) {
+      const bgFileName = await this.renderer.uploadBackground(imageMessage.url);
+      await this.renderer.addLineToRenderer(`changeBg:${bgFileName}`);
     }
   }
 }
