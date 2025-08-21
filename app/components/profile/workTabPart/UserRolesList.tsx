@@ -84,6 +84,7 @@ export function UserRolesList({
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {/* 每一个角色放在小卡片中渲染 */}
         {roleIds.map(roleId => (
           <UserRoleCard key={roleId} roleId={roleId} />
         ))}
