@@ -3,7 +3,7 @@ import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
 import type { UserFollowResponse } from "api/models/UserFollowResponse";
 import type { DirectMessageEvent } from "api/wsModels";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { ChevronRight, Search, XMarkICon } from "@/icons";
+import { ChevronRight, HomeIcon, Search, XMarkICon } from "@/icons";
 import { useGetFriendsUserInfoQuery, useGetMessageDirectPageQuery, useRecallMessageDirectMutation } from "api/hooks/MessageDirectQueryHooks";
 import { useGetUserFriendsQuery } from "api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "api/queryHooks";
@@ -291,21 +291,32 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
                           ? (
                               <div
                                 key={searchUserInfo?.userId}
-                                className="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded-md border-t-2 border-base-300"
+                                className="flex items-center justify-between cursor-pointer hover:bg-base-300 p-2 rounded-md border-t-2 border-base-300"
                                 onClick={() => {
                                   setSearching(false);
                                   navigate(`/chat/private/${searchUserInfo?.userId}`);
                                 }}
                               >
-                                <img
-                                  className="rounded-full"
-                                  src={searchUserInfo?.avatar}
-                                  alt="FriendAvatar"
-                                  width={40}
-                                  height={40}
-                                />
-                                <span>{searchUserInfo?.userId}</span>
-                                <span className="font-bold">{searchUserInfo?.username}</span>
+                                <div className="flex items-center gap-2">
+                                  <img
+                                    className="rounded-full"
+                                    src={searchUserInfo?.avatar}
+                                    alt="FriendAvatar"
+                                    width={40}
+                                    height={40}
+                                  />
+                                  <span>{searchUserInfo?.userId}</span>
+                                  <span className="font-bold">{searchUserInfo?.username}</span>
+                                </div>
+                                <div
+                                  className="w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-100"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/profile/${searchUserInfo?.userId}`);
+                                  }}
+                                >
+                                  <HomeIcon className="size-5" />
+                                </div>
                               </div>
                             )
                           : (
@@ -322,17 +333,29 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
                             return (
                               <div
                                 key={friend?.userId || index}
-                                className="flex items-center gap-2 cursor-pointer hover:bg-base-300 p-2 rounded-md border-t-2 border-base-300"
+                                className="flex items-center justify-between cursor-pointer hover:bg-base-300 p-2 rounded-md border-t-2 border-base-300"
                                 onClick={() => navigate(`/chat/private/${friend?.userId}`)}
                               >
-                                <img
-                                  className="rounded-full"
-                                  src={friend?.avatar}
-                                  alt="FriendAvatar"
-                                  width={40}
-                                  height={40}
-                                />
-                                <span className="font-bold">{friend?.username}</span>
+                                <div className="flex items-center gap-2">
+                                  <img
+                                    className="rounded-full"
+                                    src={friend?.avatar}
+                                    alt="FriendAvatar"
+                                    width={40}
+                                    height={40}
+                                  />
+                                  <span>{friend?.userId}</span>
+                                  <span className="font-bold">{friend?.username}</span>
+                                </div>
+                                <div
+                                  className="w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-100"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/profile/${friend?.userId}`);
+                                  }}
+                                >
+                                  <HomeIcon className="size-5" />
+                                </div>
                               </div>
                             );
                           })
