@@ -4,7 +4,7 @@ import TInput from "@/components/common/form/input";
 import TTextArea from "@/components/common/form/textarea";
 import message from "@/components/common/message/message";
 import { PopWindow } from "@/components/common/popWindow";
-import { CharacterCopper } from "@/components/newCharacter/CharacterCopper";
+import { CharacterCopper } from "@/components/newCharacter/sprite/CharacterCopper";
 import { useAddModuleMutation } from "api/hooks/moduleQueryHooks";
 import { useCallback, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
