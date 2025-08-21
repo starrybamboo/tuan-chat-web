@@ -94,9 +94,6 @@ export class ChatRenderer {
     if (!spriteName || !spriteUrl || !avatar?.avatarId) {
       return null;
     }
-    if (this.uploadedSpritesFileNameMap.has(avatar.avatarId)) {
-      return this.uploadedSpritesFileNameMap.get(avatar?.avatarId) ?? null;
-    }
     const fileName = await this.renderer.uploadSprites(spriteUrl, spriteName);
     this.uploadedSpritesFileNameMap.set(avatar.avatarId, fileName);
     return fileName;
