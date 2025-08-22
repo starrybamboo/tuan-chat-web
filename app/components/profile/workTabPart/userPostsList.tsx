@@ -86,7 +86,7 @@ export const UserPostsList: React.FC<UserPostsListProps> = ({
                 key={post.communityPostId || -1}
                 to={`/community/${post.communityId}/${post.communityPostId}`}
               >
-                <div className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border border-gray-100 hover:border-blue-200">
+                <div className=" rounded-xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer overflow-hidden border border-base-100 hover:border-primary">
                   <div className="p-6">
                     {/* 帖子头部 - 用户信息和发布时间 */}
                     <div className="flex items-start justify-between mb-4">
@@ -98,19 +98,19 @@ export const UserPostsList: React.FC<UserPostsListProps> = ({
                           withName={true}
                         />
                       </div>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-base-500">
                         2小时前
                       </span>
                     </div>
 
                     {/* 帖子标题 */}
-                    <h3 className="text-xl font-semibold text-gray-900 mb-3 line-clamp-2 hover:text-blue-600 transition-colors">
+                    <h3 className="text-xl font-semibold text-base-900 mb-3 line-clamp-2">
                       {post.title || "无标题"}
                     </h3>
 
                     {/* 帖子内容预览 */}
                     {post.content && (
-                      <div className="text-gray-600 text-sm leading-relaxed mb-4">
+                      <div className="text-base-600 text-sm leading-relaxed mb-4">
                         <p className="line-clamp-3">
                           {post.content
                             .replace(/#+\s/g, "")
@@ -131,7 +131,7 @@ export const UserPostsList: React.FC<UserPostsListProps> = ({
                     )}
 
                     {/* 帖子统计信息 */}
-                    <div className="flex items-center justify-between text-sm text-gray-500 pt-3 border-t border-gray-100">
+                    <div className="flex items-center justify-between text-sm text-base-500 pt-3 border-t border-gray-100">
                       <div className="flex items-center space-x-4">
                         {/* 查看次数 */}
                         <div className="flex items-center space-x-1">

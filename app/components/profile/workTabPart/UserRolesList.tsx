@@ -32,14 +32,14 @@ export const UserRolesList: React.FC<UserRolesListProps> = ({
         {Array.from({ length: 10 }).map((_, index) => (
           <div
             key={`skeleton-${index}`}
-            className="animate-pulse w-48 bg-white rounded-lg shadow-md overflow-hidden"
+            className="animate-pulse w-48 bg-base-100 rounded-lg shadow-md overflow-hidden"
           >
-            <div className="relative h-48 bg-gray-200">
-              <div className="w-full h-full bg-gray-200"></div>
+            <div className="relative h-48 bg-base-200">
+              <div className="w-full h-full bg-base-200"></div>
             </div>
             <div className="p-4 space-y-2">
-              <div className="bg-gray-200 h-4 rounded-full w-4/5"></div>
-              <div className="bg-gray-200 h-3 rounded-full w-full"></div>
+              <div className="bg-base-200 h-4 rounded-full w-4/5"></div>
+              <div className="bg-base-200 h-3 rounded-full w-full"></div>
             </div>
           </div>
         ))}
