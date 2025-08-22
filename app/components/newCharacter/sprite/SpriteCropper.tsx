@@ -25,8 +25,6 @@ interface SpriteCropperProps {
   characterName: string;
   // 裁剪完成回调（单体模式）
   onCropComplete?: (croppedImageUrl: string) => void;
-  // 批量裁剪完成回调
-  onBatchCropComplete?: (croppedImages: { avatarId: number; croppedImageUrl: string }[]) => void;
   // 关闭组件回调
   onClose?: () => void;
 }
@@ -42,7 +40,6 @@ export function SpriteCropper({
   initialSpriteIndex = 0,
   characterName,
   onCropComplete,
-  onBatchCropComplete,
 }: SpriteCropperProps) {
   // 确定工作模式
   const isBatchMode = roleAvatars.length > 0;
@@ -440,15 +437,6 @@ export function SpriteCropper({
   }
 
   /**
-   * 处理批量裁剪完成
-   */
-  async function handleBatchComplete() {
-    if (isBatchMode && batchResults.length > 0) {
-      onBatchCropComplete?.(batchResults);
-    }
-  }
-
-  /**
    * 获取指定图片的裁剪结果（通用函数）
    */
   async function getCroppedImageFromImg(img: HTMLImageElement): Promise<string> {
@@ -843,19 +831,6 @@ export function SpriteCropper({
                       )}
                 </div>
               </div>
-              {/* 批量模式下单独显示“完成”按钮在操作区下方 */}
-              {operationMode === "batch" && (
-                <div className="flex justify-center items-center">
-                  <button
-                    className="btn btn-success btn-block md:max-w-[288px]"
-                    onClick={handleBatchComplete}
-                    type="button"
-                    disabled={batchResults.length === 0}
-                  >
-                    完成
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         )}

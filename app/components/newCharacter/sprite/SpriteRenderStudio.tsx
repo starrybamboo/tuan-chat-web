@@ -455,10 +455,6 @@ export function SpriteRenderStudio({
                     console.warn("单体裁剪完成:", croppedImageUrl);
                     handleClosePopWindow();
                   }}
-                  onBatchCropComplete={(croppedImages) => {
-                    console.warn("批量裁剪完成:", croppedImages);
-                    handleClosePopWindow();
-                  }}
                   onClose={handleClosePopWindow}
                 />
               )
