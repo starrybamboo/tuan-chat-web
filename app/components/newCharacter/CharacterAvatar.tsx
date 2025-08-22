@@ -1,37 +1,62 @@
-/* eslint-disable react-dom/no-missing-button-type */
 import type { RoleAvatar } from "api";
 import type { Role } from "./types";
 import { useUploadAvatarMutation } from "@/../api/queryHooks";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useEffect, useState } from "react";
 import { PopWindow } from "../common/popWindow";
-import { CharacterCopper } from "./CharacterCopper";
+import { AvatarPreview } from "./sprite/AvatarPreview";
+import { CharacterCopper } from "./sprite/CharacterCopper";
 
-export default function CharacterAvatar({ role, onchange }: {
+interface CharacterAvatarProps {
   role: Role;
-  onchange: (avatarUrl: string, avatarId: number) => void;
-}) {
-  const queryClient = useQueryClient();
-  // const [downloadUrl, setDownloadUrl] = useState<string>("");
-  const [avatarId, setAvatarId] = useState<number>(role.avatarId);
-  const [copperedUrl, setCopperedUrl] = useState<string>(role.avatar || "/favicon.ico"); // 修正变量名
+  roleAvatars: RoleAvatar[];
+  selectedAvatarId: number;
+  selectedAvatarUrl: string;
+  selectedSpriteUrl: string | null;
+  isLoading?: boolean;
+  onchange: (avatarUrl: string, avatarId: number, spriteUrl?: string | null) => void;
+  onSpritePreviewChange?: (spriteUrl: string | null) => void;
+  onAvatarSelect: (avatarUrl: string, avatarId: number, spriteUrl: string | null) => void;
+  onAvatarDelete: (avatarId: number) => void;
+  onAvatarUpload: (data: any) => void;
+}
 
-  // head组件的迁移
-  const [previewSrc, setPreviewSrc] = useState<string | null>("");
-  const [roleAvatars, setRoleAvatars] = useState<RoleAvatar[]>([]);
-  const [showSprite, setShowSprite] = useState(true);
+export default function CharacterAvatar({
+  role,
+  roleAvatars,
+  selectedAvatarId,
+  selectedAvatarUrl,
+  selectedSpriteUrl,
+  onchange,
+  onSpritePreviewChange,
+  onAvatarSelect,
+  onAvatarDelete,
+  onAvatarUpload,
+}: CharacterAvatarProps) {
+  const queryClient = useQueryClient();
+
+  // 保留一些内部 UI 状态
+  const [showSprite, setShowSprite] = useState(() => {
+    // PC端默认显示立绘，移动端显示头像
+    return window.matchMedia("(min-width: 768px)").matches;
+  });
+
+  // 使用传入的状态作为内部 UI 状态
+  const copperedUrl = selectedAvatarUrl || "/favicon.ico";
+  const previewSrc = selectedSpriteUrl || "";
+  const avatarId = selectedAvatarId;
+
   // 弹窗的打开和关闭
   const [changeAvatarConfirmOpen, setChangeAvatarConfirmOpen] = useSearchParamsState<boolean>(`changeAvatarPop`, false);
   // 删除弹窗用
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useSearchParamsState<boolean>(`deleteAvatarPop`, false);
   const [avatarToDeleteIndex, setAvatarToDeleteIndex] = useState<number | null>(null);
 
-  // PC端默认显示立绘，移动端显示头像
+  // 响应式切换显示模式
   useEffect(() => {
     const mediaQuery = window.matchMedia("(min-width: 768px)"); // md breakpoint
-    setShowSprite(mediaQuery.matches);
 
     const handleResize = (e: MediaQueryListEvent) => {
       setShowSprite(e.matches);
@@ -41,30 +66,9 @@ export default function CharacterAvatar({ role, onchange }: {
     return () => mediaQuery.removeEventListener("change", handleResize);
   }, []);
 
-  // 获取角色所有老头像
-  useQuery({
-    queryKey: ["roleAvatar", role.id],
-    queryFn: async () => {
-      const res = await tuanchat.avatarController.getRoleAvatars(role.id);
-      setRoleAvatars(res.data || []);
-      if (res.success && Array.isArray(res.data)) {
-        if (role.avatarId !== 0) {
-          setCopperedUrl(res.data.find(ele => ele.avatarId === role.avatarId)?.avatarUrl || "/favicon.ico");
-          setPreviewSrc(res.data.find(ele => ele.avatarId === role.avatarId)?.spriteUrl || null);
-        }
-        else {
-          setCopperedUrl("/favicon.ico");
-          setPreviewSrc("");
-        }
-      }
-      return null;
-    },
-  });
-
   // 使用新的 hook
   const { mutate } = useUploadAvatarMutation();
 
-  // 迁移
   // post删除头像请求
   const { mutate: deleteAvatar } = useMutation({
     mutationKey: ["deleteRoleAvatar"],
@@ -73,7 +77,7 @@ export default function CharacterAvatar({ role, onchange }: {
       if (res.success) {
         console.warn("删除头像成功");
         queryClient.invalidateQueries({
-          queryKey: ["roleAvatar", role.id],
+          queryKey: ["getRoleAvatars", role.id],
           exact: true, // 确保精确匹配查询键
         });
       }
@@ -83,17 +87,13 @@ export default function CharacterAvatar({ role, onchange }: {
     },
   });
 
-  // 点击头像处理 (新增预览文字更新)
+  // 点击头像处理
   const handleAvatarClick = (avatarUrl: string, index: number) => {
     const targetAvatar = roleAvatars[index];
-    setPreviewSrc(targetAvatar.spriteUrl || avatarUrl);
-    setCopperedUrl(roleAvatars[index]?.avatarUrl || "");
-    setAvatarId(roleAvatars[index]?.avatarId || 0);
-    // 选中的头像移到最前面
-    const newRoleAvatars = [...roleAvatars];
-    const [selectedAvatar] = newRoleAvatars.splice(index, 1);
-    newRoleAvatars.unshift(selectedAvatar);
-    setRoleAvatars(newRoleAvatars);
+    const nextSprite = targetAvatar.spriteUrl || avatarUrl || null;
+
+    // 直接通知父组件状态变化，不再维护本地状态
+    onAvatarSelect(targetAvatar.avatarUrl || "", targetAvatar.avatarId || 0, nextSprite);
   };
 
   // 删除操作处理
@@ -104,10 +104,41 @@ export default function CharacterAvatar({ role, onchange }: {
 
   const confirmDeleteAvatar = () => {
     if (avatarToDeleteIndex !== null && avatarToDeleteIndex >= 0 && avatarToDeleteIndex < roleAvatars.length) {
-      setRoleAvatars(prevRoleAvatars =>
-        prevRoleAvatars.filter((_, i) => i !== avatarToDeleteIndex),
-      );
-      deleteAvatar(roleAvatars[avatarToDeleteIndex]?.avatarId || 0);
+      const avatarToDelete = roleAvatars[avatarToDeleteIndex];
+      const isCurrentRoleAvatar = avatarToDelete.avatarUrl === role.avatar;
+      const isCurrentlySelected = avatarToDelete.avatarId === selectedAvatarId;
+
+      // 如果删除的是角色当前使用的头像或当前选中的头像，需要找到替代头像
+      let replacementAvatar: RoleAvatar | null = null;
+      if ((isCurrentRoleAvatar || isCurrentlySelected) && roleAvatars.length > 1) {
+        // 优先选择删除项前面的头像，如果没有则选择后面的头像
+        if (avatarToDeleteIndex > 0) {
+          replacementAvatar = roleAvatars[avatarToDeleteIndex - 1];
+        }
+        else if (avatarToDeleteIndex < roleAvatars.length - 1) {
+          replacementAvatar = roleAvatars[avatarToDeleteIndex + 1];
+        }
+      }
+
+      // 如果需要替换头像，先设置新的头像
+      if (replacementAvatar) {
+        const nextSprite = replacementAvatar.spriteUrl || replacementAvatar.avatarUrl || null;
+
+        // 如果删除的是角色当前使用的头像，需要通知父组件更新角色头像
+        if (isCurrentRoleAvatar) {
+          onchange(replacementAvatar.avatarUrl || "", replacementAvatar.avatarId || 0, nextSprite);
+        }
+
+        // 如果删除的是当前选中的头像，或者删除的是角色头像（保持选中状态同步）
+        if (isCurrentlySelected || isCurrentRoleAvatar) {
+          onAvatarSelect(replacementAvatar.avatarUrl || "", replacementAvatar.avatarId || 0, nextSprite);
+        }
+      }
+
+      // 执行删除操作
+      onAvatarDelete(avatarToDelete.avatarId || 0);
+      deleteAvatar(avatarToDelete.avatarId || 0);
+
       setAvatarToDeleteIndex(null);
       setIsDeleteModalOpen(false);
     }
@@ -151,13 +182,14 @@ export default function CharacterAvatar({ role, onchange }: {
         <div className="h-full w-full flex flex-col">
           <div className="flex flex-col md:flex-row gap-4 min-h-0 justify-center">
             {/* 大图预览 */}
-            <div className="w-full md:w-1/2 bg-base-200 p-3 rounded-lg order-1 md:order-1">
+            <div className="w-full md:w-1/2 bg-base-200 p-2 rounded-lg order-1 md:order-1">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">
                   角色
                   {showSprite ? "立绘" : "头像"}
                 </h2>
                 <button
+                  type="button"
                   className="btn btn-sm btn-ghost"
                   onClick={() => setShowSprite(!showSprite)}
                 >
@@ -168,19 +200,19 @@ export default function CharacterAvatar({ role, onchange }: {
                   {showSprite ? "头像" : "立绘"}
                 </button>
               </div>
-              <div className=" bg-gray-50 rounded border flex items-center justify-center overflow-hidden">
-                <img
-                  src={showSprite ? (previewSrc || "/favicon.ico") : (copperedUrl || "/favicon.ico")}
-                  alt="预览"
-                  className="md:max-h-[65vh] md:min-h-[35vh] object-contain"
-                />
-              </div>
+              <AvatarPreview
+                mode="image"
+                currentAvatarUrl={showSprite ? (previewSrc || "/favicon.ico") : (copperedUrl || "/favicon.ico")}
+                characterName={role.name}
+                className=""
+                imageClassName="md:max-h-[65vh] md:min-h-[35vh]"
+              />
             </div>
 
-            <div className="w-full md:w-1/2 p-3 order-2 md:order-2">
+            <div className="w-full md:w-1/2 p-2 order-2 md:order-2">
               {/* 头像列表区域 */}
               <h2 className="text-xl font-bold mb-4">选择头像：</h2>
-              <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
+              <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center bg-base-200 p-2">
                 {roleAvatars.map((item, index) => (
                   <li
                     key={`${role.id}-${item.avatarUrl}`}
@@ -194,21 +226,24 @@ export default function CharacterAvatar({ role, onchange }: {
                         alt="头像"
                         className={`w-full h-full object-contain rounded-lg transition-all duration-300 group-hover:scale-105 ${item.avatarUrl === copperedUrl ? "border-2 border-primary" : "border"}`}
                       />
-                      {/* 删除按钮  */}
-                      <button
-                        className="absolute -top-2 -right-2 w-5 h-5 md:w-7 md:h-7 bg-gray-700 md:bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800 z-2"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteAvatar(index);
-                        }}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
-                          <path
-                            fill="currentColor"
-                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-                          />
-                        </svg>
-                      </button>
+                      {/* 删除按钮 - 只有多个头像时才显示 */}
+                      {roleAvatars.length > 1 && (
+                        <button
+                          type="button"
+                          className="absolute -top-2 -right-2 w-5 h-5 md:w-7 md:h-7 bg-gray-700 md:bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800 z-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteAvatar(index);
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+                            <path
+                              fill="currentColor"
+                              d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                            />
+                          </svg>
+                        </button>
+                      )}
                       {/* 添加悬浮遮罩 */}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 rounded-lg"></div>
                     </div>
@@ -222,14 +257,20 @@ export default function CharacterAvatar({ role, onchange }: {
                 <li className="relative w-full max-w-[128px] aspect-square flex flex-col items-center rounded-lg transition-colors">
                   <CharacterCopper
                     setDownloadUrl={() => { }}
-                    setCopperedDownloadUrl={setCopperedUrl}
+                    setCopperedDownloadUrl={() => { }}
                     fileName={uniqueFileName}
                     scene={3} // 角色差分
                     mutate={(data) => {
+                      // 通知父组件处理上传
+                      onAvatarUpload({ ...data, roleId: role.id });
+                      // 同时执行本地的上传逻辑
                       mutate({ ...data, roleId: role.id });
                     }}
                   >
-                    <button className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group">
+                    <button
+                      type="button"
+                      className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group"
+                    >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         className="w-full h-full text-gray-400 transition-transform duration-300 group-hover:scale-105"
@@ -248,6 +289,19 @@ export default function CharacterAvatar({ role, onchange }: {
                   </CharacterCopper>
                 </li>
               </div>
+            </div>
+
+            {/* 添加头像聊天预览区域 */}
+            <div className="w-1/2 gap-4 flex flex-col p-2 order-3 md:order-3">
+
+              <AvatarPreview
+                mode="full"
+                currentAvatarUrl={copperedUrl || "/favicon.ico"}
+                characterName={role.name}
+                chatMessages={["你好！这是我的新头像", "看起来怎么样？"]}
+                className="space-y-2"
+              />
+
             </div>
 
             {/* 删除确认弹窗 */}
@@ -273,7 +327,8 @@ export default function CharacterAvatar({ role, onchange }: {
             <button
               type="submit"
               onClick={() => {
-                onchange(copperedUrl, avatarId);
+                onchange(copperedUrl, avatarId, previewSrc || null);
+                onSpritePreviewChange?.(previewSrc || null);
                 setChangeAvatarConfirmOpen(false);
               }}
               className="btn btn-primary btn-md md:btn-lg"
@@ -282,7 +337,6 @@ export default function CharacterAvatar({ role, onchange }: {
             </button>
           </div>
         </div>
-
       </PopWindow>
     </div>
   );

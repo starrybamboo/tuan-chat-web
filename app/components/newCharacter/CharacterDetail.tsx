@@ -1,8 +1,12 @@
+// import type { Transform } from "./sprite/TransformControl";
+import type { RoleAvatar } from "api";
 import type { Role } from "./types";
-import { useUpdateRoleWithLocalMutation } from "api/queryHooks";
-import { useEffect, useState } from "react";
+import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CharacterAvatar from "./CharacterAvatar";
 import ExpansionModule from "./rules/ExpansionModule";
+import Section from "./Section";
+import { SpriteRenderStudio } from "./sprite/SpriteRenderStudio";
 // import Section from "./Section";
 
 interface CharacterDetailProps {
@@ -26,16 +30,53 @@ export default function CharacterDetail({
   // 编辑状态过渡
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // 字数统计状态
-  const [charCount, setCharCount] = useState(role.description?.length || 0);
+  // 头像相关状态管理
+  const [roleAvatars, setRoleAvatars] = useState<RoleAvatar[]>([]);
+  const [selectedAvatarId, setSelectedAvatarId] = useState<number>(role.avatarId);
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string>(role.avatar || "/favicon.ico");
+  const [selectedSpriteUrl, setSelectedSpriteUrl] = useState<string | null>("");
+
+  // 获取角色所有头像
+  const { data: roleAvatarsResponse, isSuccess } = useGetRoleAvatarsQuery(role.id);
+
+  // 字数统计：由描述派生，避免在 useEffect 中 setState
+  const charCount = useMemo(() => localRole.description?.length || 0, [localRole.description]);
   // 描述的最大储存量
   const MAX_DESCRIPTION_LENGTH = 140;
 
-  // 当角色变化时，更新本地状态和字数统计
+  // 立绘预览相关状态
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  // 已由SpriteRenderStudio内部管理transform相关状态
+
+  // 当切换到不同角色时，更新本地状态
   useEffect(() => {
-    setLocalRole(role);
-    setCharCount(role.description?.length || 0);
-  }, [role]);
+    if (role.id !== localRole.id) {
+      setLocalRole(role);
+      setSelectedAvatarId(role.avatarId);
+      setSelectedAvatarUrl(role.avatar || "/favicon.ico");
+    }
+  }, [role, localRole.id]);
+
+  // 处理角色头像数据更新
+  useEffect(() => {
+    if (isSuccess && roleAvatarsResponse?.success && Array.isArray(roleAvatarsResponse.data)) {
+      const avatarsData = roleAvatarsResponse.data;
+      setRoleAvatars(avatarsData);
+
+      if (role.avatarId !== 0) {
+        const currentAvatar = avatarsData.find(ele => ele.avatarId === role.avatarId);
+        const newAvatarUrl = currentAvatar?.avatarUrl || "/favicon.ico";
+        const newSpriteUrl = currentAvatar?.spriteUrl || null;
+
+        setSelectedAvatarUrl(newAvatarUrl);
+        setSelectedSpriteUrl(newSpriteUrl);
+      }
+      else {
+        setSelectedAvatarUrl("/favicon.ico");
+        setSelectedSpriteUrl("");
+      }
+    }
+  }, [isSuccess, roleAvatarsResponse, role.avatarId]);
 
   // 接口部分
   // 发送post数据部分,保存角色数据
@@ -50,6 +91,7 @@ export default function CharacterDetail({
       .replace(/\n{2,}/g, "\n") // 压缩多个换行为单个换行
       .replace(/\s+$/g, ""); // 移除末尾空格
   };
+
   const handleSave = () => {
     setIsTransitioning(true);
     const cleanedRole = {
@@ -73,19 +115,48 @@ export default function CharacterDetail({
   };
 
   // 更新url和avatarId,方便更改服务器数据
-  const handleAvatarChange = (previewUrl: string, avatarId: number) => {
+  const handleAvatarChange = (previewUrl: string, avatarId: number, spriteUrl?: string | null) => {
     const updatedRole = {
       ...localRole,
       avatar: previewUrl,
       avatarId,
     };
     setLocalRole(updatedRole);
+    // 同时更新选中的立绘URL
+    if (spriteUrl !== undefined) {
+      setSelectedSpriteUrl(spriteUrl);
+    }
     const cleanedRole = {
       ...updatedRole,
       name: cleanText(localRole.name),
       description: cleanText(localRole.description),
     };
     updateRole(cleanedRole);
+  };
+
+  // 处理头像选择
+  const handleAvatarSelect = (avatarUrl: string, avatarId: number, spriteUrl: string | null) => {
+    setSelectedAvatarUrl(avatarUrl);
+    setSelectedAvatarId(avatarId);
+    setSelectedSpriteUrl(spriteUrl);
+  };
+
+  // 处理头像删除
+  const handleAvatarDelete = (avatarId: number) => {
+    setRoleAvatars(prev => prev.filter(avatar => avatar.avatarId !== avatarId));
+
+    // 如果删除的是当前选中的头像，重置为默认
+    if (avatarId === selectedAvatarId) {
+      setSelectedAvatarUrl("/favicon.ico");
+      setSelectedAvatarId(0);
+      setSelectedSpriteUrl("");
+    }
+  };
+
+  // 处理头像上传
+  const handleAvatarUpload = (data: any) => {
+    // 上传成功后可能需要重新获取头像列表
+    console.warn("头像上传数据:", data);
   };
 
   return (
@@ -102,7 +173,15 @@ export default function CharacterDetail({
           <div className="flex flex-col md:flex-row items-center">
             <CharacterAvatar
               role={localRole}
+              roleAvatars={roleAvatars}
+              selectedAvatarId={selectedAvatarId}
+              selectedAvatarUrl={selectedAvatarUrl}
+              selectedSpriteUrl={selectedSpriteUrl}
               onchange={handleAvatarChange}
+              onSpritePreviewChange={url => setSelectedSpriteUrl(url)}
+              onAvatarSelect={handleAvatarSelect}
+              onAvatarDelete={handleAvatarDelete}
+              onAvatarUpload={handleAvatarUpload}
             />
             <div className="card-sm md:card flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               {/* <Section title="基本信息"> */}
@@ -127,7 +206,6 @@ export default function CharacterDetail({
                         value={localRole.description}
                         onChange={(e) => {
                           setLocalRole(prev => ({ ...prev, description: e.target.value }));
-                          setCharCount(e.target.value.length);
                         }}
                         placeholder="角色描述"
                         className="textarea textarea-bordered w-full h-24 resize-none mt-2"
@@ -220,6 +298,21 @@ export default function CharacterDetail({
                   </button>
                 )}
           </div>
+        </div>
+
+      </div>
+      <div className="card-sm md:card bg-base-100 shadow-xl">
+        <div className="card-body">
+          <Section title="渲染结果预览">
+            {/* 使用SpriteRenderStudio组件封装预览与控制逻辑 */}
+            <SpriteRenderStudio
+              characterName={localRole.name || "未命名角色"}
+              roleAvatars={roleAvatars}
+              initialAvatarId={localRole.avatarId}
+              externalCanvasRef={previewCanvasRef}
+              className="w-full p-3 gap-4 flex"
+            />
+          </Section>
         </div>
 
       </div>
