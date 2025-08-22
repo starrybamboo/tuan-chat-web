@@ -88,42 +88,39 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
         </div>
       )}
 
-      <div className="flex items-center space-x-3 mb-4">
-        {/* 发布者的信息 */}
-        <div className="flex flex-row items-center gap-2">
+      <div className="flex flex-row items-center gap-2 mb-2">
+        {userInfoLoading
+          ? (
+              <div className="skeleton w-12 h-12 rounded-full flex-shrink-0"></div>
+            )
+          : (
+              <img
+                className="w-12 h-12 rounded-full object-cover cursor-pointer mr-2 hover:opacity-80 transition-opacity flex-shrink-0"
+                src={data.avatar}
+                onClick={handleAvatarClick}
+                alt="用户头像"
+              />
+            )}
+
+        <div className="flex flex-col justify-between min-w-0 flex-1">
           {userInfoLoading
             ? (
-                <div className="skeleton w-12 h-12 rounded-full flex-shrink-0"></div>
+                <>
+                  <div className="skeleton h-6 w-24 mb-2"></div>
+                  <div className="skeleton h-4 w-32"></div>
+                </>
               )
             : (
-                <img
-                  className="w-12 h-12 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
-                  src={data.avatar}
-                  onClick={handleAvatarClick}
-                  alt="用户头像"
-                />
+                <>
+                  <h3 className="card-title text-xl whitespace-nowrap">{data.name}</h3>
+                  <p className="flex-1 text-xs text-base-content/60">{publishTime}</p>
+                </>
               )}
-
-          <div className="flex flex-col justify-between min-w-0 flex-1">
-            {userInfoLoading
-              ? (
-                  <>
-                    <div className="skeleton h-6 w-24 mb-2"></div>
-                    <div className="skeleton h-4 w-32"></div>
-                  </>
-                )
-              : (
-                  <>
-                    <h3 className="card-title text-lg whitespace-nowrap">{data.name}</h3>
-                    <p className="flex-1 text-sm text-base-content/60">{publishTime}</p>
-                  </>
-                )}
-          </div>
         </div>
 
-        <div className="relative">
+        <div className="relative ml-auto">
           <button
-            className="text-base-content/40 hover:text-base-content/80 transition-colors p-2 rounded-full hover:bg-base-200"
+            className="text-base-content/40 hover:text-base-content/80 transition-colors p-2 rounded-2xl hover:bg-base-200"
             onClick={() => setShowMenu(!showMenu)}
             type="button"
           >
@@ -160,7 +157,7 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
 
       {/* 动态内容 */}
       <div className="mb-4">
-        <div className="text-base-content mb-3 whitespace-pre-wrap">{feed?.content ?? ""}</div>
+        <div className="text-base-content whitespace-pre-wrap pl-16">{feed?.content ?? ""}</div>
 
         {images.length > 0 && (
           <div
