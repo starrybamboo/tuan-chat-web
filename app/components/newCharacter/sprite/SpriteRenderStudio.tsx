@@ -444,6 +444,7 @@ export function SpriteRenderStudio({
         <PopWindow
           isOpen={isPopWindowOpen}
           onClose={handleClosePopWindow}
+          fullScreen={typeof window !== "undefined" ? window.innerWidth < 768 : false}
         >
           {spriteUrl
             ? (
