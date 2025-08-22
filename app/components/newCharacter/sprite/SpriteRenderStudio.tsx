@@ -346,8 +346,6 @@ export function SpriteRenderStudio({
           transform={transform}
           characterName={characterName}
           dialogContent="这是一段示例对话内容。"
-          characterNameTextSize={typeof window !== "undefined" && window.innerWidth <= 600 ? "text-sm" : "text-2xl"}
-          dialogTextSize={typeof window !== "undefined" && window.innerWidth <= 600 ? "text-xs" : "text-xl"}
         />
 
         {/* 调试信息 - 显示当前状态（移动端隐藏，桌面端显示） */}

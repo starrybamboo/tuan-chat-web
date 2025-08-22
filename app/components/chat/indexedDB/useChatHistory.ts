@@ -36,14 +36,17 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         return;
 
       // 先更新状态
-      setMessages((prevMessages) => {
-        const messageMap = new Map(prevMessages.map(msg => [msg.message.messageId, msg]));
-        newMessages.filter(msg => msg.message.roomId === roomId)
-          .forEach(msg => messageMap.set(msg.message.messageId, msg));
-        const updatedMessages = Array.from(messageMap.values());
-        // 按 position 排序确保顺序
-        return updatedMessages.sort((a, b) => a.message.position - b.message.position);
-      });
+      // 由于获取消息是异步的，这里的roomId可能是过时的，所以要检查一下。
+      if (newMessages[0].message.roomId === roomId) {
+        setMessages((prevMessages) => {
+          const messageMap = new Map(prevMessages.map(msg => [msg.message.messageId, msg]));
+          newMessages.filter(msg => msg.message.roomId === roomId)
+            .forEach(msg => messageMap.set(msg.message.messageId, msg));
+          const updatedMessages = Array.from(messageMap.values());
+          // 按 position 排序确保顺序
+          return updatedMessages.sort((a, b) => a.message.position - b.message.position);
+        });
+      }
 
       // 异步将消息批量存入数据库
       try {
@@ -114,6 +117,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     }
 
     setLoading(true);
+    setMessages([]);
     let isCancelled = false; // Flag to prevent state updates from stale effects
 
     const loadAndFetch = async () => {
