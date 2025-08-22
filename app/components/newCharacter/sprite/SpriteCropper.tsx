@@ -673,7 +673,7 @@ export function SpriteCropper({
             </div>
           </div>
           <div
-            className="flex gap-2 overflow-x-auto justify-start max-w-[416px] scrollbar-thin scrollbar-track-transparent scrollbar-thumb-primary/30 hover:scrollbar-thumb-primary/50"
+            className="gap-2 overflow-x-auto justify-start max-w-[96px] md:max-w-[416px] scrollbar-thin scrollbar-track-transparent scrollbar-thumb-primary/30 hover:scrollbar-thumb-primary/50 hidden md:flex"
             onWheel={(e) => {
               // 防止页面滚动
               e.preventDefault();

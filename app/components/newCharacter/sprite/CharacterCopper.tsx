@@ -354,6 +354,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
           resetAllStates();
           setIsOpen(false);
         }}
+        fullScreen={typeof window !== "undefined" ? window.innerWidth < 768 : false}
       >
         <div className="flex items-center gap-8">
           <div className="w-full flex items-center">
