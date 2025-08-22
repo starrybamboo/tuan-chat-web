@@ -1,15 +1,16 @@
 import UserModulesList from "@/components/profile/workTabPart/moudleList";
+import UserPostsList from "@/components/profile/workTabPart/userPostsList";
 import UserRolesList from "@/components/profile/workTabPart/UserRolesList";
 import React, { useMemo, useState } from "react";
+import { useListUserPostsQuery } from "../../../../api/hooks/communityQueryHooks";
 import { useModuleListByUserQuery } from "../../../../api/hooks/moduleAndStageQueryHooks";
 import { useGetUserRolesPageQuery, useGetUserRolesQuery } from "../../../../api/queryHooks";
 
-type TabType = "roles" | "modules";
-
+type TabType = "roles" | "modules" | "posts";
 interface WorksTabProp {
   userId: number;
 }
-
+// 在 WorksTab 组件中添加帖子相关内容
 export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
   const [page, setPage] = useState(1);
   const [modulePage, setModulePage] = useState(1);
@@ -28,7 +29,10 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
     pageSize: 10,
   });
 
-  // 确保 roleIds 是纯数字数组
+  // 用户帖子查询 - 因为API不支持分页，所以直接获取全部
+  const userPostsQuery = useListUserPostsQuery();
+  const postsLoading = userPostsQuery.isLoading;
+
   const roleIds = useMemo((): number[] => {
     return (response?.data?.list || [])
       .map(role => role.roleId)
@@ -56,6 +60,13 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
             currentPage={modulePage}
             onPageChange={setModulePage}
             isLoading={modulesLoading}
+          />
+        );
+      case "posts":
+        return (
+          <UserPostsList
+            userId={userId}
+            isLoading={postsLoading}
           />
         );
       default:
@@ -91,6 +102,19 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
             </span>
           </>
         );
+      case "posts":
+        return (
+          <>
+            <h2 className="text-2xl font-bold">发布的帖子</h2>
+            <span className="text-gray-500">
+              共
+              {" "}
+              {userPostsQuery.data?.data?.length || 0}
+              {" "}
+              个帖子
+            </span>
+          </>
+        );
       default:
         return null;
     }
@@ -116,6 +140,7 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
         <nav className="flex space-x-2">
           {renderTabButton("roles", "角色")}
           {renderTabButton("modules", "模组")}
+          {renderTabButton("posts", "帖子")}
         </nav>
       </div>
 
@@ -125,6 +150,7 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
           <nav className="space-y-2 flex flex-col">
             {renderTabButton("roles", "角色")}
             {renderTabButton("modules", "模组")}
+            {renderTabButton("posts", "帖子")}
           </nav>
         </div>
 
