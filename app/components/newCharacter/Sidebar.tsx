@@ -229,9 +229,9 @@ export function Sidebar({
   return (
     <>
 
-      <div className="menu p-4 w-60 lg:w-80 h-full bg-base-200 flex flex-col">
+      <div className="menu p-4 w-72 lg:w-80 h-full bg-base-200 flex flex-col">
         {/* 搜索和创建区域 - 固定在顶部 */}
-        <div className="flex gap-2 mb-4 sticky top-0 bg-base-200 z-10 py-2">
+        <div className="flex gap-2 mb-4 sticky top-0 bg-base-200 z-50 py-2">
           <label className="input">
             <svg className="h-[1em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
               <g
@@ -345,7 +345,7 @@ export function Sidebar({
         </div>
 
         {/* 角色列表 - 使用 Virtuoso */}
-        <div className="flex-1">
+        <div className="flex-1 ">
           <Virtuoso
             style={{ height: "96%" }}
             data={filteredRoles}

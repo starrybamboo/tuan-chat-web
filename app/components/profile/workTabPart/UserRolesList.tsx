@@ -1,6 +1,7 @@
 import Pagination from "@/components/common/pagination";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { UserRoleCard } from "@/components/profile/cards/userRoleCard";
+import React from "react";
 import { Link } from "react-router";
 
 interface UserRolesListProps {
@@ -14,14 +15,14 @@ interface UserRolesListProps {
 /**
  * 在workTab使用的角色列表，卡片本身来源于userRoleCard
  */
-export function UserRolesList({
+export const UserRolesList: React.FC<UserRolesListProps> = ({
   userId,
   roleIds,
   totalRecords,
   currentPage,
   onPageChange,
   isLoading,
-}: UserRolesListProps) {
+}) => {
   const currentUserId = useGlobalContext().userId ?? -1;
   const totalPages = Math.ceil(totalRecords / 10);
 
@@ -31,14 +32,14 @@ export function UserRolesList({
         {Array.from({ length: 10 }).map((_, index) => (
           <div
             key={`skeleton-${index}`}
-            className="animate-pulse w-48 bg-white rounded-lg shadow-md overflow-hidden"
+            className="animate-pulse w-48 bg-base-100 rounded-lg shadow-md overflow-hidden"
           >
-            <div className="relative h-48 bg-gray-200">
-              <div className="w-full h-full bg-gray-200"></div>
+            <div className="relative h-48 bg-base-200">
+              <div className="w-full h-full bg-base-200"></div>
             </div>
             <div className="p-4 space-y-2">
-              <div className="bg-gray-200 h-4 rounded-full w-4/5"></div>
-              <div className="bg-gray-200 h-3 rounded-full w-full"></div>
+              <div className="bg-base-200 h-4 rounded-full w-4/5"></div>
+              <div className="bg-base-200 h-3 rounded-full w-full"></div>
             </div>
           </div>
         ))}
@@ -84,6 +85,7 @@ export function UserRolesList({
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {/* 每一个角色放在小卡片中渲染 */}
         {roleIds.map(roleId => (
           <UserRoleCard key={roleId} roleId={roleId} />
         ))}
@@ -98,4 +100,6 @@ export function UserRolesList({
       )}
     </>
   );
-}
+};
+
+export default UserRolesList;

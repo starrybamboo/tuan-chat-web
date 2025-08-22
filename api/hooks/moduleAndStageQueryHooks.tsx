@@ -7,6 +7,7 @@ import type { StageRollbackRequest } from "api/models/StageRollbackRequest";
 import type { CommitRequest } from "api/models/CommitRequest";
 import type { RoleImportRequest } from "api/models/RoleImportRequest";
 import type { EntityAddRequest } from "api/models/EntityAddRequest";
+import type {ModulePageByUserRequest} from "../models/ModulePageByUserRequest";
 // import type { EntityRenameRequest } from "api/models/EntityRenameRequest";
 //========================module==================================
 
@@ -47,6 +48,17 @@ export function useModuleListQuery(requestBody: ModulePageRequest) {
     return useQuery({
         queryKey: ['moduleList', requestBody],
         queryFn: () => tuanchat.moduleController.page(requestBody),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
+/**
+ * 根据用户ID获取剧本列表
+ */
+export function useModuleListByUserQuery(requestBody: ModulePageByUserRequest) {
+    return useQuery({
+        queryKey: ['moduleListByUser', requestBody],
+        queryFn: () => tuanchat.moduleController.pageByUserId(requestBody),
         staleTime: 300000 // 5分钟缓存
     });
 }

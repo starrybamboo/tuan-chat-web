@@ -65,7 +65,7 @@ export default function CharacterMain() {
       <input id="character-drawer" type="checkbox" className="drawer-toggle" />
 
       {/* 使用抽象出的 Sidebar 组件 */}
-      <div className="drawer-side z-10">
+      <div className="drawer-side z-50">
         <label htmlFor="character-drawer" className="drawer-overlay">
           <Sidebar
             roles={roles}
@@ -80,7 +80,7 @@ export default function CharacterMain() {
       {/* 主内容区 */}
       <div className="drawer-content bg-base-200">
         {/* 添加条件渲染，在小屏幕且抽屉打开时隐藏内容 */}
-        <div className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-base-100 max-w-7xl mx-auto">
+        <div className="md:p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-base-100 max-w-7xl mx-auto">
           {currentRole
             ? (
                 <CharacterDetail
