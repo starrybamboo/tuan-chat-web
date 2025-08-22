@@ -62,7 +62,7 @@ export function PopWindow({ isOpen, children, onClose, fullScreen = false, trans
             </svg>
           </button>
           {/* 卡片内容 */}
-          <div className="card-body p-4 w-full h-full overflow-auto min-h-0">
+          <div className="w-full h-full overflow-auto min-h-0">
             {children}
           </div>
         </div>

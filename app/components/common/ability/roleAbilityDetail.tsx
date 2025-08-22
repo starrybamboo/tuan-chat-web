@@ -75,6 +75,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
     isKeyField: boolean, // 编辑字段是不是key
     key: string,
     value: string | number,
+    className?: string,
   ) => {
     const isEditing = editingField?.abilityId === abilityId
       && editingField?.type === type
@@ -84,7 +85,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
       ? (
           <input
             type={type === "ability" && !isKeyField ? "number" : "text"}
-            className="text-xs cursor-text border min-w-[10px] max-w-[40px]"
+            className={`text-xs cursor-text border ${className}`}
             value={editValue}
             onChange={e => setEditValue(e.target.value)}
             onBlur={() => handleUpdate(abilityId, type, key, editValue, isKeyField)}
@@ -94,7 +95,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
         )
       : (
           <div
-            className="text-xs cursor-text min-w-[10px] max-w-[40px]"
+            className={`text-xs cursor-text ${className}`}
             onDoubleClick={() => handleDoubleClick(abilityId, type, key, value, isKeyField)}
           >
             {isKeyField ? key : value}
@@ -147,8 +148,8 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
                 {Object.entries(ability.ability ?? {}).filter(([key]) => key.includes(searchKey)).map(([key, value]) => (
                   <div key={key} className="card bg-base-100 shadow-sm p-3">
                     <div className="flex justify-between">
-                      {renderEditableField(ability.abilityId ?? -1, "ability", true, key, value)}
-                      {renderEditableField(ability.abilityId ?? -1, "ability", false, key, value)}
+                      {renderEditableField(ability.abilityId ?? -1, "ability", true, key, value, "min-w-[10px] max-w-[40px]")}
+                      {renderEditableField(ability.abilityId ?? -1, "ability", false, key, value, "min-w-[10px] max-w-[40px]")}
                     </div>
                   </div>
                 ))}
@@ -159,11 +160,11 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
           {/* 角色能力部分 */}
           <div className="card bg-base-200 p-4 items-center">
             <h3 className="card-title text-lg font-bold mb-4">角色能力</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 gap-2">
               {Object.entries(ability.act ?? {}).map(([key, value]) => (
                 <div key={key} className="card bg-base-100 shadow-sm p-3">
                   <div className="flex justify-between">
-                    {renderEditableField(ability.abilityId ?? -1, "act", true, key, value)}
+                    {renderEditableField(ability.abilityId ?? -1, "act", true, key, value, "w-full")}
                     {renderEditableField(ability.abilityId ?? -1, "act", false, key, value)}
                   </div>
                 </div>
