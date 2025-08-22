@@ -16,7 +16,7 @@ export function AddRoleWindow({ handleAddRole }: { handleAddRole: (roleId: numbe
       <p className="text-lg font-bold text-center w-full mb-4">选择要加入的角色</p>
       <div className="flex flex-wrap gap-3">
         {userRoles
-          .filter(role => role.avatarId && role.avatarId > 0)
+          // .filter(role => role.avatarId && role.avatarId > 0)
           .filter(role => !roomRolesThatUserOwn.find(r => r.roleId === role.roleId))
           .map(role => (
             <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.avatarId}>
