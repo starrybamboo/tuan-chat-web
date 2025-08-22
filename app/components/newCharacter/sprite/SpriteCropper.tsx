@@ -743,8 +743,6 @@ export function SpriteCropper({
                 transform={transform}
                 characterName={characterName}
                 dialogContent="这是一段示例对话内容。"
-                characterNameTextSize="text-sm"
-                dialogTextSize="text-sm"
               />
 
               <TransformControl

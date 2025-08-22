@@ -25,7 +25,7 @@ interface TransformControlProps {
   disabled?: boolean;
 }
 
-const REFERENCE_HEIGHT = 720;
+const REFERENCE_HEIGHT = 1440;
 
 /**
  * Transform控制组件
