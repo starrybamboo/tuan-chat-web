@@ -3,7 +3,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import 教室图片 from "@/components/module/home/images/教室.webp";
 
 import { ContentCard } from "@/components/module/home/Modulehome";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import { useModuleListByUserQuery } from "../../../../api/hooks/moduleAndStageQueryHooks";
 import { useRuleListQuery } from "../../../../api/hooks/ruleQueryHooks";
@@ -29,7 +29,6 @@ export const UserModulesList: React.FC<UserModulesListProps> = ({
   const navigate = useNavigate();
   const currentUserId = useGlobalContext().userId ?? -1;
   const totalPages = Math.ceil(totalRecords / 10);
-  const [imagesReady, setImagesReady] = useState(false);
 
   // 获取用户模组数据
   const moduleListQuery = useModuleListByUserQuery({
@@ -71,44 +70,7 @@ export const UserModulesList: React.FC<UserModulesListProps> = ({
       }));
   }, [moduleListQuery.data, ruleListQuery.data]);
 
-  // 图片预加载
-  function preloadImages(urls: string[]): Promise<void> {
-    return Promise.all(
-      urls.map(
-        url =>
-          new Promise<void>((resolve) => {
-            const img = new Image();
-            img.src = url;
-            img.onload = () => resolve();
-            img.onerror = () => {
-              console.error(`图片加载失败: ${url}`);
-              resolve();
-            };
-          }),
-      ),
-    ).then(() => {});
-  }
-
-  useEffect(() => {
-    if (moduleListQuery.isSuccess && moduleItems.length > 0) {
-      const imageUrls = moduleItems
-        .map(item => item.image)
-        .filter(url => url && true && true && url !== "null");
-      preloadImages(imageUrls).then(() => {
-        setImagesReady(true);
-      });
-    }
-    else if (moduleListQuery.isSuccess && moduleItems.length === 0) {
-      setImagesReady(true);
-    }
-  }, [moduleListQuery.isSuccess, moduleItems]);
-
-  // 重置图片加载状态当页面变化时
-  useEffect(() => {
-    setImagesReady(false);
-  }, [currentPage]);
-
-  if (isLoading || moduleListQuery.isLoading || !imagesReady) {
+  if (isLoading || moduleListQuery.isLoading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {Array.from({ length: 8 }).map((_, index) => (
