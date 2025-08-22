@@ -130,7 +130,7 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
           {/* 每个动态的二级菜单 */}
           {showMenu && (
             <div className="absolute right-0 top-full mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg py-1 z-20 min-w-[120px]">
-              {loginUserId !== userId
+              {loginUserId === userId
                 ? (
                     <button
                       onClick={handleDelete}
