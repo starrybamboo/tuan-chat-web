@@ -1,10 +1,14 @@
-import { UserRolesList } from "@/components/profile/workTabPart/UserRolesList";
+import UserRolesList from "@/components/profile/workTabPart/UserRolesList";
 import React, { useMemo, useState } from "react";
 import { useGetUserRolesPageQuery, useGetUserRolesQuery } from "../../../../api/queryHooks";
 
 type TabType = "roles" | "modules";
 
-export function WorksTab({ userId }: { userId: number }) {
+interface WorksTabProp {
+  userId: number;
+}
+
+export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
   const [page, setPage] = useState(1);
   const [activeTab, setActiveTab] = useState<TabType>("roles");
   const { isLoading } = useGetUserRolesQuery(userId);
@@ -98,6 +102,6 @@ export function WorksTab({ userId }: { userId: number }) {
       </div>
     </div>
   );
-}
+};
 
 export default WorksTab;

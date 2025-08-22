@@ -1,15 +1,17 @@
 import type { MomentFeedRequest } from "../../../../api";
-import { useGlobalContext } from "@/components/globalContextProvider";
 import { BarChartOutlineIcon, EmojiIconWhite, Image2Fill } from "@/icons";
 import React, { useEffect, useState } from "react";
 import { usePublishMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 
-export default function PublishBox() {
+interface PublishBoxProps {
+  loginUserId: number;
+}
+
+export const PublishBox: React.FC<PublishBoxProps> = ({ loginUserId }) => {
   const [content, setContent] = useState("");
   const [rows, setRows] = useState(3);
   const [isPublishing, setIsPublishing] = useState(false);
-  const loginUserId = useGlobalContext().userId ?? -1;
   const userQuery = useGetUserInfoQuery(loginUserId);
   const user = userQuery.data?.data;
 
@@ -170,4 +172,6 @@ export default function PublishBox() {
       </div>
     </div>
   );
-}
+};
+
+export default PublishBox;
