@@ -6,7 +6,7 @@ import { useListUserPostsQuery } from "../../../../api/hooks/communityQueryHooks
 import { useModuleListByUserQuery } from "../../../../api/hooks/moduleAndStageQueryHooks";
 import { useGetUserRolesPageQuery, useGetUserRolesQuery } from "../../../../api/queryHooks";
 
-type TabType = "roles" | "modules" | "posts";
+type TabType = "modules" | "posts" | "roles";
 interface WorksTabProp {
   userId: number;
 }
@@ -14,7 +14,7 @@ interface WorksTabProp {
 export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
   const [page, setPage] = useState(1);
   const [modulePage, setModulePage] = useState(1);
-  const [activeTab, setActiveTab] = useState<TabType>("roles");
+  const [activeTab, setActiveTab] = useState<TabType>("modules");
   const { isLoading } = useGetUserRolesQuery(userId);
 
   const { data: response } = useGetUserRolesPageQuery({
@@ -41,17 +41,6 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case "roles":
-        return (
-          <UserRolesList
-            userId={userId}
-            roleIds={roleIds}
-            totalRecords={response?.data?.totalRecords || 0}
-            currentPage={page}
-            onPageChange={setPage}
-            isLoading={isLoading}
-          />
-        );
       case "modules":
         return (
           <UserModulesList
@@ -69,6 +58,17 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
             isLoading={postsLoading}
           />
         );
+      case "roles":
+        return (
+          <UserRolesList
+            userId={userId}
+            roleIds={roleIds}
+            totalRecords={response?.data?.totalRecords || 0}
+            currentPage={page}
+            onPageChange={setPage}
+            isLoading={isLoading}
+          />
+        );
       default:
         return null;
     }
@@ -76,19 +76,6 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
 
   const renderTitle = () => {
     switch (activeTab) {
-      case "roles":
-        return (
-          <>
-            <h2 className="text-2xl font-bold">创建的角色</h2>
-            <span className="text-gray-500">
-              共
-              {" "}
-              {response?.data?.totalRecords || 0}
-              {" "}
-              个角色
-            </span>
-          </>
-        );
       case "modules":
         return (
           <>
@@ -115,6 +102,19 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
             </span>
           </>
         );
+      case "roles":
+        return (
+          <>
+            <h2 className="text-2xl font-bold">创建的角色</h2>
+            <span className="text-gray-500">
+              共
+              {" "}
+              {response?.data?.totalRecords || 0}
+              {" "}
+              个角色
+            </span>
+          </>
+        );
       default:
         return null;
     }
@@ -138,9 +138,9 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
       {/* 顶部导航 - 移动端 */}
       <div className="md:hidden overflow-x-auto whitespace-nowrap p-4 border-b border-gray-200">
         <nav className="flex space-x-2">
-          {renderTabButton("roles", "角色")}
           {renderTabButton("modules", "模组")}
           {renderTabButton("posts", "帖子")}
+          {renderTabButton("roles", "角色")}
         </nav>
       </div>
 
@@ -148,9 +148,9 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
         {/* 左侧导航 - PC端（垂直） */}
         <div className="hidden md:flex md:flex-col w-48 flex-shrink-0 p-4 border-r border-gray-200 pt-10">
           <nav className="space-y-2 flex flex-col">
-            {renderTabButton("roles", "角色")}
             {renderTabButton("modules", "模组")}
             {renderTabButton("posts", "帖子")}
+            {renderTabButton("roles", "角色")}
           </nav>
         </div>
 
