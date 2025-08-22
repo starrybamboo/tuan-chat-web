@@ -160,7 +160,7 @@ export default function CharacterDetail({
   };
 
   return (
-    <div className={`space-y-6 transition-opacity duration-300 ease-in-out ${
+    <div className={`md:space-y-6 transition-opacity duration-300 ease-in-out ${
       isTransitioning ? "opacity-50" : ""
     }`}
     >

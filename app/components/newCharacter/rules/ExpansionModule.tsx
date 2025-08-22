@@ -116,7 +116,7 @@ export default function ExpansionModule({
   };
 
   return (
-    <div className="space-y-6 p-4 mt-4">
+    <div className="space-y-6 p-4">
       {/* 规则选择区域 */}
       <Section title="规则选择">
         <RulesSection
