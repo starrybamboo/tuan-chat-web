@@ -1,5 +1,7 @@
+import UserModulesList from "@/components/profile/workTabPart/moudleList";
 import UserRolesList from "@/components/profile/workTabPart/UserRolesList";
 import React, { useMemo, useState } from "react";
+import { useModuleListByUserQuery } from "../../../../api/hooks/moduleAndStageQueryHooks";
 import { useGetUserRolesPageQuery, useGetUserRolesQuery } from "../../../../api/queryHooks";
 
 type TabType = "roles" | "modules";
@@ -10,12 +12,19 @@ interface WorksTabProp {
 
 export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
   const [page, setPage] = useState(1);
+  const [modulePage, setModulePage] = useState(1);
   const [activeTab, setActiveTab] = useState<TabType>("roles");
   const { isLoading } = useGetUserRolesQuery(userId);
 
   const { data: response } = useGetUserRolesPageQuery({
     userId,
     pageNo: page,
+    pageSize: 10,
+  });
+
+  const { data: modulesResponse, isLoading: modulesLoading } = useModuleListByUserQuery({
+    userId,
+    pageNo: modulePage,
     pageSize: 10,
   });
 
@@ -40,7 +49,48 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
           />
         );
       case "modules":
-        return <div className="py-10 text-center text-gray-500">模组内容正在开发中...</div>;
+        return (
+          <UserModulesList
+            userId={userId}
+            totalRecords={modulesResponse?.data?.totalRecords || 0}
+            currentPage={modulePage}
+            onPageChange={setModulePage}
+            isLoading={modulesLoading}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  const renderTitle = () => {
+    switch (activeTab) {
+      case "roles":
+        return (
+          <>
+            <h2 className="text-2xl font-bold">创建的角色</h2>
+            <span className="text-gray-500">
+              共
+              {" "}
+              {response?.data?.totalRecords || 0}
+              {" "}
+              个角色
+            </span>
+          </>
+        );
+      case "modules":
+        return (
+          <>
+            <h2 className="text-2xl font-bold">创建的模组</h2>
+            <span className="text-gray-500">
+              共
+              {" "}
+              {modulesResponse?.data?.totalRecords || 0}
+              {" "}
+              个模组
+            </span>
+          </>
+        );
       default:
         return null;
     }
@@ -81,21 +131,7 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
         {/* 主要内容区域 */}
         <div className="flex-1 p-4 md:p-8">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">
-              {{
-                roles: "创建的角色",
-                modules: "创建的模组",
-              }[activeTab]}
-            </h2>
-            {activeTab === "roles" && (
-              <span className="text-gray-500">
-                共
-                {" "}
-                {response?.data?.totalRecords || 0}
-                {" "}
-                个角色
-              </span>
-            )}
+            {renderTitle()}
           </div>
           {renderTabContent()}
         </div>
