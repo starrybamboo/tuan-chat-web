@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import LikeIconButton from "@/components/common/likeIconButton";
+import { PopWindow } from "@/components/common/popWindow";
+import { UserDetail } from "@/components/common/userDetail";
+import React, { useCallback, useState } from "react";
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 
@@ -15,13 +18,10 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
   const stats = dynamic?.stats ?? {};
   const userId = dynamic?.feed.userId ?? -1;
 
-  const initialIsLiked = Boolean(stats?.isLiked);
-  const initialLikeCount = Number(stats?.likeCount ?? 0);
-
-  const [isLiked, setIsLiked] = useState(initialIsLiked);
-  const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [showMenu, setShowMenu] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [isUserDetailCardOpen, setIsUserDetailCardOpen] = useState(false);
 
   // 获取用户信息
   const { data: userInfoData, isLoading: userInfoLoading } = useGetUserInfoQuery(userId || 0);
@@ -35,23 +35,9 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
 
   const deleteMutation = useDeleteMomentFeedMutation();
 
-  const handleLike = async () => {
-    const prev = isLiked;
-    const delta = prev ? -1 : 1;
-    setIsLiked(!prev);
-    setLikeCount(p => Math.max(0, p + delta));
-
-    try {
-      // TODO: 接入 like/unlike API
-      // await likeMutation.mutateAsync({ feedId: feed.feedId, isLike: !prev });
-    }
-    catch (err) {
-      // rollback
-      setIsLiked(prev);
-      setLikeCount(Number(stats?.likeCount ?? initialLikeCount));
-      console.error("点赞失败", err);
-    }
-  };
+  const closeUserCard = useCallback(() => {
+    setIsUserDetailCardOpen(false);
+  }, []);
 
   const handleDelete = async () => {
     // TODO: 接入弹窗来提示用户是否删除
@@ -84,6 +70,12 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
   // 时间字段 createTime
   const publishTime = feed?.createTime ?? "";
 
+  const handleAvatarClick = useCallback(() => {
+    if (userId) {
+      setIsUserDetailCardOpen(true);
+    }
+  }, [userId]);
+
   return (
     <div
       className={`bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6 mb-4 hover:shadow-md transition-all relative ${
@@ -107,8 +99,7 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
                 <img
                   className="w-12 h-12 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
                   src={data.avatar}
-                  // TODO: 接入 UserDetail
-                  // onClick={handleAvatarClick}
+                  onClick={handleAvatarClick}
                   alt="用户头像"
                 />
               )}
@@ -194,14 +185,15 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
       <div className="flex items-center space-x-4 sm:space-x-6 pt-3 border-t border-base-300">
         {/* TODO 替换操作栏组件 */}
         <button
-          onClick={handleLike}
-          className={`flex items-center space-x-1 text-sm transition-colors px-2 py-1 rounded-full ${
-            isLiked ? "text-error hover:text-error/80" : "text-base-content/60 hover:text-error hover:bg-error/10"
-          }`}
+          className="flex items-center space-x-1 text-sm transition-colors px-2 py-1 rounded-full hover:text-error hover:bg-error/10"
           type="button"
         >
-          <span className="text-base">{isLiked ? "❤️" : "🤍"}</span>
-          <span className="font-medium">{likeCount}</span>
+          {/* 点赞组件 */}
+          <LikeIconButton
+            targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "4" }}
+            className="w-9 h-6"
+            direction="row"
+          />
         </button>
 
         <button
@@ -221,6 +213,11 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
           <span className="font-medium">{Number(stats?.shareCount ?? stats?.shares ?? 0)}</span>
         </button>
       </div>
+
+      {/* UserDetail 弹窗 */}
+      <PopWindow isOpen={isUserDetailCardOpen} onClose={closeUserCard}>
+        <UserDetail userId={userId} />
+      </PopWindow>
     </div>
   );
 };

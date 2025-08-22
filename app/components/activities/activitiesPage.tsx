@@ -227,6 +227,6 @@ function ActivitiesPage() {
       </div>
     </div>
   );
-};
+}
 
 export default ActivitiesPage;
