@@ -70,7 +70,7 @@ export default function AddMemberWindow({ handleAddMember, showSpace = false }:
   const inputUserInfo = useGetUserInfoQuery(inputUserId).data?.data;
 
   return (
-    <div className="space-y-6 p-6 bg-base-100 rounded-xl">
+    <div className="space-y-6 bg-base-100 rounded-xl">
       <div className="tabs tabs-lift">
 
         {/* --- 从空间添加 --- */}
