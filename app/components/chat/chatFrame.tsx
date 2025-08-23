@@ -35,15 +35,6 @@ function Header() {
   );
 }
 
-function ScrollSeekPlaceholder({ height }: { height: number }) {
-  return (
-    <div
-      className="bg-base-200 rounded-lg my-1"
-      style={{ height: height - 10 }} // 减去margin
-    />
-  );
-}
-
 /**
  * 聊天框（不带输入部分）
  * @param useChatBubbleStyle 是否使用气泡样式
@@ -146,6 +137,41 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
         clearTimeout(timer);
     };
   }, [chatHistory?.loading]);
+
+  /**
+   * 背景图片随聊天记录而改变
+   */
+  const imgNode = useMemo(() => {
+    return historyMessages
+      .map((msg, index) => {
+        return { index, imageMessage: msg.message.extra?.imageMessage };
+      })
+      .filter(item => item.imageMessage && item.imageMessage.background);
+  }, [historyMessages]);
+
+  const [currentVirtuosoIndex, setCurrentVirtuosoIndex] = useState(0);
+  const [currentBackgroundUrl, setCurrentBackgroundUrl] = useState<string | null>(null);
+
+  // This effect updates the background URL based on the current scroll position.
+  useEffect(() => {
+    // Convert the virtuoso index (which is shifted) to the actual array index.
+    const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
+
+    // Find the last background image that appears at or before the current scroll position.
+    let newBgUrl: string | null = null;
+    for (const bg of imgNode) {
+      if (bg.index <= currentMessageIndex) {
+        newBgUrl = bg.imageMessage?.url ?? null;
+      }
+      else {
+        break;
+      }
+    }
+
+    if (newBgUrl !== currentBackgroundUrl) {
+      setCurrentBackgroundUrl(newBgUrl);
+    }
+  }, [currentVirtuosoIndex, imgNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
 
   /**
    * 消息选择
@@ -494,7 +520,13 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    * 渲染
    */
   return (
-    <div className="h-full">
+    <div
+      className={`h-full
+      bg-cover bg-center bg-no-repeat transition-all duration-500`}
+      style={{
+        backgroundImage: currentBackgroundUrl ? `url('${currentBackgroundUrl}')` : "none",
+      }}
+    >
       <div
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
@@ -555,14 +587,15 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
             data={historyMessages}
             firstItemIndex={CHAT_VIRTUOSO_INDEX_SHIFTER - historyMessages.length} // 使用这个技巧来在react-virtuoso中实现反向无限滚动
             initialTopMostItemIndex={historyMessages.length - 1}
-            // alignToBottom
             followOutput={true}
             overscan={2000}
             ref={virtuosoRef}
             context={{
-              // fetchNextPage: () => messagesInfiniteQuery?.fetchNextPage(),
-              // isFetching: messagesInfiniteQuery?.isFetching || false,
               isAtTopRef: isAtBottomRef,
+            }}
+            rangeChanged={({ startIndex }) => {
+              // Update state with the top-most visible item's index.
+              setCurrentVirtuosoIndex(startIndex);
             }}
             itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
             atBottomStateChange={(atBottom) => {
@@ -570,22 +603,11 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
               isAtBottomRef.current = atBottom;
             }}
             atTopStateChange={(atTop) => {
-              // (atTop) && fetchNextPage();
               isAtTopRef.current = atTop;
             }}
             components={{
               Header,
-              ScrollSeekPlaceholder,
             }}
-            scrollSeekConfiguration={{
-              enter: velocity => Math.abs(velocity) > 600, // 滚动速度阈值
-              exit: velocity => Math.abs(velocity) < 50,
-            }}
-            // onWheel={(e) => {
-            //   if (e.deltaY < 0 && isAtTopRef.current) {
-            //     fetchNextPage();
-            //   }
-            // }}
             atTopThreshold={1200}
             atBottomThreshold={200}
           />
