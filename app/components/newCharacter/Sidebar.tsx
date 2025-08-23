@@ -3,7 +3,7 @@ import type { Role } from "./types";
 import { tuanchat } from "@/../api/instance";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUploadAvatarMutation } from "api/queryHooks";
+import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { PopWindow } from "../common/popWindow";
@@ -16,6 +16,7 @@ interface SidebarProps {
   selectedRoleId: number | null;
   setSelectedRoleId: (id: number | null) => void;
   setIsEditing: (value: boolean) => void;
+  onSave: (updatedRole: Role) => void;
 }
 
 export function Sidebar({
@@ -24,6 +25,7 @@ export function Sidebar({
   selectedRoleId,
   setSelectedRoleId,
   setIsEditing,
+  onSave,
 }: SidebarProps) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,6 +45,8 @@ export function Sidebar({
   const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
   // 删除角色接口
   const { mutate: deleteRole } = useDeleteRolesMutation();
+  // 更新角色接口
+  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
 
   // 删除弹窗状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useSearchParamsState<boolean>(`deleteRoleConfirmPop`, false);
@@ -151,16 +155,16 @@ export function Sidebar({
     if (res?.data?.avatarId) {
       const newRole: Role = {
         id: data,
-        name: "",
-        description: "",
-        avatar: "",
+        name: "新角色",
+        description: "新角色描述",
+        avatar: res.data.avatarUrl,
         avatarId: res.data.avatarId,
         modelName: "散华",
         speakerName: "鸣潮",
       };
       setRoles(prev => [newRole, ...prev]);
       setSelectedRoleId(newRole.id);
-      setIsEditing(true);
+      updateRole(newRole);
     }
   };
     // 初始化角色数据
