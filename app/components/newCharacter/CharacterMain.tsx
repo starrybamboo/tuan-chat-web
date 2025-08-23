@@ -73,6 +73,7 @@ export default function CharacterMain() {
             selectedRoleId={selectedRoleId}
             setSelectedRoleId={setSelectedRoleId}
             setIsEditing={setIsEditing}
+            onSave={handleSave}
           />
         </label>
       </div>

@@ -37,11 +37,12 @@ export function SpriteRenderStudio({
 
   // 使用useMemo计算正确的立绘索引，响应数据变化
   const correctSpriteIndex = useMemo(() => {
-    if (spritesAvatars.length === 0)
+    if (spritesAvatars.length === 0) {
       return 0;
-    if (!initialAvatarId)
+    }
+    if (!initialAvatarId) {
       return 0;
-
+    }
     const index = spritesAvatars.findIndex(avatar => avatar.avatarId === initialAvatarId);
     return index !== -1 ? index : 0;
   }, [spritesAvatars, initialAvatarId]);
@@ -83,7 +84,7 @@ export function SpriteRenderStudio({
     if (currentSpriteIndex >= 0 && currentSpriteIndex < spritesAvatars.length) {
       const sprite = spritesAvatars[currentSpriteIndex];
       // 如果有initialAvatarId，验证当前立绘是否匹配
-      if (initialAvatarId && manualIndexOffset === null) {
+      if (!!initialAvatarId && manualIndexOffset === null) {
         // 在自动模式下，验证当前立绘是否匹配initialAvatarId
         if (sprite?.avatarId === initialAvatarId) {
           return sprite;
@@ -93,7 +94,6 @@ export function SpriteRenderStudio({
         if (matchingSprite) {
           return matchingSprite;
         }
-        // 如果找不到匹配的，返回当前索引的立绘（回退策略）
         return sprite;
       }
       // 手动模式下直接返回
@@ -166,52 +166,59 @@ export function SpriteRenderStudio({
   // 图片加载状态
   const [isImageLoading, setIsImageLoading] = useState(false);
 
-  // 当立绘URL变化时，加载到预览Canvas
+  // 当立绘URL变化时，加载到预览Canvas (已修复)
   useEffect(() => {
-    // 加载立绘到预览Canvas
-    if (spriteUrl && previewCanvasRef.current && currentSprite) {
-      const canvas = previewCanvasRef.current;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        setIsImageLoading(true);
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-
-        img.onload = () => {
-          // 确保这个回调对应的还是当前的spriteUrl（避免竞态条件）
-          if (img.src === spriteUrl) {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-
-            // 图片加载完成后，确保transform已经更新
-            const newTransform = parseTransformFromAvatar(currentSprite);
-            setDisplayTransform(newTransform);
-          }
-          setIsImageLoading(false);
-        };
-
-        img.onerror = () => {
-          // 图片加载失败时清空canvas
-          if (img.src === spriteUrl) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-          }
-          setIsImageLoading(false);
-        };
-
-        img.src = spriteUrl;
+  // 如果没有 spriteUrl，直接清空并返回，简化逻辑
+    if (!spriteUrl || !previewCanvasRef.current || !currentSprite) {
+      if (previewCanvasRef.current) {
+        const canvas = previewCanvasRef.current;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
       }
+      return; // 提前退出
     }
-    else if (!spriteUrl && previewCanvasRef.current) {
-      // 没有spriteUrl时清空canvas
-      const canvas = previewCanvasRef.current;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-      setIsImageLoading(false);
+
+    // --- 这是修复的关键部分 ---
+    let isActive = true; // 标志位，表示当前 effect 是否仍然“有效”
+
+    const canvas = previewCanvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      setIsImageLoading(true);
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+
+      img.onload = () => {
+      // 只有当这个 effect 仍然是“活跃”的，才执行操作
+        if (isActive) {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+
+          const newTransform = parseTransformFromAvatar(currentSprite);
+          setDisplayTransform(newTransform);
+          setIsImageLoading(false);
+        }
+      };
+
+      img.onerror = () => {
+        if (isActive) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          setIsImageLoading(false);
+        }
+      };
+
+      img.src = spriteUrl;
     }
+
+    // 清理函数：当组件卸载或 spriteUrl 变化导致 useEffect 重新运行时，
+    // 上一个 effect 的清理函数会被调用。
+    return () => {
+      isActive = false; // 将上一个 effect 标记为“无效”
+    };
   }, [spriteUrl, previewCanvasRef, currentSprite]);
 
   // 处理打开弹窗
