@@ -39,6 +39,11 @@ function TagManagement({ userId, size = "default" }: TagManagementProps) {
     }
   }, [tagsData]);
 
+  // 当userId变化时，立即清空本地标签状态
+  React.useEffect(() => {
+    setLocalTags([]);
+  }, [userId]);
+
   const tags: Tag[] = localTags;
 
   // 打开标签管理弹窗
@@ -55,7 +60,7 @@ function TagManagement({ userId, size = "default" }: TagManagementProps) {
 
   if (isLoading && tagsData !== undefined) {
     return (
-      <div className="w-full mx-auto p-6 bg-base-200 rounded-xl opacity-90">
+      <div className="w-full mx-auto p-6 bg-base-200 rounded-xl opacity-90 shadow-lg">
         <div className="flex justify-center items-center py-8">
           <span className="loading loading-spinner loading-md text-base-content"></span>
           <span className="ml-2 text-base-content">加载标签中...</span>
@@ -111,44 +116,28 @@ function TagManagement({ userId, size = "default" }: TagManagementProps) {
               )
             : (
                 <div className="flex flex-col items-center justify-center py-8 px-4 w-full">
-                  {userId === loginUserId
-                    ? (
-                        <div className="text-center space-y-3">
-                          <div className="w-16 h-16 mx-auto bg-base-200 rounded-full flex items-center justify-center">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="w-8 h-8 text-base-content/40"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={1.5}
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                            </svg>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-base-content/60 text-sm">还没有标签呢</p>
-                            <p className="text-base-content/40 text-xs">添加一些标签来展示你的特色~</p>
-                          </div>
-                        </div>
-                      )
-                    : (
-                        <div className="text-center space-y-2">
-                          <div className="w-12 h-12 mx-auto bg-base-200 rounded-full flex items-center justify-center">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="w-6 h-6 text-base-content/40"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={1.5}
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                            </svg>
-                          </div>
-                          <p className="text-base-content/60 text-sm">这里还没有标签...</p>
-                        </div>
-                      )}
+                  <div className="text-center space-y-3">
+                    <div className="w-16 h-16 mx-auto bg-base-200 rounded-full flex items-center justify-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-8 h-8 text-base-content/40"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={1.5}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-base-content/60 text-sm">还没有标签呢</p>
+                      {userId === loginUserId
+                        && (
+                          <p className="text-base-content/40 text-xs">添加一些标签来展示你的特色~</p>
+                        )}
+
+                    </div>
+                  </div>
                 </div>
               )}
         </div>
