@@ -30,6 +30,7 @@ import {
   type AbilityFieldUpdateRequest,
   type ApiResultListRoleResponse,
   type ApiResultRoleAbility,
+  type ApiResultRoleAvatar,
   type ApiResultUserInfoResponse,
   type Message,
   type RoleResponse,
@@ -436,9 +437,9 @@ export function useUpdateAvatarTransformMutation() {
 
 export function useUploadAvatarMutation() {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; spriteUrl: string; roleId: number; transform?: Transform }>({
     mutationKey: ["uploadAvatar"],
-    mutationFn: async ({ avatarUrl, spriteUrl, roleId, transform }: { avatarUrl: string; spriteUrl: string; roleId: number; transform?: Transform }) => {
+    mutationFn: async ({ avatarUrl, spriteUrl, roleId, transform }) => {
       if (!avatarUrl || !roleId || !spriteUrl) {
         console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;

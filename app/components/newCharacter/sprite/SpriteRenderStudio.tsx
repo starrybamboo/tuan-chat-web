@@ -83,7 +83,7 @@ export function SpriteRenderStudio({
     if (currentSpriteIndex >= 0 && currentSpriteIndex < spritesAvatars.length) {
       const sprite = spritesAvatars[currentSpriteIndex];
       // 如果有initialAvatarId，验证当前立绘是否匹配
-      if (initialAvatarId && manualIndexOffset === null) {
+      if (!!initialAvatarId && manualIndexOffset === null) {
         // 在自动模式下，验证当前立绘是否匹配initialAvatarId
         if (sprite?.avatarId === initialAvatarId) {
           return sprite;

@@ -40,7 +40,7 @@ export function Sidebar({
   // 创建角色接口
   const { mutateAsync: createRole } = useCreateRoleMutation();
   // 上传头像接口
-  const { mutate: uploadAvatar } = useUploadAvatarMutation();
+  const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
   // 删除角色接口
   const { mutate: deleteRole } = useDeleteRolesMutation();
 
@@ -143,23 +143,25 @@ export function Sidebar({
       console.error("角色创建失败");
       return;
     }
-    const newRole: Role = {
-      id: data,
-      name: "",
-      description: "",
-      avatar: "",
-      avatarId: 0,
-      modelName: "散华",
-      speakerName: "鸣潮",
-    };
-    uploadAvatar({
+    const res = await uploadAvatar({
       avatarUrl: "/favicon.ico",
       spriteUrl: "/favicon.ico",
       roleId: data,
     });
-    setRoles(prev => [newRole, ...prev]);
-    setSelectedRoleId(newRole.id);
-    setIsEditing(true);
+    if (res?.data?.avatarId) {
+      const newRole: Role = {
+        id: data,
+        name: "",
+        description: "",
+        avatar: "",
+        avatarId: res.data.avatarId,
+        modelName: "散华",
+        speakerName: "鸣潮",
+      };
+      setRoles(prev => [newRole, ...prev]);
+      setSelectedRoleId(newRole.id);
+      setIsEditing(true);
+    }
   };
     // 初始化角色数据
   useEffect(() => {

@@ -695,7 +695,7 @@ export function SpriteCropper({
 
       <div className="flex flex-col lg:flex-row gap-8 justify-center">
         {/* 左侧：原始图片裁剪区域 */}
-        <div className="w-full lg:w-1/2 p-2 gap-4 flex flex-col items-center">
+        <div className="w-full md:w-1/2 p-2 gap-4 flex flex-col items-center">
           <h2 className="text-xl font-bold">裁剪预览</h2>
           <div className="w-full rounded-lg flex items-center justify-center">
             {currentUrl && (
@@ -713,6 +713,7 @@ export function SpriteCropper({
                   onLoad={onImageLoad}
                   style={{
                     maxHeight: "70vh",
+                    minWidth: "20vh",
                   }}
                   crossOrigin="anonymous"
                 />
