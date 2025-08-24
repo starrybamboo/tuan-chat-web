@@ -529,7 +529,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
       }}
     >
       {/* 对背景图片进行调整与模糊 */}
-      {currentBackgroundUrl && <div className="absolute inset-0 bg-white/20 dark:bg-black/40 backdrop-blur-sm z-0"></div>}
+      {currentBackgroundUrl && <div className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-sm z-0"></div>}
       <div
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
