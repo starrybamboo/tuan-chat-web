@@ -484,7 +484,8 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     return ((
       <div
         key={chatMessageResponse.message.messageId}
-        className={`pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""}`}
+        className={`
+        pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""}`}
         data-message-id={chatMessageResponse.message.messageId}
         onClick={(e) => {
           if (isSelecting || e.ctrlKey) {
@@ -521,12 +522,14 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    */
   return (
     <div
-      className={`h-full
+      className={`h-full relative
       bg-cover bg-center bg-no-repeat transition-all duration-500`}
       style={{
         backgroundImage: currentBackgroundUrl ? `url('${currentBackgroundUrl}')` : "none",
       }}
     >
+      {/* 对背景图片进行调整与模糊 */}
+      {currentBackgroundUrl && <div className="absolute inset-0 bg-white/20 dark:bg-black/40 backdrop-blur-sm z-0"></div>}
       <div
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}

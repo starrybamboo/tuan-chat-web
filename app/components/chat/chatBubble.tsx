@@ -174,7 +174,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                   <span onClick={handleRoleNameClick} className={`text-sm text-base-content/85 pb-1 cursor-pointer ${canEdit ? "hover:underline" : ""}`}>
                     {role?.roleName?.trim() || "Undefined"}
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 pl-2">
+                  <span className="text-xs text-base-content/70 pl-2">
                     {formattedTime}
                   </span>
                 </div>
@@ -211,7 +211,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                   {role?.roleName?.trim() || "Undefined"}
                 </div>
                 {renderedContent}
-                <div className="text-xs text-gray-500 dark:text-gray-400 pt-1">
+                <div className="text-xs text-base-content/70 pt-1">
                   {formattedTime}
                 </div>
               </div>
