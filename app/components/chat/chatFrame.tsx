@@ -529,7 +529,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
       }}
     >
       {/* 对背景图片进行调整与模糊 */}
-      {currentBackgroundUrl && <div className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-sm z-0"></div>}
+      {currentBackgroundUrl && <div className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-xs z-0"></div>}
       <div
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
@@ -591,14 +591,14 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
             firstItemIndex={CHAT_VIRTUOSO_INDEX_SHIFTER - historyMessages.length} // 使用这个技巧来在react-virtuoso中实现反向无限滚动
             initialTopMostItemIndex={historyMessages.length - 1}
             followOutput={true}
-            overscan={2000}
+            overscan={10} // 不要设得太大，会导致rangeChange更新不及时
             ref={virtuosoRef}
             context={{
               isAtTopRef: isAtBottomRef,
             }}
-            rangeChanged={({ startIndex }) => {
-              // Update state with the top-most visible item's index.
-              setCurrentVirtuosoIndex(startIndex);
+            rangeChanged={({ endIndex }) => {
+              // Update state with the end-most visible item's index.
+              setCurrentVirtuosoIndex((endIndex));
             }}
             itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
             atBottomStateChange={(atBottom) => {
