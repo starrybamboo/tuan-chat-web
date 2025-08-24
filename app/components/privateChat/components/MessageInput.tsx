@@ -40,9 +40,9 @@ export default function MessageInput({
   return (
     <>
       {/* 移动端样式 */}
-      <div className="md:hidden w-full border-t border-base-300 flex flex-col px-4 py-2">
-        {/* 预览要发送的图片 */}
-        {imgFiles.length > 0 && (
+      <div className="md:hidden w-full border-t border-base-300 flex flex-col px-4 py-2 max-h-32">
+        {/* 预览要发送的图片和表情 */}
+        {(imgFiles.length > 0 || emojiUrls.length > 0) && (
           <div className="flex flex-row gap-x-3 overflow-x-auto pb-2">
             {imgFiles.map((file, index) => (
               <BetterImg
@@ -52,18 +52,27 @@ export default function MessageInput({
                 key={file.name}
               />
             ))}
+            {emojiUrls.map((url, index) => (
+              <BetterImg
+                src={url}
+                className="h-14 w-max rounded"
+                onClose={() => updateEmojiUrls(draft => void draft.splice(index, 1))}
+                key={url}
+              />
+            ))}
           </div>
         )}
-        {/* 预览要发送的表情 */}
 
         {/* 下方输入框和按钮 */}
-        <div className="flex items-center gap-3 w-full">
+        <div className="flex items-center gap-3 w-full h-10">
           <div className="flex-1">
             <input
               type="text"
               className="w-full h-10 px-3 py-2 rounded-full border border-base-300 focus:outline-none focus:border-info text-sm"
-              placeholder="输入消息..."
-              onChange={e => setMessageInput(e.target.value)}
+              placeholder=""
+              onChange={(e) => {
+                setMessageInput(e.target.value);
+              }}
               value={messageInput}
               onKeyDown={handleKeyDown}
             />
@@ -117,8 +126,10 @@ export default function MessageInput({
         <div className="flex-1 w-full">
           <textarea
             className="w-full h-full resize-none px-2 py-1 rounded-lg focus:outline-none"
-            placeholder="输入消息内容，按 Enter 发送，Shift+Enter 换行"
-            onChange={e => setMessageInput(e.target.value)}
+            placeholder="Enter 发送，Shift+Enter 换行"
+            onChange={(e) => {
+              setMessageInput(e.target.value);
+            }}
             value={messageInput}
             onKeyDown={handleKeyDown}
           />
@@ -173,7 +184,7 @@ function Emoji({ children, updateEmojiUrls }: { children: React.ReactNode; updat
       {/* dropdown 表情选择窗口 */}
       <ul
         tabIndex={0}
-        className="dropdown-content menu bg-base-100 rounded-box z-1 w-96 p-2 shadow-sm overflow-y-auto"
+        className="dropdown-content menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto w-96 transform -translate-x-1/3 md:translate-x-0"
       >
         <EmojiWindow onChoose={onChoose}></EmojiWindow>
       </ul>

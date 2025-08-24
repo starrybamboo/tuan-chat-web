@@ -18,7 +18,7 @@ interface TagManagementPopupProps {
 const TAG_CONTENT_MAX = 16; // 标签内容的最大字数，未来可能会往低了调
 const MAX_TAGS = 8; // 最大标签数量
 
-export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
+export const TagManagementPop: React.FC<TagManagementPopupProps> = ({
   isOpen,
   onClose,
   tags,
@@ -174,7 +174,6 @@ export const TagManagementPopup: React.FC<TagManagementPopupProps> = ({
               ? "修改您的标签内容和颜色"
               : "创建新的玩家标签并选择颜色"}
           </p>
-          <p>...修改标签内容要等会，颜色倒是可以</p>
         </div>
 
         <div className="mb-4">

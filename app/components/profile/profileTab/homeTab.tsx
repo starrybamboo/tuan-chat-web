@@ -6,8 +6,9 @@ import { PopWindow } from "@/components/common/popWindow";
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import EditProfileWindow from "@/components/profile/editProfileWindow";
-import GNSSpiderChart from "@/components/profile/module/GNSSpiderChart";
+import GNSSpiderChart from "@/components/profile/cards/GNSSpiderChart";
+import ScCurrencyDisplay from "@/components/profile/cards/ScCurrencyDisplay";
+import EditProfilePop from "@/components/profile/popWindows/editProfilePop";
 import React, { useState } from "react";
 import { Link } from "react-router";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../../api/hooks/userFollowQueryHooks";
@@ -59,8 +60,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
     rating: 0,
     sessions: 0,
     kpSessions: 0,
-    scBalance: 0,
-    tags: ["悬疑团", "搞笑团", "抽象团", "奇幻团", "科幻团", "历史团"],
     medals: [
       { id: 1, name: "Your Story", desc: "首次设计了一个模组", date: "2025-07-21" },
       { id: 2, name: "神秘观测者", desc: "围观了一场跑团超过2个小时", date: "2025-06-15" },
@@ -428,38 +427,16 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             <MarkDownViewer content={user?.readMe || "## Hi, welcome to my personal page!👋"}></MarkDownViewer>
           </div>
         </div>
+
         {/* SC余额卡片 */}
         {loginUserId === userId && (
-          <div className="mt-8 rounded-xl p-5 shadow-lg opacity-90 relative overflow-hidden bg-gradient-to-r from-purple-500 to-indigo-600 dark:from-gray-800 dark:to-gray-900 transition-colors">
-            {/* 装饰性背景元素 */}
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 to-indigo-500/20"></div>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-300/10 rounded-full transform translate-x-1/2 -translate-y-1/2"></div>
-
-            <div className="relative z-10 flex justify-between items-center">
-              <div>
-                <p className="text-purple-200 text-sm">游戏货币余额</p>
-                <h3 className="text-2xl font-bold text-white mt-1">SC 点数</h3>
-              </div>
-              <div className="flex items-baseline">
-                <span className="text-4xl md:text-5xl font-bold text-white">{userProfile.scBalance}</span>
-                <span className="text-xl text-purple-200 ml-2">SC</span>
-              </div>
-            </div>
-
-            <div className="relative z-10 mt-4 flex space-x-3">
-              <button type="button" className="flex-1 bg-white text-indigo-600 font-medium py-2 px-4 rounded-lg hover:bg-indigo-50 transition-colors">
-                充值
-              </button>
-              <button type="button" className="flex-1 bg-indigo-800 text-white font-medium py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors">
-                兑换
-              </button>
-            </div>
-          </div>
+          <ScCurrencyDisplay></ScCurrencyDisplay>
         )}
 
       </div>
+
       <PopWindow isOpen={isEditWindowOpen} fullScreen={true} onClose={() => setIsEditWindowOpen(false)}>
-        <EditProfileWindow onClose={() => setIsEditWindowOpen(false)}></EditProfileWindow>
+        <EditProfilePop onClose={() => setIsEditWindowOpen(false)}></EditProfilePop>
       </PopWindow>
       <PopWindow
         isOpen={isFFWindowOpen}

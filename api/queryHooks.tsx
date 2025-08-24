@@ -24,6 +24,7 @@ import type { UserRole } from './models/UserRole';
 import type { AbilitySetRequest } from "./models/AbilitySetRequest";
 import type { AbilityUpdateRequest } from "./models/AbilityUpdateRequest";
 import type { UseQueryResult } from "@tanstack/react-query";
+import type { Transform } from '../app/components/newCharacter/sprite/TransformControl';
 
 import {
   type AbilityFieldUpdateRequest,
@@ -33,7 +34,6 @@ import {
   type Message,
   type RoleResponse,
   type SpaceOwnerTransferRequest,
-  type FeedRequest,
   type Space,
   type SpaceAddRequest,
   type SpaceMemberAddRequest,
@@ -62,7 +62,7 @@ export function useGetRoleQuery(roleId: number) {
     queryKey: ['getRole', roleId],
     queryFn: () => tuanchat.roleController.getRole(roleId),
     staleTime: 600000, // 10分钟缓存
-    enabled: roleId>0
+    enabled: roleId > 0
   });
 }
 
@@ -107,10 +107,10 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: any) => void)
  */
 export function useCreateRoleMutation() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationKey: ["createRole"],
-    mutationFn: async(req: RoleCreateRequest) => {
+    mutationFn: async (req: RoleCreateRequest) => {
       const res = await tuanchat.roleController.createRole(req);
       if (res.success) {
         console.warn("角色创建成功");
@@ -155,7 +155,7 @@ export function useCreateRoleMutation() {
  */
 export function useDeleteRolesMutation(onSuccess?: () => void) {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationKey: ["deleteRoles"],
     mutationFn: async (roleIds: number[]) => {
@@ -307,16 +307,149 @@ export function useDeleteRoleAvatarMutation(roleId?: number) {
 
 /**
  * 上传头像
+ * 支持Transform参数：scale, positionX, positionY, alpha, rotation
+ * Transform参数会被验证并转换为后端所需的字符串格式
  */
+export function useApplyCropMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["applyCrop"],
+    mutationFn: async ({ roleId, avatarId, croppedImageBlob, transform, currentAvatar }: { 
+      roleId: number; 
+      avatarId: number; 
+      croppedImageBlob: Blob;
+      transform?: Transform;
+      currentAvatar: RoleAvatar;
+    }) => {
+      if (!roleId || !avatarId || !croppedImageBlob || !currentAvatar) {
+        console.error("参数错误：缺少必要参数");
+        return undefined;
+      }
+
+      try {
+        // 首先上传裁剪后的图片
+        // 将Blob转换为File对象
+        const croppedFile = new File([croppedImageBlob], `cropped_sprite_${avatarId}_${Date.now()}.png`, {
+          type: 'image/png'
+        });
+        
+        // 使用UploadUtils上传图片，场景3表示角色差分
+        const { UploadUtils } = await import('../app/utils/UploadUtils');
+        const uploadUtils = new UploadUtils();
+        const newSpriteUrl = await uploadUtils.uploadImg(croppedFile, 3, 0.9, 2560);
+
+        console.log("图片上传成功，新URL:", newSpriteUrl);
+
+        // 直接使用传入的transform参数或默认值
+        const finalTransform: Transform = transform || {
+          scale: 1,
+          positionX: 0,
+          positionY: 0,
+          alpha: 1,
+          rotation: 0
+        };
+        
+        // 使用新的spriteUrl和transform参数更新头像记录
+        const updateRes = await tuanchat.avatarController.updateRoleAvatar({
+          roleId: roleId,
+          avatarId,
+          avatarUrl: currentAvatar.avatarUrl, // 保持原有的avatarUrl
+          spriteUrl: newSpriteUrl, // 使用新的spriteUrl
+          spriteXPosition: finalTransform.positionX.toString(),
+          spriteYPosition: finalTransform.positionY.toString(),
+          spriteScale: finalTransform.scale.toString(),
+          spriteTransparency: finalTransform.alpha.toString(),
+          spriteRotation: finalTransform.rotation.toString(),
+        });
+
+        if (!updateRes.success) {
+          console.error("头像记录更新失败", updateRes);
+          return undefined;
+        }
+
+        console.log("裁剪应用成功，头像记录已更新");
+        await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
+        console.log("缓存已刷新，roleId:", roleId);
+        return updateRes;
+      }
+      catch (error) {
+        console.error("裁剪应用请求失败", error);
+        throw error;
+      }
+    },
+    onError: (error) => {
+      console.error("Crop application mutation failed:", error.message || error);
+    },
+  });
+}
+
+export function useUpdateAvatarTransformMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["updateAvatarTransform"],
+    mutationFn: async ({ roleId, avatarId, transform, currentAvatar }: {
+      roleId: number;
+      avatarId: number;
+      transform: Transform;
+      currentAvatar: RoleAvatar;
+    }) => {
+      if (!roleId || !avatarId || !transform || !currentAvatar) {
+        console.error("参数错误：缺少必要参数");
+        return undefined;
+      }
+
+      try {
+        // 直接使用transform参数
+        const t = transform;
+        const updateRes = await tuanchat.avatarController.updateRoleAvatar({
+          roleId: roleId,
+          avatarId,
+          avatarUrl: currentAvatar.avatarUrl,
+          spriteUrl: currentAvatar.spriteUrl,
+          spriteXPosition: t.positionX.toString(),
+          spriteYPosition: t.positionY.toString(),
+          spriteScale: t.scale.toString(),
+          spriteTransparency: t.alpha.toString(),
+          spriteRotation: t.rotation.toString(),
+        });
+
+        if (!updateRes.success) {
+          console.error("Transform更新失败", updateRes);
+          return undefined;
+        }
+
+        console.log("Transform更新成功");
+        await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
+        console.log("缓存已刷新，roleId:", roleId);
+        return updateRes;
+      }
+      catch (error) {
+        console.error("Transform更新请求失败", error);
+        throw error;
+      }
+    },
+    onError: (error) => {
+      console.error("Transform update mutation failed:", error.message || error);
+    },
+  });
+}
+
 export function useUploadAvatarMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["uploadAvatar"],
-    mutationFn: async ({ avatarUrl, spriteUrl, roleId }: { avatarUrl: string; spriteUrl: string; roleId: number }) => {
+    mutationFn: async ({ avatarUrl, spriteUrl, roleId, transform }: { avatarUrl: string; spriteUrl: string; roleId: number; transform?: Transform }) => {
       if (!avatarUrl || !roleId || !spriteUrl) {
         console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;
       }
+
+      console.log("useUploadAvatarMutation: 开始上传", {
+        hasTransform: !!transform,
+        roleId,
+        avatarUrl: avatarUrl.substring(0, 50) + "...",
+        spriteUrl: spriteUrl.substring(0, 50) + "..."
+      });
 
       try {
         const res = await tuanchat.avatarController.setRoleAvatar({
@@ -331,23 +464,34 @@ export function useUploadAvatarMutation() {
         const avatarId = res.data;
 
         if (avatarId) {
+          // 直接使用transform参数或默认值
+          const t: Transform = transform || {
+            scale: 1,
+            positionX: 0,
+            positionY: 0,
+            alpha: 1,
+            rotation: 0
+          };
           const uploadRes = await tuanchat.avatarController.updateRoleAvatar({
             roleId: roleId,
             avatarId,
             avatarUrl,
             spriteUrl,
+            spriteXPosition: t.positionX.toString(),
+            spriteYPosition: t.positionY.toString(),
+            spriteScale: t.scale.toString(),
+            spriteTransparency: t.alpha.toString(),
+            spriteRotation: t.rotation.toString(),
           });
-
           if (!uploadRes.success) {
             console.error("头像更新失败", uploadRes);
             return undefined;
           }
-
-          console.warn("头像上传成功");
-          await queryClient.invalidateQueries({ queryKey: ["roleAvatar", roleId] });
+          console.warn("头像上传成功，包含Transform参数");
+          await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
+          console.log("缓存已刷新，roleId:", roleId);
           return uploadRes;
-        }
-        else {
+        } else {
           console.error("头像ID无效");
           return undefined;
         }

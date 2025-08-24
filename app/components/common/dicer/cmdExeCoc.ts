@@ -1,5 +1,6 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
 import { parseDiceExpression, rollDice } from "@/components/common/dicer/dice";
+import UNTIL from "@/components/common/dicer/until";
 
 // 属性名中英文对照表
 const ABILITY_MAP: { [key: string]: string } = {
@@ -37,6 +38,7 @@ const cmdRc = new CommandExecutor(
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     // 所有参数转为小写
     args = args.map(arg => arg.toLowerCase());
+    const isForceToasted = UNTIL.doesHaveArg(args, "h");
     // 解析参数
     // 1. 以正负号开头的数字
     const signedNumbers = args.filter(str => /^[+-]\d+(?:\.\d+)?$/.test(str));
@@ -112,7 +114,11 @@ const cmdRc = new CommandExecutor(
     if (bp < 0) {
       result += ` 惩罚骰 [${roll.slice(1).join(",")}]`;
     }
-
+    if (isForceToasted) {
+      cpi.sendToast(result);
+      cpi.sendMsg(prop, `${mentioned[mentioned.length - 1].roleName}进行了一次暗骰`);
+      return true;
+    }
     cpi.sendMsg(prop, result);
     return true;
   },

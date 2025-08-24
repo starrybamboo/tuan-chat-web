@@ -1,4 +1,4 @@
-import { MemberTypeTag } from "@/components/chat/smallComponents/memberTypeTag";
+import MemberLists from "@/components/chat/smallComponents/memberLists";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
@@ -6,7 +6,6 @@ import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import UserAvatarComponent from "@/components/common/userAvatar";
 import { GirlIcon, MemberIcon, Setting } from "@/icons";
 import React, { use } from "react";
 import toast from "react-hot-toast";
@@ -85,19 +84,7 @@ export default function SpaceDetailPanel() {
               )
             }
           </div>
-          {spaceMembers.map(member => (
-            <div
-              key={member.userId}
-              className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg items-center "
-            >
-              {/* 成员列表 */}
-              <UserAvatarComponent userId={member.userId ?? 0} width={8} isRounded={true} withName={true}>
-              </UserAvatarComponent>
-              <div className="flex flex-col items-center gap-2 text-sm font-medium">
-              </div>
-              <MemberTypeTag memberType={member.memberType}></MemberTypeTag>
-            </div>
-          ))}
+          <MemberLists members={spaceMembers}></MemberLists>
         </div>
         {/* 角色列表 */}
         <label className="tab">
@@ -123,6 +110,7 @@ export default function SpaceDetailPanel() {
               )
             }
           </div>
+          {/* TODO: 适配新的角色列表 */}
           {spaceRoles.map(role => (
             <div
               key={role.roleId}

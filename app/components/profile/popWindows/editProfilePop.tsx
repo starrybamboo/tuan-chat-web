@@ -1,14 +1,14 @@
-import type { UserInfoResponse } from "../../../api";
+import type { UserInfoResponse } from "../../../../api";
 import MarkdownEditor from "@/components/common/markdown/markdownEditor";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useState } from "react";
-import { useGetUserInfoQuery, useUpdateUserInfoMutation } from "../../../api/queryHooks";
+import { useGetUserInfoQuery, useUpdateUserInfoMutation } from "../../../../api/queryHooks";
 
 const DESCRIPTION_MAX = 253;
 const NAME_MAX = 18;
 
-export default function EditProfileWindow({ onClose }: { onClose?: () => void }) {
+export default function EditProfilePop({ onClose }: { onClose?: () => void }) {
   // 当前登录用户的userId
   const userId = useGlobalContext().userId ?? -1;
 

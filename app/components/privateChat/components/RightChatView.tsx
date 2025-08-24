@@ -1,11 +1,14 @@
+import type { MessageDirectRecallRequest } from "api";
 import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
+import type { UserFollowResponse } from "api/models/UserFollowResponse";
 import type { DirectMessageEvent } from "api/wsModels";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { ChevronRight } from "@/icons";
-import { useGetMessageDirectPageQuery, useRecallMessageDirectMutation } from "api/hooks/MessageDirectQueryHooks";
+import { ChevronRight, HomeIcon, Search, XMarkICon } from "@/icons";
+import { useGetFriendsUserInfoQuery, useGetMessageDirectPageQuery, useRecallMessageDirectMutation } from "api/hooks/MessageDirectQueryHooks";
+import { useGetUserFriendsQuery } from "api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "api/queryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { usePrivateMessageSender } from "../hooks/usePrivateMessageSender";
 import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
@@ -15,6 +18,13 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
   const userId = globalContext.userId || -1;
   const webSocketUtils = globalContext.websocketUtils;
   const PAGE_SIZE = 30; // 每页消息数量
+  const navigate = useNavigate();
+
+  // 获取并缓存好友列表
+  const followingQuery = useGetUserFriendsQuery(userId, { pageNo: 1, pageSize: 100 });
+  const friends: UserFollowResponse[] = useMemo(() => Array.isArray(followingQuery.data?.data?.list) ? followingQuery.data.data.list : [], [followingQuery.data]);
+  const friendUserQueries = useGetFriendsUserInfoQuery(friends.map(f => f.userId));
+  const friendUserInfos = friendUserQueries.map(f => f.data?.data);
 
   const { targetUserId: urlTargetUserId, roomId: urlRoomId } = useParams();
   // 当前联系人信息
@@ -111,11 +121,11 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
 
   // 切换联系人时滚动到底部
   useEffect(() => {
-    if (currentContactUserId) {
-      const timeoutId = setTimeout(() => scrollToBottom(false), 0);
-      return () => clearTimeout(timeoutId);
+    // 等待消息加载完成
+    if (currentContactUserId && allMessages.length > 0 && !directMessageQuery.isLoading) {
+      scrollToBottom(false);
     }
-  }, [currentContactUserId]);
+  }, [currentContactUserId, allMessages.length, directMessageQuery.isLoading]);
 
   // 处理加载更多消息时的滚动位置保持
   useEffect(() => {
@@ -152,7 +162,7 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
    */
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null);
   const recallMessageMutation = useRecallMessageDirectMutation();
-  function handleRevokeMessage(messageId: number) {
+  function handleRevokeMessage(messageId: MessageDirectRecallRequest) {
     recallMessageMutation.mutate(messageId, {
       onSuccess: () => {
         // 强制刷新并清除缓存
@@ -170,56 +180,71 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
     }
   }
 
+  /**
+   * 搜索用户
+   */
+  const [inputUserId, setInputUserId] = useState<number>(-1);
+  const [searchUserId, setSearchUserId] = useState<number>(-1);
+  const [searching, setSearching] = useState(false);
+
+  const searchUserInfo = useGetUserInfoQuery(searchUserId).data?.data || null;
+
+  function searchInputUserId() {
+    if (inputUserId && inputUserId > 0) {
+      setSearching(true);
+      setSearchUserId(inputUserId);
+    }
+  }
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") {
+      searchInputUserId();
+    }
+  };
+
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setInputUserId(Number.parseInt(e.target.value));
+    if (!e.target.value) {
+      setSearching(false);
+    }
+  }
+
   return (
     <div
       className="flex-1 bg-base-100 border-l border-base-300 flex flex-col"
       onContextMenu={handleContextMenu}
       onClick={() => setContextMenu(null)}
     >
-      {/* 聊天顶部栏 */}
+      {/* 顶部信息栏 */}
       <div className="h-10 w-full bg-base-100 border-b border-base-300 flex items-center px-4 relative">
         <ChevronRight
           onClick={() => setIsOpenLeftDrawer(true)}
           className="size-6 sm:hidden"
         />
         <span className="text-center font-semibold line-clamp-1 absolute left-1/2 transform -translate-x-1/2">
-          {currentContactUserInfo ? `${currentContactUserInfo.username}` : "请选择联系人"}
+          {currentContactUserInfo ? `${currentContactUserInfo.username}` : "好友"}
         </span>
-        {/* <span className="absolute right-0 transform -translate-x-4">
-          <MoreMenu className="size-6 cursor-pointer rotate-90" />
-        </span> */}
       </div>
-
       {/* 聊天消息区域 */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 w-full overflow-auto p-4 relative"
+        className="flex-1 w-full overflow-auto p-4 relative bg-base-100"
       >
         {currentContactUserId
+          // 1. 与当前联系人的聊天页面
           ? (
-              // 会溢出的消息列表容器
               <div className="space-y-4">
-                {/* 加载更多按钮 */}
+                {/* a.加载更多 */}
                 {!directMessageQuery.isLastPage && (
                   <div className="flex justify-center">
-                    <button
-                      type="button"
-                      onClick={loadMoreMessages}
-                      disabled={directMessageQuery.isFetchingNextPage}
-                      className="btn btn-sm btn-ghost"
-                    >
-                      {directMessageQuery.isFetchingNextPage
-                        ? (
-                            <>
-                              <span className="loading loading-spinner loading-sm"></span>
-                            </>
-                          )
-                        : null}
-                    </button>
+                    {directMessageQuery.isFetchingNextPage
+                      ? (
+                          <div className="loading loading-spinner loading-sm"></div>
+                        )
+                      : null}
                   </div>
                 )}
 
-                {/* 消息列表项 */}
+                {/* b.消息列表项 */}
                 {allMessages.map(msg => (
                   <MessageBubble
                     key={msg.messageId}
@@ -227,19 +252,123 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
                     isOwn={msg.senderId === userId}
                   />
                 ))}
-                {/* 滚动锚点 */}
+
+                {/* c.滚动锚点 */}
                 <div ref={messagesLatestRef} />
               </div>
             )
           : (
-              <div className="flex items-center justify-center w-full h-full text-gray-500">
-                快找小伙伴聊天吧💬
-              </div>
+              <>
+                <div className="w-full px-2 pb-6 flex items-center justify-center relative">
+                  <input
+                    type="text"
+                    className="input input-md w-full"
+                    placeholder="输入用户ID，按 Enter 或搜索按钮"
+                    value={inputUserId > 0 ? inputUserId : ""}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
+                  />
+                  <div
+                    className="absolute right-4 cursor-pointer w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-300"
+                    onClick={searchInputUserId}
+                  >
+                    <Search className="size-5" />
+                  </div>
+                  <div
+                    className="absolute right-14 cursor-pointer w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-300"
+                    onClick={() => {
+                      setInputUserId(-1);
+                      setSearching(false);
+                    }}
+                  >
+                    <XMarkICon className="size-5" />
+                  </div>
+                </div>
+                {searching
+                  ? (
+                      <div className="flex flex-col w-full h-full">
+                        {searchUserInfo
+                          ? (
+                              <div
+                                key={searchUserInfo?.userId}
+                                className="flex items-center justify-between cursor-pointer hover:bg-base-300 p-2 rounded-md border-t-2 border-base-300"
+                                onClick={() => {
+                                  setSearching(false);
+                                  navigate(`/chat/private/${searchUserInfo?.userId}`);
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <img
+                                    className="rounded-full"
+                                    src={searchUserInfo?.avatar}
+                                    alt="FriendAvatar"
+                                    width={40}
+                                    height={40}
+                                  />
+                                  <span>{searchUserInfo?.userId}</span>
+                                  <span className="font-bold">{searchUserInfo?.username}</span>
+                                </div>
+                                <div
+                                  className="w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-100"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/profile/${searchUserInfo?.userId}`);
+                                  }}
+                                >
+                                  <HomeIcon className="size-5" />
+                                </div>
+                              </div>
+                            )
+                          : (
+                              <div className="flex items-center justify-center">
+                                <span>未找到用户</span>
+                              </div>
+                            )}
+                      </div>
+                    )
+                  : (
+                      <div className="flex flex-col w-full h-full">
+                        {
+                          friendUserInfos.map((friend, index) => {
+                            return (
+                              <div
+                                key={friend?.userId || index}
+                                className="flex items-center justify-between cursor-pointer hover:bg-base-300 p-2 rounded-md border-t-2 border-base-300"
+                                onClick={() => navigate(`/chat/private/${friend?.userId}`)}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <img
+                                    className="rounded-full"
+                                    src={friend?.avatar}
+                                    alt="FriendAvatar"
+                                    width={40}
+                                    height={40}
+                                  />
+                                  <span>{friend?.userId}</span>
+                                  <span className="font-bold">{friend?.username}</span>
+                                </div>
+                                <div
+                                  className="w-8 h-8 flex items-center justify-center rounded-box hover:bg-base-100"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/profile/${friend?.userId}`);
+                                  }}
+                                >
+                                  <HomeIcon className="size-5" />
+                                </div>
+                              </div>
+                            );
+                          })
+                        }
+                      </div>
+                    )}
+              </>
             )}
       </div>
 
       {/* 输入区域 */}
       <MessageInput
+        key={currentContactUserId}
         currentContactUserId={currentContactUserId}
         setMessageInput={setMessageInput}
         messageInput={messageInput}
@@ -262,7 +391,7 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
                 <li>
                   <a onClick={(e) => {
                     e.preventDefault();
-                    handleRevokeMessage(contextMenu.messageId);
+                    handleRevokeMessage({ messageId: contextMenu.messageId });
                     setContextMenu(null);
                   }}
                   >
@@ -296,7 +425,7 @@ function mergeMessages(historyMessages: MessageDirectResponse[], currentContactM
   // 按消息位置排序，确保消息显示顺序正确
   const allMessages = Array.from(messageMap.values())
     .sort((a, b) => (a.messageId ?? 0) - (b.messageId ?? 0))
-    .filter(msg => msg.status !== 1);
+    .filter(msg => msg.messageType !== 10000);
 
   return allMessages;
 }

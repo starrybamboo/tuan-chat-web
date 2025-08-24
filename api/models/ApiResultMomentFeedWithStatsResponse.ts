@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { CursorPageBaseResponseFeedWithStatsResponse } from './CursorPageBaseResponseFeedWithStatsResponse';
+import type { MomentFeedWithStatsResponse } from './MomentFeedWithStatsResponse';
 /**
  * 基础返回体
  */
-export type ApiResultCursorPageBaseResponseFeedWithStatsResponse = {
+export type ApiResultMomentFeedWithStatsResponse = {
     /**
      * 成功标识true or false
      */
@@ -19,6 +19,6 @@ export type ApiResultCursorPageBaseResponseFeedWithStatsResponse = {
      * 错误消息
      */
     errMsg?: string;
-    data?: CursorPageBaseResponseFeedWithStatsResponse;
+    data?: MomentFeedWithStatsResponse;
 };
 

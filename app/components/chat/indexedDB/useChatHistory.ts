@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { ChatMessageResponse } from "../../../../api";
 
@@ -11,7 +11,6 @@ import {
 
 export type UseChatHistoryReturn = {
   messages: ChatMessageResponse[];
-  maxSyncId: number;
   loading: boolean;
   error: Error | null;
   addOrUpdateMessage: (message: ChatMessageResponse) => Promise<void>;
@@ -27,27 +26,20 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // 当前本地存储的消息的最大syncId
-  const maxSyncId = useMemo(() => {
-    if (!messages || messages.length === 0) {
-      return -1;
-    }
-    return Math.max(...messages.map(msg => msg.message.syncId));
-  }, [messages, roomId]);
-
   /**
    * 批量添加或更新消息到当前房间，并同步更新UI状态
    * @param newMessages 要处理的消息数组
    */
   const addOrUpdateMessages = useCallback(
     async (newMessages: ChatMessageResponse[]) => {
-      if (roomId === null || newMessages.length === 0)
+      if (newMessages.length === 0)
         return;
 
       // 先更新状态
       setMessages((prevMessages) => {
-        const messageMap = new Map(prevMessages.map(msg => [msg.message.messageID, msg]));
-        newMessages.forEach(msg => messageMap.set(msg.message.messageID, msg));
+        const messageMap = new Map(prevMessages.map(msg => [msg.message.messageId, msg]));
+        newMessages.filter(msg => msg.message.roomId === roomId)
+          .forEach(msg => messageMap.set(msg.message.messageId, msg));
         const updatedMessages = Array.from(messageMap.values());
         // 按 position 排序确保顺序
         return updatedMessages.sort((a, b) => a.message.position - b.message.position);
@@ -94,13 +86,32 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     }
   }, [roomId]);
 
-  // 初始加载聊天记录
+  /**
+   * 从服务器全量获取最新的消息
+   */
+  const fetchNewestMessages = async (maxSyncId: number) => {
+    if (roomId === null)
+      return;
+    // 从服务器获取最新消息
+    const serverResponse = await tuanchat.chatController.getHistoryMessages({
+      roomId,
+      syncId: maxSyncId + 1,
+    });
+    const newMessages = serverResponse.data ?? [];
+    if (newMessages.length > 0) {
+      await addOrUpdateMessages(newMessages);
+    }
+  };
+
+  /**
+   * 初始加载聊天记录
+   */
   useEffect(() => {
     if (roomId === null) {
       setMessages([]);
       setLoading(false);
       return;
-    };
+    }
 
     setLoading(true);
     let isCancelled = false; // Flag to prevent state updates from stale effects
@@ -112,23 +123,10 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         if (isCancelled)
           return;
         setMessages(localHistory);
-
         const localMaxSyncId = localHistory.length > 0
           ? Math.max(...localHistory.map(msg => msg.message.syncId))
           : -1;
-
-        // 从服务器获取最新消息
-        const serverResponse = await tuanchat.chatController.getHistoryMessages({
-          roomId,
-          syncId: localMaxSyncId + 1,
-        });
-        if (isCancelled)
-          return;
-
-        const newMessages = serverResponse.data ?? [];
-        if (newMessages.length > 0) {
-          await addOrUpdateMessages(newMessages);
-        }
+        await fetchNewestMessages(localMaxSyncId);
       }
       catch (err) {
         if (!isCancelled) {
@@ -147,9 +145,20 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     };
   }, [addOrUpdateMessages, roomId]);
 
+  // 在页面长时间处于非活动状态后再切回来， 很可能发生ws断联的情况， 所以需要监听document的状态
+  const documentVisibility = typeof document !== "undefined" ? document.visibilityState : "visible";
+  // 监听页面状态, 如果重新页面处于可见状态，则尝试重新获取最新消息
+  useEffect(() => {
+    if (document.visibilityState === "visible") {
+      const maxSyncId = messages.length > 0
+        ? Math.max(...messages.map(msg => msg.message.syncId))
+        : -1;
+      fetchNewestMessages(maxSyncId);
+    }
+  }, [documentVisibility]);
+
   return {
     messages,
-    maxSyncId,
     loading,
     error,
     addOrUpdateMessage, // 用于单条消息

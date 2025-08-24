@@ -1,6 +1,15 @@
 import type { SVGProps } from "react";
 import React from "react";
 
+/**
+ * 每个Icon图标都用AI生成了一些关键词方便搜索
+ * 应该有点用
+ * 吧？
+ * 我是建议在末尾加 Icon 方便区分正常组件
+ */
+
+// 终端命令图标
+// 其他关键词：控制台，命令行，shell，terminal
 export function CommandSolid(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -21,6 +30,8 @@ export function CommandSolid(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 二十面骰子图标
+// 其他关键词：骰子，D20，桌游，DND，跑团
 export function DiceTwentyFacesTwenty(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -39,6 +50,8 @@ export function DiceTwentyFacesTwenty(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 损坏的图片图标
+// 其他关键词：破损图片，加载失败，图像错误，占位图
 export function GalleryBroken(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -65,6 +78,8 @@ export function GalleryBroken(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 设置齿轮图标
+// 其他关键词：配置，选项，系统设置，偏好设置
 export function Setting(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -84,6 +99,8 @@ export function Setting(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 更多菜单图标
+// 其他关键词：菜单，选项，三点，更多操作
 export function MoreMenu(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -103,6 +120,8 @@ export function MoreMenu(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 女孩头像图标
+// 其他关键词：女孩，女童，孩子，用户头像
 export function GirlIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -126,6 +145,8 @@ export function GirlIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 聊天气泡图标2
+// 其他关键词：对话，消息，通讯，交流
 export function Bubble2(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -148,6 +169,8 @@ export function Bubble2(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 聊天气泡带省略号图标
+// 其他关键词：对话，消息，交谈中，输入中
 export function ChatBubbleEllipsesOutline(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -173,6 +196,8 @@ export function ChatBubbleEllipsesOutline(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 发送图标
+// 其他关键词：发送消息，提交，纸飞机
 export function SendIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -191,6 +216,8 @@ export function SendIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 文字加粗图标
+// 其他关键词：粗体，文本格式化，富文本
 export function BaselineFormatBold(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -209,6 +236,8 @@ export function BaselineFormatBold(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 文字斜体图标
+// 其他关键词：斜体，文本格式化，富文本
 export function BaselineFormatItalic(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -227,6 +256,8 @@ export function BaselineFormatItalic(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 链接图标
+// 其他关键词：超链接，URL，网址，连接
 export function LinkFilled(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -246,6 +277,8 @@ export function LinkFilled(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 代码图标
+// 其他关键词：编程，代码块，源代码
 export function BaselineCode(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -264,6 +297,8 @@ export function BaselineCode(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 有序列表图标
+// 其他关键词：编号列表，数字列表，排序列表
 export function ListOrdered(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -282,6 +317,8 @@ export function ListOrdered(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 无序列表图标
+// 其他关键词：项目符号，圆点列表，清单
 export function ListUnordered(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -300,6 +337,8 @@ export function ListUnordered(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 引用图标
+// 其他关键词：引文，评论，备注
 export function QuoteAltRight(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -318,6 +357,8 @@ export function QuoteAltRight(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 删除线图标
+// 其他关键词：划掉，删除，文本删除
 export function DeleteLine(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -337,6 +378,8 @@ export function DeleteLine(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 图片图标
+// 其他关键词：相册，照片，图像，插入图片
 export function Image2Fill(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -355,6 +398,8 @@ export function Image2Fill(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// B站图标
+// 其他关键词：哔哩哔哩，视频，直播
 export function BilibiliFill(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -373,6 +418,8 @@ export function BilibiliFill(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// YouTube图标
+// 其他关键词：油管，视频，直播
 export function YoutubeSolid(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -393,6 +440,8 @@ export function YoutubeSolid(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 代码文件图标
+// 其他关键词：源文件，程序文件，开发
 export function FileCodeOne(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -417,6 +466,8 @@ export function FileCodeOne(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 折叠箭头图标
+// 其他关键词：展开，收起，下拉
 export function FoldDown(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -439,6 +490,8 @@ export function FoldDown(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 用户组图标
+// 其他关键词：团队，群组，成员
 export function UsersIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -462,6 +515,8 @@ export function UsersIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 指南针图标
+// 其他关键词：导航，方向，探索
 export function CompassIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -485,6 +540,8 @@ export function CompassIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 主页图标
+// 其他关键词：首页，家，主页面
 export function HomeIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -508,6 +565,8 @@ export function HomeIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 关闭叉号图标
+// 其他关键词：关闭，取消，删除，移除
 export function XMarkICon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -535,6 +594,8 @@ export function XMarkICon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 成员图标
+// 其他关键词：用户，账户，个人资料
 export function MemberIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -553,6 +614,8 @@ export function MemberIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 剑刃挥舞图标
+// 其他关键词：武器，战斗，攻击，游戏
 export function SwordSwing(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -573,6 +636,8 @@ export function SwordSwing(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 返回箭头图标
+// 其他关键词：后退，上一步，返回
 export function BaselineArrowBackIosNew(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -591,6 +656,8 @@ export function BaselineArrowBackIosNew(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 向下箭头图标
+// 其他关键词：展开，下拉，向下
 export function AngleDownOutline(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -613,6 +680,8 @@ export function AngleDownOutline(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 水平省略号图标
+// 其他关键词：更多，菜单，选项
 export function DotsHorizontalOutline(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -634,6 +703,8 @@ export function DotsHorizontalOutline(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 表情符号图标
+// 其他关键词：笑脸，emoji，表情
 export function EmojiIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -651,6 +722,8 @@ export function EmojiIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 向右箭头图标
+// 其他关键词：下一个，前进，右侧
 export function ChevronRight(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -672,6 +745,8 @@ export function ChevronRight(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 白色表情图标
+// 其他关键词：笑脸，emoji，表情，明色
 export function EmojiIconWhite(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -689,6 +764,9 @@ export function EmojiIconWhite(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+// 评论轮廓图标
+// 其他关键词：留言，回复，对话框
 export function CommentOutline(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -722,6 +800,8 @@ export function EllipsisVertical(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 六边形骰子图标
+// 其他关键词：游戏，骰子，桌游
 export function HexagonDice(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -750,6 +830,8 @@ export function HexagonDice(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 命令行终端图标
+// 其他关键词：控制台，shell，终端
 export function CommandLine(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -772,6 +854,8 @@ export function CommandLine(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 应用用户角色图标
+// 其他关键词：权限，用户组，角色管理
 export function AppUsersRoles(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -796,6 +880,8 @@ export function AppUsersRoles(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 在线用户同步图标
+// 其他关键词：在线状态，用户同步，实时
 export function UserSyncOnlineInPerson(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -831,6 +917,8 @@ export function UserSyncOnlineInPerson(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 拖拽图标
+// 其他关键词：拖动，排序，移动
 export function DraggableIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -849,6 +937,8 @@ export function DraggableIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 下拉箭头图标
+// 其他关键词：展开，折叠，向下
 export function ChevronDown(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -868,6 +958,8 @@ export function ChevronDown(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 搜索图标
+// 其他关键词：查找，放大镜，搜索框
 export function Search(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -891,6 +983,8 @@ export function Search(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 地图定位点图标
+// 其他关键词：位置，坐标，地图标记
 export function PointOnMapPerspectiveLinear(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -910,6 +1004,8 @@ export function PointOnMapPerspectiveLinear(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 加号图标
+// 其他关键词：新增，添加，创建
 export function PlusOutline(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -930,6 +1026,8 @@ export function PlusOutline(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 齿轮轮廓图标
+// 其他关键词：设置，配置，选项
 export function GearOutline(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -950,6 +1048,8 @@ export function GearOutline(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 内容图标
+// 其他关键词：文档，文件，内容管理
 export function ContentIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -971,6 +1071,8 @@ export function ContentIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 舞台图标
+// 其他关键词：场景，演示，展示
 export function StageIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -992,6 +1094,8 @@ export function StageIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 历史记录图标
+// 其他关键词：时间，记录，日志
 export function HistoryIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -1013,6 +1117,8 @@ export function HistoryIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 分支图标
+// 其他关键词：分叉，版本，Git
 export function BranchIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -1031,6 +1137,8 @@ export function BranchIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 闪光图标
+// 其他关键词：星光，特效，魔法
 export function SparklesOutline(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -1052,6 +1160,32 @@ export function SparklesOutline(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+// 柱状统计图标
+// 其他关键词：数据可视化，图表，分析，投票
+export function BarChartOutlineIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <rect x="5" y="12" width="3" height="7" rx="1" />
+      <rect x="10" y="9" width="3" height="10" rx="1" />
+      <rect x="15" y="5" width="3" height="14" rx="1" />
+    </svg>
+  );
+}
+
+// 搜索图标（填充样式）
+// 其他关键词：查找，查询，放大镜，检索，搜索栏
 export function SearchFilled(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -1067,6 +1201,23 @@ export function SearchFilled(props: SVGProps<SVGSVGElement>) {
         d="M469.297 439.13L347.982 317.816C370.466 288.907 384 252.707 384 213.334c0-94.104-76.562-170.667-170.666-170.667S42.667 119.23 42.667 213.334S119.23 384 213.334 384c39.373 0 75.573-13.534 104.481-36.018l121.316 121.315zm-255.963-97.796c-70.584 0-128-57.417-128-128c0-70.584 57.416-128 128-128c70.583 0 128 57.416 128 128c0 70.583-57.417 128-128 128"
       >
       </path>
+    </svg>
+  );
+}
+
+export function AddRingLight(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <g fill="none" stroke="currentColor">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path strokeLinecap="square" d="M12 15V9m3 3H9"></path>
+      </g>
     </svg>
   );
 }

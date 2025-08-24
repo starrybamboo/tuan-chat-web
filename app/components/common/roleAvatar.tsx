@@ -71,7 +71,7 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
   return (
     <div className="flex flex-col items-center">
       <div className="avatar">
-        <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""} text-center flex content-center`}>
+        <div className={`${sizeMap[width]} rounded${isRounded && roleAvatar?.avatarUrl ? "-full" : ""} text-center flex content-center`}>
           {!roleAvatar?.avatarUrl
             ? (
                 <span className={`${sizeMap[width]} text-sm`}>{alt}</span>

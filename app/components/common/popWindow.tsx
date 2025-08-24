@@ -32,7 +32,7 @@ export function PopWindow({ isOpen, children, onClose, fullScreen = false, trans
     <Mounter targetId="modal-root">
       <div className={`modal ${isOpen ? "modal-open" : ""}`}>
         <div
-          className={`relative overflow-auto
+          className={`relative flex flex-col
                ${transparent ? "bg-transparent w-screen h-dvh" : "bg-base-100 dark:bg-base-300"}
                ${fullScreen ? "w-screen h-dvh" : "modal-box w-auto max-w-[100vw] lg:max-w-[80vw] lg:h-auto lg:max-h-[90vh]"}`}
           style={{
@@ -62,7 +62,7 @@ export function PopWindow({ isOpen, children, onClose, fullScreen = false, trans
             </svg>
           </button>
           {/* 卡片内容 */}
-          <div className="card-body p-4 w-full h-full">
+          <div className="card-body p-4 w-full h-full overflow-auto min-h-0">
             {children}
           </div>
         </div>
