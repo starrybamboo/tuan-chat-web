@@ -80,9 +80,9 @@ export default function SceneList({ stageId }: { stageId: number }) {
 
   const handleAddSceneSubmit = () => {
     let index = 1;
-    let name = "新场景1";
+    let name = "新剧情1";
     while (list?.some(i => i.name === name)) {
-      name = `新场景${index}`;
+      name = `新剧情${index}`;
       index++;
     }
     addScene({
@@ -112,33 +112,16 @@ export default function SceneList({ stageId }: { stageId: number }) {
           });
         }
       },
-    }, {
-      onSuccess: () => {
-        if (mapData) {
-          updateMap({
-            id: mapData.id!,
-            name: mapData.name,
-            entityType: 5,
-            entityInfo: {
-              ...mapData.entityInfo,
-              sceneMap: {
-                ...mapData.entityInfo!.sceneMap,
-                [name]: [],
-              },
-            },
-          });
-        }
-      },
     });
   };
 
   return (
-    <Section label="场景" onClick={handleAddSceneSubmit}>
+    <Section label="剧情" onClick={handleAddSceneSubmit}>
       <>
         {isEmpty
           ? (
               <div className="text-sm text-gray-500 px-2 py-4">
-                暂时没有场景哦
+                暂时没有剧情哦
               </div>
             )
           : (list?.map(i => (

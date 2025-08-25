@@ -56,7 +56,8 @@
     "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "ts-md5": "^2.0.1",
-    "use-immer": "^0.11.0"
+    "use-immer": "^0.11.0",
+    "vditor": "^3.11.1"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.11.0",

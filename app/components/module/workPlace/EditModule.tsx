@@ -244,7 +244,7 @@ function SceneModuleTabItem({
         {label}
       </label>
       <div className="tab-content bg-base-100 border-base-300 p-6">
-        <SceneEdit scene={scene} />
+        <SceneEdit scene={scene} id={id} />
       </div>
     </>
   );
