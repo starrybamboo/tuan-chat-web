@@ -4,6 +4,7 @@ import { useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useState } from "react";
 import { useModuleContext } from "../context/_moduleContext";
+import Veditor from "./veditor";
 
 interface LocationEditProps {
   location: StageEntityResponse;
@@ -52,12 +53,6 @@ export default function LocationEdit({ location }: LocationEditProps) {
     }, 300);
   };
 
-  const handleEdit = () => setIsEditing(true);
-  const handleCancel = () => {
-    setLocalLocation({ ...entityInfo });
-    setIsEditing(false);
-  };
-
   const generateUniqueFileName = (name: string): string => {
     const timestamp = Date.now();
     return `sceneModule-${name}-${timestamp}`;
@@ -75,6 +70,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
       name: location.name!,
     });
   };
+  const vditorId = `location-tip-editor-${location.id}`;
 
   return (
     <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
@@ -98,113 +94,72 @@ export default function LocationEdit({ location }: LocationEditProps) {
 
             {/* 右侧内容 */}
             <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
-              {isEditing
-                ? (
-                    <>
-                      <p>场景名称：</p>
-                      <input
-                        type="text"
-                        value={name || ""}
-                        onChange={e => setName(e.target.value)}
-                        placeholder="场景名称"
-                        className="input input-bordered w-full text-lg font-bold"
-                      />
-                      <p>场景描述：</p>
-                      <textarea
-                        value={localLocation.sceneDescription || ""}
-                        onChange={(e) => {
-                          setLocalLocation(prev => ({ ...prev, sceneDescription: e.target.value }));
-                          setCharCount(e.target.value.length);
-                        }}
-                        placeholder="场景描述"
-                        className="textarea textarea-bordered w-full h-24 resize-none"
-                      />
-                      <div className="text-right mt-1">
-                        <span
-                          className={`text-sm font-bold ${charCount > MAX_DESCRIPTION_LENGTH
-                            ? "text-error"
-                            : "text-base-content/70"
-                          }`}
-                        >
-                          {charCount}
-                          /
-                          {MAX_DESCRIPTION_LENGTH}
-                          {charCount > MAX_DESCRIPTION_LENGTH && (
-                            <span className="ml-2">(已超出描述字数上限)</span>
-                          )}
-                        </span>
-                      </div>
-                      <p>提示（KP可见）：</p>
-                      <textarea
-                        value={localLocation.tip || ""}
-                        onChange={e => setLocalLocation(prev => ({ ...prev, tip: e.target.value }))}
-                        placeholder="KP提示"
-                        className="textarea textarea-bordered w-full h-24 resize-none"
-                      />
-                    </>
-                  )
-                : (
-                    <>
-                      <h2 className="card-title text-2xl">{name || "未命名场景"}</h2>
-                      <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden">
-                        {localLocation.sceneDescription || "暂无描述"}
-                      </p>
-                      <p className="text-base-content/70 italic whitespace-pre-wrap break-words max-w-full overflow-hidden">
-                        提示：
-                        {localLocation.tip || "暂无提示"}
-                      </p>
-                    </>
-                  )}
+              <>
+                <p>场景名称：</p>
+                <input
+                  type="text"
+                  value={name || ""}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="场景名称"
+                  className="input input-bordered w-full text-lg font-bold"
+                />
+                <p>场景描述：</p>
+                <textarea
+                  value={localLocation.description || ""}
+                  onChange={(e) => {
+                    setLocalLocation(prev => ({ ...prev, description: e.target.value }));
+                    setCharCount(e.target.value.length);
+                  }}
+                  placeholder="场景描述"
+                  className="textarea textarea-bordered w-full h-24 resize-none"
+                />
+                <div className="text-right mt-1">
+                  <span
+                    className={`text-sm font-bold ${charCount > MAX_DESCRIPTION_LENGTH
+                      ? "text-error"
+                      : "text-base-content/70"
+                    }`}
+                  >
+                    {charCount}
+                    /
+                    {MAX_DESCRIPTION_LENGTH}
+                    {charCount > MAX_DESCRIPTION_LENGTH && (
+                      <span className="ml-2">(已超出描述字数上限)</span>
+                    )}
+                  </span>
+                </div>
+                <p>地区支线：</p>
+                <Veditor
+                  id={vditorId}
+                  placeholder={localLocation.tip || ""}
+                  onchange={(value) => {
+                    setLocalLocation(prev => ({ ...prev, tip: value }));
+                  }}
+                />
+              </>
             </div>
           </div>
           {/* 操作按钮 */}
           <div className="card-actions justify-end">
-            {isEditing
-              ? (
-                  <>
-                    <button
-                      type="submit"
-                      onClick={handleSave}
-                      className={`btn btn-primary ${isTransitioning ? "scale-95" : ""}`}
-                      disabled={isTransitioning}
-                    >
-                      {isTransitioning
-                        ? (
-                            <span className="loading loading-spinner loading-xs"></span>
-                          )
-                        : (
-                            <span className="flex items-center gap-1">
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                              </svg>
-                              保存
-                            </span>
-                          )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCancel}
-                      className="btn btn-secondary ml-2"
-                    >
-                      取消
-                    </button>
-                  </>
-                )
-              : (
-                  <button
-                    type="button"
-                    onClick={handleEdit}
-                    className="btn btn-accent"
-                  >
+            <button
+              type="submit"
+              onClick={handleSave}
+              className={`btn btn-primary ${isTransitioning ? "scale-95" : ""}`}
+              disabled={isTransitioning}
+            >
+              {isTransitioning
+                ? (
+                    <span className="loading loading-spinner loading-xs"></span>
+                  )
+                : (
                     <span className="flex items-center gap-1">
                       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                        <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                       </svg>
-                      编辑
+                      保存
                     </span>
-                  </button>
-                )}
+                  )}
+            </button>
           </div>
         </div>
       </div>

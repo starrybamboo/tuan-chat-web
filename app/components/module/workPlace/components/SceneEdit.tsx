@@ -86,9 +86,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
   const [name, setName] = useState(scene.name);
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [charCount, setCharCount] = useState(entityInfo.tip?.length || 0);
   const [editEntityType, setEditEntityType] = useState<"item" | "role" | "location">("role");
-  const MAX_TIP_LENGTH = 300;
   const VeditorId = `scene-description-editor-${id}`;
 
   // 接入接口
@@ -149,7 +147,6 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
   useEffect(() => {
     setLocalScene({ ...entityInfo });
-    setCharCount(entityInfo.tip?.length || 0);
     setName(scene.name);
   }, [scene, entityInfo]);
 
@@ -282,23 +279,19 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                   <label className="label">
                     <span className="label-text font-bold mb-1">场景描述（玩家可见）</span>
                   </label>
-                  {/* <textarea
-                          value={localScene.description || ""}
-                          onChange={e =>
-                            setLocalScene(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="可以直接展示给玩家的描述"
-                          className="textarea textarea-bordered w-full h-24 resize-none"
-                        /> */}
-                  <Veditor
-                    id={VeditorId}
-                    placeholder=""
+                  <textarea
+                    value={localScene.description || ""}
+                    onChange={e =>
+                      setLocalScene(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="可以直接展示给玩家的描述"
+                    className="textarea textarea-bordered w-full h-24 resize-none"
                   />
                 </div>
                 <div>
                   <label className="label">
-                    <span className="label-text font-bold mb-1">提示（仅KP可见）</span>
+                    <span className="label-text font-bold mb-1">剧情详细</span>
                   </label>
-                  <textarea
+                  {/* <textarea
                     value={localScene.tip || ""}
                     onChange={(e) => {
                       setLocalScene(prev => ({ ...prev, tip: e.target.value }));
@@ -306,21 +299,15 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                     }}
                     placeholder="对KP的提醒（检定，PL需要做什么来获得线索）"
                     className="textarea textarea-bordered w-full h-24 resize-none"
+                  /> */}
+
+                  <Veditor
+                    id={VeditorId}
+                    placeholder={localScene.tip || "对KP的提醒（对于剧情的书写）"}
+                    onchange={(value) => {
+                      setLocalScene(prev => ({ ...prev, tip: value }));
+                    }}
                   />
-                  <div className="text-right mt-1">
-                    <span
-                      className={`text-sm font-bold ${charCount > MAX_TIP_LENGTH
-                        ? "text-error"
-                        : "text-base-content/70"
-                      }`}
-                    >
-                      {charCount}
-                      {" "}
-                      /
-                      {MAX_TIP_LENGTH}
-                      {charCount > MAX_TIP_LENGTH && <span className="ml-2">(已超出字数上限)</span>}
-                    </span>
-                  </div>
                 </div>
               </>
             </div>

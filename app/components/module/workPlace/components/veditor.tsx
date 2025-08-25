@@ -1,144 +1,55 @@
-import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useEffect, useRef } from "react";
 import Vditor from "vditor";
-import { useModuleContext } from "../context/_moduleContext";
 import "vditor/dist/index.css";
 
-interface VeditorProps {
+interface vditorProps {
   id: string;
-  placeholder?: string;
-  onMentionClick?: (type: "物品" | "角色" | "地点", name: string) => void;
+  placeholder: string;
+  onchange: (value: string) => void;
 }
 
-export function Veditor({ id, placeholder, onMentionClick }: VeditorProps) {
-  const editorContainerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<Vditor | null>(null);
-  const { stageId } = useModuleContext();
-  const entities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(entity => [1, 2, 4].includes(entity.entityType!));
+export default function Veditor({ id, placeholder, onchange }: vditorProps) {
+  const vdRef = useRef<Vditor | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // 处理点击事件
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const mention = target.closest("[data-type]") as HTMLElement;
-      if (mention && onMentionClick) {
-        const type = mention.getAttribute("data-type");
-        const name = mention.getAttribute("data-name");
-        if (type && name && ["物品", "角色", "地点"].includes(type)) {
-          onMentionClick(type as "物品" | "角色" | "地点", name);
-        }
-      }
-    };
+    const container = containerRef.current; // 在 useEffect 内部保存 containerRef 的当前值
 
-    if (editorContainerRef.current) {
-      const editor = new Vditor(editorContainerRef.current, {
-        cache: { enable: false },
+    if (!vdRef.current && container) {
+      // 初始化 Vditor 实例
+      vdRef.current = new Vditor(container, {
+        minHeight: 300, // 设置最小高度，允许内容动态扩展
         after: () => {
-          editorRef.current = editor;
-          // 设置占位符
           if (placeholder) {
-            editor.setValue(placeholder);
+            vdRef.current!.setValue(placeholder);
           }
-
-          // 添加点击事件监听
-          editor.vditor.wysiwyg?.element?.addEventListener("click", handler);
         },
-        lang: "zh_CN",
+        input: (value: string) => {
+          // 检查内容变化，避免异常行为
+          if (vdRef.current) {
+            onchange(value);
+          }
+        },
         mode: "wysiwyg",
-        icon: "ant",
-        toolbar: [
-          "emoji",
-          "headings",
-          "bold",
-          "italic",
-          "strike",
-          "link",
-          "|",
-          "list",
-          "ordered-list",
-          "check",
-          "outdent",
-          "indent",
-          "|",
-          "quote",
-          "line",
-          "code",
-          "inline-code",
-          "insert-before",
-          "insert-after",
-          "|",
-          "table",
-          "|",
-        ],
-        hint: {
-          extend: [
-            {
-              key: "@物品/",
-              hint: () => {
-                const items = entities!.filter(entity => entity.entityType === 1);
-                return Promise.resolve(
-                  items.map(item => ({
-                    value: `@物品/${item.name}`,
-                    html: item.name || "",
-                    insert: `@物品/${item.name}`,
-                  })).filter(item => item.html),
-                );
-              },
-            },
-            {
-              key: "@角色/",
-              hint: () => {
-                const roles = entities!.filter(entity => entity.entityType === 2);
-                return Promise.resolve(
-                  roles.map(role => ({
-                    value: `@角色/${role.name}`,
-                    html: role.name || "",
-                    insert: `@角色/${role.name}`,
-                  })).filter(role => role.html),
-                );
-              },
-            },
-            {
-              key: "@地点/",
-              hint: () => {
-                const locations = entities!.filter(entity => entity.entityType === 4);
-                return Promise.resolve(
-                  locations.map(location => ({
-                    value: `@地点/${location.name}`,
-                    html: location.name || "",
-                    insert: `@地点/${location.name}`,
-                  })).filter(location => location.html),
-                );
-              },
-            },
-            {
-              key: "@",
-              hint: () =>
-                Promise.resolve([
-                  { value: "@物品/", html: "物品" },
-                  { value: "@角色/", html: "角色" },
-                  { value: "@地点/", html: "地点" },
-                ]),
-            },
-          ],
+        cache: {
+          enable: false, // 禁用缓存，避免加载旧内容
         },
       });
-
-      return () => {
-        // 清理事件监听器和销毁编辑器
-        if (editorRef.current && editorRef.current.vditor) {
-          editorRef.current.vditor.wysiwyg?.element?.removeEventListener("click", handler);
-          try {
-            editorRef.current.destroy();
-          }
-          catch { }
-        }
-        editorRef.current = null;
-      };
     }
-  }, [id, placeholder, onMentionClick, entities]);
 
-  return <div id={id} className="vditor" ref={editorContainerRef} />;
+    return () => {
+      // 仅在组件销毁时才消耗vditor，避免抖动
+      if (vdRef.current && !container) {
+        try {
+          vdRef.current.destroy();
+        }
+        catch (e) {
+          console.warn("Error destroying Vditor:", e);
+        }
+        vdRef.current = null;
+      }
+    };
+  }, [placeholder, onchange]); // 移除 id 依赖，避免不必要的重建
+
+  return <div id={id} ref={containerRef} className="vditor" />;
 }
-
-export default Veditor;
