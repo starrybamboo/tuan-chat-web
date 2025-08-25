@@ -114,7 +114,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    * 新消息提醒
    */
   const unreadMessageNumber = webSocketUtils.unreadMessagesNumber[roomId] ?? 0;
-  const updateUnreadMessagesNumber = webSocketUtils.updateUnreadMessagesNumber;
+  const updateLastReadSyncId = webSocketUtils.updateLastReadSyncId;
   // useEffect(() => {
   //   sendNotificationWithGrant();
   // }, [historyMessages]);
@@ -123,7 +123,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    */
   const scrollToBottom = () => {
     virtuosoRef?.current?.scrollToIndex(messageIndexToVirtuosoIndex(historyMessages.length - 1));
-    updateUnreadMessagesNumber(roomId, 0);
+    updateLastReadSyncId(roomId);
   };
   useEffect(() => {
     let timer = null;
@@ -602,7 +602,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
             }}
             itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
             atBottomStateChange={(atBottom) => {
-              atBottom && updateUnreadMessagesNumber(roomId, 0);
+              atBottom && updateLastReadSyncId(roomId); ;
               isAtBottomRef.current = atBottom;
             }}
             atTopStateChange={(atTop) => {
