@@ -29,6 +29,7 @@ import {
 } from "api/queryHooks";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
+import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../api/hooks/messageSessionQueryHooks";
 import { MemberSelect } from "../common/memberSelect";
 
 /**
@@ -176,6 +177,23 @@ export default function ChatPage() {
       }
     });
   }, [spaceAvatar, roomAvatar]);
+
+  // 右键菜单
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; roomId: number } | null>(null);
+  // 订阅房间的消息提醒
+  const subscribeRoomMutation = useSubscribeRoomMutation();
+  const unsubscribeRoomMutation = useUnsubscribeRoomMutation();
+  // 关闭右键菜单
+  function closeContextMenu() {
+    setContextMenu(null);
+  }
+  function handleContextMenu(e: React.MouseEvent) {
+    e.preventDefault();
+    const target = e.target as HTMLElement;
+    // 向上查找包含data-message-id属性的父元素
+    const messageElement = target.closest("[data-room-id]");
+    setContextMenu({ x: e.clientX, y: e.clientY, roomId: Number(messageElement?.getAttribute("data-room-id")) });
+  }
 
   // websocket封装, 用于发送接受消息
   const websocketUtils = useGlobalContext().websocketUtils;
@@ -364,7 +382,10 @@ export default function ChatPage() {
             </div>
             <div className="w-px bg-base-300"></div>
             {/* 房间列表 */}
-            <div className="flex flex-col gap-2 py-2 w-full md:w-[200px] h-full flex-1 bg-base-200/40 min-h-0">
+            <div
+              className="flex flex-col gap-2 py-2 w-full md:w-[200px] h-full flex-1 bg-base-200/40 min-h-0"
+              onContextMenu={handleContextMenu}
+            >
               {isPrivateChatMode
                 ? (
                     <LeftChatList
@@ -385,7 +406,7 @@ export default function ChatPage() {
                       <div className="h-px bg-base-300"></div>
                       <div className="flex flex-col gap-2 p-2 overflow-auto">
                         {rooms.map(room => (
-                          <div key={room.roomId}>
+                          <div key={room.roomId} data-room-id={room.roomId}>
                             {activeSpaceId === room.spaceId && (
                               <button
                                 key={room.roomId}
@@ -646,6 +667,31 @@ export default function ChatPage() {
           <SpaceDetailPanel></SpaceDetailPanel>
         </PopWindow>
       </div>
+      {contextMenu && (() => {
+        const isSubscribed = unreadMessagesNumber[contextMenu.roomId];
+        return (
+          <div
+            className="fixed bg-base-100 shadow-lg rounded-md z-40"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            onClick={e => e.stopPropagation()}
+          >
+            <ul className="menu p-2 w-50">
+              {/* --- Notification Settings Menu --- */}
+              <li
+                className="relative group"
+                onClick={() => {
+                  isSubscribed ? unsubscribeRoomMutation.mutate(contextMenu.roomId) : subscribeRoomMutation.mutate(contextMenu.roomId);
+                  closeContextMenu();
+                }}
+              >
+                <div className="flex justify-between items-center w-full">
+                  <span>{isSubscribed ? "关闭消息提醒" : "开启消息提醒"}</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+        );
+      })()}
     </SpaceContext>
   );
 }
