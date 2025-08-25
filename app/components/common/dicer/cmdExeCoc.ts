@@ -384,3 +384,64 @@ const cmdLi = new CommandExecutor(
   },
 );
 ruleCoc.addCmd(cmdLi);
+
+// TODO: 添加rcv指令，进行对抗检定
+// const cmdRcv = new CommandExecutor(
+//   "rcv",
+//   ["rav"],
+//   "进行对抗检定",
+//   [],
+//   "",
+//   async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+//     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
+//     // 所有参数转为小写
+//     args = args.map(arg => arg.toLowerCase());
+//     const isForceToasted = UNTIL.doesHaveArg(args, "h");
+//     return true;
+//   },
+// );
+// ruleCoc.addCmd(cmdRcv);
+
+// en 成长检定
+const cmdEn = new CommandExecutor(
+  "en",
+  [],
+  "进行成长检定",
+  [".en 力量", ".en 神秘学 1d3"],
+  "en [能力名] [成长值]?1d10",
+  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+    const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
+    // 所有参数转为小写
+    args = args.map(arg => arg.toLowerCase());
+    const abilityName = args[0];
+    let increment = "1d10";
+    if (args.length >= 2) {
+      increment = args[1];
+    }
+    // 直接进行一次标准检定
+    if (!curAbility?.ability) {
+      cpi.sendMsg(prop, `未设置角色能力`);
+      return false;
+    }
+    const ability = curAbility.ability[abilityName];
+    if (ability === undefined) {
+      cpi.sendMsg(prop, `未设置能力${abilityName}`);
+      return false;
+    }
+    const roll = rollDice(100);
+    // 计算检定结果，成功则成长失败，失败则成长成功
+    const isEnSuccess = !(roll <= ability);
+    // 失败不成长，成功成长根据increment成长
+    if (isEnSuccess) {
+      const incrementRes = parseDiceExpression(increment).result.value;
+      curAbility.ability[abilityName] += incrementRes;
+      cpi.setRoleAbilityList(mentioned[0].roleId, curAbility);
+      cpi.sendMsg(prop, `${mentioned[0].roleName}的${abilityName}成长检定：D100=${roll}/${ability} 成长成功，提高了${incrementRes}: ${ability}->${curAbility.ability[abilityName]}`);
+    }
+    else {
+      cpi.sendMsg(prop, `${mentioned[0].roleName}的${abilityName}成长检定：D100=${roll}/${ability} 成长失败，${abilityName}未提高`);
+    }
+    return true;
+  },
+);
+ruleCoc.addCmd(cmdEn);
