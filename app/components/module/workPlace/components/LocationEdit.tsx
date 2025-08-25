@@ -1,5 +1,5 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
-import { CharacterCopper } from "@/components/newCharacter/CharacterCopper";
+import { CharacterCopper } from "@/components/newCharacter/sprite/CharacterCopper";
 import { useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useState } from "react";

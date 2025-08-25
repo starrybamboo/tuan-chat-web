@@ -7,7 +7,7 @@ import { getEntityListByType } from "../moduleUtils";
 function CollapsibleSection({
   title,
   children,
-  titleColor = "text-accent",
+  titleColor = "",
   bgColor = "bg-info/10",
   borderColor = "border-info/20",
   defaultExpanded = true,
@@ -206,7 +206,7 @@ function RoleDetail(
 
   if (!name) {
     return (
-      <div className="flex h-full w-full items-center justify-center text-accent text-sm md:text-base">
+      <div className="flex h-full w-full items-center justify-center  text-sm md:text-base">
         请选择一个角色
       </div>
     );
@@ -214,7 +214,7 @@ function RoleDetail(
 
   if (!roleData || !roleInfo) {
     return (
-      <div className="flex h-full w-full items-center justify-center text-accent text-sm md:text-base">
+      <div className="flex h-full w-full items-center justify-center  text-sm md:text-base">
         未找到角色信息
       </div>
     );
@@ -275,15 +275,15 @@ function RoleDetail(
         <div className="hidden md:block">
           <div className="flex items-center gap-4">
             <SelectedAvatar avatarId={selectedAvatarId} />
-            <h1 className="text-2xl md:text-3xl font-bold text-accent">{roleData.name || "未命名"}</h1>
-            <span className="px-3 py-1 text-sm md:text-base bg-accent/10 text-accent rounded-full whitespace-nowrap">
+            <h1 className="text-2xl md:text-3xl font-bold ">{roleData.name || "未命名"}</h1>
+            <span className="px-3 py-1 text-sm md:text-base bg-accent/10  rounded-full whitespace-nowrap">
               {getRoleTypeText(roleInfo.type)}
             </span>
           </div>
           <div className="divider my-0" />
         </div>
         <div className="md:hidden flex items-center gap-4">
-          <span className="px-3 py-1 text-sm md:text-base bg-accent/10 text-accent rounded-full whitespace-nowrap">
+          <span className="px-3 py-1 text-sm md:text-base bg-accent/10  rounded-full whitespace-nowrap">
             {getRoleTypeText(roleInfo.type)}
           </span>
         </div>
@@ -314,8 +314,8 @@ function RoleDetail(
         {/* 角色描述（统一为ItemDetail样式） */}
         {roleInfo.description && (
           <div className="w-full">
-            <h4 className="font-semibold text-base md:text-lg text-accent mb-2">角色简介</h4>
-            <p className="bg-info/10 text-accent p-3 rounded-lg text-sm md:text-base">
+            <h4 className="font-semibold text-base md:text-lg  mb-2">角色简介</h4>
+            <p className="bg-info/10  p-3 rounded-lg text-sm md:text-base">
               {roleInfo.description}
             </p>
           </div>
@@ -439,7 +439,7 @@ export default function Roles({ moduleId }: { moduleId: number }) {
                 />
               );
             })
-          : <div className="w-full text-center text-accent py-8 text-sm md:text-base">没有数据</div>}
+          : <div className="w-full text-center  py-8 text-sm md:text-base">没有数据</div>}
       </div>
       <div className="grow p-2 md:border-l-2 border-base-content/10 border-solid">
         {selectedName
@@ -447,7 +447,7 @@ export default function Roles({ moduleId }: { moduleId: number }) {
               <RoleDetail name={selectedName} roleList={roleList} />
             )
           : (
-              <div className="flex h-full w-full items-center justify-center text-accent text-sm md:text-base">
+              <div className="flex h-full w-full items-center justify-center  text-sm md:text-base">
                 请选择一个角色
               </div>
             )}

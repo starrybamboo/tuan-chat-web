@@ -1,5 +1,11 @@
-import { RoleAbilityDetail } from "@/components/common/ability/roleAbilityDetail";
-import { useGetRoleAvatarQuery, useGetRoleQuery } from "../../../api/queryHooks";
+import { RoomContext } from "@/components/chat/roomContext";
+import { SpaceContext } from "@/components/chat/spaceContext";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import { useGlobalContext } from "@/components/globalContextProvider";
+import ExpansionModule from "@/components/newCharacter/rules/ExpansionModule";
+import { use } from "react";
+import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
+import { useGetRoleAvatarQuery, useGetRoleQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
 
 /**
  * 角色的详情界面
@@ -12,8 +18,37 @@ export function RoleDetail({ roleId }: { roleId: number }) {
 
   const avatarQuery = useGetRoleAvatarQuery(role?.avatarId || 0);
 
+  /**
+   * 仅在chat的上下文中起作用
+   */
+  const roomContext = use(RoomContext);
+  const spaceContext = use(SpaceContext);
+  const roomId = roomContext?.roomId;
+  const ruleId = spaceContext.ruleId;
+  // 控制角色详情的popWindow
+  const [_, setIsOpen] = useSearchParamsState<boolean>(`rolePop${roleId}`, false);
+  // 是否是群主
+  function isManager() {
+    return roomContext.curMember?.memberType === 1;
+  }
+  const deleteRoleMutation = useDeleteRole1Mutation();
+  const userId = useGlobalContext().userId ?? -1;
+  const userRole = useGetUserRolesQuery(userId);
+  const handleRemoveRole = async () => {
+    if (!roomId || !role?.roleId)
+      return;
+    deleteRoleMutation.mutate(
+      { roomId, roleIdList: [roleId] },
+      {
+        onSettled: () => {
+          setIsOpen(false);
+        }, // 最终关闭弹窗
+      },
+    );
+  };
+
   return (
-    <div className="card bg-base-100 flex sm:flex-row flex-col gap-8 ">
+    <div className="bg-base-100 flex sm:flex-row flex-col gap-8 w-full">
       <div className="card-body">
         {/* 角色标识部分 */}
         <div className="flex flex-col items-center gap-4">
@@ -87,8 +122,18 @@ export function RoleDetail({ roleId }: { roleId: number }) {
             <span>无法加载角色信息</span>
           </div>
         )}
+
+        {/* 只在房间中显示的按钮组 */}
+        {
+          // 用户是群主或者当前角色是用户所有才能踢出角色
+          ((isManager() || userRole.data?.data?.find(role => role.roleId === roleId)) && roomId) && (
+            <button type="button" className="btn btn-error" onClick={handleRemoveRole}>
+              踢出角色
+            </button>
+          )
+        }
       </div>
-      <RoleAbilityDetail roleId={roleId}></RoleAbilityDetail>
+      <ExpansionModule roleId={roleId} ruleId={ruleId ?? undefined}></ExpansionModule>
     </div>
   );
 }

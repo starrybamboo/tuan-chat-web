@@ -20,7 +20,7 @@ export default function RepliedMessage({ replyMessage, className }: {
   const scrollToGivenMessage = roomContext.scrollToGivenMessage;
   const imgMsg = replyMessage.extra?.imageMessage;
   return (
-    <div className={className} onClick={() => scrollToGivenMessage && scrollToGivenMessage(replyMessage.messageID)}>
+    <div className={className} onClick={() => scrollToGivenMessage && scrollToGivenMessage(replyMessage.messageId)}>
       <button
         onClick={(e) => {
           e.stopPropagation();

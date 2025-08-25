@@ -11,6 +11,14 @@ export type MessageDirectResponse = {
      */
     messageId?: number;
     /**
+     * 收件箱用户ID
+     */
+    userId?: number;
+    /**
+     * 会话级别的消息递增ID
+     */
+    syncId?: number;
+    /**
      * 发送者ID
      */
     senderId?: number;

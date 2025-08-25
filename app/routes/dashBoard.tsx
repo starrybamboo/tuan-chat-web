@@ -11,7 +11,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function DashBoard() {
   return (
-    <div className="h-dvh w-screen flex flex-col overflow-auto">
+    <div className="h-dvh w-screen grid grid-rows-[auto_1fr] overflow-auto">
       <Topbar></Topbar>
       <Outlet></Outlet>
     </div>

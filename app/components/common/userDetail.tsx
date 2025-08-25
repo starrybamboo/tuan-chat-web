@@ -222,7 +222,7 @@ export function UserDetail({ userId }: UserDetailProps) {
           </div>
         </div>
         {user?.userId !== loginUserId && (
-          <Link to={`/privatechat/${userId}`} className="flex-shrink-0">
+          <Link to={`/chat/private/${userId}`} className="flex-shrink-0">
             <button
               type="button"
               className="btn flex items-center justify-center w-full border border-gray-300 rounded-3 xl hover:text-primary transition-colors h-8 cursor-pointer"

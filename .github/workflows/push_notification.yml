@@ -16,7 +16,7 @@ jobs:
             const https = require('https');
             
             // 飞书机器人的webhook ID (从URL中提取)
-            const webhookId = 'f855c012-5627-4e17-b31d-ab87a25f2192';
+            const webhookId = '4eb13c2e-cfbd-4e0a-959d-81035324c430';
             const secret = '${{ secrets.FEISHU_SECRET }}';
             
             // 计算签名 - 修正为飞书API要求的格式

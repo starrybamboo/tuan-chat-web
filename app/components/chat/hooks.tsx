@@ -11,7 +11,7 @@ export function useGetMessageByIdSmartly(messageId: number) {
 
   // 如果传的是id就从历史消息里面找，没找到就去query。如果是Message类型就直接拿来用
   const foundMessageInHistory
-    = roomContext.historyMessages?.find(item => item.message.messageID === messageId)?.message;
+    = roomContext.chatHistory?.messages?.find(item => item.message.messageId === messageId)?.message;
   const messageQuery = useGetMessageByIdQuery(
     foundMessageInHistory ? -1 : messageId,
   );

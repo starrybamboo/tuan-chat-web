@@ -4,7 +4,7 @@
   themes: all;
 }
 @plugin "daisyui/theme" {
-  name: "silk";
+  name: "light";
   default: true;
   prefersdark: false;
   color-scheme: "light";
@@ -19,7 +19,7 @@
 }
 
 @plugin "daisyui/theme" {
-  name: "dark";
+  name: "forest";
   default: false;
   prefersdark: true;
   color-scheme: "dark";
@@ -32,6 +32,8 @@
   --depth: 0;
   --noise: 0;
 }
+
+@custom-variant dark (&:where([data-theme=forest], [data-theme=forest] *));
 
 @theme {
   --font-sans:
@@ -86,4 +88,17 @@ body {
 
 .jump_icon {
   @apply hover:text-info hover:[animation:jump_0.4s_ease-in-out];
+}
+
+@keyframes highlight-fade-out {
+  from {
+    background-color: hsla(207, 90%, 54%, 0.4);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.highlight-animation {
+  border-radius: 0.5rem;
+  animation: highlight-fade-out 3s ease-out;
 }

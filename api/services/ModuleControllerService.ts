@@ -6,6 +6,7 @@ import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultPageBaseRespModule } from '../models/ApiResultPageBaseRespModule';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { ModuleCreateRequest } from '../models/ModuleCreateRequest';
+import type { ModulePageByUserRequest } from '../models/ModulePageByUserRequest';
 import type { ModulePageRequest } from '../models/ModulePageRequest';
 import type { ModuleUpdateRequest } from '../models/ModuleUpdateRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -48,6 +49,29 @@ export class ModuleControllerService {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/module',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 根据用户ID获取剧本列表
+     * 获取指定用户创建的剧本列表
+     * @param requestBody
+     * @returns ApiResultPageBaseRespModule OK
+     * @throws ApiError
+     */
+    public pageByUserId(
+        requestBody: ModulePageByUserRequest,
+    ): CancelablePromise<ApiResultPageBaseRespModule> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/module/user/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

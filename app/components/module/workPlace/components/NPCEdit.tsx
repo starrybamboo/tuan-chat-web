@@ -3,7 +3,7 @@ import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatar from "@/components/common/roleAvatar";
 
-import { CharacterCopper } from "@/components/newCharacter/CharacterCopper";
+import { CharacterCopper } from "@/components/newCharacter/sprite/CharacterCopper";
 import { useQuery } from "@tanstack/react-query";
 import { useQueryEntitiesQuery, useUpdateEntityMutation, useUploadModuleRoleAvatarMutation } from "api/hooks/moduleQueryHooks";
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";

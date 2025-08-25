@@ -25,12 +25,15 @@ export interface DirectMessageEvent {
     messageId: number;      // 消息的唯一ID
     senderId: number;       // 发送者ID
     receiverId: number;     // 接收者ID
+    userId: number;         // 当前用户ID (可能是发送者或接收者)
+    syncId: number;         // 会话内消息序号
     content: string;        // 消息内容
     messageType: number;    // 消息类型
     replyMessageId?: number;// 回复的消息ID (可选)
     status: number;         // 消息状态
     extra?: any;            // 附加信息 (可选)
     createTime: string;     // 消息创建时间 (ISO 8601 格式字符串)
+    updateTime?: string;     // 消息更新时间 (ISO 8601 格式字符串)
 }
 
 /**

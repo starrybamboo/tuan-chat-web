@@ -6,13 +6,14 @@
  * 更新标签请求
  */
 export type TagUpdateRequest = {
-    /**
-     * 标签ID
-     */
     tagId: number;
     /**
      * 标签颜色
      */
-    color?: string;
+    color: string;
+    /**
+     * tag的内容
+     */
+    content: string;
 };
 

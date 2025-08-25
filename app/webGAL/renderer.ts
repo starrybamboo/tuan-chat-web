@@ -2,7 +2,7 @@ import type { RenderProps } from "@/components/chat/window/renderWindow";
 
 import { checkGameExist, terreApis } from "@/webGAL/index";
 
-import type { ChatMessageResponse } from "../../api";
+import type { ChatMessageResponse, RoleAvatar } from "../../api";
 
 import { tuanchat } from "../../api/instance";
 import { checkFileExist, getAsyncMsg, uploadFile } from "./fileOperator";
@@ -62,8 +62,37 @@ export class Renderer {
   }
 
   /**
+   * webgal的编辑器中，x轴的宽度为2560，y轴的宽度为1440
+   * rotation的单位居然是弧度制！真他妈的反人类啊！
+   */
+  private roleAvatarToTransformString(avatar: RoleAvatar): string {
+    // Convert angle to radians (avatar.spriteRotation is in degrees)
+    const rotationRad = avatar.spriteRotation
+      ? (Number.parseFloat(avatar.spriteRotation) * Math.PI / 180)
+      : 0;
+
+    // Create the transform object
+    const transform = {
+      position: {
+        x: avatar.spriteXPosition ? Number.parseFloat(avatar.spriteXPosition) : 0,
+        y: avatar.spriteYPosition ? Number.parseFloat(avatar.spriteYPosition) : 0,
+      },
+      scale: {
+        x: avatar.spriteScale ? Number.parseFloat(avatar.spriteScale) : 1,
+        y: avatar.spriteScale ? Number.parseFloat(avatar.spriteScale) : 1,
+      },
+      alpha: avatar.spriteTransparency ? Number.parseFloat(avatar.spriteTransparency) : 1,
+      rotation: rotationRad,
+    };
+
+    // Convert to JSON string
+    return `-transform=${JSON.stringify(transform)}`;
+  }
+
+  /**
    * 添加一段对话到webgal中
    * @param roleName 角色名
+   * @param avatar
    * @param text 文本
    * @param leftSpriteName 左边立绘的文件名，如果设置为 空字符串，那么会取消这个位置立绘的显示。设置为undefined，则对这个位置的立绘不做任何改变
    * @param rightSpriteName 右边立绘的文件名，规则同上
@@ -71,16 +100,18 @@ export class Renderer {
    */
   public async addDialog(
     roleName: string,
+    avatar: RoleAvatar | undefined,
     text: string,
     leftSpriteName?: string | undefined,
     rightSpriteName?: string | undefined,
     vocal?: string | undefined,
   ): Promise<void> {
+    const transform = avatar ? this.roleAvatarToTransformString(avatar) : "";
     if (leftSpriteName) {
-      await this.addLineToRenderer(`changeFigure:${leftSpriteName.length > 0 ? `${leftSpriteName}.png` : ""} -left -next;`);
+      await this.addLineToRenderer(`changeFigure:${leftSpriteName.length > 0 ? `${leftSpriteName}` : ""} -left ${transform} -next;`);
     }
     if (rightSpriteName) {
-      await this.addLineToRenderer(`changeFigure:${rightSpriteName.length > 0 ? `${rightSpriteName}.png` : ""} -right -next;`);
+      await this.addLineToRenderer(`changeFigure:${rightSpriteName.length > 0 ? `${rightSpriteName}` : ""} -right ${transform} -next;`);
     }
     await this.addLineToRenderer(`${roleName}: ${text} ${vocal ? `-${vocal}` : ""}`);
   }
@@ -90,12 +121,11 @@ export class Renderer {
     this.syncSocket.send(JSON.stringify(msg));
   }
 
-  public async uploadSprites(url: string, spritesName: string): Promise<void> {
+  public async uploadSprites(url: string, spritesName: string): Promise<string> {
     const path = `games/${this.game.name}/game/figure/`;
     // 提取URL中的文件后缀
-    const fileExtension = url.split(".").pop() || "png";
-    await uploadFile(url, path, `${spritesName}.${fileExtension}`);
-    console.log(`Uploaded sprites ${spritesName}.${fileExtension} to ${path}`);
+    const fileExtension = url.split(".").pop() || "webp";
+    return uploadFile(url, path, `${spritesName}.${fileExtension}`);
   }
 
   // 上传背景图片，直接使用url当作fileName

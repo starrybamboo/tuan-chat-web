@@ -62,7 +62,7 @@ export class MessageSessionService {
      * @returns ApiResultBoolean OK
      * @throws ApiError
      */
-    public updateReadPosition(
+    public updateReadPosition1(
         requestBody: SessionReadUpdateRequest,
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({

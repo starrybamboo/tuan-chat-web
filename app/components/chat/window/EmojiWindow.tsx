@@ -40,7 +40,7 @@ export default function EmojiWindow({ onChoose }:
   return (
     <div className="w-full">
       {/* 显示表情 */}
-      <div className="grid grid-cols-5 mb-2 max-h-80 p-1 overflow-y-auto overflow-x-hidden">
+      <div className="grid grid-cols-4 md:grid-cols-5 mb-2 max-h-80 p-1 overflow-y-auto overflow-x-hidden">
         {/* 添加新表情 */}
         <ImgUploader setImg={(newImg) => { handleAddEmoji(newImg); }}>
           <div className="aspect-square cursor-pointer hover:bg-base-200 rounded-lg p-1 transition-transform">
@@ -52,7 +52,7 @@ export default function EmojiWindow({ onChoose }:
 
         {emojiList.length === 0
           ? (
-              <div className="col-span-5 text-center text-base-content/70 h-20 flex items-center justify-center">暂无表情包</div>
+              <div className="col-span-4 md:col-span-5 text-center text-base-content/70 h-20 flex items-center justify-center">暂无表情包</div>
             )
           : (
               emojiList.map(emoji => (

@@ -19,12 +19,12 @@ const EntityDetail: React.FC<EntityDetailProps> = ({ moduleInfo }) => {
       {/* 上方实体选择区 */}
       {Array.isArray(moduleInfo) && moduleInfo.length > 0 && (
         <div className="p-4 rounded-lg border border-base-300 bg-base-100">
-          <h4 className="font-bold text-lg mb-4 text-accent">请选择一个实体以查看详情：</h4>
+          <h4 className="font-bold text-lg mb-4">请选择一个实体以查看详情：</h4>
           <div className="flex flex-wrap gap-2">
             {moduleInfo.map((entity: any) => (
               <span
                 key={entity.name}
-                className={`bg-base-200 text-accent px-3 py-1 rounded-full text-sm font-medium cursor-pointer border border-gray-300 hover:ring-2 hover:ring-accent${selectedEntity === entity.name ? " ring-2 ring-accent" : ""}`}
+                className={`bg-base-200 px-3 py-1 rounded-full text-sm font-medium cursor-pointer border border-gray-300 hover:ring-2 hover:ring-accent${selectedEntity === entity.name ? " ring-2 ring-accent" : ""}`}
                 onClick={() => setSelectedEntity(entity.name)}
               >
                 {entity.name}
@@ -36,9 +36,9 @@ const EntityDetail: React.FC<EntityDetailProps> = ({ moduleInfo }) => {
       {/* 下方详情区 */}
       <div className="p-4 rounded-lg border border-base-300 bg-base-100">
         <div className="flex items-center mb-2">
-          <h4 className="font-bold text-lg text-accent mr-2">{selectedEntity}</h4>
+          <h4 className="font-bold text-lg mr-2">{selectedEntity}</h4>
           {selectedEntity && (
-            <span className="px-2 py-1 rounded text-xs font-semibold bg-base-200 text-accent border border-base-300 align-middle">
+            <span className="px-2 py-1 rounded text-xs font-semibold bg-base-200 border border-base-300 align-middle">
               {(() => {
                 const entity = moduleInfo.find((e: any) => e.name === selectedEntity);
                 const entityType = entity?.entityType;
@@ -74,7 +74,7 @@ const EntityDetail: React.FC<EntityDetailProps> = ({ moduleInfo }) => {
                       )}
                       {selectedEntityInfo.description && (
                         <div className="mb-2">
-                          <span className="font-semibold text-accent">描述：</span>
+                          <span className="font-semibold">描述：</span>
                           <span>{selectedEntityInfo.description}</span>
                         </div>
                       )}

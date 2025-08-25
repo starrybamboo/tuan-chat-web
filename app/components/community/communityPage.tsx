@@ -26,7 +26,7 @@ export default function CommunityPage() {
   if (listCommunitiesQuery.isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <span className="loading loading-spinner loading-lg text-primary"></span>
+        <span className="loading loading-spinner loading-lg "></span>
       </div>
     );
   }
@@ -38,7 +38,7 @@ export default function CommunityPage() {
         <div className="w-full md:w-[20%]">
           <div className="bg-base-100 rounded-2xl shadow-sm border border-base-200 p-4 md:p-5">
             <div className="flex items-center gap-3 mb-5 pb-3 border-b border-base-200">
-              <UsersIcon className="h-5 w-5 text-primary" />
+              <UsersIcon className="h-5 w-5 text-info" />
               <h2 className="text-xl font-bold">社区列表</h2>
             </div>
 
@@ -52,7 +52,7 @@ export default function CommunityPage() {
                           className={`flex items-center p-3 rounded-xl transition-all duration-200
                         ${
                       community.communityId === communityId
-                        ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+                        ? "bg-info/10 text-info border border-info/20 shadow-sm"
                         : "bg-base-100 hover:bg-base-200"
                       }`}
                         >
@@ -70,7 +70,7 @@ export default function CommunityPage() {
                             <p className="font-medium truncate">{community.name}</p>
                           </div>
                           {community.communityId === communityId && (
-                            <div className="w-2 h-2 rounded-full bg-primary ml-2"></div>
+                            <div className="w-2 h-2 rounded-full bg-info ml-2"></div>
                           )}
                         </Link>
                       </li>
