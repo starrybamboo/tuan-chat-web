@@ -1,7 +1,9 @@
 import { RoomContext } from "@/components/chat/roomContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { AddRingLight } from "@/icons";
 import React, { use, useMemo } from "react";
+import { useNavigate } from "react-router";
 import { useGetUserRolesQuery } from "../../../../api/queryHooks";
 
 export function AddRoleWindow({ handleAddRole }: { handleAddRole: (roleId: number) => void }) {
@@ -11,12 +13,13 @@ export function AddRoleWindow({ handleAddRole }: { handleAddRole: (roleId: numbe
   const userId = useGlobalContext().userId;
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
+  const navigate = useNavigate();
   return (
     <div className="justify-center w-full">
       <p className="text-lg font-bold text-center w-full mb-4">选择要加入的角色</p>
       <div className="flex flex-wrap gap-3">
         {userRoles
-          // .filter(role => role.avatarId && role.avatarId > 0)
+        // .filter(role => role.avatarId && role.avatarId > 0)
           .filter(role => !roomRolesThatUserOwn.find(r => r.roleId === role.roleId))
           .map(role => (
             <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" key={role.avatarId}>
@@ -34,6 +37,12 @@ export function AddRoleWindow({ handleAddRole }: { handleAddRole: (roleId: numbe
               </div>
             </div>
           ))}
+        <div className="card shadow hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/role")}>
+          <div className="flex flex-col items-center p-3">
+            <AddRingLight className="size-24 jump_icon"></AddRingLight>
+            <p className="text-center block">创建角色</p>
+          </div>
+        </div>
       </div>
     </div>
   );

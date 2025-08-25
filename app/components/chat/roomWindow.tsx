@@ -19,6 +19,7 @@ import SearchPanel from "@/components/chat/sideDrawer/searchPanel";
 import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
 import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
@@ -55,9 +56,9 @@ import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
-import { useNavigate } from "react-router";
 import { useImmer } from "use-immer";
 import {
+  useAddRoomRoleMutation,
   useGetMemberListQuery,
   useGetRoomInfoQuery,
   useGetRoomRoleQuery,
@@ -67,8 +68,6 @@ import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/query
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
-  const navigate = useNavigate();
-
   const spaceContext = use(SpaceContext);
 
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
@@ -783,6 +782,21 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     }
   }
 
+  const [isRoleHandleOpen, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
+  const addRoleMutation = useAddRoomRoleMutation();
+
+  const handleAddRole = async (roleId: number) => {
+    addRoleMutation.mutate({
+      roomId,
+      roleIdList: [roleId],
+    }, {
+      onSettled: () => {
+        // setIsRoleAddWindowOpen(false);
+        toast("添加角色成功");
+      },
+    });
+  };
+
   return (
     <RoomContext value={roomContext}>
       <div className="flex flex-col h-full w-full shadow-sm min-h-0">
@@ -997,10 +1011,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                           </div>
                         )
                       : (
-                          <div className="w-10 md:w-14" onClick={() => navigate("/role")}>
+                          <div className="w-10 md:w-14" onClick={() => setIsRoleAddWindowOpen(true)}>
                             <AddRingLight className="size-10 md:size-14 jump_icon"></AddRingLight>
                             <div className="text-sm truncate w-full">
-                              创建角色
+                              添加角色
                             </div>
                           </div>
                         )
@@ -1153,6 +1167,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       {/* 设置窗口 */}
       <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
         <RoomSettingWindow onClose={() => setIsSettingWindowOpen(false)}></RoomSettingWindow>
+      </PopWindow>
+      {/* 添加角色窗口 */}
+      <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleAddWindowOpen(false)}>
+        <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
       </PopWindow>
     </RoomContext>
   );
