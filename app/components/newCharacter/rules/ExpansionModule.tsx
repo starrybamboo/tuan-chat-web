@@ -3,7 +3,6 @@ import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "api/hooks/ab
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import Section from "../Section";
-import GenerateByAI from "./GenerateByAI";
 import ImportWithStCmd from "./ImportWithStCmd";
 import NumericalEditor from "./NumericalEditor";
 import { deepOverrideTargetWithSource, flattenConstraints, wrapIntoNested } from "./ObjectExpansion";
@@ -153,12 +152,6 @@ export default function ExpansionModule({
                 abilityData={localRuleData.performance}
                 abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
               />
-              <GenerateByAI
-                ruleId={selectedRuleId}
-                localRuleData={localRuleData}
-                onLocalRuleDataChange={setLocalRuleData}
-                type={1}
-              />
             </Section>
 
             <Section title="数值约束配置" className="mb-12">
@@ -174,19 +167,7 @@ export default function ExpansionModule({
                 roleId={roleId}
                 onImportSuccess={() => {}}
               />
-              <GenerateByAI
-                ruleId={selectedRuleId}
-                localRuleData={localRuleData}
-                onLocalRuleDataChange={setLocalRuleData}
-                type={2}
-              />
             </Section>
-            {/* <GenerateByAI
-              ruleId={selectedRuleId}
-              localRuleData={localRuleData}
-              onLocalRuleDataChange={setLocalRuleData}
-              type={0}
-            /> */}
           </>
         )}
     </div>
