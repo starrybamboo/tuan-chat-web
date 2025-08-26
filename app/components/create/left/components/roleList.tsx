@@ -81,7 +81,16 @@ export default function RoleList({ stageId }: { stageId: number }) {
 
   const list = data?.data!.filter(i => i.entityType === 2);
   const sceneList = data?.data!.filter(i => i.entityType === 3);
-  const isEmpty = !list || list!.length === 0;
+
+  // 添加搜索状态
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // 根据搜索查询过滤列表
+  const filteredList = list?.filter(i =>
+    i.name?.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  const isEmpty = !filteredList || filteredList!.length === 0;
 
   // 控制弹窗
   const [isOpen, setIsOpen] = useState(false);
@@ -147,13 +156,30 @@ export default function RoleList({ stageId }: { stageId: number }) {
   return (
     <Section label="角色" onClick={handleOpen}>
       <>
+        {/* 添加搜索框 */}
+        <div className="px-2 pb-2">
+          <label className="input input-bordered flex items-center gap-2">
+            <svg className="h-4 w-4 opacity-70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              type="text"
+              className="grow"
+              placeholder="搜索角色..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </label>
+        </div>
+
         {isEmpty
           ? (
               <div className="text-sm text-gray-500 px-2 py-4">
                 暂时没有人物哦
               </div>
             )
-          : (list?.map(i => (
+          : (filteredList?.map(i => (
               <RoleListItem
                 key={i!.entityInfo!.roleId ?? i!.name ?? 0}
                 role={i!}

@@ -19,7 +19,7 @@ function EntityDetailListItem({ entity, isSelected, onChange }: { entity: StageE
           }`}
           onClick={handleSelectItem}
         >
-          <RoleAvatar avatarId={entity.entityInfo?.avatarId} width={16} isRounded={true} stopPopWindow={true}></RoleAvatar>
+          <RoleAvatar avatarId={entity.entityInfo?.avatarId || entity.entityInfo!.avatarIds[0]} width={16} isRounded={true} stopPopWindow={true}></RoleAvatar>
         </div>
       </div>
       <div className="text-xs mt-1 w-full truncate text-center" title={entity.name}>{entity.name}</div>

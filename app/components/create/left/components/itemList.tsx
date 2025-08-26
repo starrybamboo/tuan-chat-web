@@ -2,6 +2,7 @@ import type { StageEntityResponse } from "api";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
+import { useState } from "react";
 import Section from "./section";
 
 function ItemListItem({
@@ -84,8 +85,17 @@ export default function ItemList({ stageId }: { stageId: number }) {
   const { mutate: updateScene } = useUpdateEntityMutation(stageId);
 
   const list = data?.data?.filter(i => i.entityType === 1);
+
+  // 添加搜索状态
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // 根据搜索查询过滤列表
+  const filteredList = list?.filter(i =>
+    i.name?.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
   const sceneList = data?.data?.filter(i => i.entityType === 3);
-  const isEmpty = !list || list.length === 0;
+  const isEmpty = !filteredList || filteredList.length === 0;
   const handleCreateItemSubmit = () => {
     let t = 1;
     let name = "新物品1";
@@ -107,6 +117,23 @@ export default function ItemList({ stageId }: { stageId: number }) {
   return (
     <Section label="物品" onClick={handleCreateItemSubmit}>
       <>
+        {/* 添加搜索框 */}
+        <div className="px-2 pb-2">
+          <label className="input input-bordered flex items-center gap-2">
+            <svg className="h-4 w-4 opacity-70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              type="text"
+              className="grow"
+              placeholder="搜索物品..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </label>
+        </div>
+
         {isEmpty
           ? (
               <div className="text-sm text-gray-500 px-2 py-4">
@@ -114,7 +141,7 @@ export default function ItemList({ stageId }: { stageId: number }) {
               </div>
             )
           : (
-              list.map((item, index) => (
+              filteredList.map((item, index) => (
                 <ItemListItem
                   // key={item.entityInfo!.itemId}
                   key={index}

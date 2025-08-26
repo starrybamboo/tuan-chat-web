@@ -64,7 +64,7 @@ export default function ContentTab({ moduleInfo, moduleId, isLoading, error }: C
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12V6.75A2.25 2.25 0 014.5 4.5h3.379c.414 0 .81.17 1.102.474l1.197 1.252c.292.304.688.474 1.102.474H19.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25H4.5A2.25 2.25 0 012.25 19.5V12z" />
             </svg>
           </span>
-          <span className="leading-none">场景</span>
+          <span className="leading-none">剧情</span>
         </div>
         <div className="collapse-content bg-base-200">
           <EntityList moduleData={moduleInfo} entityType="scene" />

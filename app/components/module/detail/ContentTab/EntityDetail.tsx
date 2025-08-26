@@ -46,7 +46,7 @@ const EntityDetail: React.FC<EntityDetailProps> = ({ moduleInfo }) => {
                 const typeMap: Record<number, string> = {
                   1: "物品",
                   2: "角色",
-                  3: "场景",
+                  3: "剧情",
                   4: "地点",
                 };
                 return typeMap[entityType] || "未知类型";
