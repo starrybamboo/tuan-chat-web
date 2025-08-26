@@ -292,7 +292,7 @@ export default function ModuleHome() {
         minTime: module.minTime,
         maxTime: module.maxTime,
         parent: module.parent, // 从哪个模组fork来
-        instruction: module.instruction, // 指令字段
+        instruction: module.instruction, // md字段
       }));
   }, [moduleData, RuleList]);
 
@@ -591,7 +591,7 @@ export default function ModuleHome() {
                             minTime: card.minTime, // 模组可能需要花费时间
                             maxTime: card.maxTime,
                             parent: card.parent, // 从哪个模组fork来
-                            instruction: card.instruction, // 指令字段
+                            instruction: card.instruction, // md字段
                           },
                         },
                       });

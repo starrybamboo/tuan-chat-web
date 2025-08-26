@@ -6,7 +6,6 @@ import { useParams } from "react-router";
 import Author from "./author";
 import ContentTab from "./contentTab";
 import IssueTab from "./issueTab";
-import userContent from "./readmeDemo.md?raw";
 
 function MainContent({ moduleData }: { moduleData: ModuleData }) {
   // 示例tag数组，可根据实际数据源替换
@@ -250,7 +249,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
           <div className="tab-content">
             <div className="fieldset bg-base-100 border-base-300 rounded-box border p-4 mb-4">
               {/* 使用 MarkDownViewer 显示用户内容 */}
-              <MarkDownViewer content={userContent} />
+              <MarkDownViewer content={moduleData.instruction || "暂无内容"} />
             </div>
           </div>
           <label className="tab">
