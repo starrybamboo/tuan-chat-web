@@ -28,7 +28,7 @@ import {
   useGetUserInfoQuery,
 } from "api/queryHooks";
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../api/hooks/messageSessionQueryHooks";
 import { MemberSelect } from "../common/memberSelect";
 
@@ -37,18 +37,15 @@ import { MemberSelect } from "../common/memberSelect";
  */
 export default function ChatPage() {
   const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
+  const activeRoomId = Number(urlRoomId) || null;
+  const activeSpaceId = Number(urlSpaceId) || null;
+
   const navigate = useNavigate();
+  const [searchParam, _] = useSearchParams();
 
   const isPrivateChatMode = urlSpaceId === "private";
 
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
-  // 当前选中的空间ID
-  const [activeSpaceId, setActiveSpaceId] = useState<number | null>(() => {
-    if (isPrivateChatMode) {
-      return null;
-    }
-    return urlSpaceId ? Number(urlSpaceId) : (storedIds.spaceId ?? null);
-  });
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
   // 当前激活的space对应的rooms。
@@ -57,45 +54,38 @@ export default function ChatPage() {
   const userSpacesQuery = useGetUserSpacesQuery();
   const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
-  // 当前选中的房间ID，初始化的时候，按照路由参数，localStorage里的数据，rooms的第一个，null的优先级来初始化
-  const [activeRoomId, setActiveRoomId] = useState<number | null>(
-    urlSpaceId
-      ? (urlRoomId
-          ? Number(urlRoomId)
-          : (storedIds.roomId ?? rooms[0]?.roomId ?? null))
-      : null,
-  );
-  useEffect(() => {
-    if (isPrivateChatMode) {
-      setActiveRoomId(Number(urlRoomId));
-    }
-    else {
-      setActiveRoomId(rooms[0]?.roomId ?? null);
-    }
-  }, [activeSpaceId, rooms]);
 
-  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState<boolean>(
+  const setActiveSpaceId = (spaceId: number | null) => {
+    setStoredChatIds({ spaceId: activeSpaceId, roomId: activeRoomId });
+    navigate(`/chat/${spaceId ?? "private"}/${activeRoomId}?${searchParam}`);
+  };
+  const setActiveRoomId = (roomId: number | null) => {
+    setStoredChatIds({ spaceId: activeSpaceId, roomId: activeRoomId });
+    navigate(`/chat/${activeSpaceId ?? "private"}/${roomId}?${searchParam}`);
+  };
+
+  useEffect(() => {
+    // 恢复上次的激活空间和房间,否则恢复第一个房间
+    const targetRoomId = storedIds.roomId ?? rooms[0]?.roomId;
+    if (targetRoomId) {
+      setActiveRoomId(targetRoomId);
+    }
+    const targetSpaceId = storedIds.spaceId;
+    if (targetSpaceId) {
+      setActiveSpaceId(targetSpaceId);
+    }
+  }, []);
+
+  useEffect(() => {
+    // 在空间模式下，切换空间后默认选中第一个房间
+    !isPrivateChatMode && setActiveRoomId(rooms[0]?.roomId ?? null);
+  }, [rooms]);
+
+  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState(
     "leftDrawer",
     !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (getScreenSize() === "sm" && !isPrivateChatMode),
     false,
   );
-
-  // 同步路由状态 并存到localStorage里面
-  useEffect(() => {
-    setStoredChatIds({ spaceId: activeSpaceId, roomId: activeRoomId });
-    if (activeSpaceId) {
-      const path = `/chat/${activeSpaceId || ""}/${activeRoomId || ""}`;
-      navigate(path.replace(/\/+$/, ""), { replace: true });
-    }
-    else {
-      if (activeRoomId) {
-        navigate(`/chat/private/${activeRoomId}`, { replace: true });
-      }
-      else {
-        navigate("/chat/private", { replace: true });
-      }
-    }
-  }, [activeSpaceId, activeRoomId, navigate, setStoredChatIds, isPrivateChatMode]);
 
   // 当前激活的空间对应的房间列表
   const userRoomQueries = useGetUserRoomsQueries(spaces);
@@ -327,7 +317,6 @@ export default function ChatPage() {
                         navigate("/chat");
                       }
                       setActiveSpaceId(space.spaceId ?? -1);
-                      setActiveRoomId(null);
                     }}
                   >
                     <div className="indicator">
