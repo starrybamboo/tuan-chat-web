@@ -1,82 +1,87 @@
+# 🏰 跑团模组 README 模板
 
-<!-- https://github.com/kyechan99/capsule-render -->
+### 快去创建属于该模组的Readme吧！！！
 
-<p align="center">
-<img src="https://capsule-render.vercel.app/api?type=waving&color=timeGradient&height=300&&section=header&text=Hello!&fontSize=90&fontAlign=50&fontAlignY=30&desc=I%20am%20苍镜月!&descAlign=50&descSize=30&descAlignY=60&animation=twinkling" />
-</p>
+---
 
+## 📖 简介
 
+欢迎来到本模组的 README 文档！
+本文件旨在为玩家、主持人（KP）以及开发者提供**模组的基本说明、使用指南和资源索引**。
 
-<!-- https://github.com/DenverCoder1/readme-typing-svg -->
+> **什么是README？**
+> README 是项目的**入口说明文档**，它告诉使用者**这个模组是什么、如何使用、需要哪些前置条件**。
+> 在本项目中，README 主要解决以下问题：
 
-<p align="center">
-<img src="https://readme-typing-svg.demolab.com?font=Orbitron&size=25&pause=1000&center=true&vCenter=true&random=false&width=600&lines=Welcome+to+my+GitHub+profile+page!;I+am+super+obsessed+with+programming!" />
-</p>
+* 模组的**背景介绍**
+* 如何**运行、安装、导入**该模组
+* 提供必要的**素材链接和参考资料**
 
+---
 
-<p align="center">
-<!-- https://github.com/anuraghazra/github-readme-stats -->
-<img align="center" width="400" src="https://github-readme-stats.vercel.app/api?username=LunaY77&theme=transparent&include_all_commits=true&show_icons=true&hide_border=true" />
-<!-- https://github.com/DenverCoder1/github-readme-streak-stats -->
-<img align="center" width="400" src="https://streak-stats.demolab.com?user=LunaY77&theme=transparent&date_format=%5BY.%5Dn.j&hide_border=true" />
-<br/>
-<!-- https://github.com/Ashutosh00710/github-readme-activity-graph -->
-<img width="800" src="https://github-readme-activity-graph.vercel.app/graph?username=LunaY77&theme=github-compact&hide_border=true&area=true" />
-<br/>
-<!-- https://github.com/anuraghazra/github-readme-stats -->
-<img align="center" src="https://github-readme-stats.vercel.app/api/top-langs/?username=LunaY77&theme=transparent&hide_border=true&layout=donut-vertical&langs_count=6" />
-<br/>
-<!-- https://github.com/tandpfun/skill-icons -->
-<img align="center" src="https://skillicons.dev/icons?i=py,java&theme=light" />
-</p>
+## 🗂 目录
 
+1. <a href="#关于本readme">关于本 README</a>
+2. <a href="#模组简介">模组简介</a>
+3. <a href="#使用说明">使用说明</a>
+4. <a href="#素材与资源">素材与资源</a>
+5. <a href="#致谢">致谢</a>
 
-<!-- https://github.com/badges/shields -->
+---
 
-<p align="center">
-<a href="https://github.com/LunaY77"><img src="https://img.shields.io/badge/GitHub-LunaY77-blue?logo=github" alt="GitHub Badge" /></a>
+## <span id="关于本readme">📜 关于本 README</span>
 
+本 README 文件的作用是：
 
+* 帮助你快速了解模组的内容和运行方式
+* 作为模组玩家或 KP 的**指引入口**
+* 提供资源、更新日志、反馈渠道
 
-<img src="https://img.shields.io/badge/QQ-2307984361-green?logo=tencentqq" />
-<!-- https://github.com/antonkomarev/github-profile-views-counter -->
-<img src="https://komarev.com/ghpvc/?username=LunaY77&abbreviated=true&color=yellow" />
-</p>
+### **为什么要写 README？**
 
-<!-- https://github.com/kyechan99/capsule-render -->
+* 当别人下载你的模组时，**第一眼看到的就是这个文件**
+* 它能回答：
 
-<p align="center">
-<img src="https://capsule-render.vercel.app/api?type=waving&color=timeGradient&height=300&&section=footer&text=THE%20END!&fontSize=90&fontAlign=50&fontAlignY=70&desc=Hope%20your%20program%20is%20bug-free!&descAlign=50&descSize=30&descAlignY=40&animation=twinkling" />
-</p>
+  * 这个模组**怎么玩？**
+  * 需要哪些**前置资料或规则书？**
+  * 有没有推荐的**配乐、地图或角色卡模板？**
 
-<!--
-**Pale-illusions/Pale-illusions** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+---
 
-Here are some ideas to get you started:
+## <span id="模组简介">📚 模组简介</span>
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
+**模组名称：** *（在此填写模组名称）*
+**类型：** *（恐怖 / 推理 / 剧情 / 战斗）*
+**适用规则：** *（如《克苏鲁的呼唤》7版，DND5e，自制规则）*
+**推荐人数：** *（如 3-5 人）*
+**预计时长：** *（如 4 小时，单次 / 长篇）*
 
-### Hi there 👋,I'm 苍镜月.
+---
 
-- 🔭 I’m currently working on Java/Python.
-- 🌱 I’m currently learning Everything I like.
-- 💬 Ask me about anything related to Java/Python.
-- ⚡ Fun fact: 我玩原神二本在读家境清寒高强度b站玩游戏也没什么朋友每天混吃等死别再和我较真了哥
+## <span id="使用说明">⚙ 使用说明</span>
 
-![](https://github-readme-stats.vercel.app/api?username=Pale-illusions&show_icons=true&theme=transparent)
+* 下载本模组压缩包后，解压缩并阅读 **主文件**：
 
-![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=Pale-illusions&layout=compact&theme=tokyonight)
+  * `scenario.md` —— **完整模组内容**
+  * `npc_list.md` —— **NPC 资料**
+  * `maps/` —— **地图素材**
+* KP 阅读**全套文件**，并准备**骰子、角色卡、规则书**
 
+> **提示：** 如果你是第一次主持，可以先阅读**流程提示**章节。
 
-### My Skill Set
+---
 
-![](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)![](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+## <span id="素材与资源">🎨 素材与资源</span>
 
--->
+* **地图文件：** `maps/`
+* **角色卡模板：** `character_sheets/`
+* **配乐推荐：** [BGM 播放列表](#)
+* **官方规则书链接：** [点击访问](#)
+
+---
+
+## <span id="致谢">🙏 致谢</span>
+
+感谢所有参与测试和创作的人！
+如果你在游玩过程中发现问题，欢迎反馈至：
+📧 **Email:** [example@example.com](mailto:example@example.com)
