@@ -45,6 +45,13 @@ export default function ChatPage() {
 
   const isPrivateChatMode = urlSpaceId === "private";
 
+  // const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useState(
+  //   !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (getScreenSize() === "sm" && !isPrivateChatMode),
+  // );
+  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useState(
+    !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (getScreenSize() === "sm" && !isPrivateChatMode),
+  );
+
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
@@ -56,15 +63,21 @@ export default function ChatPage() {
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
 
   const setActiveSpaceId = (spaceId: number | null) => {
-    setStoredChatIds({ spaceId: activeSpaceId, roomId: activeRoomId });
-    navigate(`/chat/${spaceId ?? "private"}/${activeRoomId}?${searchParam}`);
+    setStoredChatIds({ spaceId, roomId: null });
+    const newSearchParams = new URLSearchParams(searchParam);
+    getScreenSize() === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
+    navigate(`/chat/${spaceId ?? "private"}/${""}?${newSearchParams}`);
   };
   const setActiveRoomId = (roomId: number | null) => {
-    setStoredChatIds({ spaceId: activeSpaceId, roomId: activeRoomId });
+    setStoredChatIds({ spaceId: activeSpaceId, roomId });
+    const newSearchParams = new URLSearchParams(searchParam);
+    getScreenSize() === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     navigate(`/chat/${activeSpaceId ?? "private"}/${roomId}?${searchParam}`);
   };
 
   useEffect(() => {
+    if (!isPrivateChatMode)
+      return;
     // 恢复上次的激活空间和房间,否则恢复第一个房间
     const targetRoomId = storedIds.roomId ?? rooms[0]?.roomId;
     if (targetRoomId) {
@@ -78,14 +91,8 @@ export default function ChatPage() {
 
   useEffect(() => {
     // 在空间模式下，切换空间后默认选中第一个房间
-    !isPrivateChatMode && setActiveRoomId(rooms[0]?.roomId ?? null);
+    (!isPrivateChatMode && rooms && !urlRoomId) && setActiveRoomId(rooms[0]?.roomId ?? null);
   }, [rooms]);
-
-  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState(
-    "leftDrawer",
-    !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (getScreenSize() === "sm" && !isPrivateChatMode),
-    false,
-  );
 
   // 当前激活的空间对应的房间列表
   const userRoomQueries = useGetUserRoomsQueries(spaces);
