@@ -149,17 +149,26 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     };
   }, [addOrUpdateMessages, roomId]);
 
-  // 在页面长时间处于非活动状态后再切回来， 很可能发生ws断联的情况， 所以需要监听document的状态
-  const documentVisibility = typeof document !== "undefined" ? document.visibilityState : "visible";
   // 监听页面状态, 如果重新页面处于可见状态，则尝试重新获取最新消息
   useEffect(() => {
-    if (document.visibilityState === "visible") {
-      const maxSyncId = messages.length > 0
-        ? Math.max(...messages.map(msg => msg.message.syncId))
-        : -1;
-      fetchNewestMessages(maxSyncId);
-    }
-  }, [documentVisibility]);
+    const handleVisibilityChange = () => {
+      // 当页面从后台切换到前台时
+      if (document.visibilityState === "visible") {
+        const maxSyncId = messages.length > 0
+          ? Math.max(...messages.map(msg => msg.message.syncId))
+          : -1;
+        fetchNewestMessages(maxSyncId);
+      }
+    };
+
+    // 添加事件监听
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // 组件卸载时，清理事件监听器，防止内存泄漏
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [messages, fetchNewestMessages]);
 
   return {
     messages,

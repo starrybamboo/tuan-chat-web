@@ -28,7 +28,8 @@ import {
   useGetUserInfoQuery,
 } from "api/queryHooks";
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
+import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../api/hooks/messageSessionQueryHooks";
 import { MemberSelect } from "../common/memberSelect";
 
 /**
@@ -36,18 +37,22 @@ import { MemberSelect } from "../common/memberSelect";
  */
 export default function ChatPage() {
   const { spaceId: urlSpaceId, roomId: urlRoomId } = useParams();
+  const activeRoomId = Number(urlRoomId) || null;
+  const activeSpaceId = Number(urlSpaceId) || null;
+
   const navigate = useNavigate();
+  const [searchParam, _] = useSearchParams();
 
   const isPrivateChatMode = urlSpaceId === "private";
 
+  // const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useState(
+  //   !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (getScreenSize() === "sm" && !isPrivateChatMode),
+  // );
+  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useState(
+    !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (getScreenSize() === "sm" && !isPrivateChatMode),
+  );
+
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
-  // 当前选中的空间ID
-  const [activeSpaceId, setActiveSpaceId] = useState<number | null>(() => {
-    if (isPrivateChatMode) {
-      return null;
-    }
-    return urlSpaceId ? Number(urlSpaceId) : (storedIds.spaceId ?? null);
-  });
   const userRoomQuery = useGetUserRoomsQuery(activeSpaceId ?? -1);
   const spaceMembersQuery = useGetSpaceMembersQuery(activeSpaceId ?? -1);
   // 当前激活的space对应的rooms。
@@ -56,45 +61,38 @@ export default function ChatPage() {
   const userSpacesQuery = useGetUserSpacesQuery();
   const spaces = useMemo(() => userSpacesQuery.data?.data ?? [], [userSpacesQuery.data?.data]);
   const activeSpace = spaces.find(space => space.spaceId === activeSpaceId);
-  // 当前选中的房间ID，初始化的时候，按照路由参数，localStorage里的数据，rooms的第一个，null的优先级来初始化
-  const [activeRoomId, setActiveRoomId] = useState<number | null>(
-    urlSpaceId
-      ? (urlRoomId
-          ? Number(urlRoomId)
-          : (storedIds.roomId ?? rooms[0]?.roomId ?? null))
-      : null,
-  );
-  useEffect(() => {
-    if (isPrivateChatMode) {
-      setActiveRoomId(Number(urlRoomId));
-    }
-    else {
-      setActiveRoomId(rooms[0]?.roomId ?? null);
-    }
-  }, [activeSpaceId, rooms]);
 
-  const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useSearchParamsState<boolean>(
-    "leftDrawer",
-    !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (getScreenSize() === "sm" && !isPrivateChatMode),
-    false,
-  );
+  const setActiveSpaceId = (spaceId: number | null) => {
+    setStoredChatIds({ spaceId, roomId: null });
+    const newSearchParams = new URLSearchParams(searchParam);
+    getScreenSize() === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
+    navigate(`/chat/${spaceId ?? "private"}/${""}?${newSearchParams}`);
+  };
+  const setActiveRoomId = (roomId: number | null) => {
+    setStoredChatIds({ spaceId: activeSpaceId, roomId });
+    const newSearchParams = new URLSearchParams(searchParam);
+    getScreenSize() === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
+    navigate(`/chat/${activeSpaceId ?? "private"}/${roomId}?${searchParam}`);
+  };
 
-  // 同步路由状态 并存到localStorage里面
   useEffect(() => {
-    setStoredChatIds({ spaceId: activeSpaceId, roomId: activeRoomId });
-    if (activeSpaceId) {
-      const path = `/chat/${activeSpaceId || ""}/${activeRoomId || ""}`;
-      navigate(path.replace(/\/+$/, ""), { replace: true });
+    if (!isPrivateChatMode)
+      return;
+    // 恢复上次的激活空间和房间,否则恢复第一个房间
+    const targetRoomId = storedIds.roomId ?? rooms[0]?.roomId;
+    if (targetRoomId) {
+      setActiveRoomId(targetRoomId);
     }
-    else {
-      if (activeRoomId) {
-        navigate(`/chat/private/${activeRoomId}`, { replace: true });
-      }
-      else {
-        navigate("/chat/private", { replace: true });
-      }
+    const targetSpaceId = storedIds.spaceId;
+    if (targetSpaceId) {
+      setActiveSpaceId(targetSpaceId);
     }
-  }, [activeSpaceId, activeRoomId, navigate, setStoredChatIds, isPrivateChatMode]);
+  }, []);
+
+  useEffect(() => {
+    // 在空间模式下，切换空间后默认选中第一个房间
+    (!isPrivateChatMode && rooms && !urlRoomId) && setActiveRoomId(rooms[0]?.roomId ?? null);
+  }, [rooms]);
 
   // 当前激活的空间对应的房间列表
   const userRoomQueries = useGetUserRoomsQueries(spaces);
@@ -176,6 +174,23 @@ export default function ChatPage() {
       }
     });
   }, [spaceAvatar, roomAvatar]);
+
+  // 右键菜单
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; roomId: number } | null>(null);
+  // 订阅房间的消息提醒
+  const subscribeRoomMutation = useSubscribeRoomMutation();
+  const unsubscribeRoomMutation = useUnsubscribeRoomMutation();
+  // 关闭右键菜单
+  function closeContextMenu() {
+    setContextMenu(null);
+  }
+  function handleContextMenu(e: React.MouseEvent) {
+    e.preventDefault();
+    const target = e.target as HTMLElement;
+    // 向上查找包含data-message-id属性的父元素
+    const messageElement = target.closest("[data-room-id]");
+    setContextMenu({ x: e.clientX, y: e.clientY, roomId: Number(messageElement?.getAttribute("data-room-id")) });
+  }
 
   // websocket封装, 用于发送接受消息
   const websocketUtils = useGlobalContext().websocketUtils;
@@ -309,7 +324,6 @@ export default function ChatPage() {
                         navigate("/chat");
                       }
                       setActiveSpaceId(space.spaceId ?? -1);
-                      setActiveRoomId(null);
                     }}
                   >
                     <div className="indicator">
@@ -364,7 +378,10 @@ export default function ChatPage() {
             </div>
             <div className="w-px bg-base-300"></div>
             {/* 房间列表 */}
-            <div className="flex flex-col gap-2 py-2 w-full md:w-[200px] h-full flex-1 bg-base-200/40 min-h-0">
+            <div
+              className="flex flex-col gap-2 py-2 w-full md:w-[200px] h-full flex-1 bg-base-200/40 min-h-0"
+              onContextMenu={handleContextMenu}
+            >
               {isPrivateChatMode
                 ? (
                     <LeftChatList
@@ -385,7 +402,7 @@ export default function ChatPage() {
                       <div className="h-px bg-base-300"></div>
                       <div className="flex flex-col gap-2 p-2 overflow-auto">
                         {rooms.map(room => (
-                          <div key={room.roomId}>
+                          <div key={room.roomId} data-room-id={room.roomId}>
                             {activeSpaceId === room.spaceId && (
                               <button
                                 key={room.roomId}
@@ -646,6 +663,31 @@ export default function ChatPage() {
           <SpaceDetailPanel></SpaceDetailPanel>
         </PopWindow>
       </div>
+      {contextMenu && (() => {
+        const isSubscribed = unreadMessagesNumber[contextMenu.roomId];
+        return (
+          <div
+            className="fixed bg-base-100 shadow-lg rounded-md z-40"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            onClick={e => e.stopPropagation()}
+          >
+            <ul className="menu p-2 w-50">
+              {/* --- Notification Settings Menu --- */}
+              <li
+                className="relative group"
+                onClick={() => {
+                  isSubscribed ? unsubscribeRoomMutation.mutate(contextMenu.roomId) : subscribeRoomMutation.mutate(contextMenu.roomId);
+                  closeContextMenu();
+                }}
+              >
+                <div className="flex justify-between items-center w-full">
+                  <span>{isSubscribed ? "关闭消息提醒" : "开启消息提醒"}</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+        );
+      })()}
     </SpaceContext>
   );
 }
