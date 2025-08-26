@@ -172,7 +172,7 @@ export function Sidebar({
     if (isSuccess) {
       loadRoles();
     };
-  }, [isSuccess, loadRoles]); // 添加 roles 到依赖项
+  }, [isSuccess]); // 添加 roles 到依赖项
   // 过滤角色列表
   const filteredRoles = roles.filter(role =>
     role.name.toLowerCase().includes(searchQuery.toLowerCase())
