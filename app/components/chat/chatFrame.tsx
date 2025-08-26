@@ -479,7 +479,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    */
   const renderMessage = (index: number, chatMessageResponse: ChatMessageResponse) => {
     const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageId);
-    const draggable = spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId;
+    const draggable = (roomContext.curMember?.memberType ?? 3) < 3;
     const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
     return ((
       <div
