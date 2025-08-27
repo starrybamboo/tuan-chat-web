@@ -9,11 +9,9 @@ import {useGlobalContext} from "@/components/globalContextProvider";
 import type {ChatStatusEvent, ChatStatusType, DirectMessageEvent, RoomExtraChangeEvent} from "./wsModels";
 import {tuanchat} from "./instance";
 import {
-  useGetRoomSessionQuery,
   useGetUserSessionsQuery,
   useUpdateReadPosition1Mutation
 } from "./hooks/messageSessionQueryHooks";
-import type {MessageSessionService} from "./services/MessageSessionService";
 import type {MessageSessionResponse} from "./models/MessageSessionResponse";
 import type {ApiResultListMessageSessionResponse} from "./models/ApiResultListMessageSessionResponse";
 
@@ -75,13 +73,11 @@ export function useWebSocket() {
   const roomSessions : MessageSessionResponse[] = useGetUserSessionsQuery().data?.data ?? [];
   const updateReadPosition1Mutation = useUpdateReadPosition1Mutation();
   const unreadMessagesNumber: Record<number, number> = roomSessions.reduce((acc, session) => {
-    if (session.roomId !== undefined &&
-        session.lastReadSyncId !== undefined &&
-        session.latestSyncId !== undefined) {
+    if (session.roomId && session.lastReadSyncId && session.latestSyncId) {
       acc[session.roomId] = Math.max(0, session.latestSyncId - session.lastReadSyncId);
     }
     return acc;
-  }, {} as Record<number, number>);
+  }, {} as Record<number, number>)
   const updateLatestSyncId = (roomId: number, latestSyncId: number) => {
     queryClient.setQueriesData<ApiResultListMessageSessionResponse>({ queryKey: ["getUserSessions"] }, (oldData) => {
       if (!oldData?.data) return oldData;
@@ -91,7 +87,7 @@ export function useWebSocket() {
           if (session.roomId === roomId) {
             return {
               ...session,
-              lastReadSyncId: latestSyncId
+              latestSyncId
             };
           }
           return session;
@@ -105,15 +101,23 @@ export function useWebSocket() {
    * @param lastReadSyncId
    */
   const updateLastReadSyncId = (roomId: number,lastReadSyncId?: number) => {
-    queryClient.setQueriesData<ApiResultListMessageSessionResponse>({ queryKey: ["getUserSessions"] }, (oldData) => {
-      if (!oldData?.data) return oldData;
-      const session = oldData.data.find(session => session.roomId === roomId);
-      if (!session) return oldData;
+    // 减少更新次数，防止出现死循环
+    const oldData = queryClient.getQueryData<ApiResultListMessageSessionResponse>(["getUserSessions"])
+    if (!oldData?.data) return
+    const session = oldData.data.find(session => session.roomId === roomId);
+    if (!session) return
 
+    // 如果没有指定lastReadSyncId，则使用latestSyncId更新，也就是读到最后一条消息
+    const targetReadySyncId = lastReadSyncId ?? session.latestSyncId!
+    if (targetReadySyncId === session.lastReadSyncId)
+      return
+
+    queryClient.setQueriesData<ApiResultListMessageSessionResponse>({ queryKey: ["getUserSessions"] }, (oldData) => {
+      if (!oldData?.data) return
       //未读消息直接异步更改，漏了也没关系。
       updateReadPosition1Mutation.mutate({
         roomId,
-        syncId: lastReadSyncId ?? session.latestSyncId!
+        syncId: targetReadySyncId
       });
       return {
         ...oldData,
@@ -121,7 +125,7 @@ export function useWebSocket() {
           if (session.roomId === roomId) {
             return {
               ...session,
-              lastReadSyncId: lastReadSyncId ?? session.latestSyncId
+              lastReadSyncId: targetReadySyncId
             };
           }
           return session;
@@ -295,8 +299,6 @@ export function useWebSocket() {
       if (messagesToAdd.length === 0 || messagesToAdd[messagesToAdd.length-1].message.messageId !== chatMessageResponse.message.messageId){
         messagesToAdd.push(chatMessageResponse);
       }
-
-
       updateReceivedMessages(draft => {
         if (draft[roomId]) {
           draft[roomId].push(...messagesToAdd);
