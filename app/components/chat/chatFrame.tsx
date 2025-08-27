@@ -115,9 +115,12 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    */
   const unreadMessageNumber = webSocketUtils.unreadMessagesNumber[roomId] ?? 0;
   const updateLastReadSyncId = webSocketUtils.updateLastReadSyncId;
-  // useEffect(() => {
-  //   sendNotificationWithGrant();
-  // }, [historyMessages]);
+  // 监听新消息，如果在底部，则设置群聊消息为已读；
+  useEffect(() => {
+    if (isAtBottomRef.current) {
+      updateLastReadSyncId(roomId);
+    }
+  }, [historyMessages, roomId, updateLastReadSyncId]);
   /**
    * scroll相关
    */
@@ -152,11 +155,9 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   const [currentVirtuosoIndex, setCurrentVirtuosoIndex] = useState(0);
   const [currentBackgroundUrl, setCurrentBackgroundUrl] = useState<string | null>(null);
 
-  // This effect updates the background URL based on the current scroll position.
   useEffect(() => {
     // Convert the virtuoso index (which is shifted) to the actual array index.
     const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
-
     // Find the last background image that appears at or before the current scroll position.
     let newBgUrl: string | null = null;
     for (const bg of imgNode) {
@@ -610,7 +611,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
             }}
             itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
             atBottomStateChange={(atBottom) => {
-              atBottom && updateLastReadSyncId(roomId); ;
+              atBottom && updateLastReadSyncId(roomId);
               isAtBottomRef.current = atBottom;
             }}
             atTopStateChange={(atTop) => {

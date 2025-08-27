@@ -71,6 +71,7 @@ export function useWebSocket() {
    * 群聊的未读消息数
    */
   const roomSessions : MessageSessionResponse[] = useGetUserSessionsQuery().data?.data ?? [];
+  console.log("roomSessions", roomSessions.find( session => session.roomId === 10010))
   const updateReadPosition1Mutation = useUpdateReadPosition1Mutation();
   const unreadMessagesNumber: Record<number, number> = roomSessions.reduce((acc, session) => {
     if (session.roomId && session.lastReadSyncId && session.latestSyncId) {
@@ -87,7 +88,7 @@ export function useWebSocket() {
           if (session.roomId === roomId) {
             return {
               ...session,
-              lastReadSyncId: latestSyncId
+              latestSyncId
             };
           }
           return session;
@@ -101,15 +102,23 @@ export function useWebSocket() {
    * @param lastReadSyncId
    */
   const updateLastReadSyncId = (roomId: number,lastReadSyncId?: number) => {
-    queryClient.setQueriesData<ApiResultListMessageSessionResponse>({ queryKey: ["getUserSessions"] }, (oldData) => {
-      if (!oldData?.data) return oldData;
-      const session = oldData.data.find(session => session.roomId === roomId);
-      if (!session) return oldData;
+    // 减少更新次数，防止出现死循环
+    const oldData = queryClient.getQueryData<ApiResultListMessageSessionResponse>(["getUserSessions"])
+    if (!oldData?.data) return
+    const session = oldData.data.find(session => session.roomId === roomId);
+    if (!session) return
 
+    // 如果没有指定lastReadSyncId，则使用latestSyncId更新，也就是读到最后一条消息
+    const targetReadySyncId = lastReadSyncId ?? session.latestSyncId!
+    if (targetReadySyncId === session.lastReadSyncId)
+      return
+
+    queryClient.setQueriesData<ApiResultListMessageSessionResponse>({ queryKey: ["getUserSessions"] }, (oldData) => {
+      if (!oldData?.data) return
       //未读消息直接异步更改，漏了也没关系。
       updateReadPosition1Mutation.mutate({
         roomId,
-        syncId: lastReadSyncId ?? session.latestSyncId!
+        syncId: targetReadySyncId
       });
       return {
         ...oldData,
@@ -117,7 +126,7 @@ export function useWebSocket() {
           if (session.roomId === roomId) {
             return {
               ...session,
-              lastReadSyncId: lastReadSyncId ?? session.latestSyncId
+              lastReadSyncId: targetReadySyncId
             };
           }
           return session;
@@ -291,8 +300,6 @@ export function useWebSocket() {
       if (messagesToAdd.length === 0 || messagesToAdd[messagesToAdd.length-1].message.messageId !== chatMessageResponse.message.messageId){
         messagesToAdd.push(chatMessageResponse);
       }
-
-
       updateReceivedMessages(draft => {
         if (draft[roomId]) {
           draft[roomId].push(...messagesToAdd);
