@@ -71,7 +71,6 @@ export function useWebSocket() {
    * 群聊的未读消息数
    */
   const roomSessions : MessageSessionResponse[] = useGetUserSessionsQuery().data?.data ?? [];
-  console.log("roomSessions", roomSessions.find( session => session.roomId === 10010))
   const updateReadPosition1Mutation = useUpdateReadPosition1Mutation();
   const unreadMessagesNumber: Record<number, number> = roomSessions.reduce((acc, session) => {
     if (session.roomId && session.lastReadSyncId && session.latestSyncId) {

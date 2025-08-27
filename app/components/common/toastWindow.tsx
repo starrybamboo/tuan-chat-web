@@ -34,7 +34,7 @@ interface ToastWindowOptions {
  * @returns - 一个对象，包含 update 和 close 方法。
  */
 export default function toastWindow(
-  children: React.ReactNode,
+  children: ((onClose: () => void) => React.ReactNode) | React.ReactNode,
   options: ToastWindowOptions = {},
 ): { update: (newChildren: React.ReactNode) => void; close: () => void } {
   // 创建一个临时的 div 容器
@@ -75,7 +75,9 @@ export default function toastWindow(
   };
 
   // 初始渲染
-  render(children);
+  render(typeof children === "function"
+    ? children(handleClose)
+    : children);
 
   return {
     update: (newChildren: React.ReactNode) => {
