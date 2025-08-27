@@ -66,7 +66,7 @@ export function useGetRoomSessionQuery(roomId: number) {
 export function useGetUserSessionsQuery() {
     return useQuery({
         queryKey: ['getUserSessions'],
-        queryFn: () => {return{data:[]}},
+        queryFn: () => tuanchat.messageSession.getUserSessions(),
         staleTime: 300000 // 5分钟缓存
     });
 }

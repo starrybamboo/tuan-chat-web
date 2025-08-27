@@ -191,6 +191,15 @@ export default function ChatPage() {
     const messageElement = target.closest("[data-room-id]");
     setContextMenu({ x: e.clientX, y: e.clientY, roomId: Number(messageElement?.getAttribute("data-room-id")) });
   }
+  // 处理点击外部关闭菜单的逻辑
+  useEffect(() => {
+    if (contextMenu) {
+      window.addEventListener("click", closeContextMenu);
+    }
+    return () => {
+      window.removeEventListener("click", closeContextMenu);
+    };
+  }, [contextMenu]); // 依赖于contextMenu状态
 
   // websocket封装, 用于发送接受消息
   const websocketUtils = useGlobalContext().websocketUtils;
@@ -664,7 +673,7 @@ export default function ChatPage() {
         </PopWindow>
       </div>
       {contextMenu && (() => {
-        const isSubscribed = unreadMessagesNumber[contextMenu.roomId];
+        const isSubscribed = unreadMessagesNumber[contextMenu.roomId] !== undefined;
         return (
           <div
             className="fixed bg-base-100 shadow-lg rounded-md z-40"

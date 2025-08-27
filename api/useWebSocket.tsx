@@ -9,11 +9,9 @@ import {useGlobalContext} from "@/components/globalContextProvider";
 import type {ChatStatusEvent, ChatStatusType, DirectMessageEvent, RoomExtraChangeEvent} from "./wsModels";
 import {tuanchat} from "./instance";
 import {
-  useGetRoomSessionQuery,
   useGetUserSessionsQuery,
   useUpdateReadPosition1Mutation
 } from "./hooks/messageSessionQueryHooks";
-import type {MessageSessionService} from "./services/MessageSessionService";
 import type {MessageSessionResponse} from "./models/MessageSessionResponse";
 import type {ApiResultListMessageSessionResponse} from "./models/ApiResultListMessageSessionResponse";
 
@@ -75,13 +73,11 @@ export function useWebSocket() {
   const roomSessions : MessageSessionResponse[] = useGetUserSessionsQuery().data?.data ?? [];
   const updateReadPosition1Mutation = useUpdateReadPosition1Mutation();
   const unreadMessagesNumber: Record<number, number> = roomSessions.reduce((acc, session) => {
-    if (session.roomId !== undefined &&
-        session.lastReadSyncId !== undefined &&
-        session.latestSyncId !== undefined) {
+    if (session.roomId && session.lastReadSyncId && session.latestSyncId) {
       acc[session.roomId] = Math.max(0, session.latestSyncId - session.lastReadSyncId);
     }
     return acc;
-  }, {} as Record<number, number>);
+  }, {} as Record<number, number>)
   const updateLatestSyncId = (roomId: number, latestSyncId: number) => {
     queryClient.setQueriesData<ApiResultListMessageSessionResponse>({ queryKey: ["getUserSessions"] }, (oldData) => {
       if (!oldData?.data) return oldData;

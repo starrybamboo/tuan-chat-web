@@ -431,6 +431,15 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     const messageElement = target.closest("[data-message-id]");
     setContextMenu({ x: e.clientX, y: e.clientY, messageId: Number(messageElement?.getAttribute("data-message-id")) });
   }
+  // 处理点击外部关闭菜单的逻辑
+  useEffect(() => {
+    if (contextMenu) {
+      window.addEventListener("click", closeContextMenu);
+    }
+    return () => {
+      window.removeEventListener("click", closeContextMenu);
+    };
+  }, [contextMenu]); // 依赖于contextMenu状态
 
   function handleBatchDelete() {
     for (const messageId of selectedMessageIds) {
@@ -533,7 +542,6 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
       <div
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
-        onClick={closeContextMenu}
       >
         {selectedMessageIds.size > 0 && (
           <div
