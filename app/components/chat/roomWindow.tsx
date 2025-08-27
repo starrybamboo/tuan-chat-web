@@ -217,7 +217,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
    * 获取历史消息
    */
   const chatHistory = useChatHistory(roomId);
-  const historyMessages: ChatMessageResponse[] = chatHistory.messages;
+  const historyMessages: ChatMessageResponse[] = chatHistory?.messages;
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollToGivenMessage = useCallback((messageId: number) => {

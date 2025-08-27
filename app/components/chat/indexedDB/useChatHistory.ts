@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { ChatMessageResponse } from "../../../../api";
 
@@ -22,7 +22,10 @@ export type UseChatHistoryReturn = {
  * @param roomId 要管理的房间ID
  */
 export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
-  const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
+  const [messagesRaw, setMessages] = useState<ChatMessageResponse[]>([]);
+  const messagesWithoutDeletedMessages = useMemo(() => {
+    return (messagesRaw ?? []).filter(msg => msg.message.status !== 1);
+  }, [messagesRaw]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -154,8 +157,8 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     const handleVisibilityChange = () => {
       // 当页面从后台切换到前台时
       if (document.visibilityState === "visible") {
-        const maxSyncId = messages.length > 0
-          ? Math.max(...messages.map(msg => msg.message.syncId))
+        const maxSyncId = messagesRaw.length > 0
+          ? Math.max(...messagesRaw.map(msg => msg.message.syncId))
           : -1;
         fetchNewestMessages(maxSyncId);
       }
@@ -168,10 +171,10 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [messages, fetchNewestMessages]);
+  }, [messagesRaw, fetchNewestMessages]);
 
   return {
-    messages,
+    messages: messagesWithoutDeletedMessages,
     loading,
     error,
     addOrUpdateMessage, // 用于单条消息
