@@ -1098,10 +1098,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       onCompositionEnd={() => isComposingRef.current = false}
                       onPaste={async e => handlePaste(e)}
                       suppressContentEditableWarning={true}
-                      contentEditable={!disableSendMessage}
-                      data-placeholder={(curMember?.memberType || 3) >= 3
+                      contentEditable={!notMember || !noRole}
+                      data-placeholder={notMember
                         ? "你是观战成员，不能发送消息"
-                        : (curRoleId <= 0
+                        : (noRole
                             ? "请先拉入你的角色，之后才能发送消息。"
                             : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"))}
                     />
