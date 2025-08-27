@@ -1,5 +1,4 @@
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { PopWindow } from "@/components/common/popWindow";
+import toastWindow from "@/components/common/toastWindow";
 import React, { useEffect, useRef, useState } from "react";
 
 /**
@@ -11,24 +10,66 @@ import React, { useEffect, useRef, useState } from "react";
  * @param popWindowKey 弹窗的searchParam key。如果同一页面会出现多个同一url的图片时，需要指定
  * @param transparent
  */
-
-function BetterImg({ src, className, onClose, size, popWindowKey, transparent = true }: {
+function BetterImg({ src, className, onClose, size, transparent = true }: {
   src: string | File | undefined;
   className?: string;
   onClose?: () => void;
   size?: { width?: number; height?: number };
-  popWindowKey?: string;
+  transparent?: boolean;
+}) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const imgSrc = typeof src === "string" || !src ? src : URL.createObjectURL(src);
+
+  const openToastWindow = () => {
+    toastWindow(
+      <ResizableImg src={imgSrc ?? ""} size={size} transparent={transparent} />,
+      {
+        fullScreen: true,
+        transparent,
+      },
+    );
+  };
+
+  return (
+    <div>
+      <div className="relative group">
+        <img
+          ref={imgRef}
+          src={imgSrc}
+          width={size?.width}
+          height={size?.height}
+          className={`hover:scale-101 ${className} cursor-zoom-in w-full object-contain`}
+          alt="img"
+          onClick={() => openToastWindow()}
+        />
+
+        {onClose && (
+          <button
+            type="button"
+            className="btn btn-xs btn-circle right-0 top-0 absolute opacity-100 duration-200 origin-top-right"
+            onClick={onClose}
+          >
+            <span className="text-xs">✕</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default BetterImg;
+
+export function ResizableImg({ src, size, transparent }:
+{
+  src: string;
+  size?: { width?: number; height?: number };
   transparent?: boolean;
 }) {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-  const imgRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const imgSrc = typeof src === "string" || !src ? src : URL.createObjectURL(src);
-  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(popWindowKey || `imgPop${imgSrc}`, false);
-
   const zoom = (delta: number, mouseX: number, mouseY: number) => {
     const newScale = Math.max(0.5, Math.min(3, scale + delta));
 
@@ -98,7 +139,6 @@ function BetterImg({ src, className, onClose, size, popWindowKey, transparent = 
   const handleContainerClick = (e: React.MouseEvent) => {
     // 只有当点击的是容器本身（不是图片）时才关闭
     if (e.target === e.currentTarget) {
-      setIsOpen(false);
       resetZoom();
     }
   };
@@ -117,75 +157,38 @@ function BetterImg({ src, className, onClose, size, popWindowKey, transparent = 
       document.body.style.cursor = "";
     };
   }, [isDragging, scale]);
-
   return (
-    <div>
-      <div className="relative group">
+    <div
+      className={`relative overflow-hidden flex justify-center items-center ${transparent ? "w-screen h-screen" : ""}`}
+      ref={containerRef}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave} // 新增事件处理
+      onWheel={handleWheel}
+      onClick={handleContainerClick} // 点击容器空白区域关闭图片查看
+      style={{
+        // 根据缩放状态和拖动状态显示不同光标
+        cursor: isDragging ? "grabbing" : scale > 1 ? "grab" : "default",
+      }}
+    >
+      <div
+        className="w-max h-max"
+        style={{
+          transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+          transition: isDragging ? "none" : "transform 0.2s ease",
+          transformOrigin: "center center", // 修改为中心缩放
+        }}
+      >
         <img
-          ref={imgRef}
-          src={imgSrc}
+          src={src}
+          className="max-h-[70vh] max-w-[70vw] object-contain"
+          alt="img"
           width={size?.width}
           height={size?.height}
-          className={`hover:scale-101 ${className} cursor-zoom-in w-full object-contain`}
-          alt="img"
-          onClick={() => setIsOpen(true)}
+          onClick={e => e.stopPropagation()} // 防止点击图片时触发容器的关闭事件
         />
-
-        {onClose && (
-          <button
-            type="button"
-            className="btn btn-xs btn-circle right-0 top-0 absolute opacity-100 duration-200 origin-top-right"
-            onClick={onClose}
-          >
-            <span className="text-xs">✕</span>
-          </button>
-        )}
       </div>
-
-      <PopWindow
-        isOpen={isOpen}
-        onClose={() => {
-          setIsOpen(false);
-          resetZoom();
-        }}
-        fullScreen={true}
-        transparent={transparent}
-      >
-        <div
-          className={`relative overflow-hidden flex justify-center items-center ${transparent ? "w-screen h-screen" : ""}`}
-          ref={containerRef}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave} // 新增事件处理
-          onWheel={handleWheel}
-          onClick={handleContainerClick} // 点击容器空白区域关闭图片查看
-          style={{
-            // 根据缩放状态和拖动状态显示不同光标
-            cursor: isDragging ? "grabbing" : scale > 1 ? "grab" : "default",
-          }}
-        >
-          <div
-            className="w-max h-max"
-            style={{
-              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-              transition: isDragging ? "none" : "transform 0.2s ease",
-              transformOrigin: "center center", // 修改为中心缩放
-            }}
-          >
-            <img
-              src={imgSrc}
-              className="max-h-[70vh] max-w-[70vw] object-contain"
-              alt="img"
-              width={size?.width}
-              height={size?.height}
-              onClick={e => e.stopPropagation()} // 防止点击图片时触发容器的关闭事件
-            />
-          </div>
-        </div>
-      </PopWindow>
     </div>
   );
 }
-
-export default BetterImg;
