@@ -217,7 +217,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
    * 获取历史消息
    */
   const chatHistory = useChatHistory(roomId);
-  const historyMessages: ChatMessageResponse[] = chatHistory.messages;
+  const historyMessages: ChatMessageResponse[] = chatHistory?.messages;
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollToGivenMessage = useCallback((messageId: number) => {
@@ -1039,12 +1039,15 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                           </div>
                         )
                       : (
-                          <div className="w-10 md:w-14" onClick={() => setIsRoleAddWindowOpen(true)}>
-                            <AddRingLight className="size-10 md:size-14 jump_icon"></AddRingLight>
-                            <div className="text-sm truncate w-full">
-                              添加角色
+                          roomContext.curMember?.memberType ?? 3) < 3 && (
+                          <li className="flex flex-row list-none group" onClick={() => setIsRoleAddWindowOpen(true)}>
+                            <div className="w-full">
+                              <AddRingLight className="size-10 group-hover:text-info"></AddRingLight>
+                              <div>
+                                添加角色
+                              </div>
                             </div>
-                          </div>
+                          </li>
                         )
                   }
 
@@ -1095,10 +1098,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       onCompositionEnd={() => isComposingRef.current = false}
                       onPaste={async e => handlePaste(e)}
                       suppressContentEditableWarning={true}
-                      contentEditable={true}
-                      data-placeholder={(curRoleId <= 0
-                        ? "请先拉入你的角色，之后才能发送消息。"
-                        : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"))}
+                      contentEditable={!notMember || !noRole}
+                      data-placeholder={notMember
+                        ? "你是观战成员，不能发送消息"
+                        : (noRole
+                            ? "请先拉入你的角色，之后才能发送消息。"
+                            : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"))}
                     />
                   </div>
                   {/* at搜索框 */}

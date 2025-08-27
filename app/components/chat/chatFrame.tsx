@@ -96,7 +96,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   }, [chatHistory, receivedMessages, roomId]);
 
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    return (roomContext.chatHistory?.messages ?? []).filter(msg => msg.message.status !== 1);
+    return roomContext.chatHistory?.messages ?? [];
   }, [roomContext.chatHistory?.messages]);
   /**
    * 虚拟列表
