@@ -23,7 +23,7 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
 
   const openToastWindow = () => {
     toastWindow(
-      onClose => <ResizableImg src={imgSrc ?? ""} size={size} transparent={transparent} onClose={onClose} />,
+      onClose => <ResizableImg src={imgSrc ?? ""} size={size} onClose={onClose} />,
       {
         fullScreen: true,
         transparent,
