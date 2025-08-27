@@ -175,6 +175,31 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   }, [currentVirtuosoIndex, imgNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
 
   /**
+   * 为什么要在这里加上一个这么一个莫名其妙的多余变量呢？
+   * 目的是为了让背景图片从url到null的切换时也能触发transition的动画，如果不加，那么，动画部分的css就会变成这样：
+   *         style={{
+   *           backgroundImage: currentBackgroundUrl ? `url('${currentBackgroundUrl}')` : "none",
+   *           opacity: currentBackgroundUrl ? 1 : 0,
+   *         }}    // 错误代码！
+   * 当currentBackgroundUrl从url变为null时，浏览器会因为backgroundImage已经变成了null，导致动画来不及播放，背景直接就消失了
+   * 而加上这么一给state后
+   *         style={{
+   *           backgroundImage: displayedBgUrl ? `url('${displayedBgUrl}')` : "none",
+   *           opacity: currentBackgroundUrl ? 1 : 0,
+   *         }}   // 正确的
+   * 当currentBackgroundUrl 从 url_A 变为 null时
+   * 此时，opacity 因为 currentBackgroundUrl 是 null 而变为 0，淡出动画开始。
+   * 但我们故意不更新 displayedBgUrl！它依然保持着 url_A 的值。
+   * 结果就是：背景图层虽然要变透明了，但它的 backgroundImage 样式里依然是上一张图片。这样，动画就有了可以“操作”的视觉内容，能够平滑地将这张图片淡出，直到完全透明。
+   */
+  const [displayedBgUrl, setDisplayedBgUrl] = useState(currentBackgroundUrl);
+  useEffect(() => {
+    if (currentBackgroundUrl) {
+      setDisplayedBgUrl(currentBackgroundUrl);
+    }
+  }, [currentBackgroundUrl]);
+
+  /**
    * 消息选择
    */
   const [selectedMessageIds, updateSelectedMessageIds] = useState<Set<number>>(new Set());
@@ -531,15 +556,22 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    * 渲染
    */
   return (
-    <div
-      className={`h-full relative
-      bg-cover bg-center bg-no-repeat transition-all duration-500`}
-      style={{
-        backgroundImage: currentBackgroundUrl ? `url('${currentBackgroundUrl}')` : "none",
-      }}
-    >
-      {/* 对背景图片进行调整与模糊 */}
-      {currentBackgroundUrl && <div className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-xs z-0"></div>}
+    <div className="h-full relative">
+      {/* Background Image Layer */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
+        style={{
+          backgroundImage: displayedBgUrl ? `url('${displayedBgUrl}')` : "none",
+          opacity: currentBackgroundUrl ? 1 : 0,
+        }}
+      />
+      {/* Overlay for tint and blur */}
+      <div
+        className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-xs z-0 transition-opacity duration-500"
+        style={{
+          opacity: currentBackgroundUrl ? 1 : 0,
+        }}
+      />
       <div
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
