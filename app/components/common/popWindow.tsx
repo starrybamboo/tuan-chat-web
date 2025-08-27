@@ -10,6 +10,8 @@ export interface PopWindowProp {
   transparent?: boolean; // 是否透明背景
 }
 /**
+ * 【Legacy】如无必要，请使用toastWindow来代替本组件
+ *
  * 关于控制popWindow开关的参数，请使用useSearchParamsState。
  * 这样，在回退url的时候也能关闭弹窗（这主要是对移动端的优化）
  * 另外注意的是，useParamsState中的key不要取太常规的名字（比如“pop”），
