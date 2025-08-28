@@ -128,7 +128,6 @@ export default function Topbar() {
             <ul className="dropdown-content z-[50] menu p-2 shadow bg-base-200 rounded-box w-52 mt-3 text-base-content">
               <li><a onClick={() => handleNavigation("/feed")}>推荐</a></li>
               <li><a onClick={() => handleNavigation("/community/1")}>社区</a></li>
-              <li><a onClick={() => handleNavigation("/activities")}>动态</a></li>
               <li><a onClick={() => handleNavigation("/chat")}>聊天</a></li>
               <li><a onClick={() => handleNavigation("/role")}>角色</a></li>
               <li><a onClick={() => handleNavigation("/module")}>模组</a></li>

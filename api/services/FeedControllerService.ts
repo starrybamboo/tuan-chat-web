@@ -9,6 +9,7 @@ import type { ApiResultFeedStatsResponse } from '../models/ApiResultFeedStatsRes
 import type { ApiResultMapLongFeedStatsResponse } from '../models/ApiResultMapLongFeedStatsResponse';
 import type { ApiResultMessageFeedResponse } from '../models/ApiResultMessageFeedResponse';
 import type { ApiResultMessageFeedWithStatsResponse } from '../models/ApiResultMessageFeedWithStatsResponse';
+import type { ApiResultMomentFeedTotalStatsResponse } from '../models/ApiResultMomentFeedTotalStatsResponse';
 import type { ApiResultMomentFeedWithStatsResponse } from '../models/ApiResultMomentFeedWithStatsResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { FeedPageRequest } from '../models/FeedPageRequest';
@@ -176,6 +177,23 @@ export class FeedControllerService {
         });
     }
     /**
+     * 获取动态Feed统计
+     * @returns ApiResultMomentFeedTotalStatsResponse OK
+     * @throws ApiError
+     */
+    public getMomentFeedStats(): CancelablePromise<ApiResultMomentFeedTotalStatsResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/feed/moment/stats',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
      * 发布动态Feed
      * @param requestBody
      * @returns ApiResultMomentFeedWithStatsResponse OK
@@ -231,6 +249,29 @@ export class FeedControllerService {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/feed/stats',
+            query: {
+                'feedId': feedId,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 根据ID获取动态Feed详情
+     * @param feedId
+     * @returns ApiResultMomentFeedWithStatsResponse OK
+     * @throws ApiError
+     */
+    public getMomentById(
+        feedId: number,
+    ): CancelablePromise<ApiResultMomentFeedWithStatsResponse> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/feed/moment/detail',
             query: {
                 'feedId': feedId,
             },
