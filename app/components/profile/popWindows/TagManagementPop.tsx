@@ -287,7 +287,7 @@ export const TagManagementPop: React.FC<TagManagementPopupProps> = ({
         {/* 展示用户当前有的标签 */}
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-base-content mb-3">所有标签</h3>
-          <div className="bg-base-100 border border-base-300 rounded-lg p-4 max-h-60">
+          <div className="bg-base-100 border border-base-300 rounded-lg p-4">
             {tags.length === 0
               ? (
                   <div className="text-center py-8 text-base-content/60">

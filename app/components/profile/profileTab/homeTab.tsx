@@ -74,7 +74,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
   const visibleMedals = expandedMedals ? userProfile.medals : userProfile.medals.slice(0, 6);
 
   return (
-    <div className="max-w-7xl mx-auto p-4 transition-all duration-300 md:flex">
+    <div className="max-w-7xl mx-auto p-2 transition-all duration-300 md:flex">
       {/* 在 md 及以上屏幕显示侧边栏布局，在 md 以下显示顶部栏布局 */}
       <div className="w-full flex flex-col md:max-w-1/4 py-4 md:py-8">
         {/* 小屏幕布局 - 顶部栏样式 */}
@@ -222,16 +222,35 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
                 )
               : (
                   <div>
-                    <p className={`text-base break-words ${isExpanded ? "" : "line-clamp-2"}`}>
-                      {user?.description || "这个人就是个杂鱼，什么也不愿意写喵~"}
-                    </p>
+                    <div
+                      className={`text-base break-words overflow-hidden transition-all duration-300 ease-in-out ${
+                        isExpanded ? "max-h-96" : "max-h-12"
+                      }`}
+                      style={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: isExpanded ? "unset" : 2,
+                        WebkitBoxOrient: "vertical",
+                      }}
+                    >
+                      <p className="leading-6">
+                        {user?.description || "这个人就是个杂鱼，什么也不愿意写喵~"}
+                      </p>
+                    </div>
                     {user?.description && user.description.length > 80 && (
                       <button
                         onClick={() => setIsExpanded(prev => !prev)}
-                        className="text-blue-400 text-xs mt-1 hover:underline"
+                        className="text-blue-400 text-xs cursor-pointer mt-2 hover:underline transition-colors duration-200 flex items-center gap-1"
                         type="button"
                       >
-                        {isExpanded ? "收起" : "展开"}
+                        <span>{isExpanded ? "收起" : "展开"}</span>
+                        <svg
+                          className={`w-3 h-3 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
                       </button>
                     )}
                   </div>
@@ -338,10 +357,20 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
         </div>
       </div>
       {/* 右侧 - 真正的主页 */}
-      <div className="flex-1 lg:m-4">
-        <div className="p-6 shadow-md rounded-xl">
+      <div className="flex-1 lg:m-2">
+        <div className="p-4 shadow-md rounded-xl">
+          {/* 个人主页的Readme */}
+          <div className="p-2">
+            <MarkDownViewer content={user?.readMe || "## Hi, welcome to my personal page!👋"}></MarkDownViewer>
+          </div>
+
+          {/* 用户标签 */}
+          <div className="mb-4">
+            <TagManagement userId={userId} />
+          </div>
+
           {/* 用户ID和登录时间 - 紧凑布局 */}
-          <div className="flex flex-wrap items-center gap-4 md:gap-8 mb-6">
+          <div className="p-2 flex flex-wrap items-center gap-4 md:gap-8 mb-6">
             <div>
               <p className="text-sm">用户ID</p>
               <p className="font-mono text-lg font-medium">{userId}</p>
@@ -352,12 +381,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             </div>
           </div>
 
-          {/* 用户标签 */}
-          <div className="mb-4">
-            <TagManagement userId={userId} />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 ">
+          <div className="grid grid-cols-1 lg:grid-cols-3">
             {/* 左侧 - 基本信息 */}
             <div className="lg:col-span-2">
               <div className="grid grid-cols-2 md:grid-cols-3">
@@ -421,18 +445,12 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
               <GNSSpiderChart userId={userId} />
             </div>
           </div>
-          {/* 个人主页的Readme */}
-          <div className="m-2 border-t border-primary">
-            {/* 修改位置待定 */}
-            <MarkDownViewer content={user?.readMe || "## Hi, welcome to my personal page!👋"}></MarkDownViewer>
-          </div>
         </div>
 
         {/* SC余额卡片 */}
         {loginUserId === userId && (
           <ScCurrencyDisplay></ScCurrencyDisplay>
         )}
-
       </div>
 
       <PopWindow isOpen={isEditWindowOpen} fullScreen={true} onClose={() => setIsEditWindowOpen(false)}>
