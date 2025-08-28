@@ -3,11 +3,45 @@ import UpdatesPopWindow from "@/components/topbanner/updatesWindow";
 import { checkAuthStatus } from "@/utils/auth/authapi";
 import { QueryClient, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import LoginButton from "../auth/LoginButton";
 import ThemeSwitch from "../themeSwitch";
 
 const queryClient = new QueryClient();
+
+function ActivitiesButton() {
+  return (
+    <div className="tooltip tooltip-bottom" data-tip="动态">
+      <Link
+        to="/activities"
+        aria-label="动态"
+        className="btn btn-ghost btn-square hover:bg-base-200 transition-colors duration-200"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-base-content"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <circle cx="9" cy="9" r="2" />
+          <path d="M13 19l6-6" />
+          <path d="m21 3-6 6" />
+          <path d="m11 11 6 6" />
+          <circle cx="20" cy="20" r="2" />
+          <circle cx="20" cy="4" r="2" />
+          <circle cx="4" cy="20" r="2" />
+        </svg>
+      </Link>
+    </div>
+  );
+}
 
 export default function Topbar() {
   const navigate = useNavigate();
@@ -116,7 +150,6 @@ export default function Topbar() {
           <div className="hidden lg:flex gap-7">
             <a onClick={() => navigate("/feed")} className="font-normal text-base hover:underline cursor-default ">推荐</a>
             <a onClick={() => navigate("/community/1")} className="font-normal text-base hover:underline cursor-default">社区</a>
-            <a onClick={() => navigate("/activities")} className="font-normal text-base hover:underline cursor-default">动态</a>
             <a onClick={() => navigate("/chat")} className="font-normal text-base hover:underline cursor-default">聊天</a>
             <a onClick={() => navigate("/role")} className="font-normal text-base hover:underline cursor-default">角色</a>
             <a onClick={() => navigate("/module")} className="font-normal text-base hover:underline cursor-default">模组</a>
@@ -128,9 +161,7 @@ export default function Topbar() {
         {/* 右侧用户区域 */}
         {!isLoading && (
           <div className="navbar-end gap-1 md:gap-2">
-            <div className="scale-75 md:scale-100">
-              <ThemeSwitch />
-            </div>
+            <ActivitiesButton />
             {isLoggedIn
               ? (
                   <div className="dropdown dropdown-end">
@@ -152,6 +183,12 @@ export default function Topbar() {
                       </svg>
                     </div>
                     <ul tabIndex={0} className="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-52">
+                      <div className="flex items-center justify-between px-4 py-2">
+                        <span className="select-none">主题切换</span>
+                        <div className="scale-75">
+                          <ThemeSwitch />
+                        </div>
+                      </div>
                       <li>
                         <a onClick={() => handleUserNavigation(`/profile/${userId}`)}>个人中心</a>
                       </li>
