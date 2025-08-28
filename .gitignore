@@ -349,8 +349,9 @@ $RECYCLE.BIN/
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,macos,webstorm+all,node,react,linux,visualstudiocode
 
+/release/
 
-# /android 
+# /android
 /android*.iml
 /android.gradle
 /android/local.properties

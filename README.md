@@ -9,6 +9,17 @@
 pnpm install
 ```
 
+#### electron安装问题
+如果遇到
+```
+Electron failed to install correctly,
+ please delete node_modules/electron and try installing again
+```
+尝试
+```bash
+node node_modules/electron/install.js
+```
+
 ### 配置环境
 
 在项目根目录创建 .env （或 .env.development)文件，把下面的文字粘贴进去。
@@ -36,10 +47,7 @@ VITE_TERRE_WS=ws://localhost:3001/api/webgalsync
 
 ![开启Run eslint --fix on save](https://ycn45b70r8yz.feishu.cn/space/api/box/stream/download/asynccode/?code=NmJlMTFkOWRmNTBlOWYxMTUxYzk1ZDhkM2Y5OGIyMDBfYUttUVd1TWtYcEVzQld6d3lZQlFHTGdqbnUzck5uclZfVG9rZW46TGF0aGJmdEtqb2F3V3h4cGkySGNpQ2ZYbmxnXzE3NTAwNzI1MDc6MTc1MDA3NjEwN19WNA)
 
-
-
-### 启动！
-
+### 启动！！！
 ```bash
 pnpm dev
 ```
