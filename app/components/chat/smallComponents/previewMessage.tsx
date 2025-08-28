@@ -20,11 +20,15 @@ export function PreviewMessage({ message, className }: {
   const useRoleRequest = useGetRoleQuery(messageBody?.roleId ?? -1);
   const role = useRoleRequest.data?.data;
   const isTextMessage = messageBody?.messageType === 1;
+  const isDeleted = messageBody?.status === 1;
+
   return (
     <span className={`text-sm line-clamp-3 opacity-60 break-words ${className}`}>
-      {role?.roleName || "YOU_KNOW_WHO"}
-      {": "}
-      {isTextMessage ? messageBody.content : "非文本消息"}
+      {
+        isDeleted
+          ? "[原消息已被删除]"
+          : `${role?.roleName || "YOU_KNOW_WHO"}: ${isTextMessage ? messageBody.content : "非文本消息"}`
+      }
     </span>
   );
 }

@@ -23,6 +23,10 @@ export type MomentFeedResponse = {
      * 上传图片url
      */
     imageUrls?: Array<string>;
+    /**
+     * feed token
+     */
+    token?: number;
     moduleVO?: ModuleVo;
     /**
      * 创建时间

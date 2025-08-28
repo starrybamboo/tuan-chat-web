@@ -1,7 +1,21 @@
+const fs = require("node:fs");
 const path = require("node:path");
 const process = require("node:process");
 // 控制应用生命周期和创建原生浏览器窗口的模组
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, protocol } = require("electron");
+
+// 在 app ready 之前注册自定义协议
+// 这使得我们能像处理 http 请求一样处理应用内的文件请求
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "app",
+    privileges: {
+      secure: true, // 将协议注册为安全协议
+      standard: true, // 遵循 URL 规范
+      supportFetchAPI: true, // 支持 Fetch API
+    },
+  },
+]);
 
 function createWindow() {
   // 创建浏览器窗口
@@ -31,14 +45,43 @@ function createWindow() {
   else {
     // 生产环境中要加载文件，打包的版本
     // Menu.setApplicationMenu(null)
-    // 加载 index.html
-    mainWindow.loadFile(path.resolve(__dirname, "../build/client/index.html")); // 新增
+    // 使用自定义协议加载应用的根目录，而不是具体的 index.html 文件
+    mainWindow.loadURL("app://./");
   }
 }
+
 // 这段程序将会在 Electron 结束初始化
 // 和创建浏览器窗口的时候调用
 // 部分 API 在 ready 事件触发后才能使用。
 app.whenReady().then(() => {
+  // 实现自定义协议的具体逻辑
+  protocol.registerFileProtocol("app", (request, callback) => {
+    // 从请求 URL 中解析出需要加载的文件路径
+    const url = request.url.substr("app://./".length);
+    const filePath = path.join(__dirname, "../build/client", url);
+
+    fs.stat(filePath, (err, stats) => {
+      if (err) {
+        // 如果文件或目录不存在 (err 不为 null), 说明这是一个前端路由的虚拟路径
+        // 此时, 我们就返回根目录的 index.html, 这完美复刻了 Nginx 的 try_files 逻辑
+        const indexPath = path.join(__dirname, "../build/client", "index.html");
+        callback({ path: indexPath });
+        return;
+      }
+
+      // 如果请求的是一个目录 (例如初始加载 'app://./')
+      if (stats.isDirectory()) {
+        // 加载该目录下的 index.html
+        const indexPath = path.join(filePath, "index.html");
+        callback({ path: indexPath });
+      }
+      else {
+        // 如果请求的是一个文件 (例如 an asset like main.js or style.css), 直接返回该文件
+        callback({ path: filePath });
+      }
+    });
+  });
+
   createWindow();
 
   app.on("activate", () => {

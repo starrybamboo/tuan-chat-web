@@ -1,7 +1,11 @@
 import type { ModuleData } from "./constants";
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
+import { PopWindow } from "@/components/common/popWindow";
+import { useGlobalContext } from "@/components/globalContextProvider";
+import { useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
-import { useMemo } from "react";
+import { useImportFromModuleMutation } from "api/hooks/spaceModuleHooks";
+import { useMemo, useState } from "react";
 import { useParams } from "react-router";
 import Author from "./author";
 import ContentTab from "./contentTab";
@@ -30,10 +34,43 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
   const params = useParams();
   // const navigate = useNavigate();
   const moduleId = params.id;
+  // 选择群聊弹窗
+  const [isGroupSelectOpen, setIsGroupSelectOpen] = useState(false);
 
   // 获取 moduleInfo 数据
   const { data: moduleInfoData, isLoading, error } = useModuleInfoQuery(Number(moduleId!));
   const moduleInfo = useMemo(() => moduleInfoData?.data?.responses || [], [moduleInfoData]);
+  // 获取用户Id
+  const globalContext = useGlobalContext();
+  // 获取 userSpace 数据
+  const getUserSpaces = useGetUserSpacesQuery();
+  const userSpaces = useMemo(() => getUserSpaces.data?.data ?? [], [getUserSpaces.data?.data]);
+  const spaces = userSpaces.filter(space => space.userId === Number(globalContext.userId));
+
+  // 模组导入群聊
+  const importFromModule = useImportFromModuleMutation();
+  // 导入成功后显示弹窗
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  // 导入失败后显示弹窗
+  const [showErrorToast, setShowErrorToast] = useState(false);
+  // 处理模组导入
+  const handleModuleImport = (spaceId: number) => {
+    // 暂时只能推测试模组
+    importFromModule.mutate({ spaceId, commitId: 1 }, {
+      onSuccess: () => {
+        setIsGroupSelectOpen(false);
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+      },
+      onError: () => {
+        setIsGroupSelectOpen(false);
+        setShowErrorToast(true);
+        setTimeout(() => setShowErrorToast(false), 3000);
+      },
+    });
+  };
+
+  // 获取模组角色
 
   // 在组件层级使用 CloneModule hooks
   // const { cloneModule, isLoading: isCloning } = useCloneModule(moduleInfoData, moduleData);
@@ -175,6 +212,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
         <button
           type="button"
           className="hidden md:flex cursor-pointer z-50 relative items-center px-4 py-4 border-4 border-ac bg-transparent font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0"
+          onClick={() => setIsGroupSelectOpen(true)}
         >
           <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
           {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
@@ -212,6 +250,16 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
                     <button
                       type="button"
                       className="btn btn-outline btn-ghost rounded-md"
+                      // disabled={isCloning}
+                      // onClick={async () => {
+                      //   try {
+                      //     await cloneModule();
+                      //     navigate("/create");
+                      //   }
+                      //   catch (error) {
+                      //     console.error("克隆模组失败:", error);
+                      //   }
+                      // }}
                     >
                       Clone
                     </button>
@@ -277,6 +325,56 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
           </div>
         </div>
       </div>
+      <PopWindow isOpen={isGroupSelectOpen} onClose={() => setIsGroupSelectOpen(false)}>
+        <div className="flex flex-col gap-y-2 pb-4 max-h-[80vh] overflow-y-auto">
+          <span>请选择需要应用的群聊</span>
+          {
+            spaces.map(space => (
+              <div className="flex gap-x-4 items-center p-2 bg-base-100 rounded-lg w-full justify-between" key={space.spaceId}>
+                <div className="flex items-center gap-2">
+                  <img
+                    src={space.avatar}
+                    alt={space.name}
+                    className="w-8 h-8 rounded-full"
+                  />
+                  <span className="text-sm font-medium">
+                    {space.name}
+                  </span>
+                </div>
+                {space.moduleId
+                  ? (
+                      <button
+                        type="button"
+                        className="btn btn-disabled w-20"
+                        onClick={() => { handleModuleImport(space.spaceId ?? -1); }}
+                      >
+                        已应用
+                      </button>
+                    )
+                  : (
+                      <button
+                        type="button"
+                        className="btn w-20"
+                        onClick={() => { handleModuleImport(space.spaceId ?? -1); }}
+                      >
+                        应用
+                      </button>
+                    )}
+              </div>
+            ))
+          }
+        </div>
+      </PopWindow>
+      {showSuccessToast && (
+        <div className="fixed bottom-6 right-6 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50 fade-in-out">
+          ✅ 应用成功！
+        </div>
+      )}
+      {showErrorToast && (
+        <div className="fixed bottom-6 right-6 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50 fade-in-out">
+          ❌ 应用失败！
+        </div>
+      )}
     </div>
   );
 }
