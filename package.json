@@ -15,7 +15,7 @@
     "prepare": "husky",
     "openapi": "openapi --input ./api/tuanchat_OpenAPI.json --output ./api --client fetch --name TuanChat",
     "electron:dev": "electron .",
-    "electron:build": "react-router build & electron-builder build --config electron-builder.json"
+    "electron:build": "electron-builder build --config electron-builder.json"
   },
   "config": {
     "electron": {
