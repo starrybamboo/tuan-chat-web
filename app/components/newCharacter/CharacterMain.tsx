@@ -1,26 +1,15 @@
 import type { Role } from "./types";
 import { useState } from "react";
 import CharacterDetail from "./CharacterDetail";
-// import { RoleCard } from "./RoleCard";
 import { Sidebar } from "./Sidebar";
 
 export default function CharacterMain() {
   const [roles, setRoles] = useState<Role[]>([]);
-  // const [isLoading, setIsLoading] = useState(false);
-  // const { roles, initializeRoles, setRoles, isLoading } = useRolesInitialization(roleQuery);
 
   // 状态管理
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const currentRole = roles.find(r => r.id === selectedRoleId);
-
-  // useEffect(() => {
-  //   const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
-  //   if (drawerCheckbox) {
-  //     drawerCheckbox.checked = selectedRoleId !== null; // 有角色 ID 时打开，否则关闭
-  //   }
-  // }, [selectedRoleId]);
-  // 保存角色
 
   const handleSave = (updatedRole: Role) => {
     let IsChangeAvatar = false;
@@ -65,7 +54,7 @@ export default function CharacterMain() {
       <input id="character-drawer" type="checkbox" className="drawer-toggle" />
 
       {/* 使用抽象出的 Sidebar 组件 */}
-      <div className="drawer-side z-10">
+      <div className="drawer-side z-50">
         <label htmlFor="character-drawer" className="drawer-overlay">
           <Sidebar
             roles={roles}
@@ -73,6 +62,7 @@ export default function CharacterMain() {
             selectedRoleId={selectedRoleId}
             setSelectedRoleId={setSelectedRoleId}
             setIsEditing={setIsEditing}
+            onSave={handleSave}
           />
         </label>
       </div>
@@ -80,7 +70,7 @@ export default function CharacterMain() {
       {/* 主内容区 */}
       <div className="drawer-content bg-base-200">
         {/* 添加条件渲染，在小屏幕且抽屉打开时隐藏内容 */}
-        <div className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-base-100 max-w-7xl mx-auto">
+        <div className="md:p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-base-100 max-w-7xl mx-auto">
           {currentRole
             ? (
                 <CharacterDetail

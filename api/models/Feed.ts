@@ -31,7 +31,7 @@ export type Feed = {
     /**
      * 同一feed来源的唯一表示符
      */
-    token?: string;
+    token?: number;
     /**
      * 创建时间
      */

@@ -37,11 +37,12 @@ export function SpriteRenderStudio({
 
   // 使用useMemo计算正确的立绘索引，响应数据变化
   const correctSpriteIndex = useMemo(() => {
-    if (spritesAvatars.length === 0)
+    if (spritesAvatars.length === 0) {
       return 0;
-    if (!initialAvatarId)
+    }
+    if (!initialAvatarId) {
       return 0;
-
+    }
     const index = spritesAvatars.findIndex(avatar => avatar.avatarId === initialAvatarId);
     return index !== -1 ? index : 0;
   }, [spritesAvatars, initialAvatarId]);
@@ -57,6 +58,8 @@ export function SpriteRenderStudio({
   const [isManualSwitch, setIsManualSwitch] = useState(false);
   // 弹窗显示状态
   const [isPopWindowOpen, setIsPopWindowOpen] = useState(false);
+  // 立绘列表面板收起/展开状态
+  const [isSpritePanelOpen, setIsSpritePanelOpen] = useState(false);
 
   // 处理立绘索引同步 - 当initialAvatarId变化时重置手动偏移
   useEffect(() => {
@@ -81,7 +84,7 @@ export function SpriteRenderStudio({
     if (currentSpriteIndex >= 0 && currentSpriteIndex < spritesAvatars.length) {
       const sprite = spritesAvatars[currentSpriteIndex];
       // 如果有initialAvatarId，验证当前立绘是否匹配
-      if (initialAvatarId && manualIndexOffset === null) {
+      if (!!initialAvatarId && manualIndexOffset === null) {
         // 在自动模式下，验证当前立绘是否匹配initialAvatarId
         if (sprite?.avatarId === initialAvatarId) {
           return sprite;
@@ -91,7 +94,6 @@ export function SpriteRenderStudio({
         if (matchingSprite) {
           return matchingSprite;
         }
-        // 如果找不到匹配的，返回当前索引的立绘（回退策略）
         return sprite;
       }
       // 手动模式下直接返回
@@ -164,52 +166,59 @@ export function SpriteRenderStudio({
   // 图片加载状态
   const [isImageLoading, setIsImageLoading] = useState(false);
 
-  // 当立绘URL变化时，加载到预览Canvas
+  // 当立绘URL变化时，加载到预览Canvas (已修复)
   useEffect(() => {
-    // 加载立绘到预览Canvas
-    if (spriteUrl && previewCanvasRef.current && currentSprite) {
-      const canvas = previewCanvasRef.current;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        setIsImageLoading(true);
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-
-        img.onload = () => {
-          // 确保这个回调对应的还是当前的spriteUrl（避免竞态条件）
-          if (img.src === spriteUrl) {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-
-            // 图片加载完成后，确保transform已经更新
-            const newTransform = parseTransformFromAvatar(currentSprite);
-            setDisplayTransform(newTransform);
-          }
-          setIsImageLoading(false);
-        };
-
-        img.onerror = () => {
-          // 图片加载失败时清空canvas
-          if (img.src === spriteUrl) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-          }
-          setIsImageLoading(false);
-        };
-
-        img.src = spriteUrl;
+  // 如果没有 spriteUrl，直接清空并返回，简化逻辑
+    if (!spriteUrl || !previewCanvasRef.current || !currentSprite) {
+      if (previewCanvasRef.current) {
+        const canvas = previewCanvasRef.current;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
       }
+      return; // 提前退出
     }
-    else if (!spriteUrl && previewCanvasRef.current) {
-      // 没有spriteUrl时清空canvas
-      const canvas = previewCanvasRef.current;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-      setIsImageLoading(false);
+
+    // --- 这是修复的关键部分 ---
+    let isActive = true; // 标志位，表示当前 effect 是否仍然“有效”
+
+    const canvas = previewCanvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      setIsImageLoading(true);
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+
+      img.onload = () => {
+      // 只有当这个 effect 仍然是“活跃”的，才执行操作
+        if (isActive) {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+
+          const newTransform = parseTransformFromAvatar(currentSprite);
+          setDisplayTransform(newTransform);
+          setIsImageLoading(false);
+        }
+      };
+
+      img.onerror = () => {
+        if (isActive) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          setIsImageLoading(false);
+        }
+      };
+
+      img.src = spriteUrl;
     }
+
+    // 清理函数：当组件卸载或 spriteUrl 变化导致 useEffect 重新运行时，
+    // 上一个 effect 的清理函数会被调用。
+    return () => {
+      isActive = false; // 将上一个 effect 标记为“无效”
+    };
   }, [spriteUrl, previewCanvasRef, currentSprite]);
 
   // 处理打开弹窗
@@ -225,10 +234,10 @@ export function SpriteRenderStudio({
   return (
     <div className={`${className} flex-col`}>
       <div className="relative flex-1 min-h-0">
-        {/* 编辑按钮 - 定位到右上角 */}
+        {/* 编辑按钮 - 定位到右上角，移动端自动缩小 */}
         <button
           type="button"
-          className="absolute top-2 right-2 btn btn-accent z-30"
+          className="absolute top-2 left-2 sm:right-2 sm:left-auto btn btn-sm md:btn-md btn-accent z-30"
           onClick={handleOpenPopWindow}
         >
           <span className="flex items-center gap-1">
@@ -236,56 +245,85 @@ export function SpriteRenderStudio({
               <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
               <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
             </svg>
-            立绘校正
+            <span className="hidden sm:inline">立绘校正</span>
           </span>
         </button>
 
-        {/* 头像列表面板 - 位于编辑按钮下方 */}
+        {/* 立绘列表面板 - 可收起/展开 */}
         {spritesAvatars.length > 0 && (
-          <div className="absolute top-14 right-2 bg-base-100/90 backdrop-blur-sm rounded-lg shadow-lg border border-base-300 p-2 z-30 max-w-xs">
-            <h4 className="text-sm font-semibold mb-2 text-center">立绘列表</h4>
-            <div className="grid grid-cols-4 gap-2 overflow-y-auto">
-              {spritesAvatars.map((avatar, index) => (
+          <div className="absolute top-2 md:top-14 right-2 z-30">
+            {/* 收起时显示icon */}
+            {!isSpritePanelOpen && (
+              <button
+                type="button"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-base-100/90 border border-base-300 shadow-lg hover:bg-base-200 transition-all"
+                title="展开立绘列表"
+                onClick={() => setIsSpritePanelOpen(true)}
+              >
+                <svg className="w-5 h-5 text-base-content/70" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                  <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
+            )}
+            {/* 展开时显示面板 */}
+            {isSpritePanelOpen && (
+              <div className="bg-base-100/90 backdrop-blur-sm rounded-lg shadow-lg border border-base-300 p-2 max-w-xs relative max-h-[20vh] md:max-h-[40vh] overflow-y-auto">
                 <button
                   type="button"
-                  key={avatar.avatarId}
-                  onClick={() => {
-                    setIsManualSwitch(true);
-                    setManualIndexOffset(index);
-                  }}
-                  className={`relative aspect-square rounded-md overflow-hidden border-2 transition-[border-color,box-shadow] duration-200 ${index === currentSpriteIndex
-                    ? "border-primary shadow-lg"
-                    : "border-base-300 hover:border-primary/50 hover:shadow-md"
-                  }`}
-                  title={`切换到立绘 ${index + 1}`}
+                  className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-base-200 hover:bg-base-300 text-base-content/70"
+                  title="收起立绘列表"
+                  onClick={() => setIsSpritePanelOpen(false)}
                 >
-                  {avatar.avatarUrl
-                    ? (
-                        <img
-                          src={avatar.avatarUrl}
-                          alt={`头像 ${index + 1}`}
-                          className="w-full h-full object-cover pointer-events-none"
-                          loading="lazy"
-                          style={{ aspectRatio: "1 / 1" }}
-                        />
-                      )
-                    : (
-                        <div className="w-full h-full bg-base-200 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-base-content/50" viewBox="0 0 24 24" fill="none">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" />
-                            <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
-                          </svg>
-                        </div>
-                      )}
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
                 </button>
-              ))}
-            </div>
-            <div className="text-xs text-center mt-2 text-base-content/70">
-              {currentSpriteIndex + 1}
-              {" "}
-              /
-              {spritesAvatars.length}
-            </div>
+                <h4 className="text-sm font-semibold mb-2 text-center">立绘列表</h4>
+                <div className="grid grid-cols-4 gap-2 overflow-y-auto">
+                  {spritesAvatars.map((avatar, index) => (
+                    <button
+                      type="button"
+                      key={avatar.avatarId}
+                      onClick={() => {
+                        setIsManualSwitch(true);
+                        setManualIndexOffset(index);
+                      }}
+                      className={`relative aspect-square rounded-md overflow-hidden border-2 transition-[border-color,box-shadow] duration-200 ${index === currentSpriteIndex
+                        ? "border-primary shadow-lg"
+                        : "border-base-300 hover:border-primary/50 hover:shadow-md"
+                      }`}
+                      title={`切换到立绘 ${index + 1}`}
+                    >
+                      {avatar.avatarUrl
+                        ? (
+                            <img
+                              src={avatar.avatarUrl}
+                              alt={`头像 ${index + 1}`}
+                              className="w-full h-full object-cover pointer-events-none"
+                              loading="lazy"
+                              style={{ aspectRatio: "1 / 1" }}
+                            />
+                          )
+                        : (
+                            <div className="w-full h-full bg-base-200 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-base-content/50" viewBox="0 0 24 24" fill="none">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" />
+                                <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
+                              </svg>
+                            </div>
+                          )}
+                    </button>
+                  ))}
+                </div>
+                <div className="text-xs text-center mt-2 text-base-content/70">
+                  {currentSpriteIndex + 1}
+                  {" "}
+                  /
+                  {spritesAvatars.length}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -309,17 +347,16 @@ export function SpriteRenderStudio({
           </div>
         )}
 
+        {/* 根据屏幕宽度动态调整字号 */}
         <RenderPreview
           previewCanvasRef={previewCanvasRef}
           transform={transform}
           characterName={characterName}
           dialogContent="这是一段示例对话内容。"
-          characterNameTextSize="text-2xl"
-          dialogTextSize="text-xl"
         />
 
-        {/* 调试信息 - 显示当前状态 */}
-        <div className="absolute top-2 left-2 bg-black/70 text-white text-xs p-2 rounded z-30">
+        {/* 调试信息 - 显示当前状态（移动端隐藏，桌面端显示） */}
+        <div className="absolute top-2 left-2 bg-black/70 text-white text-xs p-2 rounded z-30 hidden sm:block">
           <div>
             立绘数量:
             {spritesAvatars.length}
@@ -355,32 +392,37 @@ export function SpriteRenderStudio({
         {/* 立绘切换箭头 - 只在有多个立绘时显示 */}
         {spritesAvatars.length > 1 && (
           <>
-            {/* 左箭头 */}
+            {/* 左箭头（移动端缩小） */}
+
             <button
               type="button"
               onClick={handlePreviousSprite}
-              className="absolute left-2 top-1/2 btn btn-circle btn-sm bg-black/50 border-none text-white hover:bg-black/70 z-20"
+              className="absolute left-2 top-1/2 btn btn-circle btn-xs bg-black/50 border-none text-white hover:bg-black/70 z-20 hidden sm:block flex items-center justify-center"
               title="上一个立绘"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <span className="flex items-center justify-center w-full h-full">
+                <svg className="w-4 h-4 m-auto" viewBox="0 0 24 24" fill="none">
+                  <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
             </button>
 
-            {/* 右箭头 */}
+            {/* 右箭头（移动端缩小） */}
             <button
               type="button"
               onClick={handleNextSprite}
-              className="absolute right-2 top-1/2 btn btn-circle btn-sm bg-black/50 border-none text-white hover:bg-black/70 z-20 "
+              className="absolute right-2 top-1/2 btn btn-circle btn-xs bg-black/50 border-none text-white hover:bg-black/70 z-20 hidden sm:block flex items-center justify-center"
               title="下一个立绘"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <span className="flex items-center justify-center w-full h-full">
+                <svg className="w-4 h-4 m-auto" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
             </button>
 
-            {/* 立绘指示器 */}
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-20">
+            {/* 立绘指示器（移动端缩小） */}
+            <div className="absolute -bottom-3 md:bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-20">
               {spritesAvatars.map((avatar, index) => (
                 <button
                   type="button"
@@ -389,10 +431,11 @@ export function SpriteRenderStudio({
                     setIsManualSwitch(true);
                     setManualIndexOffset(index);
                   }}
-                  className={`w-2 h-2 rounded-full transition-all ${index === currentSpriteIndex
-                    ? "bg-white scale-125"
-                    : "bg-white/50 hover:bg-white/70"
-                  }`}
+                  className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all
+                    ${index === currentSpriteIndex
+                  ? "bg-black sm:bg-white scale-125"
+                  : "bg-black/30 sm:bg-white/50 hover:bg-black/50 sm:hover:bg-white/70"}
+                  `}
                   title={`立绘 ${index + 1}`}
                 />
               ))}
@@ -406,6 +449,7 @@ export function SpriteRenderStudio({
         <PopWindow
           isOpen={isPopWindowOpen}
           onClose={handleClosePopWindow}
+          fullScreen={typeof window !== "undefined" ? window.innerWidth < 768 : false}
         >
           {spriteUrl
             ? (
@@ -416,10 +460,6 @@ export function SpriteRenderStudio({
                   characterName={characterName}
                   onCropComplete={(croppedImageUrl) => {
                     console.warn("单体裁剪完成:", croppedImageUrl);
-                    handleClosePopWindow();
-                  }}
-                  onBatchCropComplete={(croppedImages) => {
-                    console.warn("批量裁剪完成:", croppedImages);
                     handleClosePopWindow();
                   }}
                   onClose={handleClosePopWindow}
