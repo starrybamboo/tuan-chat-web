@@ -1,5 +1,6 @@
 // RulesSection.tsx
-import type { GameRule } from "../types";
+
+import type { Rule } from "api/models/Rule";
 import { useRulePageMutation } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 
@@ -23,8 +24,8 @@ export default function RulesSection({
   const [keyword, setKeyword] = useState("");
 
   // 状态
-  const [rules, setRules] = useState<GameRule[]>([]);
-  // const [filteredRules, setFilteredRules] = useState<GameRule[]>([]); // 删除这行
+  const [rules, setRules] = useState<Rule[]>([]);
+  // const [filteredRules, setFilteredRules] = useState<Rule[]>([]); // 删除这行
 
   // API Hooks
   const rulePageMutation = useRulePageMutation();
@@ -38,7 +39,7 @@ export default function RulesSection({
           setRules(result);
           // 如果未选择规则，默认选第一个
           if (!currentRuleId) {
-            onRuleChange(result[0].id);
+            onRuleChange(result[0].ruleId || 0);
           }
         }
       }
@@ -66,8 +67,8 @@ export default function RulesSection({
     const searchTerm = keyword.toLowerCase();
     return rules.filter(
       rule =>
-        rule.name.toLowerCase().includes(searchTerm)
-        || rule.description?.toLowerCase().includes(searchTerm),
+        rule.ruleName?.toLowerCase().includes(searchTerm)
+        || rule.ruleDescription?.toLowerCase().includes(searchTerm),
     );
   }, [keyword, rules]);
 
@@ -191,16 +192,16 @@ export default function RulesSection({
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {filteredRulesList.map(rule => (
             <div
-              key={rule.id}
+              key={rule.ruleId}
               className={`card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${
-                currentRuleId === rule.id ? "ring-2 ring-primary" : ""
+                currentRuleId === rule.ruleId ? "ring-2 ring-primary" : ""
               }`}
-              onClick={() => onRuleChange(rule.id)}
+              onClick={() => onRuleChange(rule.ruleId || 0)}
             >
               <div className="card-body p-4">
-                <h3 className="card-title text-sm">{rule.name}</h3>
+                <h3 className="card-title text-sm">{rule.ruleName}</h3>
                 <p className="text-xs text-gray-500 line-clamp-2">
-                  {rule.description}
+                  {rule.ruleDescription}
                 </p>
               </div>
             </div>

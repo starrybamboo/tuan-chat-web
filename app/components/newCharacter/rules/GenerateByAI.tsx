@@ -1,12 +1,12 @@
-import type { GameRule } from "../types";
+import type { Rule } from "api/models/Rule";
 import { useGenerateAbilityByRuleMutation, useGenerateBasicInfoByRuleMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
 import { deepOverrideTargetWithSource, flattenConstraints, wrapIntoNested } from "./ObjectExpansion";
 
 interface GenerateByAIProps {
   ruleId: number;
-  localRuleData: GameRule | null;
-  onLocalRuleDataChange: (data: GameRule) => void;
+  localRuleData: Rule | null;
+  onLocalRuleDataChange: (data: Rule) => void;
   type: number;
 }
 
@@ -26,40 +26,58 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
 
   const handleGenerate = () => {
     setIsTransitioning(true);
-    const id = localRuleData?.id || 0;
+    const id = localRuleData?.ruleId || 0;
 
     const handleSuccess = (data: any, isBasic: number) => {
       setDescription("");
 
       // 用来合并
-      const mergedNumerical: Record<string, any> = {};
-      for (const key in localRuleData?.numerical) {
+      const mergedAbilityDefault: Record<string, Record<string, any>> = {};
+      for (const key in localRuleData?.abilityDefault) {
         const ignoreKeys = ["0"];
         if (ignoreKeys.includes(key)) {
-          mergedNumerical[key] = localRuleData?.numerical[key];
+          mergedAbilityDefault[key] = localRuleData?.abilityDefault[key];
           continue;
         }
 
-        const base = localRuleData?.numerical[key];
+        const base = localRuleData?.abilityDefault[key];
         const wrappedOverride = wrapIntoNested([key], data.data);
-        mergedNumerical[key] = deepOverrideTargetWithSource(base, wrappedOverride[key]);
+        mergedAbilityDefault[key] = deepOverrideTargetWithSource(base, wrappedOverride[key]);
       };
 
       // 用于上传
-      const newRuleData = {
-        id,
-        name: localRuleData?.name ?? "",
-        description: localRuleData?.description ?? "",
-        performance: isBasic === 1
+      const newRuleData: Rule = {
+        ruleId: id,
+        ruleName: localRuleData?.ruleName ?? "",
+        ruleDescription: localRuleData?.ruleDescription ?? "",
+        actTemplate: isBasic === 1
           ? Object.entries(data.data || {}).reduce((acc, [key, value]) => {
               acc[key] = typeof value === "object" ? JSON.stringify(value) : String(value);
               return acc;
             }, {} as Record<string, string>)
-          : localRuleData?.performance ?? {},
-        numerical: isBasic === 2 ? mergedNumerical ?? localRuleData?.numerical ?? {} : localRuleData?.numerical ?? data.data ?? {},
+          : localRuleData?.actTemplate ?? {},
+        abilityDefault: isBasic === 2 ? mergedAbilityDefault ?? localRuleData?.abilityDefault ?? {} : localRuleData?.abilityDefault ?? data.data ?? {},
       };
       onLocalRuleDataChange(newRuleData);
-      updateFiledAbility({ abilityId: id, act: newRuleData?.performance, ability: flattenConstraints(newRuleData?.numerical) ?? {} });
+      // 确保 ability 字段的值都是数字类型
+      const flattenedConstraints = flattenConstraints(newRuleData?.abilityDefault || {});
+      const numericAbility: Record<string, number> = {};
+      Object.entries(flattenedConstraints).forEach(([key, value]) => {
+        if (typeof value === "object" && value !== null && "displayValue" in value) {
+          // 处理公式值对象
+          numericAbility[key] = Number(value.displayValue) || 0;
+        }
+        else {
+          // 处理普通数值
+          numericAbility[key] = Number(value) || 0;
+        }
+      });
+
+      updateFiledAbility({
+        abilityId: id,
+        act: newRuleData?.actTemplate || {},
+        ability: numericAbility,
+      });
     };
 
     if (type === 0) {

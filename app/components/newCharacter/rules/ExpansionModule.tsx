@@ -1,4 +1,4 @@
-import type { GameRule } from "../types";
+import type { Rule } from "api/models/Rule";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
@@ -11,7 +11,7 @@ import RulesSection from "./RulesSection";
 
 interface ExpansionModuleProps {
   isEditing?: boolean;
-  onRuleDataChange?: (ruleId: number, performance: any, numerical: any) => void;
+  onRuleDataChange?: (ruleId: number, actTemplate: any, abilityDefault: any) => void;
   roleId: number;
   /**
    * 可选, 会默认选中对应的ruleId, 且不再展示选择规则的部分组件
@@ -30,7 +30,7 @@ export default function ExpansionModule({
 }: ExpansionModuleProps) {
   // 状态
   const [selectedRuleId, setSelectedRuleId] = useState<number>(ruleId ?? 1);
-  const [localRuleData, setLocalRuleData] = useState<GameRule | null>(null);
+  const [localRuleData, setLocalRuleData] = useState<Rule | null>(null);
 
   // API Hooks
   const abilityQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
@@ -39,7 +39,7 @@ export default function ExpansionModule({
 
   // 规则详情合并逻辑
   const currentRuleData = useMemo(() => {
-    if (abilityQuery.data?.id) {
+    if (abilityQuery.data?.abilityId) {
       return abilityQuery.data;
     }
     return ruleDetailQuery.data;
@@ -48,30 +48,44 @@ export default function ExpansionModule({
   // 初始化能力数据
   useEffect(() => {
     if (ruleDetailQuery.data && !abilityQuery.data && !abilityQuery.isLoading) {
+      // 确保 ability 字段的值都是数字类型
+      const flattenedConstraints = flattenConstraints(ruleDetailQuery.data?.abilityDefault || {});
+      const numericAbility: Record<string, number> = {};
+      Object.entries(flattenedConstraints).forEach(([key, value]) => {
+        if (typeof value === "object" && value !== null && "displayValue" in value) {
+          // 处理公式值对象
+          numericAbility[key] = Number(value.displayValue) || 0;
+        }
+        else {
+          // 处理普通数值
+          numericAbility[key] = Number(value) || 0;
+        }
+      });
+
       setRoleAbilityMutation.mutate({
-        ruleId: ruleDetailQuery.data?.id || 0,
+        ruleId: ruleDetailQuery.data?.ruleId || 0,
         roleId,
-        act: ruleDetailQuery.data?.performance || {},
-        ability: flattenConstraints(ruleDetailQuery.data?.numerical || {}),
+        act: ruleDetailQuery.data?.actTemplate || {},
+        ability: numericAbility,
       });
     }
-  }, [ruleDetailQuery.data, abilityQuery.data, abilityQuery.isLoading, roleId]);
+  }, [ruleDetailQuery.data, abilityQuery.data, abilityQuery.isLoading, roleId, setRoleAbilityMutation]);
 
   // 构建本地规则副本（合并数值）
   useEffect(() => {
     if (currentRuleData && ruleDetailQuery.data) {
-      const detailNumerical = ruleDetailQuery.data?.numerical ?? {};
-      const abilityNumerical = abilityQuery.data?.numerical ?? {};
-      const mergedNumerical: Record<string, any> = {};
+      const detailAbilityDefault = ruleDetailQuery.data?.abilityDefault ?? {};
+      const abilityAbilityDefault = abilityQuery.data?.abilityDefault ?? {};
+      const mergedAbilityDefault: Record<string, Record<string, any>> = {};
 
-      for (const key in detailNumerical) {
-        const base = detailNumerical[key];
+      for (const key in detailAbilityDefault) {
+        const base = detailAbilityDefault[key];
         if (typeof base === "object" && base !== null && !Array.isArray(base)) {
-          // 把 ability.numerical 包装成嵌套结构：{ [key]: abilityNumerical }
-          const wrappedOverride = wrapIntoNested([key], abilityNumerical);
+          // 把 ability.abilityDefault 包装成嵌套结构：{ [key]: abilityAbilityDefault }
+          const wrappedOverride = wrapIntoNested([key], abilityAbilityDefault);
 
           // 深度覆盖合并
-          mergedNumerical[key] = deepOverrideTargetWithSource(
+          mergedAbilityDefault[key] = deepOverrideTargetWithSource(
             base,
             wrappedOverride[key],
           );
@@ -79,16 +93,16 @@ export default function ExpansionModule({
       }
 
       // 显式处理缺失字段，保证类型一致性
-      const safeData: GameRule = {
-        id: currentRuleData.id,
-        name: "",
-        description: "",
-        performance: currentRuleData.performance || {},
-        numerical: mergedNumerical,
+      const safeData: Rule = {
+        ruleId: ruleDetailQuery.data?.ruleId,
+        ruleName: ruleDetailQuery.data?.ruleName || "",
+        ruleDescription: ruleDetailQuery.data?.ruleDescription || "",
+        actTemplate: (currentRuleData as any).actTemplate || {},
+        abilityDefault: mergedAbilityDefault,
       };
       setLocalRuleData(safeData);
     }
-  }, [currentRuleData, abilityQuery.data?.numerical, ruleDetailQuery.data, abilityQuery.isLoading, ruleDetailQuery.isLoading]);
+  }, [currentRuleData, abilityQuery.data?.abilityDefault, ruleDetailQuery.data, abilityQuery.isLoading, ruleDetailQuery.isLoading]);
 
   // 添加loading状态控制
   const [isLoading, setIsLoading] = useState(false);
@@ -102,21 +116,21 @@ export default function ExpansionModule({
   };
 
   // 更新表演字段
-  const handlePerformanceChange = (performance: any) => {
+  const handleActTemplateChange = (actTemplate: any) => {
     if (!localRuleData)
       return;
-    const updated = { ...localRuleData, performance };
+    const updated = { ...localRuleData, actTemplate };
     setLocalRuleData(updated);
-    onRuleDataChange?.(selectedRuleId, performance, updated.numerical);
+    onRuleDataChange?.(selectedRuleId, actTemplate, updated.abilityDefault);
   };
 
   // 更新数值约束
-  const handleNumericalChange = (numerical: any) => {
+  const handleAbilityDefaultChange = (abilityDefault: any) => {
     if (!localRuleData)
       return;
-    const updated = { ...localRuleData, numerical };
+    const updated = { ...localRuleData, abilityDefault };
     setLocalRuleData(updated);
-    onRuleDataChange?.(selectedRuleId, updated.performance, numerical);
+    onRuleDataChange?.(selectedRuleId, updated.actTemplate, abilityDefault);
   };
 
   return (
@@ -146,26 +160,26 @@ export default function ExpansionModule({
             <Section title="表演字段配置">
               <PerformanceEditor
                 fields={{
-                  ...(localRuleData.performance ?? ruleDetailQuery.data?.performance ?? {}),
+                  ...(localRuleData.actTemplate ?? ruleDetailQuery.data?.actTemplate ?? {}),
                 }}
-                onChange={handlePerformanceChange}
-                abilityData={localRuleData.performance}
-                abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
+                onChange={handleActTemplateChange}
+                abilityData={localRuleData.actTemplate ?? {}}
+                abilityId={abilityQuery.data?.abilityId ? (localRuleData.ruleId || 0) : 0}
               />
             </Section>
 
             <Section title="数值约束配置" className="mb-12">
               <NumericalEditor
                 constraints={{
-                  ...(localRuleData.numerical ?? ruleDetailQuery.data?.numerical ?? {}),
+                  ...(localRuleData.abilityDefault ?? ruleDetailQuery.data?.abilityDefault ?? {}),
                 }}
-                onChange={handleNumericalChange}
-                abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
+                onChange={handleAbilityDefaultChange}
+                abilityId={abilityQuery.data?.abilityId ? (localRuleData.ruleId || 0) : 0}
               />
               <ImportWithStCmd
                 ruleId={selectedRuleId}
                 roleId={roleId}
-                onImportSuccess={() => {}}
+                onImportSuccess={() => { }}
               />
             </Section>
           </>

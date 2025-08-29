@@ -9,16 +9,12 @@ interface FormulaValue {
   displayValue: number;
 }
 
-// 扩展 NumericalConstraints 类型
-interface ExtendedNumericalConstraints {
-  [key: string]: {
-    [key: string]: string | number | FormulaValue;
-  };
-}
+// Type for numerical constraints that supports formulas
+type NumericalConstraints = Record<string, Record<string, string | number | FormulaValue>>;
 
 interface NumericalEditorProps {
-  constraints: ExtendedNumericalConstraints;
-  onChange: (constraints: ExtendedNumericalConstraints) => void;
+  constraints: NumericalConstraints;
+  onChange: (constraints: NumericalConstraints) => void;
   abilityId: number;
 }
 
@@ -38,7 +34,7 @@ export default function NumericalEditor({
   const [localConstraints, setLocalConstraints] = useState(constraints);
 
   // 负数与非法输入修正（包括小数的情况）
-  const correctValues = (constraints: ExtendedNumericalConstraints): ExtendedNumericalConstraints => {
+  const correctValues = (constraints: NumericalConstraints): NumericalConstraints => {
     const corrected = { ...constraints };
     Object.keys(corrected).forEach((totalKey) => {
       const fields = corrected[totalKey];
@@ -71,7 +67,7 @@ export default function NumericalEditor({
   }, [localConstraints]);
 
   // 获取所有上下文数据
-  const getAllContext = (constraints: ExtendedNumericalConstraints): Record<string, number> => {
+  const getAllContext = (constraints: NumericalConstraints): Record<string, number> => {
     const context: Record<string, number> = {};
 
     // 处理静态字段（非0的约束组）
@@ -97,7 +93,7 @@ export default function NumericalEditor({
   };
 
   // 计算所有公式的值
-  const calculateFormulas = (constraints: ExtendedNumericalConstraints, context: Record<string, number>) => {
+  const calculateFormulas = (constraints: NumericalConstraints, context: Record<string, number>) => {
     const updatedConstraints = { ...constraints };
     Object.keys(updatedConstraints).forEach((totalKey) => {
       const fields = updatedConstraints[totalKey];
@@ -139,9 +135,23 @@ export default function NumericalEditor({
     onChange(correctedConstraints);
 
     // 更新后端数据
+    // 确保 ability 字段的值都是数字类型
+    const numericAbility: Record<string, number> = {};
+    Object.entries(flattenedConstraints).forEach(([key, value]) => {
+      if (typeof value === "object" && value !== null && "displayValue" in value) {
+        // 处理公式值对象
+        numericAbility[key] = Number(value.displayValue) || 0;
+      }
+      else {
+        // 处理普通数值
+        numericAbility[key] = Number(value) || 0;
+      }
+    });
+
     const updatedAbility = {
       abilityId,
-      ability: flattenedConstraints,
+      act: {}, // 数值编辑器不修改表演字段，传空对象
+      ability: numericAbility,
     };
     updateFiledAbility(updatedAbility, {
       onSuccess: () => {
@@ -237,7 +247,7 @@ export default function NumericalEditor({
           return Number.isNaN(numericValue) ? sum : sum + numericValue;
         }, 0);
 
-        const remainPoints = totalPoints - currentSum;
+        const remainPoints = totalPoints - (Number(currentSum) || 0);
 
         return (
           <div

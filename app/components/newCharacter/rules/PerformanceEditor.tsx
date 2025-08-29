@@ -1,11 +1,10 @@
-import type { PerformanceFields } from "../types";
 import { useUpdateKeyFieldMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
 
 interface PerformanceEditorProps {
-  fields: { [key: string]: string };
-  onChange: (fields: { [key: string]: string }) => void;
-  abilityData: PerformanceFields;
+  fields: Record<string, string>;
+  onChange: (fields: Record<string, string>) => void;
+  abilityData: Record<string, string>;
   abilityId: number;
 }
 
@@ -71,6 +70,7 @@ export default function PerformanceEditor({
       const updateData = {
         abilityId,
         act: fields,
+        ability: {}, // 表演编辑器不修改能力字段，传空对象
       };
       updateFiledAbility(updateData, {
         onSuccess: () => {

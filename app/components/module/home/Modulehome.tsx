@@ -276,7 +276,7 @@ export default function ModuleHome() {
       .filter((module: any) => module.moduleId && module.moduleId !== null && module.moduleId !== "null") // 过滤掉没有moduleId的数据
       .map((module: any) => ({
         id: `module-${module.moduleId}`,
-        rule: RuleList.data?.find(rule => rule.id === module.ruleId)?.name || "",
+        rule: RuleList.data?.find(rule => rule.ruleId === module.ruleId)?.ruleName ?? "",
         title: module.moduleName,
         image: (module.image && module.image !== null && module.image !== "null") ? module.image : 教室图片, // 更严格的空值检查
         content: module.description,
@@ -488,16 +488,16 @@ export default function ModuleHome() {
                 <div className="flex flex-wrap gap-3">
                   {RuleList.data?.map(rule => (
                     <button
-                      key={rule.id}
+                      key={rule.ruleId}
                       type="button"
-                      className={`px-3 py-1 rounded-full text-xs md:text-sm font-semibold border transition-all duration-200 focus:outline-none cursor-pointer ${selectedRuleId === rule.id ? "bg-accent text-white" : "bg-accent/10"}`}
+                      className={`px-3 py-1 rounded-full text-xs md:text-sm font-semibold border transition-all duration-200 focus:outline-none cursor-pointer ${selectedRuleId === (rule.ruleId ?? null) ? "bg-accent text-white" : "bg-accent/10"}`}
                       onClick={() => {
-                        setSelectedRuleId(selectedRuleId === rule.id ? null : rule.id);
+                        setSelectedRuleId(selectedRuleId === rule.ruleId ? null : rule.ruleId ?? null);
                         setCurrentPage(1);
                         setSearchKeyword(""); // 切换规则时清空搜索
                       }}
                     >
-                      {rule.name}
+                      {rule.ruleName ?? "未命名规则"}
                     </button>
                   ))}
                 </div>
