@@ -1,7 +1,8 @@
 import type { StageEntityResponse } from "api";
 import type { SVGProps } from "react";
 import type { ItemModuleItem, MapModuleItem, ModuleTabItem, RoleModuleItem, SceneModuleItem } from "./context/types";
-import { useEffect, useRef } from "react";
+import { PopWindow } from "@/components/common/popWindow";
+import { useEffect, useRef, useState } from "react";
 import ItemEdit from "./components/ItemEdit";
 import LocationEdit from "./components/LocationEdit";
 import MapEdit from "./components/MapEdit";
@@ -25,6 +26,30 @@ export function BaselineClose(props: SVGProps<SVGSVGElement>) {
       >
       </path>
     </svg>
+  );
+}
+
+function ConfirmSave({ onOpen, onClose, next }: { onOpen: boolean; onClose: () => void; next: () => void }) {
+  return (
+    <PopWindow isOpen={onOpen} onClose={onClose}>
+      <div className="card flex flex-col w-full max-w-md">
+        <div className="card-body items-center text-center">
+          <h2 className="card-title text-2xl font-bold">确认保存</h2>
+          <div className="divider"></div>
+          <p className="text-lg opacity-75 mb-8">
+            您还没有保存，确认退出吗
+          </p>
+        </div>
+      </div>
+      <div className="card-actions justify-center gap-6 mt-8">
+        <button type="button" className="btn btn-outline" onClick={onClose}>
+          取消
+        </button>
+        <button type="button" className="btn btn-error" onClick={next}>
+          确认
+        </button>
+      </div>
+    </PopWindow>
   );
 }
 
@@ -99,7 +124,8 @@ function ItemModuleTabItem({
 }) {
   const { id, label } = itemModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
-  console.warn(item);
+  const [changed, setChanged] = useState(false);
+  const [openPopWindow, setOpenPopWindow] = useState(false);
 
   useEffect(() => {
     if (isSelected && inputRef.current) {
@@ -125,7 +151,12 @@ function ItemModuleTabItem({
             hover:bg-base-content/80 rounded-sm
           `}
           onClick={() => {
-            onCloseClick(id.toString());
+            if (changed) {
+              setOpenPopWindow(true);
+            }
+            else {
+              onCloseClick(id.toString());
+            }
           }}
         >
           <BaselineClose />
@@ -133,8 +164,13 @@ function ItemModuleTabItem({
         {label}
       </label>
       <div className="tab-content h-fit! bg-base-100 border-base-300 p-6">
-        <ItemEdit item={item} />
+        <ItemEdit item={item} onSave={setChanged} />
       </div>
+      <ConfirmSave
+        onOpen={openPopWindow}
+        onClose={() => { setOpenPopWindow(false); }}
+        next={() => { onCloseClick(id.toString()); }}
+      />
     </>
   );
 }
@@ -154,6 +190,8 @@ function LocationModuleTabItem({
 }) {
   const { id, label } = sceneModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
+  const [changed, setChanged] = useState(false);
+  const [openPopWindow, setOpenPopWindow] = useState(false);
 
   useEffect(() => {
     if (isSelected && inputRef.current) {
@@ -180,7 +218,12 @@ function LocationModuleTabItem({
             hover:bg-base-content/80 rounded-sm
           `}
           onClick={() => {
-            onCloseClick(id.toString());
+            if (changed) {
+              setOpenPopWindow(true);
+            }
+            else {
+              onCloseClick(id.toString());
+            }
           }}
         >
           <BaselineClose />
@@ -189,8 +232,13 @@ function LocationModuleTabItem({
       </label>
       <div className="tab-content bg-base-100 border-base-300 p-6">
         {/* 这里可替换为具体的 SceneEdit 组件 */}
-        <LocationEdit location={location} />
+        <LocationEdit location={location} onSave={setChanged} />
       </div>
+      <ConfirmSave
+        onOpen={openPopWindow}
+        onClose={() => { setOpenPopWindow(false); }}
+        next={() => { onCloseClick(id.toString()); }}
+      />
     </>
   );
 }
@@ -210,6 +258,8 @@ function SceneModuleTabItem({
 }) {
   const { id, label } = sceneModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
+  const [changed, setChanged] = useState(false);
+  const [openPopWindow, setOpenPopWindow] = useState(false);
 
   useEffect(() => {
     if (isSelected && inputRef.current) {
@@ -236,7 +286,12 @@ function SceneModuleTabItem({
             hover:bg-base-content/80 rounded-sm
           `}
           onClick={() => {
-            onCloseClick(id.toString());
+            if (changed) {
+              setOpenPopWindow(true);
+            }
+            else {
+              onCloseClick(id.toString());
+            }
           }}
         >
           <BaselineClose />
@@ -244,8 +299,17 @@ function SceneModuleTabItem({
         {label}
       </label>
       <div className="tab-content bg-base-100 border-base-300 p-6">
-        <SceneEdit scene={scene} id={id} />
+        <SceneEdit
+          scene={scene}
+          id={id}
+          onSave={setChanged}
+        />
       </div>
+      <ConfirmSave
+        onOpen={openPopWindow}
+        onClose={() => { setOpenPopWindow(false); }}
+        next={() => { onCloseClick(id.toString()); }}
+      />
     </>
   );
 }
