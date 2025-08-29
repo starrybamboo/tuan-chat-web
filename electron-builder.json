@@ -2,7 +2,13 @@
   "appId": "com.tuan.chat",
   "productName": "团剧共创",
   "copyright": "Copyright © 2025 ${tuan-chat}",
-  "files": ["./electron/main.cjs", "./build"],
+  "files": ["./electron", "./build"],
+  "extraResources": [
+    {
+      "from": "./extraResources/",
+      "to": "extraResources"
+    }
+  ],
   "extraFiles": ["./videos", "./cvideo"],
   "directories": {
     "output": "./release"
