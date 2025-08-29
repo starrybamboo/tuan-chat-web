@@ -1,8 +1,20 @@
+/* eslint-disable no-console */
+const { spawn } = require("node:child_process"); // 用于创建子进程
 const fs = require("node:fs");
 const path = require("node:path");
 const process = require("node:process");
+const detectPort = require("detect-port").default; // 用于检测端口占用
+
 // 控制应用生命周期和创建原生浏览器窗口的模组
-const { app, BrowserWindow, protocol } = require("electron");
+const { app, BrowserWindow, protocol, ipcMain } = require("electron");
+// // --- 忽略证书错误以解决 SSL handshake failed 问题 ---
+// app.commandLine.appendSwitch("ignore-certificate-errors");
+
+// 用于管理 WebGAL 子进程和窗口 ---
+let webgalProcess = null; // 存放 WebGAL 子进程的引用
+let webgalWindow = null; // 存放 WebGAL 窗口的引用
+const WebGAL_EXE_NAME = "WebGAL_Terre.exe";
+const WebGAL_PORT = 3001;
 
 // 在 app ready 之前注册自定义协议
 // 这使得我们能像处理 http 请求一样处理应用内的文件请求
@@ -24,9 +36,9 @@ function createWindow() {
     height: 800,
     webPreferences: {
       // 书写渲染进程中的配置
-      nodeIntegration: true, // 开启true这一步很重要,目的是为了vue文件中可以引入node和electron相关的API
-      contextIsolation: false, // 可以使用require方法
+      contextIsolation: true, // 可以使用require方法
       enableRemoteModule: true, // 可以使用remote方法
+      preload: path.join(__dirname, "preload.js"), // 指定 preload 脚本
     },
   });
 
@@ -39,7 +51,6 @@ function createWindow() {
     });
     // 热更新监听窗口
     mainWindow.loadURL("http://localhost:5173");
-    // 打开开发工具
     mainWindow.webContents.openDevTools();
   }
   else {
@@ -50,9 +61,54 @@ function createWindow() {
   }
 }
 
-// 这段程序将会在 Electron 结束初始化
-// 和创建浏览器窗口的时候调用
-// 部分 API 在 ready 事件触发后才能使用。
+// 区分开发环境和生产（打包后）环境
+function getWebGALPath() {
+  // 在生产环境中，extraResources 被放在应用根目录的 resources 文件夹下
+  if (app.isPackaged) {
+    // process.resourcesPath 指向 .../app.asar 所在的目录
+    return path.join(process.resourcesPath, "extraResources", WebGAL_EXE_NAME);
+  }
+  // 在开发环境中，直接指向项目根目录下的 extraResources 文件夹
+  // __dirname 是 electron/main.cjs 所在的目录，所以需要回退一级
+  return path.join(__dirname, "..", "extraResources", WebGAL_EXE_NAME);
+}
+
+// 启动 WebGAL 子进程的函数 ---
+function startWebGAL() {
+  const webgalPath = getWebGALPath();
+
+  // 如果进程已经存在，就不再重复启动
+  if (webgalProcess) {
+    console.log("WebGAL 进程已在运行中。");
+    return;
+  }
+
+  console.log(`正在从以下路径启动 WebGAL: ${webgalPath}`);
+
+  // 使用 spawn 启动子进程。
+  // cwd (current working directory) 设置为 .exe 所在目录，以确保它可以正确找到资源文件
+  webgalProcess = spawn(webgalPath, [], {
+    cwd: path.dirname(webgalPath),
+  });
+
+  // 监听子进程的标准输出，方便调试
+  webgalProcess.stdout.on("data", (data) => {
+    console.log(`[WebGAL stdout]: ${data}`);
+  });
+
+  // 监听子进程的错误输出
+  webgalProcess.stderr.on("data", (data) => {
+    console.error(`[WebGAL stderr]: ${data}`);
+  });
+
+  // 监听子进程退出事件
+  webgalProcess.on("close", (code) => {
+    console.log(`WebGAL 进程已退出，退出码: ${code}`);
+    webgalProcess = null; // 进程结束后清空引用，以便可以再次启动
+  });
+}
+
+// 这段程序将会在 Electron 结束初始化和创建浏览器窗口的时候调用
 app.whenReady().then(() => {
   // 实现自定义协议的具体逻辑
   protocol.registerFileProtocol("app", (request, callback) => {
@@ -90,6 +146,68 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0)
       createWindow();
   });
+
+  // 设置 IPC 监听器，用于从渲染进程接收启动命令 ---
+  ipcMain.on("launch-webgal", async () => {
+    const port = WebGAL_PORT;
+
+    // 检查 WebGAL 窗口是否已经打开，如果已打开则聚焦它
+    if (webgalWindow && !webgalWindow.isDestroyed()) {
+      webgalWindow.focus();
+      return;
+    }
+
+    const openWebGALWindowWithRetry = (retries = 5) => {
+      if (retries <= 0) {
+        console.error("无法连接到 WebGAL 服务器。请检查其是否正常运行或被其他程序占用。");
+        // 在这里可以添加一个对话框提示用户连接失败
+        // dialog.showErrorBox('连接失败', '无法连接到 WebGAL 服务器。');
+        return;
+      }
+
+      webgalWindow = new BrowserWindow({
+        width: 1280,
+        height: 720,
+        title: "WebGAL",
+      });
+
+      // 尝试加载 URL，如果失败，则进入 catch 块
+      webgalWindow.loadURL(`http://localhost:${port}`).catch(() => {
+        console.log(`连接失败，1秒后重试... (剩余 ${retries - 1} 次)`);
+        if (webgalWindow && !webgalWindow.isDestroyed()) {
+          webgalWindow.close();
+        }
+        webgalWindow = null;
+        // 等待1秒后再次调用自己，并减少重试次数
+        setTimeout(() => openWebGALWindowWithRetry(retries - 1), 1000);
+      });
+
+      webgalWindow.on("closed", () => {
+        webgalWindow = null;
+      });
+    };
+
+    try {
+      // 使用 detectPort 检查 3001 端口是否被占用
+      const occupiedPort = await detectPort(port);
+
+      if (port === occupiedPort) {
+        // 端口未被占用，说明 WebGAL 没有运行
+        console.log(`端口 ${port} 未被占用，正在启动 WebGAL...`);
+        startWebGAL();
+
+        setTimeout(openWebGALWindowWithRetry, 3000);
+      }
+      else {
+        // 端口已被占用，我们假设就是 WebGAL 在运行
+        console.log(`端口 ${port} 已被占用，直接打开窗口。`);
+        openWebGALWindowWithRetry();
+      }
+    }
+    catch (err) {
+      console.error("检查端口或启动 WebGAL 时出错:", err);
+    }
+  });
 });
 
 // 除了 macOS 外，当所有窗口都被关闭的时候退出程序。 因此，通常对程序和它们在
@@ -97,4 +215,12 @@ app.whenReady().then(() => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin")
     app.quit();
+});
+
+// 在应用退出时，确保 WebGAL 子进程也被关闭 ---
+app.on("will-quit", () => {
+  if (webgalProcess) {
+    console.log("正在关闭 WebGAL 进程...");
+    webgalProcess.kill(); // 强制关闭子进程
+  }
 });
