@@ -3,7 +3,6 @@ import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "api/hooks/ab
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import Section from "../Section";
-import GenerateByAI from "./GenerateByAI";
 import ImportWithStCmd from "./ImportWithStCmd";
 import NumericalEditor from "./NumericalEditor";
 import { deepOverrideTargetWithSource, flattenConstraints, wrapIntoNested } from "./ObjectExpansion";
@@ -14,6 +13,10 @@ interface ExpansionModuleProps {
   isEditing?: boolean;
   onRuleDataChange?: (ruleId: number, performance: any, numerical: any) => void;
   roleId: number;
+  /**
+   * 可选, 会默认选中对应的ruleId, 且不再展示选择规则的部分组件
+   */
+  ruleId?: number;
 }
 
 /**
@@ -23,9 +26,10 @@ interface ExpansionModuleProps {
 export default function ExpansionModule({
   onRuleDataChange,
   roleId,
+  ruleId,
 }: ExpansionModuleProps) {
   // 状态
-  const [selectedRuleId, setSelectedRuleId] = useState<number>(1);
+  const [selectedRuleId, setSelectedRuleId] = useState<number>(ruleId ?? 1);
   const [localRuleData, setLocalRuleData] = useState<GameRule | null>(null);
 
   // API Hooks
@@ -116,14 +120,20 @@ export default function ExpansionModule({
   };
 
   return (
-    <div className="space-y-6 p-4 mt-4">
+    <div className="space-y-6 p-4">
       {/* 规则选择区域 */}
-      <Section title="规则选择">
-        <RulesSection
-          currentRuleId={selectedRuleId}
-          onRuleChange={handleRuleChange}
-        />
-      </Section>
+      {
+        ruleId
+          ? null
+          : (
+              <Section title="规则选择">
+                <RulesSection
+                  currentRuleId={selectedRuleId}
+                  onRuleChange={handleRuleChange}
+                />
+              </Section>
+            )
+      }
       {/* 规则详情区域 */}
       {isLoading
         ? (
@@ -142,12 +152,6 @@ export default function ExpansionModule({
                 abilityData={localRuleData.performance}
                 abilityId={abilityQuery.data?.id ? localRuleData.id : 0}
               />
-              <GenerateByAI
-                ruleId={selectedRuleId}
-                localRuleData={localRuleData}
-                onLocalRuleDataChange={setLocalRuleData}
-                type={1}
-              />
             </Section>
 
             <Section title="数值约束配置" className="mb-12">
@@ -163,19 +167,7 @@ export default function ExpansionModule({
                 roleId={roleId}
                 onImportSuccess={() => {}}
               />
-              <GenerateByAI
-                ruleId={selectedRuleId}
-                localRuleData={localRuleData}
-                onLocalRuleDataChange={setLocalRuleData}
-                type={2}
-              />
             </Section>
-            {/* <GenerateByAI
-              ruleId={selectedRuleId}
-              localRuleData={localRuleData}
-              onLocalRuleDataChange={setLocalRuleData}
-              type={0}
-            /> */}
           </>
         )}
     </div>

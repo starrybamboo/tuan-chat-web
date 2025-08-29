@@ -164,20 +164,20 @@ export const TagManagementPop: React.FC<TagManagementPopupProps> = ({
 
   return (
     <PopWindow isOpen={isOpen} onClose={handleClose} fullScreen={false}>
-      <div className="w-full">
-        <div className="mb-4">
-          <h2 className="text-xl font-bold text-primary">
+      <div className="w-full max-w-2xl mx-auto">
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-base-content">
             {isEditMode ? "编辑标签" : "添加新标签"}
           </h2>
-          <p className="mt-1">
+          <p className="mt-1 text-base-content/70 text-sm">
             {isEditMode
               ? "修改您的标签内容和颜色"
               : "创建新的玩家标签并选择颜色"}
           </p>
         </div>
 
-        <div className="mb-4">
-          <label htmlFor="tagInput" className="block text-sm font-medium mb-2">
+        <div className="mb-4 m-2">
+          <label htmlFor="tagInput" className="block text-sm font-medium mb-3 text-base-content">
             标签内容
           </label>
           <div className="flex gap-2">
@@ -187,7 +187,7 @@ export const TagManagementPop: React.FC<TagManagementPopupProps> = ({
               value={newTag}
               onChange={e => setNewTag(e.target.value)}
               placeholder="输入标签内容"
-              className="flex-1 input input-bordered w-full"
+              className="flex-1 input input-bordered"
               onKeyUp={e =>
                 e.key === "Enter" && !isLoading && handleAddTag()}
               disabled={isLoading}
@@ -195,7 +195,7 @@ export const TagManagementPop: React.FC<TagManagementPopupProps> = ({
             <button
               type="button"
               onClick={handleAddTag}
-              className="btn btn-primary"
+              className="btn btn-primary shrink-0"
               disabled={newTag.trim() === "" || isLoading}
             >
               {isLoading
@@ -218,7 +218,7 @@ export const TagManagementPop: React.FC<TagManagementPopupProps> = ({
                   setEditingTagId(null);
                   setNewTag("");
                 }}
-                className="btn btn-outline"
+                className="btn btn-outline shrink-0"
                 disabled={isLoading}
               >
                 取消
@@ -260,10 +260,11 @@ export const TagManagementPop: React.FC<TagManagementPopupProps> = ({
             别玩了（恼）
           </div>
         </div>
+
         {/* 标签颜色选择区 */}
         <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">选择标签颜色</label>
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+          <label className="block text-sm font-medium mb-3 text-base-content">选择标签颜色</label>
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 p-2">
             {colorOptions.map(color => (
               <div
                 key={color.id}
@@ -273,27 +274,28 @@ export const TagManagementPop: React.FC<TagManagementPopupProps> = ({
                   ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <div
-                  className="w-6 h-6 rounded-full"
+                  className="w-6 h-6 rounded-full shadow-sm"
                   style={{ backgroundColor: color.hex }}
                 >
                 </div>
-                <span className="mt-1 text-xs">{color.name}</span>
+                <span className="mt-1 text-xs text-base-content/80 text-center leading-tight">{color.name}</span>
               </div>
             ))}
           </div>
         </div>
+
         {/* 展示用户当前有的标签 */}
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-primary mb-3">所有标签</h3>
-          <div className="rounded-lg p-4 max-h-60 overflow-y-auto shadow-inner">
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-base-content mb-3">所有标签</h3>
+          <div className="bg-base-100 border border-base-300 rounded-lg p-4">
             {tags.length === 0
               ? (
-                  <div className="text-center py-8 text-base-500">
+                  <div className="text-center py-8 text-base-content/60">
                     暂无标签，请添加新标签
                   </div>
                 )
               : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-wrap gap-2">
                     {tags.map(tag => (
                       <div
                         key={tag.tagId}
@@ -301,18 +303,18 @@ export const TagManagementPop: React.FC<TagManagementPopupProps> = ({
                       ${colorClasses[tag.color as keyof typeof colorClasses]}
                       ${editingTagId === tag.tagId ? "ring-2 ring-primary" : ""}`}
                       >
-                        <span className="font-medium">{tag.content}</span>
-                        <div className="flex gap-2">
+                        <span className="font-medium text-sm truncate flex-1 min-w-0">{tag.content}</span>
+                        <div className="flex gap-1 shrink-0">
                           <button
                             type="button"
                             onClick={() => !isLoading && handleEditTag(tag)}
-                            className="btn btn-sm btn-ghost hover:bg-white/80"
+                            className="btn btn-ghost btn-xs p-1 min-h-0 h-6 w-6"
                             aria-label="编辑标签"
                             disabled={isLoading}
                           >
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
-                              className="h-4 w-4"
+                              className="h-3 w-3"
                               fill="none"
                               viewBox="0 0 24 24"
                               stroke="currentColor"
@@ -330,7 +332,7 @@ export const TagManagementPop: React.FC<TagManagementPopupProps> = ({
                             onClick={() =>
                               !isLoading
                               && handleDeleteTag(tag.tagId ?? -1)}
-                            className="btn btn-sm btn-ghost hover:bg-white/50 text-red-600"
+                            className="btn btn-ghost btn-xs p-1 min-h-0 h-6 w-6 text-error"
                             aria-label="删除标签"
                             disabled={isLoading}
                           >
@@ -342,7 +344,7 @@ export const TagManagementPop: React.FC<TagManagementPopupProps> = ({
                               : (
                                   <svg
                                     xmlns="http://www.w3.org/2000/svg"
-                                    className="h-4 w-4"
+                                    className="h-3 w-3"
                                     fill="none"
                                     viewBox="0 0 24 24"
                                     stroke="currentColor"

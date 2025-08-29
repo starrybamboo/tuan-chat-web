@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { ChatMessageResponse } from "../../../../api";
 
@@ -22,7 +22,10 @@ export type UseChatHistoryReturn = {
  * @param roomId 要管理的房间ID
  */
 export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
-  const [messages, setMessages] = useState<ChatMessageResponse[]>([]);
+  const [messagesRaw, setMessages] = useState<ChatMessageResponse[]>([]);
+  const messagesWithoutDeletedMessages = useMemo(() => {
+    return (messagesRaw ?? []).filter(msg => msg.message.status !== 1);
+  }, [messagesRaw]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -36,14 +39,17 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
         return;
 
       // 先更新状态
-      setMessages((prevMessages) => {
-        const messageMap = new Map(prevMessages.map(msg => [msg.message.messageId, msg]));
-        newMessages.filter(msg => msg.message.roomId === roomId)
-          .forEach(msg => messageMap.set(msg.message.messageId, msg));
-        const updatedMessages = Array.from(messageMap.values());
-        // 按 position 排序确保顺序
-        return updatedMessages.sort((a, b) => a.message.position - b.message.position);
-      });
+      // 由于获取消息是异步的，这里的roomId可能是过时的，所以要检查一下。
+      if (newMessages[0].message.roomId === roomId) {
+        setMessages((prevMessages) => {
+          const messageMap = new Map(prevMessages.map(msg => [msg.message.messageId, msg]));
+          newMessages.filter(msg => msg.message.roomId === roomId)
+            .forEach(msg => messageMap.set(msg.message.messageId, msg));
+          const updatedMessages = Array.from(messageMap.values());
+          // 按 position 排序确保顺序
+          return updatedMessages.sort((a, b) => a.message.position - b.message.position);
+        });
+      }
 
       // 异步将消息批量存入数据库
       try {
@@ -114,6 +120,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     }
 
     setLoading(true);
+    setMessages([]);
     let isCancelled = false; // Flag to prevent state updates from stale effects
 
     const loadAndFetch = async () => {
@@ -145,20 +152,29 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     };
   }, [addOrUpdateMessages, roomId]);
 
-  // 在页面长时间处于非活动状态后再切回来， 很可能发生ws断联的情况， 所以需要监听document的状态
-  const documentVisibility = typeof document !== "undefined" ? document.visibilityState : "visible";
   // 监听页面状态, 如果重新页面处于可见状态，则尝试重新获取最新消息
   useEffect(() => {
-    if (document.visibilityState === "visible") {
-      const maxSyncId = messages.length > 0
-        ? Math.max(...messages.map(msg => msg.message.syncId))
-        : -1;
-      fetchNewestMessages(maxSyncId);
-    }
-  }, [documentVisibility]);
+    const handleVisibilityChange = () => {
+      // 当页面从后台切换到前台时
+      if (document.visibilityState === "visible") {
+        const maxSyncId = messagesRaw.length > 0
+          ? Math.max(...messagesRaw.map(msg => msg.message.syncId))
+          : -1;
+        fetchNewestMessages(maxSyncId);
+      }
+    };
+
+    // 添加事件监听
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // 组件卸载时，清理事件监听器，防止内存泄漏
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [messagesRaw, fetchNewestMessages]);
 
   return {
-    messages,
+    messages: messagesWithoutDeletedMessages,
     loading,
     error,
     addOrUpdateMessage, // 用于单条消息

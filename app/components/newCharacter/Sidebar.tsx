@@ -3,9 +3,9 @@ import type { Role } from "./types";
 import { tuanchat } from "@/../api/instance";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUploadAvatarMutation } from "api/queryHooks";
+import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
-import { Virtuoso } from "react-virtuoso";
+
 import { PopWindow } from "../common/popWindow";
 import { useGlobalContext } from "../globalContextProvider";
 import { RoleListItem } from "./RoleListItem";
@@ -16,6 +16,7 @@ interface SidebarProps {
   selectedRoleId: number | null;
   setSelectedRoleId: (id: number | null) => void;
   setIsEditing: (value: boolean) => void;
+  onSave: (updatedRole: Role) => void;
 }
 
 export function Sidebar({
@@ -24,6 +25,7 @@ export function Sidebar({
   selectedRoleId,
   setSelectedRoleId,
   setIsEditing,
+  onSave,
 }: SidebarProps) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,9 +42,11 @@ export function Sidebar({
   // 创建角色接口
   const { mutateAsync: createRole } = useCreateRoleMutation();
   // 上传头像接口
-  const { mutate: uploadAvatar } = useUploadAvatarMutation();
+  const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
   // 删除角色接口
   const { mutate: deleteRole } = useDeleteRolesMutation();
+  // 更新角色接口
+  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
 
   // 删除弹窗状态
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useSearchParamsState<boolean>(`deleteRoleConfirmPop`, false);
@@ -143,25 +147,27 @@ export function Sidebar({
       console.error("角色创建失败");
       return;
     }
-    const newRole: Role = {
-      id: data,
-      name: "",
-      description: "",
-      avatar: "",
-      avatarId: 0,
-      modelName: "散华",
-      speakerName: "鸣潮",
-    };
-    uploadAvatar({
+    const res = await uploadAvatar({
       avatarUrl: "/favicon.ico",
       spriteUrl: "/favicon.ico",
       roleId: data,
     });
-    setRoles(prev => [newRole, ...prev]);
-    setSelectedRoleId(newRole.id);
-    setIsEditing(true);
+    if (res?.data?.avatarId) {
+      const newRole: Role = {
+        id: data,
+        name: "新角色",
+        description: "新角色描述",
+        avatar: res.data.avatarUrl,
+        avatarId: res.data.avatarId,
+        modelName: "散华",
+        speakerName: "鸣潮",
+      };
+      setRoles(prev => [newRole, ...prev]);
+      setSelectedRoleId(newRole.id);
+      updateRole(newRole);
+    }
   };
-    // 初始化角色数据
+  // 初始化角色数据
   useEffect(() => {
     if (isSuccess) {
       loadRoles();
@@ -229,9 +235,9 @@ export function Sidebar({
   return (
     <>
 
-      <div className="menu p-4 w-60 lg:w-80 h-full bg-base-200 flex flex-col">
+      <div className="menu p-4 w-72 lg:w-80 h-full bg-base-200 flex flex-col">
         {/* 搜索和创建区域 - 固定在顶部 */}
-        <div className="flex gap-2 mb-4 sticky top-0 bg-base-200 z-10 py-2">
+        <div className="flex gap-2 mb-4 sticky top-0 bg-base-200 z-50 py-2">
           <label className="input">
             <svg className="h-[1em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
               <g
@@ -344,14 +350,19 @@ export function Sidebar({
               )}
         </div>
 
-        {/* 角色列表 - 使用 Virtuoso */}
-        <div className="flex-1">
-          <Virtuoso
-            style={{ height: "96%" }}
-            data={filteredRoles}
-            endReached={loadMoreRoles}
-            overscan={200}
-            itemContent={(index, role) => (
+        {/* 角色列表 - 使用 InfiniteQuery */}
+        <div className="flex-1 overflow-hidden">
+          <div
+            className="h-full overflow-y-auto"
+            onScroll={(e) => {
+              const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+              // 当滚动到底部附近时加载更多
+              if (scrollHeight - scrollTop <= clientHeight + 100) {
+                loadMoreRoles();
+              }
+            }}
+          >
+            {filteredRoles.map(role => (
               <RoleListItem
                 key={role.id}
                 role={role}
@@ -371,17 +382,13 @@ export function Sidebar({
                 onDelete={() => handleDelete(role.id)}
                 isSelectionMode={isSelectionMode}
               />
+            ))}
+            {isLoadingMore && (
+              <div className="flex justify-center items-center py-4">
+                <span className="loading loading-spinner loading-md"></span>
+              </div>
             )}
-            components={{
-              Footer: () => isLoadingMore
-                ? (
-                    <div className="flex justify-center items-center py-4">
-                      <span className="loading loading-spinner loading-md"></span>
-                    </div>
-                  )
-                : null,
-            }}
-          />
+          </div>
         </div>
       </div>
 

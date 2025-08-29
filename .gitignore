@@ -349,8 +349,13 @@ $RECYCLE.BIN/
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,macos,webstorm+all,node,react,linux,visualstudiocode
 
+/release/
+# Ignore everything in the extraResource directory
+/extraResources/
+# But don't ignore the readme.md file
+!/extraResources/readme.md
 
-# /android 
+# /android
 /android*.iml
 /android.gradle
 /android/local.properties

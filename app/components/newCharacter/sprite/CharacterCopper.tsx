@@ -354,6 +354,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
           resetAllStates();
           setIsOpen(false);
         }}
+        fullScreen={typeof window !== "undefined" ? window.innerWidth < 768 : false}
       >
         <div className="flex items-center gap-8">
           <div className="w-full flex items-center">
@@ -420,7 +421,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
           </div>
           {/* 裁剪预览和操作按钮 */}
           {!!completedCrop && (
-            <div className="w-full md:w-1/2 p-2 gap-4 flex flex-col items-center">
+            <div className="w-full md:w-2/3 p-2 gap-4 flex flex-col items-center">
               {
                 currentStep !== 1
                   ? (

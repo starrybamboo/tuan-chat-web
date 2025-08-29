@@ -1,5 +1,5 @@
-import { useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useRef, useState } from "react";
+import { useQueryState } from "@/components/common/customHooks/useQueryState";
+import React, { useEffect, useRef } from "react";
 
 interface EditableFieldProps {
   /** 显示的内容 */
@@ -25,20 +25,26 @@ export function EditableField({
   type = "text",
   fieldId,
 }: EditableFieldProps) {
-  const queryClient = useQueryClient();
-
-  const [isEditing, setIsEditing] = useState(queryClient.getQueryData(["editing", fieldId]) as boolean || false);
-  useEffect(() => {
-    if (fieldId) {
-      queryClient.setQueryData(["editing", fieldId], isEditing);
-    }
-  }, [fieldId, isEditing, queryClient]);
-
-  const [editContent, setEditContent] = useState(content);
-
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // 2. 使用 useEffect 在内容变化时调整高度
+  const [isEditing, setIsEditing] = useQueryState<boolean>(["editingMessage", fieldId], false, !!fieldId);
+  const [editContent, setEditContent] = useQueryState<string>(["editingMessageContent", fieldId], content, !!fieldId);
+  const [cursorPosition, setCursorPosition] = useQueryState<number | null>(["editingMessageCursor", fieldId], null, !!fieldId);
+
+  useEffect(() => {
+    if (isEditing && cursorPosition !== null) {
+      const element = textareaRef?.current;
+      if (!element) {
+        return;
+      }
+      element?.setSelectionRange(cursorPosition, cursorPosition);
+    }
+  }, [isEditing, usingInput, cursorPosition]);
+  const saveCursorPosition = (e: React.SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setCursorPosition(e.currentTarget.selectionStart);
+  };
+
+  // 使用 useEffect 在内容变化时调整高度
   useEffect(() => {
     // 仅当处于编辑模式且 textarea 存在时执行
     if (isEditing && !usingInput && textareaRef.current) {
@@ -82,6 +88,8 @@ export function EditableField({
                 ref={textareaRef}
                 value={editContent}
                 onChange={e => setEditContent(e.target.value)}
+                onKeyUp={saveCursorPosition}
+                onClick={saveCursorPosition}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey) {
                     handleContentUpdate(editContent);
