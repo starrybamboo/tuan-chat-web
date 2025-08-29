@@ -1157,7 +1157,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         </div>
       </div>
       <PopWindow isOpen={isItemsWindowOpen} onClose={() => setIsItemsWindowOpen(false)}>
-        <span className="block text-center text-xl font-semibold text-neutral-800 dark:text-neutral-100 mb-6">
+        <span className="block text-center mr-6 ml-6 text-xl font-semibold text-neutral-800 dark:text-neutral-100 mb-6">
           浏览该房间内所有物品
         </span>
         {roomItems?.length
