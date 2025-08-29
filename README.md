@@ -9,8 +9,10 @@
 pnpm install
 ```
 
-#### electron安装问题
-如果遇到
+### electron安装与配置
+如果你的开发不涉及electron，可跳过此步。
+
+在安装electron依赖的时候，如果遇到
 ```
 Electron failed to install correctly,
  please delete node_modules/electron and try installing again
@@ -19,6 +21,10 @@ Electron failed to install correctly,
 ```bash
 node node_modules/electron/install.js
 ```
+
+如果要执行electron-build
+请先把webgal-terre解压到extraResources下，并把terre.exe放在extraResources同级目录下。
+
 
 ### 配置环境
 

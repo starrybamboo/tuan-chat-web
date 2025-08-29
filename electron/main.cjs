@@ -76,37 +76,40 @@ function getWebGALPath() {
 }
 
 // 启动 WebGAL 子进程的函数 ---
+// 在 electron/main.cjs 文件中
+
 function startWebGAL() {
   const webgalPath = getWebGALPath();
 
-  // 如果进程已经存在，就不再重复启动
   if (webgalProcess) {
     console.log("WebGAL 进程已在运行中。");
     return;
   }
 
   console.log(`正在从以下路径启动 WebGAL: ${webgalPath}`);
+  const webgalDir = path.dirname(webgalPath);
 
   // 使用 spawn 启动子进程。
   // cwd (current working directory) 设置为 .exe 所在目录，以确保它可以正确找到资源文件
   webgalProcess = spawn(webgalPath, [], {
-    cwd: path.dirname(webgalPath),
+    cwd: webgalDir,
   });
 
-  // 监听子进程的标准输出，方便调试
+  // 捕获启动失败
+  webgalProcess.on("error", (err) => {
+    console.error("启动 WebGAL 子进程失败!", err);
+  });
+
+  // 监听子进程输出
   webgalProcess.stdout.on("data", (data) => {
     console.log(`[WebGAL stdout]: ${data}`);
   });
-
-  // 监听子进程的错误输出
   webgalProcess.stderr.on("data", (data) => {
     console.error(`[WebGAL stderr]: ${data}`);
   });
-
-  // 监听子进程退出事件
   webgalProcess.on("close", (code) => {
     console.log(`WebGAL 进程已退出，退出码: ${code}`);
-    webgalProcess = null; // 进程结束后清空引用，以便可以再次启动
+    webgalProcess = null;
   });
 }
 
