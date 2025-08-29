@@ -10,6 +10,7 @@ import Veditor from "./veditor";
 interface SceneEditProps {
   scene: StageEntityResponse;
   id: string | number; // 当前sceneEdit在moduleTabs中的id
+  onSave?: (changed: boolean) => void;
 }
 
 const types = {
@@ -77,7 +78,7 @@ function Folder({ moduleData, entityType, onClick }:
   );
 }
 
-export default function SceneEdit({ scene, id }: SceneEditProps) {
+export default function SceneEdit({ scene, id, onSave }: SceneEditProps) {
   const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
   const { stageId, removeModuleTabItem } = useModuleContext();
 
@@ -270,7 +271,10 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                   <input
                     type="text"
                     value={name || ""}
-                    onChange={e => setName(e.target.value)}
+                    onChange={(e) => {
+                      onSave && onSave(true);
+                      setName(e.target.value);
+                    }}
                     placeholder="请输入场景名称"
                     className="input input-bordered w-full"
                   />
@@ -281,8 +285,11 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                   </label>
                   <textarea
                     value={localScene.description || ""}
-                    onChange={e =>
-                      setLocalScene(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) => {
+                      if (onSave)
+                        onSave(true);
+                      setLocalScene(prev => ({ ...prev, description: e.target.value }));
+                    }}
                     placeholder="可以直接展示给玩家的描述"
                     className="textarea textarea-bordered w-full h-24 resize-none"
                   />
@@ -305,6 +312,9 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                     id={VeditorId}
                     placeholder={localScene.tip || "对KP的提醒（对于剧情的书写）"}
                     onchange={(value) => {
+                      if (onSave) {
+                        onSave(true);
+                      }
                       setLocalScene(prev => ({ ...prev, tip: value }));
                     }}
                   />
@@ -316,7 +326,11 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
           <div className="card-actions justify-end">
             <button
               type="submit"
-              onClick={handleSave}
+              onClick={() => {
+                if (onSave)
+                  onSave(false);
+                handleSave();
+              }}
               className={`btn btn-primary ${isTransitioning ? "scale-95" : ""}`}
               disabled={isTransitioning}
             >
