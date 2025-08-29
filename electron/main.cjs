@@ -6,7 +6,7 @@ const process = require("node:process");
 const detectPort = require("detect-port").default; // 用于检测端口占用
 
 // 控制应用生命周期和创建原生浏览器窗口的模组
-const { app, BrowserWindow, protocol, ipcMain } = require("electron");
+const { app, BrowserWindow, protocol, ipcMain, Menu } = require("electron");
 // // --- 忽略证书错误以解决 SSL handshake failed 问题 ---
 // app.commandLine.appendSwitch("ignore-certificate-errors");
 
@@ -41,6 +41,8 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"), // 指定 preload 脚本
     },
   });
+
+  Menu.setApplicationMenu(null);
 
   const env = "pro2";
   // 配置热更新
