@@ -320,14 +320,14 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
                 <div className="p-2 pt-4 flex flex-col gap-2">
                   <div className="flex">
                     <button
-                      className="btn btn-ghost flex justify-center w-1/2 gap-2"
+                      className="btn btn-ghost flex justify-center items-center h-8 w-1/2 gap-2"
                       type="button"
                       onClick={handleMemberClick}
                     >
                       <MemberIcon />
                     </button>
                     <button
-                      className="btn btn-ghost btn-sm flex justify-center w-1/2 gap-2"
+                      className="btn btn-ghost btn-sm flex justify-center items-center h-8 w-1/2 gap-2"
                       type="button"
                       onClick={handleXMarkClick}
                     >
