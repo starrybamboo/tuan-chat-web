@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "../instance";
-import type { ModuleImportRequest } from "../models/ModuleImportRequest";
+import type { ModuleImportByIdRequest } from "api/models/ModuleImportByIdRequest";
 
 /**
  * 模组导入群聊
@@ -10,7 +10,7 @@ export function useImportFromModuleMutation() {
   
   return useMutation({
     mutationKey: ["importFromModule"], 
-    mutationFn: (req: ModuleImportRequest) => 
+    mutationFn: (req: ModuleImportByIdRequest) => 
       tuanchat.spaceModuleController.importFromModule(req),
     onSuccess: () => {
       queryClient.invalidateQueries({ 
