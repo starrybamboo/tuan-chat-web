@@ -39,7 +39,7 @@ function BetterImg({ src, className, onClose, size, transparent = true }: {
           src={imgSrc}
           width={size?.width}
           height={size?.height}
-          className={`hover:scale-101 ${className} cursor-zoom-in w-full object-contain`}
+          className={`hover:scale-101 ${className} cursor-zoom-in object-contain`}
           alt="img"
           onClick={() => openToastWindow()}
         />
