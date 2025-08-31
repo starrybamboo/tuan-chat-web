@@ -76,6 +76,7 @@ function RoleModuleTabItem({
       inputRef.current.checked = true;
     }
   }, [isSelected]);
+
   return (
     <>
       <label className="tab flex-row-reverse pr-8! relative group before:hidden!">
@@ -115,12 +116,14 @@ function ItemModuleTabItem({
   isSelected,
   onTabClick,
   onCloseClick,
+  onUpdateChangedState,
 }: {
   itemModuleItem: ItemModuleItem;
   item: StageEntityResponse;
   isSelected: boolean;
   onTabClick: (id: string) => void;
   onCloseClick: (id: string) => void;
+  onUpdateChangedState?: (id: string, changed: boolean) => void;
 }) {
   const { id, label } = itemModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -132,6 +135,14 @@ function ItemModuleTabItem({
       inputRef.current.checked = true;
     }
   }, [isSelected]);
+
+  // 当changed状态改变时，通知父组件
+  useEffect(() => {
+    if (onUpdateChangedState) {
+      onUpdateChangedState(id.toString(), changed);
+    }
+  }, [changed, id, onUpdateChangedState]);
+
   return (
     <>
       <label className="tab flex-row-reverse pr-8! relative group before:hidden!">
@@ -145,10 +156,13 @@ function ItemModuleTabItem({
         />
         <div
           className={`
-            absolute right-[10px] invisible
+            absolute right-[10px]
             w-4 h-4 flex items-center justify-center
+            ${changed
+      ? "visible bg-white rounded-full"
+      : `invisible
             group-hover:visible ${isSelected ? "visible" : ""}
-            hover:bg-base-content/80 rounded-sm
+            hover:bg-base-content/80 rounded-sm`}
           `}
           onClick={() => {
             if (changed) {
@@ -159,7 +173,7 @@ function ItemModuleTabItem({
             }
           }}
         >
-          <BaselineClose />
+          {changed ? <div className="w-2 h-2 bg-gray-800 rounded-full"></div> : <BaselineClose />}
         </div>
         {label}
       </label>
@@ -181,12 +195,14 @@ function LocationModuleTabItem({
   isSelected,
   onTabClick,
   onCloseClick,
+  onUpdateChangedState,
 }: {
   sceneModuleItem: ModuleTabItem;
   location: StageEntityResponse; // 这里用 any，实际可替换为具体类型
   isSelected: boolean;
   onTabClick: (id: string) => void;
   onCloseClick: (id: string) => void;
+  onUpdateChangedState?: (id: string, changed: boolean) => void;
 }) {
   const { id, label } = sceneModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -198,6 +214,13 @@ function LocationModuleTabItem({
       inputRef.current.checked = true;
     }
   }, [isSelected]);
+
+  // 当changed状态改变时，通知父组件
+  useEffect(() => {
+    if (onUpdateChangedState) {
+      onUpdateChangedState(id.toString(), changed);
+    }
+  }, [changed, id, onUpdateChangedState]);
 
   return (
     <>
@@ -212,10 +235,13 @@ function LocationModuleTabItem({
         />
         <div
           className={`
-            absolute right-[10px] invisible
+            absolute right-[10px]
             w-4 h-4 flex items-center justify-center
+            ${changed
+      ? "visible bg-white rounded-full"
+      : `invisible
             group-hover:visible ${isSelected ? "visible" : ""}
-            hover:bg-base-content/80 rounded-sm
+            hover:bg-base-content/80 rounded-sm`}
           `}
           onClick={() => {
             if (changed) {
@@ -226,7 +252,7 @@ function LocationModuleTabItem({
             }
           }}
         >
-          <BaselineClose />
+          {changed ? <div className="w-2 h-2 bg-gray-800 rounded-full"></div> : <BaselineClose />}
         </div>
         {label}
       </label>
@@ -249,12 +275,14 @@ function SceneModuleTabItem({
   isSelected,
   onTabClick,
   onCloseClick,
+  onUpdateChangedState,
 }: {
   sceneModuleItem: SceneModuleItem;
   scene: StageEntityResponse;
   isSelected: boolean;
   onTabClick: (id: string) => void;
   onCloseClick: (id: string) => void;
+  onUpdateChangedState?: (id: string, changed: boolean) => void;
 }) {
   const { id, label } = sceneModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -266,6 +294,13 @@ function SceneModuleTabItem({
       inputRef.current.checked = true;
     }
   }, [isSelected]);
+
+  // 当changed状态改变时，通知父组件
+  useEffect(() => {
+    if (onUpdateChangedState) {
+      onUpdateChangedState(id.toString(), changed);
+    }
+  }, [changed, id, onUpdateChangedState]);
 
   return (
     <>
@@ -280,10 +315,13 @@ function SceneModuleTabItem({
         />
         <div
           className={`
-            absolute right-[10px] invisible
+            absolute right-[10px]
             w-4 h-4 flex items-center justify-center
+            ${changed
+      ? "visible bg-white rounded-full"
+      : `invisible
             group-hover:visible ${isSelected ? "visible" : ""}
-            hover:bg-base-content/80 rounded-sm
+            hover:bg-base-content/80 rounded-sm`}
           `}
           onClick={() => {
             if (changed) {
@@ -294,7 +332,7 @@ function SceneModuleTabItem({
             }
           }}
         >
-          <BaselineClose />
+          {changed ? <div className="w-2 h-2 bg-gray-800 rounded-full"></div> : <BaselineClose />}
         </div>
         {label}
       </label>
@@ -388,6 +426,122 @@ export default function EditModule() {
     item.type === ModuleItemEnum.MAP,
   );
 
+  // 用于跟踪各个tab的更改状态
+  const [changedStates, setChangedStates] = useState<Record<string, boolean>>({});
+  // 存储目标路由路径
+  const [pendingRoute, setPendingRoute] = useState<string | null>(null);
+
+  // 在组件卸载时清理事件监听器
+  // 监听路由变化和浏览器关闭事件
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // 检查是否有任何tab有未保存的更改
+      const hasUnsavedChanges = Object.values(changedStates).some(changed => changed);
+
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [changedStates]);
+
+  // 监听路由变化
+  useEffect(() => {
+    let isUnloading = false;
+    let preventRouteChange = false;
+
+    // 监听浏览器关闭/刷新事件
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      isUnloading = true;
+      // 检查是否有任何tab有未保存的更改
+      const hasUnsavedChanges = Object.values(changedStates).some(changed => changed);
+
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+      }
+    };
+
+    // 拦截路由变化
+    const handlePopState = () => {
+      if (isUnloading)
+        return;
+
+      // 检查是否有任何tab有未保存的更改
+      const hasUnsavedChanges = Object.values(changedStates).some(changed => changed);
+
+      if (hasUnsavedChanges && !preventRouteChange) {
+        // 阻止默认行为
+        window.history.go(1); // 回到原来的页面
+        // 存储当前目标路径并显示确认弹窗
+        setPendingRoute(window.location.href);
+        return;
+      }
+
+      preventRouteChange = false;
+    };
+
+    // 重写 history.pushState 和 history.replaceState 来捕获程序化路由变化
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+
+    window.history.pushState = function (state, title, url) {
+      const hasUnsavedChanges = Object.values(changedStates).some(changed => changed);
+
+      if (hasUnsavedChanges && !preventRouteChange) {
+        // 存储目标路径并显示确认弹窗而不是直接跳转
+        if (url) {
+          setPendingRoute(url.toString());
+        }
+        return; // 阻止跳转
+      }
+
+      return originalPushState.apply(this, [state, title, url] as any);
+    };
+
+    window.history.replaceState = function (state, title, url) {
+      const hasUnsavedChanges = Object.values(changedStates).some(changed => changed);
+
+      if (hasUnsavedChanges && !preventRouteChange) {
+        // 存储目标路径并显示确认弹窗而不是直接跳转
+        if (url) {
+          setPendingRoute(url.toString());
+        }
+        return; // 阻止跳转
+      }
+
+      return originalReplaceState.apply(this, [state, title, url] as any);
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+
+    // 清理函数
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
+    };
+  }, [changedStates]);
+
+  useEffect(() => {
+    if (pendingRoute) {
+      window.location.replace(pendingRoute);
+    }
+  }, [pendingRoute]);
+
+  // 更新某个tab的更改状态的函数
+  const updateChangedState = (id: string, changed: boolean) => {
+    setChangedStates(prev => ({
+      ...prev,
+      [id]: changed,
+    }));
+  };
+
   return (
     <div className="h-screen p-4 overflow-y-scroll">
       <div className="w-full h-full tabs tabs-lift">
@@ -410,6 +564,7 @@ export default function EditModule() {
               isSelected={item.id === currentSelectedTabId}
               onTabClick={setCurrentSelectedTabId}
               onCloseClick={removeModuleTabItem}
+              onUpdateChangedState={updateChangedState}
             />
           ))
         }
@@ -422,6 +577,7 @@ export default function EditModule() {
               isSelected={item.id === currentSelectedTabId}
               onTabClick={setCurrentSelectedTabId}
               onCloseClick={removeModuleTabItem}
+              onUpdateChangedState={updateChangedState}
             />
           ))
         }
@@ -434,6 +590,7 @@ export default function EditModule() {
               isSelected={item.id === currentSelectedTabId}
               onTabClick={setCurrentSelectedTabId}
               onCloseClick={removeModuleTabItem}
+              onUpdateChangedState={updateChangedState}
             />
           ))
         }
