@@ -18,6 +18,7 @@ import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
 import SearchPanel from "@/components/chat/sideDrawer/searchPanel";
 import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
 import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
+import WebgalStarter from "@/components/chat/smallComponents/webgalStarter";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
@@ -837,6 +838,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             <span className="text-center font-semibold text-lg line-clamp-1">{room?.name}</span>
           </div>
           <div className="flex gap-2">
+            <div
+              className="tooltip tooltip-bottom hover:text-info items-center justify-center flex"
+              data-tip="启动Webgal"
+            >
+              <WebgalStarter className="size-6"></WebgalStarter>
+            </div>
             <div
               className="tooltip tooltip-bottom hover:text-info"
               data-tip="地图"
