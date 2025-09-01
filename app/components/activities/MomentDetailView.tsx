@@ -1,7 +1,8 @@
+import CommentPanel from "@/components/common/comment/commentPanel";
 import LikeIconButton from "@/components/common/likeIconButton";
 import { PopWindow } from "@/components/common/popWindow";
 import { UserDetail } from "@/components/common/userDetail";
-import { XMarkICon } from "@/icons";
+import { CommentOutline, XMarkICon } from "@/icons";
 import React, { useCallback, useState } from "react";
 import { useDeleteMomentFeedMutation, useGetMomentByIdQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../api/queryHooks";
@@ -34,7 +35,6 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
   } = useGetMomentByIdQuery(feedId, isOpen);
 
   const feed = momentData?.data?.feed ?? {};
-  const stats = momentData?.data?.stats ?? {};
   const userId = feed?.userId ?? -1;
 
   // 获取用户信息
@@ -91,8 +91,8 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
     return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-base-100 rounded-xl shadow-xl border border-base-300 w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 z-50 flex justify-center p-4">
+      <div className="bg-base-100 rounded-xl shadow-xl border border-base-300 w-full overflow-hidden">
         {/* 头部 - 带关闭按钮 */}
         <div className="flex items-center justify-between p-4 border-b border-base-300">
           <h2 className="text-lg font-semibold text-base-content">动态详情</h2>
@@ -101,7 +101,7 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
             className="btn btn-ghost btn-sm btn-circle"
             type="button"
           >
-            <XMarkICon></XMarkICon>
+            <XMarkICon />
           </button>
         </div>
 
@@ -230,7 +230,7 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                 {images.length > 0 && (
                   <div className="mt-6">
                     <div
-                      className={`grid gap-3 ${
+                      className={`grid gap-4 max-w-lg mx-auto ${
                         images.length === 1
                           ? "grid-cols-1 max-w-md mx-auto"
                           : images.length === 2
@@ -240,7 +240,7 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                     >
                       {images.map((img: string, idx: number) => (
                         <div
-                          key={idx}
+                          key={img}
                           className="aspect-square overflow-hidden rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                         >
                           <img
@@ -274,7 +274,7 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                   type="button"
                 >
                   <span className="text-xl">💬</span>
-                  <span className="font-medium">{Number(stats?.commentCount ?? 0)}</span>
+                  <span className="font-medium">0</span>
                 </button>
 
                 <button
@@ -282,21 +282,16 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
                   className="flex items-center space-x-2 text-base text-base-content/70 hover:text-success hover:bg-success/10 transition-colors px-4 py-2 rounded-full"
                   type="button"
                 >
-                  <span className="text-xl">📤</span>
+                  <CommentOutline className="h-6 w-5" />
                   <span className="font-medium">分享</span>
                 </button>
               </div>
 
-              {/* 评论区域占位 */}
+              {/* 评论区域 */}
               <div className="mt-6 p-6 bg-base-200 rounded-lg">
-                <h3 className="text-lg font-semibold text-base-content mb-4">
-                  评论 (
-                  {stats?.commentCount ?? 0}
-                  )
-                </h3>
-                <div className="text-center py-8 text-base-content/60">
-                  <p>评论功能开发中...</p>
-                </div>
+                <CommentPanel
+                  targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "4" }}
+                />
               </div>
             </div>
           )}

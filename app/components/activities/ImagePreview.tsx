@@ -92,7 +92,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
     const hasNext = enlargedIndex < images.length - 1;
 
     return (
-      <div className="relative w-4/5 ml-12">
+      <div className="relative w-4/5">
         {/* 放大图片容器 */}
         <div
           className="relative w-full aspect-square bg-base-100 rounded-lg overflow-hidden cursor-pointer"

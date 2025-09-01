@@ -1,8 +1,10 @@
 import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
+import CommentPanel from "@/components/common/comment/commentPanel";
 import LikeIconButton from "@/components/common/likeIconButton";
 import { PopWindow } from "@/components/common/popWindow";
 import { UserDetail } from "@/components/common/userDetail";
+import { CommentOutline } from "@/icons";
 import React, { useCallback, useState } from "react";
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
@@ -17,7 +19,6 @@ interface PostsCardProp {
  */
 export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => {
   const feed = dynamic?.feed ?? {};
-  const stats = dynamic?.stats ?? {};
   const userId = dynamic?.feed.userId ?? -1;
   const feedId = feed?.feedId ?? -1;
 
@@ -25,6 +26,7 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUserDetailCardOpen, setIsUserDetailCardOpen] = useState(false);
   const [isMomentDetailOpen, setIsMomentDetailOpen] = useState(false);
+  const [isCommentMenuOpen, setIsCommentMenuOpen] = useState(false);
 
   // 获取用户信息
   const { data: userInfoData, isLoading: userInfoLoading } = useGetUserInfoQuery(userId || 0);
@@ -68,8 +70,11 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
     }
   };
 
-  // TODO: 接入评论和分享组件
-  const handleComment = () => 0;
+  // TODO: 接入分享组件
+  const handleComment = () => {
+    setIsCommentMenuOpen(!isCommentMenuOpen);
+  };
+
   const handleShare = () => 0;
 
   const handleAvatarClick = useCallback(() => {
@@ -195,7 +200,6 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
 
         {/* 操作栏 */}
         <div className="flex items-center space-x-4 sm:space-x-6 pt-3 border-t border-base-300">
-          {/* TODO 替换操作栏组件 */}
           <button
             className="flex items-center space-x-1 text-sm transition-colors px-2 py-1 rounded-full hover:text-error hover:bg-error/10"
             type="button"
@@ -210,21 +214,28 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
 
           <button
             onClick={handleComment}
-            className="flex items-center space-x-1 text-sm text-base-content/60 hover:text-primary hover:bg-primary/10 transition-colors px-2 py-1 rounded-full"
+            className="flex items-center space-x-1 text-sm hover:text-primary hover:bg-primary/10 transition-colors px-2 py-1 rounded-full"
             type="button"
           >
-            <span className="text-base">💬</span>
-            <span className="font-medium">{Number(stats?.commentCount ?? 0)}</span>
+            <CommentOutline className="h-6 w-5" />
+            <span className="font-medium">0</span>
           </button>
           <button
             onClick={handleShare}
             className="flex items-center space-x-1 text-sm text-base-content/60 hover:text-success hover:bg-success/10 transition-colors px-2 py-1 rounded-full"
             type="button"
           >
-            <span className="text-base">📤</span>
-            <span className="font-medium">{Number(stats?.shareCount ?? stats?.shares ?? 0)}</span>
+            {/* <span className="text-base">📤</span> */}
+            {/* <span className="font-medium">{Number(stats?.shareCount ?? stats?.shares ?? 0)}</span> */}
           </button>
         </div>
+        {isCommentMenuOpen && (
+          <div className="mt-6 p-6 bg-base-200 rounded-lg">
+            <CommentPanel
+              targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "4" }}
+            />
+          </div>
+        )}
 
         {/* UserDetail 弹窗 */}
         <PopWindow isOpen={isUserDetailCardOpen} onClose={closeUserCard}>
