@@ -1245,3 +1245,50 @@ export function Items(
     </svg>
   );
 }
+
+// 放大图标
+// 其他关键词：加号，增加，放大镜，缩放，放大操作
+export function ZoomInIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="8" />
+      <path d="M21 21l-4.35-4.35" />
+      <line x1="11" y1="8" x2="11" y2="14" />
+      <line x1="8" y1="11" x2="14" y2="11" />
+    </svg>
+  );
+}
+
+// 缩小图标
+// 其他关键词：减号，减少，缩小镜，缩放，缩小操作
+export function ZoomOutIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="8" />
+      <path d="M21 21l-4.35-4.35" />
+      <line x1="8" y1="11" x2="14" y2="11" />
+    </svg>
+  );
+}
+
+// 逆时针旋转图标（线框样式）
+// 其他关键词：撤销，返回，左旋转，刷新，重置
+export function RotateLeftIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+    </svg>
+  );
+}
+
+// 顺时针旋转图标（线框样式）
+// 其他关键词：重做，前进，右旋转，刷新，重置
+export function RotateRightIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+    </svg>
+  );
+}

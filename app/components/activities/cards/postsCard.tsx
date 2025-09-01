@@ -1,3 +1,4 @@
+import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
 import LikeIconButton from "@/components/common/likeIconButton";
 import { PopWindow } from "@/components/common/popWindow";
@@ -93,8 +94,6 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
   const isContentLong = contentPreview.length > 200;
   const displayContent = isContentLong ? `${contentPreview.slice(0, 200)}...` : contentPreview;
 
-  const MAX_PREVIEW = 9; // <= 改成你想要的阈值
-
   return (
     <>
       <div
@@ -169,7 +168,6 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
                         举报
                       </button>
                     )}
-
               </div>
             )}
           </div>
@@ -187,48 +185,10 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
             )}
           </div>
 
-          {/* ---------- 改动区：图片预览网格（B 站风格，最多预览 MAX_PREVIEW 张） ---------- */}
+          {/* 图片预览组件 */}
           {images.length > 0 && (
             <div className="mt-4 pl-16">
-              {/* grid 布局：1 张 / 2 张 / >=3 张 使用不同列数（视觉与 B 站 类似） */}
-              <div
-                className={`grid gap-2 ${
-                  images.length === 1 ? "grid-cols-1 max-w-xs" : images.length === 2 ? "grid-cols-2 max-w-md" : "grid-cols-3 max-w-lg"
-                }`}
-              >
-                {images.slice(0, MAX_PREVIEW).map((img: string, idx: number) => (
-                  <div key={idx} className="relative">
-                    <img
-                      src={img}
-                      alt={`图片 ${idx + 1}`}
-                      className="w-full aspect-square object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={handleContentClick}
-                    />
-                    {/* 如果是最后一个预览格并且总数超过 MAX_PREVIEW，显示灰色覆盖和 +N */}
-                    {idx === MAX_PREVIEW - 1 && images.length > MAX_PREVIEW && (
-                      <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center">
-                        <span className="text-white font-semibold">
-                          +
-                          {images.length - MAX_PREVIEW}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* 如果总数超过 MAX_PREVIEW，给一个额外的说明行（可选） */}
-              {images.length > MAX_PREVIEW && (
-                <p
-                  className="text-xs text-base-content/60 mt-2 pl-1 cursor-pointer hover:text-primary transition-colors"
-                >
-                  点击查看全部
-                  {" "}
-                  {images.length}
-                  {" "}
-                  张图片
-                </p>
-              )}
+              <ImagePreview images={images} maxPreview={9} />
             </div>
           )}
         </div>
