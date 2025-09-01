@@ -7,9 +7,10 @@ import Veditor from "./veditor";
 
 interface ItemEditProps {
   item: StageEntityResponse;
+  onSave: (changed: boolean) => void;
 }
 
-export default function ItemEdit({ item }: ItemEditProps) {
+export default function ItemEdit({ item, onSave }: ItemEditProps) {
   const entityInfo = item.entityInfo || {};
   const { stageId, removeModuleTabItem } = useModuleContext();
 
@@ -74,7 +75,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
       {/* 物品信息卡片 */}
       <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
         <div className="card-body">
-          <div className="flex items-center gap-8">
+          <div className="flex items-start gap-8">
             {/* 图片 */}
             <CharacterCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleImageChange} fileName={uniqueFileName} scene={4}>
               <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
@@ -99,7 +100,10 @@ export default function ItemEdit({ item }: ItemEditProps) {
                   <input
                     type="text"
                     value={name || ""}
-                    onChange={e => setName(e.target.value)}
+                    onChange={(e) => {
+                      onSave(true);
+                      setName(e.target.value);
+                    }}
                     placeholder="请输入物品名称"
                     className="input input-bordered w-full"
                   />
@@ -111,6 +115,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
                   <textarea
                     value={localItem.description || ""}
                     onChange={(e) => {
+                      onSave(true);
                       setLocalItem(prev => ({ ...prev, description: e.target.value }));
                       setCharCount(e.target.value.length);
                     }}
@@ -141,6 +146,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
                     id={vditorId}
                     placeholder={localItem.tip || ""}
                     onchange={(value) => {
+                      onSave(true);
                       setLocalItem(prev => ({ ...prev, tip: value }));
                     }}
                   />
@@ -152,7 +158,10 @@ export default function ItemEdit({ item }: ItemEditProps) {
           <div className="card-actions justify-end">
             <button
               type="submit"
-              onClick={handleSave}
+              onClick={() => {
+                onSave(false);
+                handleSave();
+              }}
               className={`btn btn-primary ${isTransitioning ? "scale-95" : ""}`}
               disabled={isTransitioning}
             >

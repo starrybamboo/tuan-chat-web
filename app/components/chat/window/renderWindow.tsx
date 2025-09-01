@@ -1,6 +1,9 @@
 import { RoomContext } from "@/components/chat/roomContext";
+import launchWebGal from "@/utils/launchWebGal";
+import { pollPort } from "@/utils/pollPort";
 import { ChatRenderer } from "@/webGAL/chatRenderer";
 import { use, useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
 
 export interface RenderProps {
@@ -45,6 +48,8 @@ export default function RenderWindow() {
     // 保存数据到localStorage
     localStorage.setItem("renderProps", JSON.stringify(renderProps));
     setIsRendering(true);
+    launchWebGal();
+    await pollPort(3001).catch(() => toast.error("WebGAL 启动失败"));
     try {
       const renderer = new ChatRenderer(roomId, renderProps);
       await renderer.initializeRenderer();

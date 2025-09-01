@@ -228,7 +228,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse }) {
       id: item.name!,
       type: "mapEditNode",
       position: { x: 0, y: 0 },
-      data: { label: item.name, idx: -1, children: <SceneEdit scene={item}></SceneEdit> },
+      data: { label: item.name, idx: -1, children: <SceneEdit scene={item} id={item.id!}></SceneEdit> },
     }));
 
     const dagreGraph = new dagre.graphlib.Graph();
@@ -303,7 +303,7 @@ export default function MapEdit({ map }: { map: StageEntityResponse }) {
           id: item.name!,
           type: "mapEditNode",
           position: existingNode ? existingNode.position : { x: 0, y: 0 },
-          data: { label: item.name, idx: -1, children: <SceneEdit scene={item}></SceneEdit> },
+          data: { label: item.name, idx: -1, children: <SceneEdit scene={item} id={item.id!}></SceneEdit> },
         };
       });
       return newNodes;

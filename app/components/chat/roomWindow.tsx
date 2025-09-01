@@ -69,18 +69,6 @@ import {
 import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
 import ItemDetail from "./itemsDetail";
 
-interface EntityInfo {
-  description: string;
-  tip: string;
-  image: string;
-}
-
-interface RoomItem {
-  id: number;
-  name: string;
-  entityInfo: EntityInfo;
-}
-
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
   const spaceContext = use(SpaceContext);
@@ -193,7 +181,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [commandBrowseWindow, setCommandBrowseWindow] = useSearchParamsState<commandModeType>("commandPop", "none");
   const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
   const [isItemsWindowOpen, setIsItemsWindowOpen] = useState<boolean>(false);
-  const [selectedItem, setSelectedItem] = useState<RoomItem | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<number>(-1);
 
   const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
 
@@ -1169,7 +1157,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         </div>
       </div>
       <PopWindow isOpen={isItemsWindowOpen} onClose={() => setIsItemsWindowOpen(false)}>
-        <span className="block text-center text-xl font-semibold text-neutral-800 dark:text-neutral-100 mb-6">
+        <span className="block text-center mr-6 ml-6 text-xl font-semibold text-neutral-800 dark:text-neutral-100 mb-6">
           浏览该房间内所有物品
         </span>
         {roomItems?.length
@@ -1203,15 +1191,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     <button
                       type="button"
                       className="btn w-20"
-                      onClick={() => setSelectedItem(({
-                        id: item.id!,
-                        name: item.name ?? "",
-                        entityInfo: {
-                          description: item.entityInfo?.description ?? "",
-                          tip: item.entityInfo?.tip ?? "",
-                          image: item.entityInfo?.image ?? "",
-                        },
-                      }))}
+                      onClick={() => setSelectedItemId(item.id ?? -1)}
                     >
                       查看
                     </button>
@@ -1265,14 +1245,11 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       </PopWindow>
       {/* 物品详情窗口 */}
       <PopWindow
-        isOpen={!!selectedItem}
-        onClose={() => setSelectedItem(null)}
+        isOpen={selectedItemId > 0}
+        onClose={() => setSelectedItemId(-1)}
       >
-        {selectedItem && (
-          <ItemDetail
-            entityInfo={selectedItem.entityInfo}
-            name={selectedItem.name}
-          />
+        {selectedItemId && (
+          <ItemDetail itemId={selectedItemId} />
         )}
       </PopWindow>
     </RoomContext>

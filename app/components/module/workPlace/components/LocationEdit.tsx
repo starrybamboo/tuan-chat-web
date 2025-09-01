@@ -8,9 +8,10 @@ import Veditor from "./veditor";
 
 interface LocationEditProps {
   location: StageEntityResponse;
+  onSave: (changed: boolean) => void;
 }
 
-export default function LocationEdit({ location }: LocationEditProps) {
+export default function LocationEdit({ location, onSave }: LocationEditProps) {
   const entityInfo = location.entityInfo || {};
   const { stageId, removeModuleTabItem } = useModuleContext();
 
@@ -77,7 +78,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
       {/* 场景信息卡片 */}
       <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
         <div className="card-body">
-          <div className="flex items-center gap-8">
+          <div className="flex items-start gap-8">
             {/* 头像 */}
             <CharacterCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleAvatarChange} fileName={uniqueFileName} scene={4}>
               <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
@@ -99,7 +100,10 @@ export default function LocationEdit({ location }: LocationEditProps) {
                 <input
                   type="text"
                   value={name || ""}
-                  onChange={e => setName(e.target.value)}
+                  onChange={(e) => {
+                    onSave(true);
+                    setName(e.target.value);
+                  }}
                   placeholder="场景名称"
                   className="input input-bordered w-full text-lg font-bold"
                 />
@@ -107,6 +111,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
                 <textarea
                   value={localLocation.description || ""}
                   onChange={(e) => {
+                    onSave(true);
                     setLocalLocation(prev => ({ ...prev, description: e.target.value }));
                     setCharCount(e.target.value.length);
                   }}
@@ -133,6 +138,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
                   id={vditorId}
                   placeholder={localLocation.tip || ""}
                   onchange={(value) => {
+                    onSave(true);
                     setLocalLocation(prev => ({ ...prev, tip: value }));
                   }}
                 />
@@ -143,7 +149,10 @@ export default function LocationEdit({ location }: LocationEditProps) {
           <div className="card-actions justify-end">
             <button
               type="submit"
-              onClick={handleSave}
+              onClick={() => {
+                onSave(false);
+                handleSave();
+              }}
               className={`btn btn-primary ${isTransitioning ? "scale-95" : ""}`}
               disabled={isTransitioning}
             >

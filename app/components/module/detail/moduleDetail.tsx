@@ -33,7 +33,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
   ];
   const params = useParams();
   // const navigate = useNavigate();
-  const moduleId = params.id;
+  const moduleId = Number(params.id);
   // 选择群聊弹窗
   const [isGroupSelectOpen, setIsGroupSelectOpen] = useState(false);
 
@@ -56,7 +56,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
   // 处理模组导入
   const handleModuleImport = (spaceId: number) => {
     // 暂时只能推测试模组
-    importFromModule.mutate({ spaceId, commitId: 1 }, {
+    importFromModule.mutate({ spaceId, moduleId }, {
       onSuccess: () => {
         setIsGroupSelectOpen(false);
         setShowSuccessToast(true);
