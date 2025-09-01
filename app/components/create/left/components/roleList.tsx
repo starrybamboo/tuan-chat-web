@@ -29,8 +29,12 @@ function RoleListItem(
           alt="avatar"
           style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
         /> */}
-        <RoleAvatar avatarId={role.entityInfo!.avatarId || role.entityInfo!.avatarIds[0]} width={10} isRounded={true} stopPopWindow={true} />
-
+        <RoleAvatar
+          avatarId={role.entityInfo!.avatarId || (role.entityInfo!.avatarIds && role.entityInfo!.avatarIds.length > 0 ? role.entityInfo!.avatarIds[0] : undefined)}
+          width={10}
+          isRounded={true}
+          stopPopWindow={true}
+        />
         <div className="flex flex-col">
           <p className="self-baseline">{name}</p>
           <p className="text-xs text-gray-500 self-baseline mt-0.5 line-clamp-1">{role.entityInfo!.description}</p>
