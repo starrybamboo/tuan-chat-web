@@ -372,7 +372,12 @@ export function Sidebar({
                     toggleRoleSelection(role.id);
                   }
                   else {
-                    setSelectedRoleId(role.id);
+                    if (selectedRoleId !== role.id) {
+                      setSelectedRoleId(role.id);
+                    }
+                    else {
+                      setSelectedRoleId(null);
+                    }
                     setIsEditing(false);
                     const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
                     if (drawerCheckbox)
