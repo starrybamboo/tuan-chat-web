@@ -160,168 +160,170 @@ export default function CharacterDetail({
   };
 
   return (
-    <div className={`md:space-y-6 transition-opacity duration-300 ease-in-out ${
+    <div className={`transition-opacity duration-300 ease-in-out ${
       isTransitioning ? "opacity-50" : ""
     }`}
     >
-      {/* 基础信息卡片 */}
-      <div className={`card-sm md:card bg-base-100 shadow-xl ${
-        isEditing ? "ring-2 ring-primary" : ""
-      }`}
-      >
-        <div className="card-body">
-          <div className="flex flex-col md:flex-row items-center">
-            <CharacterAvatar
-              role={localRole}
-              roleAvatars={roleAvatars}
-              selectedAvatarId={selectedAvatarId}
-              selectedAvatarUrl={selectedAvatarUrl}
-              selectedSpriteUrl={selectedSpriteUrl}
-              onchange={handleAvatarChange}
-              onSpritePreviewChange={url => setSelectedSpriteUrl(url)}
-              onAvatarSelect={handleAvatarSelect}
-              onAvatarDelete={handleAvatarDelete}
-              onAvatarUpload={handleAvatarUpload}
-            />
-            <div className="card-sm md:card flex-1 space-y-4 min-w-0 overflow-hidden p-2">
-              {/* <Section title="基本信息"> */}
 
-              {isEditing
-                ? (
-                    <div className="card-body">
-                      <p className="text-lg">
-                        角色名：
-                      </p>
-                      <input
-                        type="text"
-                        value={localRole.name}
-                        onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="角色名称"
-                        className="input input-bordered w-full text-lg font-bold mt-2"
-                      />
-                      <p className="text-lg mt-2">
-                        描述：
-                      </p>
-                      <textarea
-                        value={localRole.description}
-                        onChange={(e) => {
-                          setLocalRole(prev => ({ ...prev, description: e.target.value }));
-                        }}
-                        placeholder="角色描述"
-                        className="textarea textarea-bordered w-full h-24 resize-none mt-2"
-                      />
-                      <div className="text-right mt-1">
-                        <span className={`text-sm font-bold ${
-                          charCount > MAX_DESCRIPTION_LENGTH
-                            ? "text-error"
-                            : "text-base-content/70"
-                        }`}
-                        >
-                          {charCount}
-                          /
-                          {MAX_DESCRIPTION_LENGTH}
-                          {charCount > MAX_DESCRIPTION_LENGTH && (
-                            <span className="ml-2">(已超出描述字数上限)</span>
-                          )}
-                        </span>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="font-semibold text-2xl md:text-3xl my-2">
+            {localRole.name || "未命名角色"}
+          </h1>
+          <p className="text-base-content/60">
+            角色展示 ·
+            未选择规则
+          </p>
+        </div>
+        {isEditing
+          ? (
+              <button
+                type="button"
+                onClick={handleSave}
+                className={`btn btn-primary btn-sm md:btn-md ${isTransitioning ? "scale-95" : ""}`}
+                disabled={isTransitioning}
+              >
+                {isTransitioning
+                  ? (
+                      <span className="loading loading-spinner loading-xs"></span>
+                    )
+                  : (
+                      <span className="flex items-center gap-1">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                          <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                        保存
+                      </span>
+                    )}
+              </button>
+            )
+          : (
+              <button type="button" onClick={onEdit} className="btn btn-accent btn-sm md:btn-md">
+                <span className="flex items-center gap-1">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                    <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                  </svg>
+                  编辑
+                </span>
+              </button>
+            )}
+      </div>
+
+      <div className="divider divider-start font-bold" />
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* 左侧：立绘与简介（固定） */}
+        <div className="lg:col-span-1 self-start lg:sticky lg:top-4">
+          <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
+            <div className="card-body">
+              <div className="flex justify-center">
+                <CharacterAvatar
+                  role={localRole}
+                  roleAvatars={roleAvatars}
+                  selectedAvatarId={selectedAvatarId}
+                  selectedAvatarUrl={selectedAvatarUrl}
+                  selectedSpriteUrl={selectedSpriteUrl}
+                  onchange={handleAvatarChange}
+                  onSpritePreviewChange={url => setSelectedSpriteUrl(url)}
+                  onAvatarSelect={handleAvatarSelect}
+                  onAvatarDelete={handleAvatarDelete}
+                  onAvatarUpload={handleAvatarUpload}
+                />
+              </div>
+              <div className="divider mt-4" />
+              {/* 基础信息与编辑（已移至左侧） */}
+              <div>
+                {isEditing
+                  ? (
+                      <div>
+                        <p className="text-lg">角色名：</p>
+                        <input
+                          type="text"
+                          value={localRole.name}
+                          onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="角色名称"
+                          className="input input-bordered w-full text-lg font-bold mt-2"
+                        />
+                        <p className="text-lg mt-2">描述：</p>
+                        <textarea
+                          value={localRole.description}
+                          onChange={(e) => {
+                            setLocalRole(prev => ({ ...prev, description: e.target.value }));
+                          }}
+                          placeholder="角色描述"
+                          className="textarea textarea-bordered w-full h-24 resize-none mt-2"
+                        />
+                        <div className="text-right mt-1">
+                          <span className={`text-sm font-bold ${
+                            charCount > MAX_DESCRIPTION_LENGTH ? "text-error" : "text-base-content/70"
+                          }`}
+                          >
+                            {charCount}
+                            /
+                            {MAX_DESCRIPTION_LENGTH}
+                            {charCount > MAX_DESCRIPTION_LENGTH && (
+                              <span className="ml-2">(已超出描述字数上限)</span>
+                            )}
+                          </span>
+                        </div>
+                        <p>
+                          角色ID号：
+                          {localRole.id}
+                        </p>
                       </div>
-                      <p>
-                        角色ID号：
-                        {localRole.id}
-                      </p>
-                    </div>
-                  )
-                : (
-                    <>
-                      <h2 className="font-semibold text-2xl md:text-3xl mt-4 text-center md:text-left">
-                        {localRole.name || "未命名角色"}
-                      </h2>
-                      <div className="divider divider-start font-bold mt-0" />
-                      <p className="text-base md:text-lg whitespace-pre-wrap break-words max-w-full overflow-hidden md:min-h-22">
-                        {localRole.description || "暂无描述"}
-                      </p>
-                      <p className="text-xs">
-                        角色ID号：
-                        {localRole.id}
-                        <br />
-                        采用模型：
-                        {localRole.modelName || "暂无描述"}
-                        <br />
-                        语音来源：
-                        {localRole.speakerName || "暂无描述"}
-                      </p>
-                    </>
-                  )}
-              {/* </Section> */}
+                    )
+                  : (
+                      <>
+                        <p className="text-base md:text-lg whitespace-pre-wrap break-words max-w-full overflow-hidden md:min-h-22 text-center">
+                          {localRole.description || "暂无描述"}
+                        </p>
+                        <div className="text-xs text-center">
+                          <p>
+                            角色ID号：
+                            {localRole.id}
+                          </p>
+                          <p>
+                            采用模型：
+                            {localRole.modelName || "暂无描述"}
+                          </p>
+                          <p>
+                            语音来源：
+                            {localRole.speakerName || "暂无描述"}
+                          </p>
+                        </div>
+                      </>
+                    )}
+
+                {/* 顶部已提供编辑/保存按钮 */}
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* 操作按钮 */}
-          <div className="card-actions justify-end">
-            {isEditing
-              ? (
-                  <button
-                    type="submit"
-                    onClick={handleSave}
-                    className={`btn btn-primary ${
-                      isTransitioning ? "scale-95" : ""
-                    }`}
-                    disabled={isTransitioning}
-                  >
-                    {isTransitioning
-                      ? (
-                          <span className="loading loading-spinner loading-xs"></span>
-                        )
-                      : (
-                          <span className="flex items-center gap-1">
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            </svg>
-                            保存
-                          </span>
-                        )}
-                  </button>
-                )
-              : (
-                  <button
-                    type="button"
-                    onClick={onEdit}
-                    className="btn btn-accent"
-                  >
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                        <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                      </svg>
-                      编辑
-                    </span>
-                  </button>
-                )}
+        {/* 右侧：编辑信息、预览、扩展模块 */}
+        <div className="lg:col-span-3 space-y-6">
+
+          {/* 渲染结果预览 */}
+          <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10 p-4">
+
+            <Section title="渲染结果预览">
+              <SpriteRenderStudio
+                characterName={localRole.name || "未命名角色"}
+                roleAvatars={roleAvatars}
+                initialAvatarId={localRole.avatarId}
+                externalCanvasRef={previewCanvasRef}
+                className="w-full p-3 gap-4 flex"
+              />
+            </Section>
+
+          </div>
+
+          {/* 扩展模块（右侧） */}
+          <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
+            <ExpansionModule roleId={localRole.id} />
           </div>
         </div>
-
       </div>
-      <div className="card-sm md:card bg-base-100 shadow-xl">
-        <div className="card-body">
-          <Section title="渲染结果预览">
-            {/* 使用SpriteRenderStudio组件封装预览与控制逻辑 */}
-            <SpriteRenderStudio
-              characterName={localRole.name || "未命名角色"}
-              roleAvatars={roleAvatars}
-              initialAvatarId={localRole.avatarId}
-              externalCanvasRef={previewCanvasRef}
-              className="w-full p-3 gap-4 flex"
-            />
-          </Section>
-        </div>
-
-      </div>
-      <div className="card-sm md:card bg-base-100 shadow-xl">
-        <ExpansionModule
-          roleId={localRole.id}
-        />
-      </div>
-
     </div>
   );
 }

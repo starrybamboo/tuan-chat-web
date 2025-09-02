@@ -362,6 +362,34 @@ export function Sidebar({
               }
             }}
           >
+            {/* 创建角色 - 虚线占位项，始终位于列表顶部 */}
+            <div
+              className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-colors duration-150"
+              onClick={handleCreate}
+              title="创建新角色"
+            >
+              <div className="avatar shrink-0">
+                <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-base-content/40 group-hover:border-base-content/60 bg-base-200/70 text-base-content/40 group-hover:text-base-content/60 transition-colors duration-150 relative">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="12" y1="3" x2="12" y2="21" />
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                  </svg>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <h3 className="font-medium truncate">创建角色</h3>
+                <p className="text-xs text-base-content/70 mt-1 truncate">点击创建一个新角色</p>
+              </div>
+            </div>
             {filteredRoles.map(role => (
               <RoleListItem
                 key={role.id}
