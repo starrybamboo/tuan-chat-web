@@ -20,13 +20,11 @@ export default function ItemEdit({ item }: ItemEditProps) {
   const [name, setName] = useState(item.name);
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [charCount, setCharCount] = useState(entityInfo.description?.length || 0);
-  const MAX_TIP_LENGTH = 300;
   const vditorId = `item-tip-editor-${item.id}`;
+  const VeditorIdForDescription = `item-description-editor-${item.id}`;
 
   useEffect(() => {
     setLocalItem({ ...entityInfo });
-    setCharCount(entityInfo.description?.length || 0);
     setName(item.name);
   }, [item]);
 
@@ -74,7 +72,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
       {/* 物品信息卡片 */}
       <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
         <div className="card-body">
-          <div className="flex items-center gap-8">
+          <div className="flex items-start gap-8">
             {/* 图片 */}
             <CharacterCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleImageChange} fileName={uniqueFileName} scene={4}>
               <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
@@ -108,30 +106,13 @@ export default function ItemEdit({ item }: ItemEditProps) {
                   <label className="label">
                     <span className="label-text font-bold">物品描述（玩家可见）</span>
                   </label>
-                  <textarea
-                    value={localItem.description || ""}
-                    onChange={(e) => {
-                      setLocalItem(prev => ({ ...prev, description: e.target.value }));
-                      setCharCount(e.target.value.length);
+                  <Veditor
+                    id={VeditorIdForDescription}
+                    placeholder={localItem.description || ""}
+                    onchange={(value) => {
+                      setLocalItem(prev => ({ ...prev, description: value }));
                     }}
-                    placeholder="可以直接展示给玩家的描述"
-                    className="textarea textarea-bordered w-full h-24 resize-none"
                   />
-                  <div className="text-right mt-1">
-                    <span
-                      className={`text-sm font-bold ${charCount > MAX_TIP_LENGTH
-                        ? "text-error"
-                        : "text-base-content/70"
-                      }`}
-                    >
-                      {charCount}
-                      /
-                      {MAX_TIP_LENGTH}
-                      {charCount > MAX_TIP_LENGTH && (
-                        <span className="ml-2">(已超出字数上限)</span>
-                      )}
-                    </span>
-                  </div>
                 </div>
                 <div>
                   <label className="label">

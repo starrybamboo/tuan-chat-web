@@ -1,7 +1,5 @@
 import type { Route } from "./+types/home";
-import WorkspaceContext from "@/components/create/context/module";
 import Work from "@/components/module/workPlace/work";
-import { useMemo } from "react";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -14,16 +12,7 @@ export function meta(_args: Route.MetaArgs) {
 }
 
 export default function Create() {
-  // const location = useLocation();
-  const contextValue = useMemo(() => ({
-    // moduleId: location.pathname.split("/").pop()!,
-    moduleId: 23,
-    ruleId: 1,
-  }), []);
-
   return (
-    <WorkspaceContext value={contextValue}>
-      <Work></Work>
-    </WorkspaceContext>
+    <Work></Work>
   );
 }

@@ -2,7 +2,7 @@ import type { StageEntityResponse } from "api";
 import RoleAvatar from "@/components/common/roleAvatar";
 import { useCallback, useEffect, useState } from "react";
 
-function EntityDetailListItem({ entity, isSelected, onChange }: { entity: StageEntityResponse; isSelected?: boolean; onChange?: (name: string) => void }) {
+function EntityDetailListItem({ entity, isSelected, onChange, onDelete }: { entity: StageEntityResponse; isSelected?: boolean; onChange?: (name: string) => void; onDelete?: (entity: StageEntityResponse) => void }) {
   const handleSelectItem = useCallback(() => {
     if (onChange && entity.name) {
       onChange(entity.name);
@@ -10,8 +10,8 @@ function EntityDetailListItem({ entity, isSelected, onChange }: { entity: StageE
   }, [onChange, entity]);
 
   return (
-    <div className="flex flex-col items-center w-20 h-24">
-      <div className="flex items-center justify-center h-16">
+    <div className="flex flex-col items-center w-20 h-24 group">
+      <div className="flex items-center justify-center h-16 relative">
         <div
           className={`w-16 h-16 rounded-full cursor-pointer transition-all duration-200 ease-in-out hover:scale-110 ${isSelected
             ? "border-4 border-accent shadow-lg"
@@ -19,8 +19,25 @@ function EntityDetailListItem({ entity, isSelected, onChange }: { entity: StageE
           }`}
           onClick={handleSelectItem}
         >
-          <RoleAvatar avatarId={entity.entityInfo?.avatarId} width={16} isRounded={true} stopPopWindow={true}></RoleAvatar>
+          <RoleAvatar avatarId={entity.entityInfo?.avatarId || (entity.entityInfo?.avatarIds && entity.entityInfo.avatarIds.length > 0 ? entity.entityInfo.avatarIds[0] : 0)} width={16} isRounded={true} stopPopWindow={true}></RoleAvatar>
         </div>
+        {onDelete && (
+          <button
+            type="button"
+            className="absolute -top-2 -right-2 w-5 h-5 bg-gray-700 cursor-pointer text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800 z-2"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(entity);
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+              <path
+                fill="currentColor"
+                d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+              />
+            </svg>
+          </button>
+        )}
       </div>
       <div className="text-xs mt-1 w-full truncate text-center" title={entity.name}>{entity.name}</div>
     </div>
@@ -169,8 +186,9 @@ function EntityDetail({ name, entityList }: { name: string; entityList: StageEnt
 
 interface EntityDetailListProps {
   moduleData: StageEntityResponse[];
+  onDelete?: (entity: StageEntityResponse) => void;
 }
-export default function EntityDetailList({ moduleData }: EntityDetailListProps) {
+export default function EntityDetailList({ moduleData, onDelete }: EntityDetailListProps) {
   const [selectedName, setSelectedName] = useState<string | null>(null);
 
   const entityList = moduleData;
@@ -200,6 +218,7 @@ export default function EntityDetailList({ moduleData }: EntityDetailListProps) 
                   entity={entity}
                   isSelected={selectedName === name}
                   onChange={setName}
+                  onDelete={onDelete}
                 />
               );
             })

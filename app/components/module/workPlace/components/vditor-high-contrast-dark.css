@@ -1,0 +1,235 @@
+/*!
+ * Vditor - A markdown editor written in TypeScript.
+ * 高对比度暗色主题版本
+ */
+
+html[data-theme='dark'] .vditor-reset,
+html[data-theme='forest'] .vditor-reset {
+    color: #f0f6fc; /* 更亮的文本颜色提高对比度 */
+    background-color: #0d1117; /* 更深背景增强对比 */
+    line-height: 1.6;
+}
+
+html[data-theme='dark'] .vditor-reset a, html[data-theme='dark'] .vditor-ir__link,
+html[data-theme='forest'] .vditor-reset a, html[data-theme='forest'] .vditor-ir__link {
+    color: #58a6ff; /* 更亮的蓝色提高链接可见性 */
+    text-decoration: underline;
+    font-weight: 500;
+}
+
+html[data-theme='dark'] .vditor-reset a:hover, html[data-theme='dark'] .vditor-ir__link:hover,
+html[data-theme='forest'] .vditor-reset a:hover, html[data-theme='forest'] .vditor-ir__link:hover {
+    color: #79c0ff; /* 悬停时更亮的蓝色 */
+    text-decoration: underline;
+}
+
+html[data-theme='dark'] .vditor-reset h1, html[data-theme='dark'] .vditor-reset h2,
+html[data-theme='forest'] .vditor-reset h1, html[data-theme='forest'] .vditor-reset h2 {
+    padding-bottom: 0.3em;
+    border-bottom: 2px solid #30363d; /* 更粗更深的边框 */
+    color: #f0f6fc; /* 更亮的标题颜色 */
+}
+
+html[data-theme='dark'] .vditor-reset h3, html[data-theme='dark'] .vditor-reset h4, html[data-theme='dark'] .vditor-reset h5, html[data-theme='dark'] .vditor-reset h6,
+html[data-theme='forest'] .vditor-reset h3, html[data-theme='forest'] .vditor-reset h4, html[data-theme='forest'] .vditor-reset h5, html[data-theme='forest'] .vditor-reset h6 {
+    color: #e2e8f0; /* 更亮的副标题颜色 */
+}
+
+html[data-theme='dark'] .vditor-reset hr,
+html[data-theme='forest'] .vditor-reset hr {
+    background-color: #30363d; /* 更深的水平线 */
+    height: 2px; /* 更粗的水平线 */
+}
+
+html[data-theme='dark'] .vditor-reset blockquote,
+html[data-theme='forest'] .vditor-reset blockquote {
+    padding: 0.8em 1.2em; /* 更大的内边距 */
+    color: #c9d1d9; /* 更亮的引用文本颜色 */
+    border-left: 4px solid #58a6ff; /* 更粗且使用链接颜色的边框 */
+    background-color: #161b22; /* 引用背景色 */
+    border-radius: 0 4px 4px 0; /* 圆角效果 */
+    margin: 1.2em 0;
+}
+
+html[data-theme='dark'] .vditor-reset iframe,
+html[data-theme='forest'] .vditor-reset iframe {
+    border: 2px solid #30363d; /* 更粗的边框 */
+}
+
+html[data-theme='dark'] .vditor-reset table tr,
+html[data-theme='forest'] .vditor-reset table tr {
+    background-color: #161b22; /* 更深的表格行背景 */
+}
+
+html[data-theme='dark'] .vditor-reset table td, html[data-theme='dark'] .vditor-reset table th,
+html[data-theme='forest'] .vditor-reset table td, html[data-theme='forest'] .vditor-reset table th {
+    border: 2px solid #30363d; /* 更粗的表格边框 */
+    padding: 0.6em 0.8em; /* 更大的单元格内边距 */
+}
+
+html[data-theme='dark'] .vditor-reset table th,
+html[data-theme='forest'] .vditor-reset table th {
+    background-color: #1c2128; /* 表头更深的背景 */
+    color: #f0f6fc; /* 表头文本更亮 */
+    font-weight: 600;
+}
+
+html[data-theme='dark'] .vditor-reset table tbody tr:nth-child(2n),
+html[data-theme='forest'] .vditor-reset table tbody tr:nth-child(2n) {
+    background-color: #1c2128; /* 交替行更深的背景 */
+}
+
+html[data-theme='dark'] .vditor-reset code:not(.hljs):not(.highlight-chroma),
+html[data-theme='forest'] .vditor-reset code:not(.hljs):not(.highlight-chroma) {
+    background-color: rgba(88, 166, 255, 0.2); /* 更明显的代码背景 */
+    color: #79c0ff; /* 更亮的代码文本 */
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-weight: 500;
+}
+
+html[data-theme='dark'] .vditor-reset pre,
+html[data-theme='forest'] .vditor-reset pre {
+    background-color: #161b22 !important;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    padding: 1em;
+}
+
+html[data-theme='dark'] .vditor-reset .language-abc svg,
+html[data-theme='dark'] .vditor-reset .language-abc path,
+html[data-theme='forest'] .vditor-reset .language-abc svg,
+html[data-theme='forest'] .vditor-reset .language-abc path {
+    fill: currentColor;
+    color: #c9d1d9; /* 更亮的ABC记谱法颜色 */
+}
+
+html[data-theme='dark'] .language-graphviz polygon,
+html[data-theme='forest'] .language-graphviz polygon {
+    fill: rgba(88, 166, 255, 0.25); /* 更明显的填充色 */
+}
+
+html[data-theme='dark'] .vditor-reset kbd,
+html[data-theme='forest'] .vditor-reset kbd {
+    color: #f0f6fc; /* 更亮的键盘文本 */
+    background-color: #1c2128; /* 更深的键盘背景 */
+    border: 2px solid #30363d; /* 更粗的边框 */
+    box-shadow: 0 2px 0 #30363d; /* 更明显的阴影效果 */
+    padding: 0.2em 0.5em;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+html[data-theme='dark'] .vditor-copy svg,
+html[data-theme='forest'] .vditor-copy svg {
+    color: #8b949e; /* 更亮的复制图标 */
+}
+
+html[data-theme='dark'] .vditor-copy:hover svg,
+html[data-theme='forest'] .vditor-copy:hover svg {
+    color: #58a6ff; /* 悬停时使用链接颜色 */
+}
+
+html[data-theme='dark'] .vditor-speech,
+html[data-theme='forest'] .vditor-speech {
+    background-color: #161b22; /* 更深的语音背景 */
+    border: 2px solid #30363d; /* 更粗的边框 */
+    color: #c9d1d9; /* 更亮的文本 */
+    border-radius: 4px;
+}
+
+html[data-theme='dark'] .vditor-speech--current, html[data-theme='dark'] .vditor-speech:hover,
+html[data-theme='forest'] .vditor-speech--current, html[data-theme='forest'] .vditor-speech:hover {
+    color: #f0f6fc; /* 当前/悬停时更亮的文本 */
+    background-color: #1c2128; /* 当前/悬停时更深的背景 */
+}
+
+html[data-theme='dark'] .vditor-linkcard a,
+html[data-theme='forest'] .vditor-linkcard a {
+    background-color: #161b22; /* 更深的链接卡片背景 */
+    border: 1px solid #30363d;
+    border-radius: 4px;
+}
+
+html[data-theme='dark'] .vditor-linkcard a:visited .vditor-linkcard__abstract,
+html[data-theme='forest'] .vditor-linkcard a:visited .vditor-linkcard__abstract {
+    color: #8b949e; /* 访问过的链接摘要更暗 */
+}
+
+html[data-theme='dark'] .vditor-linkcard__title,
+html[data-theme='forest'] .vditor-linkcard__title {
+    color: #f0f6fc; /* 更亮的链接标题 */
+    font-weight: 600;
+}
+
+html[data-theme='dark'] .vditor-linkcard__abstract,
+html[data-theme='forest'] .vditor-linkcard__abstract {
+    color: #c9d1d9; /* 更亮的链接摘要 */
+}
+
+html[data-theme='dark'] .vditor-linkcard__site,
+html[data-theme='forest'] .vditor-linkcard__site {
+    color: #58a6ff; /* 使用链接颜色的站点信息 */
+    font-weight: 500;
+}
+
+html[data-theme='dark'] .vditor-linkcard__image,
+html[data-theme='forest'] .vditor-linkcard__image {
+    background-color: rgba(139, 148, 158, 0.2); /* 更明显的图像背景 */
+    border-radius: 0 4px 4px 0;
+}
+
+/* 新增样式以提高编辑器整体可读性 */
+html[data-theme='dark'] .vditor-reset p,
+html[data-theme='forest'] .vditor-reset p {
+    margin-bottom: 1em;
+}
+
+html[data-theme='dark'] .vditor-reset ul, html[data-theme='dark'] .vditor-reset ol,
+html[data-theme='forest'] .vditor-reset ul, html[data-theme='forest'] .vditor-reset ol {
+    padding-left: 1.5em;
+    margin-bottom: 1em;
+}
+
+html[data-theme='dark'] .vditor-reset li,
+html[data-theme='forest'] .vditor-reset li {
+    margin-bottom: 0.4em;
+}
+
+html[data-theme='dark'] .vditor-reset img,
+html[data-theme='forest'] .vditor-reset img {
+    border: 1px solid #30363d;
+    border-radius: 4px;
+}
+
+/* 增强选中文本的对比度 */
+html[data-theme='dark'] .vditor-reset ::selection,
+html[data-theme='forest'] .vditor-reset ::selection {
+    background-color: rgba(88, 166, 255, 0.3); /* 更明显的选中背景 */
+    color: #f0f6fc;
+}
+
+/* 增强工具栏对比度 */
+html[data-theme='dark'] .vditor-toolbar,
+html[data-theme='forest'] .vditor-toolbar {
+    background-color: #161b22 !important;
+    border-bottom: 2px solid #30363d !important;
+}
+
+html[data-theme='dark'] .vditor-toolbar__item button,
+html[data-theme='forest'] .vditor-toolbar__item button {
+    color: #c9d1d9 !important;
+}
+
+html[data-theme='dark'] .vditor-toolbar__item button:hover,
+html[data-theme='forest'] .vditor-toolbar__item button:hover {
+    background-color: #1c2128 !important;
+    color: #f0f6fc !important;
+}
+
+/* 增强输入区域对比度 */
+html[data-theme='dark'] .vditor-content,
+html[data-theme='forest'] .vditor-content {
+    background-color: #0d1117 !important;
+    border: 1px solid #30363d !important;
+}

@@ -21,12 +21,9 @@ export default function LocationEdit({ location }: LocationEditProps) {
   const [name, setName] = useState(location.name);
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [charCount, setCharCount] = useState(entityInfo.sceneDescription?.length || 0);
-  const MAX_DESCRIPTION_LENGTH = 300;
 
   useEffect(() => {
     setLocalLocation({ ...entityInfo });
-    setCharCount(entityInfo.sceneDescription?.length || 0);
     setName(location.name);
   }, [location]);
 
@@ -71,13 +68,14 @@ export default function LocationEdit({ location }: LocationEditProps) {
     });
   };
   const vditorId = `location-tip-editor-${location.id}`;
+  const VeditorIdForDescription = `location-description-editor-${location.id}`;
 
   return (
     <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
       {/* 场景信息卡片 */}
       <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
         <div className="card-body">
-          <div className="flex items-center gap-8">
+          <div className="flex items-start gap-8">
             {/* 头像 */}
             <CharacterCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleAvatarChange} fileName={uniqueFileName} scene={4}>
               <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
@@ -104,30 +102,13 @@ export default function LocationEdit({ location }: LocationEditProps) {
                   className="input input-bordered w-full text-lg font-bold"
                 />
                 <p>场景描述：</p>
-                <textarea
-                  value={localLocation.description || ""}
-                  onChange={(e) => {
-                    setLocalLocation(prev => ({ ...prev, description: e.target.value }));
-                    setCharCount(e.target.value.length);
+                <Veditor
+                  id={VeditorIdForDescription}
+                  placeholder={localLocation.description || ""}
+                  onchange={(value) => {
+                    setLocalLocation(prev => ({ ...prev, description: value }));
                   }}
-                  placeholder="场景描述"
-                  className="textarea textarea-bordered w-full h-24 resize-none"
                 />
-                <div className="text-right mt-1">
-                  <span
-                    className={`text-sm font-bold ${charCount > MAX_DESCRIPTION_LENGTH
-                      ? "text-error"
-                      : "text-base-content/70"
-                    }`}
-                  >
-                    {charCount}
-                    /
-                    {MAX_DESCRIPTION_LENGTH}
-                    {charCount > MAX_DESCRIPTION_LENGTH && (
-                      <span className="ml-2">(已超出描述字数上限)</span>
-                    )}
-                  </span>
-                </div>
                 <p>地区支线：</p>
                 <Veditor
                   id={vditorId}

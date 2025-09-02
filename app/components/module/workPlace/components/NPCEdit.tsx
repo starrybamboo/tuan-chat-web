@@ -404,7 +404,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
         <div className="card-body">
           <div className="flex items-center gap-8">
             {/* 头像 */}
-            <div onClick={() => setChangeAvatarConfirmOpen(true)}><RoleAvatar avatarId={localRole.avatarId || localRole.avatarIds[0]} width={36} isRounded={false} stopPopWindow={true} /></div>
+            <div onClick={() => setChangeAvatarConfirmOpen(true)}><RoleAvatar avatarId={localRole.avatarId || (localRole.avatarIds && localRole.avatarIds.length > 0 ? localRole.avatarIds[0] : 0)} width={36} isRounded={false} stopPopWindow={true} /></div>
             {/* 右侧内容 */}
             <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               {isEditing
