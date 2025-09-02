@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import CharacterDetail from "./CharacterDetail";
 import AICreateRole from "./RoleCreation/AICreateRole";
 import CreateEntry from "./RoleCreation/CreateEntry";
+import CreateRoleBySelf from "./RoleCreation/CreateRoleBySelf";
 import ExcelImportRole from "./RoleCreation/ExcelImportRole";
 import { Sidebar } from "./Sidebar";
 
@@ -12,7 +13,7 @@ export default function CharacterMain() {
   // 状态管理
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [mode, setMode] = useState<"self" | "AI" | "excel">("self");
+  const [mode, setMode] = useState<"self" | "AI" | "excel" | "role">("role");
   const currentRole = roles.find(r => r.id === selectedRoleId);
 
   const handleSave = (updatedRole: Role) => {
@@ -46,7 +47,7 @@ export default function CharacterMain() {
   // 切换角色时，将模式设置回self
   useEffect(() => {
     if (selectedRoleId !== null) {
-      setMode("self");
+      setMode("role");
     }
   }, [selectedRoleId]);
 
@@ -94,8 +95,8 @@ export default function CharacterMain() {
       <div className="drawer-content bg-base-200">
         {/* 添加条件渲染，在小屏幕且抽屉打开时隐藏内容 */}
         <div className="md:p-6 max-w-7xl mx-auto">
-          {mode === "self" && !currentRole && <CreateEntry AICreate={AICreate} ExcelImport={ExcelImport} createBySelf={createBySelf} />}
-          {mode === "self" && currentRole && (
+          {mode === "role" && !currentRole && <CreateEntry AICreate={AICreate} ExcelImport={ExcelImport} createBySelf={createBySelf} />}
+          {mode === "role" && currentRole && (
             <CharacterDetail
               role={currentRole}
               isEditing={isEditing}
@@ -103,6 +104,7 @@ export default function CharacterMain() {
               onSave={handleSave}
             />
           )}
+          {mode === "self" && <CreateRoleBySelf />}
           {mode === "AI" && <AICreateRole />}
           {mode === "excel" && <ExcelImportRole />}
         </div>
