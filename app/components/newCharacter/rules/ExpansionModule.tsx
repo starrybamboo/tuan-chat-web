@@ -164,7 +164,7 @@ export default function ExpansionModule({
                 }}
                 onChange={handleActTemplateChange}
                 abilityData={localRuleData.actTemplate ?? {}}
-                abilityId={abilityQuery.data?.abilityId ? (localRuleData.ruleId || 0) : 0}
+                abilityId={abilityQuery.data?.abilityId || 0}
               />
             </Section>
 
@@ -174,7 +174,7 @@ export default function ExpansionModule({
                   ...(localRuleData.abilityDefault ?? ruleDetailQuery.data?.abilityDefault ?? {}),
                 }}
                 onChange={handleAbilityDefaultChange}
-                abilityId={abilityQuery.data?.abilityId ? (localRuleData.ruleId || 0) : 0}
+                abilityId={abilityQuery.data?.abilityId || 0}
               />
               <ImportWithStCmd
                 ruleId={selectedRuleId}
