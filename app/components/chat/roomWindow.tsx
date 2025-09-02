@@ -1018,7 +1018,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                                   stopPopWindow={true}
                                   alt={curRoleId > 0 ? "无可用头像" : "无可用角色"}
                                 />
-                                <div className="text-sm truncate w-full">
+                                <div className="text-sm truncate w-full text-center">
                                   {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
                                 </div>
                               </div>
@@ -1037,8 +1037,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                           roomContext.curMember?.memberType ?? 3) < 3 && (
                           <li className="flex flex-row list-none group" onClick={() => setIsRoleAddWindowOpen(true)}>
                             <div className="w-full">
-                              <AddRingLight className="size-10 group-hover:text-info"></AddRingLight>
-                              <div>
+                              <AddRingLight className="size-10 md:size-14 group-hover:text-info"></AddRingLight>
+                              <div className="text-sm truncate w-full text-center">
                                 添加角色
                               </div>
                             </div>
