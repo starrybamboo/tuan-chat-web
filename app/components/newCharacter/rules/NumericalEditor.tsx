@@ -188,10 +188,8 @@ export default function NumericalEditor({
     setLocalConstraints(updatedConstraints);
   };
   return (
-    <div className={`space-y-6 bg-base-200 rounded-lg p-4 duration-300 transition-opacity ${
-      isTransitioning ? "opacity-50" : ""
-    } ${
-      isEditing ? "ring-2 ring-primary" : ""
+    <div className={`space-y-6 bg-base-200 rounded-lg p-4 duration-300 transition-opacity ${isTransitioning ? "opacity-50" : ""
+    } ${isEditing ? "ring-2 ring-primary" : ""
     }`}
     >
       <div className="flex justify-between items-center mb-4">
@@ -199,10 +197,8 @@ export default function NumericalEditor({
         <button
           type="button"
           onClick={isEditing ? handleExitEditing : () => setIsEditing(true)}
-          className={`btn btn-sm ${
-            isEditing ? "btn-primary" : "btn-accent"
-          } ${
-            isTransitioning ? "scale-95" : ""
+          className={`btn btn-sm ${isEditing ? "btn-primary" : "btn-accent"
+          } ${isTransitioning ? "scale-95" : ""
           }`}
           disabled={isTransitioning}
         >
@@ -252,8 +248,7 @@ export default function NumericalEditor({
         return (
           <div
             key={totalKey}
-            className={`bg-base-200 p-1 md:p-4 rounded-lg ${
-              isEditing ? "bg-base-100" : ""
+            className={`bg-base-200 p-1 md:p-4 rounded-lg ${isEditing ? "bg-base-100" : ""
             }`}
           >
             <div className="flex items-center mb-4">
@@ -261,8 +256,7 @@ export default function NumericalEditor({
                 {totalKey === "0" ? "动态约束组" : `总点数: ${totalPoints}`}
               </h3>
               <span
-                className={`font-semibold ${
-                  remainPoints < 0 ? "text-error font-bold pl-8" : "text-success pl-8"
+                className={`font-semibold ${remainPoints < 0 ? "text-error font-bold pl-8" : "text-success pl-8"
                 }`}
               >
                 {totalKey !== "0"
@@ -273,8 +267,8 @@ export default function NumericalEditor({
               </span>
             </div>
 
-            {/* 网格布局 */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-6">
+            {/* 根据类型选择不同布局 */}
+            <div className={totalKey === "0" ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-6" : "flex flex-wrap gap-2 md:gap-6"}>
               {entries.map(([key]) => {
                 const calculatedValue = calculatedConstraints[totalKey][key];
                 if (totalKey === "0") {
@@ -298,7 +292,7 @@ export default function NumericalEditor({
                 }
                 else {
                   return (
-                    <div key={key} className="flex flex-col gap-1 mb-2">
+                    <div key={key} className="flex flex-col gap-1 flex-shrink-0">
                       {isEditing
                         ? (
                             <div className="flex items-center gap-1 group">
@@ -334,26 +328,32 @@ export default function NumericalEditor({
                             </div>
                           )
                         : (
-                            <div className="card bg-base-100 shadow-sm p-2 h-full">
-                              <div className="flex items-center gap-0 md:gap-2">
-                                <div className="p-1 text-xs md:text-base md:p-2">
-                                  {key}
-                                </div>
-                                <div className="divider divider-horizontal ml-0 mr-0 md:mr-2" />
-                                <div className="text-base-content text-xs md:text-base p-1 md:p-0">
-                                  <span>
-                                    {typeof calculatedValue === "object" && "displayValue" in calculatedValue
-                                      ? calculatedValue.displayValue.toString()
-                                      : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
-                                  </span>
-                                </div>
-                              </div>
-                              {typeof calculatedValue === "object" && "formula" in calculatedValue && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {calculatedValue.formula}
-                                </div>
-                              )}
-                            </div>
+                            <>
+                              {(() => {
+                                const hasFormula = typeof calculatedValue === "object" && "formula" in calculatedValue;
+                                const displayText = hasFormula
+                                  ? (calculatedValue as any).displayValue?.toString()
+                                  : (typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString());
+                                return (
+                                  <>
+                                    <div
+                                      className={`flex items-center gap-2 p-2 md:p-3 rounded-lg border bg-base-100/50 whitespace-nowrap ${hasFormula ? "border-primary/30" : "border-base-content/10"
+                                      }`}
+                                    >
+                                      <span className="font-medium text-sm md:text-base flex-shrink-0 mr-8">{key}</span>
+                                      <span className={`badge text-sm md:text-base flex-shrink-0 ${hasFormula ? "badge-primary" : "badge-ghost"}`}>
+                                        {displayText}
+                                      </span>
+                                    </div>
+                                    {hasFormula && (
+                                      <div className="text-xs text-base-content/60 mt-1">
+                                        {(calculatedValue as any).formula}
+                                      </div>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </>
                           )}
                     </div>
                   );

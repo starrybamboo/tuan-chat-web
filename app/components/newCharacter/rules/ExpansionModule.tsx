@@ -168,7 +168,7 @@ export default function ExpansionModule({
               />
             </Section>
 
-            <Section title="数值约束配置" className="mb-12">
+            <Section title="数值约束配置">
               <NumericalEditor
                 constraints={{
                   ...(localRuleData.abilityDefault ?? ruleDetailQuery.data?.abilityDefault ?? {}),

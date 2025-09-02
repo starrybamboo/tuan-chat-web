@@ -277,7 +277,7 @@ export default function CharacterDetail({
                         <p className="text-base md:text-lg whitespace-pre-wrap break-words max-w-full overflow-hidden md:min-h-22 text-center">
                           {localRole.description || "暂无描述"}
                         </p>
-                        <div className="text-xs text-center">
+                        <div className="text-xs text-center mt-8">
                           <p>
                             角色ID号：
                             {localRole.id}
