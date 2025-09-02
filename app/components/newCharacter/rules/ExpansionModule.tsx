@@ -7,7 +7,6 @@ import ImportWithStCmd from "./ImportWithStCmd";
 import NumericalEditor from "./NumericalEditor";
 import { deepOverrideTargetWithSource, flattenConstraints, wrapIntoNested } from "./ObjectExpansion";
 import PerformanceEditor from "./PerformanceEditor";
-import RulesSection from "./RulesSection";
 
 interface ExpansionModuleProps {
   isEditing?: boolean;
@@ -29,7 +28,7 @@ export default function ExpansionModule({
   ruleId,
 }: ExpansionModuleProps) {
   // 状态
-  const [selectedRuleId, setSelectedRuleId] = useState<number>(ruleId ?? 1);
+  const selectedRuleId = ruleId ?? 1;
   const [localRuleData, setLocalRuleData] = useState<Rule | null>(null);
 
   // API Hooks
@@ -104,17 +103,6 @@ export default function ExpansionModule({
     }
   }, [currentRuleData, abilityQuery.data?.abilityDefault, ruleDetailQuery.data, abilityQuery.isLoading, ruleDetailQuery.isLoading]);
 
-  // 添加loading状态控制
-  const [isLoading, setIsLoading] = useState(false);
-
-  // ruleId 选择变化
-  const handleRuleChange = (newRuleId: number) => {
-    // 设置loading状态
-    setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 300);
-    setSelectedRuleId(newRuleId);
-  };
-
   // 更新表演字段
   const handleActTemplateChange = (actTemplate: any) => {
     if (!localRuleData)
@@ -135,55 +123,36 @@ export default function ExpansionModule({
 
   return (
     <div className="space-y-6">
-      {/* 规则选择区域 */}
-      {
-        ruleId
-          ? null
-          : (
-              <Section title="规则选择" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                <RulesSection
-                  currentRuleId={selectedRuleId}
-                  onRuleChange={handleRuleChange}
-                />
-              </Section>
-            )
-      }
       {/* 规则详情区域 */}
-      {isLoading
-        ? (
-            <div className="flex justify-center items-center min-h-[200px]">
-              <span className="loading loading-spinner loading-lg"></span>
-            </div>
-          )
-        : localRuleData && (
-          <>
-            <Section title="表演字段配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-              <PerformanceEditor
-                fields={{
-                  ...(localRuleData.actTemplate ?? ruleDetailQuery.data?.actTemplate ?? {}),
-                }}
-                onChange={handleActTemplateChange}
-                abilityData={localRuleData.actTemplate ?? {}}
-                abilityId={abilityQuery.data?.abilityId || 0}
-              />
-            </Section>
+      {localRuleData && (
+        <>
+          <Section title="表演字段配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+            <PerformanceEditor
+              fields={{
+                ...(localRuleData.actTemplate ?? ruleDetailQuery.data?.actTemplate ?? {}),
+              }}
+              onChange={handleActTemplateChange}
+              abilityData={localRuleData.actTemplate ?? {}}
+              abilityId={abilityQuery.data?.abilityId || 0}
+            />
+          </Section>
 
-            <Section title="数值约束配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-              <NumericalEditor
-                constraints={{
-                  ...(localRuleData.abilityDefault ?? ruleDetailQuery.data?.abilityDefault ?? {}),
-                }}
-                onChange={handleAbilityDefaultChange}
-                abilityId={abilityQuery.data?.abilityId || 0}
-              />
-              <ImportWithStCmd
-                ruleId={selectedRuleId}
-                roleId={roleId}
-                onImportSuccess={() => { }}
-              />
-            </Section>
-          </>
-        )}
+          <Section title="数值约束配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+            <NumericalEditor
+              constraints={{
+                ...(localRuleData.abilityDefault ?? ruleDetailQuery.data?.abilityDefault ?? {}),
+              }}
+              onChange={handleAbilityDefaultChange}
+              abilityId={abilityQuery.data?.abilityId || 0}
+            />
+            <ImportWithStCmd
+              ruleId={selectedRuleId}
+              roleId={roleId}
+              onImportSuccess={() => { }}
+            />
+          </Section>
+        </>
+      )}
     </div>
   );
 }

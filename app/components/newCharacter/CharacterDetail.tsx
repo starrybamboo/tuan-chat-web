@@ -1,10 +1,12 @@
 // import type { Transform } from "./sprite/TransformControl";
 import type { RoleAvatar } from "api";
 import type { Role } from "./types";
+import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 import CharacterAvatar from "./CharacterAvatar";
 import ExpansionModule from "./rules/ExpansionModule";
+import RulesSection from "./rules/RulesSection";
 import Section from "./Section";
 import { SpriteRenderStudio } from "./sprite/SpriteRenderStudio";
 // import Section from "./Section";
@@ -47,6 +49,21 @@ export default function CharacterDetail({
   // 立绘预览相关状态
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   // 已由SpriteRenderStudio内部管理transform相关状态
+
+  // 规则选择状态
+  const [selectedRuleId, setSelectedRuleId] = useState<number>(1);
+  const [isRuleLoading, setIsRuleLoading] = useState(false);
+
+  // 获取当前规则详情
+  const { data: currentRuleData } = useRuleDetailQuery(selectedRuleId);
+
+  // 处理规则变更
+  const handleRuleChange = (newRuleId: number) => {
+    setIsRuleLoading(true);
+    setSelectedRuleId(newRuleId);
+    // 模拟加载延迟
+    setTimeout(() => setIsRuleLoading(false), 300);
+  };
 
   // 当切换到不同角色时，更新本地状态
   useEffect(() => {
@@ -160,8 +177,7 @@ export default function CharacterDetail({
   };
 
   return (
-    <div className={`transition-opacity duration-300 ease-in-out ${
-      isTransitioning ? "opacity-50" : ""
+    <div className={`transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""
     }`}
     >
 
@@ -172,7 +188,7 @@ export default function CharacterDetail({
           </h1>
           <p className="text-base-content/60">
             角色展示 ·
-            未选择规则
+            {currentRuleData?.ruleName || "未选择规则"}
           </p>
         </div>
         {isEditing
@@ -180,7 +196,7 @@ export default function CharacterDetail({
               <button
                 type="button"
                 onClick={handleSave}
-                className={`btn btn-primary btn-sm md:btn-md ${isTransitioning ? "scale-95" : ""}`}
+                className={`btn btn-primary btn-sm md:btn-lg ${isTransitioning ? "scale-95" : ""}`}
                 disabled={isTransitioning}
               >
                 {isTransitioning
@@ -198,7 +214,7 @@ export default function CharacterDetail({
               </button>
             )
           : (
-              <button type="button" onClick={onEdit} className="btn btn-accent btn-sm md:btn-md">
+              <button type="button" onClick={onEdit} className="btn btn-accent btn-sm md:btn-lg">
                 <span className="flex items-center gap-1">
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                     <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
@@ -212,8 +228,16 @@ export default function CharacterDetail({
 
       <div className="divider divider-start font-bold" />
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* 左侧：立绘与简介（固定） */}
-        <div className="lg:col-span-1 self-start lg:sticky lg:top-4">
+        {/* 左侧：立绘与简介、规则选择（固定） */}
+        <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
+          {/* 规则选择区域（移至左侧） */}
+          <Section title="规则选择" className="rounded-2xl border-2 border-base-content/10 bg-base-100" defaultOpen={false}>
+            <RulesSection
+              currentRuleId={selectedRuleId}
+              onRuleChange={handleRuleChange}
+            />
+          </Section>
+          {/* 立绘与简介卡片 */}
           <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
             <div className="card-body">
               <div className="flex justify-center">
@@ -254,8 +278,7 @@ export default function CharacterDetail({
                           className="textarea textarea-bordered w-full h-24 resize-none mt-2"
                         />
                         <div className="text-right mt-1">
-                          <span className={`text-sm font-bold ${
-                            charCount > MAX_DESCRIPTION_LENGTH ? "text-error" : "text-base-content/70"
+                          <span className={`text-sm font-bold ${charCount > MAX_DESCRIPTION_LENGTH ? "text-error" : "text-base-content/70"
                           }`}
                           >
                             {charCount}
@@ -266,10 +289,6 @@ export default function CharacterDetail({
                             )}
                           </span>
                         </div>
-                        <p>
-                          角色ID号：
-                          {localRole.id}
-                        </p>
                       </div>
                     )
                   : (
@@ -305,8 +324,7 @@ export default function CharacterDetail({
 
           {/* 渲染结果预览 */}
           <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
-
-            <Section title="渲染结果预览">
+            <Section title="渲染结果预览" defaultOpen={false}>
               <SpriteRenderStudio
                 characterName={localRole.name || "未命名角色"}
                 roleAvatars={roleAvatars}
@@ -315,11 +333,18 @@ export default function CharacterDetail({
                 className="w-full p-3 gap-4 flex"
               />
             </Section>
-
           </div>
 
           {/* 扩展模块（右侧） */}
-          <ExpansionModule roleId={localRole.id} />
+          {isRuleLoading
+            ? (
+                <div className="flex justify-center items-center min-h-[200px]">
+                  <span className="loading loading-spinner loading-lg"></span>
+                </div>
+              )
+            : (
+                <ExpansionModule roleId={localRole.id} ruleId={selectedRuleId} />
+              )}
         </div>
       </div>
     </div>
