@@ -1,5 +1,5 @@
 import type { Role } from "./types";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CharacterDetail from "./CharacterDetail";
 import AICreateRole from "./RoleCreation/AICreateRole";
 import CreateEntry from "./RoleCreation/CreateEntry";
@@ -42,6 +42,13 @@ export default function CharacterMain() {
   const createBySelf = () => {
     setMode("self");
   };
+
+  // 切换角色时，将模式设置回self
+  useEffect(() => {
+    if (selectedRoleId !== null) {
+      setMode("self");
+    }
+  }, [selectedRoleId]);
 
   return (
     <div className="drawer lg:drawer-open">
