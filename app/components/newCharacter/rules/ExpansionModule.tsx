@@ -134,13 +134,13 @@ export default function ExpansionModule({
   };
 
   return (
-    <div className="space-y-6 p-4">
+    <div className="space-y-6">
       {/* 规则选择区域 */}
       {
         ruleId
           ? null
           : (
-              <Section title="规则选择">
+              <Section title="规则选择" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
                 <RulesSection
                   currentRuleId={selectedRuleId}
                   onRuleChange={handleRuleChange}
@@ -157,7 +157,7 @@ export default function ExpansionModule({
           )
         : localRuleData && (
           <>
-            <Section title="表演字段配置">
+            <Section title="表演字段配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
               <PerformanceEditor
                 fields={{
                   ...(localRuleData.actTemplate ?? ruleDetailQuery.data?.actTemplate ?? {}),
@@ -168,7 +168,7 @@ export default function ExpansionModule({
               />
             </Section>
 
-            <Section title="数值约束配置">
+            <Section title="数值约束配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
               <NumericalEditor
                 constraints={{
                   ...(localRuleData.abilityDefault ?? ruleDetailQuery.data?.abilityDefault ?? {}),

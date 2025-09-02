@@ -304,7 +304,7 @@ export default function CharacterDetail({
         <div className="lg:col-span-3 space-y-6">
 
           {/* 渲染结果预览 */}
-          <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10 p-4">
+          <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
 
             <Section title="渲染结果预览">
               <SpriteRenderStudio
@@ -319,9 +319,7 @@ export default function CharacterDetail({
           </div>
 
           {/* 扩展模块（右侧） */}
-          <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
-            <ExpansionModule roleId={localRole.id} />
-          </div>
+          <ExpansionModule roleId={localRole.id} />
         </div>
       </div>
     </div>

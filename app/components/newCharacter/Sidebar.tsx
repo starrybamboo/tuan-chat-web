@@ -172,7 +172,7 @@ export function Sidebar({
     if (isSuccess) {
       loadRoles();
     };
-  }, [isSuccess]); // 添加 roles 到依赖项
+  }, [isSuccess, loadRoles]); // 添加 roles 到依赖项
   // 过滤角色列表
   const filteredRoles = roles.filter(role =>
     role.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -326,26 +326,6 @@ export function Sidebar({
                       <polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-square btn-soft"
-                    onClick={handleCreate}
-                    title="创建新角色"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="12" y1="3" x2="12" y2="21" />
-                      <line x1="3" y1="12" x2="21" y2="12" />
-                    </svg>
-                  </button>
                 </>
               )}
         </div>
@@ -364,7 +344,7 @@ export function Sidebar({
           >
             {/* 创建角色 - 虚线占位项，始终位于列表顶部 */}
             <div
-              className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-colors duration-150"
+              className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 hover:scale-105 transition-all duration-150"
               onClick={handleCreate}
               title="创建新角色"
             >
