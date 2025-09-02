@@ -1,4 +1,4 @@
-import { RoomContext } from "@/components/chat/roomContext";
+import { SpaceContext } from "@/components/chat/spaceContext";
 import launchWebGal from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { ChatRenderer } from "@/webGAL/chatRenderer";
@@ -10,6 +10,14 @@ export interface RenderProps {
   spritePosition: "left" | "middle" | "right";
   useVocal: boolean; // 是否使用语音合成功能
   skipRegex?: string; // 跳过语句的正则表达式
+}
+
+/**
+ * 渲染进度
+ */
+export interface RenderProcess {
+  percent?: number;
+  message?: string;
 }
 
 // 预设的正则表达式选项
@@ -27,14 +35,17 @@ const regexOptions = [
 ];
 
 export default function RenderWindow() {
-  const roomContext = use(RoomContext);
-  const roomId = roomContext?.roomId ?? -1;
+  const spaceId = use(SpaceContext).spaceId ?? -1;
   const [renderProps, updateRenderProps] = useImmer<RenderProps>({
     spritePosition: "left",
     useVocal: false,
     skipRegex: "", // 初始化 skipRegex
   });
   const [isRendering, setIsRendering] = useState(false);
+  const [renderProcess, setRenderProcess] = useState<RenderProcess>({
+    percent: 0,
+    message: "",
+  });
 
   // 从localStorage初始化数据
   useEffect(() => {
@@ -51,7 +62,9 @@ export default function RenderWindow() {
     launchWebGal();
     await pollPort(3001).catch(() => toast.error("WebGAL 启动失败"));
     try {
-      const renderer = new ChatRenderer(roomId, renderProps);
+      const renderer = new ChatRenderer(spaceId, renderProps, (process) => {
+        setRenderProcess(process);
+      });
       await renderer.initializeRenderer();
     }
     catch (error) {
@@ -59,7 +72,7 @@ export default function RenderWindow() {
     }
     setIsRendering(false);
 
-    const webgalUrl = `http://localhost:3001/#/game/%20preview_${roomId}`;
+    const webgalUrl = `http://localhost:3001/#/game/%20preview_${spaceId}`;
     window.open(webgalUrl, "");
   }
 
@@ -130,7 +143,7 @@ export default function RenderWindow() {
         className={`btn btn-primary w-full mt-2 ${isRendering ? "btn-disabled" : ""}`}
         type="button"
       >
-        {isRendering ? "渲染中..." : "开始渲染"}
+        {isRendering ? JSON.stringify(renderProcess) : "开始渲染"}
       </button>
     </div>
   );
