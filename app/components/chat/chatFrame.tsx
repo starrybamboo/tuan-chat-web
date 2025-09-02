@@ -96,7 +96,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   }, [chatHistory, receivedMessages, roomId]);
 
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    return (roomContext.chatHistory?.messages ?? []).filter(msg => msg.message.status !== 1);
+    return roomContext.chatHistory?.messages ?? [];
   }, [roomContext.chatHistory?.messages]);
   /**
    * 虚拟列表
@@ -114,16 +114,19 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    * 新消息提醒
    */
   const unreadMessageNumber = webSocketUtils.unreadMessagesNumber[roomId] ?? 0;
-  const updateUnreadMessagesNumber = webSocketUtils.updateUnreadMessagesNumber;
-  // useEffect(() => {
-  //   sendNotificationWithGrant();
-  // }, [historyMessages]);
+  const updateLastReadSyncId = webSocketUtils.updateLastReadSyncId;
+  // 监听新消息，如果在底部，则设置群聊消息为已读；
+  useEffect(() => {
+    if (isAtBottomRef.current) {
+      updateLastReadSyncId(roomId);
+    }
+  }, [historyMessages, roomId, updateLastReadSyncId]);
   /**
    * scroll相关
    */
   const scrollToBottom = () => {
     virtuosoRef?.current?.scrollToIndex(messageIndexToVirtuosoIndex(historyMessages.length - 1));
-    updateUnreadMessagesNumber(roomId, 0);
+    updateLastReadSyncId(roomId);
   };
   useEffect(() => {
     let timer = null;
@@ -152,11 +155,9 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   const [currentVirtuosoIndex, setCurrentVirtuosoIndex] = useState(0);
   const [currentBackgroundUrl, setCurrentBackgroundUrl] = useState<string | null>(null);
 
-  // This effect updates the background URL based on the current scroll position.
   useEffect(() => {
     // Convert the virtuoso index (which is shifted) to the actual array index.
     const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
-
     // Find the last background image that appears at or before the current scroll position.
     let newBgUrl: string | null = null;
     for (const bg of imgNode) {
@@ -172,6 +173,31 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
       setCurrentBackgroundUrl(newBgUrl);
     }
   }, [currentVirtuosoIndex, imgNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
+
+  /**
+   * 为什么要在这里加上一个这么一个莫名其妙的多余变量呢？
+   * 目的是为了让背景图片从url到null的切换时也能触发transition的动画，如果不加，那么，动画部分的css就会变成这样：
+   *         style={{
+   *           backgroundImage: currentBackgroundUrl ? `url('${currentBackgroundUrl}')` : "none",
+   *           opacity: currentBackgroundUrl ? 1 : 0,
+   *         }}    // 错误代码！
+   * 当currentBackgroundUrl从url变为null时，浏览器会因为backgroundImage已经变成了null，导致动画来不及播放，背景直接就消失了
+   * 而加上这么一给state后
+   *         style={{
+   *           backgroundImage: displayedBgUrl ? `url('${displayedBgUrl}')` : "none",
+   *           opacity: currentBackgroundUrl ? 1 : 0,
+   *         }}   // 正确的
+   * 当currentBackgroundUrl 从 url_A 变为 null时
+   * 此时，opacity 因为 currentBackgroundUrl 是 null 而变为 0，淡出动画开始。
+   * 但我们故意不更新 displayedBgUrl！它依然保持着 url_A 的值。
+   * 结果就是：背景图层虽然要变透明了，但它的 backgroundImage 样式里依然是上一张图片。这样，动画就有了可以“操作”的视觉内容，能够平滑地将这张图片淡出，直到完全透明。
+   */
+  const [displayedBgUrl, setDisplayedBgUrl] = useState(currentBackgroundUrl);
+  useEffect(() => {
+    if (currentBackgroundUrl) {
+      setDisplayedBgUrl(currentBackgroundUrl);
+    }
+  }, [currentBackgroundUrl]);
 
   /**
    * 消息选择
@@ -431,6 +457,15 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     const messageElement = target.closest("[data-message-id]");
     setContextMenu({ x: e.clientX, y: e.clientY, messageId: Number(messageElement?.getAttribute("data-message-id")) });
   }
+  // 处理点击外部关闭菜单的逻辑
+  useEffect(() => {
+    if (contextMenu) {
+      window.addEventListener("click", closeContextMenu);
+    }
+    return () => {
+      window.removeEventListener("click", closeContextMenu);
+    };
+  }, [contextMenu]); // 依赖于contextMenu状态
 
   function handleBatchDelete() {
     for (const messageId of selectedMessageIds) {
@@ -479,7 +514,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    */
   const renderMessage = (index: number, chatMessageResponse: ChatMessageResponse) => {
     const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageId);
-    const draggable = spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId;
+    const draggable = (roomContext.curMember?.memberType ?? 3) < 3;
     const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
     return ((
       <div
@@ -521,19 +556,25 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    * 渲染
    */
   return (
-    <div
-      className={`h-full relative
-      bg-cover bg-center bg-no-repeat transition-all duration-500`}
-      style={{
-        backgroundImage: currentBackgroundUrl ? `url('${currentBackgroundUrl}')` : "none",
-      }}
-    >
-      {/* 对背景图片进行调整与模糊 */}
-      {currentBackgroundUrl && <div className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-xs z-0"></div>}
+    <div className="h-full relative">
+      {/* Background Image Layer */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
+        style={{
+          backgroundImage: displayedBgUrl ? `url('${displayedBgUrl}')` : "none",
+          opacity: currentBackgroundUrl ? 1 : 0,
+        }}
+      />
+      {/* Overlay for tint and blur */}
+      <div
+        className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-xs z-0 transition-opacity duration-500"
+        style={{
+          opacity: currentBackgroundUrl ? 1 : 0,
+        }}
+      />
       <div
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
-        onClick={closeContextMenu}
       >
         {selectedMessageIds.size > 0 && (
           <div
@@ -602,7 +643,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
             }}
             itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
             atBottomStateChange={(atBottom) => {
-              atBottom && updateUnreadMessagesNumber(roomId, 0);
+              atBottom && updateLastReadSyncId(roomId);
               isAtBottomRef.current = atBottom;
             }}
             atTopStateChange={(atTop) => {

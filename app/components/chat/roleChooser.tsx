@@ -1,7 +1,9 @@
 import type { UserRole } from "../../../api";
 import { RoomContext } from "@/components/chat/roomContext";
+import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { use } from "react";
+import { AddRingLight } from "@/icons";
+import React, { use } from "react";
 
 /**
  * 角色选择器组件，用于在聊天中选择不同的角色
@@ -19,6 +21,7 @@ export default function RoleChooser({
   className?: string;
 }) {
   const roomContext = use(RoomContext);
+  const [_, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
   return (
     <div className={`${className} max-h-[30vh]`}>
       {
@@ -47,6 +50,18 @@ export default function RoleChooser({
             </div>
           </li>
         ))
+      }
+      {
+        (roomContext.curMember?.memberType ?? 3) < 3 && (
+          <li className="flex flex-row list-none group" onClick={() => setIsRoleAddWindowOpen(true)}>
+            <div className="w-full">
+              <AddRingLight className="size-10 group-hover:text-info"></AddRingLight>
+              <div>
+                添加角色
+              </div>
+            </div>
+          </li>
+        )
       }
     </div>
   );

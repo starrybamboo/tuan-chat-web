@@ -23,8 +23,8 @@ const GlobalContext = createContext<GlobalContextType>({
       console.error("Function not implemented.");
       return false;
     },
-    updateUnreadMessagesNumber(roomId: number, newNumber: number): void {
-      console.error(`Function not implemented.${roomId}${newNumber}`);
+    updateLastReadSyncId(roomId: number, newSyncId?: number): void {
+      console.error(`Function not implemented.${roomId}${newSyncId}`);
     },
     receivedMessages: {},
     receivedDirectMessages: {},

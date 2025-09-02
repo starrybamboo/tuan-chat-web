@@ -1,0 +1,2 @@
+如果想要打包electron, 请先把webgal_terre解压到本文件夹下
+（WebGAL_Terre.exe与本文件同级）

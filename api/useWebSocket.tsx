@@ -8,6 +8,12 @@ import { useImmer } from "use-immer";
 import {useGlobalContext} from "@/components/globalContextProvider";
 import type {ChatStatusEvent, ChatStatusType, DirectMessageEvent, RoomExtraChangeEvent} from "./wsModels";
 import {tuanchat} from "./instance";
+import {
+  useGetUserSessionsQuery,
+  useUpdateReadPosition1Mutation
+} from "./hooks/messageSessionQueryHooks";
+import type {MessageSessionResponse} from "./models/MessageSessionResponse";
+import type {ApiResultListMessageSessionResponse} from "./models/ApiResultListMessageSessionResponse";
 
 /**
  * 成员的输入状态（不包含roomId）
@@ -30,7 +36,7 @@ interface WsMessage<T> {
  * @property receivedMessages 已接收的群聊消息，使用方法：receivedMessages[roomId]
  * @property receivedDirectMessages 已接收的私聊消息，使用方法：receivedDirectMessages[userId]
  * @property unreadMessagesNumber 未读消息数量（群聊部分）
- * @property updateUnreadMessagesNumber 更新未读消息数量 （群聊部分）
+ * @property updateLastReadSyncId 更新未读消息 （群聊部分） 如果lastReadSyncId为undefined，则使用latestSyncId
  * @property chatStatus 成员的输入状态 (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离), 默认为1 (空闲）
  * @property updateChatStatus 成员的输入状态 (0:空闲, 1:正在输入, 2:等待扮演, 3:暂离), 默认为1 (空闲）
  */
@@ -41,7 +47,7 @@ export interface WebsocketUtils {
   receivedMessages: Record<number, ChatMessageResponse[]>;
   receivedDirectMessages: Record<number, DirectMessageEvent[]>;
   unreadMessagesNumber: Record<number, number>; // 存储未读消息数
-  updateUnreadMessagesNumber: (roomId: number, newNumber: number,) => void;
+  updateLastReadSyncId: (roomId: number, lastReadSyncId?: number) => void;
   chatStatus: Record<number, ChatStatus[]>;
   updateChatStatus: (chatStatusEvent:ChatStatusEvent)=> void;
 }
@@ -61,8 +67,72 @@ export function useWebSocket() {
 
   const queryClient = useQueryClient();
 
-  // 新消息数记录，用于显示红点
-  const [unreadMessagesNumber, setUnreadMessagesNumber] = useState<Record<number, number>>({});
+  /**
+   * 群聊的未读消息数
+   */
+  const roomSessions : MessageSessionResponse[] = useGetUserSessionsQuery().data?.data ?? [];
+  const updateReadPosition1Mutation = useUpdateReadPosition1Mutation();
+  const unreadMessagesNumber: Record<number, number> = roomSessions.reduce((acc, session) => {
+    if (session.roomId && session.lastReadSyncId && session.latestSyncId) {
+      acc[session.roomId] = Math.max(0, session.latestSyncId - session.lastReadSyncId);
+    }
+    return acc;
+  }, {} as Record<number, number>)
+  const updateLatestSyncId = (roomId: number, latestSyncId: number) => {
+    queryClient.setQueriesData<ApiResultListMessageSessionResponse>({ queryKey: ["getUserSessions"] }, (oldData) => {
+      if (!oldData?.data) return oldData;
+      return {
+        ...oldData,
+        data: oldData.data.map(session => {
+          if (session.roomId === roomId) {
+            return {
+              ...session,
+              latestSyncId
+            };
+          }
+          return session;
+        })
+      };
+    });
+  };
+  /**
+   * 更新群聊的最后阅读的消息位置
+   * @param roomId
+   * @param lastReadSyncId
+   */
+  const updateLastReadSyncId = (roomId: number,lastReadSyncId?: number) => {
+    // 减少更新次数，防止出现死循环
+    const oldData = queryClient.getQueryData<ApiResultListMessageSessionResponse>(["getUserSessions"])
+    if (!oldData?.data) return
+    const session = oldData.data.find(session => session.roomId === roomId);
+    if (!session) return
+
+    // 如果没有指定lastReadSyncId，则使用latestSyncId更新，也就是读到最后一条消息
+    const targetReadySyncId = lastReadSyncId ?? session.latestSyncId!
+    if (targetReadySyncId === session.lastReadSyncId)
+      return
+
+    queryClient.setQueriesData<ApiResultListMessageSessionResponse>({ queryKey: ["getUserSessions"] }, (oldData) => {
+      if (!oldData?.data) return
+      //未读消息直接异步更改，漏了也没关系。
+      updateReadPosition1Mutation.mutate({
+        roomId,
+        syncId: targetReadySyncId
+      });
+      return {
+        ...oldData,
+        data: oldData.data.map(session => {
+          if (session.roomId === roomId) {
+            return {
+              ...session,
+              lastReadSyncId: targetReadySyncId
+            };
+          }
+          return session;
+        })
+      };
+    });
+  };
   // 输入状态, 按照roomId进行分组
   const [chatStatus, updateChatStatus] = useImmer<Record<number, ChatStatus[]>>({});
 
@@ -207,12 +277,8 @@ export function useWebSocket() {
     }
     if (chatMessageResponse != undefined && chatMessageResponse) {
       const roomId = chatMessageResponse.message.roomId;
-      // TODO: 重构未读消息数
       if (chatMessageResponse.message.status === 0) {
-        setUnreadMessagesNumber(prev => ({
-          ...prev,
-          [roomId]: (prev[roomId] || 0) + 1,
-        }));
+        updateLatestSyncId(roomId, chatMessageResponse.message.syncId)
       }
 
       let messagesToAdd: ChatMessageResponse[] = [];
@@ -233,8 +299,6 @@ export function useWebSocket() {
       if (messagesToAdd.length === 0 || messagesToAdd[messagesToAdd.length-1].message.messageId !== chatMessageResponse.message.messageId){
         messagesToAdd.push(chatMessageResponse);
       }
-
-
       updateReceivedMessages(draft => {
         if (draft[roomId]) {
           draft[roomId].push(...messagesToAdd);
@@ -325,19 +389,6 @@ export function useWebSocket() {
     wsRef?.current?.send(JSON.stringify(request));
   }
 
-  /**
-   * 更新未读消息数量
-   * @param roomId 房间id
-   * @param newNumber 新的未读消息数量
-   */
-  const updateUnreadMessagesNumber
-        = (roomId: number, newNumber: number) => {
-          setUnreadMessagesNumber(prev => ({
-            ...prev,
-            [roomId]: newNumber,
-          }));
-        };
-
   const webSocketUtils: WebsocketUtils = {
     connect,
     send,
@@ -345,7 +396,7 @@ export function useWebSocket() {
     receivedMessages,
     receivedDirectMessages,
     unreadMessagesNumber,
-    updateUnreadMessagesNumber,
+    updateLastReadSyncId,
     chatStatus,
     updateChatStatus: handleChatStatusChange,
   };

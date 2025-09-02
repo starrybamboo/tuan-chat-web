@@ -2,6 +2,7 @@ import type { StageEntityResponse } from "api";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
+import { useState } from "react";
 import Section from "./section";
 
 export function LocationListItem({
@@ -82,6 +83,15 @@ export function LocationList({ stageId }: { stageId: number }) {
 
   const { data } = useQueryEntitiesQuery(stageId);
   const list = data?.data?.filter(i => i!.entityType === 4);
+
+  // 添加搜索状态
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // 根据搜索查询过滤列表
+  const filteredList = list?.filter(i =>
+    i.name?.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
   const sceneList = data?.data?.filter(i => i!.entityType === 3);
 
   const handleAddScene = () => {
@@ -105,42 +115,61 @@ export function LocationList({ stageId }: { stageId: number }) {
   const { mutate: updateScene } = useUpdateEntityMutation(stageId);
 
   // 判断列表是否存在且非空
-  const isEmpty = !list || list.length === 0;
+  const isEmpty = !filteredList || filteredList.length === 0;
 
   return (
     <Section label="地点" onClick={handleAddScene}>
-      {isEmpty
-        ? (
-            <div className="text-sm text-gray-500 px-2 py-4">暂时没有场景哦</div>
-          )
-        : (
-            <>
-              {list?.map((location, index) => (
-                <LocationListItem
+      <>
+        {/* 添加搜索框 */}
+        <div className="px-2 pb-2">
+          <label className="input input-bordered flex items-center gap-2">
+            <svg className="h-4 w-4 opacity-70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              type="text"
+              className="grow"
+              placeholder="搜索地点..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </label>
+        </div>
+
+        {isEmpty
+          ? (
+              <div className="text-sm text-gray-500 px-2 py-4">暂时没有场景哦</div>
+            )
+          : (
+              <>
+                {filteredList?.map((location, index) => (
+                  <LocationListItem
                   // key={scene.entityInfo!.moduleSceneId}
-                  key={index}
-                  location={location}
-                  isSelected={currentSelectedTabId === location.id!.toString()}
-                  onClick={() => handleClick(location)}
-                  onDelete={() => {
-                    removeModuleTabItem(location.id!.toString());
-                    deleteLocation({
-                      id: location.id!,
-                      stageId,
-                    }, {
-                      onSuccess: () => {
-                        const newScenes = sceneList?.map((scene) => {
-                          const newLocations = scene.entityInfo?.locations.filter((location: { name: any }) => location !== location.name);
-                          return { ...scene, entityInfo: { ...scene.entityInfo, locations: newLocations } };
-                        });
-                        newScenes?.forEach(scene => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
-                      },
-                    });
-                  }}
-                />
-              ))}
-            </>
-          )}
+                    key={index}
+                    location={location}
+                    isSelected={currentSelectedTabId === location.id!.toString()}
+                    onClick={() => handleClick(location)}
+                    onDelete={() => {
+                      removeModuleTabItem(location.id!.toString());
+                      deleteLocation({
+                        id: location.id!,
+                        stageId,
+                      }, {
+                        onSuccess: () => {
+                          const newScenes = sceneList?.map((scene) => {
+                            const newLocations = scene.entityInfo?.locations.filter((location: { name: any }) => location !== location.name);
+                            return { ...scene, entityInfo: { ...scene.entityInfo, locations: newLocations } };
+                          });
+                          newScenes?.forEach(scene => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
+                        },
+                      });
+                    }}
+                  />
+                ))}
+              </>
+            )}
+      </>
     </Section>
   );
 }

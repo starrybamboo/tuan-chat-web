@@ -5,7 +5,7 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import { useQueryClient } from "@tanstack/react-query";
 import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
-import { Virtuoso } from "react-virtuoso";
+
 import { PopWindow } from "../common/popWindow";
 import { useGlobalContext } from "../globalContextProvider";
 import { RoleListItem } from "./RoleListItem";
@@ -167,7 +167,7 @@ export function Sidebar({
       updateRole(newRole);
     }
   };
-    // 初始化角色数据
+  // 初始化角色数据
   useEffect(() => {
     if (isSuccess) {
       loadRoles();
@@ -350,14 +350,19 @@ export function Sidebar({
               )}
         </div>
 
-        {/* 角色列表 - 使用 Virtuoso */}
-        <div className="flex-1 ">
-          <Virtuoso
-            style={{ height: "96%" }}
-            data={filteredRoles}
-            endReached={loadMoreRoles}
-            overscan={200}
-            itemContent={(index, role) => (
+        {/* 角色列表 - 使用 InfiniteQuery */}
+        <div className="flex-1 overflow-hidden">
+          <div
+            className="h-full overflow-y-auto"
+            onScroll={(e) => {
+              const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+              // 当滚动到底部附近时加载更多
+              if (scrollHeight - scrollTop <= clientHeight + 100) {
+                loadMoreRoles();
+              }
+            }}
+          >
+            {filteredRoles.map(role => (
               <RoleListItem
                 key={role.id}
                 role={role}
@@ -377,17 +382,13 @@ export function Sidebar({
                 onDelete={() => handleDelete(role.id)}
                 isSelectionMode={isSelectionMode}
               />
+            ))}
+            {isLoadingMore && (
+              <div className="flex justify-center items-center py-4">
+                <span className="loading loading-spinner loading-md"></span>
+              </div>
             )}
-            components={{
-              Footer: () => isLoadingMore
-                ? (
-                    <div className="flex justify-center items-center py-4">
-                      <span className="loading loading-spinner loading-md"></span>
-                    </div>
-                  )
-                : null,
-            }}
-          />
+          </div>
         </div>
       </div>
 

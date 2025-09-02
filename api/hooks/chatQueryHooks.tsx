@@ -26,6 +26,7 @@ import type { SpaceArchiveRequest } from "api/models/SpaceArchiveRequest";
 import type { LeaderTransferRequest } from "api/models/LeaderTransferRequest";
 import type {HistoryMessageRequest} from "../models/HistoryMessageRequest";
 import type {MessageBySyncIdRequest} from "../models/MessageBySyncIdRequest";
+import type { ModuleRoleAddRequest } from "api/models/ModuleRoleAddRequest";
 
 /**
  * 创建空间
@@ -444,6 +445,20 @@ export function useAddRoomRoleMutation() {
 }
 
 /**
+ * 添加模组角色
+ */
+export function useAddModuleRoleMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: ModuleRoleAddRequest) => tuanchat.roomRoleController.addModuleRole(req),
+        mutationKey: ['addModuleRole'],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['roomModuleRole', variables.roomId] });
+        }
+    });
+}
+
+/**
  * 删除群组角色
  */
 export function useDeleteRole1Mutation() {
@@ -498,6 +513,18 @@ export function useGetRoomRoleQuery(roomId: number) {
     return useQuery({
         queryKey: ["roomRole", roomId],
         queryFn: () => tuanchat.roomRoleController.roomRole(roomId),
+        staleTime: 10000,
+    });
+}
+
+/**
+ * 获取群组模组角色列表
+ * @param roomId 群组ID
+ */
+export function useGetRoomModuleRoleQuery(roomId: number) {
+    return useQuery({
+        queryKey: ["roomModuleRole", roomId],
+        queryFn: () => tuanchat.roomRoleController.roomModuleRole(roomId),
         staleTime: 10000,
     });
 }

@@ -51,7 +51,7 @@ export default function Author({ userId }: { userId?: number }) {
             />
           )}
 
-      <div className="flex flex-col justify-between min-w-0 flex-1">
+      <div className="flex flex-col justify-between min-w-0 flex-1 max-w-3xs">
         {userInfoLoading
           ? (
               <>

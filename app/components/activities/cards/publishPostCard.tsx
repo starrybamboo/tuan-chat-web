@@ -1,6 +1,9 @@
 import type { MomentFeedRequest } from "../../../../api";
+import EmojiWindow from "@/components/chat/window/EmojiWindow";
+import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { BarChartOutlineIcon, EmojiIconWhite, Image2Fill } from "@/icons";
-import React, { useEffect, useState } from "react";
+import { UploadUtils } from "@/utils/UploadUtils";
+import React, { useEffect, useRef, useState } from "react";
 import { usePublishMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 
@@ -8,20 +11,44 @@ interface PublishBoxProps {
   loginUserId: number;
 }
 
-export const PublishBox: React.FC<PublishBoxProps> = ({ loginUserId }) => {
+interface LocalImage {
+  id: string;
+  file?: File; // 本地文件（存在则为本地上传）
+  url: string; // 预览地址（blob: 或 已上传后的外链）
+  uploadedUrl?: string; // 上传成功后后端返回的最终 URL（上传后优先使用）
+  uploading: boolean;
+  error?: string | null;
+  isEmoji?: boolean; // 来自 EmojiWindow 的外链表情
+  name?: string;
+  size?: number;
+}
+
+export const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
   const [content, setContent] = useState("");
   const [rows, setRows] = useState(3);
   const [isPublishing, setIsPublishing] = useState(false);
+
+  // 图片状态数组（按插入顺序）
+  const [images, setImages] = useState<LocalImage[]>([]);
+
+  // 控制表情弹窗显示（如果你想改为 Modal，可替换）
+  const [showEmojiWindow, setShowEmojiWindow] = useState(false);
+
+  const uploadUtilsRef = useRef(new UploadUtils());
+  const uploadingPromisesRef = useRef<Record<string, Promise<void>>>({});
+
+  const publishMutation = usePublishMomentFeedMutation();
+
+  // 获取用户信息
   const userQuery = useGetUserInfoQuery(loginUserId);
   const user = userQuery.data?.data;
 
-  // 使用发布动态的 mutation
-  const publishMutation = usePublishMomentFeedMutation();
-
   const maxLength = 500; // 最大字符数限制
   const currentLength = content.length;
+  const maxImages = 9;
+  const maxFileSize = 20 * 1024 * 1024; // 20MB
 
-  // 根据内容动态调整高度
+  // 根据内容动态调整高度（保留原逻辑）
   useEffect(() => {
     const lines = content.split("\n").length;
     const estimatedLines = Math.ceil(content.length / 50); // 大约每行50字符
@@ -33,6 +60,104 @@ export const PublishBox: React.FC<PublishBoxProps> = ({ loginUserId }) => {
   }, [content]);
 
   // 处理发布动态
+  // 组件卸载时释放 blob URL（防内存泄露）
+  useEffect(() => {
+    return () => {
+      images.forEach((i) => {
+        if (i.file && i.url.startsWith("blob:")) {
+          URL.revokeObjectURL(i.url);
+        }
+      });
+    };
+  }, [images]);
+
+  // 本地文件被 ImgUploader 返回时的处理
+  // ImgUploader 会调用 setImg(file)
+  const handleLocalFileSelected = (file: File) => {
+    if (!file)
+      return;
+
+    if (file.size > maxFileSize) {
+      // TODO: 更优 UI 提示
+      // alert(`图片 ${file.name} 超过 20MB，无法添加`);
+      return;
+    }
+    // if (images.length >= maxImages) {
+    //
+    //   return;
+    // }
+
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const blobUrl = URL.createObjectURL(file);
+
+    const newImg: LocalImage = {
+      id,
+      file,
+      url: blobUrl, // 先用本地 blob 预览
+      uploading: true, // 参考 EmojiWindow：选择即上传 -> uploading true
+      error: null,
+      name: file.name,
+      size: file.size,
+    };
+
+    // 先把缩略图放到 UI（紧凑横向条）
+    setImages(prev => [...prev, newImg]);
+
+    // 立刻按 EmojiWindow 的实现调用 UploadUtils.uploadImg 上传
+    // 保存 promise，发布时等待
+    uploadingPromisesRef.current[id] = (async () => {
+      try {
+        const uploadedUrl = await uploadUtilsRef.current.uploadImg(file, 1);
+        // 上传成功后把 uploadedUrl 写回，并把预览切换为服务器 URL（避免 blob 长期占内存）
+        setImages(prev => prev.map(p => (p.id === id ? { ...p, uploading: false, uploadedUrl, url: uploadedUrl } : p)));
+      }
+      catch (err: any) {
+        const msg = err?.message || "上传失败";
+        setImages(prev => prev.map(p => (p.id === id ? { ...p, uploading: false, error: msg } : p)));
+      }
+      finally {
+        delete uploadingPromisesRef.current[id];
+      }
+    })();
+  };
+
+  const handleEmojiChoose = (emoji: any) => {
+    if (!emoji || !emoji.imageUrl)
+      return;
+    // 我还没想好存多少图片
+    // if (images.length >= maxImages) {
+    //   alert(`最多只能上传 ${maxImages} 张图片`);
+    //   return;
+    // }
+    const id = `emoji_${emoji.emojiId ?? Date.now()}`;
+    const newImg: LocalImage = {
+      id,
+      url: emoji.imageUrl,
+      uploadedUrl: emoji.imageUrl, // 已是远端 URL，直接可用
+      uploading: false,
+      isEmoji: true,
+      error: null,
+    };
+    setImages(prev => [...prev, newImg]);
+    // 如果你想在选择表情包后自动关闭弹窗：
+    setShowEmojiWindow(false);
+  };
+
+  const handleDeleteImage = (id: string) => {
+    setImages((prev) => {
+      const toRemove = prev.find(p => p.id === id);
+      if (toRemove?.file && toRemove.url.startsWith("blob:")) {
+        URL.revokeObjectURL(toRemove.url);
+      }
+      // TODO: woc怎么连删除后端图片的功能都没有啊
+      return prev.filter(p => p.id !== id);
+    });
+    // 框架
+    // 如果有正在上传的 promise，移除追踪（无法真正 cancel fetch）
+    // if (uploadingPromisesRef.current[id]) {
+    //   delete uploadingPromisesRef.current[id];
+    // }
+  };
   const handlePublish = async () => {
     if (!content.trim() || currentLength > maxLength || isPublishing) {
       return;
@@ -41,23 +166,45 @@ export const PublishBox: React.FC<PublishBoxProps> = ({ loginUserId }) => {
     setIsPublishing(true);
 
     try {
+      // 等待所有正在上传的 promise（如果有）
+      const pending = Object.values(uploadingPromisesRef.current);
+      if (pending.length > 0) {
+        await Promise.all(pending.map(p => p.catch(() => undefined)));
+      }
+
+      // 若存在上传失败的图片，阻止发布并提示（你可改为跳过或自动重试）
+      const failed = images.find(i => i.error);
+      if (failed) {
+        // alert("有图片上传失败，请删除或重试后再发布");
+        setIsPublishing(false);
+        return;
+      }
+
+      // 最终 imageUrls：优先使用 uploadedUrl（服务器 URL），否则使用 url（emoji 等外链）
+      const imageUrls = images.map(i => i.uploadedUrl ?? i.url).filter(Boolean);
+
+      // 保持你的 API 格式（将 imageUrls 放入请求体）
       const request: MomentFeedRequest = {
         content: content.trim(),
-        // type, images, tags ?
+        imageUrls,
       };
 
       await publishMutation.mutateAsync(request);
 
-      // 发布成功后清空内容
-      setContent("");
-      setRows(3);
+      // 发布成功后释放本地 blob 并清理
+      images.forEach((i) => {
+        if (i.file && i.url.startsWith("blob:"))
+          URL.revokeObjectURL(i.url);
+      });
 
       // TODO: 添加成功提示
-      // console.log("发布成功！");
+      setContent("");
+      setRows(3);
+      setImages([]);
     }
-    catch (error) {
-      console.error("发布动态失败:", error);
-      // TODO: 添加错误提示
+    catch (err) {
+      console.error("发布失败:", err);
+      // TODO: 错误提示 UI
     }
     finally {
       setIsPublishing(false);
@@ -97,7 +244,61 @@ export const PublishBox: React.FC<PublishBoxProps> = ({ loginUserId }) => {
             )}
           </div>
 
-          {/* 错误提示 */}
+          {/* 缩略条：横向滚动、紧凑 */}
+          {images.length > 0 && (
+            <div className="mt-3">
+              <div className="flex gap-2 overflow-x-auto py-1">
+                {images.map((img, idx) => (
+                  <div key={img.id} className="relative flex-shrink-0">
+                    <button
+                      type="button"
+                      className="block w-16 h-16 sm:w-20 sm:h-20 rounded-md overflow-hidden border border-base-300 bg-base-200/30"
+                    >
+                      <img
+                        src={img.url}
+                        alt={img.name ?? `img-${idx}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </button>
+
+                    {/* 上传状态或错误提示 */}
+                    {img.uploading && (
+                      <div className="absolute left-1 bottom-1 bg-base-100/80 rounded px-1 py-0.5 text-xs flex items-center">
+                        <div className="loading loading-spinner loading-xs mr-1" />
+                        <span className="text-xs">上传中</span>
+                      </div>
+                    )}
+                    {img.error && (
+                      <div className="absolute left-1 bottom-1 bg-error/95 text-error-content rounded px-1 py-0.5 text-xs">
+                        失败
+                      </div>
+                    )}
+
+                    {/* 删除按钮（位置固定，不会错位） */}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteImage(img.id)}
+                      className="absolute top-1 right-1 bg-base-100/80 hover:bg-error hover:text-error-content rounded-full w-6 h-6 flex items-center justify-center text-sm"
+                      aria-label="删除图片"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-xs text-base-content/60 mt-2">
+                {images.length}
+                /
+                {maxImages}
+                {" "}
+                张
+              </p>
+            </div>
+          )}
+
+          {/* 发布失败提示 */}
           {publishMutation.isError && (
             <div className="mt-2 text-sm text-error">
               发布失败，请重试
@@ -106,24 +307,27 @@ export const PublishBox: React.FC<PublishBoxProps> = ({ loginUserId }) => {
 
           {/* 下方操作栏 */}
           <div className="flex items-center justify-between mt-3">
-            {/* 左边的功能按钮 */}
-            <div className="flex space-x-3">
+            <div className="flex items-center space-x-3">
               <button
                 className="text-base-content/60 hover:text-primary transition-colors p-1 rounded-full hover:bg-base-200 disabled:opacity-50"
                 type="button"
                 title="添加表情"
                 disabled={isPublishing}
+                onClick={() => setShowEmojiWindow(v => !v)}
               >
                 <EmojiIconWhite />
               </button>
-              <button
-                className="text-base-content/60 hover:text-primary transition-colors p-1 rounded-full hover:bg-base-200 disabled:opacity-50"
-                type="button"
-                title="上传图片"
-                disabled={isPublishing}
-              >
-                <Image2Fill />
-              </button>
+
+              {/* 图片上传：使用你提供的 ImgUploader */}
+              <ImgUploader setImg={handleLocalFileSelected}>
+                <div
+                  className="text-base-content/60 hover:text-primary transition-colors p-1 rounded-full hover:bg-base-200 cursor-pointer"
+                  title="上传图片"
+                >
+                  <Image2Fill />
+                </div>
+              </ImgUploader>
+
               <button
                 className="text-base-content/60 hover:text-primary transition-colors p-1 rounded-full hover:bg-base-200 disabled:opacity-50"
                 type="button"
@@ -168,10 +372,17 @@ export const PublishBox: React.FC<PublishBoxProps> = ({ loginUserId }) => {
               </button>
             </div>
           </div>
+
+          {/* 表情包弹窗 */}
+          {showEmojiWindow && (
+            <div className="mt-2 border border-base-300 rounded-lg bg-base-100 shadow-lg p-2">
+              <EmojiWindow onChoose={handleEmojiChoose} />
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-export default PublishBox;
+export default PublishPostCard;

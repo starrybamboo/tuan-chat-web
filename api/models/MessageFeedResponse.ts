@@ -27,6 +27,10 @@ export type MessageFeedResponse = {
      */
     description?: string;
     /**
+     * feed token
+     */
+    token?: number;
+    /**
      * 创建时间
      */
     createTime?: string;

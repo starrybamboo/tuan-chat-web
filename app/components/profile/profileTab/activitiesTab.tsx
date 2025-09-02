@@ -1,6 +1,9 @@
 import PostsCard from "@/components/activities/cards/postsCard";
 import React, { useEffect, useRef } from "react";
-import { useGetUserMomentFeedInfiniteQuery } from "../../../../api/hooks/activitiesFeedQuerryHooks";
+import {
+  useGetMomentFeedStatsQuery,
+  useGetUserMomentFeedInfiniteQuery,
+} from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 
 interface ActivitiesTabProps {
@@ -10,6 +13,9 @@ interface ActivitiesTabProps {
 export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
   // 获取用户信息
   const { data: userInfoData, isLoading: userInfoLoading } = useGetUserInfoQuery(userId);
+  // 拉取总体统计（总点赞/总评论/总动态）
+  const statsQuery = useGetMomentFeedStatsQuery();
+
   // 离底部还有 RENDER_MIN 个动态，开始发起请求
   const RENDER_MIN = 3;
 
@@ -28,6 +34,11 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
 
   const userData = userInfoData?.data;
   const allMoments = momentFeedData?.pages.flatMap(page => page.data?.list || []) || [];
+
+  // 兼容后端返回体的两种常见包装：resp.data 或 resp.data.data
+  // 例如： { success:true, data: { totalLikeCount:0, ... } }
+  // 或者： { success:true, data: { data: { totalLikeCount:0, ... } } }
+  const stats = statsQuery.data?.data ?? statsQuery.data?.data ?? undefined;
 
   // 监听倒数第 RENDER_MIN 条：当它进入视口时触发加载下一页
   const lastThirdRef = useRef<HTMLDivElement | null>(null);
@@ -68,6 +79,11 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
     // allMoments.length 保证切换到新的倒数第三条时重新观察
   }, [allMoments.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  // 本地计算（rendered）统计，作为后端数据的 fallback
+  const renderedMomentCount = allMoments.length;
+  const renderedLikeCount = allMoments.reduce((sum, m) => sum + (m.stats?.likeCount || 0), 0);
+  const renderedCommentCount = allMoments.reduce((sum, m) => sum + (m.stats?.commentCount || 0), 0);
+
   return (
     <div className="min-h-screen bg-base-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -101,27 +117,54 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                     )}
               </div>
 
-              {/* 统计信息卡片 */}
+              {/* 统计信息卡片（改为优先使用后端统计数据） */}
               <div className="bg-base-100 rounded-xl shadow-sm border border-base-300 p-6">
                 <h4 className="font-semibold mb-4">动态统计</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-base-content/60">总（渲染）动态</span>
-                    <span className="font-semibold">{allMoments.length}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-base-content/60">获得点赞</span>
-                    <span className="font-semibold">
-                      {allMoments.reduce((sum, m) => sum + (m.stats?.likeCount || 0), 0)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-base-content/60">获得评论</span>
-                    <span className="font-semibold">
-                      {allMoments.reduce((sum, m) => sum + (m.stats?.commentCount || 0), 0)}
-                    </span>
-                  </div>
-                </div>
+
+                {/* 接口加载时显示 skeleton */}
+                {statsQuery.isLoading
+                  ? (
+                      <div className="space-y-3">
+                        <div className="skeleton h-4 w-full"></div>
+                        <div className="skeleton h-4 w-full"></div>
+                        <div className="skeleton h-4 w-full"></div>
+                      </div>
+                    )
+                  : (
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-base-content/60">总动态</span>
+                          <span className="font-semibold">
+                            {/* 优先显示服务端统计，若不可用则回退到当前渲染数量 */}
+                            {typeof stats?.totalMomentFeedCount === "number"
+                              ? stats.totalMomentFeedCount
+                              : renderedMomentCount}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-base-content/60">获得点赞（总）</span>
+                          <span className="font-semibold">
+                            {typeof stats?.totalLikeCount === "number"
+                              ? stats.totalLikeCount
+                              : renderedLikeCount}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-base-content/60">获得评论（总）</span>
+                          <span className="font-semibold">
+                            {typeof stats?.totalCommentCount === "number"
+                              ? stats.totalCommentCount
+                              : renderedCommentCount}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                {/* {statsQuery.isError && ( */}
+
+                {/* )} */}
               </div>
             </div>
           </div>
@@ -215,8 +258,6 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                           )}
                         </>
                       )}
-              {" "}
-
             </div>
           </div>
         </div>
