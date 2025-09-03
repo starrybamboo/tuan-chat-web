@@ -1,6 +1,6 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import EntityList from "../../detail/ContentTab/entityLists";
 import { useModuleContext } from "../context/_moduleContext";
 import AddEntityToScene from "./addEntityToScene";
@@ -90,6 +90,9 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
   const [editEntityType, setEditEntityType] = useState<"item" | "role" | "location">("role");
   const VeditorId = `scene-tip-editor-${id}`;
   const VeditorIdForDescription = `scene-description-editor-${id}`;
+
+  // 自动保存定时器
+  const saveTimer = useRef<NodeJS.Timeout | null>(null);
 
   // 接入接口
   const { mutate: updateScene } = useUpdateEntityMutation(stageId as number);
@@ -244,6 +247,12 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
       }
     }
   }, [entities, scene.id, localScene]);
+
+  // 定时器的更新
+  const localSceneRef = useRef(localScene);
+  useEffect(() => {
+    localSceneRef.current = localScene;
+  }, [localScene]);
   const handleSave = () => {
     setIsTransitioning(true);
     let changed = false;
@@ -255,7 +264,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
         removeModuleTabItem(scene.id!.toString());
         changed = true;
       }
-      updateScene({ id: scene.id!, entityType: 3, entityInfo: localScene, name });
+      updateScene({ id: scene.id!, entityType: 3, entityInfo: localSceneRef.current, name });
       if (changed && mapData) {
         const oldMap = { ...mapData.entityInfo?.sceneMap } as Record<string, any>;
         const newMap: Record<string, any> = {};
@@ -319,6 +328,8 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                     placeholder={localScene.description || "玩家能看到的描述"}
                     onchange={(value) => {
                       setLocalScene(prev => ({ ...prev, description: value }));
+                      saveTimer.current && clearTimeout(saveTimer.current);
+                      saveTimer.current = setTimeout(handleSave, 8000);
                     }}
                   />
                 </div>
@@ -340,7 +351,11 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                     id={VeditorId}
                     placeholder={localScene.tip || "对KP的提醒（对于剧情的书写）"}
                     onchange={(value) => {
-                      setLocalScene(prev => ({ ...prev, tip: value }));
+                      if (value !== entityInfo.tip) {
+                        setLocalScene(prev => ({ ...prev, tip: value }));
+                        saveTimer.current && clearTimeout(saveTimer.current);
+                        saveTimer.current = setTimeout(handleSave, 8000);
+                      }
                     }}
                   />
                 </div>

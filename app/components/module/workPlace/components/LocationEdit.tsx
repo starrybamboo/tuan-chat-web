@@ -2,7 +2,7 @@ import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { CharacterCopper } from "@/components/newCharacter/sprite/CharacterCopper";
 import { useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useModuleContext } from "../context/_moduleContext";
 import Veditor from "./veditor";
 
@@ -22,6 +22,9 @@ export default function LocationEdit({ location }: LocationEditProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
+  // 定时器
+  const saveTimer = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     setLocalLocation({ ...entityInfo });
     setName(location.name);
@@ -30,6 +33,11 @@ export default function LocationEdit({ location }: LocationEditProps) {
   // 接入接口
   const { mutate: updateLocation } = useUpdateEntityMutation(stageId as number);
   // const { mutate: renameLocation } = useRenameMutation("scene");
+
+  const localLocationRef = useRef(localLocation);
+  useEffect(() => {
+    localLocationRef.current = localLocation;
+  }, [localLocation]);
 
   const handleSave = () => {
     setIsTransitioning(true);
@@ -46,7 +54,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
         });
         newScenes?.forEach(scene => updateLocation({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
       }
-      updateLocation({ id: location.id!, entityInfo: localLocation, name, entityType: 4 });
+      updateLocation({ id: location.id!, entityInfo: localLocationRef.current, name, entityType: 4 });
     }, 300);
   };
 
@@ -107,6 +115,8 @@ export default function LocationEdit({ location }: LocationEditProps) {
                   placeholder={localLocation.description || ""}
                   onchange={(value) => {
                     setLocalLocation(prev => ({ ...prev, description: value }));
+                    saveTimer.current && clearTimeout(saveTimer.current);
+                    saveTimer.current = setTimeout(handleSave, 8000);
                   }}
                 />
                 <p>地区支线：</p>
@@ -115,6 +125,8 @@ export default function LocationEdit({ location }: LocationEditProps) {
                   placeholder={localLocation.tip || ""}
                   onchange={(value) => {
                     setLocalLocation(prev => ({ ...prev, tip: value }));
+                    saveTimer.current && clearTimeout(saveTimer.current);
+                    saveTimer.current = setTimeout(handleSave, 8000);
                   }}
                 />
               </>
