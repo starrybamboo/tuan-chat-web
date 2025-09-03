@@ -1,7 +1,7 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { CharacterCopper } from "@/components/newCharacter/sprite/CharacterCopper";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useModuleContext } from "../context/_moduleContext";
 import Veditor from "./veditor";
 
@@ -23,6 +23,9 @@ export default function ItemEdit({ item }: ItemEditProps) {
   const vditorId = `item-tip-editor-${item.id}`;
   const VeditorIdForDescription = `item-description-editor-${item.id}`;
 
+  // 防抖定时器
+  const saveTimer = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     setLocalItem({ ...entityInfo });
     setName(item.name);
@@ -30,6 +33,12 @@ export default function ItemEdit({ item }: ItemEditProps) {
 
   // 接入接口
   const { mutate: updateItem } = useUpdateEntityMutation(stageId as number);
+
+  // 定时器的保存
+  const localItemRef = useRef(localItem);
+  useEffect(() => {
+    localItemRef.current = localItem;
+  }, [localItem]);
   const handleSave = () => {
     setIsTransitioning(true);
     setTimeout(() => {
@@ -45,7 +54,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
         });
         newScenes?.forEach(scene => updateItem({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
       }
-      updateItem({ id: item.id!, entityType: 1, entityInfo: localItem, name });
+      updateItem({ id: item.id!, entityType: 1, entityInfo: localItemRef.current, name });
     }, 300);
   };
 
@@ -111,6 +120,8 @@ export default function ItemEdit({ item }: ItemEditProps) {
                     placeholder={localItem.description || ""}
                     onchange={(value) => {
                       setLocalItem(prev => ({ ...prev, description: value }));
+                      saveTimer.current && clearTimeout(saveTimer.current);
+                      saveTimer.current = setTimeout(handleSave, 8000);
                     }}
                   />
                 </div>
@@ -123,6 +134,8 @@ export default function ItemEdit({ item }: ItemEditProps) {
                     placeholder={localItem.tip || ""}
                     onchange={(value) => {
                       setLocalItem(prev => ({ ...prev, tip: value }));
+                      saveTimer.current && clearTimeout(saveTimer.current);
+                      saveTimer.current = setTimeout(handleSave, 8000);
                     }}
                   />
                 </div>
