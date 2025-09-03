@@ -10,28 +10,6 @@ export default function ModuleListItem({
   onClick?: () => void;
   isSelected?: boolean;
 }) {
-  // 根据不同状态返回不同的状态标签和颜色
-  const getStatusInfo = () => {
-    // 这里可以根据实际业务逻辑判断状态
-    // 暂时使用随机状态作为示例
-    const statuses = [
-      { label: "活跃", className: "bg-green-100 text-green-800" },
-      { label: "开发中", className: "bg-blue-100 text-blue-800" },
-      { label: "规划中", className: "bg-yellow-100 text-yellow-800" },
-    ];
-    return statuses[Math.floor(Math.random() * statuses.length)];
-  };
-
-  // 格式化时间显示
-  const getTimeDisplay = () => {
-    // 这里可以根据实际的时间字段计算
-    const times = ["2小时前", "1天前", "3天前"];
-    return times[Math.floor(Math.random() * times.length)];
-  };
-
-  const statusInfo = getStatusInfo();
-  const timeDisplay = getTimeDisplay();
-
   return (
     <div
       className={`w-full p-2 rounded-md transition-all duration-200 cursor-pointer hover:shadow-sm ${
@@ -61,25 +39,15 @@ export default function ModuleListItem({
           </div>
 
           {/* 模组描述 */}
-          <p className="text-xs text-gray-600 mb-1 truncate">
+          <p className="text-xs text-gray-600 mb-1 truncate max-w-60 min-w-60">
             {item.description || "暂无描述"}
           </p>
-
-          {/* 状态标签和时间 */}
-          <div className="flex items-center space-x-2">
-            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${statusInfo.className}`}>
-              {statusInfo.label}
-            </span>
-            <span className="text-xs text-gray-500">
-              {timeDisplay}
-            </span>
-          </div>
         </div>
 
         {/* 右侧操作按钮 */}
         <div className="flex items-center space-x-1">
           {/* 收藏按钮 */}
-          <button className="p-1 hover:bg-gray-100 rounded transition-colors">
+          <button className="p-1 hover:bg-gray-100 rounded transition-colors" type="button">
             <svg
               className="w-3 h-3 text-gray-400 hover:text-yellow-500"
               fill="none"
@@ -96,7 +64,7 @@ export default function ModuleListItem({
           </button>
 
           {/* 更多操作按钮 */}
-          <button className="p-1 hover:bg-gray-100 rounded transition-colors">
+          <button className="p-1 hover:bg-gray-100 rounded transition-colors" type="button">
             <MoreMenu className="w-3 h-3 text-gray-400" />
           </button>
         </div>

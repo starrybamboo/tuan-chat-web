@@ -40,7 +40,7 @@ function EntityListItem({
           {entityType === "role"
             ? (
                 <RoleAvatar
-                  avatarId={entityInfo?.avatarIds[0] || entityInfo?.avatarId}
+                  avatarId={entityInfo.avatarId ?? (entity.entityInfo?.avatarIds && entity.entityInfo.avatarIds.length > 0 ? entity.entityInfo.avatarIds[0] : 0)}
                   width={12}
                   isRounded={true}
                   stopPopWindow={true}
@@ -48,7 +48,7 @@ function EntityListItem({
               )
             : (
                 <img
-                  src={entityInfo.image || "/favicon.ico"}
+                  src={entityInfo.image || entityInfo.avatar || "/favicon.ico"}
                   alt={entity.name}
                   className="w-full h-full object-cover"
                 />

@@ -8,10 +8,9 @@ import Veditor from "./veditor";
 
 interface LocationEditProps {
   location: StageEntityResponse;
-  onSave: (changed: boolean) => void;
 }
 
-export default function LocationEdit({ location, onSave }: LocationEditProps) {
+export default function LocationEdit({ location }: LocationEditProps) {
   const entityInfo = location.entityInfo || {};
   const { stageId, removeModuleTabItem } = useModuleContext();
 
@@ -22,12 +21,9 @@ export default function LocationEdit({ location, onSave }: LocationEditProps) {
   const [name, setName] = useState(location.name);
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [charCount, setCharCount] = useState(entityInfo.sceneDescription?.length || 0);
-  const MAX_DESCRIPTION_LENGTH = 300;
 
   useEffect(() => {
     setLocalLocation({ ...entityInfo });
-    setCharCount(entityInfo.sceneDescription?.length || 0);
     setName(location.name);
   }, [location]);
 
@@ -72,6 +68,7 @@ export default function LocationEdit({ location, onSave }: LocationEditProps) {
     });
   };
   const vditorId = `location-tip-editor-${location.id}`;
+  const VeditorIdForDescription = `location-description-editor-${location.id}`;
 
   return (
     <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
@@ -100,45 +97,23 @@ export default function LocationEdit({ location, onSave }: LocationEditProps) {
                 <input
                   type="text"
                   value={name || ""}
-                  onChange={(e) => {
-                    onSave(true);
-                    setName(e.target.value);
-                  }}
+                  onChange={e => setName(e.target.value)}
                   placeholder="场景名称"
                   className="input input-bordered w-full text-lg font-bold"
                 />
                 <p>场景描述：</p>
-                <textarea
-                  value={localLocation.description || ""}
-                  onChange={(e) => {
-                    onSave(true);
-                    setLocalLocation(prev => ({ ...prev, description: e.target.value }));
-                    setCharCount(e.target.value.length);
+                <Veditor
+                  id={VeditorIdForDescription}
+                  placeholder={localLocation.description || ""}
+                  onchange={(value) => {
+                    setLocalLocation(prev => ({ ...prev, description: value }));
                   }}
-                  placeholder="场景描述"
-                  className="textarea textarea-bordered w-full h-24 resize-none"
                 />
-                <div className="text-right mt-1">
-                  <span
-                    className={`text-sm font-bold ${charCount > MAX_DESCRIPTION_LENGTH
-                      ? "text-error"
-                      : "text-base-content/70"
-                    }`}
-                  >
-                    {charCount}
-                    /
-                    {MAX_DESCRIPTION_LENGTH}
-                    {charCount > MAX_DESCRIPTION_LENGTH && (
-                      <span className="ml-2">(已超出描述字数上限)</span>
-                    )}
-                  </span>
-                </div>
                 <p>地区支线：</p>
                 <Veditor
                   id={vditorId}
                   placeholder={localLocation.tip || ""}
                   onchange={(value) => {
-                    onSave(true);
                     setLocalLocation(prev => ({ ...prev, tip: value }));
                   }}
                 />
@@ -149,10 +124,7 @@ export default function LocationEdit({ location, onSave }: LocationEditProps) {
           <div className="card-actions justify-end">
             <button
               type="submit"
-              onClick={() => {
-                onSave(false);
-                handleSave();
-              }}
+              onClick={handleSave}
               className={`btn btn-primary ${isTransitioning ? "scale-95" : ""}`}
               disabled={isTransitioning}
             >

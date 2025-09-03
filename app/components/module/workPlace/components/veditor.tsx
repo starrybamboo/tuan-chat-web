@@ -1,6 +1,8 @@
+import { getLocalStorageValue } from "@/components/common/customHooks/useLocalStorage";
 import { useEffect, useRef } from "react";
 import Vditor from "vditor";
 import "vditor/dist/index.css";
+import "./vditor-high-contrast-dark.css";
 
 interface vditorProps {
   id: string;
@@ -19,6 +21,9 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
       // 初始化 Vditor 实例
       vdRef.current = new Vditor(container, {
         minHeight: 300, // 设置最小高度，允许内容动态扩展
+        preview: {
+
+        },
         after: () => {
           if (placeholder) {
             vdRef.current!.setValue(placeholder);
@@ -34,11 +39,38 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
         cache: {
           enable: false, // 禁用缓存，避免加载旧内容
         },
+        theme: getLocalStorageValue("reverseDarkMode", false) ? "classic" : "dark",
       });
     }
 
+    // 监听主题变化
+    const handleThemeChange = () => {
+      if (vdRef.current) {
+        const isDarkMode = getLocalStorageValue("reverseDarkMode", false);
+        vdRef.current.setTheme(isDarkMode ? "classic" : "dark");
+      }
+    };
+
+    // 创建一个 MutationObserver 来监听 DOM 属性变化
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === "attributes" && mutation.attributeName === "data-theme") {
+          handleThemeChange();
+        }
+      });
+    });
+
+    // 开始观察 html 元素的属性变化
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
     return () => {
-      // 仅在组件销毁时才消耗vditor，避免抖动
+      // 断开 observer 连接
+      observer.disconnect();
+
+      // 仅在组件销毁时才销毁vditor，避免抖动
       if (vdRef.current && !container) {
         try {
           vdRef.current.destroy();
@@ -49,7 +81,10 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
         vdRef.current = null;
       }
     };
-  }, [placeholder, onchange]); // 移除 id 依赖，避免不必要的重建
+  }, [placeholder, onchange]); // 移除 theme 依赖
 
-  return <div id={id} ref={containerRef} className="vditor" />;
+  return (
+    <div id={id} ref={containerRef} className="vditor">
+    </div>
+  );
 }
