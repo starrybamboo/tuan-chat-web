@@ -1,7 +1,9 @@
+import WebgalStarter from "@/components/chat/smallComponents/webgalStarter";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import UpdatesPopWindow from "@/components/topbanner/updatesWindow";
-import { ConnectionIcon } from "@/icons";
+import { ConnectionIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus } from "@/utils/auth/authapi";
+import { isElectronEnv } from "@/utils/isElectronEnv";
 import { QueryClient, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -190,14 +192,28 @@ export default function Topbar() {
                         role="button"
                         aria-label="切换主题"
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex justify-between gap-2">
                           <span className="select-none pr-10">主题切换</span>
                           <div className="scale-70" ref={switchRef}>
                             <ThemeSwitch />
                           </div>
                         </div>
                       </li>
-
+                      {
+                        isElectronEnv() && (
+                          <li
+                            className="flex justify-between cursor-pointer"
+                            onClick={handleClick}
+                            role="button"
+                            aria-label="切换主题"
+                          >
+                            <WebgalStarter className="flex justify-between gap-2 w-full">
+                              <span className="select-none">启动WebGAL</span>
+                              <WebgalIcon className="size-5"></WebgalIcon>
+                            </WebgalStarter>
+                          </li>
+                        )
+                      }
                       <li>
                         <a onClick={handleLogout}>
                           退出登录

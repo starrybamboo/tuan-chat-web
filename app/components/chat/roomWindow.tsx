@@ -18,10 +18,10 @@ import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
 import SearchPanel from "@/components/chat/sideDrawer/searchPanel";
 import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
 import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
-import WebgalStarter from "@/components/chat/smallComponents/webgalStarter";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
+import RenderWindow from "@/components/chat/window/renderWindow";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
 import { getLocalStorageValue, useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
@@ -51,6 +51,7 @@ import {
   SparklesOutline,
   SwordSwing,
   UserSyncOnlineInPerson,
+  WebgalIcon,
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -181,6 +182,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   const [commandBrowseWindow, setCommandBrowseWindow] = useSearchParamsState<commandModeType>("commandPop", "none");
   const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
+  // 渲染对话
+  const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
+
   const [isItemsWindowOpen, setIsItemsWindowOpen] = useState<boolean>(false);
   const [selectedItemId, setSelectedItemId] = useState<number>(-1);
 
@@ -827,10 +831,11 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           </div>
           <div className="flex gap-2">
             <div
-              className="tooltip tooltip-bottom hover:text-info items-center justify-center flex"
-              data-tip="启动Webgal"
+              className="tooltip tooltip-bottom hover:text-info items-center justify-center flex px-1"
+              data-tip="渲染对话"
+              onClick={() => setIsRenderWindowOpen(true)}
             >
-              <WebgalStarter className="size-6"></WebgalStarter>
+              <WebgalIcon className="size-6 opacity-80 "></WebgalIcon>
             </div>
             <div
               className="tooltip tooltip-bottom hover:text-info"
@@ -1258,6 +1263,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         {selectedItemId && (
           <ItemDetail itemId={selectedItemId} />
         )}
+      </PopWindow>
+      {/* 渲染设置窗口 */}
+      <PopWindow isOpen={isRenderWindowOpen} onClose={() => setIsRenderWindowOpen(false)}>
+        <RenderWindow></RenderWindow>
       </PopWindow>
     </RoomContext>
   );
