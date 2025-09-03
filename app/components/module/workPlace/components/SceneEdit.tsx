@@ -175,6 +175,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
         entityType: 3,
         entityInfo: { ...localScene, locations: (filteredLocations || []) },
       });
+
       setLocalScene(prev => ({ ...prev, locations: (filteredLocations || []) }));
     }
   };
