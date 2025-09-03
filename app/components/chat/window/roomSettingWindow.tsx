@@ -1,9 +1,6 @@
 import { RoomContext } from "@/components/chat/roomContext";
-import RenderWindow from "@/components/chat/window/renderWindow";
 import checkBack from "@/components/common/autoContrastText";
 import ConfirmModal from "@/components/common/comfirmModel";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { PopWindow } from "@/components/common/popWindow";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import {
   useDissolveRoomMutation,
@@ -26,8 +23,6 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
   // 解散群组
   const dissolveRoomMutation = useDissolveRoomMutation();
   const updateRoomMutation = useUpdateRoomMutation();
-  // 渲染对话
-  const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
 
   // 使用状态管理表单数据
   const [formData, setFormData] = useState({
@@ -152,14 +147,6 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
               解散房间
             </button>
             <button
-              className="btn btn-primary"
-              type="button"
-              onClick={() => setIsRenderWindowOpen(true)}
-              disabled={isRenderWindowOpen}
-            >
-              渲染对话
-            </button>
-            <button
               type="button"
               className="btn btn-success"
               onClick={handleClose}
@@ -169,10 +156,6 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       )}
-      {/* 渲染设置窗口 */}
-      <PopWindow isOpen={isRenderWindowOpen} onClose={() => setIsRenderWindowOpen(false)}>
-        <RenderWindow></RenderWindow>
-      </PopWindow>
       {/* 渲染删除群组的确认弹窗 */}
       <ConfirmModal
         isOpen={isDissolveConfirmOpen}

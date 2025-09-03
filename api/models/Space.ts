@@ -36,6 +36,7 @@ export type Space = {
     status?: number;
     moduleId?: number;
     stageId?: number;
+    roomMap?: Record<string, Array<number>>;
     createTime?: string;
     updateTime?: string;
 };

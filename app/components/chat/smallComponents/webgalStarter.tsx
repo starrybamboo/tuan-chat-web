@@ -1,10 +1,9 @@
-import { WebgalIcon } from "@/icons";
 import { isElectronEnv } from "@/utils/isElectronEnv";
 import launchWebGal from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { toast } from "react-hot-toast";
 
-export default function WebgalStarter({ className }: { className: string }) {
+export default function WebgalStarter({ className, children }: { className: string; children: React.ReactNode }) {
   async function startWebgal() {
     const timer = setTimeout(() => {
       toast("WebGAL 启动中", { duration: 15000 });
@@ -16,6 +15,8 @@ export default function WebgalStarter({ className }: { className: string }) {
   if (!isElectronEnv())
     return <></>;
   return (
-    <WebgalIcon className={className} onClick={startWebgal}></WebgalIcon>
+    <div onClick={startWebgal} className={className}>
+      {children}
+    </div>
   );
 }
