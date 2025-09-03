@@ -2,6 +2,7 @@ import type { StageEntityResponse } from "api";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
+import { useState } from "react";
 import Section from "./section";
 
 // 场景表单项
@@ -69,9 +70,18 @@ export default function SceneList({ stageId }: { stageId: number }) {
   const { data, isSuccess: _isSuccess } = useQueryEntitiesQuery(stageId);
   const { mutate: updateMap } = useUpdateEntityMutation(stageId);
   const list = data?.data!.filter(i => i.entityType === 3);
+
+  // 添加搜索状态
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // 根据搜索查询过滤列表
+  const filteredList = list?.filter(i =>
+    i.name?.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
   // 同步到地图
   const mapData = data?.data!.filter(i => i.entityType === 5)[0];
-  const isEmpty = !list || list!.length === 0;
+  const isEmpty = !filteredList || filteredList!.length === 0;
 
   // 添加模组场景
   const { mutate: addScene } = useAddEntityMutation(3);
@@ -118,13 +128,30 @@ export default function SceneList({ stageId }: { stageId: number }) {
   return (
     <Section label="剧情" onClick={handleAddSceneSubmit}>
       <>
+        {/* 添加搜索框 */}
+        <div className="px-2 pb-2">
+          <label className="input input-bordered flex items-center gap-2">
+            <svg className="h-4 w-4 opacity-70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              type="text"
+              className="grow"
+              placeholder="搜索剧情..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </label>
+        </div>
+
         {isEmpty
           ? (
               <div className="text-sm text-gray-500 px-2 py-4">
                 暂时没有剧情哦
               </div>
             )
-          : (list?.map(i => (
+          : (filteredList?.map(i => (
               <SceneListItem
                 key={i!.id ?? 0}
                 scene={i!}

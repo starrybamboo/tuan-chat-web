@@ -39,11 +39,6 @@ function TagManagement({ userId, size = "default" }: TagManagementProps) {
     }
   }, [tagsData]);
 
-  // 当userId变化时，立即清空本地标签状态
-  React.useEffect(() => {
-    setLocalTags([]);
-  }, [userId]);
-
   const tags: Tag[] = localTags;
 
   // 打开标签管理弹窗

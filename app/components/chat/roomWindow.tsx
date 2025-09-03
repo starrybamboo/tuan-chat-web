@@ -19,6 +19,7 @@ import SearchPanel from "@/components/chat/sideDrawer/searchPanel";
 import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
 import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
@@ -40,6 +41,7 @@ import {
   GalleryBroken,
   GirlIcon,
   HexagonDice,
+  Items,
   MemberIcon,
   PointOnMapPerspectiveLinear,
   SearchFilled,
@@ -53,22 +55,22 @@ import { getImageSize } from "@/utils/getImgSize";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
+import { useGetRoomItemsQuery } from "api/hooks/spaceModuleHooks";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
-import { useNavigate } from "react-router";
 import { useImmer } from "use-immer";
 import {
+  useAddRoomRoleMutation,
   useGetMemberListQuery,
   useGetRoomInfoQuery,
   useGetRoomRoleQuery,
   useGetSpaceInfoQuery,
 } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
+import ItemDetail from "./itemsDetail";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
-  const navigate = useNavigate();
-
   const spaceContext = use(SpaceContext);
 
   const space = useGetSpaceInfoQuery(spaceId).data?.data;
@@ -178,6 +180,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   const [commandBrowseWindow, setCommandBrowseWindow] = useSearchParamsState<commandModeType>("commandPop", "none");
   const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
+  const [isItemsWindowOpen, setIsItemsWindowOpen] = useState<boolean>(false);
+  const [selectedItemId, setSelectedItemId] = useState<number>(-1);
 
   const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
 
@@ -193,11 +197,15 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     return members.find(member => member.userId === userId);
   }, [members, userId]);
 
+  // 获取当前房间的所有物品
+  const getRoomItemsQuery = useGetRoomItemsQuery(roomId);
+  const roomItems = getRoomItemsQuery.data?.data ?? [];
+
   /**
    * 获取历史消息
    */
   const chatHistory = useChatHistory(roomId);
-  const historyMessages: ChatMessageResponse[] = chatHistory.messages;
+  const historyMessages: ChatMessageResponse[] = chatHistory?.messages;
 
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const scrollToGivenMessage = useCallback((messageId: number) => {
@@ -759,7 +767,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     span.className = "inline text-blue-500 bg-transparent px-0 py-0 border-none";
     span.contentEditable = "false";
     span.style.display = "inline-block";
-    span.addEventListener("click", () => {});
+    span.addEventListener("click", () => { });
     span.dataset.role = JSON.stringify(role);
 
     // 替换内容
@@ -782,6 +790,21 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       syncInputText();
     }
   }
+
+  const [isRoleHandleOpen, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
+  const addRoleMutation = useAddRoomRoleMutation();
+
+  const handleAddRole = async (roleId: number) => {
+    addRoleMutation.mutate({
+      roomId,
+      roleIdList: [roleId],
+    }, {
+      onSettled: () => {
+        // setIsRoleAddWindowOpen(false);
+        toast("添加角色成功");
+      },
+    });
+  };
 
   return (
     <RoomContext value={roomContext}>
@@ -925,6 +948,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                         <GalleryBroken className="size-7 cursor-pointer jump_icon"></GalleryBroken>
                       </div>
                     </ImgUploader>
+                    <div className="tooltip" data-tip="上传物品">
+                      <Items
+                        className="size-7 cursor-pointer jump_icon"
+                        onClick={() => setIsItemsWindowOpen(true)}
+                      >
+                      </Items>
+                    </div>
                     <div className="tooltip" data-tip="浏览所有骰子命令">
                       <HexagonDice
                         className="size-7 cursor-pointer jump_icon"
@@ -997,18 +1027,21 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                           </div>
                         )
                       : (
-                          <div className="w-10 md:w-14" onClick={() => navigate("/role")}>
-                            <AddRingLight className="size-10 md:size-14 jump_icon"></AddRingLight>
-                            <div className="text-sm truncate w-full">
-                              创建角色
+                          roomContext.curMember?.memberType ?? 3) < 3 && (
+                          <li className="flex flex-row list-none group" onClick={() => setIsRoleAddWindowOpen(true)}>
+                            <div className="w-full">
+                              <AddRingLight className="size-10 group-hover:text-info"></AddRingLight>
+                              <div>
+                                添加角色
+                              </div>
                             </div>
-                          </div>
+                          </li>
                         )
                   }
 
                   {/* 输入框 */}
                   <div
-                    className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-info focus-within:border-info flex flex-col"
+                    className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-info focus-within:border-info flex-col"
                   >
                     {/* 预览要发送的图片 */}
                     {(imgFiles.length > 0 || emojiUrls.length > 0) && (
@@ -1053,10 +1086,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                       onCompositionEnd={() => isComposingRef.current = false}
                       onPaste={async e => handlePaste(e)}
                       suppressContentEditableWarning={true}
-                      contentEditable={true}
-                      data-placeholder={(curRoleId <= 0
-                        ? "请先拉入你的角色，之后才能发送消息。"
-                        : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"))}
+                      contentEditable={!notMember || !noRole}
+                      data-placeholder={notMember
+                        ? "你是观战成员，不能发送消息"
+                        : (noRole
+                            ? "请先拉入你的角色，之后才能发送消息。"
+                            : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"))}
                     />
                   </div>
                   {/* at搜索框 */}
@@ -1121,6 +1156,56 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           </OpenAbleDrawer>
         </div>
       </div>
+      <PopWindow isOpen={isItemsWindowOpen} onClose={() => setIsItemsWindowOpen(false)}>
+        <span className="block text-center mr-6 ml-6 text-xl font-semibold text-neutral-800 dark:text-neutral-100 mb-6">
+          浏览该房间内所有物品
+        </span>
+        {roomItems?.length
+          ? (
+              <div className="space-y-3">
+                {roomItems.map(item => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between bg-neutral-50 dark:bg-neutral-800 px-4 py-3 rounded-lg"
+                  >
+                    <div className="flex items-center gap-2">
+                      {item.entityInfo?.image
+                        ? (
+                            <img
+                              src={item.entityInfo?.image}
+                              alt={item.name}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          )
+                        : (
+                            <div className="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-[10px] text-neutral-500 dark:text-neutral-300">
+                              无图片
+                            </div>
+                          )}
+                      <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
+                        {item.name}
+                      </span>
+                    </div>
+
+                    {/* 右侧：按钮 */}
+                    <button
+                      type="button"
+                      className="btn w-20"
+                      onClick={() => setSelectedItemId(item.id ?? -1)}
+                    >
+                      查看
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )
+          : (
+              <div className="text-center text-lg font-semibold text-neutral-500 dark:text-neutral-400">
+                这个房间没有可以上传的物品了！
+              </div>
+            )}
+
+      </PopWindow>
       <PopWindow isOpen={commandBrowseWindow === "dice"} onClose={() => setCommandBrowseWindow("none")}>
         <span className="text-center text-lg font-semibold">浏览所有骰子命令</span>
         <CommandPanel
@@ -1153,6 +1238,19 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       {/* 设置窗口 */}
       <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
         <RoomSettingWindow onClose={() => setIsSettingWindowOpen(false)}></RoomSettingWindow>
+      </PopWindow>
+      {/* 添加角色窗口 */}
+      <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleAddWindowOpen(false)}>
+        <AddRoleWindow handleAddRole={handleAddRole} addModuleRole={false}></AddRoleWindow>
+      </PopWindow>
+      {/* 物品详情窗口 */}
+      <PopWindow
+        isOpen={selectedItemId > 0}
+        onClose={() => setSelectedItemId(-1)}
+      >
+        {selectedItemId && (
+          <ItemDetail itemId={selectedItemId} />
+        )}
       </PopWindow>
     </RoomContext>
   );

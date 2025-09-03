@@ -1,26 +1,15 @@
 import type { Role } from "./types";
 import { useState } from "react";
 import CharacterDetail from "./CharacterDetail";
-// import { RoleCard } from "./RoleCard";
 import { Sidebar } from "./Sidebar";
 
 export default function CharacterMain() {
   const [roles, setRoles] = useState<Role[]>([]);
-  // const [isLoading, setIsLoading] = useState(false);
-  // const { roles, initializeRoles, setRoles, isLoading } = useRolesInitialization(roleQuery);
 
   // 状态管理
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const currentRole = roles.find(r => r.id === selectedRoleId);
-
-  // useEffect(() => {
-  //   const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
-  //   if (drawerCheckbox) {
-  //     drawerCheckbox.checked = selectedRoleId !== null; // 有角色 ID 时打开，否则关闭
-  //   }
-  // }, [selectedRoleId]);
-  // 保存角色
 
   const handleSave = (updatedRole: Role) => {
     let IsChangeAvatar = false;
