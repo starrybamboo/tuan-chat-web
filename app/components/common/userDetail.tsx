@@ -122,8 +122,8 @@ export function UserDetail({ userId }: UserDetailProps) {
                       <div className="skeleton w-24 h-24"></div>
                     )
                   : (
-                      <Link
-                        to={`/profile/${userId}`}
+                      <a
+                        href={`/profile/${userId}`}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -132,7 +132,7 @@ export function UserDetail({ userId }: UserDetailProps) {
                           alt={user?.username}
                           className="mask mask-circle"
                         />
-                      </Link>
+                      </a>
                     )}
               </div>
             </div>
@@ -154,14 +154,14 @@ export function UserDetail({ userId }: UserDetailProps) {
                       <div className="skeleton h-8 w-48 pr-4"></div>
                     )
                   : (
-                      <Link
-                        to={`/profile/${userId}`}
+                      <a
+                        href={`/profile/${userId}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-2xl font-bold mr-2 hover:underline cursor-pointer"
                       >
                         {user?.username || "未知用户"}
-                      </Link>
+                      </a>
                     )}
                 <UserStatusDot status={user?.activeStatus}></UserStatusDot>
               </div>
