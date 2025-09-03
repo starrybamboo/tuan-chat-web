@@ -21,10 +21,8 @@ export class SceneEditor {
     description: "This is a default game",
   };
 
-  private rendererContext: RendererContext = {
-    lineNumber: 0,
-    text: "",
-  };
+  // scene to rendererContext
+  private rendererContexts: Map<string, RendererContext> = new Map<string, RendererContext>();
 
   private syncSocket: WebSocket;
 
@@ -46,8 +44,6 @@ export class SceneEditor {
       gameName: this.game.name,
       templateDir: "WebGAL Black",
     });
-    await this.addLineToRenderer("changeBg:none", "start.txt");
-    await this.addLineToRenderer("changeFigure:none", "start.txt");
   }
 
   /**
@@ -116,8 +112,8 @@ export class SceneEditor {
     );
   }
 
-  public asyncRender(): void {
-    const msg = getAsyncMsg("start.txt", this.rendererContext.lineNumber);
+  public asyncRender(scene: string): void {
+    const msg = getAsyncMsg(`${scene}.txt`, this.rendererContexts.get(scene)?.lineNumber ?? 0);
     this.syncSocket.send(JSON.stringify(msg));
   }
 
@@ -138,13 +134,20 @@ export class SceneEditor {
     if (!line.trim())
       return; // 跳过空消息
 
-    this.rendererContext.text = this.rendererContext.text
-      ? `${this.rendererContext.text}\n${line}`
+    if (!this.rendererContexts.get(sceneName)) {
+      this.rendererContexts.set(sceneName, {
+        lineNumber: 0,
+        text: "",
+      });
+    }
+    const renderContext = this.rendererContexts.get(sceneName)!;
+    renderContext.text = renderContext.text
+      ? `${renderContext!.text}\n${line}`
       : line;
 
-    this.rendererContext.lineNumber += 1;
+    renderContext!.lineNumber += 1;
 
-    await editScene(this.game.name, sceneName, this.rendererContext.text);
+    await editScene(this.game.name, sceneName, renderContext.text);
   }
 
   // 简单的字符串哈希函数

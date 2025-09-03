@@ -13,13 +13,13 @@ import { tuanchat } from "../../api/instance";
 export class ChatRenderer {
   private MAX_VOCAL: number = 5;
 
-  private spaceId: number;
+  private readonly spaceId: number;
   private sceneEditor: SceneEditor;
   private uploadedSpritesFileNameMap = new Map<number, string>(); // avatarId -> spriteFileName
   private roleAvatarsMap = new Map<number, RoleAvatar>(); // 渲染时候获取的avatar信息
   private roleMap: Map<number, RoleResponse> = new Map();
   private renderProps: RenderProps;
-  private onRenderProcessChange: (process: RenderProcess) => void;
+  private readonly onRenderProcessChange: (process: RenderProcess) => void;
 
   constructor(spaceId: number, renderProp: RenderProps, onRenderProcessChange: (process: RenderProcess) => void) {
     this.spaceId = spaceId;
@@ -29,16 +29,20 @@ export class ChatRenderer {
   }
 
   public async initializeRenderer(): Promise<void> {
+    await this.sceneEditor.initRender();
     this.onRenderProcessChange({ message: "开始渲染" });
     const rooms = (await tuanchat.roomController.getUserRooms(this.spaceId)).data ?? [];
-    for (const room of rooms) {
-      await this.renderMessages(room);
-    }
 
-    const branchSentence = `choose:${rooms.map(room => `${this.getSceneName(room)}.txt`).join("|")}`;
+    const renderedRooms: Room[] = []; // 成功渲染的房间
     for (const room of rooms) {
-      await this.sceneEditor.addLineToRenderer(branchSentence, this.getSceneName(room));
+      const success = await this.renderMessages(room);
+      if (success) {
+        renderedRooms.push(room);
+        await this.sceneEditor.addLineToRenderer("changeScene:start.txt", this.getSceneName(room));
+      }
     }
+    const branchSentence = `choose:${renderedRooms.map(room => `${room.name}:${this.getSceneName(room)}.txt`).join("|")}`;
+    await this.sceneEditor.addLineToRenderer(branchSentence, "start");
   }
 
   private async fetchAvatar(avatarId: number): Promise<RoleAvatar | null> {
@@ -158,10 +162,16 @@ export class ChatRenderer {
   /**
    * 一个聊天记录一个聊天记录地渲染，并在这个过程中自动检测不存在的语音或者立绘等并进行上传
    */
-  private async renderMessages(room: Room): Promise<void> {
-    const messagesResponse = await tuanchat.chatController.getAllMessage(this.spaceId);
+  private async renderMessages(room: Room): Promise<boolean> {
+    const messagesResponse = await tuanchat.chatController.getAllMessage(room.roomId!);
+    this.onRenderProcessChange({ message: `开始渲染房间${room.name}` });
     const messages = messagesResponse.data ?? [];
+    if (messages.length === 0)
+      return false;
     const sceneName = this.getSceneName(room);
+    await this.sceneEditor.addLineToRenderer("changeBg:none -next", sceneName);
+    await this.sceneEditor.addLineToRenderer("changeFigure:none -next", sceneName);
+
     try {
       // 过滤调掉不是文本类型的消息，并排序
       const sortedMessages = messages
@@ -213,7 +223,7 @@ export class ChatRenderer {
             .replace(/;/g, "；") // 替换英文分号为中文分号
             .replace(/:/g, "："); // 替换英文冒号为中文冒号
 
-          if (role && role.roleName && message.content && message.content !== "") {
+          if (role && message.content && message.content !== "") {
             // 每80个字符分割一次
             const contentSegments = this.splitContent(processedContent);
             // 为每个分割后的段落创建对话
@@ -246,7 +256,7 @@ export class ChatRenderer {
                     : (spriteState.has(messageSpriteName || ""));
               const avatar = await this.fetchAvatar(message.avatarId);
               await this.sceneEditor.addDialog(
-                role.roleName,
+                role.roleName ?? "未命名角色",
                 avatar || undefined,
                 segment, // 使用分割后的段落
                 sceneName,
@@ -265,8 +275,8 @@ export class ChatRenderer {
           }
         }
       }
-      // 完成后同步渲染
-      this.sceneEditor.asyncRender();
+
+      return true;
     }
     catch (error) {
       console.error("Error rendering messages:", error);
