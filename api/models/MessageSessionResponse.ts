@@ -19,10 +19,6 @@ export type MessageSessionResponse = {
      */
     latestSyncId?: number;
     /**
-     * 最后活跃时间
-     */
-    lastActiveTime?: string;
-    /**
      * 最新消息内容
      */
     lastMessageContent?: string;

@@ -14,7 +14,10 @@ export type { AbilityFieldUpdateRequest } from './models/AbilityFieldUpdateReque
 export type { AbilityPageRequest } from './models/AbilityPageRequest';
 export type { AbilitySetRequest } from './models/AbilitySetRequest';
 export type { AbilityUpdateRequest } from './models/AbilityUpdateRequest';
+export type { AIReportPageRequest } from './models/AIReportPageRequest';
+export type { AIReportResponse } from './models/AIReportResponse';
 export type { ApiResult } from './models/ApiResult';
+export type { ApiResultAIReportResponse } from './models/ApiResultAIReportResponse';
 export type { ApiResultBoolean } from './models/ApiResultBoolean';
 export type { ApiResultChatMessageResponse } from './models/ApiResultChatMessageResponse';
 export type { ApiResultCollection } from './models/ApiResultCollection';
@@ -72,6 +75,7 @@ export type { ApiResultMomentFeedTotalStatsResponse } from './models/ApiResultMo
 export type { ApiResultMomentFeedWithStatsResponse } from './models/ApiResultMomentFeedWithStatsResponse';
 export type { ApiResultObject } from './models/ApiResultObject';
 export type { ApiResultOssResp } from './models/ApiResultOssResp';
+export type { ApiResultPageBaseRespAIReportResponse } from './models/ApiResultPageBaseRespAIReportResponse';
 export type { ApiResultPageBaseRespCollection } from './models/ApiResultPageBaseRespCollection';
 export type { ApiResultPageBaseRespCollectionList } from './models/ApiResultPageBaseRespCollectionList';
 export type { ApiResultPageBaseRespItemResponse } from './models/ApiResultPageBaseRespItemResponse';
@@ -199,6 +203,7 @@ export type { MomentFeedWithStatsResponse } from './models/MomentFeedWithStatsRe
 export type { MomentStatsResponse } from './models/MomentStatsResponse';
 export type { OssResp } from './models/OssResp';
 export type { PageBaseRequest } from './models/PageBaseRequest';
+export type { PageBaseRespAIReportResponse } from './models/PageBaseRespAIReportResponse';
 export type { PageBaseRespCollection } from './models/PageBaseRespCollection';
 export type { PageBaseRespCollectionList } from './models/PageBaseRespCollectionList';
 export type { PageBaseRespItemResponse } from './models/PageBaseRespItemResponse';
@@ -236,6 +241,8 @@ export type { Room } from './models/Room';
 export type { RoomAddRequest } from './models/RoomAddRequest';
 export type { RoomExtraRequest } from './models/RoomExtraRequest';
 export type { RoomExtraSetRequest } from './models/RoomExtraSetRequest';
+export type { RoomItem } from './models/RoomItem';
+export type { RoomLocation } from './models/RoomLocation';
 export type { RoomMember } from './models/RoomMember';
 export type { RoomMemberAddRequest } from './models/RoomMemberAddRequest';
 export type { RoomMemberDeleteRequest } from './models/RoomMemberDeleteRequest';
@@ -285,6 +292,7 @@ export type { UserRole } from './models/UserRole';
 export type { UVOperationDTO } from './models/UVOperationDTO';
 
 export { AbilityControllerService } from './services/AbilityControllerService';
+export { AiReportControllerService } from './services/AiReportControllerService';
 export { AiWritingControllerService } from './services/AiWritingControllerService';
 export { AvatarControllerService } from './services/AvatarControllerService';
 export { ChatControllerService } from './services/ChatControllerService';

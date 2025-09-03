@@ -75,6 +75,10 @@
       "description": "用户偏好接口"
     },
     {
+      "name": "AIReportController",
+      "description": "AI报告管理"
+    },
+    {
       "name": "counter",
       "description": "计数器接口"
     },
@@ -2689,7 +2693,7 @@
         ],
         "summary": "添加物品",
         "description": "添加物品信息",
-        "operationId": "addItem_1",
+        "operationId": "addItem_2",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5682,7 +5686,7 @@
         "tags": [
           "space-controller"
         ],
-        "summary": "创建子群聊房间",
+        "summary": "创建子群聊房间（场景），此场景是{roomId}的下个场景，允许多分支",
         "operationId": "createRoom",
         "requestBody": {
           "content": {
@@ -5772,6 +5776,288 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultModuleMap"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/space/module/room/location": {
+      "get": {
+        "tags": [
+          "space-module-controller"
+        ],
+        "summary": "获得当前房间的所有地点",
+        "operationId": "roomLocation",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "space-module-controller"
+        ],
+        "summary": "在当前房间（场景）下添加地点",
+        "operationId": "addLocation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomLocation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/space/module/room/item": {
+      "get": {
+        "tags": [
+          "space-module-controller"
+        ],
+        "summary": "获得当前房间的所有物品",
+        "operationId": "roomItem",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "space-module-controller"
+        ],
+        "summary": "在当前房间（场景）下添加物品",
+        "operationId": "addItem",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomItem"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
                 }
               }
             }
@@ -7027,7 +7313,7 @@
           "AbilityController"
         ],
         "description": "添加角色能力物品",
-        "operationId": "addItem",
+        "operationId": "addItem_1",
         "parameters": [
           {
             "name": "itemId",
@@ -12184,6 +12470,77 @@
         }
       }
     },
+    "/capi/ai/report/page": {
+      "post": {
+        "tags": [
+          "AIReportController"
+        ],
+        "summary": "分页查询用户报告",
+        "operationId": "getUserReports",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIReportPageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespAIReportResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/ai/generateBasicInfoByRule": {
       "post": {
         "tags": [
@@ -13755,150 +14112,6 @@
         }
       }
     },
-    "/capi/space/module/room/location": {
-      "get": {
-        "tags": [
-          "space-module-controller"
-        ],
-        "summary": "获得当前房间的所有地点",
-        "operationId": "roomLocation",
-        "parameters": [
-          {
-            "name": "roomId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/space/module/room/item": {
-      "get": {
-        "tags": [
-          "space-module-controller"
-        ],
-        "summary": "获得当前房间的所有物品",
-        "operationId": "roomItem",
-        "parameters": [
-          {
-            "name": "roomId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/capi/space/module/role": {
       "get": {
         "tags": [
@@ -13924,78 +14137,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/space/module/map": {
-      "get": {
-        "tags": [
-          "space-module-controller"
-        ],
-        "summary": "获取模组整体逻辑图",
-        "operationId": "getMap",
-        "parameters": [
-          {
-            "name": "spaceId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultModuleMap"
                 }
               }
             }
@@ -16326,6 +16467,79 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultListRoleAvatar"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/ai/report/detail/{reportId}": {
+      "get": {
+        "tags": [
+          "AIReportController"
+        ],
+        "summary": "获取报告详情",
+        "operationId": "getReportDetail",
+        "parameters": [
+          {
+            "name": "reportId",
+            "in": "path",
+            "description": "报告ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultAIReportResponse"
                 }
               }
             }
@@ -18944,6 +19158,11 @@
           "avatar": {
             "type": "string",
             "description": "房间头像"
+          },
+          "roomId": {
+            "type": "integer",
+            "description": "当前房间id，创建房间时，会将新的roomId添加到当前房间Id的临界list中",
+            "format": "int64"
           }
         }
       },
@@ -19095,6 +19314,46 @@
         },
         "description": "返回对象"
       },
+      "RoomLocation": {
+        "required": [
+          "roomId",
+          "stageEntityId"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "房间ID",
+            "format": "int64"
+          },
+          "stageEntityId": {
+            "type": "integer",
+            "description": "暂存区实体ID",
+            "format": "int64"
+          }
+        },
+        "description": "RoomLocation对象"
+      },
+      "RoomItem": {
+        "required": [
+          "roomId",
+          "stageEntityId"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "integer",
+            "description": "房间ID",
+            "format": "int64"
+          },
+          "stageEntityId": {
+            "type": "integer",
+            "description": "暂存区实体ID",
+            "format": "int64"
+          }
+        },
+        "description": "RoomItem对象，因为一个实体可能存在于多个房间，所以需要中间表映射"
+      },
       "ModuleImportRequest": {
         "required": [
           "commitId",
@@ -19235,6 +19494,16 @@
           "stageId": {
             "type": "integer",
             "format": "int64"
+          },
+          "roomMap": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "int64"
+              }
+            }
           },
           "createTime": {
             "type": "string",
@@ -23100,6 +23369,139 @@
         },
         "description": "创建角色头像的请求"
       },
+      "AIReportPageRequest": {
+        "type": "object",
+        "properties": {
+          "pageNo": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "页码",
+            "format": "int32",
+            "default": 1
+          },
+          "pageSize": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "description": "每页大小",
+            "format": "int32",
+            "default": 10
+          },
+          "spaceId": {
+            "type": "integer",
+            "description": "空间ID",
+            "format": "int64"
+          },
+          "reportType": {
+            "type": "string",
+            "description": "报告类型：1-PL，2-KP，3-共享",
+            "format": "byte"
+          }
+        },
+        "description": "AI报告分页查询请求"
+      },
+      "AIReportResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "报告ID",
+            "format": "int64"
+          },
+          "spaceId": {
+            "type": "integer",
+            "description": "空间ID",
+            "format": "int64"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "用户ID",
+            "format": "int64"
+          },
+          "reportType": {
+            "type": "string",
+            "description": "报告类型：1-PL，2-KP，3-共享",
+            "format": "byte"
+          },
+          "sharedReportId": {
+            "type": "integer",
+            "description": "共享报告ID",
+            "format": "int64"
+          },
+          "privateContent": {
+            "type": "string",
+            "description": "个人报告内容JSON"
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "description": "更新时间",
+            "format": "date-time"
+          }
+        },
+        "description": "AI报告响应"
+      },
+      "ApiResultPageBaseRespAIReportResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageBaseRespAIReportResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "PageBaseRespAIReportResponse": {
+        "type": "object",
+        "properties": {
+          "pageNo": {
+            "type": "integer",
+            "description": "当前页数",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "每页查询数量",
+            "format": "int32"
+          },
+          "totalRecords": {
+            "type": "integer",
+            "description": "总记录数",
+            "format": "int64"
+          },
+          "isLast": {
+            "type": "boolean",
+            "description": "是否最后一页"
+          },
+          "list": {
+            "type": "array",
+            "description": "数据列表",
+            "items": {
+              "$ref": "#/components/schemas/AIReportResponse"
+            }
+          }
+        },
+        "description": "基础翻页返回"
+      },
       "RoleGenerationRequest": {
         "required": [
           "prompt",
@@ -24184,11 +24586,6 @@
             "description": "房间最新消息的sync_id",
             "format": "int64"
           },
-          "lastActiveTime": {
-            "type": "string",
-            "description": "最后活跃时间",
-            "format": "date-time"
-          },
           "lastMessageContent": {
             "type": "string",
             "description": "最新消息内容"
@@ -24255,6 +24652,31 @@
             "items": {
               "$ref": "#/components/schemas/RoleAvatar"
             }
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ApiResultAIReportResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AIReportResponse"
           }
         },
         "description": "基础返回体"
