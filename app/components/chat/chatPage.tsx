@@ -13,7 +13,7 @@ import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderW
 import { useGlobalContext } from "@/components/globalContextProvider";
 import LeftChatList from "@/components/privateChat/components/Left​​ChatList​​";
 import RightChatView from "@/components/privateChat/components/RightChatView";
-import { DotsHorizontalOutline, Setting } from "@/icons";
+import { Setting } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import {
   useCreateRoomMutation,
@@ -119,8 +119,8 @@ export default function ChatPage() {
   const [isShowSpacePanel, setIsShowSpacePanel] = useSearchParamsState<boolean>("spaceDetailPop", false);
   // 房间设置窗口状态
   const [activeRoomSettingId, setActiveRoomSettingId] = useState<number | null>(null);
-  const [setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
-  const [setIsRenderWindowOpen] = useState(false);
+  const [_sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
+  const [_isRenderWindowOpen, setIsRenderWindowOpen] = useState(false);
 
   // 处理邀请用户uid
   const [inputUserId, setInputUserId] = useState<number>(-1);
@@ -408,7 +408,7 @@ export default function ChatPage() {
                         activeSpaceId && (
                           <div className="self-center font-bold flex gap-2">
                             <span className="text-lg">{activeSpace?.name}</span>
-                            <DotsHorizontalOutline className="size-7 hover:bg-base-300 rounded" onClick={() => { setIsShowSpacePanel(!isShowSpacePanel); }} />
+                            <Setting className="size-7 hover:bg-base-300 rounded cursor-pointer hover:text-info" onClick={() => { setIsShowSpacePanel(!isShowSpacePanel); }} />
                           </div>
                         )
                       }
@@ -447,21 +447,19 @@ export default function ChatPage() {
                                   </div>
                                   <span className="truncate flex-1 text-left">{room.name}</span>
                                 </button>
-                                {/* 设置按钮 - 只在当前激活房间时显示 */}
-                                {activeRoomId === room.roomId && (
-                                  <div
-                                    className="tooltip tooltip-left opacity-0 group-hover:opacity-100 transition-opacity"
-                                    data-tip="房间设置"
-                                  >
-                                    <Setting
-                                      className="size-5 cursor-pointer hover:text-info p-1 hover:bg-base-300 rounded"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActiveRoomSettingId(room.roomId ?? -1);
-                                      }}
-                                    />
-                                  </div>
-                                )}
+                                {/* 设置按钮 - 在所有房间都显示（当前房间和悬浮房间） */}
+                                <div
+                                  className="tooltip tooltip-left opacity-0 group-hover:opacity-100 transition-opacity"
+                                  data-tip="房间设置"
+                                >
+                                  <Setting
+                                    className="size-5 cursor-pointer hover:text-info p-1 hover:bg-base-300 rounded"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveRoomSettingId(room.roomId ?? -1);
+                                    }}
+                                  />
+                                </div>
                               </div>
                             )}
                           </div>

@@ -170,7 +170,10 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               </div>
               <div className="flex flex-col items-start">
                 <div className="flex justify-between items-center w-full">
-                  <span onClick={handleRoleNameClick} className={`text-sm text-base-content/85 pb-1 cursor-pointer ${canEdit ? "hover:underline" : ""}`}>
+                  <span
+                    onClick={handleRoleNameClick}
+                    className={`text-sm text-base-content/85 pb-1 cursor-pointer transition-all duration-200 hover:text-primary ${canEdit ? "hover:underline" : ""}`}
+                  >
                     {role?.roleName?.trim() || "Undefined"}
                   </span>
                   <span className="text-xs text-base-content/50 ml-auto">
@@ -178,7 +181,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                   </span>
                 </div>
                 <div
-                  className="max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow bg-base-200 text-base"
+                  className="max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow bg-base-200 text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer"
                 >
                   {renderedContent}
                 </div>
@@ -205,18 +208,20 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 {/* 角色名 */}
                 <div className="flex justify-between items-center w-full">
                   <div
-                    className={`cursor-pointer font-semibold ${userId === message.userId ? "hover:underline" : ""}`}
+                    className={`cursor-pointer font-semibold transition-all duration-200 hover:text-primary ${userId === message.userId ? "hover:underline" : ""}`}
                     onClick={handleRoleNameClick}
                   >
                     <div className="w-[30vw] truncate">
-                      {role?.roleName?.trim() || "Undefined"}
+                      { `【${role?.roleName?.trim() || "Undefined"}】`}
                     </div>
                   </div>
                   <div className="text-xs text-base-content/50 pt-1 ml-auto">
                     {formattedTime}
                   </div>
                 </div>
-                {renderedContent}
+                <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-2 -m-2 cursor-pointer">
+                  {renderedContent}
+                </div>
               </div>
             </div>
           )}
