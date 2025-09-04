@@ -203,16 +203,20 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               {/* 消息内容 */}
               <div className="flex-1 overflow-auto p-1 pr-5">
                 {/* 角色名 */}
-                <div
-                  className={`cursor-pointer font-semibold ${userId === message.userId ? "hover:underline" : ""}`}
-                  onClick={handleRoleNameClick}
-                >
-                  {role?.roleName?.trim() || "Undefined"}
+                <div className="flex gap-8">
+                  <div
+                    className={`cursor-pointer font-semibold ${userId === message.userId ? "hover:underline" : ""}`}
+                    onClick={handleRoleNameClick}
+                  >
+                    <div className="w-[30vw] truncate">
+                      {role?.roleName?.trim() || "Undefined"}
+                    </div>
+                  </div>
+                  <div className="text-xs text-base-content/70 pt-1">
+                    {formattedTime}
+                  </div>
                 </div>
                 {renderedContent}
-                <div className="text-xs text-base-content/70 pt-1">
-                  {formattedTime}
-                </div>
               </div>
             </div>
           )}
