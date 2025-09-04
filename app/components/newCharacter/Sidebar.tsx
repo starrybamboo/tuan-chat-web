@@ -28,6 +28,7 @@ export function Sidebar({
   onSave,
 }: SidebarProps) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isCreatingRole, setIsCreatingRole] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   // 获取用户数据
   const userId = useGlobalContext().userId;
@@ -142,29 +143,41 @@ export function Sidebar({
 
   // 创建新角色
   const handleCreate = async () => {
-    const data = await createRole({ roleName: "新角色", description: "新角色描述" });
-    if (data === undefined) {
-      console.error("角色创建失败");
-      return;
+    if (isCreatingRole)
+      return; // 防止重复点击
+
+    setIsCreatingRole(true);
+    try {
+      const data = await createRole({ roleName: "新角色", description: "新角色描述" });
+      if (data === undefined) {
+        console.error("角色创建失败");
+        return;
+      }
+      const res = await uploadAvatar({
+        avatarUrl: "/favicon.ico",
+        spriteUrl: "/favicon.ico",
+        roleId: data,
+      });
+      if (res?.data?.avatarId) {
+        const newRole: Role = {
+          id: data,
+          name: "新角色",
+          description: "新角色描述",
+          avatar: res.data.avatarUrl,
+          avatarId: res.data.avatarId,
+          modelName: "散华",
+          speakerName: "鸣潮",
+        };
+        setRoles(prev => [newRole, ...prev]);
+        setSelectedRoleId(newRole.id);
+        updateRole(newRole);
+      }
     }
-    const res = await uploadAvatar({
-      avatarUrl: "/favicon.ico",
-      spriteUrl: "/favicon.ico",
-      roleId: data,
-    });
-    if (res?.data?.avatarId) {
-      const newRole: Role = {
-        id: data,
-        name: "新角色",
-        description: "新角色描述",
-        avatar: res.data.avatarUrl,
-        avatarId: res.data.avatarId,
-        modelName: "散华",
-        speakerName: "鸣潮",
-      };
-      setRoles(prev => [newRole, ...prev]);
-      setSelectedRoleId(newRole.id);
-      updateRole(newRole);
+    catch (error) {
+      console.error("创建角色时发生错误:", error);
+    }
+    finally {
+      setIsCreatingRole(false);
     }
   };
   // 初始化角色数据
@@ -328,23 +341,30 @@ export function Sidebar({
                   </button>
                   <button
                     type="button"
-                    className="btn btn-square btn-soft"
+                    className={`btn btn-square btn-soft ${isCreatingRole ? "btn-disabled" : ""}`}
                     onClick={handleCreate}
+                    disabled={isCreatingRole}
                     title="创建新角色"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="12" y1="3" x2="12" y2="21" />
-                      <line x1="3" y1="12" x2="21" y2="12" />
-                    </svg>
+                    {isCreatingRole
+                      ? (
+                          <span className="loading loading-spinner loading-sm"></span>
+                        )
+                      : (
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <line x1="12" y1="3" x2="12" y2="21" />
+                            <line x1="3" y1="12" x2="21" y2="12" />
+                          </svg>
+                        )}
                   </button>
                 </>
               )}
@@ -365,30 +385,40 @@ export function Sidebar({
             }}
           >
             <div
-              className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
+              className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150 ${isCreatingRole ? "opacity-50 pointer-events-none" : ""}`}
               onClick={handleCreate}
               title="创建新角色"
             >
               <div className="avatar shrink-0">
                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-base-content/40 group-hover:border-base-content/60 bg-base-200/70 text-base-content/40 group-hover:text-base-content/60 transition-colors duration-150 relative">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="12" y1="3" x2="12" y2="21" />
-                    <line x1="3" y1="12" x2="21" y2="12" />
-                  </svg>
+                  {isCreatingRole
+                    ? (
+                        <span className="loading loading-spinner loading-sm absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"></span>
+                      )
+                    : (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="w-7 h-7 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <line x1="12" y1="3" x2="12" y2="21" />
+                          <line x1="3" y1="12" x2="21" y2="12" />
+                        </svg>
+                      )}
                 </div>
               </div>
               <div className="flex-1 min-w-0 overflow-hidden">
-                <h3 className="font-medium truncate">创建角色</h3>
-                <p className="text-xs text-base-content/70 mt-1 truncate">点击创建一个新角色</p>
+                <h3 className="font-medium truncate">
+                  {isCreatingRole ? "正在创建..." : "创建角色"}
+                </h3>
+                <p className="text-xs text-base-content/70 mt-1 truncate">
+                  {isCreatingRole ? "请稍候..." : "点击创建一个新角色"}
+                </p>
               </div>
             </div>
             {filteredRoles.map(role => (

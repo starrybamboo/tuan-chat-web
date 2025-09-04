@@ -68,7 +68,7 @@ export default function ExpansionModule({
         ability: numericAbility,
       });
     }
-  }, [ruleDetailQuery.data, abilityQuery.data, abilityQuery.isLoading, roleId, setRoleAbilityMutation]);
+  }, [ruleDetailQuery.data, abilityQuery.data, abilityQuery.isLoading, roleId]);
 
   // 构建本地规则副本（合并数值）
   useEffect(() => {

@@ -192,11 +192,11 @@ export default function AICreateRole({ onBack, onComplete }: AICreateRoleProps) 
         {/* 主要内容区域 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 左侧：规则选择 */}
-          <div className="lg:col-span-1 flex">
-            <div className="card bg-base-100 shadow-sm rounded-2xl border-2 border-base-content/10 sticky top-6 flex-1 h-fit">
-              <div className="card-body flex flex-col h-full">
+          <div className="lg:col-span-1">
+            <div className="card bg-base-100 shadow-sm rounded-2xl border-2 border-base-content/10 sticky top-6">
+              <div className="card-body">
                 <h3 className="card-title text-lg mb-4">⚙️ 规则系统</h3>
-                <div className="space-y-3 flex-1">
+                <div className="space-y-3">
                   {RULE_SYSTEMS.map(rule => (
                     <div
                       key={rule.id}
@@ -229,13 +229,13 @@ export default function AICreateRole({ onBack, onComplete }: AICreateRoleProps) 
           </div>
 
           {/* 右侧：基础信息 */}
-          <div className="lg:col-span-2 flex">
+          <div className="lg:col-span-2 space-y-6">
             {/* 基础信息 */}
-            <div className="card bg-base-100 shadow-sm rounded-2xl border-2 border-base-content/10 flex-1">
-              <div className="card-body flex flex-col h-full">
+            <div className="card bg-base-100 shadow-sm rounded-2xl border-2 border-base-content/10">
+              <div className="card-body">
                 <h3 className="card-title text-lg mb-4">📝 基础信息</h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* 头像上传 */}
                   <div className="md:col-span-2">
                     <div className="flex gap-2 mb-2 items-center font-semibold">
