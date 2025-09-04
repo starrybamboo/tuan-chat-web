@@ -1,4 +1,4 @@
-import type { Route } from "./+types/home";
+import type { Route } from "./+types/create";
 import Work from "@/components/module/workPlace/work";
 
 export function meta(_args: Route.MetaArgs) {
@@ -13,6 +13,6 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function Create() {
   return (
-    <Work></Work>
+    <Work />
   );
 }
