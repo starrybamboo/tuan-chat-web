@@ -23,11 +23,11 @@ export default function AIGenerationCard({
     <div className="card bg-gradient-to-br rounded-xl from-purple-50 to-pink-50 border-2 border-dashed border-purple-300">
       <div className="card-body mt-4 mb-4">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center">
             {/* <span className="text-white text-xl">🤖</span> */}
           </div>
           <div>
-            <h3 className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <h3 className="text-lg font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
               {title}
             </h3>
             <p className="text-sm text-base-content/70">{description}</p>

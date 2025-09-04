@@ -268,7 +268,14 @@ export default function NumericalEditor({
             </div>
 
             {/* 根据类型选择不同布局 */}
-            <div className={totalKey === "0" ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-6" : "flex flex-wrap gap-2 md:gap-6"}>
+            <div className={
+              totalKey === "0"
+                ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-6"
+                : isEditing
+                  ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+                  : "flex flex-wrap gap-2 md:gap-6"
+            }
+            >
               {entries.map(([key]) => {
                 const calculatedValue = calculatedConstraints[totalKey][key];
                 if (totalKey === "0") {
@@ -292,39 +299,23 @@ export default function NumericalEditor({
                 }
                 else {
                   return (
-                    <div key={key} className="flex flex-col gap-1 flex-shrink-0">
+                    <div key={key} className={isEditing ? "form-control" : "flex flex-col gap-1 flex-shrink-0"}>
                       {isEditing
                         ? (
-                            <div className="flex items-center gap-1 group">
-                              <div className="hidden md:block w-full">
-                                <label className="input flex items-center gap-1 md:gap-2 w-full">
-                                  <span className="text-xs md:text-sm">{key}</span>
-                                  <div className="w-px h-4 bg-base-content/20"></div>
-                                  <input
-                                    type="text"
-                                    value={typeof calculatedValue === "object" && "displayValue" in calculatedValue
-                                      ? calculatedValue.displayValue.toString()
-                                      : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
-                                    className="grow"
-                                    disabled={!isEditing}
-                                    onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
-                                  />
-                                </label>
-                              </div>
-                              <div className="block md:hidden w-full">
-                                <fieldset className="fieldset">
-                                  <legend className="fieldset-legend text-xs">{key}</legend>
-                                  <input
-                                    type="text"
-                                    value={typeof calculatedValue === "object" && "displayValue" in calculatedValue
-                                      ? calculatedValue.displayValue.toString()
-                                      : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
-                                    className="input w-full"
-                                    disabled={!isEditing}
-                                    onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
-                                  />
-                                </fieldset>
-                              </div>
+                            <div className="form-control">
+                              <label className="input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary">
+                                <span className="text-sm font-medium whitespace-nowrap">{key}</span>
+                                <div className="w-px h-4 bg-base-content/20"></div>
+                                <input
+                                  type="text"
+                                  value={typeof calculatedValue === "object" && "displayValue" in calculatedValue
+                                    ? calculatedValue.displayValue.toString()
+                                    : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
+                                  className="grow focus:outline-none"
+                                  disabled={!isEditing}
+                                  onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
+                                />
+                              </label>
                             </div>
                           )
                         : (
