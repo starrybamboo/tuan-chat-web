@@ -1,4 +1,4 @@
-import {useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient} from "@tanstack/react-query";
+import {keepPreviousData, useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient} from "@tanstack/react-query";
 import type {RuleCloneRequest} from "../models/RuleCloneRequest";
 import type {RuleCreateRequest} from "../models/RuleCreateRequest";
 import type {RulePageRequest} from "../models/RulePageRequest";
@@ -142,18 +142,21 @@ export function useRuleDetailQuery(ruleId: number) {
     })
   }
 
-//分页获取规则
-export function useRulePageMutation() {
-  return useMutation({
-    mutationKey: ["ruleList"],
-    mutationFn: async (params: RulePageRequest): Promise<Rule[]> => {
-      const res = await tuanchat.ruleController.getRulePage(params);
-      if (res.success && res.data?.list) {
-        return res.data.list;
-      }
-      throw new Error('获取规则列表失败');
-    }
-  });
+// 分页获取规则（useQuery 版本）
+export function useRulePageQuery(params: RulePageRequest) {
+    return useQuery<Rule[], Error>({
+        queryKey: ["ruleList", params],
+        queryFn: async (): Promise<Rule[]> => {
+            const res = await tuanchat.ruleController.getRulePage(params);
+            if (res.success && res.data?.list) {
+                return res.data.list;
+            }
+            return [] as Rule[];
+        },
+        staleTime: 30_000,
+        // 在翻页/搜索时保留上一页数据避免闪烁（React Query v5）
+        placeholderData: keepPreviousData,
+    });
 }
 
 export function useRuleListQuery() {

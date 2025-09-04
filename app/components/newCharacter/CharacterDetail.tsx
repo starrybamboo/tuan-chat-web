@@ -71,8 +71,20 @@ export default function CharacterDetail({
       setLocalRole(role);
       setSelectedAvatarId(role.avatarId);
       setSelectedAvatarUrl(role.avatar || "/favicon.ico");
+
+      // 如果头像列表已经加载，立即同步头像信息
+      if (roleAvatars.length > 0 && role.avatarId !== 0) {
+        const currentAvatar = roleAvatars.find(ele => ele.avatarId === role.avatarId);
+        if (currentAvatar) {
+          setSelectedAvatarUrl(currentAvatar.avatarUrl || "/favicon.ico");
+          setSelectedSpriteUrl(currentAvatar.spriteUrl || null);
+        }
+      }
+      else {
+        setSelectedSpriteUrl("");
+      }
     }
-  }, [role, localRole.id]);
+  }, [role, localRole.id, roleAvatars]);
 
   // 处理角色头像数据更新
   useEffect(() => {
@@ -80,20 +92,27 @@ export default function CharacterDetail({
       const avatarsData = roleAvatarsResponse.data;
       setRoleAvatars(avatarsData);
 
-      if (role.avatarId !== 0) {
-        const currentAvatar = avatarsData.find(ele => ele.avatarId === role.avatarId);
+      // 使用 localRole.avatarId 而不是 role.avatarId，确保与当前状态同步
+      if (localRole.avatarId !== 0) {
+        const currentAvatar = avatarsData.find(ele => ele.avatarId === localRole.avatarId);
         const newAvatarUrl = currentAvatar?.avatarUrl || "/favicon.ico";
         const newSpriteUrl = currentAvatar?.spriteUrl || null;
 
         setSelectedAvatarUrl(newAvatarUrl);
         setSelectedSpriteUrl(newSpriteUrl);
+
+        // 同时更新 localRole 的 avatar 字段，确保显示正确的头像
+        setLocalRole(prev => ({
+          ...prev,
+          avatar: newAvatarUrl,
+        }));
       }
       else {
         setSelectedAvatarUrl("/favicon.ico");
         setSelectedSpriteUrl("");
       }
     }
-  }, [isSuccess, roleAvatarsResponse, role.avatarId]);
+  }, [isSuccess, roleAvatarsResponse, localRole.avatarId]);
 
   // 接口部分
   // 发送post数据部分,保存角色数据

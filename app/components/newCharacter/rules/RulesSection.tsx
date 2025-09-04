@@ -1,8 +1,8 @@
 // RulesSection.tsx
 
 import type { Rule } from "api/models/Rule";
-import { useRulePageMutation } from "api/hooks/ruleQueryHooks";
-import { useEffect, useMemo, useState } from "react";
+import { useRulePageQuery } from "api/hooks/ruleQueryHooks";
+import { useEffect, useState } from "react";
 
 interface RulesSectionProps {
   currentRuleId: number;
@@ -23,33 +23,20 @@ export default function RulesSection({
   // const [pageSize, setPageSize] = useState(4);
   const [keyword, setKeyword] = useState("");
 
-  // 状态
-  const [rules, setRules] = useState<Rule[]>([]);
-  // const [filteredRules, setFilteredRules] = useState<Rule[]>([]); // 删除这行
+  // 查询（分页 + 关键词）
+  const pageSize = 4;
+  const { data: rules = [] as Rule[] } = useRulePageQuery({
+    pageNo: pageNum,
+    pageSize,
+    keyword,
+  });
 
-  // API Hooks
-  const rulePageMutation = useRulePageMutation();
-
-  // 初始化规则分页获取
+  // 当首次有数据且未选择规则时，默认选中第一个
   useEffect(() => {
-    const fetchRules = async () => {
-      try {
-        const result = await rulePageMutation.mutateAsync({ pageNo: 1, pageSize: 10 });
-        if (result && result.length > 0) {
-          setRules(result);
-          // 如果未选择规则，默认选第一个
-          if (!currentRuleId) {
-            onRuleChange(result[0].ruleId || 0);
-          }
-        }
-      }
-      catch (err) {
-        console.error("规则加载失败:", err);
-      }
-    };
-
-    fetchRules();
-  }, []);
+    if (!currentRuleId && rules.length > 0) {
+      onRuleChange(rules[0].ruleId || 0);
+    }
+  }, [rules, currentRuleId, onRuleChange]);
 
   // 处理搜索输入
   const handleSearchInput = (value: string) => {
@@ -57,32 +44,17 @@ export default function RulesSection({
     setPageNum(1); // 重置页码
   };
 
-  // 监听搜索关键词变化
-  // 使用 useMemo 处理搜索过滤
-  const filteredRulesList = useMemo(() => {
-    if (!keyword.trim()) {
-      return rules;
-    }
-
-    const searchTerm = keyword.toLowerCase();
-    return rules.filter(
-      rule =>
-        rule.ruleName?.toLowerCase().includes(searchTerm)
-        || rule.ruleDescription?.toLowerCase().includes(searchTerm),
-    );
-  }, [keyword, rules]);
-
   return (
     <div className="space-y-3">
       {/* 搜索框和分页控制 */}
       {/* 只有一页且无搜索时隐藏整个搜索和分页组件 */}
-      {(rules.length > 4 || keyword.trim()) && (
+      {(rules.length || keyword.trim()) && (
         <div className="flex justify-between items-center gap-3">
           <div className="relative flex-1">
             <input
               type="text"
               placeholder="搜索规则..."
-              defaultValue={keyword}
+              value={keyword}
               onChange={e => handleSearchInput(e.target.value)}
               className="input input-bordered input-sm w-full pl-8 pr-4"
             />
@@ -108,11 +80,6 @@ export default function RulesSection({
               type="button"
               onClick={() => {
                 setPageNum(p => Math.max(p - 1, 1));
-                rulePageMutation.mutate({
-                  pageNo: pageNum - 1,
-                  pageSize: 4,
-                  keyword,
-                });
               }}
               disabled={pageNum === 1}
               className="join-item btn btn-ghost btn-sm disabled:opacity-50"
@@ -137,18 +104,8 @@ export default function RulesSection({
 
             <button
               type="button"
-              onClick={() => {
-                setPageNum(p => p + 1);
-                rulePageMutation.mutate({
-                  pageNo: pageNum + 1,
-                  pageSize: 4,
-                  keyword,
-                });
-              }}
-              disabled={
-                // 如果返回的数据少于 4 条，说明没有下一页
-                (rulePageMutation.data?.length || 0) < 4
-              }
+              onClick={() => setPageNum(p => p + 1)}
+              disabled={rules.length < pageSize}
               className="join-item btn btn-ghost btn-sm disabled:opacity-50"
             >
               <svg
@@ -171,7 +128,7 @@ export default function RulesSection({
 
       {/* 规则列表 - 纵向排列 */}
       <div className="space-y-2 max-h-96 overflow-y-auto">
-        {filteredRulesList.map(rule => (
+        {rules.map(rule => (
           <div
             key={rule.ruleId}
             className={`p-3 rounded-lg bg-base-100 hover:bg-base-200 transition-colors cursor-pointer border-2 ${currentRuleId === rule.ruleId
@@ -189,7 +146,7 @@ export default function RulesSection({
       </div>
 
       {/* 没有搜索结果的提示 */}
-      {filteredRulesList.length === 0 && (
+      {rules.length === 0 && (
         <div className="text-center py-6 text-base-content/60 text-sm">
           没有找到匹配的规则
         </div>

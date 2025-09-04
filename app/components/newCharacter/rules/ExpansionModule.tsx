@@ -121,38 +121,74 @@ export default function ExpansionModule({
     onRuleDataChange?.(selectedRuleId, updated.actTemplate, abilityDefault);
   };
 
+  // 检查加载状态
+  const isLoading = ruleDetailQuery.isLoading || abilityQuery.isLoading || !localRuleData;
+
   return (
     <div className="space-y-6">
-      {/* 规则详情区域 */}
-      {localRuleData && (
-        <>
-          <Section title="表演字段配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-            <PerformanceEditor
-              fields={{
-                ...(localRuleData.actTemplate ?? ruleDetailQuery.data?.actTemplate ?? {}),
-              }}
-              onChange={handleActTemplateChange}
-              abilityData={localRuleData.actTemplate ?? {}}
-              abilityId={abilityQuery.data?.abilityId || 0}
-            />
-          </Section>
+      {/* 加载状态 */}
+      {isLoading
+        ? (
+            <div className="space-y-6">
+              {/* 表演字段配置加载骨架 */}
+              <Section title="表演字段配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                <div className="space-y-4 animate-pulse">
+                  <div className="h-4 bg-base-300 rounded w-1/4"></div>
+                  <div className="space-y-3">
+                    <div className="h-10 bg-base-300 rounded"></div>
+                    <div className="h-10 bg-base-300 rounded"></div>
+                    <div className="h-10 bg-base-300 rounded"></div>
+                  </div>
+                </div>
+              </Section>
 
-          <Section title="数值约束配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-            <NumericalEditor
-              constraints={{
-                ...(localRuleData.abilityDefault ?? ruleDetailQuery.data?.abilityDefault ?? {}),
-              }}
-              onChange={handleAbilityDefaultChange}
-              abilityId={abilityQuery.data?.abilityId || 0}
-            />
-            <ImportWithStCmd
-              ruleId={selectedRuleId}
-              roleId={roleId}
-              onImportSuccess={() => { }}
-            />
-          </Section>
-        </>
-      )}
+              {/* 数值约束配置加载骨架 */}
+              <Section title="数值约束配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                <div className="space-y-4 animate-pulse">
+                  <div className="h-4 bg-base-300 rounded w-1/3"></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="h-16 bg-base-300 rounded"></div>
+                    <div className="h-16 bg-base-300 rounded"></div>
+                    <div className="h-16 bg-base-300 rounded"></div>
+                    <div className="h-16 bg-base-300 rounded"></div>
+                  </div>
+                  <div className="h-10 bg-base-300 rounded w-1/2"></div>
+                </div>
+              </Section>
+            </div>
+          )
+        : (
+          /* 规则详情区域 */
+            localRuleData && (
+              <>
+                <Section title="表演字段配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                  <PerformanceEditor
+                    fields={{
+                      ...(localRuleData.actTemplate ?? ruleDetailQuery.data?.actTemplate ?? {}),
+                    }}
+                    onChange={handleActTemplateChange}
+                    abilityData={localRuleData.actTemplate ?? {}}
+                    abilityId={abilityQuery.data?.abilityId || 0}
+                  />
+                </Section>
+
+                <Section title="数值约束配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                  <NumericalEditor
+                    constraints={{
+                      ...(localRuleData.abilityDefault ?? ruleDetailQuery.data?.abilityDefault ?? {}),
+                    }}
+                    onChange={handleAbilityDefaultChange}
+                    abilityId={abilityQuery.data?.abilityId || 0}
+                  />
+                  <ImportWithStCmd
+                    ruleId={selectedRuleId}
+                    roleId={roleId}
+                    onImportSuccess={() => { }}
+                  />
+                </Section>
+              </>
+            )
+          )}
     </div>
   );
 }
