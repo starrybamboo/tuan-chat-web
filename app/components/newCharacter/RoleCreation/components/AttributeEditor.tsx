@@ -10,24 +10,60 @@ export default function AttributeEditor({ title, attributes, onChange }: Attribu
       <div className="card-body">
         <h3 className="card-title text-lg flex items-center gap-2">
           ⚡
-          {" "}
           {title}
         </h3>
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          {Object.entries(attributes).map(([key, value]) => (
-            <div key={key} className="form-control">
-              <label className="label">
-                <span className="label-text">{key}</span>
-              </label>
-              <input
-                type="number"
-                className="input input-bordered"
-                value={value}
-                onChange={e => onChange(key, Number.parseInt(e.target.value) || 0)}
-              />
-            </div>
-          ))}
-        </div>
+
+        {title === "角色表演能力"
+          ? (
+              <div className="grid grid-cols-2 gap-6 mt-4">
+                {Object.entries(attributes as Record<string, string>).map(([key, value]) => (
+                  <div key={key} className="form-control w-full">
+
+                    <span className="font-semibold text-base label-text ml-1.5">{key}</span>
+
+                    <textarea
+                      className="textarea textarea-bordered bg-base-200 rounded-md w-full min-h-32 mt-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      placeholder="请输入表演描述..."
+                      value={(value as any) === 0 || value === "0" ? "" : String(value ?? "")}
+                      onChange={e => (onChange as (k: string, v: string | number) => void)(key, e.target.value)}
+                    />
+                  </div>
+                ))}
+              </div>
+            )
+          : (
+              <div className="grid grid-cols-4 gap-4 mt-4">
+                {Object.entries(attributes as Record<string, number>).map(([key, value]) => (
+                  <div key={key} className="form-control">
+                    <div className="flex items-center gap-1 group">
+                      <div className="hidden md:block w-full">
+                        <label className="input flex items-center gap-1 md:gap-2 w-full rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary">
+                          <span className="text-xs md:text-sm">{key}</span>
+                          <div className="w-px h-4 bg-base-content/20"></div>
+                          <input
+                            type="number"
+                            value={value}
+                            className="grow focus:outline-none"
+                            onChange={e => (onChange as (k: string, v: number) => void)(key, Number.parseInt(e.target.value) || 0)}
+                          />
+                        </label>
+                      </div>
+                      <div className="block md:hidden w-full">
+                        <fieldset className="fieldset rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary">
+                          <legend className="fieldset-legend text-xs">{key}</legend>
+                          <input
+                            type="number"
+                            value={value}
+                            className="input w-full focus:outline-none"
+                            onChange={e => (onChange as (k: string, v: number) => void)(key, Number.parseInt(e.target.value) || 0)}
+                          />
+                        </fieldset>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
       </div>
     </div>
   );

@@ -35,7 +35,7 @@ export default function AIGenerationCard({
         </div>
         <div className="space-y-3">
           <textarea
-            className="textarea textarea-bordered rounded-md w-full min-h-[120px] bg-white/80 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            className="textarea textarea-bordered rounded-md w-full min-h-[120px] bg-base-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             placeholder={placeholder}
             value={prompt}
             onChange={e => onPromptChange(e.target.value)}
