@@ -146,7 +146,7 @@ export default function RenderWindow() {
         className={`btn btn-primary w-full mt-2 ${isRendering ? "btn-disabled" : ""}`}
         type="button"
       >
-        {isRendering ? "渲染中" : "开始渲染"}
+        {isRendering ? "渲染中，请勿关闭此窗口" : "开始渲染"}
       </button>
 
       {/* 渲染进度显示区域 */}

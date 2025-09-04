@@ -207,11 +207,16 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                   className={`cursor-pointer font-semibold ${userId === message.userId ? "hover:underline" : ""}`}
                   onClick={handleRoleNameClick}
                 >
-                  {role?.roleName?.trim() || "Undefined"}
+                  <span>
+                    {role?.roleName?.trim() || "Undefined"}
+                  </span>
+                  <span>
+                    {formattedTime}
+                  </span>
+
                 </div>
                 {renderedContent}
                 <div className="text-xs text-base-content/70 pt-1">
-                  {formattedTime}
                 </div>
               </div>
             </div>
