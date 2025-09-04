@@ -1,9 +1,9 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
-import EntityList from "../../detail/ContentTab/entityLists";
 import { useModuleContext } from "../context/_moduleContext";
 import AddEntityToScene from "./addEntityToScene";
+import CreateEntityList from "./createEntityList";
 import EntityDetailList from "./EntityDetailList"; // 引入 EntityDetailList 组件
 import Veditor from "./veditor";
 
@@ -70,7 +70,7 @@ function Folder({ moduleData, entityType, onClick, onDelete }:
                 <EntityDetailList moduleData={moduleData} onDelete={onDelete} />
               )
             : (
-                <EntityList moduleData={moduleData} entityType={entityType} />
+                <CreateEntityList moduleData={moduleData} entityType={entityType} onDelete={onDelete} />
               )
         }
       </div>
@@ -147,7 +147,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
   };
 
   const handleDeleteEntity = (entity: StageEntityResponse) => {
-    if (editEntityType === "item") {
+    if (entity.entityType! === 1) {
       const filteredItems = localScene.items?.filter((item: string | undefined) => item !== entity.name);
       updateScene({
         id: scene.id!,
@@ -157,7 +157,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
       });
       setLocalScene(prev => ({ ...prev, items: (filteredItems || []) }));
     }
-    if (editEntityType === "role") {
+    if (entity.entityType! === 2) {
       const filteredRoles = localScene.roles?.filter((item: string | undefined) => item !== entity.name);
       updateScene({
         id: scene.id!,
@@ -167,7 +167,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
       });
       setLocalScene(prev => ({ ...prev, roles: (filteredRoles || []) }));
     }
-    if (editEntityType === "location") {
+    if (entity.entityType! === 4) {
       const filteredLocations = localScene.locations?.filter((item: string | undefined) => item !== entity.name);
       updateScene({
         id: scene.id!,
@@ -395,8 +395,8 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
       {/* 新增模块：locations, items, roles */}
       <div className="space-y-4">
-        <Folder moduleData={locations} entityType="location" onClick={() => handleAddEntityOpen("location")} />
-        <Folder moduleData={items} entityType="item" onClick={() => handleAddEntityOpen("item")} />
+        <Folder moduleData={locations} entityType="location" onClick={() => handleAddEntityOpen("location")} onDelete={handleDeleteEntity} />
+        <Folder moduleData={items} entityType="item" onClick={() => handleAddEntityOpen("item")} onDelete={handleDeleteEntity} />
         <Folder moduleData={roles} entityType="role" onClick={() => handleAddEntityOpen("role")} onDelete={handleDeleteEntity} />
       </div>
       <AddEntityToScene
