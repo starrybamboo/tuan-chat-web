@@ -3,6 +3,7 @@ import { useModuleContext } from "@/components/module/workPlace/context/_moduleC
 import { GearOutline, PlusOutline, Search } from "@/icons";
 import { useStagingQuery } from "api/hooks/moduleQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import ModuleListItem from "./moduleListItem";
 
 export default function TopBar() {
@@ -10,6 +11,7 @@ export default function TopBar() {
   const { setStageId, stageId } = useModuleContext();
   const { data: stagingData, isSuccess } = useStagingQuery();
   const initializedRef = useRef(false);
+  const navigate = useNavigate();
 
   // 从查询数据中获取模组数组
   const moduleArray = useMemo(() => {
@@ -30,7 +32,7 @@ export default function TopBar() {
         }
       }
     }
-  }, []);
+  }, [setStageId]);
 
   // 当moduleArray变化时，确保选择的模块有效
   useEffect(() => {
@@ -42,13 +44,11 @@ export default function TopBar() {
         // 如果无效，选择第一个模块
         const firstStageId = moduleArray[0].stageId ?? 0;
         setEditingStageId(firstStageId);
-        // 更新本地存储
-        if (typeof window !== "undefined" && window.localStorage) {
-          localStorage.setItem("editingStageId", firstStageId.toString());
-        }
+        // 更新路由
+        navigate(`/create/${firstStageId}`, { replace: true });
       }
     }
-  }, [moduleArray, editingStageId]);
+  }, [moduleArray, editingStageId, navigate]);
 
   // 只有当stageId与editingStageId不一致时才更新上下文
   useEffect(() => {
@@ -59,11 +59,10 @@ export default function TopBar() {
 
   const handleModuleChange = useCallback((stageId: number) => {
     setEditingStageId(stageId);
-    if (typeof window !== "undefined" && window.localStorage) {
-      localStorage.setItem("editingStageId", stageId.toString());
-    }
+    // 更新路由
+    navigate(`/create/${stageId}`);
     setStageId(stageId);
-  }, [setStageId]);
+  }, [navigate, setStageId]);
 
   // 获取实际的当前编辑的stageId
   const actualEditingStageId = useMemo(() => {
