@@ -169,11 +169,11 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 />
               </div>
               <div className="flex flex-col items-start">
-                <div>
+                <div className="flex justify-between items-center w-full">
                   <span onClick={handleRoleNameClick} className={`text-sm text-base-content/85 pb-1 cursor-pointer ${canEdit ? "hover:underline" : ""}`}>
                     {role?.roleName?.trim() || "Undefined"}
                   </span>
-                  <span className="text-xs text-base-content/70 pl-2">
+                  <span className="text-xs text-base-content/50 ml-auto">
                     {formattedTime}
                   </span>
                 </div>
@@ -203,7 +203,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               {/* 消息内容 */}
               <div className="flex-1 overflow-auto p-1 pr-5">
                 {/* 角色名 */}
-                <div className="flex gap-8">
+                <div className="flex justify-between items-center w-full">
                   <div
                     className={`cursor-pointer font-semibold ${userId === message.userId ? "hover:underline" : ""}`}
                     onClick={handleRoleNameClick}
@@ -212,7 +212,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                       {role?.roleName?.trim() || "Undefined"}
                     </div>
                   </div>
-                  <div className="text-xs text-base-content/70 pt-1">
+                  <div className="text-xs text-base-content/50 pt-1 ml-auto">
                     {formattedTime}
                   </div>
                 </div>

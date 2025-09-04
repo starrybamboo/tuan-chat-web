@@ -2,6 +2,7 @@ import { RoomContext } from "@/components/chat/roomContext";
 import checkBack from "@/components/common/autoContrastText";
 import ConfirmModal from "@/components/common/comfirmModel";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import { MemberIcon, WebgalIcon } from "@/icons";
 import {
   useDissolveRoomMutation,
   useGetRoomInfoQuery,
@@ -11,13 +12,27 @@ import { use, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { SpaceContext } from "../spaceContext";
 
-function RoomSettingWindow({ onClose }: { onClose: () => void }) {
+function RoomSettingWindow({ onClose, onShowMembers, onRenderDialog, roomId: propRoomId }: {
+  onClose: () => void;
+  onShowMembers: () => void;
+  onRenderDialog: () => void;
+  roomId?: number;
+}) {
   const navigate = useNavigate();
-  const roomContext = use(RoomContext);
-  const spaceContext = use(SpaceContext);
-  const setActiveRoomId = spaceContext.setActiveRoomId;
-  // 获取群组数据
-  const roomId = Number(roomContext.roomId);
+  // 尝试获取context，如果不存在则为null
+  let roomContext = null;
+  let spaceContext = null;
+  try {
+    roomContext = use(RoomContext);
+    spaceContext = use(SpaceContext);
+  }
+  catch (e) {
+    console.warn(e);
+    // context不存在，使用默认值
+  }
+  const setActiveRoomId = spaceContext?.setActiveRoomId;
+  // 获取群组数据 - 优先使用props传入的roomId，否则使用context
+  const roomId = propRoomId ?? Number(roomContext?.roomId);
   const getRoomInfoQuery = useGetRoomInfoQuery(roomId ?? -1);
   const room = getRoomInfoQuery.data?.data;
   // 解散群组
@@ -138,6 +153,33 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
               placeholder="请输入房间描述..."
             />
           </div>
+
+          {/* 新增显示成员和渲染对话按钮 */}
+          <div className="mb-4 flex gap-4">
+            <button
+              type="button"
+              className="btn btn-outline btn-info flex-1 gap-2"
+              onClick={() => {
+                onShowMembers();
+                onClose();
+              }}
+            >
+              <MemberIcon className="size-5" />
+              展示成员
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline btn-secondary flex-1 gap-2"
+              onClick={() => {
+                onRenderDialog();
+                onClose();
+              }}
+            >
+              <WebgalIcon className="size-5" />
+              渲染对话
+            </button>
+          </div>
+
           <div className="flex justify-between mt-16">
             <button
               type="button"
@@ -166,9 +208,11 @@ function RoomSettingWindow({ onClose }: { onClose: () => void }) {
           dissolveRoomMutation.mutate(roomId, {
             onSuccess: () => {
               onClose();
-              navigate(`/chat/${roomContext.spaceId}`, { replace: true });
+              if (roomContext?.spaceId) {
+                navigate(`/chat/${roomContext.spaceId}`, { replace: true });
+              }
               setIsDissolveConfirmOpen(false);
-              setActiveRoomId(null);
+              setActiveRoomId?.(null);
             },
           });
         }}
