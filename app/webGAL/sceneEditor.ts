@@ -1,12 +1,9 @@
-import type { RenderProps } from "@/components/chat/window/renderWindow";
-
 import { checkGameExist, terreApis } from "@/webGAL/index";
 
 import type { ChatMessageResponse, RoleAvatar } from "../../api";
 
 import { tuanchat } from "../../api/instance";
 import { checkFileExist, getAsyncMsg, uploadFile } from "./fileOperator";
-import { editScene } from "./game";
 
 type Game = {
   name: string;
@@ -18,30 +15,22 @@ type RendererContext = {
   text: string;
 };
 
-export class Renderer {
-  private roomId: number = 0;
+export class SceneEditor {
   private game: Game = {
     name: "Default Game",
     description: "This is a default game",
   };
 
-  private rendererContext: RendererContext = {
-    lineNumber: 0,
-    text: "",
-  };
-
-  private renderProps: RenderProps;
+  // scene to rendererContext
+  private rendererContexts: Map<string, RendererContext> = new Map<string, RendererContext>();
 
   private syncSocket: WebSocket;
 
-  constructor(roomId: number, renderProp: RenderProps) {
-    this.roomId = roomId;
+  constructor(spaceId: number) {
     this.game = {
-      // name: `preview_${roomId}_${getCurTimeStamp()}`,
-      name: ` preview_${roomId}`,
-      description: `This is game preview of ${roomId}`,
+      name: ` preview_${spaceId}`,
+      description: `This is game preview of ${spaceId}`,
     };
-    this.renderProps = renderProp;
     this.syncSocket = new WebSocket(import.meta.env.VITE_TERRE_WS);
   }
 
@@ -55,10 +44,6 @@ export class Renderer {
       gameName: this.game.name,
       templateDir: "WebGAL Black",
     });
-    // readTextFile(this.game.name, "scene/start.txt").then((data) => {
-    //   this.rendererContext.text = data;
-    //   this.rendererContext.lineNumber = data.split("\n").length;
-    // });
   }
 
   /**
@@ -94,6 +79,7 @@ export class Renderer {
    * @param roleName 角色名
    * @param avatar
    * @param text 文本
+   * @param sceneName
    * @param leftSpriteName 左边立绘的文件名，如果设置为 空字符串，那么会取消这个位置立绘的显示。设置为undefined，则对这个位置的立绘不做任何改变
    * @param rightSpriteName 右边立绘的文件名，规则同上
    * @param vocal 语音文件名
@@ -102,22 +88,32 @@ export class Renderer {
     roleName: string,
     avatar: RoleAvatar | undefined,
     text: string,
+    sceneName: string,
     leftSpriteName?: string | undefined,
     rightSpriteName?: string | undefined,
     vocal?: string | undefined,
   ): Promise<void> {
     const transform = avatar ? this.roleAvatarToTransformString(avatar) : "";
     if (leftSpriteName) {
-      await this.addLineToRenderer(`changeFigure:${leftSpriteName.length > 0 ? `${leftSpriteName}` : ""} -left ${transform} -next;`);
+      await this.addLineToRenderer(
+        `changeFigure:${leftSpriteName.length > 0 ? `${leftSpriteName}` : ""} -left ${transform} -next;`,
+        sceneName,
+      );
     }
     if (rightSpriteName) {
-      await this.addLineToRenderer(`changeFigure:${rightSpriteName.length > 0 ? `${rightSpriteName}` : ""} -right ${transform} -next;`);
+      await this.addLineToRenderer(
+        `changeFigure:${rightSpriteName.length > 0 ? `${rightSpriteName}` : ""} -right ${transform} -next;`,
+        sceneName,
+      );
     }
-    await this.addLineToRenderer(`${roleName}: ${text} ${vocal ? `-${vocal}` : ""}`);
+    await this.addLineToRenderer(
+      `${roleName}: ${text} ${vocal ? `-${vocal}` : ""}`,
+      sceneName,
+    );
   }
 
-  public asyncRender(): void {
-    const msg = getAsyncMsg("start.txt", this.rendererContext.lineNumber);
+  public asyncRender(scene: string): void {
+    const msg = getAsyncMsg(`${scene}.txt`, this.rendererContexts.get(scene)?.lineNumber ?? 0);
     this.syncSocket.send(JSON.stringify(msg));
   }
 
@@ -134,17 +130,24 @@ export class Renderer {
     return await uploadFile(url, path);
   }
 
-  public async addLineToRenderer(line: string): Promise<void> {
+  public async addLineToRenderer(line: string, sceneName: string): Promise<void> {
     if (!line.trim())
       return; // 跳过空消息
 
-    this.rendererContext.text = this.rendererContext.text
-      ? `${this.rendererContext.text}\n${line}`
+    if (!this.rendererContexts.get(sceneName)) {
+      this.rendererContexts.set(sceneName, {
+        lineNumber: 0,
+        text: "",
+      });
+    }
+    const renderContext = this.rendererContexts.get(sceneName)!;
+    renderContext.text = renderContext.text
+      ? `${renderContext!.text}\n${line}`
       : line;
 
-    this.rendererContext.lineNumber += 1;
+    renderContext!.lineNumber += 1;
 
-    await editScene(this.game.name, "start", this.rendererContext.text);
+    await editScene(this.game.name, sceneName, renderContext.text);
   }
 
   // 简单的字符串哈希函数
@@ -187,4 +190,9 @@ export class Renderer {
     }
     return undefined;
   }
+}
+
+export async function editScene(game: string, scene: string, content: string) {
+  const path = `games/${game}/game/scene/${scene}.txt`;
+  await terreApis.manageGameControllerEditTextFile({ path, textFile: content });
 }

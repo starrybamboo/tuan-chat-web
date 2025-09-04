@@ -128,7 +128,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 创建子群聊房间
+     * 创建子群聊房间（场景），此场景是{roomId}的下个场景，允许多分支
      * @param requestBody
      * @returns ApiResultRoom OK
      * @throws ApiError

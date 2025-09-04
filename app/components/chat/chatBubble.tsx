@@ -155,7 +155,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       {useChatBubbleStyle
         ? (
             <div
-              className="flex w-full items-start gap-1 pb-2"
+              className="flex w-full items-start gap-1 py-1"
               key={message.messageId}
             >
               {/* Avatar */}
@@ -186,7 +186,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
             </div>
           )
         : (
-            <div className="flex w-full pb-4" key={message.messageId}>
+            <div className="flex w-full py-2" key={message.messageId}>
               {/* 圆角矩形头像 */}
               <div className="flex-shrink-0 pr-3">
                 <div className="w-20 h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>

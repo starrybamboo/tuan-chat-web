@@ -1,8 +1,8 @@
-import type { RenderProps } from "@/components/chat/window/renderWindow";
+import type { RenderProcess, RenderProps } from "@/components/chat/window/renderWindow";
 
-import { Renderer } from "@/webGAL/renderer";
+import { SceneEditor } from "@/webGAL/sceneEditor";
 
-import type { ChatMessageResponse, ImageMessage, Message, RoleAvatar, RoleResponse } from "../../api";
+import type { Message, RoleAvatar, RoleResponse, Room } from "../../api";
 
 import { tuanchat } from "../../api/instance";
 
@@ -13,41 +13,46 @@ import { tuanchat } from "../../api/instance";
 export class ChatRenderer {
   private MAX_VOCAL: number = 5;
 
-  private roomId: number;
-  private renderer: Renderer;
+  private readonly spaceId: number;
+  private sceneEditor: SceneEditor;
   private uploadedSpritesFileNameMap = new Map<number, string>(); // avatarId -> spriteFileName
   private roleAvatarsMap = new Map<number, RoleAvatar>(); // 渲染时候获取的avatar信息
   private roleMap: Map<number, RoleResponse> = new Map();
   private renderProps: RenderProps;
+  private readonly onRenderProcessChange: (process: RenderProcess) => void; // 渲染进度的回调函数
 
-  constructor(roomId: number, renderProp: RenderProps) {
-    this.roomId = roomId;
+  constructor(spaceId: number, renderProp: RenderProps, onRenderProcessChange: (process: RenderProcess) => void) {
+    this.spaceId = spaceId;
     this.renderProps = renderProp;
-    this.renderer = new Renderer(roomId, renderProp);
+    this.onRenderProcessChange = onRenderProcessChange;
+    this.sceneEditor = new SceneEditor(this.spaceId);
   }
 
   public async initializeRenderer(): Promise<void> {
-    await this.renderer.initRender();
-    await this.fetchMessages();
-  }
+    await this.sceneEditor.initRender();
+    this.onRenderProcessChange({ message: "开始渲染" });
+    const rooms = (await tuanchat.roomController.getUserRooms(this.spaceId)).data ?? [];
 
-  private async fetchMessages(): Promise<void> {
-    try {
-      // 获取所有消息
-      const messagesResponse = await tuanchat.chatController.getAllMessage(this.roomId);
-      if (!messagesResponse.success || !messagesResponse.data) {
-        throw new Error("Failed to fetch messages");
+    const renderedRooms: Room[] = []; // 成功渲染的房间
+    for (let i = 0; i < rooms.length; i++) {
+      try {
+        const room = rooms[i];
+        this.onRenderProcessChange({ percent: i * 100 / rooms.length, message: `渲染房间 ${room.name}` });
+        const success = await this.renderMessages(room);
+        if (success) {
+          renderedRooms.push(room);
+          await this.sceneEditor.addLineToRenderer("changeScene:start.txt", this.getSceneName(room));
+        }
       }
-      await this.renderMessages(messagesResponse.data);
+      catch (e) { console.error(e); }
     }
-    catch (error) {
-      console.error("Error initializing chat renderer:", error);
-      throw error;
-    }
+    const branchSentence = `choose:${renderedRooms.map(room => `${room.name?.split("\n").join("")}:${this.getSceneName(room)}.txt`).join("|")}`;
+    await this.sceneEditor.addLineToRenderer(branchSentence, "start");
   }
 
   private async fetchAvatar(avatarId: number): Promise<RoleAvatar | null> {
     // 获取立绘信息
+    this.onRenderProcessChange({ subMessage: `获取角色${avatarId}的立绘信息` });
     let avatar: RoleAvatar | undefined = this.roleAvatarsMap.get(avatarId);
     if (!avatar) {
       avatar = (await tuanchat.avatarController.getRoleAvatar(avatarId)).data;
@@ -59,6 +64,7 @@ export class ChatRenderer {
   }
 
   private async fetchRole(roleId: number): Promise<RoleResponse | null> {
+    this.onRenderProcessChange({ subMessage: `获取角色${roleId}的信息` });
     // 获取角色信息
     let role: RoleResponse | undefined = this.roleMap.get(roleId);
     if (!role) {
@@ -83,6 +89,13 @@ export class ChatRenderer {
   }
 
   /**
+   * 由Room生成场景名
+   */
+  private getSceneName(room: Room) {
+    return `${room.name?.split("\n").join("")}_${room.roomId}`;
+  }
+
+  /**
    * @param message
    * @private
    * @returns filename
@@ -94,7 +107,7 @@ export class ChatRenderer {
     if (!spriteName || !spriteUrl || !avatar?.avatarId) {
       return null;
     }
-    const fileName = await this.renderer.uploadSprites(spriteUrl, spriteName);
+    const fileName = await this.sceneEditor.uploadSprites(spriteUrl, spriteName);
     this.uploadedSpritesFileNameMap.set(avatar.avatarId, fileName);
     return fileName;
   }
@@ -156,7 +169,15 @@ export class ChatRenderer {
   /**
    * 一个聊天记录一个聊天记录地渲染，并在这个过程中自动检测不存在的语音或者立绘等并进行上传
    */
-  private async renderMessages(messages: ChatMessageResponse[]): Promise<void> {
+  private async renderMessages(room: Room): Promise<boolean> {
+    const messagesResponse = await tuanchat.chatController.getAllMessage(room.roomId!);
+    const messages = messagesResponse.data ?? [];
+    if (messages.length === 0)
+      return false;
+    const sceneName = this.getSceneName(room);
+    await this.sceneEditor.addLineToRenderer("changeBg:none -next", sceneName);
+    await this.sceneEditor.addLineToRenderer("changeFigure:none -next", sceneName);
+
     try {
       // 过滤调掉不是文本类型的消息，并排序
       const sortedMessages = messages
@@ -174,22 +195,29 @@ export class ChatRenderer {
       for (const messageResponse of sortedMessages) {
         const { message } = messageResponse;
 
+        // 使用正则表达式过滤
         if (skipRegex && skipRegex.test(message.content))
           continue;
+
         // 获取回复的消息, 会对立绘位置作特殊处理
         const repliedMessage = message.replyMessageId
           ? messages.find(m => m.message.messageId === message.replyMessageId)?.message
           : null;
+
         // 处理背景图片的消息
         if (message.messageType === 2) {
           const imageMessage = message.extra?.imageMessage;
-          await this.handleImgMessages(imageMessage);
+          if (imageMessage && imageMessage.background) {
+            const bgFileName = await this.sceneEditor.uploadBackground(imageMessage.url);
+            await this.sceneEditor.addLineToRenderer(`changeBg:${bgFileName}`, sceneName);
+          }
         }
+
         // 处理一般的对话
         else if (message.messageType === 1) {
           // %开头的对话意味着webgal指令，直接写入scene文件内
           if (message.content.startsWith("%")) {
-            await this.renderer.addLineToRenderer(message.content.slice(1));
+            await this.sceneEditor.addLineToRenderer(message.content.slice(1), sceneName);
             continue;
           }
 
@@ -201,7 +229,7 @@ export class ChatRenderer {
             .replace(/;/g, "；") // 替换英文分号为中文分号
             .replace(/:/g, "："); // 替换英文冒号为中文冒号
 
-          if (role && role.roleName && message.content && message.content !== "") {
+          if (role && message.content && message.content !== "") {
             // 每80个字符分割一次
             const contentSegments = this.splitContent(processedContent);
             // 为每个分割后的段落创建对话
@@ -209,9 +237,15 @@ export class ChatRenderer {
               // 生成语音
               let vocalFileName: string | undefined;
               // 不是系统角色，且不是空行，且不是指令，则生成语音
-              if (maxVocal > 0 && message.roleId !== 0 && segment !== "" && !message.content.startsWith(".") && !message.content.startsWith("。") && !message.content.startsWith("%")) {
+              if (maxVocal > 0
+                && message.roleId !== 0
+                && message.roleId !== 2 // 骰娘的id
+                && segment !== ""
+                && !message.content.startsWith(".")
+                && !message.content.startsWith("。")
+                && !message.content.startsWith("%")) {
                 // 将聊天内容替换为 segment
-                vocalFileName = await this.renderer.uploadVocal({ ...messageResponse, message: { ...messageResponse.message, content: segment } });
+                vocalFileName = await this.sceneEditor.uploadVocal({ ...messageResponse, message: { ...messageResponse.message, content: segment } });
                 maxVocal--;
               }
               else {
@@ -227,10 +261,11 @@ export class ChatRenderer {
                     ? (spriteState.has(messageSpriteName || "") && spriteState.has(repliedSpriteName))
                     : (spriteState.has(messageSpriteName || ""));
               const avatar = await this.fetchAvatar(message.avatarId);
-              await this.renderer.addDialog(
-                role.roleName,
+              await this.sceneEditor.addDialog(
+                role.roleName ?? "未命名角色",
                 avatar || undefined,
                 segment, // 使用分割后的段落
+                sceneName,
                 noNeedChangeSprite ? undefined : messageSpriteName,
                 noNeedChangeSprite ? undefined : repliedSpriteName,
                 vocalFileName,
@@ -246,19 +281,12 @@ export class ChatRenderer {
           }
         }
       }
-      // 完成后同步渲染
-      this.renderer.asyncRender();
+
+      return true;
     }
     catch (error) {
       console.error("Error rendering messages:", error);
       throw error;
-    }
-  }
-
-  private async handleImgMessages(imageMessage: ImageMessage | undefined) {
-    if (imageMessage && imageMessage.background) {
-      const bgFileName = await this.renderer.uploadBackground(imageMessage.url);
-      await this.renderer.addLineToRenderer(`changeBg:${bgFileName}`);
     }
   }
 }
