@@ -69,7 +69,7 @@ export default function BasicInfoStep({
               </div>
               <input
                 type="text"
-                className="input input-bordered rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="input input-bordered bg-base-200 rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 placeholder="输入角色名称"
                 value={characterData.name}
                 maxLength={NAME_MAX}
@@ -88,7 +88,7 @@ export default function BasicInfoStep({
                 </span>
               </div>
               <textarea
-                className="textarea textarea-bordered rounded-md min-h-[120px] resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="textarea textarea-bordered bg-base-200 rounded-md min-h-[120px] resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 placeholder="描述角色的背景故事、性格特点、说话风格等"
                 value={characterData.description}
                 maxLength={DESC_MAX}

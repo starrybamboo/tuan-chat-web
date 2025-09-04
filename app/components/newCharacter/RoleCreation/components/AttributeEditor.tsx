@@ -6,7 +6,7 @@ interface AttributeEditorProps {
 
 export default function AttributeEditor({ title, attributes, onChange }: AttributeEditorProps) {
   return (
-    <div className="card bg-base-100 shadow-sm">
+    <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
       <div className="card-body">
         <h3 className="card-title text-lg flex items-center gap-2">
           ⚡
@@ -22,7 +22,7 @@ export default function AttributeEditor({ title, attributes, onChange }: Attribu
                     <span className="font-semibold text-base label-text ml-1.5">{key}</span>
 
                     <textarea
-                      className="textarea textarea-bordered bg-base-200 rounded-md w-full min-h-32 mt-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      className="textarea textarea-bordered bg-base-200 rounded-md w-full min-h-32 mt-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary border-none outline-none"
                       placeholder="请输入表演描述..."
                       value={(value as any) === 0 || value === "0" ? "" : String(value ?? "")}
                       onChange={e => (onChange as (k: string, v: string | number) => void)(key, e.target.value)}
@@ -37,24 +37,24 @@ export default function AttributeEditor({ title, attributes, onChange }: Attribu
                   <div key={key} className="form-control">
                     <div className="flex items-center gap-1 group">
                       <div className="hidden md:block w-full">
-                        <label className="input flex items-center gap-1 md:gap-2 w-full rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary">
+                        <label className="input flex items-center gap-1 md:gap-2 w-full rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none">
                           <span className="text-xs md:text-sm">{key}</span>
                           <div className="w-px h-4 bg-base-content/20"></div>
                           <input
                             type="number"
                             value={value}
-                            className="grow focus:outline-none"
+                            className="grow focus:outline-none border-none outline-none"
                             onChange={e => (onChange as (k: string, v: number) => void)(key, Number.parseInt(e.target.value) || 0)}
                           />
                         </label>
                       </div>
                       <div className="block md:hidden w-full">
-                        <fieldset className="fieldset rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary">
+                        <fieldset className="fieldset rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none">
                           <legend className="fieldset-legend text-xs">{key}</legend>
                           <input
                             type="number"
                             value={value}
-                            className="input w-full focus:outline-none"
+                            className="input w-full focus:outline-none border-none outline-none"
                             onChange={e => (onChange as (k: string, v: number) => void)(key, Number.parseInt(e.target.value) || 0)}
                           />
                         </fieldset>

@@ -175,25 +175,22 @@ export default function AICreateRole({ onBack, onComplete }: AICreateRoleProps) 
 
       <div className="space-y-6">
         {/* AI生成卡片 */}
-        <div className="card bg-base-100 shadow-sm rounded-2xl border-2 border-base-content/10">
-          <div className="card-body">
-            <AIGenerationCard
-              title="描述你的角色想法"
-              description="详细描述角色的背景、性格、能力特点，AI会根据描述生成完整的角色信息"
-              placeholder="例如：一个来自北方的勇敢战士，擅长双手剑，有着保护弱者的坚定信念，曾经是皇家骑士团的成员..."
-              prompt={aiPrompt}
-              isGenerating={isGenerating}
-              onPromptChange={setAiPrompt}
-              onGenerate={handleAIGenerate}
-            />
-          </div>
-        </div>
+
+        <AIGenerationCard
+          title="描述你的角色想法"
+          description="详细描述角色的背景、性格、能力特点，AI会根据描述生成完整的角色信息"
+          placeholder="例如：一个来自北方的勇敢战士，擅长双手剑，有着保护弱者的坚定信念，曾经是皇家骑士团的成员..."
+          prompt={aiPrompt}
+          isGenerating={isGenerating}
+          onPromptChange={setAiPrompt}
+          onGenerate={handleAIGenerate}
+        />
 
         {/* 主要内容区域 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 左侧：规则选择 */}
           <div className="lg:col-span-1">
-            <div className="card bg-base-100 shadow-sm rounded-2xl border-2 border-base-content/10 sticky top-6">
+            <div className="card bg-base-100 shadow-sm rounded-2xl border-2 border-base-content/10">
               <div className="card-body">
                 <h3 className="card-title text-lg mb-4">⚙️ 规则系统</h3>
                 <div className="space-y-3">
@@ -310,37 +307,40 @@ export default function AICreateRole({ onBack, onComplete }: AICreateRoleProps) 
 
         {/* 角色属性 - 只有在选择规则系统后才显示 */}
         {characterData.ruleSystem && (
-          <div className="space-y-6">
-            {/* 角色表演能力 */}
-            <AttributeEditor
-              title="角色表演能力"
-              attributes={characterData.act}
-              onChange={(key, value) => handleAttributeChange("act", key, value)}
-            />
+          <>
+            <div className="divider"></div>
+            <div className="space-y-6">
+              {/* 角色表演能力 */}
+              <AttributeEditor
+                title="角色表演能力"
+                attributes={characterData.act}
+                onChange={(key, value) => handleAttributeChange("act", key, value)}
+              />
 
-            {/* 基础能力值 */}
-            <AttributeEditor
-              title="基础能力值"
-              attributes={characterData.basic}
-              onChange={(key, value) => handleAttributeChange("basic", key, value)}
-            />
+              {/* 基础能力值 */}
+              <AttributeEditor
+                title="基础能力值"
+                attributes={characterData.basic}
+                onChange={(key, value) => handleAttributeChange("basic", key, value)}
+              />
 
-            {/* 计算能力值 */}
-            <AttributeEditor
-              title="计算能力值"
-              attributes={characterData.ability}
-              onChange={(key, value) => handleAttributeChange("ability", key, value)}
-            />
+              {/* 计算能力值 */}
+              <AttributeEditor
+                title="计算能力值"
+                attributes={characterData.ability}
+                onChange={(key, value) => handleAttributeChange("ability", key, value)}
+              />
 
-            {/* 技能设定 */}
-            <AttributeEditor
-              title="技能设定"
-              attributes={characterData.skill}
-              onChange={(key, value) => handleAttributeChange("skill", key, value)}
-            />
-          </div>
+              {/* 技能设定 */}
+              <AttributeEditor
+                title="技能设定"
+                attributes={characterData.skill}
+                onChange={(key, value) => handleAttributeChange("skill", key, value)}
+              />
+            </div>
+          </>
         )}
-        {" "}
+
         {/* 底部操作按钮 */}
         <div className="flex justify-between items-center pt-6 border-t">
           <div className="text-sm text-base-content/60">

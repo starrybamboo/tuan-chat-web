@@ -22,7 +22,7 @@ export default function RuleSelectionStep({
             {ruleSystems.map(rule => (
               <div
                 key={rule.id}
-                className={`card cursor-pointer transition-all shadow-xs rounded-2xl border ${
+                className={`card cursor-pointer transition-all bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10 ${
                   selectedRuleSystem === rule.id
                     ? "border-primary ring-2 ring-primary bg-primary/5"
                     : "border-base-300 hover:border-base-400 hover:bg-base-200/60"
