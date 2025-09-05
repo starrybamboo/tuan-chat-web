@@ -1,4 +1,3 @@
-import type { commandModeType } from "@/components/chat/commandPanel";
 import type { RoomContextType } from "@/components/chat/roomContext";
 import type { LLMProperty } from "@/components/settings/settingsPage";
 import type { VirtuosoHandle } from "react-virtuoso";
@@ -6,21 +5,20 @@ import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, Message, RoomMember, UserRole } from "../../../api";
 import type { ChatStatusEvent } from "../../../api/wsModels";
 import ChatFrame from "@/components/chat/chatFrame";
+import ChatToolbar from "@/components/chat/chatToolbar";
 import CommandPanel from "@/components/chat/commandPanel";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import { useChatHistory } from "@/components/chat/indexedDB/useChatHistory";
+import SearchBar from "@/components/chat/inlineSearch";
 import DNDMap from "@/components/chat/map/DNDMap";
-import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
 import InitiativeList from "@/components/chat/sideDrawer/initiativeList";
 import RoomRoleList from "@/components/chat/sideDrawer/roomRoleList";
 import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
-import SearchPanel from "@/components/chat/sideDrawer/searchPanel";
 import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
 import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
-import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import RenderWindow from "@/components/chat/window/renderWindow";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
@@ -31,27 +29,11 @@ import { Mounter } from "@/components/common/mounter";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   AddRingLight,
   BaselineArrowBackIosNew,
-  Bubble2,
-  CommandLine,
-  EmojiIconWhite,
-  GalleryBroken,
-  GirlIcon,
-  HexagonDice,
-  Items,
-  MemberIcon,
-  PointOnMapPerspectiveLinear,
-  SearchFilled,
-  SendIcon,
   Setting,
-  SparklesOutline,
-  SwordSwing,
-  UserSyncOnlineInPerson,
-  WebgalIcon,
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -180,7 +162,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const roleAvatars = useMemo(() => roleAvatarQuery.data?.data ?? [], [roleAvatarQuery.data?.data]);
   const curAvatarId = roleAvatars[curAvatarIndex]?.avatarId || -1;
 
-  const [commandBrowseWindow, setCommandBrowseWindow] = useSearchParamsState<commandModeType>("commandPop", "none");
   const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
   // 渲染对话
   const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
@@ -817,61 +798,19 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         {/* 上边的信息栏 */}
         <div className="flex justify-between py-2 px-5 bg-base-100">
           <div className="flex gap-2">
-            {getScreenSize() === "sm"
-              && (
-                <BaselineArrowBackIosNew
-                  className="size-7"
-                  onClick={
-                    sideDrawerState === "none" ? spaceContext.toggleLeftDrawer : () => setSideDrawerState("none")
-                  }
-                >
-                </BaselineArrowBackIosNew>
-              )}
+            <BaselineArrowBackIosNew
+              className="size-7"
+              onClick={
+                sideDrawerState === "none" ? spaceContext.toggleLeftDrawer : () => setSideDrawerState("none")
+              }
+            >
+            </BaselineArrowBackIosNew>
             <span className="text-center font-semibold text-lg line-clamp-1">{room?.name}</span>
           </div>
-          <div className="flex gap-2">
-            <div
-              className="tooltip tooltip-bottom hover:text-info items-center justify-center flex px-1"
-              data-tip="渲染对话"
-              onClick={() => setIsRenderWindowOpen(true)}
-            >
-              <WebgalIcon className="size-6 opacity-80 "></WebgalIcon>
-            </div>
-            <div
-              className="tooltip tooltip-bottom hover:text-info"
-              data-tip="地图"
-              onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
-            >
-              <PointOnMapPerspectiveLinear className="size-7"></PointOnMapPerspectiveLinear>
-            </div>
-            <div
-              className="tooltip tooltip-bottom hover:text-info"
-              data-tip="展示先攻表"
-              onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}
-            >
-              <SwordSwing className="size-7"></SwordSwing>
-            </div>
-            <div
-              className="tooltip tooltip-bottom hover:text-info"
-              data-tip="展示成员"
-              onClick={() => setSideDrawerState(sideDrawerState === "user" ? "none" : "user")}
-            >
-              <MemberIcon className="size-7"></MemberIcon>
-            </div>
-            <div
-              className="tooltip tooltip-bottom hover:text-info"
-              data-tip="展示角色"
-              onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
-            >
-              <GirlIcon className="size-7"></GirlIcon>
-            </div>
-            <div
-              className="tooltip tooltip-bottom hover:text-info"
-              data-tip="搜索"
-              onClick={() => setSideDrawerState(sideDrawerState === "search" ? "none" : "search")}
-            >
-              <SearchFilled className="size-7"></SearchFilled>
-            </div>
+          <div className="flex gap-2 items-center">
+            {/* 搜索栏 */}
+            <SearchBar className={getScreenSize() === "sm" ? "" : "w-64"} />
+
             {spaceContext.isSpaceOwner && (
               <Setting
                 className="size-7 cursor-pointer hover:text-info"
@@ -879,6 +818,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               >
               </Setting>
             )}
+
           </div>
         </div>
         <div className="h-px bg-base-300"></div>
@@ -886,7 +826,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           <div className="flex flex-col flex-1 h-full overflow-y-auto overflow-x-hidden">
             {/* 聊天框 */}
             <div className="bg-base-100 flex-1 flex-shrink-0">
-              <ChatFrame useChatBubbleStyle={useChatBubbleStyle} key={roomId} virtuosoRef={virtuosoRef}></ChatFrame>
+              <ChatFrame useChatBubbleStyle={useChatBubbleStyle} setUseChatBubbleStyle={setUseChatBubbleStyle} key={roomId} virtuosoRef={virtuosoRef}></ChatFrame>
             </div>
             <div className="h-px bg-base-300 flex-shrink-0"></div>
             {/* 输入区域 */}
@@ -905,106 +845,16 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   ruleId={space?.ruleId ?? -1}
                   className="absolute bottom-full w-[100%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
                 />
-                {/* 顶部工具栏 */}
-                <div className="flex pr-1 pl-2 justify-between ">
-                  <div className="flex gap-2">
-                    {/* 切换角色 */}
-                    <div className="dropdown dropdown-top">
-                      <div className="tooltip" data-tip="切换角色">
-                        <UserSyncOnlineInPerson
-                          className="size-7 hover:text-info"
-                          tabIndex={1}
-                          role="button"
-                        >
-                        </UserSyncOnlineInPerson>
-                      </div>
-                      <ul
-                        tabIndex={1}
-                        className="dropdown-content menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
-                      >
-                        <RoleChooser handleRoleChange={role => handleRoleChange(role.roleId)}></RoleChooser>
-                      </ul>
-                    </div>
-                    {/* 发送表情 */}
-                    <div className="dropdown dropdown-top">
-                      <div role="button" tabIndex={2} className="">
-                        <div
-                          className="tooltip"
-                          data-tip="发送表情"
-                        >
-                          <EmojiIconWhite className="size-7 jump_icon"></EmojiIconWhite>
-                        </div>
-                      </div>
-                      <ul
-                        tabIndex={2}
-                        className="dropdown-content menu bg-base-100 rounded-box z-1 w-96 p-2 shadow-sm overflow-y-auto"
-                      >
-                        <EmojiWindow onChoose={async (emoji) => {
-                          updateEmojiUrls((draft) => {
-                            const newUrl = emoji?.imageUrl;
-                            if (newUrl && !draft.includes(newUrl)) {
-                              draft.push(newUrl);
-                            }
-                          });
-                        }}
-                        >
-                        </EmojiWindow>
-                      </ul>
-                    </div>
-                    {/* 发送图片 */}
-                    <ImgUploader setImg={newImg => updateImgFiles((draft) => {
-                      draft.push(newImg);
-                    })}
-                    >
-                      <div className="tooltip" data-tip="发送图片">
-                        <GalleryBroken className="size-7 cursor-pointer jump_icon"></GalleryBroken>
-                      </div>
-                    </ImgUploader>
-                    <div className="tooltip" data-tip="上传物品">
-                      <Items
-                        className="size-7 cursor-pointer jump_icon"
-                        onClick={() => setIsItemsWindowOpen(true)}
-                      >
-                      </Items>
-                    </div>
-                    <div className="tooltip" data-tip="浏览所有骰子命令">
-                      <HexagonDice
-                        className="size-7 cursor-pointer jump_icon"
-                        onClick={() => setCommandBrowseWindow("dice")}
-                      >
-                      </HexagonDice>
-                    </div>
-                    <div className="tooltip" data-tip="浏览常用webgal命令">
-                      <CommandLine
-                        className="size-7 cursor-pointer jump_icon"
-                        onClick={() => setCommandBrowseWindow("webgal")}
-                      >
-                      </CommandLine>
-                    </div>
-                    <div className="tooltip" data-tip="AI帮写">
-                      <SparklesOutline
-                        className="size-7 cursor-pointer jump_icon"
-                        onClick={() => toast("功能开发中...")}
-                      >
-                      </SparklesOutline>
-                    </div>
-                    <div className="tooltip" data-tip="切换聊天气泡风格">
-                      <Bubble2
-                        className="size-7 font-light jump_icon"
-                        onClick={() => setUseChatBubbleStyle(!useChatBubbleStyle)}
-                      >
-                      </Bubble2>
-                    </div>
-                  </div>
-                  {/* 发送按钮 */}
-                  <div className="tooltip" data-tip="发送">
-                    <SendIcon
-                      className={`size-7 font-light hover:text-info ${disableSendMessage ? "cursor-not-allowed opacity-20 " : ""}`}
-                      onClick={handleMessageSubmit}
-                    >
-                    </SendIcon>
-                  </div>
-                </div>
+                {/* 底部工具栏 */}
+                <ChatToolbar
+                  sideDrawerState={sideDrawerState}
+                  setSideDrawerState={setSideDrawerState}
+                  updateEmojiUrls={updateEmojiUrls}
+                  updateImgFiles={updateImgFiles}
+                  setIsItemsWindowOpen={setIsItemsWindowOpen}
+                  disableSendMessage={disableSendMessage}
+                  handleMessageSubmit={handleMessageSubmit}
+                />
                 <div className="flex gap-2 items-stretch">
                   {
                     curRoleId > 0
@@ -1013,7 +863,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                             <div role="button" tabIndex={0} className="">
                               <div
                                 className="tooltip flex justify-center flex-col items-center space-y-2"
-                                data-tip="切换表情"
+                                data-tip="切换角色和表情"
                               >
                                 <RoleAvatarComponent
                                   avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
@@ -1028,11 +878,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                                 </div>
                               </div>
                             </div>
-                            {/* 表情差分展示与选择 */}
-                            <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm">
+                            {/* 角色和表情选择 */}
+                            <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm p-0 border border-base-300">
                               <ExpressionChooser
                                 roleId={curRoleId}
                                 handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}
+                                handleRoleChange={handleRoleChange}
                               >
                               </ExpressionChooser>
                             </ul>
@@ -1162,10 +1013,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             <div className="w-px bg-base-300"></div>
             <DNDMap></DNDMap>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "search"} className="h-full overflow-auto z-20" overWrite>
-            <div className="w-px bg-base-300"></div>
-            <SearchPanel></SearchPanel>
-          </OpenAbleDrawer>
         </div>
       </div>
       <PopWindow isOpen={isItemsWindowOpen} onClose={() => setIsItemsWindowOpen(false)}>
@@ -1218,38 +1065,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             )}
 
       </PopWindow>
-      <PopWindow isOpen={commandBrowseWindow === "dice"} onClose={() => setCommandBrowseWindow("none")}>
-        <span className="text-center text-lg font-semibold">浏览所有骰子命令</span>
-        <CommandPanel
-          prefix="."
-          handleSelectCommand={(cmdName) => {
-            setInputText(`.${cmdName}`);
-            setCommandBrowseWindow("none");
-          }}
-          commandMode="dice"
-          suggestionNumber={10000}
-          className="overflow-x-clip max-h-[80vh] overflow-y-auto"
-          ruleId={space?.ruleId ?? -1}
-        >
-        </CommandPanel>
-      </PopWindow>
-      <PopWindow isOpen={commandBrowseWindow === "webgal"} onClose={() => setCommandBrowseWindow("none")}>
-        <span className="text-center text-lg font-semibold">浏览常见webgal命令</span>
-        <CommandPanel
-          prefix="%"
-          handleSelectCommand={(cmdName) => {
-            setInputText(`%${cmdName}`);
-            setCommandBrowseWindow("none");
-          }}
-          commandMode="webgal"
-          suggestionNumber={10000}
-          className="overflow-x-clip max-h-[80vh] overflow-y-auto"
-        >
-        </CommandPanel>
-      </PopWindow>
       {/* 设置窗口 */}
       <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
-        <RoomSettingWindow onClose={() => setIsSettingWindowOpen(false)}></RoomSettingWindow>
+        <RoomSettingWindow
+          onClose={() => setIsSettingWindowOpen(false)}
+          onShowMembers={() => setSideDrawerState("user")}
+          onRenderDialog={() => setIsRenderWindowOpen(true)}
+        />
       </PopWindow>
       {/* 添加角色窗口 */}
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleAddWindowOpen(false)}>

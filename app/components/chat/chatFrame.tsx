@@ -2,9 +2,9 @@ import type { VirtuosoHandle } from "react-virtuoso";
 import type {
   ChatMessageRequest,
   ChatMessageResponse,
-  FeedRequest,
   ImageMessage,
   Message,
+  MessageFeedRequest,
 } from "../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
 import { RoomContext } from "@/components/chat/roomContext";
@@ -38,11 +38,16 @@ function Header() {
 /**
  * 聊天框（不带输入部分）
  * @param useChatBubbleStyle 是否使用气泡样式
+ * @param setUseChatBubbleStyle 设置气泡样式的函数
  * @param virtuosoRef 虚拟列表的ref
  * @constructor
  */
-export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
-{ useChatBubbleStyle: boolean; virtuosoRef: React.RefObject<VirtuosoHandle | null> }) {
+export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, virtuosoRef }:
+{
+  useChatBubbleStyle: boolean;
+  setUseChatBubbleStyle: (value: boolean | ((prev: boolean) => boolean)) => void;
+  virtuosoRef: React.RefObject<VirtuosoHandle | null>;
+}) {
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
@@ -277,7 +282,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
       return false;
 
     // 发布feed
-    const feedRequest: FeedRequest = {
+    const feedRequest: MessageFeedRequest = {
       messageId: forwardResult.data.messageId,
       title: title || "default",
       description: description || "default",
@@ -490,6 +495,12 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   // 关闭右键菜单
   function closeContextMenu() {
     setContextMenu(null);
+  }
+
+  // 切换消息样式
+  function toggleChatBubbleStyle() {
+    setUseChatBubbleStyle(prev => !prev);
+    closeContextMenu();
   }
 
   if (chatHistory?.loading) {
@@ -740,6 +751,17 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
                   </li>
                 )
               }
+              <li>
+                <a onClick={(e) => {
+                  e.preventDefault();
+                  toggleChatBubbleStyle();
+                }}
+                >
+                  切换到
+                  {useChatBubbleStyle ? "传统" : "气泡"}
+                  样式
+                </a>
+              </li>
               {(() => {
                 if (message?.message.userId !== globalContext.userId && !spaceContext.isSpaceOwner) {
                   return null;

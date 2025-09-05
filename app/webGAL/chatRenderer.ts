@@ -19,6 +19,8 @@ export class ChatRenderer {
   private roleAvatarsMap = new Map<number, RoleAvatar>(); // 渲染时候获取的avatar信息
   private roleMap: Map<number, RoleResponse> = new Map();
   private renderProps: RenderProps;
+  private rooms: Room[] = [];
+  private renderedRoomNumber = 0;
   private readonly onRenderProcessChange: (process: RenderProcess) => void; // 渲染进度的回调函数
 
   constructor(spaceId: number, renderProp: RenderProps, onRenderProcessChange: (process: RenderProcess) => void) {
@@ -31,18 +33,23 @@ export class ChatRenderer {
   public async initializeRenderer(): Promise<void> {
     await this.sceneEditor.initRender();
     this.onRenderProcessChange({ message: "开始渲染" });
-    const rooms = (await tuanchat.roomController.getUserRooms(this.spaceId)).data ?? [];
+    this.rooms = (await tuanchat.roomController.getUserRooms(this.spaceId)).data ?? [];
 
     const renderedRooms: Room[] = []; // 成功渲染的房间
-    for (let i = 0; i < rooms.length; i++) {
+    for (let i = 0; i < this.rooms.length; i++) {
       try {
-        const room = rooms[i];
-        this.onRenderProcessChange({ percent: i * 100 / rooms.length, message: `渲染房间 ${room.name}` });
+        const room = this.rooms[i];
+        this.onRenderProcessChange({
+          percent: i * 100 / this.rooms.length,
+          message: `渲染房间 ${room.name}`,
+          subMessage: "处理消息中",
+        });
         const success = await this.renderMessages(room);
         if (success) {
           renderedRooms.push(room);
           await this.sceneEditor.addLineToRenderer("changeScene:start.txt", this.getSceneName(room));
         }
+        this.renderedRoomNumber = i + 1;
       }
       catch (e) { console.error(e); }
     }
@@ -52,7 +59,6 @@ export class ChatRenderer {
 
   private async fetchAvatar(avatarId: number): Promise<RoleAvatar | null> {
     // 获取立绘信息
-    this.onRenderProcessChange({ subMessage: `获取角色${avatarId}的立绘信息` });
     let avatar: RoleAvatar | undefined = this.roleAvatarsMap.get(avatarId);
     if (!avatar) {
       avatar = (await tuanchat.avatarController.getRoleAvatar(avatarId)).data;
@@ -64,7 +70,6 @@ export class ChatRenderer {
   }
 
   private async fetchRole(roleId: number): Promise<RoleResponse | null> {
-    this.onRenderProcessChange({ subMessage: `获取角色${roleId}的信息` });
     // 获取角色信息
     let role: RoleResponse | undefined = this.roleMap.get(roleId);
     if (!role) {
@@ -172,6 +177,7 @@ export class ChatRenderer {
   private async renderMessages(room: Room): Promise<boolean> {
     const messagesResponse = await tuanchat.chatController.getAllMessage(room.roomId!);
     const messages = messagesResponse.data ?? [];
+
     if (messages.length === 0)
       return false;
     const sceneName = this.getSceneName(room);
@@ -192,8 +198,13 @@ export class ChatRenderer {
 
       const skipRegex = this.renderProps.skipRegex ? new RegExp(this.renderProps.skipRegex) : null;
 
-      for (const messageResponse of sortedMessages) {
-        const { message } = messageResponse;
+      for (let i = 0; i < sortedMessages.length; i++) {
+        const messageResponse = sortedMessages[i];
+        const message = messageResponse.message;
+        this.onRenderProcessChange({
+          percent: ((this.renderedRoomNumber + (i + 1) / messages.length) / this.rooms.length) * 100,
+          subMessage: `已渲染消息数 (${i}/${messages.length})`,
+        });
 
         // 使用正则表达式过滤
         if (skipRegex && skipRegex.test(message.content))
