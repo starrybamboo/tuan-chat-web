@@ -414,54 +414,50 @@ export default function ChatPage() {
                       }
 
                       <div className="h-px bg-base-300"></div>
-                      <div className="flex flex-col gap-2 p-2 overflow-auto">
-                        {rooms.map(room => (
-                          <div key={room.roomId} data-room-id={room.roomId}>
-                            {activeSpaceId === room.spaceId && (
-                              <div className="flex items-center gap-1 group">
-                                <button
-                                  key={room.roomId}
-                                  className={`btn btn-ghost flex justify-start flex-1 gap-2 ${activeRoomId === room.roomId ? "bg-info-content/30" : ""}`}
-                                  type="button"
-                                  onClick={() => {
-                                    setActiveRoomId(room.roomId ?? -1);
-                                    setIsOpenLeftDrawer(false);
-                                  }}
-                                >
-                                  <div className="indicator">
-                                    {(activeRoomId !== room.roomId && unreadMessagesNumber[room.roomId ?? -1] > 0)
-                                      && (
-                                        <span
-                                          className="indicator-item badge badge-xs bg-error"
-                                        >
-                                          {unreadMessagesNumber[room.roomId ?? -1]}
-                                        </span>
-                                      )}
+                      <div className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full">
+                        {rooms.filter(room => room.spaceId === activeSpaceId).map(room => (
+                          <div className="flex items-center gap-1 group w-full" key={room.roomId} data-room-id={room.roomId}>
+                            <button
+                              key={room.roomId}
+                              className={`font-bold text-sm rounded-lg p-1 hover:bg-base-300 flex justify-start items-center flex-1 gap-2 min-w-0 ${activeRoomId === room.roomId ? "bg-info-content/30" : ""}`}
+                              type="button"
+                              onClick={() => {
+                                setActiveRoomId(room.roomId ?? -1);
+                                setIsOpenLeftDrawer(false);
+                              }}
+                            >
+                              <div className="indicator">
+                                {(activeRoomId !== room.roomId && unreadMessagesNumber[room.roomId ?? -1] > 0)
+                                  && (
+                                    <span
+                                      className="indicator-item badge badge-xs bg-error"
+                                    >
+                                      {unreadMessagesNumber[room.roomId ?? -1]}
+                                    </span>
+                                  )}
 
-                                    <div className="avatar mask mask-squircle w-8">
-                                      <img
-                                        src={room.avatar}
-                                        alt={room.name}
-                                      />
-                                    </div>
-                                  </div>
-                                  <span className="truncate flex-1 text-left">{room.name}</span>
-                                </button>
-                                {/* 设置按钮 - 在所有房间都显示（当前房间和悬浮房间） */}
-                                <div
-                                  className="tooltip tooltip-left opacity-0 group-hover:opacity-100 transition-opacity"
-                                  data-tip="房间设置"
-                                >
-                                  <Setting
-                                    className="size-5 cursor-pointer hover:text-info p-1 hover:bg-base-300 rounded"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActiveRoomSettingId(room.roomId ?? -1);
-                                    }}
+                                <div className="avatar mask mask-squircle w-8">
+                                  <img
+                                    src={room.avatar}
+                                    alt={room.name}
                                   />
                                 </div>
                               </div>
-                            )}
+                              <span className="truncate text-left">{room.name}</span>
+                            </button>
+                            {/* 设置按钮 - 在所有房间都显示（当前房间和悬浮房间） */}
+                            <div
+                              className="tooltip tooltip-left opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                              data-tip="房间设置"
+                            >
+                              <Setting
+                                className="size-6 cursor-pointer hover:text-info hover:bg-base-300 rounded"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveRoomSettingId(room.roomId ?? -1);
+                                }}
+                              />
+                            </div>
                           </div>
                         ))}
                       </div>
