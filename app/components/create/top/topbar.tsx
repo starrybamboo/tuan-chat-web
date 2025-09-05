@@ -28,11 +28,12 @@ export default function TopBar() {
           const parsedId = Number.parseInt(localEditId, 10);
           if (!Number.isNaN(parsedId)) {
             setEditingStageId(parsedId);
+            navigate(`/create/${parsedId}`, { replace: true });
           }
         }
       }
     }
-  }, [setStageId]);
+  }, [navigate, setStageId]);
 
   // 当moduleArray变化时，确保选择的模块有效
   useEffect(() => {
@@ -59,7 +60,9 @@ export default function TopBar() {
 
   const handleModuleChange = useCallback((stageId: number) => {
     setEditingStageId(stageId);
-    // 更新路由
+    if (typeof window !== "undefined" && window.localStorage) {
+      localStorage.setItem("editingStageId", stageId.toString());
+    }
     navigate(`/create/${stageId}`);
     setStageId(stageId);
   }, [navigate, setStageId]);
