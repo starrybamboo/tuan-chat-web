@@ -16,6 +16,7 @@ interface ExpansionModuleProps {
    * 可选, 会默认选中对应的ruleId, 且不再展示选择规则的部分组件
    */
   ruleId?: number;
+  onLoadingChange?: (isLoading: boolean) => void;
 }
 
 /**
@@ -26,6 +27,7 @@ export default function ExpansionModule({
   onRuleDataChange,
   roleId,
   ruleId,
+  onLoadingChange, // 1. 在 props 中解构出 onLoadingChange
 }: ExpansionModuleProps) {
   // 状态
   const selectedRuleId = ruleId ?? 1;
@@ -123,6 +125,12 @@ export default function ExpansionModule({
 
   // 检查加载状态
   const isLoading = ruleDetailQuery.isLoading || abilityQuery.isLoading || !localRuleData;
+
+  // 2. 使用 useEffect 监听 isLoading 的变化
+  useEffect(() => {
+    // 当 isLoading 变化时，如果 onLoadingChange 存在，就调用它并传入最新的状态
+    onLoadingChange?.(isLoading);
+  }, [isLoading, onLoadingChange]);
 
   return (
     <div className="space-y-6">

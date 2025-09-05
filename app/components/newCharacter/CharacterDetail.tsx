@@ -55,6 +55,7 @@ export default function CharacterDetail({
   // 规则选择状态
   const [selectedRuleId, setSelectedRuleId] = useState<number>(1);
   const [isRuleLoading, setIsRuleLoading] = useState(false);
+  const [isExpansionLoading, setIsExpansionLoading] = useState(true); // <--- 新增这一行, 默认为 true
 
   // 获取当前规则详情
   const { data: currentRuleData } = useRuleDetailQuery(selectedRuleId);
@@ -412,27 +413,83 @@ export default function CharacterDetail({
         <div className="lg:col-span-3 space-y-6">
 
           {/* 渲染结果预览 */}
-          <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
-            <Section title="渲染结果预览">
-              <SpriteRenderStudio
-                characterName={localRole.name || "未命名角色"}
-                roleAvatars={roleAvatars}
-                initialAvatarId={localRole.avatarId}
-                externalCanvasRef={previewCanvasRef}
-                className="w-full p-3 gap-4 flex mb-2"
-              />
-            </Section>
-          </div>
+          {isExpansionLoading || isRuleLoading
+            ? (
+                <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
+                  <div className="card-body">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="skeleton h-6 w-32"></div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="skeleton h-48 w-full"></div>
+                      <div className="flex gap-3">
+                        <div className="skeleton h-10 w-20"></div>
+                        <div className="skeleton h-10 w-20"></div>
+                        <div className="skeleton h-10 w-20"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            : (
+                <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
+                  <Section title="渲染结果预览">
+                    <SpriteRenderStudio
+                      characterName={localRole.name || "未命名角色"}
+                      roleAvatars={roleAvatars}
+                      initialAvatarId={localRole.avatarId}
+                      externalCanvasRef={previewCanvasRef}
+                      className="w-full p-3 gap-4 flex mb-2"
+                    />
+                  </Section>
+                </div>
+              )}
 
           {/* 扩展模块（右侧） */}
           {isRuleLoading
             ? (
-                <div className="flex justify-center items-center min-h-[200px]">
-                  <span className="loading loading-spinner loading-lg"></span>
+                <div className="space-y-6">
+                  {/* 骨架屏 - 模拟扩展模块 */}
+                  <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
+                    <div className="card-body">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="skeleton h-6 w-32"></div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="skeleton h-10 w-full"></div>
+                          <div className="skeleton h-10 w-full"></div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="skeleton h-10 w-full"></div>
+                          <div className="skeleton h-10 w-full"></div>
+                        </div>
+                        <div className="skeleton h-20 w-full"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
+                    <div className="card-body">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="skeleton h-6 w-40"></div>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="skeleton h-8 w-full"></div>
+                        <div className="skeleton h-8 w-full"></div>
+                        <div className="skeleton h-8 w-full"></div>
+                        <div className="skeleton h-12 w-full"></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )
             : (
-                <ExpansionModule roleId={localRole.id} ruleId={selectedRuleId} />
+                <ExpansionModule
+                  roleId={localRole.id}
+                  ruleId={selectedRuleId}
+                  onLoadingChange={setIsExpansionLoading} // <--- 在这里传递回调
+                />
               )}
         </div>
       </div>
