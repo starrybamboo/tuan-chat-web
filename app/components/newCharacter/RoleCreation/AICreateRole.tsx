@@ -1,8 +1,12 @@
 import type { CharacterData } from "./types";
-import { useState } from "react";
+import { useGenerateAbilityByRuleMutation, useGenerateBasicInfoByRuleMutation, useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
+import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
+import { useCreateRoleMutation, useUploadAvatarMutation } from "api/queryHooks";
+import { useCallback, useEffect, useState } from "react";
+import { flattenConstraints } from "../rules/ObjectExpansion";
+import RulesSection from "../rules/RulesSection";
 import AIGenerationCard from "./components/AIGenerationCard";
 import AttributeEditor from "./components/AttributeEditor";
-import { RULE_SYSTEMS, SAMPLE_ATTRIBUTES } from "./constants";
 
 interface AICreateRoleProps {
   onBack?: () => void;
@@ -30,9 +34,27 @@ export default function AICreateRole({ onBack, onComplete }: AICreateRoleProps) 
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentGenerationStep, setCurrentGenerationStep] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
 
   // 表单验证
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // 跟踪当前已加载的规则ID，用于检测规则变更
+  const [loadedRuleId, setLoadedRuleId] = useState<number>(0);
+
+  // API hooks
+  const { mutateAsync: createRole } = useCreateRoleMutation();
+  const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
+  const { mutate: generateBasicInfoByRule } = useGenerateBasicInfoByRuleMutation();
+  const { mutate: generateAbilityByRule } = useGenerateAbilityByRuleMutation();
+  const { mutate: setRoleAbility } = useSetRoleAbilityMutation();
+
+  // 获取规则详情
+  const selectedRuleId = characterData.ruleSystem ? Number.parseInt(characterData.ruleSystem) : 0;
+  const isValidRuleId = !Number.isNaN(selectedRuleId) && selectedRuleId > 0;
+  const { data: ruleDetailData } = useRuleDetailQuery(selectedRuleId, {
+    enabled: isValidRuleId, // 只有当 ruleId 有效时才发送请求
+  });
 
   // 常量
   const NAME_MAX = 32;
@@ -44,18 +66,61 @@ export default function AICreateRole({ onBack, onComplete }: AICreateRoleProps) 
     && characterData.ruleSystem;
 
   // 处理规则系统变更
-  const handleRuleSystemChange = (ruleSystemId: string) => {
-    setCharacterData(prev => ({ ...prev, ruleSystem: ruleSystemId }));
+  const handleRuleSystemChange = (ruleSystemId: number) => {
+    setCharacterData(prev => ({ ...prev, ruleSystem: ruleSystemId.toString() }));
 
-    // 自动加载该规则系统的默认属性
-    const sampleData = SAMPLE_ATTRIBUTES[ruleSystemId as keyof typeof SAMPLE_ATTRIBUTES];
-    if (sampleData) {
-      setCharacterData(prev => ({
-        ...prev,
-        ...sampleData,
-      }));
+    // 重置已加载的规则ID，这样可以触发新规则的数据初始化
+    setLoadedRuleId(0);
+
+    // 清除错误信息
+    if (errors.ruleSystem) {
+      setErrors(prev => ({ ...prev, ruleSystem: "" }));
     }
   };
+
+  // 初始化规则数据的回调函数
+  const initializeRuleData = useCallback(() => {
+    // 当规则有效且规则数据加载完成时，并且（首次加载或规则发生了变更）
+    if (isValidRuleId && ruleDetailData && characterData.ruleSystem
+      && (loadedRuleId === 0 || loadedRuleId !== selectedRuleId)) {
+      // 转换 actTemplate 为正确的类型
+      const actData: Record<string, number | string> = {};
+      if (ruleDetailData.actTemplate) {
+        Object.entries(ruleDetailData.actTemplate).forEach(([key, value]) => {
+          actData[key] = value;
+        });
+      }
+
+      // 扁平化 abilityDefault 为数字类型
+      const abilityData: Record<string, number> = {};
+      if (ruleDetailData.abilityDefault) {
+        const flattenedConstraints = flattenConstraints(ruleDetailData.abilityDefault);
+
+        Object.entries(flattenedConstraints).forEach(([key, value]) => {
+          if (typeof value === "object" && value !== null && "displayValue" in value) {
+            abilityData[key] = Number(value.displayValue) || 0;
+          }
+          else {
+            abilityData[key] = Number(value) || 0;
+          }
+        });
+      }
+
+      setCharacterData(prev => ({
+        ...prev,
+        act: actData,
+        ability: abilityData,
+      }));
+
+      // 记录已加载的规则ID
+      setLoadedRuleId(selectedRuleId);
+    }
+  }, [isValidRuleId, ruleDetailData, characterData.ruleSystem, loadedRuleId, selectedRuleId]);
+
+  // 当规则数据加载完成时，自动填充默认属性
+  useEffect(() => {
+    initializeRuleData();
+  }, [initializeRuleData]);
 
   // 处理基础信息变更
   const handleBasicInfoChange = (field: string, value: string) => {
@@ -81,39 +146,96 @@ export default function AICreateRole({ onBack, onComplete }: AICreateRoleProps) 
 
   // AI生成处理
   const handleAIGenerate = async () => {
-    if (!aiPrompt.trim())
+    if (!aiPrompt.trim() || !characterData.ruleSystem || !isValidRuleId) {
       return;
+    }
 
     setIsGenerating(true);
-    setCurrentGenerationStep("基础信息");
+    setCurrentGenerationStep("开始生成");
 
     try {
-      // 模拟AI生成过程
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const ruleId = selectedRuleId; // 使用已验证的 ruleId
 
-      // 生成基础信息
-      setCurrentGenerationStep("生成基础信息...");
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // 生成基础信息 (act)
+      setCurrentGenerationStep("生成角色描述...");
+      await new Promise((resolve) => {
+        generateBasicInfoByRule(
+          { ruleId, prompt: aiPrompt },
+          {
+            onSuccess: (data) => {
+              if (data?.data) {
+                const actData: Record<string, number | string> = {};
+                Object.entries(data.data).forEach(([key, value]) => {
+                  actData[key] = typeof value === "object" ? JSON.stringify(value) : String(value);
+                });
 
-      setCharacterData(prev => ({
-        ...prev,
-        name: generateNameFromPrompt(aiPrompt),
-        description: generateDescriptionFromPrompt(aiPrompt),
-      }));
+                setCharacterData(prev => ({
+                  ...prev,
+                  act: { ...prev.act, ...actData },
+                }));
+              }
+              resolve(data);
+            },
+            onError: (error) => {
+              console.error("生成基础信息失败:", error);
+              resolve(null);
+            },
+          },
+        );
+      });
 
-      // 如果已选择规则系统，生成属性
-      if (characterData.ruleSystem) {
-        setCurrentGenerationStep("生成角色属性...");
-        await new Promise(resolve => setTimeout(resolve, 1500));
+      // 生成能力数据 (ability)
+      setCurrentGenerationStep("生成能力数据...");
+      await new Promise((resolve) => {
+        generateAbilityByRule(
+          { ruleId, prompt: aiPrompt },
+          {
+            onSuccess: (data) => {
+              if (data?.data) {
+                // 使用与规则默认数据相同的处理方式
+                const abilityData: Record<string, number> = {};
 
-        const sampleData = SAMPLE_ATTRIBUTES[characterData.ruleSystem as keyof typeof SAMPLE_ATTRIBUTES];
-        if (sampleData) {
-          setCharacterData(prev => ({
-            ...prev,
-            ...generateAttributesFromPrompt(aiPrompt, sampleData),
-          }));
-        }
-      }
+                try {
+                  // 首先尝试扁平化处理（类似规则默认数据）
+                  const flattenedConstraints = flattenConstraints(data.data);
+                  Object.entries(flattenedConstraints).forEach(([key, value]) => {
+                    if (typeof value === "object" && value !== null && "displayValue" in value) {
+                      abilityData[key] = Number(value.displayValue) || 0;
+                    }
+                    else {
+                      abilityData[key] = Number(value) || 0;
+                    }
+                  });
+                }
+                catch (error) {
+                  // 如果扁平化失败，说明数据结构不同，直接处理
+                  console.warn("扁平化AI生成的能力数据失败，尝试直接处理:", error);
+                  Object.entries(data.data).forEach(([key, value]) => {
+                    if (typeof value === "object" && value !== null && "displayValue" in value) {
+                      abilityData[key] = Number(value.displayValue) || 0;
+                    }
+                    else {
+                      abilityData[key] = Number(value) || 0;
+                    }
+                  });
+                }
+
+                setCharacterData(prev => ({
+                  ...prev,
+                  ability: { ...prev.ability, ...abilityData },
+                }));
+              }
+              resolve(data);
+            },
+            onError: (error) => {
+              console.error("生成能力数据失败:", error);
+              resolve(null);
+            },
+          },
+        );
+      });
+
+      setCurrentGenerationStep("生成完成");
     }
     catch (error) {
       console.error("AI生成失败:", error);
@@ -145,9 +267,63 @@ export default function AICreateRole({ onBack, onComplete }: AICreateRoleProps) 
   };
 
   // 保存角色
-  const handleSave = () => {
-    if (validateForm()) {
-      onComplete?.(characterData);
+  const handleSave = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // 1. 创建角色
+      const roleId = await createRole({
+        roleName: characterData.name,
+        description: characterData.description,
+      });
+
+      if (!roleId) {
+        throw new Error("角色创建失败");
+      }
+
+      // 2. 上传头像 (使用默认头像)
+      const avatarRes = await uploadAvatar({
+        avatarUrl: "/favicon.ico",
+        spriteUrl: "/favicon.ico",
+        roleId,
+      });
+
+      if (!avatarRes?.data?.avatarId) {
+        throw new Error("头像上传失败");
+      }
+
+      // 3. 设置角色能力数据
+      if (characterData.ruleSystem && isValidRuleId) {
+        const ruleId = selectedRuleId; // 使用已验证的 ruleId
+
+        // 转换 act 数据为字符串类型
+        const actData: Record<string, string> = {};
+        Object.entries(characterData.act).forEach(([key, value]) => {
+          actData[key] = String(value);
+        });
+
+        setRoleAbility({
+          ruleId,
+          roleId,
+          act: actData,
+          ability: characterData.ability,
+        });
+      }
+
+      // 4. 调用完成回调
+      onComplete?.({
+        ...characterData,
+        avatar: avatarRes.data.avatarUrl || "/favicon.ico",
+      });
+    }
+    catch (error) {
+      console.error("保存角色失败:", error);
+    }
+    finally {
+      setIsSaving(false);
     }
   };
 
@@ -193,31 +369,10 @@ export default function AICreateRole({ onBack, onComplete }: AICreateRoleProps) 
             <div className="card bg-base-100 shadow-sm rounded-2xl border-2 border-base-content/10">
               <div className="card-body">
                 <h3 className="card-title text-lg mb-4">⚙️ 规则系统</h3>
-                <div className="space-y-3">
-                  {RULE_SYSTEMS.map(rule => (
-                    <div
-                      key={rule.id}
-                      className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                        characterData.ruleSystem === rule.id
-                          ? "border-primary bg-primary/5 ring-1 ring-primary"
-                          : "border-base-300 hover:border-base-400 hover:bg-base-50"
-                      }`}
-                      onClick={() => handleRuleSystemChange(rule.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium text-sm">{rule.name}</h4>
-                          <p className="text-xs text-base-content/60 mt-1">
-                            {rule.description}
-                          </p>
-                        </div>
-                        {characterData.ruleSystem === rule.id && (
-                          <div className="badge badge-primary badge-xs">✓</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <RulesSection
+                  currentRuleId={selectedRuleId}
+                  onRuleChange={handleRuleSystemChange}
+                />
                 {errors.ruleSystem && (
                   <div className="text-error text-sm mt-2">{errors.ruleSystem}</div>
                 )}
@@ -369,68 +524,24 @@ export default function AICreateRole({ onBack, onComplete }: AICreateRoleProps) 
             </button>
             <button
               type="button"
-              className={`btn btn-primary ${!canSave ? "btn-disabled" : ""}`}
+              className={`btn btn-primary ${!canSave || isSaving ? "btn-disabled" : ""}`}
               onClick={handleSave}
-              disabled={!canSave}
+              disabled={!canSave || isSaving}
             >
-              保存角色
+              {isSaving
+                ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      保存中...
+                    </>
+                  )
+                : (
+                    "保存角色"
+                  )}
             </button>
           </div>
         </div>
       </div>
     </div>
   );
-}
-
-// 辅助函数：从提示词生成角色名
-function generateNameFromPrompt(prompt: string): string {
-  // 简单的名称生成逻辑，实际应该调用AI接口
-  const keywords = prompt.toLowerCase();
-  if (keywords.includes("战士") || keywords.includes("骑士")) {
-    return "艾登·钢铁之心";
-  }
-  else if (keywords.includes("法师") || keywords.includes("魔法")) {
-    return "莉雅娜·星辉";
-  }
-  else if (keywords.includes("盗贼") || keywords.includes("刺客")) {
-    return "影刃·夜行者";
-  }
-  else if (keywords.includes("牧师") || keywords.includes("治疗")) {
-    return "伊莲娜·光明";
-  }
-  return "神秘冒险者";
-}
-
-// 辅助函数：从提示词生成描述
-function generateDescriptionFromPrompt(prompt: string): string {
-  // 简单的描述生成逻辑，实际应该调用AI接口
-  return `根据您的描述生成的角色：${prompt.slice(0, 100)}...这是一个充满故事的角色，拥有独特的背景和鲜明的个性特点。`;
-}
-
-// 辅助函数：从提示词生成属性
-function generateAttributesFromPrompt(prompt: string, baseAttributes: any) {
-  // 简单的属性生成逻辑，实际应该调用AI接口
-  const result = { ...baseAttributes };
-
-  // 根据关键词调整属性
-  const keywords = prompt.toLowerCase();
-
-  if (keywords.includes("强壮") || keywords.includes("战士")) {
-    if (result.basic?.力量)
-      result.basic.力量 += 2;
-    if (result.basic?.体质)
-      result.basic.体质 += 1;
-  }
-
-  if (keywords.includes("敏捷") || keywords.includes("快速")) {
-    if (result.basic?.敏捷)
-      result.basic.敏捷 += 2;
-  }
-
-  if (keywords.includes("聪明") || keywords.includes("智慧")) {
-    if (result.basic?.智力)
-      result.basic.智力 += 2;
-  }
-
-  return result;
 }

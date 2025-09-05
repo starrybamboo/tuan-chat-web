@@ -328,7 +328,7 @@ export function SpriteRenderStudio({
         )}
 
         {/* 数据加载中的提示 */}
-        {initialAvatarId && !currentSprite && spritesAvatars.length === 0 && (
+        {!!initialAvatarId && !currentSprite && spritesAvatars.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center bg-base-200/50 z-10">
             <div className="flex flex-col items-center gap-2">
               <span className="loading loading-spinner loading-md"></span>

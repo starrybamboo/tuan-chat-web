@@ -129,7 +129,7 @@ export function useDeleteRuleMutation() {
 }
 
 // 获取规则详情角色界面
-export function useRuleDetailQuery(ruleId: number) {
+export function useRuleDetailQuery(ruleId: number, options?: { enabled?: boolean }) {
     return useQuery({
       queryKey: ["ruleDetail", ruleId],
       queryFn: async (): Promise<Rule> => {
@@ -138,7 +138,8 @@ export function useRuleDetailQuery(ruleId: number) {
           return res.data;
         }
         throw new Error('获取规则详情失败');
-      }
+      },
+      enabled: options?.enabled ?? true, // 默认启用，但允许通过 options 禁用
     })
   }
 
