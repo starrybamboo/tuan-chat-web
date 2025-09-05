@@ -105,7 +105,14 @@ export default function CharacterMain() {
             />
           )}
           {mode === "self" && <CreateRoleBySelf />}
-          {mode === "AI" && <AICreateRole />}
+          {mode === "AI" && (
+            <AICreateRole
+              setRoles={setRoles}
+              setSelectedRoleId={setSelectedRoleId}
+              onSave={handleSave}
+              onComplete={() => setMode("role")} // 完成后切换回角色模式
+            />
+          )}
           {mode === "excel" && <ExcelImportRole />}
         </div>
       </div>

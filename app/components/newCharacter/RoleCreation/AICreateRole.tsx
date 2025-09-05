@@ -1,7 +1,8 @@
+import type { Role } from "../types";
 import type { CharacterData } from "./types";
 import { useGenerateAbilityByRuleMutation, useGenerateBasicInfoByRuleMutation, useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { useCreateRoleMutation, useUploadAvatarMutation } from "api/queryHooks";
+import { useCreateRoleMutation, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
 import { flattenConstraints } from "../rules/ObjectExpansion";
 import RulesSection from "../rules/RulesSection";
@@ -11,13 +12,23 @@ import AttributeEditor from "./components/AttributeEditor";
 interface AICreateRoleProps {
   onBack?: () => void;
   onComplete?: (characterData: CharacterData) => void;
+  // 添加状态维护相关的props
+  setRoles?: React.Dispatch<React.SetStateAction<Role[]>>;
+  setSelectedRoleId?: (id: number | null) => void;
+  onSave?: (updatedRole: Role) => void;
 }
 
 /**
  * AI智能创建角色组件
  * 通过AI辅助，一站式完成角色创建
  */
-export default function AICreateRole({ onBack, onComplete }: AICreateRoleProps) {
+export default function AICreateRole({
+  onBack,
+  onComplete,
+  setRoles,
+  setSelectedRoleId,
+  onSave,
+}: AICreateRoleProps) {
   // 角色数据状态
   const [characterData, setCharacterData] = useState<CharacterData>({
     name: "",
@@ -48,6 +59,8 @@ export default function AICreateRole({ onBack, onComplete }: AICreateRoleProps) 
   const { mutate: generateBasicInfoByRule } = useGenerateBasicInfoByRuleMutation();
   const { mutate: generateAbilityByRule } = useGenerateAbilityByRuleMutation();
   const { mutate: setRoleAbility } = useSetRoleAbilityMutation();
+  // 添加更新角色的hook，只有在onSave存在时才使用
+  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave || (() => {}));
 
   // 获取规则详情
   const selectedRuleId = characterData.ruleSystem ? Number.parseInt(characterData.ruleSystem) : 0;
@@ -313,7 +326,33 @@ export default function AICreateRole({ onBack, onComplete }: AICreateRoleProps) 
         });
       }
 
-      // 4. 调用完成回调
+      // 4. 创建Role对象并维护状态（参考Sidebar的handleCreate）
+      const newRole: Role = {
+        id: roleId,
+        name: characterData.name,
+        description: characterData.description,
+        avatar: avatarRes.data.avatarUrl || "/favicon.ico",
+        avatarId: avatarRes.data.avatarId,
+        modelName: "散华", // 默认模型名
+        speakerName: "鸣潮", // 默认说话人名
+      };
+
+      // 5. 更新角色列表状态（如果提供了setRoles）
+      if (setRoles) {
+        setRoles(prev => [newRole, ...prev]);
+      }
+
+      // 6. 设置选中的角色ID（如果提供了setSelectedRoleId）
+      if (setSelectedRoleId) {
+        setSelectedRoleId(newRole.id);
+      }
+
+      // 7. 调用updateRole进行角色更新（如果提供了onSave）
+      if (onSave) {
+        updateRole(newRole);
+      }
+
+      // 8. 调用完成回调
       onComplete?.({
         ...characterData,
         avatar: avatarRes.data.avatarUrl || "/favicon.ico",
