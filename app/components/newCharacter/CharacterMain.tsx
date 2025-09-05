@@ -102,18 +102,23 @@ export default function CharacterMain() {
               isEditing={isEditing}
               onEdit={() => setIsEditing(true)}
               onSave={handleSave}
+              onBack={() => {
+                setSelectedRoleId(null);
+                setIsEditing(false);
+              }}
             />
           )}
-          {mode === "self" && <CreateRoleBySelf />}
+          {mode === "self" && <CreateRoleBySelf onBack={() => setMode("role")} />}
           {mode === "AI" && (
             <AICreateRole
               setRoles={setRoles}
               setSelectedRoleId={setSelectedRoleId}
               onSave={handleSave}
+              onBack={() => setMode("role")} // 返回到CreateEntry页面
               onComplete={() => setMode("role")} // 完成后切换回角色模式
             />
           )}
-          {mode === "excel" && <ExcelImportRole />}
+          {mode === "excel" && <ExcelImportRole onBack={() => setMode("role")} />}
         </div>
       </div>
     </div>

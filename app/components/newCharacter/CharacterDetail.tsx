@@ -16,6 +16,7 @@ interface CharacterDetailProps {
   isEditing: boolean;
   onEdit: () => void;
   onSave: (updatedRole: Role) => void;
+  onBack?: () => void;
 }
 
 /**
@@ -26,6 +27,7 @@ export default function CharacterDetail({
   isEditing,
   onEdit,
   onSave,
+  onBack,
 }: CharacterDetailProps) {
   // 初始化角色数据
   const [localRole, setLocalRole] = useState<Role>(role);
@@ -202,14 +204,21 @@ export default function CharacterDetail({
 
       {/* 桌面端显示的头部区域 */}
       <div className="hidden md:flex items-center justify-between gap-3">
-        <div>
-          <h1 className="font-semibold text-2xl md:text-3xl my-2">
-            {localRole.name || "未命名角色"}
-          </h1>
-          <p className="text-base-content/60">
-            角色展示 ·
-            {currentRuleData?.ruleName || "未选择规则"}
-          </p>
+        <div className="flex items-center gap-4">
+          {onBack && (
+            <button type="button" className="btn btn-lg btn-outline rounded-md btn-ghost mr-4" onClick={onBack}>
+              ← 返回
+            </button>
+          )}
+          <div>
+            <h1 className="font-semibold text-2xl md:text-3xl my-2">
+              {localRole.name || "未命名角色"}
+            </h1>
+            <p className="text-base-content/60">
+              角色展示 ·
+              {currentRuleData?.ruleName || "未选择规则"}
+            </p>
+          </div>
         </div>
         {isEditing
           ? (
