@@ -228,7 +228,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                     {formattedTime}
                   </div>
                 </div>
-                <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-2 -m-2 cursor-pointer">
+                <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-2 cursor-pointer">
                   {renderedContent}
                 </div>
               </div>

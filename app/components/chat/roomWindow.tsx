@@ -796,7 +796,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     <RoomContext value={roomContext}>
       <div className="flex flex-col h-full w-full shadow-sm min-h-0">
         {/* 上边的信息栏 */}
-        <div className="flex justify-between py-2 px-5 bg-base-100">
+        <div className="flex justify-between items-center py-1 px-5 bg-base-100">
           <div className="flex gap-2">
             <BaselineArrowBackIosNew
               className="size-7"
@@ -811,13 +811,11 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             {/* 搜索栏 */}
             <SearchBar className={getScreenSize() === "sm" ? "" : "w-64"} />
 
-            {spaceContext.isSpaceOwner && (
-              <Setting
-                className="size-7 cursor-pointer hover:text-info"
-                onClick={() => setIsSettingWindowOpen(true)}
-              >
-              </Setting>
-            )}
+            <Setting
+              className="size-7 cursor-pointer hover:text-info"
+              onClick={() => setIsSettingWindowOpen(true)}
+            >
+            </Setting>
 
           </div>
         </div>
