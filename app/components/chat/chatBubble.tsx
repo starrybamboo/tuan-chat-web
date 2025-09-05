@@ -13,7 +13,7 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { formatTimeSmartly } from "@/utils/dataUtil";
 import { useGetRoleQuery } from "api/queryHooks";
-import React, { use, useMemo, useState } from "react";
+import React, { use, useMemo } from "react";
 import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
 
 export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
@@ -150,17 +150,13 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     return message.updateTime ? formatTimeSmartly(message.updateTime) : "未知时间";
   }, [message.updateTime]);
 
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
     <div>
       {useChatBubbleStyle
         ? (
             <div
-              className="flex w-full items-start gap-1 py-1"
+              className="flex w-full items-start gap-1 py-1 group"
               key={message.messageId}
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
             >
               {/* Avatar */}
               <div className="flex-shrink-0 cursor-pointer" onClick={handleAvatarClick}>
@@ -180,7 +176,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                   >
                     {role?.roleName?.trim() || "Undefined"}
                   </span>
-                  <span className={`text-xs text-base-content/50 ml-auto transition-opacity duration-200 ${isHovered ? "opacity-100" : "opacity-0"}`}>
+                  <span className="text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100">
                     {formattedTime}
                   </span>
                 </div>
@@ -196,8 +192,6 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
             <div
               className="flex w-full py-2"
               key={message.messageId}
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
             >
               {/* 圆角矩形头像 */}
               <div className="flex-shrink-0 pr-3">
@@ -224,11 +218,11 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                       { `【${role?.roleName?.trim() || "Undefined"}】`}
                     </div>
                   </div>
-                  <div className={`text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 ${isHovered ? "opacity-100" : "opacity-0"}`}>
+                  <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100">
                     {formattedTime}
                   </div>
                 </div>
-                <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-2 -m-2 cursor-pointer">
+                <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-2 cursor-pointer">
                   {renderedContent}
                 </div>
               </div>

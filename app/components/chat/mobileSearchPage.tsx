@@ -73,6 +73,7 @@ export default function MobileSearchPage({ isOpen, onClose }: MobileSearchPagePr
         <button
           onClick={onClose}
           className="text-base-content/70 hover:text-base-content transition-colors"
+          type="button"
         >
           <BaselineArrowBackIosNew className="size-6" />
         </button>
