@@ -171,7 +171,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
 
-  const [useChatBubbleStyle] = useLocalStorage("useChatBubbleStyle", true);
+  const [useChatBubbleStyle, setUseChatBubbleStyle] = useLocalStorage("useChatBubbleStyle", true);
 
   // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(roomId);
@@ -798,16 +798,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         {/* 上边的信息栏 */}
         <div className="flex justify-between py-2 px-5 bg-base-100">
           <div className="flex gap-2">
-            {getScreenSize() === "sm"
-              && (
-                <BaselineArrowBackIosNew
-                  className="size-7"
-                  onClick={
-                    sideDrawerState === "none" ? spaceContext.toggleLeftDrawer : () => setSideDrawerState("none")
-                  }
-                >
-                </BaselineArrowBackIosNew>
-              )}
+            <BaselineArrowBackIosNew
+              className="size-7"
+              onClick={
+                sideDrawerState === "none" ? spaceContext.toggleLeftDrawer : () => setSideDrawerState("none")
+              }
+            >
+            </BaselineArrowBackIosNew>
             <span className="text-center font-semibold text-lg line-clamp-1">{room?.name}</span>
           </div>
           <div className="flex gap-2 items-center">
@@ -829,7 +826,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           <div className="flex flex-col flex-1 h-full overflow-y-auto overflow-x-hidden">
             {/* 聊天框 */}
             <div className="bg-base-100 flex-1 flex-shrink-0">
-              <ChatFrame useChatBubbleStyle={useChatBubbleStyle} key={roomId} virtuosoRef={virtuosoRef}></ChatFrame>
+              <ChatFrame useChatBubbleStyle={useChatBubbleStyle} setUseChatBubbleStyle={setUseChatBubbleStyle} key={roomId} virtuosoRef={virtuosoRef}></ChatFrame>
             </div>
             <div className="h-px bg-base-300 flex-shrink-0"></div>
             {/* 输入区域 */}

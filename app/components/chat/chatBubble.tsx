@@ -13,7 +13,7 @@ import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { formatTimeSmartly } from "@/utils/dataUtil";
 import { useGetRoleQuery } from "api/queryHooks";
-import React, { use, useMemo } from "react";
+import React, { use, useMemo, useState } from "react";
 import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
 
 export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
@@ -150,6 +150,8 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     return message.updateTime ? formatTimeSmartly(message.updateTime) : "未知时间";
   }, [message.updateTime]);
 
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <div>
       {useChatBubbleStyle
@@ -157,6 +159,8 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
             <div
               className="flex w-full items-start gap-1 py-1"
               key={message.messageId}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
             >
               {/* Avatar */}
               <div className="flex-shrink-0 cursor-pointer" onClick={handleAvatarClick}>
@@ -176,7 +180,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                   >
                     {role?.roleName?.trim() || "Undefined"}
                   </span>
-                  <span className="text-xs text-base-content/50 ml-auto">
+                  <span className={`text-xs text-base-content/50 ml-auto transition-opacity duration-200 ${isHovered ? "opacity-100" : "opacity-0"}`}>
                     {formattedTime}
                   </span>
                 </div>
@@ -189,7 +193,12 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
             </div>
           )
         : (
-            <div className="flex w-full py-2" key={message.messageId}>
+            <div
+              className="flex w-full py-2"
+              key={message.messageId}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+            >
               {/* 圆角矩形头像 */}
               <div className="flex-shrink-0 pr-3">
                 <div className="w-20 h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
@@ -215,7 +224,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                       { `【${role?.roleName?.trim() || "Undefined"}】`}
                     </div>
                   </div>
-                  <div className="text-xs text-base-content/50 pt-1 ml-auto">
+                  <div className={`text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 ${isHovered ? "opacity-100" : "opacity-0"}`}>
                     {formattedTime}
                   </div>
                 </div>
@@ -236,6 +245,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 <ExpressionChooser
                   roleId={message.roleId}
                   handleExpressionChange={handleExpressionChange}
+                  handleRoleChange={handleRoleChange}
                 >
                 </ExpressionChooser>
               </div>
