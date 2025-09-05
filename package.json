@@ -84,7 +84,7 @@
     "remark-gfm": "^4.0.1",
     "ts-md5": "^2.0.1",
     "use-immer": "^0.11.0",
-    "vditor": "^3.11.1"
+    "vditor": "^3.11.2"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.11.0",

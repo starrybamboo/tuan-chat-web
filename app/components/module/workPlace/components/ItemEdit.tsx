@@ -1,16 +1,15 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { CharacterCopper } from "@/components/newCharacter/sprite/CharacterCopper";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useModuleContext } from "../context/_moduleContext";
 import Veditor from "./veditor";
 
 interface ItemEditProps {
   item: StageEntityResponse;
-  onSave: (changed: boolean) => void;
 }
 
-export default function ItemEdit({ item, onSave }: ItemEditProps) {
+export default function ItemEdit({ item }: ItemEditProps) {
   const entityInfo = item.entityInfo || {};
   const { stageId, removeModuleTabItem } = useModuleContext();
 
@@ -21,18 +20,25 @@ export default function ItemEdit({ item, onSave }: ItemEditProps) {
   const [name, setName] = useState(item.name);
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [charCount, setCharCount] = useState(entityInfo.description?.length || 0);
-  const MAX_TIP_LENGTH = 300;
   const vditorId = `item-tip-editor-${item.id}`;
+  const VeditorIdForDescription = `item-description-editor-${item.id}`;
+
+  // 防抖定时器
+  const saveTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setLocalItem({ ...entityInfo });
-    setCharCount(entityInfo.description?.length || 0);
     setName(item.name);
   }, [item]);
 
   // 接入接口
   const { mutate: updateItem } = useUpdateEntityMutation(stageId as number);
+
+  // 定时器的保存
+  const localItemRef = useRef(localItem);
+  useEffect(() => {
+    localItemRef.current = localItem;
+  }, [localItem]);
   const handleSave = () => {
     setIsTransitioning(true);
     setTimeout(() => {
@@ -48,7 +54,7 @@ export default function ItemEdit({ item, onSave }: ItemEditProps) {
         });
         newScenes?.forEach(scene => updateItem({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
       }
-      updateItem({ id: item.id!, entityType: 1, entityInfo: localItem, name });
+      updateItem({ id: item.id!, entityType: 1, entityInfo: localItemRef.current, name });
     }, 300);
   };
 
@@ -100,10 +106,7 @@ export default function ItemEdit({ item, onSave }: ItemEditProps) {
                   <input
                     type="text"
                     value={name || ""}
-                    onChange={(e) => {
-                      onSave(true);
-                      setName(e.target.value);
-                    }}
+                    onChange={e => setName(e.target.value)}
                     placeholder="请输入物品名称"
                     className="input input-bordered w-full"
                   />
@@ -112,31 +115,15 @@ export default function ItemEdit({ item, onSave }: ItemEditProps) {
                   <label className="label">
                     <span className="label-text font-bold">物品描述（玩家可见）</span>
                   </label>
-                  <textarea
-                    value={localItem.description || ""}
-                    onChange={(e) => {
-                      onSave(true);
-                      setLocalItem(prev => ({ ...prev, description: e.target.value }));
-                      setCharCount(e.target.value.length);
+                  <Veditor
+                    id={VeditorIdForDescription}
+                    placeholder={localItem.description || ""}
+                    onchange={(value) => {
+                      setLocalItem(prev => ({ ...prev, description: value }));
+                      saveTimer.current && clearTimeout(saveTimer.current);
+                      saveTimer.current = setTimeout(handleSave, 8000);
                     }}
-                    placeholder="可以直接展示给玩家的描述"
-                    className="textarea textarea-bordered w-full h-24 resize-none"
                   />
-                  <div className="text-right mt-1">
-                    <span
-                      className={`text-sm font-bold ${charCount > MAX_TIP_LENGTH
-                        ? "text-error"
-                        : "text-base-content/70"
-                      }`}
-                    >
-                      {charCount}
-                      /
-                      {MAX_TIP_LENGTH}
-                      {charCount > MAX_TIP_LENGTH && (
-                        <span className="ml-2">(已超出字数上限)</span>
-                      )}
-                    </span>
-                  </div>
                 </div>
                 <div>
                   <label className="label">
@@ -146,8 +133,9 @@ export default function ItemEdit({ item, onSave }: ItemEditProps) {
                     id={vditorId}
                     placeholder={localItem.tip || ""}
                     onchange={(value) => {
-                      onSave(true);
                       setLocalItem(prev => ({ ...prev, tip: value }));
+                      saveTimer.current && clearTimeout(saveTimer.current);
+                      saveTimer.current = setTimeout(handleSave, 8000);
                     }}
                   />
                 </div>
@@ -158,10 +146,7 @@ export default function ItemEdit({ item, onSave }: ItemEditProps) {
           <div className="card-actions justify-end">
             <button
               type="submit"
-              onClick={() => {
-                onSave(false);
-                handleSave();
-              }}
+              onClick={handleSave}
               className={`btn btn-primary ${isTransitioning ? "scale-95" : ""}`}
               disabled={isTransitioning}
             >

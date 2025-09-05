@@ -3,6 +3,7 @@ import type { Room } from "../../../api";
 import RoomWindow from "@/components/chat/roomWindow";
 import SpaceDetailPanel from "@/components/chat/sideDrawer/spaceDetailPanel";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import checkBack from "@/components/common/autoContrastText";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
@@ -12,7 +13,7 @@ import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderW
 import { useGlobalContext } from "@/components/globalContextProvider";
 import LeftChatList from "@/components/privateChat/components/Left​​ChatList​​";
 import RightChatView from "@/components/privateChat/components/RightChatView";
-import { DotsHorizontalOutline } from "@/icons";
+import { Setting } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import {
   useCreateRoomMutation,
@@ -116,6 +117,10 @@ export default function ChatPage() {
   const [isRoomHandleOpen, setIsRoomHandleOpen] = useSearchParamsState<boolean>("addRoomPop", false);
   // 是否显示space详情
   const [isShowSpacePanel, setIsShowSpacePanel] = useSearchParamsState<boolean>("spaceDetailPop", false);
+  // 房间设置窗口状态
+  const [activeRoomSettingId, setActiveRoomSettingId] = useState<number | null>(null);
+  const [_sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
+  const [_isRenderWindowOpen, setIsRenderWindowOpen] = useState(false);
 
   // 处理邀请用户uid
   const [inputUserId, setInputUserId] = useState<number>(-1);
@@ -403,45 +408,56 @@ export default function ChatPage() {
                         activeSpaceId && (
                           <div className="self-center font-bold flex gap-2">
                             <span className="text-lg">{activeSpace?.name}</span>
-                            <DotsHorizontalOutline className="size-7 hover:bg-base-300 rounded" onClick={() => { setIsShowSpacePanel(!isShowSpacePanel); }} />
+                            <Setting className="size-7 hover:bg-base-300 rounded cursor-pointer hover:text-info" onClick={() => { setIsShowSpacePanel(!isShowSpacePanel); }} />
                           </div>
                         )
                       }
 
                       <div className="h-px bg-base-300"></div>
-                      <div className="flex flex-col gap-2 p-2 overflow-auto">
-                        {rooms.map(room => (
-                          <div key={room.roomId} data-room-id={room.roomId}>
-                            {activeSpaceId === room.spaceId && (
-                              <button
-                                key={room.roomId}
-                                className={`btn btn-ghost flex justify-start w-full gap-2 ${activeRoomId === room.roomId ? "bg-info-content/30" : ""}`}
-                                type="button"
-                                onClick={() => {
-                                  setActiveRoomId(room.roomId ?? -1);
-                                  setIsOpenLeftDrawer(false);
-                                }}
-                              >
-                                <div className="indicator">
-                                  {(activeRoomId !== room.roomId && unreadMessagesNumber[room.roomId ?? -1] > 0)
-                                    && (
-                                      <span
-                                        className="indicator-item badge badge-xs bg-error"
-                                      >
-                                        {unreadMessagesNumber[room.roomId ?? -1]}
-                                      </span>
-                                    )}
+                      <div className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full">
+                        {rooms.filter(room => room.spaceId === activeSpaceId).map(room => (
+                          <div className="flex items-center gap-1 group w-full" key={room.roomId} data-room-id={room.roomId}>
+                            <button
+                              key={room.roomId}
+                              className={`font-bold text-sm rounded-lg p-1 hover:bg-base-300 flex justify-start items-center flex-1 gap-2 min-w-0 ${activeRoomId === room.roomId ? "bg-info-content/30" : ""}`}
+                              type="button"
+                              onClick={() => {
+                                setActiveRoomId(room.roomId ?? -1);
+                                setIsOpenLeftDrawer(false);
+                              }}
+                            >
+                              <div className="indicator">
+                                {(activeRoomId !== room.roomId && unreadMessagesNumber[room.roomId ?? -1] > 0)
+                                  && (
+                                    <span
+                                      className="indicator-item badge badge-xs bg-error"
+                                    >
+                                      {unreadMessagesNumber[room.roomId ?? -1]}
+                                    </span>
+                                  )}
 
-                                  <div className="avatar mask mask-squircle w-8">
-                                    <img
-                                      src={room.avatar}
-                                      alt={room.name}
-                                    />
-                                  </div>
+                                <div className="avatar mask mask-squircle w-8">
+                                  <img
+                                    src={room.avatar}
+                                    alt={room.name}
+                                  />
                                 </div>
-                                <span className="truncate flex-1 text-left">{room.name}</span>
-                              </button>
-                            )}
+                              </div>
+                              <span className="truncate text-left">{room.name}</span>
+                            </button>
+                            {/* 设置按钮 - 在所有房间都显示（当前房间和悬浮房间） */}
+                            <div
+                              className="tooltip tooltip-left opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                              data-tip="房间设置"
+                            >
+                              <Setting
+                                className="size-6 cursor-pointer hover:text-info hover:bg-base-300 rounded"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveRoomSettingId(room.roomId ?? -1);
+                                }}
+                              />
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -670,6 +686,26 @@ export default function ChatPage() {
         </PopWindow>
         <PopWindow isOpen={isShowSpacePanel} onClose={() => setIsShowSpacePanel(false)}>
           <SpaceDetailPanel></SpaceDetailPanel>
+        </PopWindow>
+        {/* 房间设置窗口 */}
+        <PopWindow
+          isOpen={activeRoomSettingId !== null}
+          onClose={() => setActiveRoomSettingId(null)}
+        >
+          {activeRoomSettingId && (
+            <RoomSettingWindow
+              roomId={activeRoomSettingId}
+              onClose={() => setActiveRoomSettingId(null)}
+              onShowMembers={() => {
+                setSideDrawerState("user");
+                setActiveRoomSettingId(null);
+              }}
+              onRenderDialog={() => {
+                setIsRenderWindowOpen(true);
+                setActiveRoomSettingId(null);
+              }}
+            />
+          )}
         </PopWindow>
       </div>
       {contextMenu && (() => {

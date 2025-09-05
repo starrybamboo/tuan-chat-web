@@ -10,7 +10,6 @@ import {
   MarkerType,
   ReactFlow,
   reconnectEdge,
-  useReactFlow,
 } from "@xyflow/react";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import dagre from "dagre";
@@ -19,16 +18,6 @@ import SceneNode from "../../detail/ContentTab/scene/react flow/NewSceneNode";
 import { useModuleContext } from "../context/_moduleContext";
 import SceneEdit from "./SceneEdit";
 import "@xyflow/react/dist/style.css";
-
-function AutoFitView({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
-  const { fitView } = useReactFlow();
-  useEffect(() => {
-    if (nodes.length > 0) {
-      fitView();
-    }
-  }, [nodes, edges, fitView]);
-  return null;
-}
 
 const nodeTypes = {
   mapEditNode: SceneNode,
@@ -345,7 +334,6 @@ export default function MapEdit({ map }: { map: StageEntityResponse }) {
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         nodeOrigin={[0.5, 0]}
       >
-        <AutoFitView nodes={nodes} edges={edges} />
         <Controls />
         <Background gap={16} color="#aaa" />
         {map.name}

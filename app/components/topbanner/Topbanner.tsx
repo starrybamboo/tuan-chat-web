@@ -1,6 +1,9 @@
+import WebgalStarter from "@/components/chat/smallComponents/webgalStarter";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import UpdatesPopWindow from "@/components/topbanner/updatesWindow";
+import { ConnectionIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus } from "@/utils/auth/authapi";
+import { isElectronEnv } from "@/utils/isElectronEnv";
 import { QueryClient, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -17,33 +20,28 @@ function ActivitiesButton() {
         aria-label="动态"
         className="btn btn-ghost btn-square hover:bg-base-200 transition-colors duration-200"
       >
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-base-content"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <circle cx="9" cy="9" r="2" />
-          <path d="M13 19l6-6" />
-          <path d="m21 3-6 6" />
-          <path d="m11 11 6 6" />
-          <circle cx="20" cy="20" r="2" />
-          <circle cx="20" cy="4" r="2" />
-          <circle cx="4" cy="20" r="2" />
-        </svg>
+        <ConnectionIcon />
       </Link>
     </div>
   );
 }
 
 export default function Topbar() {
+  const switchRef = useRef<HTMLDivElement | null>(null);
+
+  // 点击处理：如果点击发生在 switchRef 内部，则不重复触发；否则查找内部 input 并触发它
+  const handleClick = (e?: React.MouseEvent) => {
+    // 如果事件存在并且点击目标位于 ThemeSwitch 内部，就不做任何事（避免双触发）
+    if (e && switchRef.current && switchRef.current.contains(e.target as Node)) {
+      return;
+    }
+
+    const input = switchRef.current?.querySelector<HTMLInputElement>("input[type=\"checkbox\"]");
+    if (input) {
+      input.click();
+    }
+  };
+
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
@@ -182,18 +180,40 @@ export default function Topbar() {
                       </svg>
                     </div>
                     <ul tabIndex={0} className="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-52">
-                      <div className="flex items-center justify-between px-4 py-2">
-                        <span className="select-none">主题切换</span>
-                        <div className="scale-75">
-                          <ThemeSwitch />
-                        </div>
-                      </div>
                       <li>
                         <a onClick={() => handleUserNavigation(`/profile/${userId}`)}>个人中心</a>
                       </li>
                       <li>
                         <a onClick={() => handleUserNavigation("/settings")}>设置</a>
                       </li>
+                      <li
+                        className="flex justify-between cursor-pointer"
+                        onClick={e => handleClick(e)}
+                        role="button"
+                        aria-label="切换主题"
+                      >
+                        <div className="flex justify-between gap-2">
+                          <span className="select-none pr-10">主题切换</span>
+                          <div className="scale-70" ref={switchRef}>
+                            <ThemeSwitch />
+                          </div>
+                        </div>
+                      </li>
+                      {
+                        isElectronEnv() && (
+                          <li
+                            className="flex justify-between cursor-pointer"
+                            onClick={handleClick}
+                            role="button"
+                            aria-label="切换主题"
+                          >
+                            <WebgalStarter className="flex justify-between gap-2 w-full">
+                              <span className="select-none">启动WebGAL</span>
+                              <WebgalIcon className="size-5"></WebgalIcon>
+                            </WebgalStarter>
+                          </li>
+                        )
+                      }
                       <li>
                         <a onClick={handleLogout}>
                           退出登录

@@ -1,16 +1,15 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
-import { useEffect, useMemo, useState } from "react";
-import EntityList from "../../detail/ContentTab/entityLists";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useModuleContext } from "../context/_moduleContext";
 import AddEntityToScene from "./addEntityToScene";
+import CreateEntityList from "./createEntityList";
 import EntityDetailList from "./EntityDetailList"; // 引入 EntityDetailList 组件
 import Veditor from "./veditor";
 
 interface SceneEditProps {
   scene: StageEntityResponse;
   id: string | number; // 当前sceneEdit在moduleTabs中的id
-  onSave?: (changed: boolean) => void;
 }
 
 const types = {
@@ -18,11 +17,12 @@ const types = {
   role: "角色",
   location: "地点",
 };
-function Folder({ moduleData, entityType, onClick }:
+function Folder({ moduleData, entityType, onClick, onDelete }:
 {
   moduleData: StageEntityResponse[];
   entityType: "item" | "location" | "role";
   onClick?: () => void;
+  onDelete?: (entity: StageEntityResponse) => void;
 }) {
   return (
     <div className="collapse collapse-arrow bg-base-300 mb-2">
@@ -67,10 +67,10 @@ function Folder({ moduleData, entityType, onClick }:
         {
           entityType === "role"
             ? (
-                <EntityDetailList moduleData={moduleData} />
+                <EntityDetailList moduleData={moduleData} onDelete={onDelete} />
               )
             : (
-                <EntityList moduleData={moduleData} entityType={entityType} />
+                <CreateEntityList moduleData={moduleData} entityType={entityType} onDelete={onDelete} />
               )
         }
       </div>
@@ -78,7 +78,7 @@ function Folder({ moduleData, entityType, onClick }:
   );
 }
 
-export default function SceneEdit({ scene, id, onSave }: SceneEditProps) {
+export default function SceneEdit({ scene, id }: SceneEditProps) {
   const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
   const { stageId, removeModuleTabItem } = useModuleContext();
 
@@ -88,7 +88,11 @@ export default function SceneEdit({ scene, id, onSave }: SceneEditProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [editEntityType, setEditEntityType] = useState<"item" | "role" | "location">("role");
-  const VeditorId = `scene-description-editor-${id}`;
+  const VeditorId = `scene-tip-editor-${id}`;
+  const VeditorIdForDescription = `scene-description-editor-${id}`;
+
+  // 自动保存定时器
+  const saveTimer = useRef<NodeJS.Timeout | null>(null);
 
   // 接入接口
   const { mutate: updateScene } = useUpdateEntityMutation(stageId as number);
@@ -118,27 +122,61 @@ export default function SceneEdit({ scene, id, onSave }: SceneEditProps) {
         id: scene.id!,
         name: scene.name!,
         entityType: 3,
-        entityInfo: { ...localScene, items: [...localScene.items, ...entitiesNames] },
+        entityInfo: { ...localScene, items: [...(localScene.items || []), ...entitiesNames] },
       });
-      setLocalScene(prev => ({ ...prev, items: [...prev.items, ...entitiesNames] }));
+      setLocalScene(prev => ({ ...prev, items: [...(prev.items || []), ...entitiesNames] }));
     }
     if (editEntityType === "role") {
       updateScene({
         id: scene.id!,
         name: scene.name!,
         entityType: 3,
-        entityInfo: { ...localScene, roles: [...localScene.roles, ...entitiesNames] },
+        entityInfo: { ...localScene, roles: [...(localScene.roles || []), ...entitiesNames] },
       });
-      setLocalScene(prev => ({ ...prev, roles: [...prev.roles, ...entitiesNames] }));
+      setLocalScene(prev => ({ ...prev, roles: [...(prev.roles || []), ...entitiesNames] }));
     }
     if (editEntityType === "location") {
       updateScene({
         id: scene.id!,
         name: scene.name!,
         entityType: 3,
-        entityInfo: { ...localScene, locations: [...localScene.locations, ...entitiesNames] },
+        entityInfo: { ...localScene, locations: [...(localScene.locations || []), ...entitiesNames] },
       });
-      setLocalScene(prev => ({ ...prev, locations: [...prev.locations, ...entitiesNames] }));
+      setLocalScene(prev => ({ ...prev, locations: [...(prev.locations || []), ...entitiesNames] }));
+    }
+  };
+
+  const handleDeleteEntity = (entity: StageEntityResponse) => {
+    if (entity.entityType! === 1) {
+      const filteredItems = localScene.items?.filter((item: string | undefined) => item !== entity.name);
+      updateScene({
+        id: scene.id!,
+        name: scene.name!,
+        entityType: 3,
+        entityInfo: { ...localScene, items: (filteredItems || []) },
+      });
+      setLocalScene(prev => ({ ...prev, items: (filteredItems || []) }));
+    }
+    if (entity.entityType! === 2) {
+      const filteredRoles = localScene.roles?.filter((item: string | undefined) => item !== entity.name);
+      updateScene({
+        id: scene.id!,
+        name: scene.name!,
+        entityType: 3,
+        entityInfo: { ...localScene, roles: (filteredRoles || []) },
+      });
+      setLocalScene(prev => ({ ...prev, roles: (filteredRoles || []) }));
+    }
+    if (entity.entityType! === 4) {
+      const filteredLocations = localScene.locations?.filter((item: string | undefined) => item !== entity.name);
+      updateScene({
+        id: scene.id!,
+        name: scene.name!,
+        entityType: 3,
+        entityInfo: { ...localScene, locations: (filteredLocations || []) },
+      });
+
+      setLocalScene(prev => ({ ...prev, locations: (filteredLocations || []) }));
     }
   };
 
@@ -154,11 +192,11 @@ export default function SceneEdit({ scene, id, onSave }: SceneEditProps) {
   useEffect(() => {
     if (entities && localScene.locations && localScene.items && localScene.roles) {
       const locationsData = entities.data!.filter(item =>
-        item.entityType === 4 && localScene.locations.includes(item.name!));
+        item.entityType === 4 && (localScene.locations || []).includes(item.name!));
       const itemsData = entities.data!.filter(item =>
-        item.entityType === 1 && localScene.items.includes(item.name!));
+        item.entityType === 1 && (localScene.items || []).includes(item.name!));
       const rolesData = entities.data!.filter(item =>
-        item.entityType === 2 && localScene.roles.includes(item.name!));
+        item.entityType === 2 && (localScene.roles || []).includes(item.name!));
 
       setLocations(locationsData);
       setItems(itemsData);
@@ -210,6 +248,12 @@ export default function SceneEdit({ scene, id, onSave }: SceneEditProps) {
       }
     }
   }, [entities, scene.id, localScene]);
+
+  // 定时器的更新
+  const localSceneRef = useRef(localScene);
+  useEffect(() => {
+    localSceneRef.current = localScene;
+  }, [localScene]);
   const handleSave = () => {
     setIsTransitioning(true);
     let changed = false;
@@ -221,7 +265,7 @@ export default function SceneEdit({ scene, id, onSave }: SceneEditProps) {
         removeModuleTabItem(scene.id!.toString());
         changed = true;
       }
-      updateScene({ id: scene.id!, entityType: 3, entityInfo: localScene, name });
+      updateScene({ id: scene.id!, entityType: 3, entityInfo: localSceneRef.current, name });
       if (changed && mapData) {
         const oldMap = { ...mapData.entityInfo?.sceneMap } as Record<string, any>;
         const newMap: Record<string, any> = {};
@@ -271,10 +315,7 @@ export default function SceneEdit({ scene, id, onSave }: SceneEditProps) {
                   <input
                     type="text"
                     value={name || ""}
-                    onChange={(e) => {
-                      onSave && onSave(true);
-                      setName(e.target.value);
-                    }}
+                    onChange={e => setName(e.target.value)}
                     placeholder="请输入场景名称"
                     className="input input-bordered w-full"
                   />
@@ -283,15 +324,14 @@ export default function SceneEdit({ scene, id, onSave }: SceneEditProps) {
                   <label className="label">
                     <span className="label-text font-bold mb-1">场景描述（玩家可见）</span>
                   </label>
-                  <textarea
-                    value={localScene.description || ""}
-                    onChange={(e) => {
-                      if (onSave)
-                        onSave(true);
-                      setLocalScene(prev => ({ ...prev, description: e.target.value }));
+                  <Veditor
+                    id={VeditorIdForDescription}
+                    placeholder={localScene.description || "玩家能看到的描述"}
+                    onchange={(value) => {
+                      setLocalScene(prev => ({ ...prev, description: value }));
+                      saveTimer.current && clearTimeout(saveTimer.current);
+                      saveTimer.current = setTimeout(handleSave, 8000);
                     }}
-                    placeholder="可以直接展示给玩家的描述"
-                    className="textarea textarea-bordered w-full h-24 resize-none"
                   />
                 </div>
                 <div>
@@ -312,10 +352,11 @@ export default function SceneEdit({ scene, id, onSave }: SceneEditProps) {
                     id={VeditorId}
                     placeholder={localScene.tip || "对KP的提醒（对于剧情的书写）"}
                     onchange={(value) => {
-                      if (onSave) {
-                        onSave(true);
+                      if (value !== entityInfo.tip) {
+                        setLocalScene(prev => ({ ...prev, tip: value }));
+                        saveTimer.current && clearTimeout(saveTimer.current);
+                        saveTimer.current = setTimeout(handleSave, 8000);
                       }
-                      setLocalScene(prev => ({ ...prev, tip: value }));
                     }}
                   />
                 </div>
@@ -326,11 +367,7 @@ export default function SceneEdit({ scene, id, onSave }: SceneEditProps) {
           <div className="card-actions justify-end">
             <button
               type="submit"
-              onClick={() => {
-                if (onSave)
-                  onSave(false);
-                handleSave();
-              }}
+              onClick={handleSave}
               className={`btn btn-primary ${isTransitioning ? "scale-95" : ""}`}
               disabled={isTransitioning}
             >
@@ -358,9 +395,9 @@ export default function SceneEdit({ scene, id, onSave }: SceneEditProps) {
 
       {/* 新增模块：locations, items, roles */}
       <div className="space-y-4">
-        <Folder moduleData={locations} entityType="location" onClick={() => handleAddEntityOpen("location")} />
-        <Folder moduleData={items} entityType="item" onClick={() => handleAddEntityOpen("item")} />
-        <Folder moduleData={roles} entityType="role" onClick={() => handleAddEntityOpen("role")} />
+        <Folder moduleData={locations} entityType="location" onClick={() => handleAddEntityOpen("location")} onDelete={handleDeleteEntity} />
+        <Folder moduleData={items} entityType="item" onClick={() => handleAddEntityOpen("item")} onDelete={handleDeleteEntity} />
+        <Folder moduleData={roles} entityType="role" onClick={() => handleAddEntityOpen("role")} onDelete={handleDeleteEntity} />
       </div>
       <AddEntityToScene
         isOpen={isOpen}

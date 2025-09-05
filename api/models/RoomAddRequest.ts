@@ -19,5 +19,9 @@ export type RoomAddRequest = {
      * 房间头像
      */
     avatar?: string;
+    /**
+     * 当前房间id，创建房间时，会将新的roomId添加到当前房间Id的临界list中
+     */
+    roomId?: number;
 };
 
