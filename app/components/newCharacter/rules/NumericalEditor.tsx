@@ -273,7 +273,7 @@ export default function NumericalEditor({
                 ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-6"
                 : isEditing
                   ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
-                  : "flex flex-wrap gap-2 md:gap-6"
+                  : "grid grid-cols-2 md:flex md:flex-wrap gap-2 md:gap-6"
             }
             >
               {entries.map(([key]) => {
@@ -328,10 +328,10 @@ export default function NumericalEditor({
                                 return (
                                   <>
                                     <div
-                                      className={`flex items-center gap-2 p-2 md:p-3 rounded-lg border bg-base-100/50 whitespace-nowrap ${hasFormula ? "border-primary/30" : "border-base-content/10"
+                                      className={`flex items-center justify-between p-2 md:p-3 rounded-lg border bg-base-100/50 whitespace-nowrap ${hasFormula ? "border-primary/30" : "border-base-content/10"
                                       }`}
                                     >
-                                      <span className="font-medium text-sm md:text-base flex-shrink-0 mr-8">{key}</span>
+                                      <span className="font-medium text-sm md:text-base flex-shrink-0 md:mr-8">{key}</span>
                                       <span className={`badge text-sm md:text-base flex-shrink-0 ${hasFormula ? "badge-primary" : "badge-ghost"}`}>
                                         {displayText}
                                       </span>

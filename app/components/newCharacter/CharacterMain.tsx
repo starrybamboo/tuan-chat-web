@@ -92,7 +92,7 @@ export default function CharacterMain() {
       </div>
 
       {/* 主内容区 */}
-      <div className="drawer-content bg-base-200">
+      <div className="drawer-content bg-base-100 md:bg-base-200">
         {/* 添加条件渲染，在小屏幕且抽屉打开时隐藏内容 */}
         <div className="md:p-6 max-w-7xl mx-auto">
           {mode === "role" && !currentRole && <CreateEntry AICreate={AICreate} ExcelImport={ExcelImport} createBySelf={createBySelf} />}

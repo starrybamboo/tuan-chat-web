@@ -196,11 +196,12 @@ export default function CharacterDetail({
   };
 
   return (
-    <div className={`transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""
+    <div className={`transition-opacity duration-300 p-4 ease-in-out ${isTransitioning ? "opacity-50" : ""
     }`}
     >
 
-      <div className="flex items-center justify-between gap-3">
+      {/* 桌面端显示的头部区域 */}
+      <div className="hidden md:flex items-center justify-between gap-3">
         <div>
           <h1 className="font-semibold text-2xl md:text-3xl my-2">
             {localRole.name || "未命名角色"}
@@ -245,20 +246,71 @@ export default function CharacterDetail({
             )}
       </div>
 
-      <div className="divider divider-start font-bold" />
+      <div className="max-md:hidden divider"></div>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* 左侧：立绘与简介、规则选择（固定） */}
         <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
-          {/* 规则选择区域（移至左侧） */}
-          <Section title="规则选择" className="rounded-2xl border-2 border-base-content/10 bg-base-100" defaultOpen={false}>
-            <RulesSection
-              currentRuleId={selectedRuleId}
-              onRuleChange={handleRuleChange}
-            />
-          </Section>
+          {/* 桌面端规则选择区域 */}
+          <div className="hidden md:block">
+            <Section title="规则选择" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100" defaultOpen={false}>
+              <RulesSection
+                currentRuleId={selectedRuleId}
+                onRuleChange={handleRuleChange}
+              />
+            </Section>
+          </div>
           {/* 立绘与简介卡片 */}
-          <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
+          <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl md:border-2 md:border-base-content/10">
             <div className="card-body">
+              {/* 移动端显示的头部区域 */}
+              <div className="md:hidden mb-4 pl-4 pr-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <h1 className="font-semibold text-xl">
+                      {localRole.name || "未命名角色"}
+                    </h1>
+                    <p className="text-base-content/60 text-sm">
+                      角色展示 ·
+                      {currentRuleData?.ruleName || "未选择规则"}
+                    </p>
+                  </div>
+                  {isEditing
+                    ? (
+                        <button
+                          type="button"
+                          onClick={handleSave}
+                          className={`btn btn-primary btn-sm ${isTransitioning ? "scale-95" : ""}`}
+                          disabled={isTransitioning}
+                        >
+                          {isTransitioning
+                            ? (
+                                <span className="loading loading-spinner loading-xs"></span>
+                              )
+                            : (
+                                <span className="flex items-center gap-1">
+                                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                    <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                  </svg>
+                                  保存
+                                </span>
+                              )}
+                        </button>
+                      )
+                    : (
+                        <button type="button" onClick={onEdit} className="btn btn-accent btn-sm">
+                          <span className="flex items-center gap-1">
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                              <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                              <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                            </svg>
+                            编辑
+                          </span>
+                        </button>
+                      )}
+                </div>
+                <div className="divider my-0" />
+              </div>
+
               <div className="flex justify-center">
                 <CharacterAvatar
                   role={localRole}
@@ -336,13 +388,22 @@ export default function CharacterDetail({
               </div>
             </div>
           </div>
+          {/* 移动端规则选择区域 */}
+          <div className="md:hidden">
+            <Section title="规则选择" className="rounded-2xl bg-base-100" defaultOpen={false}>
+              <RulesSection
+                currentRuleId={selectedRuleId}
+                onRuleChange={handleRuleChange}
+              />
+            </Section>
+          </div>
         </div>
 
         {/* 右侧：编辑信息、预览、扩展模块 */}
         <div className="lg:col-span-3 space-y-6">
 
           {/* 渲染结果预览 */}
-          <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
+          <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
             <Section title="渲染结果预览">
               <SpriteRenderStudio
                 characterName={localRole.name || "未命名角色"}

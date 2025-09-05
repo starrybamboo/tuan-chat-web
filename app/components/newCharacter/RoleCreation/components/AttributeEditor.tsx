@@ -32,11 +32,11 @@ export default function AttributeEditor({ title, attributes, onChange }: Attribu
               </div>
             )
           : (
-              <div className="grid grid-cols-4 gap-4 mt-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                 {Object.entries(attributes as Record<string, number>).map(([key, value]) => (
                   <div key={key} className="form-control">
                     <div className="flex items-center gap-1 group">
-                      <div className="hidden md:block w-full">
+                      <div className="w-full">
                         <label className="input flex items-center gap-1 md:gap-2 w-full rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none">
                           <span className="text-xs md:text-sm">{key}</span>
                           <div className="w-px h-4 bg-base-content/20"></div>
@@ -47,17 +47,6 @@ export default function AttributeEditor({ title, attributes, onChange }: Attribu
                             onChange={e => (onChange as (k: string, v: number) => void)(key, Number.parseInt(e.target.value) || 0)}
                           />
                         </label>
-                      </div>
-                      <div className="block md:hidden w-full">
-                        <fieldset className="fieldset rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none">
-                          <legend className="fieldset-legend text-xs">{key}</legend>
-                          <input
-                            type="number"
-                            value={value}
-                            className="input w-full focus:outline-none border-none outline-none"
-                            onChange={e => (onChange as (k: string, v: number) => void)(key, Number.parseInt(e.target.value) || 0)}
-                          />
-                        </fieldset>
                       </div>
                     </div>
                   </div>

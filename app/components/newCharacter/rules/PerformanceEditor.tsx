@@ -129,7 +129,7 @@ export default function PerformanceEditor({
       </div>
 
       {/* 短字段区域 - 多列排布 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:5 gap-6">
         {shortFields.map(key => (
           <div key={key} className="group">
             {isEditing
@@ -144,7 +144,7 @@ export default function PerformanceEditor({
                           onChange(newFields);
                         }}
                         value={fields[key] || ""}
-                        className="textarea w-full resize-none"
+                        className="textarea textarea-bordered bg-base-100 rounded-md w-full min-h-32 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary border-none outline-none resize-none"
                         rows={1}
                       />
                       <button
@@ -192,7 +192,7 @@ export default function PerformanceEditor({
           <div className="relative w-full">
             <textarea
               placeholder="值"
-              className="textarea textarea-bordered textarea-sm w-full h-30 resize-none mt-4"
+              className="textarea textarea-bordered bg-base-100 rounded-md w-full min-h-32 mt-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary border-none outline-none resize-none"
               value={newValue}
               onChange={e => setNewValue(e.target.value)}
               rows={1}

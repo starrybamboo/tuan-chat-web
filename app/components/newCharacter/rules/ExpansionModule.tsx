@@ -161,7 +161,7 @@ export default function ExpansionModule({
           /* 规则详情区域 */
             localRuleData && (
               <>
-                <Section title="表演字段配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                <Section title="表演字段配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
                   <PerformanceEditor
                     fields={{
                       ...(localRuleData.actTemplate ?? ruleDetailQuery.data?.actTemplate ?? {}),
@@ -172,7 +172,7 @@ export default function ExpansionModule({
                   />
                 </Section>
 
-                <Section title="数值约束配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                <Section title="数值约束配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
                   <NumericalEditor
                     constraints={{
                       ...(localRuleData.abilityDefault ?? ruleDetailQuery.data?.abilityDefault ?? {}),
