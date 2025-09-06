@@ -5,11 +5,11 @@ import type { LLMProperty } from "@/components/settings/settingsPage";
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, Message, RoomMember, UserRole } from "../../../api";
 import type { ChatStatusEvent } from "../../../api/wsModels";
+import AvatarSwitch from "@/components/chat/avatarSwitch";
 import ChatFrame from "@/components/chat/chatFrame";
 import ChatInputArea from "@/components/chat/chatInputArea";
 import ChatToolbar from "@/components/chat/chatToolbar";
 import CommandPanel from "@/components/chat/commandPanel";
-import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import { useChatHistory } from "@/components/chat/indexedDB/useChatHistory";
 import SearchBar from "@/components/chat/inlineSearch";
 import DNDMap from "@/components/chat/map/DNDMap";
@@ -34,7 +34,6 @@ import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
-  AddRingLight,
   BaselineArrowBackIosNew,
   Setting,
 } from "@/icons";
@@ -45,6 +44,8 @@ import { UploadUtils } from "@/utils/UploadUtils";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
+// *** 导入新组件及其 Handle 类型 ***
+
 import {
   useAddRoomRoleMutation,
   useGetMemberListQuery,
@@ -52,8 +53,6 @@ import {
   useGetRoomRoleQuery,
   useGetSpaceInfoQuery,
 } from "../../../api/hooks/chatQueryHooks";
-// *** 导入新组件及其 Handle 类型 ***
-
 import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
 import ItemDetail from "./itemsDetail";
 
@@ -93,7 +92,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     chatInputRef.current?.setContent(text); // 命令子组件更新其 DOM
   };
 
-  const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const uploadUtils = new UploadUtils();
 
   // 聊天框中包含的图片
@@ -105,8 +103,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     setReplyMessage(undefined);
   }, [roomId]);
 
-  // (获取角色、成员、历史记录等逻辑... 保持不变)
-  // ... (userRolesQuery, roomRolesQuery, etc. a...as-is) ...
   // 获取用户的所有角色
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
@@ -120,7 +116,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   // 获取当前用户选择角色的所有头像(表情差分)
   const roleAvatarQuery = useGetRoleAvatarsQuery(curRoleId ?? -1);
   const roleAvatars = useMemo(() => roleAvatarQuery.data?.data ?? [], [roleAvatarQuery.data?.data]);
-  const curAvatarId = roleAvatars[curAvatarIndex]?.avatarId || -1;
+  const [curAvatarId, setCurAvatarId] = useState(0);
 
   const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
   // 渲染对话
@@ -174,14 +170,14 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       curMember,
       roomRolesThatUserOwn,
       curRoleId,
-      curAvatarId: roleAvatars[curAvatarIndex]?.avatarId ?? -1,
+      curAvatarId: roleAvatars[curAvatarId]?.avatarId ?? -1,
       useChatBubbleStyle,
       spaceId,
       setReplyMessage,
       chatHistory,
       scrollToGivenMessage,
     };
-  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarIndex, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage]);
+  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
 
   useEffect(() => {
@@ -511,10 +507,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     });
   };
 
-  const handleAvatarChange = (avatarIndex: number) => {
-    setCurAvatarIndex(avatarIndex);
-  };
-
   const isComposingRef = useRef(false);
   /**
    * *** handleKeyDown 现在只处理父组件逻辑 ***
@@ -580,11 +572,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       e.preventDefault(); // @ 弹窗状态 (父组件)
     }
   }
-
-  const handleRoleChange = (roleId: number) => {
-    setCurRoleId(roleId);
-    setCurAvatarIndex(0);
-  };
 
   /**
    * *** handleSelectAt 现在调用 ref API ***
@@ -704,51 +691,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   handleMessageSubmit={handleMessageSubmit}
                 />
                 <div className="flex gap-2 items-stretch">
-                  {
-                    curRoleId > 0
-                      ? (
-                          <div className="dropdown dropdown-top flex-shrink-0 w-10 md:w-14 ">
-                            <div role="button" tabIndex={0} className="">
-                              <div
-                                className="tooltip flex justify-center flex-col items-center space-y-2"
-                                data-tip="切换角色和表情"
-                              >
-                                <RoleAvatarComponent
-                                  avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
-                                  width={getScreenSize() === "sm" ? 10 : 14}
-                                  isRounded={true}
-                                  withTitle={false}
-                                  stopPopWindow={true}
-                                  alt={curRoleId > 0 ? "无可用头像" : "无可用角色"}
-                                />
-                                <div className="text-sm truncate w-full text-center">
-                                  {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
-                                </div>
-                              </div>
-                            </div>
-                            <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm p-0 border border-base-300">
-                              <ExpressionChooser
-                                roleId={curRoleId}
-                                handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}
-                                handleRoleChange={handleRoleChange}
-                              >
-                              </ExpressionChooser>
-                            </ul>
-                          </div>
-                        )
-                      : (
-                          roomContext.curMember?.memberType ?? 3) < 3 && (
-                          <li className="flex flex-row list-none group" onClick={() => setIsRoleAddWindowOpen(true)}>
-                            <div className="w-full">
-                              <AddRingLight className="size-10 md:size-14 group-hover:text-info"></AddRingLight>
-                              <div className="text-sm truncate w-full text-center">
-                                添加角色
-                              </div>
-                            </div>
-                          </li>
-                        )
-                  }
-
+                  <AvatarSwitch
+                    curRoleId={curRoleId}
+                    curAvatarId={curAvatarId}
+                    setCurAvatarId={setCurAvatarId}
+                    setCurRoleId={setCurRoleId}
+                  >
+                  </AvatarSwitch>
                   {/* 输入框容器 */}
                   <div
                     className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-info focus-within:border-info flex-col"
