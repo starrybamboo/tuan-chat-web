@@ -19,6 +19,7 @@ import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
 import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
+import ItemWindow from "@/components/chat/window/itemWindow";
 import RenderWindow from "@/components/chat/window/renderWindow";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
@@ -39,7 +40,6 @@ import { getImageSize } from "@/utils/getImgSize";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
-import { useGetRoomItemsQuery } from "api/hooks/spaceModuleHooks";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
@@ -182,10 +182,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const curMember = useMemo(() => {
     return members.find(member => member.userId === userId);
   }, [members, userId]);
-
-  // 获取当前房间的所有物品
-  const getRoomItemsQuery = useGetRoomItemsQuery(roomId);
-  const roomItems = getRoomItemsQuery.data?.data ?? [];
 
   /**
    * 获取历史消息
@@ -1014,54 +1010,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         </div>
       </div>
       <PopWindow isOpen={isItemsWindowOpen} onClose={() => setIsItemsWindowOpen(false)}>
-        <span className="block text-center mr-6 ml-6 text-xl font-semibold text-neutral-800 dark:text-neutral-100 mb-6">
-          浏览该房间内所有物品
-        </span>
-        {roomItems?.length
-          ? (
-              <div className="space-y-3">
-                {roomItems.map(item => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between bg-neutral-50 dark:bg-neutral-800 px-4 py-3 rounded-lg"
-                  >
-                    <div className="flex items-center gap-2">
-                      {item.entityInfo?.image
-                        ? (
-                            <img
-                              src={item.entityInfo?.image}
-                              alt={item.name}
-                              className="w-8 h-8 rounded-full object-cover"
-                            />
-                          )
-                        : (
-                            <div className="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-[10px] text-neutral-500 dark:text-neutral-300">
-                              无图片
-                            </div>
-                          )}
-                      <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
-                        {item.name}
-                      </span>
-                    </div>
-
-                    {/* 右侧：按钮 */}
-                    <button
-                      type="button"
-                      className="btn w-20"
-                      onClick={() => setSelectedItemId(item.id ?? -1)}
-                    >
-                      查看
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )
-          : (
-              <div className="text-center text-lg font-semibold text-neutral-500 dark:text-neutral-400">
-                这个房间没有可以上传的物品了！
-              </div>
-            )}
-
+        <ItemWindow setSelectedItemId={setSelectedItemId}></ItemWindow>
       </PopWindow>
       {/* 设置窗口 */}
       <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
