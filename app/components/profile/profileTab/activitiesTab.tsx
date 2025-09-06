@@ -140,7 +140,7 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                         </div>
 
                         <div className="flex justify-between items-center">
-                          <span className="text-base-content/60">获得点赞（总）</span>
+                          <span className="text-base-content/60">获得点赞</span>
                           <span className="font-semibold">
                             {typeof stats?.totalLikeCount === "number"
                               ? stats.totalLikeCount
@@ -149,7 +149,7 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                         </div>
 
                         <div className="flex justify-between items-center">
-                          <span className="text-base-content/60">获得评论（总）</span>
+                          <span className="text-base-content/60">获得评论</span>
                           <span className="font-semibold">
                             {typeof stats?.totalCommentCount === "number"
                               ? stats.totalCommentCount
