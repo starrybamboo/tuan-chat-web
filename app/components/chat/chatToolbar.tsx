@@ -95,7 +95,7 @@ export function ChatToolbar({
           data-tip="展示先攻表"
           onClick={() => setSideDrawerState(sideDrawerState === "initiative" ? "none" : "initiative")}
         >
-          <SwordSwing className="size-7"></SwordSwing>
+          <SwordSwing className="size-7 jump_icon"></SwordSwing>
         </div>
 
         <div
@@ -103,7 +103,7 @@ export function ChatToolbar({
           data-tip="地图"
           onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
         >
-          <PointOnMapPerspectiveLinear className="size-7"></PointOnMapPerspectiveLinear>
+          <PointOnMapPerspectiveLinear className="size-7 jump_icon"></PointOnMapPerspectiveLinear>
         </div>
 
         <div className="tooltip" data-tip="上传物品">
@@ -119,7 +119,7 @@ export function ChatToolbar({
           data-tip="展示角色"
           onClick={() => setSideDrawerState(sideDrawerState === "role" ? "none" : "role")}
         >
-          <GirlIcon className="size-7"></GirlIcon>
+          <GirlIcon className="size-7 jump_icon"></GirlIcon>
         </div>
 
         {/* 发送按钮 */}
