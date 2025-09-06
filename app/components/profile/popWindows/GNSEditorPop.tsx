@@ -8,30 +8,6 @@ interface Ratings {
   Simulationism: number;
 }
 
-// GNS排序表达
-function getGNSOrder(ratings: Ratings): string {
-  const entries = Object.entries(ratings) as [RatingCategory, number][];
-  const sorted = [...entries].sort((a, b) => b[1] - a[1]);
-
-  const categoryMap = {
-    Gamism: "G",
-    Narrativism: "N",
-    Simulationism: "S",
-  };
-
-  let result = "";
-  for (let i = 0; i < sorted.length; i++) {
-    if (i > 0) {
-      const currentValue = sorted[i][1];
-      const prevValue = sorted[i - 1][1];
-      result += currentValue === prevValue ? " = " : " > ";
-    }
-    result += categoryMap[sorted[i][0]];
-  }
-
-  return result;
-}
-
 interface GNSPreferenceEditorProps {
   initialRatings: Ratings;
   onSave: (ratings: Ratings) => Promise<void>;
@@ -195,6 +171,30 @@ export function GNSPreferenceEditor({
       </div>
     </div>
   );
+}
+
+// GNS排序表达
+function getGNSOrder(ratings: Ratings): string {
+  const entries = Object.entries(ratings) as [RatingCategory, number][];
+  const sorted = [...entries].sort((a, b) => b[1] - a[1]);
+
+  const categoryMap = {
+    Gamism: "G",
+    Narrativism: "N",
+    Simulationism: "S",
+  };
+
+  let result = "";
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0) {
+      const currentValue = sorted[i][1];
+      const prevValue = sorted[i - 1][1];
+      result += currentValue === prevValue ? " = " : " > ";
+    }
+    result += categoryMap[sorted[i][0]];
+  }
+
+  return result;
 }
 
 export default GNSPreferenceEditor;

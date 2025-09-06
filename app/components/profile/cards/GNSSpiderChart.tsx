@@ -17,7 +17,7 @@ interface GNSSpiderChartProps {
   userId: number;
 }
 
-function GNSSpiderChart({ userId }: GNSSpiderChartProps) {
+const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
   const [ratings, setRatings] = useState<Ratings>({
     Gamism: 0,
     Narrativism: 0,
@@ -364,6 +364,6 @@ function GNSSpiderChart({ userId }: GNSSpiderChartProps) {
       </PopWindow>
     </div>
   );
-}
+};
 
 export default GNSSpiderChart;

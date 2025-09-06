@@ -12,7 +12,7 @@ interface UserRoleCardProps {
  * 用户创建的角色的小卡片
  * 根据角色ID获取的角色，然后按照下面的格式，在UserRolesList排序
  */
-export function UserRoleCard({ roleId }: UserRoleCardProps) {
+const UserRoleCard: React.FC<UserRoleCardProps> = ({ roleId }) => {
   // 获取角色基本信息
   const {
     data: roleData,
@@ -118,4 +118,6 @@ export function UserRoleCard({ roleId }: UserRoleCardProps) {
       )}
     </div>
   );
-}
+};
+
+export default UserRoleCard;

@@ -58,17 +58,8 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
   //   rating: 0,
   //   sessions: 0,
   //   kpSessions: 0,
-  //   medals: [
-  //     { id: 1, name: "Your Story", desc: "首次设计了一个模组", date: "2025-07-21" },
-  //     { id: 2, name: "神秘观测者", desc: "围观了一场跑团超过2个小时", date: "2025-06-15" },
-  //     { id: 3, name: "始作俑者", desc: "担任kp并且结团时无一生还", date: "2025-05-28" },
-  //     { id: 4, name: "模组大师", desc: "设计了5个以上模组", date: "2025-04-12" },
-  //     { id: 5, name: "团本收割机", desc: "完成10次以上跑团", date: "2025-03-22" },
-  //     { id: 6, name: "守秘人", desc: "担任KP超过10次", date: "2025-02-18" },
-  //     { id: 7, name: "剧情推动者", desc: "在跑团中推动关键剧情发展", date: "2025-01-15" },
-  //     { id: 8, name: "完美扮演", desc: "获得其他玩家一致好评的角色扮演", date: "2024-12-20" },
-  //   ],
   // };
+
   return (
     <div className="max-w-7xl mx-auto p-2 transition-all duration-300 md:flex">
       {/* 在 md 及以上屏幕显示侧边栏布局，在 md 以下显示顶部栏布局 */}
