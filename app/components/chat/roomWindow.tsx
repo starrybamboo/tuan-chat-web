@@ -1,6 +1,5 @@
 import type { ChatInputAreaHandle } from "@/components/chat/chatInputArea";
 import type { RoomContextType } from "@/components/chat/roomContext";
-import type { LLMProperty } from "@/components/settings/settingsPage";
 
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, Message, RoomMember, UserRole } from "../../../api";
@@ -20,12 +19,13 @@ import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
 import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
 import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import ItemWindow from "@/components/chat/window/itemWindow";
 import RenderWindow from "@/components/chat/window/renderWindow";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
-import { getLocalStorageValue, useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
+import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
 import { Mounter } from "@/components/common/mounter";
@@ -43,9 +43,9 @@ import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
-import { useImmer } from "use-immer";
 // *** 导入新组件及其 Handle 类型 ***
 
+import { useImmer } from "use-immer";
 import {
   useAddRoomRoleMutation,
   useGetMemberListQuery,
@@ -306,10 +306,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
    * *** autoComplete 现在调用 ref API ***
    */
   const autoComplete = async () => {
-    const llmSettings = getLocalStorageValue<LLMProperty>("llmSettings", {});
-    const apiKey = llmSettings.openaiApiKey;
-    const apiUrl = llmSettings.openaiApiBaseUrl ?? "";
-    const model = llmSettings.openaiModelName;
     if (isAutoCompletingRef.current || !chatInputRef.current)
       return;
 
@@ -337,60 +333,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       这是你所扮演的角色的名字：${curRoleName}.
       你所输出的文本会被直接插入到已输入的文字${insertAtMiddle ? "中间" : "末尾"}，所以也不要重复已有文本的任何句子或词语。
       ${insertAtMiddle ? `插入点前的文本：${beforeMessage},插入点后的文本${afterMessage}` : `已输入的文本内容：${inputText}`}`;
-
-    try {
-      const response = await fetch(apiUrl, { /* ... fetch options ... */
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: "user", content: prompt }],
-          stream: true,
-          max_tokens: 2048,
-          temperature: 0.7,
-        }),
-      });
-      if (!response.ok || !response.body) {
-        throw new Error(`API请求失败: ${response.status}`);
-      }
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullMessage = "";
-      while (true) {
-        if (!isAutoCompletingRef.current) {
-          reader.cancel();
-          setLLMMessage("");
-          break;
-        }
-        const { done, value } = await reader.read();
-        if (done)
-          break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n").filter(line => line.trim() !== "");
-        for (const line of lines) {
-          if (line.startsWith("data:") && line !== "data: [DONE]") {
-            try {
-              const data = JSON.parse(line.substring(5));
-              if (data.choices?.[0]?.delta?.content) {
-                fullMessage += data.choices[0].delta.content;
-                setLLMMessage(fullMessage); // Update display
-              }
-            }
-            catch (e) { console.error("解析流数据失败:", e); }
-          }
-        }
-      }
-    }
-    catch (error) {
-      console.error("API请求错误:", error);
-      setLLMMessage("自动补全请求失败，请重试");
-    }
-    finally {
-      isAutoCompletingRef.current = false;
-    }
+    sendLlmStreamMessage(prompt, (newContent) => {
+      if (!isAutoCompletingRef.current)
+        return false;
+      setLLMMessage(newContent);
+      return true;
+    });
   };
 
   /**
