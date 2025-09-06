@@ -15,6 +15,9 @@ interface GNSPreferenceEditorProps {
   isLoading?: boolean;
 }
 
+/**
+ * GNS 雷达图编辑弹窗，用户点击 GNSSpiderChart 的编辑按钮后打开
+ */
 export function GNSPreferenceEditor({
   initialRatings,
   onSave,

@@ -12,6 +12,9 @@ interface UserAchievementMedalsProps {
   className?: string;
 }
 
+/**
+ * 用户的成就系统，目前只有一个框架在吃灰
+ */
 const UserAchievementMedals: React.FC<UserAchievementMedalsProps> = ({
   medals = [],
   className = "",

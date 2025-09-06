@@ -9,8 +9,7 @@ interface UserRoleCardProps {
 }
 
 /**
- * 用户创建的角色的小卡片
- * 根据角色ID获取的角色，然后按照下面的格式，在UserRolesList排序
+ * 作品 - 角色 中渲染出的每一个角色，都是采用这个文件的格式渲染的
  */
 const UserRoleCard: React.FC<UserRoleCardProps> = ({ roleId }) => {
   // 获取角色基本信息

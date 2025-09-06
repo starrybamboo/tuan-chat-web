@@ -17,6 +17,9 @@ interface GNSSpiderChartProps {
   userId: number;
 }
 
+/**
+ * GNS 雷达图小卡片，调用了 GNSPreferenceEditor 弹窗，供用户编辑
+ */
 const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
   const [ratings, setRatings] = useState<Ratings>({
     Gamism: 0,

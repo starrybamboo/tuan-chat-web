@@ -8,6 +8,9 @@ import { useGetUserInfoQuery, useUpdateUserInfoMutation } from "../../../../api/
 const DESCRIPTION_MAX = 253;
 const NAME_MAX = 18;
 
+/**
+ * 用户个人资料编辑页面，头像，名字，描述，Readme都在这里编辑
+ */
 export default function EditProfilePop({ onClose }: { onClose?: () => void }) {
   // 当前登录用户的userId
   const userId = useGlobalContext().userId ?? -1;
