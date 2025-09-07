@@ -42,5 +42,6 @@ export function useGetRoomItemsQuery(roomId: number) {
     queryKey: ['roomItems', roomId],
     queryFn: () => tuanchat.spaceModuleController.roomItem(roomId),
     staleTime: 10000, // 缓存时间
+    enabled: roomId >= 0,
   })
 }

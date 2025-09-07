@@ -1,13 +1,16 @@
-import type { RoomContextType } from "@/components/chat/roomContext";
-import type { LLMProperty } from "@/components/settings/settingsPage";
-import type { VirtuosoHandle } from "react-virtuoso";
+import type { AtMentionHandle } from "@/components/atMentionController";
+import type { ChatInputAreaHandle } from "@/components/chat/chatInputArea";
 
+import type { RoomContextType } from "@/components/chat/roomContext";
+import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, Message, RoomMember, UserRole } from "../../../api";
 import type { ChatStatusEvent } from "../../../api/wsModels";
+import AtMentionController from "@/components/atMentionController";
+import AvatarSwitch from "@/components/chat/avatarSwitch";
 import ChatFrame from "@/components/chat/chatFrame";
+import ChatInputArea from "@/components/chat/chatInputArea";
 import ChatToolbar from "@/components/chat/chatToolbar";
 import CommandPanel from "@/components/chat/commandPanel";
-import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import { useChatHistory } from "@/components/chat/indexedDB/useChatHistory";
 import SearchBar from "@/components/chat/inlineSearch";
 import DNDMap from "@/components/chat/map/DNDMap";
@@ -18,29 +21,28 @@ import RoomUserList from "@/components/chat/sideDrawer/roomUserList";
 import RepliedMessage from "@/components/chat/smallComponents/repliedMessage";
 import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
+import ItemWindow from "@/components/chat/window/itemWindow";
 import RenderWindow from "@/components/chat/window/renderWindow";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
-import { getLocalStorageValue, useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
+import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
-import { Mounter } from "@/components/common/mounter";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
-  AddRingLight,
   BaselineArrowBackIosNew,
   Setting,
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
 import { getScreenSize } from "@/utils/getScreenSize";
-import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
-import { useGetRoomItemsQuery } from "api/hooks/spaceModuleHooks";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
+// *** 导入新组件及其 Handle 类型 ***
+
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
 import {
@@ -65,77 +67,33 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const webSocketUtils = globalContext.websocketUtils;
   const send = (message: ChatMessageRequest) => webSocketUtils.send({ type: 3, data: message }); // 发送群聊消息
 
-  const textareaRef = useRef<HTMLDivElement>(null);
-  // 在这里，由于采用了contentEditable的方法来实现输入框，本身并不具备数据的双向同步性，所以这里定义了两个set方法来控制inputText
-  // 下面的set函数仅用于handleInputChange处，用于同步到state中；（如果使用第二个set函数，则会出现输入一个字符显示两个的bug）
+  const chatInputRef = useRef<ChatInputAreaHandle>(null);
+  const atMentionRef = useRef<AtMentionHandle>(null);
+
+  // 纯文本状态，由 ChatInputArea 通过 onInputSync 回调更新
   const [inputText, setInputTextWithoutUpdateTextArea] = useState("");
-  // 将inputText同步到textarea中，只保留文本，并把<br>转换为换行符。
-  const syncInputText = () => {
-    const content = textareaRef.current?.innerHTML || "";
-    const text = content
-      .replace(/<br\s*\/?>/gi, "\n") // 转换所有<br>为换行符
-      .replace(/&nbsp;/g, " ") // 转换&nbsp;为普通空格
-      .replace(/<[^>]+(>|$)/g, ""); // 移除其他HTML标签但保留文本
-    setInputTextWithoutUpdateTextArea(text);
-  };
+  // 不包含@角色的文本
+  const [inputTextWithoutMentions, setinputTextWithoutMentions] = useState("");
+  // 提及列表状态，同样由 ChatInputArea 回调更新
+  const [mentionedRolesInInput, setMentionedRolesInInput] = useState<UserRole[]>([]);
+
+  // *** ChatInputArea 的回调处理器 ***
+  const handleInputAreaChange = useCallback((plainText: string, inputTextWithoutMentions: string, roles: UserRole[]) => {
+    setInputTextWithoutUpdateTextArea(plainText);
+    setinputTextWithoutMentions(inputTextWithoutMentions);
+    setMentionedRolesInInput(roles);
+  }, []); // 空依赖，因为 setter 函数是稳定的
+
   /**
+   * *** setInputText 现在调用 ref API ***
    * 如果想从外部控制输入框的内容，使用这个函数。
-   * @param text 想要重置的inputText
+   * @param text 想要重置的inputText (注意：这里现在只接受纯文本，如果需要 HTML 请修改)
    */
   const setInputText = (text: string) => {
-    setInputTextWithoutUpdateTextArea(text);
-    if (textareaRef.current) {
-      textareaRef.current.innerHTML = text;
-      // Move cursor to end
-      const range = document.createRange();
-      range.selectNodeContents(textareaRef.current);
-      range.collapse(false);
-      const selection = window.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-    }
+    setInputTextWithoutUpdateTextArea(text); // 更新 React 状态
+    chatInputRef.current?.setContent(text); // 命令子组件更新其 DOM
   };
 
-  /**
-   * 从编辑器中提取 @ 的角色列表和纯文本内容
-   * @returns userRole[], text
-   */
-  function extractMentionsAndText(): { mentionedRoles: UserRole[]; text: string } {
-    const editorDiv = textareaRef.current;
-    if (!editorDiv) {
-      return { mentionedRoles: [], text: "" };
-    }
-    // 克隆编辑器以进行操作，而不会影响实时 DOM
-    const clone = editorDiv.cloneNode(true) as HTMLDivElement;
-
-    const mentionedRoles: UserRole[] = [];
-    // 在克隆中查找所有提及 span
-    const mentionSpans = clone.querySelectorAll<HTMLSpanElement>("span[data-role]");
-
-    mentionSpans.forEach((span) => {
-      const roleData = span.dataset.role;
-      if (roleData) {
-        try {
-          const role: UserRole = JSON.parse(roleData);
-          // 添加到列表，并确保没有重复
-          if (!mentionedRoles.some(r => r.roleId === role.roleId)) {
-            mentionedRoles.push(role);
-          }
-        }
-        catch (e) {
-          console.error("Failed to parse role data from mention span:", e);
-        }
-      }
-      // 从克隆中删除 span
-      span.parentNode?.removeChild(span);
-    });
-    // `textContent` 属性会自动拼接子元素的文本内容，
-    const text = clone.textContent ?? "";
-    return { mentionedRoles, text };
-  }
-  const { mentionedRoles, text: inputTextWithoutMentions } = extractMentionsAndText();
-
-  const [curAvatarIndex, setCurAvatarIndex] = useState(0);
   const uploadUtils = new UploadUtils();
 
   // 聊天框中包含的图片
@@ -160,7 +118,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   // 获取当前用户选择角色的所有头像(表情差分)
   const roleAvatarQuery = useGetRoleAvatarsQuery(curRoleId ?? -1);
   const roleAvatars = useMemo(() => roleAvatarQuery.data?.data ?? [], [roleAvatarQuery.data?.data]);
-  const curAvatarId = roleAvatars[curAvatarIndex]?.avatarId || -1;
+  const [curAvatarId, setCurAvatarId] = useState(0);
 
   const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
   // 渲染对话
@@ -183,10 +141,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     return members.find(member => member.userId === userId);
   }, [members, userId]);
 
-  // 获取当前房间的所有物品
-  const getRoomItemsQuery = useGetRoomItemsQuery(roomId);
-  const roomItems = getRoomItemsQuery.data?.data ?? [];
-
   /**
    * 获取历史消息
    */
@@ -202,14 +156,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     setTimeout(() => {
       const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
       if (messageElement) {
-        // 添加动画类以开始动画
+        // ... (highlight animation logic as-is) ...
         messageElement.classList.add("highlight-animation");
-        // 动画结束后移除该类，使用 'animationend' 事件更可靠
         messageElement.addEventListener("animationend", () => {
           messageElement.classList.remove("highlight-animation");
-        }, { once: true }); // 'once: true' 确保监听器在触发一次后自动移除
+        }, { once: true });
       }
-    }, 50);// 使用一个短暂的延迟来确保 Virtuoso 已经渲染了目标元素
+    }, 50);
   }, [historyMessages]);
 
   const roomContext: RoomContextType = useMemo((): RoomContextType => {
@@ -219,247 +172,96 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       curMember,
       roomRolesThatUserOwn,
       curRoleId,
-      curAvatarId: roleAvatars[curAvatarIndex]?.avatarId ?? -1,
+      curAvatarId: roleAvatars[curAvatarId]?.avatarId ?? -1,
       useChatBubbleStyle,
       spaceId,
       setReplyMessage,
       chatHistory,
       scrollToGivenMessage,
     };
-  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarIndex, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage]);
+  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
-  /**
-   * 当群聊角色列表更新时, 自动设置为第一个角色
-   */
+
   useEffect(() => {
     setCurRoleId(roomRolesThatUserOwn[0]?.roleId ?? -1);
   }, [roomRolesThatUserOwn]);
-  /**
-   * 输入状态部分
-   */
+
+  // (输入状态 websocket 逻辑... 保持不变)
   const roomChatStatues = webSocketUtils.chatStatus[roomId] ?? [];
   const myStatue = roomChatStatues.find(s => s.userId === userId)?.status ?? "idle";
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // 当输入框内容发生变动的时候，将自身的状态改变为输入状态
   useEffect(() => {
     if (!userId || roomId <= 0)
       return;
-
-    const chatStatusEvent: ChatStatusEvent = {
-      roomId,
-      status: "input",
-      userId,
-    };
-
-    // 清除计时器
-    if (typingTimeoutRef.current) {
+    const chatStatusEvent: ChatStatusEvent = { roomId, status: "input", userId };
+    if (typingTimeoutRef.current)
       clearTimeout(typingTimeoutRef.current);
-    }
-    // 10秒后，将自身状态改变为静止状态
     typingTimeoutRef.current = setTimeout(() => {
       webSocketUtils.updateChatStatus({ ...chatStatusEvent, status: "idle" } as ChatStatusEvent);
       webSocketUtils.send({ type: 4, data: { ...chatStatusEvent, status: "idle" } as ChatStatusEvent });
     }, 10000);
-    // 如果已经是在输入状态或者在等待中，不改变状态
     if (myStatue === "input" || myStatue === "wait" || !userId || roomId <= 0 || inputText.length === 0)
       return;
     webSocketUtils.updateChatStatus(chatStatusEvent);
     webSocketUtils.send({ type: 4, data: chatStatusEvent });
     return () => {
-      if (typingTimeoutRef.current) {
+      if (typingTimeoutRef.current)
         clearTimeout(typingTimeoutRef.current);
-      }
     };
   }, [inputText]);
 
   /**
-   * 输入框相关
-   */
-
-  /**
-   * 在当前光标位置插入节点
-   * @param node 要插入的DOM节点或字符串
-   * @param options 配置项：
-   *   - replaceSelection: 是否替换当前选区内容（默认false）
-   *   - moveCursorToEnd: 插入后是否将光标移动到节点末尾（默认false）
-   * @returns 是否插入成功
-   */
-
-  const insertNodeAtCursor = (
-    node: Node | string,
-    options?: {
-      replaceSelection?: boolean;
-      moveCursorToEnd?: boolean;
-    },
-  ): boolean => {
-    const { replaceSelection = false, moveCursorToEnd = false } = options || {};
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0)
-      return false;
-    const range = selection.getRangeAt(0);
-    // 替换选区内容
-    if (replaceSelection) {
-      range.deleteContents();
-    }
-
-    // 插入节点
-    const insertedNode = typeof node === "string"
-      ? document.createTextNode(node)
-      : node;
-    range.insertNode(insertedNode);
-
-    // 移动光标到节点末尾
-    if (moveCursorToEnd) {
-      const newRange = document.createRange();
-      newRange.selectNodeContents(insertedNode);
-      newRange.collapse(false); // false表示移动到末尾
-      selection.removeAllRanges();
-      selection.addRange(newRange);
-    }
-
-    return true;
-  };
-  /**
-   * 获取光标前后文本
-   * @returns { before: string; after: string } 光标前后的文本
-   */
-  const getTextAroundCursor = (): { before: string; after: string } => {
-    const editor = textareaRef.current;
-    if (!editor) {
-      return { before: "", after: "" };
-    }
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) {
-      // 如果没有选区，则返回整个编辑器的文本作为 "before"
-      return { before: editor.textContent ?? "", after: "" };
-    }
-
-    // 创建两个range来获取光标前后的文本
-    const currentRange = selection.getRangeAt(0);
-    const beforeRange = document.createRange();
-    beforeRange.setStart(editor, 0);
-    // 将终点设置为当前光标的起点位置
-    beforeRange.setEnd(currentRange.startContainer, currentRange.startOffset);
-    const afterRange = document.createRange();
-    afterRange.setStart(currentRange.endContainer, currentRange.endOffset);
-    // 将终点设置为编辑器的最末尾
-    // editor.childNodes.length 是 editor 中子节点的数量，可以有效定位到末尾
-    afterRange.setEnd(editor, editor.childNodes.length);
-
-    // range.toString() 会智能地处理 <br> 为换行符 \n，并提取所有子节点中的文本内容。
-    const before = beforeRange.toString();
-    const after = afterRange.toString();
-
-    return { before, after };
-  };
-
-  /**
-   * At 功能
-   */
-  const [showAtDialog, setShowAtDialog] = useState(false); // 是否显示@弹窗
-  const [atDialogPosition, setAtDialogPosition] = useState({ x: 0, y: 0 }); // @弹窗的位置，基于屏幕坐标
-  const [atSearchKey, setAtSearchKey] = useState(""); // @弹窗的搜索关键词
-  // 通过上下键来控制选中项
-  const [atSelectIndex, setAtSelectIndex] = useState(0);
-  // 显示atDialog的时候，初始化index
-  useEffect(() => {
-    setAtSelectIndex(0);
-  }, [showAtDialog]);
-  const searchedRoles = showAtDialog ? roomRoles.filter(r => (r.roleName ?? "").includes(atSearchKey)) : [];
-  // 检测@提示框的位置
-  useEffect(() => {
-    if (showAtDialog) {
-      const { x: cursorX, y: cursorY } = getSelectionCoords();
-      setAtDialogPosition({ x: Math.min(cursorX, screen.width - 100), y: cursorY });
-    }
-  }, [showAtDialog, atSearchKey]);
-  const checkIsShowSelectDialog = () => {
-    const rangeInfo = getEditorRange();
-    if (!rangeInfo || !rangeInfo.range || !rangeInfo.selection)
-      return;
-    const curNode = rangeInfo.range.endContainer;
-
-    // 如果没有@符号，关闭对话框
-    if (!curNode.textContent?.includes("@")) {
-      setShowAtDialog(false);
-      setAtSearchKey("");
-      return;
-    }
-    // 处理文本结尾是@人员Button并且没有任何字符的情况
-    // 如果光标超出编辑器，则选中最后一个子元素
-    if (curNode.nodeName === "DIV") {
-      const { childNodes } = curNode;
-      const childNodesToArray = [].slice.call(childNodes);
-      const notEmptyNodes = childNodesToArray.filter(
-        (item: Node) => !(item.nodeName === "#text" && item.textContent === ""),
-      );
-      if (notEmptyNodes.length > 0) {
-        const lastChildNode: Node = notEmptyNodes[notEmptyNodes.length - 1];
-        if (lastChildNode && lastChildNode?.nodeName === "BUTTON") {
-          document.execCommand("insertHTML", false, "\n");
-        }
-      }
-    }
-    if (!curNode || !curNode.textContent || curNode.nodeName !== "#text")
-      return;
-    const searchStr = curNode.textContent.slice(0, rangeInfo.selection.focusOffset);
-    const keywords = /@([^@]*)$/.exec(searchStr);
-    if (keywords) {
-      const keyWord = keywords[1];
-      // 搜索关键字不超过20个字符
-      if (keyWord && keyWord.length > 20) {
-        setShowAtDialog(false);
-        setAtSearchKey("");
-        return;
-      }
-      setAtSearchKey(keyWord);
-    }
-  };
-  /**
    * ai自动补全
    */
   const [LLMMessage, setLLMMessageRaw] = useState("");
-  // 将补全的文本插入到光标处
   const isAutoCompletingRef = useRef(false);
-  const hintNodeRef = useRef<HTMLSpanElement>(null);
+  const hintNodeRef = useRef<HTMLSpanElement | null>(null); // Ref for the hint span itself
+
   const setLLMMessage = (newLLMMessage: string) => {
-    if (hintNodeRef.current)
-      hintNodeRef.current.remove();
+    if (hintNodeRef.current) {
+      hintNodeRef.current.remove(); // 移除旧的提示节点
+    }
     setLLMMessageRaw(newLLMMessage);
     const hintNode = document.createElement("span");
     hintNode.textContent = newLLMMessage;
     hintNode.className = "opacity-60";
     hintNode.contentEditable = "false";
-    hintNode.style.pointerEvents = "none"; // 防止干扰用户输入
-    insertNodeAtCursor(hintNode);
-    hintNodeRef.current = hintNode;
-    // 开始输入时移除自动补全的文本
+    hintNode.style.pointerEvents = "none";
+
+    // *** 调用 ref API 插入节点 ***
+    chatInputRef.current?.insertNodeAtCursor(hintNode);
+    hintNodeRef.current = hintNode; // 保存对新节点的引用
+
     const handleInput = () => {
       hintNode.remove();
-      textareaRef.current?.removeEventListener("input", handleInput);
+      chatInputRef.current?.getRawElement()?.removeEventListener("input", handleInput);
       isAutoCompletingRef.current = false;
+      hintNodeRef.current = null;
     };
-    textareaRef.current?.addEventListener("input", handleInput);
+    // *** 监听子组件的原始元素 ***
+    chatInputRef.current?.getRawElement()?.addEventListener("input", handleInput);
   };
+
   const getRoleSmartly = useGetRoleSmartly();
+
   const autoComplete = async () => {
-    const llmSettings = getLocalStorageValue<LLMProperty>("llmSettings", {});
-    const apiKey = llmSettings.openaiApiKey;
-    const apiUrl = llmSettings.openaiApiBaseUrl ?? "";
-    const model = llmSettings.openaiModelName;
-    if (isAutoCompletingRef.current)
+    if (isAutoCompletingRef.current || !chatInputRef.current)
       return;
+
     isAutoCompletingRef.current = true;
-    setLLMMessage(""); // 清空之前的消息
-    const { before: beforeMessage, after: afterMessage } = getTextAroundCursor(); // 输入光标前后的文本
+    setLLMMessage("");
+
+    // *** 调用 ref API 获取文本 ***
+    const { before: beforeMessage, after: afterMessage } = chatInputRef.current.getTextAroundCursor();
+
     const historyMessagesString = (await Promise.all(
       historyMessages.slice(historyMessages.length - 20).map(async (m) => {
         const role = await getRoleSmartly(m.message.roleId);
         return `${role?.roleName ?? role?.roleId}: ${m.message.content}`;
       }),
-    )).join("\n"); // 最近的20条历史消息，拼接成字符串
-    const insertAtMiddle = afterMessage !== ""; // 是否插入输入框的中间
-    const curRoleName = userRoles?.find(r => r.roleId === curRoleId)?.roleName; // 当前角色的名字
+    )).join("\n");
+    const insertAtMiddle = afterMessage !== "";
+    const curRoleName = userRoles?.find(r => r.roleId === curRoleId)?.roleName;
     const prompt = `
       你现在在进行一个跑团对话，请根据以下文本内容，提供一段自然连贯的${insertAtMiddle ? "插入语句" : "续写"}。
       重点关注上下文的逻辑和主题发展。只提供续写内容，不要额外解释，不要输入任何多余不属于跑团内容的文本信息。
@@ -470,78 +272,35 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       这是你所扮演的角色的名字：${curRoleName}.
       你所输出的文本会被直接插入到已输入的文字${insertAtMiddle ? "中间" : "末尾"}，所以也不要重复已有文本的任何句子或词语。
       ${insertAtMiddle ? `插入点前的文本：${beforeMessage},插入点后的文本${afterMessage}` : `已输入的文本内容：${inputText}`}`;
-    try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          messages: [{
-            role: "user",
-            content: prompt,
-          }],
-          stream: true,
-          max_tokens: 2048,
-          temperature: 0.7,
-        }),
-      });
-      if (!response.ok || !response.body) {
-        throw new Error(`API请求失败: ${response.status}`);
-      }
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullMessage = "";
-      while (true) {
-        if (!isAutoCompletingRef.current) {
-          reader.cancel();
-          setLLMMessage("");
-          break;
-        }
-        const { done, value } = await reader.read();
-        if (done)
-          break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n").filter(line => line.trim() !== "");
-        for (const line of lines) {
-          if (line.startsWith("data:") && line !== "data: [DONE]") {
-            try {
-              const data = JSON.parse(line.substring(5));
-              if (data.choices?.[0]?.delta?.content) {
-                fullMessage += data.choices[0].delta.content;
-                setLLMMessage(fullMessage); // 更新显示的内容}
-              }
-            }
-            catch (e) {
-              console.error("解析流数据失败:", e);
-            }
-          }
-        }
-      }
-    }
-    catch (error) {
-      console.error("API请求错误:", error);
-      setLLMMessage("自动补全请求失败，请重试");
-    }
-    finally {
-      isAutoCompletingRef.current = false;
-    }
+    sendLlmStreamMessage(prompt, (newContent) => {
+      if (!isAutoCompletingRef.current)
+        return false;
+      setLLMMessage(newContent);
+      return true;
+    });
   };
+
   const insertLLMMessageIntoText = () => {
-    insertNodeAtCursor(LLMMessage, { moveCursorToEnd: true });
-    setLLMMessage(""); // 清空补全提示
-    syncInputText();
+    if (!chatInputRef.current)
+      return;
+
+    // 移除提示 span
+    if (hintNodeRef.current) {
+      hintNodeRef.current.remove();
+      hintNodeRef.current = null;
+    }
+
+    // 插入纯文本
+    chatInputRef.current.insertNodeAtCursor(LLMMessage, { moveCursorToEnd: true });
+    setLLMMessage(""); // 清空补全状态
+    chatInputRef.current.triggerSync(); // 手动触发同步，更新父组件的 inputText 状态
   };
 
   /**
    *处理与组件的各种交互
    */
-
   const handleSelectCommand = (cmdName: string) => {
-    // 保持命令前缀格式（保留原输入的 . 或 。）
-    const prefixChar = inputText[0];
+    const prefixChar = inputText[0] || "."; // 默认为 .
     setInputText(`${prefixChar}${cmdName} `);
   };
 
@@ -550,6 +309,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const noRole = curRoleId <= 0;
   const noInput = !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0); // 没有内容
   const disableSendMessage = noRole || notMember || noInput || isSubmitting;
+
   const handleMessageSubmit = async () => {
     if (disableSendMessage) {
       if (notMember)
@@ -564,42 +324,38 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     }
     setIsSubmitting(true);
     try {
-      // 发送图片
       for (let i = 0; i < imgFiles.length; i++) {
         const imgDownLoadUrl = await uploadUtils.uploadImg(imgFiles[i]);
         const { width, height, size } = await getImageSize(imgFiles[i]);
         sendImg(imgDownLoadUrl, width, height, size);
       }
-      // 发送表情
       updateImgFiles([]);
       for (let i = 0; i < emojiUrls.length; i++) {
         const { width, height, size } = await getImageSize(emojiUrls[i]);
         sendImg(emojiUrls[i], width, height, size);
       }
       updateEmojiUrls([]);
+
       // 发送文本消息
       if (inputText.trim() !== "") {
         const messageRequest: ChatMessageRequest = {
           roomId,
           roleId: curRoleId,
-          content: inputText.trim(),
+          content: inputText.trim(), // 直接使用 state
           avatarId: curAvatarId,
           messageType: 1,
           replayMessageId: replyMessage?.messageId || undefined,
           extra: {},
         };
-        // 如果是命令，额外发送一条消息给骰娘
+
         if (isCommand(inputText)) {
-          commandExecutor({ command: inputTextWithoutMentions, mentionedRoles, originMessage: inputText });
-          // messageRequest.extra = {
-          //   result: commandResult,
-          // };
-          // tuanchat.chatController.sendMessageAiResponse(messageRequest);
+          // *** 使用 state 中的提及列表 ***
+          commandExecutor({ command: inputTextWithoutMentions, mentionedRoles: mentionedRolesInInput, originMessage: inputText });
         }
         else {
           send(messageRequest);
         }
-        setInputText("");
+        setInputText(""); // 调用重构的 setInputText 来清空
       }
       setReplyMessage(undefined);
     }
@@ -612,190 +368,91 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   };
 
   function sendImg(img: string, width: number, height: number, size: number) {
+    // ... (sendImg logic as-is) ...
     const messageRequest: ChatMessageRequest = {
       content: "",
       roomId,
       roleId: curRoleId,
       avatarId: curAvatarId,
       messageType: 2,
-      extra: {
-        size,
-        url: img,
-        fileName: img.split("/").pop() || "error when extract fileName",
-        width,
-        height,
-      },
+      extra: { size, url: img, fileName: img.split("/").pop() || "error", width, height },
     };
     send(messageRequest);
   }
 
-  async function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
-    // 获取剪贴板中的图片
-    const items = e.clipboardData?.items;
-    if (!items)
-      return;
-    // 如果是图片则放到imgFile中;
-    for (const item of items) {
-      if (item.type.startsWith("image/")) {
-        e.preventDefault();
-        const blob = item.getAsFile();
-        if (!blob)
-          continue;
-        const file = new File([blob], `pasted-image-${Date.now()}`, {
-          type: blob.type,
-        });
-        updateImgFiles((draft) => {
-          draft.push(file);
-        });
-      }
-    }
-  }
-
-  const handleAvatarChange = (avatarIndex: number) => {
-    setCurAvatarIndex(avatarIndex);
+  // *** 新增: onPasteFiles 的回调处理器 ***
+  const handlePasteFiles = (files: File[]) => {
+    updateImgFiles((draft) => {
+      draft.push(...files);
+    });
   };
 
   const isComposingRef = useRef(false);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (showAtDialog) {
-      switch (e.key) {
-        case "Enter": {
-          e.preventDefault();
-          handleSelectAt(searchedRoles[atSelectIndex]);
-          break;
-        }
-      }
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setAtSelectIndex(Math.max(atSelectIndex - 1, 0));
-      }
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setAtSelectIndex(Math.min(atSelectIndex + 1, searchedRoles.length - 1));
+    // 检查 @ 控制器是否打开并且是否处理了这个事件
+    const isAtOpen = atMentionRef.current?.isDialogOpen() ?? false;
+    if (isAtOpen) {
+      const handled = atMentionRef.current?.onKeyDown(e) ?? false;
+      if (handled) {
+        return; // 事件已被 @ 控制器消耗（例如箭头导航）
       }
     }
-    else {
-      if (e.key === "Enter" && !e.shiftKey && !isComposingRef.current) {
-        e.preventDefault();
-        handleMessageSubmit();
-      }
-      else if (e.altKey && e.key === "p") {
-        autoComplete();
-      }
-      else if (e.key === "Tab") {
-        e.preventDefault();
-        insertLLMMessageIntoText();
-        isAutoCompletingRef.current = false;
-      }
+
+    // 如果 @ 控制器未处理，则继续执行原始逻辑
+    if (e.key === "Enter" && !e.shiftKey && !isComposingRef.current) {
+      e.preventDefault();
+      handleMessageSubmit();
+    }
+    else if (e.altKey && e.key === "p") {
+      e.preventDefault(); // 阻止浏览器默认行为
+      autoComplete();
+    }
+    else if (e.key === "Tab") {
+      e.preventDefault();
+      insertLLMMessageIntoText();
+      isAutoCompletingRef.current = false;
     }
   };
+
   const handleKeyUp = (e: React.KeyboardEvent) => {
-    // 如果这个检验放到keyDown事件中，会与输入法冲突
-    if (e.key === "@") {
-      setShowAtDialog(true);
-      setAtSearchKey(inputText);
-    }
-    checkIsShowSelectDialog();
-    // 去除Crtl+b/Ctrl+i/Ctrl+u等快捷键
-    // e.metaKey for mac
+    // 总是通知 @ 控制器关于 keyup 事件
+    atMentionRef.current?.onKeyUp(e);
+
+    // 快捷键阻止 (父组件逻辑)
     if (e.ctrlKey || e.metaKey) {
       switch (e.key) {
-        case "b": // ctrl+B or ctrl+b
-        case "i":
-        case "u": {
+        case "b": case "i": case "u":
           e.preventDefault();
           break;
-        }
       }
     }
   };
 
   function handleMouseDown(e: React.MouseEvent) {
-    // 在@选人的时候，防止失焦。
-    if (showAtDialog) {
-      e.preventDefault();
-    }
-  }
-
-  const handleRoleChange = (roleId: number) => {
-    setCurRoleId(roleId);
-    setCurAvatarIndex(0);
-  };
-
-  /**
-   * 处理@选人
-   * @param role 要@的对象
-   */
-  function handleSelectAt(role: UserRole) {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0)
-      return;
-    const range = sel.getRangeAt(0);
-    const textNode = range.startContainer;
-    // 确保处理的是文本节点
-    if (textNode.nodeType !== Node.TEXT_NODE)
-      return;
-    const text = textNode.textContent || "";
-    const offset = range.startOffset;
-
-    // 查找最后一个@符号
-    const atIndex = Math.max(text.lastIndexOf("@", offset - 1), 0);
-    // 替换文本为一个不可编辑的span，这样删除的时候可以整体的删除
-    const beforeText = text.substring(0, atIndex);
-    const afterText = text.substring(offset);
-    const parent = textNode.parentNode;
-    if (!parent)
-      return;
-    const span = document.createElement("span");
-    // 使用非断行空格 (\u00A0) 来确保浏览器会渲染这个空格
-    // 否则，在某些情况下，元素末尾的常规空格会被浏览器“折叠”或忽略。
-    span.textContent = `@${role.roleName}` + "\u00A0";
-    span.className = "inline text-blue-500 bg-transparent px-0 py-0 border-none";
-    span.contentEditable = "false";
-    span.style.display = "inline-block";
-    span.addEventListener("click", () => { });
-    span.dataset.role = JSON.stringify(role);
-
-    // 替换内容
-    const newTextNode = document.createTextNode(afterText);
-    textNode.textContent = beforeText;
-    parent.insertBefore(span, textNode.nextSibling);
-    parent.insertBefore(newTextNode, span.nextSibling);
-
-    // 设置光标在新文本节点开头
-    const newRange = document.createRange();
-    newRange.setStart(newTextNode, 0);
-    newRange.collapse(true);
-
-    sel.removeAllRanges();
-    sel.addRange(newRange);
-
-    setShowAtDialog(false);
-    // 这里需要把div中的文本更新到textarea中
-    if (textareaRef.current) {
-      syncInputText();
-    }
+    // 检查 @ 控制器是否处理了 mousedown（以防止失焦）
+    atMentionRef.current?.onMouseDown(e);
   }
 
   const [isRoleHandleOpen, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
   const addRoleMutation = useAddRoomRoleMutation();
 
   const handleAddRole = async (roleId: number) => {
-    addRoleMutation.mutate({
-      roomId,
-      roleIdList: [roleId],
-    }, {
-      onSettled: () => {
-        // setIsRoleAddWindowOpen(false);
-        toast("添加角色成功");
-      },
+    addRoleMutation.mutate({ roomId, roleIdList: [roleId] }, {
+      onSettled: () => { toast("添加角色成功"); },
     });
   };
+
+  // *** 准备 props ***
+  const placeholderText = notMember
+    ? "你是观战成员，不能发送消息"
+    : (noRole
+        ? "请先拉入你的角色，之后才能发送消息。"
+        : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"));
 
   return (
     <RoomContext value={roomContext}>
       <div className="flex flex-col h-full w-full shadow-sm min-h-0">
-        {/* 上边的信息栏 */}
         <div className="flex justify-between items-center py-1 px-5 bg-base-100">
           <div className="flex gap-2">
             <BaselineArrowBackIosNew
@@ -808,20 +465,17 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             <span className="text-center font-semibold text-lg line-clamp-1">{room?.name}</span>
           </div>
           <div className="flex gap-2 items-center">
-            {/* 搜索栏 */}
             <SearchBar className={getScreenSize() === "sm" ? "" : "w-64"} />
-
             <Setting
               className="size-7 cursor-pointer hover:text-info"
               onClick={() => setIsSettingWindowOpen(true)}
             >
             </Setting>
-
           </div>
         </div>
         <div className="h-px bg-base-300"></div>
-        <div className="flex-1 w-full flex bg-base-100 overflow-y-auto overflow-x-hidden relative">
-          <div className="flex flex-col flex-1 h-full overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 w-full flex bg-base-100 relative">
+          <div className="flex flex-col flex-1 h-full">
             {/* 聊天框 */}
             <div className="bg-base-100 flex-1 flex-shrink-0">
               <ChatFrame useChatBubbleStyle={useChatBubbleStyle} setUseChatBubbleStyle={setUseChatBubbleStyle} key={roomId} virtuosoRef={virtuosoRef}></ChatFrame>
@@ -831,12 +485,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             <form className="bg-base-100 px-3 py-2 rounded-lg flex flex-col">
               <div className="relative flex-1 flex flex-col min-w-0">
                 <CommandPanel
-                  prefix={inputTextWithoutMentions}
+                  prefix={inputText} // *** 直接使用 inputText state ***
                   handleSelectCommand={handleSelectCommand}
                   commandMode={
-                    inputTextWithoutMentions.startsWith("%")
+                    inputText.startsWith("%")
                       ? "webgal"
-                      : (inputTextWithoutMentions.startsWith(".") || inputTextWithoutMentions.startsWith("。"))
+                      : (inputText.startsWith(".") || inputText.startsWith("。"))
                           ? "dice"
                           : "none"
                   }
@@ -854,57 +508,17 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   handleMessageSubmit={handleMessageSubmit}
                 />
                 <div className="flex gap-2 items-stretch">
-                  {
-                    curRoleId > 0
-                      ? (
-                          <div className="dropdown dropdown-top flex-shrink-0 w-10 md:w-14 ">
-                            <div role="button" tabIndex={0} className="">
-                              <div
-                                className="tooltip flex justify-center flex-col items-center space-y-2"
-                                data-tip="切换角色和表情"
-                              >
-                                <RoleAvatarComponent
-                                  avatarId={roleAvatars[curAvatarIndex]?.avatarId || -1}
-                                  width={getScreenSize() === "sm" ? 10 : 14}
-                                  isRounded={true}
-                                  withTitle={false}
-                                  stopPopWindow={true}
-                                  alt={curRoleId > 0 ? "无可用头像" : "无可用角色"}
-                                />
-                                <div className="text-sm truncate w-full text-center">
-                                  {userRoles.find(r => r.roleId === curRoleId)?.roleName || ""}
-                                </div>
-                              </div>
-                            </div>
-                            {/* 角色和表情选择 */}
-                            <ul tabIndex={0} className="dropdown-content menu bg-base-100 rounded-box z-1 shadow-sm p-0 border border-base-300">
-                              <ExpressionChooser
-                                roleId={curRoleId}
-                                handleExpressionChange={avatarId => handleAvatarChange(roleAvatars.findIndex(a => a.avatarId === avatarId))}
-                                handleRoleChange={handleRoleChange}
-                              >
-                              </ExpressionChooser>
-                            </ul>
-                          </div>
-                        )
-                      : (
-                          roomContext.curMember?.memberType ?? 3) < 3 && (
-                          <li className="flex flex-row list-none group" onClick={() => setIsRoleAddWindowOpen(true)}>
-                            <div className="w-full">
-                              <AddRingLight className="size-10 md:size-14 group-hover:text-info"></AddRingLight>
-                              <div className="text-sm truncate w-full text-center">
-                                添加角色
-                              </div>
-                            </div>
-                          </li>
-                        )
-                  }
-
-                  {/* 输入框 */}
+                  <AvatarSwitch
+                    curRoleId={curRoleId}
+                    curAvatarId={curAvatarId}
+                    setCurAvatarId={setCurAvatarId}
+                    setCurRoleId={setCurRoleId}
+                  >
+                  </AvatarSwitch>
+                  {/* 输入框容器 */}
                   <div
                     className="text-sm w-full max-h-[20dvh] border border-base-300 rounded-[8px] flex focus-within:ring-0 focus-within:ring-info focus-within:border-info flex-col"
                   >
-                    {/* 预览要发送的图片 */}
                     {(imgFiles.length > 0 || emojiUrls.length > 0) && (
                       <div className="flex flex-row gap-x-3 overflow-x-auto p-2 pb-1">
                         {imgFiles.map((file, index) => (
@@ -925,7 +539,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                         ))}
                       </div>
                     )}
-                    {/* 引用的消息 */}
                     {
                       replyMessage && (
                         <div className="p-2 pb-1">
@@ -936,61 +549,27 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                         </div>
                       )
                     }
-                    <div
-                      className="w-full overflow-auto resize-none p-2 focus:outline-none div-textarea chatInputTextarea"
-                      ref={textareaRef}
-                      onInput={syncInputText}
+
+                    <ChatInputArea
+                      ref={chatInputRef}
+                      onInputSync={handleInputAreaChange}
+                      onPasteFiles={handlePasteFiles}
                       onKeyDown={handleKeyDown}
                       onKeyUp={handleKeyUp}
                       onMouseDown={handleMouseDown}
                       onCompositionStart={() => isComposingRef.current = true}
                       onCompositionEnd={() => isComposingRef.current = false}
-                      onPaste={async e => handlePaste(e)}
-                      suppressContentEditableWarning={true}
-                      contentEditable={!notMember || !noRole}
-                      data-placeholder={notMember
-                        ? "你是观战成员，不能发送消息"
-                        : (noRole
-                            ? "请先拉入你的角色，之后才能发送消息。"
-                            : (curAvatarId <= 0 ? "请为你的角色添加至少一个表情差分（头像）。" : "在此输入消息...(shift+enter 换行)"))}
+                      disabled={notMember && noRole} // 观战者被禁用
+                      placeholder={placeholderText}
                     />
+
                   </div>
-                  {/* at搜索框 */}
-                  {showAtDialog && atDialogPosition.x > 0 && searchedRoles.length > 0 && (
-                    // 这里的坐标是全局的坐标，所以mount到根元素
-                    <Mounter targetId="modal-root">
-                      <div
-                        className="absolute flex flex-col card shadow-md bg-base-100 p-2 gap-2 z-20 max-h-[30vh] overflow-auto"
-                        style={{
-                          top: atDialogPosition.y - 5,
-                          left: atDialogPosition.x,
-                          transform: "translateY(-100%)",
-                        }}
-                      >
-                        {
-                          searchedRoles.map((role, index) => (
-                            <div
-                              className={`flex flex-row items-center gap-2 hover:bg-base-300 rounded pt-1 pb-1 ${index === atSelectIndex ? "bg-base-300" : ""}`}
-                              key={role.roleId}
-                              onClick={() => {
-                                handleSelectAt(role);
-                              }}
-                              onMouseDown={e => e.preventDefault()}
-                            >
-                              <RoleAvatarComponent
-                                avatarId={role.avatarId ?? -1}
-                                width={8}
-                                isRounded={true}
-                                stopPopWindow={true}
-                              >
-                              </RoleAvatarComponent>
-                              {role.roleName}
-                            </div>
-                          ))
-                        }
-                      </div>
-                    </Mounter>
-                  )}
+                  <AtMentionController
+                    ref={atMentionRef}
+                    chatInputRef={chatInputRef}
+                    allRoles={roomRoles}
+                  >
+                  </AtMentionController>
                 </div>
               </div>
             </form>
@@ -1014,56 +593,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         </div>
       </div>
       <PopWindow isOpen={isItemsWindowOpen} onClose={() => setIsItemsWindowOpen(false)}>
-        <span className="block text-center mr-6 ml-6 text-xl font-semibold text-neutral-800 dark:text-neutral-100 mb-6">
-          浏览该房间内所有物品
-        </span>
-        {roomItems?.length
-          ? (
-              <div className="space-y-3">
-                {roomItems.map(item => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between bg-neutral-50 dark:bg-neutral-800 px-4 py-3 rounded-lg"
-                  >
-                    <div className="flex items-center gap-2">
-                      {item.entityInfo?.image
-                        ? (
-                            <img
-                              src={item.entityInfo?.image}
-                              alt={item.name}
-                              className="w-8 h-8 rounded-full object-cover"
-                            />
-                          )
-                        : (
-                            <div className="w-8 h-8 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-[10px] text-neutral-500 dark:text-neutral-300">
-                              无图片
-                            </div>
-                          )}
-                      <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
-                        {item.name}
-                      </span>
-                    </div>
-
-                    {/* 右侧：按钮 */}
-                    <button
-                      type="button"
-                      className="btn w-20"
-                      onClick={() => setSelectedItemId(item.id ?? -1)}
-                    >
-                      查看
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )
-          : (
-              <div className="text-center text-lg font-semibold text-neutral-500 dark:text-neutral-400">
-                这个房间没有可以上传的物品了！
-              </div>
-            )}
-
+        <ItemWindow setSelectedItemId={setSelectedItemId}></ItemWindow>
       </PopWindow>
-      {/* 设置窗口 */}
       <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
         <RoomSettingWindow
           onClose={() => setIsSettingWindowOpen(false)}
@@ -1071,11 +602,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           onRenderDialog={() => setIsRenderWindowOpen(true)}
         />
       </PopWindow>
-      {/* 添加角色窗口 */}
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleAddWindowOpen(false)}>
         <AddRoleWindow handleAddRole={handleAddRole} addModuleRole={false}></AddRoleWindow>
       </PopWindow>
-      {/* 物品详情窗口 */}
       <PopWindow
         isOpen={selectedItemId > 0}
         onClose={() => setSelectedItemId(-1)}
@@ -1084,7 +613,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           <ItemDetail itemId={selectedItemId} />
         )}
       </PopWindow>
-      {/* 渲染设置窗口 */}
       <PopWindow isOpen={isRenderWindowOpen} onClose={() => setIsRenderWindowOpen(false)}>
         <RenderWindow></RenderWindow>
       </PopWindow>

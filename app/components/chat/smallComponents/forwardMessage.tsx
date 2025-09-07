@@ -1,4 +1,4 @@
-import type { ChatMessageResponse } from "api";
+import type { ChatMessageResponse } from "../../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
 import { RoomContext } from "@/components/chat/roomContext";
 import { PreviewMessage } from "@/components/chat/smallComponents/previewMessage";
