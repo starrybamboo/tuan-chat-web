@@ -397,7 +397,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     }
 
     // 如果 @ 控制器未处理，则继续执行原始逻辑
-    // (原始逻辑保持不变)
     if (e.key === "Enter" && !e.shiftKey && !isComposingRef.current) {
       e.preventDefault();
       handleMessageSubmit();

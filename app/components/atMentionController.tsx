@@ -119,9 +119,26 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
     setShowDialog(false);
     chatInputRef.current.triggerSync();
 
+    // 设置光标
     setTimeout(() => {
-      chatInputRef.current?.getRawElement()?.focus();
-    }, 10);
+      const editorEl = chatInputRef.current?.getRawElement();
+      const sel = window.getSelection(); // 再次获取最新的 selection
+      if (!editorEl || !sel)
+        return; // 必须同时具有两者
+
+      // A. 创建一个新的、空白的 Range (光标)
+      const newRange = document.createRange();
+      // B. 将此 Range 的起始点设置在我们的 span 节点 *之后*
+      newRange.setStartAfter(span);
+      // C. 将 Range 折叠到其起始点 (使其成为光标，而不是选区)
+      newRange.collapse(true);
+      // D. 移除所有旧的/损坏的选区
+      sel.removeAllRanges();
+      // E. 添加我们新创建的、位置正确的光标
+      sel.addRange(newRange);
+      // F. 现在，用一个保证有效的光标位置来聚焦元素
+      editorEl.focus();
+    }, 0); // 0 毫秒延迟将其推到事件循环的末尾
   }, [chatInputRef]);
 
   // 5. 使用 useImperativeHandle 暴露 API
