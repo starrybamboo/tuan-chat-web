@@ -37,6 +37,7 @@ import {
   BaselineArrowBackIosNew,
   Bubble2,
   CommandLine,
+  Detective,
   EmojiIconWhite,
   GalleryBroken,
   GirlIcon,
@@ -67,7 +68,8 @@ import {
   useGetSpaceInfoQuery,
 } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
-import ItemDetail from "./itemsDetail";
+import DisplayOfItemDetail from "./displayOfItemsDetail";
+import ClueList from "./sideDrawer/clueList";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
@@ -183,7 +185,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [isItemsWindowOpen, setIsItemsWindowOpen] = useState<boolean>(false);
   const [selectedItemId, setSelectedItemId] = useState<number>(-1);
 
-  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
+  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map" | "clue">("rightSideDrawer", "none");
 
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useLocalStorage("useChatBubbleStyle", true);
 
@@ -200,6 +202,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   // 获取当前房间的所有物品
   const getRoomItemsQuery = useGetRoomItemsQuery(roomId);
   const roomItems = getRoomItemsQuery.data?.data ?? [];
+
+  // 切换空间时关闭线索侧边栏
+  useEffect(() => {
+    if (sideDrawerState === "clue") {
+      setSideDrawerState("none");
+    }
+  }, [spaceId]);
 
   /**
    * 获取历史消息
@@ -832,6 +841,15 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             >
               <PointOnMapPerspectiveLinear className="size-7"></PointOnMapPerspectiveLinear>
             </div>
+            {spaceContext.isSpaceOwner && (
+              <div
+                className="tooltip tooltip-bottom hover:text-info"
+                data-tip="查看线索"
+                onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}
+              >
+                <Detective className="size-7"></Detective>
+              </div>
+            )}
             <div
               className="tooltip tooltip-bottom hover:text-info"
               data-tip="展示先攻表"
@@ -1154,6 +1172,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             <div className="w-px bg-base-300"></div>
             <SearchPanel></SearchPanel>
           </OpenAbleDrawer>
+          <OpenAbleDrawer isOpen={sideDrawerState === "clue"} className="h-full bg-base-100 overflow-auto z-20">
+            <div className="w-px bg-base-300"></div>
+            <ClueList></ClueList>
+          </OpenAbleDrawer>
         </div>
       </div>
       <PopWindow isOpen={isItemsWindowOpen} onClose={() => setIsItemsWindowOpen(false)}>
@@ -1249,7 +1271,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         onClose={() => setSelectedItemId(-1)}
       >
         {selectedItemId && (
-          <ItemDetail itemId={selectedItemId} />
+          <DisplayOfItemDetail itemId={selectedItemId} />
         )}
       </PopWindow>
     </RoomContext>

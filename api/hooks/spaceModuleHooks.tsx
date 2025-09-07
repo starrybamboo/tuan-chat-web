@@ -44,3 +44,16 @@ export function useGetRoomItemsQuery(roomId: number) {
     staleTime: 10000, // 缓存时间
   })
 }
+
+/**
+ * 获取当前房间的地点
+ * @param roomId 房间ID
+ */
+export function useGetRoomLocationsQuery(roomId: number) {
+  return useQuery({
+    queryKey: ['roomLocations', roomId],
+    queryFn: () => tuanchat.spaceModuleController.roomLocation(roomId),
+    staleTime: 10000, // 缓存时间
+    enabled: roomId != -1
+  })
+}
