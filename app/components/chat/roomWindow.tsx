@@ -72,12 +72,15 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   // 纯文本状态，由 ChatInputArea 通过 onInputSync 回调更新
   const [inputText, setInputTextWithoutUpdateTextArea] = useState("");
+  // 不包含@角色的文本
+  const [inputTextWithoutMentions, setinputTextWithoutMentions] = useState("");
   // 提及列表状态，同样由 ChatInputArea 回调更新
   const [mentionedRolesInInput, setMentionedRolesInInput] = useState<UserRole[]>([]);
 
   // *** ChatInputArea 的回调处理器 ***
-  const handleInputAreaChange = useCallback((plainText: string, roles: UserRole[]) => {
+  const handleInputAreaChange = useCallback((plainText: string, inputTextWithoutMentions: string, roles: UserRole[]) => {
     setInputTextWithoutUpdateTextArea(plainText);
+    setinputTextWithoutMentions(inputTextWithoutMentions);
     setMentionedRolesInInput(roles);
   }, []); // 空依赖，因为 setter 函数是稳定的
 
@@ -347,7 +350,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
         if (isCommand(inputText)) {
           // *** 使用 state 中的提及列表 ***
-          commandExecutor({ command: inputText, mentionedRoles: mentionedRolesInInput, originMessage: inputText });
+          commandExecutor({ command: inputTextWithoutMentions, mentionedRoles: mentionedRolesInInput, originMessage: inputText });
         }
         else {
           send(messageRequest);

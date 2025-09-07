@@ -49,7 +49,7 @@ export interface ChatInputAreaHandle {
 
 interface ChatInputAreaProps {
   /** 当输入框内容变化时，将解析后的纯文本和提及列表回调给父组件 */
-  onInputSync: (plainText: string, mentionedRoles: UserRole[]) => void;
+  onInputSync: (plainText: string, textWithoutMentions: string, mentionedRoles: UserRole[]) => void;
   /** 将粘贴的文件回调给父组件 */
   onPasteFiles: (files: File[]) => void;
   /** 转发通用的按键事件，由父组件处理（如提交、AI、@弹窗导航） */
@@ -78,10 +78,10 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
   /**
    * [内部] 从 DOM 提取 @提及 和纯文本
    */
-  const extractMentionsAndTextInternal = (): { mentionedRoles: UserRole[]; text: string } => {
+  const extractMentionsAndTextInternal = (): { mentionedRoles: UserRole[]; textWithoutMentions: string } => {
     const editorDiv = internalTextareaRef.current;
     if (!editorDiv)
-      return { mentionedRoles: [], text: "" };
+      return { mentionedRoles: [], textWithoutMentions: "" };
 
     const clone = editorDiv.cloneNode(true) as HTMLDivElement;
     const mentionedRoles: UserRole[] = [];
@@ -104,11 +104,11 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     });
 
     const text = (clone.textContent ?? "").replace(/\u00A0/g, " "); // 将提及 span 留下的非断行空格转换回普通空格
-    return { mentionedRoles, text };
+    return { mentionedRoles, textWithoutMentions: text };
   };
 
   /**
-   * [内部] 将 <br> 和 <div> 转换为 \n 并清理 HTML 以获取纯文本。
+   *  将 <br> 和 <div> 转换为 \n 并清理 HTML 以获取纯文本。
    */
   const getPlainText = (): string => {
     const content = internalTextareaRef.current?.innerHTML || "";
@@ -206,8 +206,8 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
    */
   const handleInputInternal = () => {
     // 解析内容并将纯文本和提及列表发送给父组件
-    const { text, mentionedRoles } = extractMentionsAndTextInternal();
-    props.onInputSync(text, mentionedRoles);
+    const { textWithoutMentions, mentionedRoles } = extractMentionsAndTextInternal();
+    props.onInputSync(getPlainText(), textWithoutMentions, mentionedRoles);
 
     // 在某些情况下（如输入法结束），onCompositionEnd 可能会在 onInput 之前触发
     // 但父组件的 isComposingRef 此时可能仍然是 true。
