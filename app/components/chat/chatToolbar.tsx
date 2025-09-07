@@ -1,6 +1,7 @@
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import {
+  Detective,
   EmojiIconWhite,
   GalleryBroken,
   GirlIcon,
@@ -10,13 +11,14 @@ import {
   SparklesOutline,
   SwordSwing,
 } from "@/icons";
-import React from "react";
+import React, { use } from "react";
 import { toast } from "react-hot-toast";
+import { SpaceContext } from "./spaceContext";
 
 interface ChatToolbarProps {
   // 侧边栏状态
-  sideDrawerState: "none" | "user" | "role" | "search" | "initiative" | "map";
-  setSideDrawerState: (state: "none" | "user" | "role" | "search" | "initiative" | "map") => void;
+  sideDrawerState: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue";
+  setSideDrawerState: (state: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue") => void;
 
   // 文件和表情处理
   updateEmojiUrls: (updater: (draft: string[]) => void) => void;
@@ -39,6 +41,8 @@ export function ChatToolbar({
   disableSendMessage,
   handleMessageSubmit,
 }: ChatToolbarProps) {
+  const spaceContext = use(SpaceContext);
+
   return (
     <div className="flex pr-1 pl-2 justify-between ">
       <div className="flex gap-2">
@@ -90,6 +94,16 @@ export function ChatToolbar({
 
       {/* 右侧按钮组 */}
       <div className="flex gap-2">
+        {spaceContext.isSpaceOwner && (
+          <div
+            className="tooltip tooltip-bottom hover:text-info"
+            data-tip="查看线索"
+            onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}
+          >
+            <Detective className="size-7"></Detective>
+          </div>
+        )}
+
         <div
           className="tooltip"
           data-tip="展示先攻表"

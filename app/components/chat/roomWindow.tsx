@@ -53,7 +53,8 @@ import {
   useGetSpaceInfoQuery,
 } from "../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
-import ItemDetail from "./itemsDetail";
+import DisplayOfItemDetail from "./displayOfItemsDetail";
+import ClueList from "./sideDrawer/clueList";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
@@ -127,7 +128,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [isItemsWindowOpen, setIsItemsWindowOpen] = useState<boolean>(false);
   const [selectedItemId, setSelectedItemId] = useState<number>(-1);
 
-  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
+  const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map" | "clue">("rightSideDrawer", "none");
 
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useLocalStorage("useChatBubbleStyle", true);
 
@@ -140,6 +141,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const curMember = useMemo(() => {
     return members.find(member => member.userId === userId);
   }, [members, userId]);
+
+  // 切换空间时关闭线索侧边栏
+  useEffect(() => {
+    if (sideDrawerState === "clue") {
+      setSideDrawerState("none");
+    }
+  }, [spaceId]);
 
   /**
    * 获取历史消息
@@ -590,6 +598,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             <div className="w-px bg-base-300"></div>
             <DNDMap></DNDMap>
           </OpenAbleDrawer>
+          <OpenAbleDrawer isOpen={sideDrawerState === "clue"} className="h-full bg-base-100 overflow-auto z-20">
+            <div className="w-px bg-base-300"></div>
+            <ClueList></ClueList>
+          </OpenAbleDrawer>
         </div>
       </div>
       <PopWindow isOpen={isItemsWindowOpen} onClose={() => setIsItemsWindowOpen(false)}>
@@ -610,7 +622,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         onClose={() => setSelectedItemId(-1)}
       >
         {selectedItemId && (
-          <ItemDetail itemId={selectedItemId} />
+          <DisplayOfItemDetail itemId={selectedItemId} />
         )}
       </PopWindow>
       <PopWindow isOpen={isRenderWindowOpen} onClose={() => setIsRenderWindowOpen(false)}>
