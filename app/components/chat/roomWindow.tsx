@@ -1,9 +1,11 @@
+import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/chatInputArea";
-import type { RoomContextType } from "@/components/chat/roomContext";
 
+import type { RoomContextType } from "@/components/chat/roomContext";
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, Message, RoomMember, UserRole } from "../../../api";
 import type { ChatStatusEvent } from "../../../api/wsModels";
+import AtMentionController from "@/components/atMentionController";
 import AvatarSwitch from "@/components/chat/avatarSwitch";
 import ChatFrame from "@/components/chat/chatFrame";
 import ChatInputArea from "@/components/chat/chatInputArea";
@@ -28,10 +30,8 @@ import BetterImg from "@/components/common/betterImg";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import useCommandExecutor, { isCommand } from "@/components/common/dicer/cmdPre";
-import { Mounter } from "@/components/common/mounter";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   BaselineArrowBackIosNew,
@@ -39,12 +39,11 @@ import {
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
 import { getScreenSize } from "@/utils/getScreenSize";
-import { getEditorRange, getSelectionCoords } from "@/utils/getSelectionCoords";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
 // *** 导入新组件及其 Handle 类型 ***
 
+import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
 import {
   useAddRoomRoleMutation,
@@ -68,8 +67,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const webSocketUtils = globalContext.websocketUtils;
   const send = (message: ChatMessageRequest) => webSocketUtils.send({ type: 3, data: message }); // 发送群聊消息
 
-  // *** 创建指向 ChatInputArea 句柄的 ref ***
   const chatInputRef = useRef<ChatInputAreaHandle>(null);
+  const atMentionRef = useRef<AtMentionHandle>(null);
 
   // 纯文本状态，由 ChatInputArea 通过 onInputSync 回调更新
   const [inputText, setInputTextWithoutUpdateTextArea] = useState("");
@@ -209,66 +208,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   }, [inputText]);
 
   /**
-   * At 功能
-   */
-  const [showAtDialog, setShowAtDialog] = useState(false);
-  const [atDialogPosition, setAtDialogPosition] = useState({ x: 0, y: 0 });
-  const [atSearchKey, setAtSearchKey] = useState("");
-  const [atSelectIndex, setAtSelectIndex] = useState(0);
-  const searchedRoles = showAtDialog ? roomRoles.filter(r => (r.roleName ?? "").includes(atSearchKey)) : [];
-  useEffect(() => {
-    setAtSelectIndex(0);
-  }, [showAtDialog]);
-  useEffect(() => {
-    if (showAtDialog) {
-      const { x: cursorX, y: cursorY } = getSelectionCoords();
-      setAtDialogPosition({ x: Math.min(cursorX, screen.width - 100), y: cursorY });
-    }
-  }, [showAtDialog, atSearchKey]);
-
-  const checkIsShowSelectDialog = () => {
-    // *** getEditorRange 依赖的 DOM 节点现在从 ref 获取 ***
-    const editorEl = chatInputRef.current?.getRawElement();
-    const rangeInfo = getEditorRange(editorEl); // 假设 getEditorRange 可以接受元素或独立工作
-
-    if (!rangeInfo || !rangeInfo.range || !rangeInfo.selection)
-      return;
-
-    const curNode = rangeInfo.range.endContainer;
-    if (!curNode.textContent?.includes("@")) {
-      setShowAtDialog(false);
-      setAtSearchKey("");
-      return;
-    }
-    if (curNode.nodeName === "DIV") {
-      const { childNodes } = curNode;
-      const childNodesToArray = [].slice.call(childNodes);
-      const notEmptyNodes = childNodesToArray.filter(
-        (item: Node) => !(item.nodeName === "#text" && item.textContent === ""),
-      );
-      if (notEmptyNodes.length > 0) {
-        const lastChildNode: Node = notEmptyNodes[notEmptyNodes.length - 1];
-        if (lastChildNode && lastChildNode?.nodeName === "BUTTON") {
-          document.execCommand("insertHTML", false, "\n");
-        }
-      }
-    }
-    if (!curNode || !curNode.textContent || curNode.nodeName !== "#text")
-      return;
-    const searchStr = curNode.textContent.slice(0, rangeInfo.selection.focusOffset);
-    const keywords = /@([^@]*)$/.exec(searchStr);
-    if (keywords) {
-      const keyWord = keywords[1];
-      if (keyWord && keyWord.length > 20) {
-        setShowAtDialog(false);
-        setAtSearchKey("");
-        return;
-      }
-      setAtSearchKey(keyWord);
-    }
-  };
-
-  /**
    * ai自动补全
    */
   const [LLMMessage, setLLMMessageRaw] = useState("");
@@ -302,9 +241,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   const getRoleSmartly = useGetRoleSmartly();
 
-  /**
-   * *** autoComplete 现在调用 ref API ***
-   */
   const autoComplete = async () => {
     if (isAutoCompletingRef.current || !chatInputRef.current)
       return;
@@ -341,9 +277,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     });
   };
 
-  /**
-   * *** insertLLMMessageIntoText 现在调用 ref API ***
-   */
   const insertLLMMessageIntoText = () => {
     if (!chatInputRef.current)
       return;
@@ -363,7 +296,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   /**
    *处理与组件的各种交互
    */
-
   const handleSelectCommand = (cmdName: string) => {
     const prefixChar = inputText[0] || "."; // 默认为 .
     setInputText(`${prefixChar}${cmdName} `);
@@ -375,9 +307,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const noInput = !(inputText.trim() || imgFiles.length > 0 || emojiUrls.length > 0); // 没有内容
   const disableSendMessage = noRole || notMember || noInput || isSubmitting;
 
-  /**
-   * *** handleMessageSubmit 现在使用 state 中的 inputText 和 mentionedRolesInInput ***
-   */
   const handleMessageSubmit = async () => {
     if (disableSendMessage) {
       if (notMember)
@@ -456,54 +385,37 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   };
 
   const isComposingRef = useRef(false);
-  /**
-   * *** handleKeyDown 现在只处理父组件逻辑 ***
-   * (子组件的 IME 逻辑已内部封装)
-   */
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (showAtDialog) {
-      // @ 弹窗导航逻辑 (父组件状态)
-      switch (e.key) {
-        case "Enter": {
-          e.preventDefault();
-          handleSelectAt(searchedRoles[atSelectIndex]);
-          break;
-        }
-        case "ArrowUp": {
-          e.preventDefault();
-          setAtSelectIndex(Math.max(atSelectIndex - 1, 0));
-          break;
-        }
-        case "ArrowDown": {
-          e.preventDefault();
-          setAtSelectIndex(Math.min(atSelectIndex + 1, searchedRoles.length - 1));
-          break;
-        }
+    // 检查 @ 控制器是否打开并且是否处理了这个事件
+    const isAtOpen = atMentionRef.current?.isDialogOpen() ?? false;
+    if (isAtOpen) {
+      const handled = atMentionRef.current?.onKeyDown(e) ?? false;
+      if (handled) {
+        return; // 事件已被 @ 控制器消耗（例如箭头导航）
       }
     }
-    else {
-      if (e.key === "Enter" && !e.shiftKey && !isComposingRef.current) {
-        e.preventDefault();
-        handleMessageSubmit();
-      }
-      else if (e.altKey && e.key === "p") {
-        e.preventDefault(); // 阻止浏览器默认行为
-        autoComplete();
-      }
-      else if (e.key === "Tab") {
-        e.preventDefault();
-        insertLLMMessageIntoText();
-        isAutoCompletingRef.current = false;
-      }
+
+    // 如果 @ 控制器未处理，则继续执行原始逻辑
+    // (原始逻辑保持不变)
+    if (e.key === "Enter" && !e.shiftKey && !isComposingRef.current) {
+      e.preventDefault();
+      handleMessageSubmit();
+    }
+    else if (e.altKey && e.key === "p") {
+      e.preventDefault(); // 阻止浏览器默认行为
+      autoComplete();
+    }
+    else if (e.key === "Tab") {
+      e.preventDefault();
+      insertLLMMessageIntoText();
+      isAutoCompletingRef.current = false;
     }
   };
 
   const handleKeyUp = (e: React.KeyboardEvent) => {
-    // @ 弹窗触发器 (父组件状态)
-    if (e.key === "@") {
-      setShowAtDialog(true);
-    }
-    checkIsShowSelectDialog();
+    // 总是通知 @ 控制器关于 keyup 事件
+    atMentionRef.current?.onKeyUp(e);
 
     // 快捷键阻止 (父组件逻辑)
     if (e.ctrlKey || e.metaKey) {
@@ -516,53 +428,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   };
 
   function handleMouseDown(e: React.MouseEvent) {
-    if (showAtDialog) {
-      e.preventDefault(); // @ 弹窗状态 (父组件)
-    }
-  }
-
-  /**
-   * *** handleSelectAt 现在调用 ref API ***
-   * 处理@选人
-   * @param role 要@的对象
-   */
-  function handleSelectAt(role: UserRole) {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0 || !chatInputRef.current)
-      return;
-
-    const range = sel.getRangeAt(0);
-    const textNode = range.startContainer;
-    if (textNode.nodeType !== Node.TEXT_NODE)
-      return;
-
-    const text = textNode.textContent || "";
-    const offset = range.startOffset;
-    const atIndex = Math.max(text.lastIndexOf("@", offset - 1), 0);
-
-    // 1. 删除 @keyword
-    range.setStart(textNode, atIndex); // 从 @ 开始
-    range.setEnd(textNode, offset); // 到光标位置
-    range.deleteContents(); // 删除 "@keyword"
-
-    // 2. 创建并插入 @ 提及 span
-    const span = document.createElement("span");
-    span.textContent = `@${role.roleName}` + "\u00A0"; // 添加非断行空格
-    span.className = "inline text-blue-500 bg-transparent px-0 py-0 border-none";
-    span.contentEditable = "false";
-    span.style.display = "inline-block";
-    span.dataset.role = JSON.stringify(role);
-
-    // ***  调用 ref API 插入 span ***
-    chatInputRef.current.insertNodeAtCursor(span, { moveCursorToEnd: true });
-
-    // 插入一个空格以便继续输入 (可选，但体验好)
-    // chatInputRef.current.insertNodeAtCursor("\u00A0", { moveCursorToEnd: true });
-
-    setShowAtDialog(false);
-
-    // 告诉子组件重新解析其内容并更新父组件的 state
-    chatInputRef.current.triggerSync();
+    // 检查 @ 控制器是否处理了 mousedown（以防止失焦）
+    atMentionRef.current?.onMouseDown(e);
   }
 
   const [isRoleHandleOpen, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
@@ -695,38 +562,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                     />
 
                   </div>
-                  {showAtDialog && atDialogPosition.x > 0 && searchedRoles.length > 0 && (
-                    <Mounter targetId="modal-root">
-                      <div
-                        className="absolute flex flex-col card shadow-md bg-base-100 p-2 gap-2 z-20 max-h-[30vh] overflow-auto"
-                        style={{
-                          top: atDialogPosition.y - 5,
-                          left: atDialogPosition.x,
-                          transform: "translateY(-100%)",
-                        }}
-                      >
-                        {
-                          searchedRoles.map((role, index) => (
-                            <div
-                              className={`flex flex-row items-center gap-2 hover:bg-base-300 rounded pt-1 pb-1 ${index === atSelectIndex ? "bg-base-300" : ""}`}
-                              key={role.roleId}
-                              onClick={() => { handleSelectAt(role); }}
-                              onMouseDown={e => e.preventDefault()}
-                            >
-                              <RoleAvatarComponent
-                                avatarId={role.avatarId ?? -1}
-                                width={8}
-                                isRounded={true}
-                                stopPopWindow={true}
-                              >
-                              </RoleAvatarComponent>
-                              {role.roleName}
-                            </div>
-                          ))
-                        }
-                      </div>
-                    </Mounter>
-                  )}
+                  <AtMentionController
+                    ref={atMentionRef}
+                    chatInputRef={chatInputRef}
+                    allRoles={roomRoles}
+                  >
+                  </AtMentionController>
                 </div>
               </div>
             </form>

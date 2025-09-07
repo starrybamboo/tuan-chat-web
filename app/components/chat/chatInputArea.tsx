@@ -39,6 +39,10 @@ export interface ChatInputAreaHandle {
    * 当父组件（如 @提及）手动修改 DOM 后，需要调用此方法来更新父组件的状态。
    */
   triggerSync: () => void;
+  /**
+   * 获取纯文本内容。
+   */
+  getPlainText: () => string;
 }
 
 // --- 组件 Props ---
@@ -53,7 +57,6 @@ interface ChatInputAreaProps {
   onKeyUp: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   onMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void;
 
-  // *** ✨ 修改：添加缺失的 Composition 事件 props ***
   /** 转发 Composition（输入法）开始事件 */
   onCompositionStart: () => void;
   /** 转发 Composition（输入法）结束事件 */
