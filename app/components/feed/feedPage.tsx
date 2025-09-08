@@ -68,9 +68,15 @@ export default function FeedPage() {
               onClick={() => feedInfiniteQuery.refetch()}
               title="刷新"
             >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m3.906-7.025A9.999 9.999 0 0118.582 9h2.418m-3.906 7.025A9.999 9.999 0 015.418 15h-2.418m4.906 7.025A9.999 9.999 0 0115.418 17h-2.418" />
+              <svg
+                className="h-6 w-6"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M17.65 6.35A7.96 7.96 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z" />
               </svg>
+
             </button>
           </div>
         </header>
