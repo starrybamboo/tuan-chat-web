@@ -3,35 +3,27 @@ import type { Room } from "../../../api";
 import RoomWindow from "@/components/chat/roomWindow";
 import SpaceDetailPanel from "@/components/chat/sideDrawer/spaceDetailPanel";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
+import CreateSpaceWindow from "@/components/chat/window/createSpaceWindow";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
-import checkBack from "@/components/common/autoContrastText";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import LeftChatList from "@/components/privateChat/components/Left​​ChatList​​";
 import RightChatView from "@/components/privateChat/components/RightChatView";
 import { Setting } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import {
-  useCreateRoomMutation,
-  useCreateSpaceMutation,
   useGetSpaceMembersQuery,
   useGetUserRoomsQueries,
   useGetUserRoomsQuery,
   useGetUserSpacesQuery,
 } from "api/hooks/chatQueryHooks";
-import { useGetRulePageInfiniteQuery } from "api/hooks/ruleQueryHooks";
-import { useGetUserFollowingsQuery } from "api/hooks/userFollowQueryHooks";
-import {
-  useGetUserInfoQuery,
-} from "api/queryHooks";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../api/hooks/messageSessionQueryHooks";
-import { MemberSelect } from "../common/memberSelect";
 
 /**
  * chat板块的主组件
@@ -107,10 +99,6 @@ export default function ChatPage() {
     return result;
   }, [spaces, userRoomQueries]);
 
-  // 创建空间
-  const createSpaceMutation = useCreateSpaceMutation();
-  // 创建房间
-  const createRoomMutation = useCreateRoomMutation(activeSpaceId || -1);
   // 创建空间弹窗是否打开
   const [isSpaceHandleOpen, setIsSpaceHandleOpen] = useSearchParamsState<boolean>("addSpacePop", false);
   // 创建房间弹窗是否打开
@@ -122,63 +110,8 @@ export default function ChatPage() {
   const [_sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
   const [_isRenderWindowOpen, setIsRenderWindowOpen] = useState(false);
 
-  // 处理邀请用户uid
-  const [inputUserId, setInputUserId] = useState<number>(-1);
   // 获取当前用户信息
   const globalContext = useGlobalContext();
-  const getUserInfo = useGetUserInfoQuery(Number(globalContext.userId));
-  const userInfo = getUserInfo.data?.data;
-  // 创建空间的头像
-  const [spaceAvatar, setSpaceAvatar] = useState<string>(String(userInfo?.avatar));
-  // 创建空间的名称
-  const [spaceName, setSpaceName] = useState<string>(`${String(userInfo?.username)}的空间`);
-  // 创建房间的头像
-  const [roomAvatar, setRoomAvatar] = useState<string>(String(spaces.find(space => (space.spaceId === activeSpaceId))?.avatar));
-  // 创建房间的名称
-  const [roomName, setRoomName] = useState<string>(`${String(userInfo?.username)}的房间`);
-
-  // 获取空间玩家列表
-  const getSpaceMembers = useGetSpaceMembersQuery(Number(activeSpaceId));
-  const members = getSpaceMembers.data?.data ?? [];
-  const players = members.filter(member => member.memberType === 2);
-  // 已选择邀请的用户
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<number>>(new Set());
-
-  // 当前选择的空间规则Id
-  const [selectedRuleId, setSelectedRuleId] = useState<number>(1);
-  // 获取规则
-  const getRulesQuery = useGetRulePageInfiniteQuery({}, 100);
-  const rules = getRulesQuery.data?.pages.flatMap(page => page.data?.list ?? []) ?? [];
-
-  // 空间头像文字颜色
-  const [spaceAvatarTextColor, setSpaceAvatarTextColor] = useState("text-black");
-
-  // 房间头像文字颜色
-  const [roomAvatarTextColor, setRoomAvatarTextColor] = useState("text-black");
-
-  // 获取用户好友
-  const followingQuery = useGetUserFollowingsQuery(globalContext.userId ?? -1, { pageNo: 1, pageSize: 100 });
-  const friends = followingQuery.data?.data?.list?.filter(user => user.status === 2) ?? [];
-
-  // 监听头像变化，自动调整文字颜色
-  useEffect(() => {
-    const avatarColorMap = [
-      { avatar: spaceAvatar, setColor: setSpaceAvatarTextColor },
-      { avatar: roomAvatar, setColor: setRoomAvatarTextColor },
-    ];
-
-    // 批量处理所有头像
-    avatarColorMap.forEach(({ avatar, setColor }) => {
-      if (avatar) {
-        checkBack(avatar).then(() => {
-          const computedColor = getComputedStyle(document.documentElement)
-            .getPropertyValue("--text-color")
-            .trim();
-          setColor(computedColor === "white" ? "text-white" : "text-black");
-        });
-      }
-    });
-  }, [spaceAvatar, roomAvatar]);
 
   // 右键菜单
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; roomId: number } | null>(null);
@@ -248,41 +181,6 @@ export default function ChatPage() {
     }
     return result;
   };
-
-  // 创建空间
-  async function createSpace(userIds: number[]) {
-    createSpaceMutation.mutate({
-      userIdList: userIds,
-      avatar: spaceAvatar,
-      spaceName,
-      ruleId: selectedRuleId,
-    }, {
-      onSuccess: () => {
-        setIsSpaceHandleOpen(false);
-        setSelectedUserIds(new Set());
-      },
-    });
-  }
-
-  // 创建房间
-  async function createRoom(spaceId: number, userIds: number[]) {
-    createRoomMutation.mutate({
-      spaceId,
-      avatar: roomAvatar,
-      roomName,
-      userIdList: userIds,
-    }, {
-      onSettled: (data) => {
-        if (data && data.data) {
-          const newRoomId = data.data.roomId;
-          if (newRoomId)
-            setActiveRoomId(newRoomId);
-        }
-        setIsRoomHandleOpen(false);
-        setSelectedUserIds(new Set());
-      },
-    });
-  }
 
   return (
     <SpaceContext value={spaceContext}>
@@ -365,11 +263,6 @@ export default function ChatPage() {
                 data-tip="创建空间"
                 onClick={() => {
                   setIsSpaceHandleOpen(true);
-                  // 重置表单状态
-                  setSpaceAvatar(String(userInfo?.avatar));
-                  setSpaceName(`${String(userInfo?.username)}的空间`);
-                  setInputUserId(-1);
-                  setSelectedRuleId(1);
                 }}
               >
                 <div className="avatar mask mask-squircle flex content-center">
@@ -468,10 +361,6 @@ export default function ChatPage() {
                           onClick={() => {
                             if (activeSpaceId) {
                               setIsRoomHandleOpen(true);
-                              setRoomAvatar(String(spaces.find(space => (space.spaceId === activeSpaceId))?.avatar));
-                              setRoomName(`${String(userInfo?.username)}的房间`);
-                              setInputUserId(-1);
-                              setSelectedUserIds(new Set());
                             }
                           }}
                         >
@@ -506,183 +395,22 @@ export default function ChatPage() {
 
         {/* 创建空间弹出窗口 */}
         <PopWindow isOpen={isSpaceHandleOpen} onClose={() => setIsSpaceHandleOpen(false)}>
-          <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[60vh] overflow-y-scroll">
-            <p className="text-lg font-bold text-center w-full mb-4">创建空间</p>
-
-            {/* 头像上传 */}
-            <div className="flex justify-center mb-6">
-              <ImgUploaderWithCopper
-                setCopperedDownloadUrl={(url) => {
-                  setSpaceAvatar(url);
-                }}
-                fileName={`new-space-avatar-${Date.now()}`}
-              >
-                <div className="relative group overflow-hidden rounded-lg">
-                  <img
-                    src={spaceAvatar}
-                    className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
-                  />
-                  <div
-                    className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm"
-                  >
-                    <span className={`${spaceAvatarTextColor} font-bold px-2 py-1 rounded`}>
-                      上传头像
-                    </span>
-                  </div>
-                </div>
-              </ImgUploaderWithCopper>
-            </div>
-
-            {/* 空间名称 */}
-            <div className="mb-4">
-              <label className="label mb-2">
-                <span className="label-text">空间名称</span>
-              </label>
-              <input
-                type="text"
-                placeholder={spaceName}
-                className="input input-bordered w-full"
-                onChange={(e) => {
-                  const inputValue = e.target.value;
-                  setSpaceName(inputValue === "" ? `${String(userInfo?.username)}的空间` : inputValue);
-                }}
-              />
-            </div>
-
-            {/* 规则选择 */}
-            <div className="mb-4">
-              <label className="label mb-2">
-                <span className="label-text">空间规则</span>
-              </label>
-              <div className="dropdown w-full">
-                <label tabIndex={0} className="btn btn-outline w-full justify-start">
-                  {rules.find(rule => rule.ruleId === selectedRuleId)?.ruleName ?? "未找到规则"}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 ml-auto"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </label>
-                <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-full">
-                  {rules.map(rule => (
-                    <li key={rule.ruleId}>
-                      <button
-                        type="button"
-                        className="w-full text-left"
-                        onClick={() => {
-                          setSelectedRuleId(Number(rule.ruleId));
-                          if (document.activeElement instanceof HTMLElement) {
-                            document.activeElement.blur();
-                          }
-                        }}
-                      >
-                        {rule.ruleName}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <MemberSelect
-              members={friends}
-              selectedUserIds={selectedUserIds}
-              onSelectionChange={setSelectedUserIds}
-              searchInput={inputUserId}
-              onSearchInputChange={setInputUserId}
-              emptyMessage="您还没有好友哦"
-              searchPlaceholder="请输入要加入的好友ID"
-            />
-          </div>
-          <div className="bottom-0 w-full bg-base-300 pt-4">
-            <button
-              type="button"
-              className="btn btn-primary w-full shadow-lg"
-              onClick={() => {
-                const userIds = [
-                  ...selectedUserIds,
-                  ...(inputUserId > 0 ? [inputUserId] : []),
-                ];
-                createSpace(userIds);
-              }}
-            >
-              创建空间
-            </button>
-          </div>
+          <CreateSpaceWindow
+            onSuccess={() => setIsSpaceHandleOpen(false)}
+          />
         </PopWindow>
         {/* 创建房间弹出窗口 */}
         <PopWindow isOpen={isRoomHandleOpen} onClose={() => setIsRoomHandleOpen(false)}>
-          <div className="w-full pl-4 pr-4 min-w-[20vw] max-h-[60vh] overflow-y-scroll">
-            <p className="text-lg font-bold text-center w-full mb-4">创建房间</p>
-
-            {/* 头像上传 */}
-            <div className="flex justify-center mb-6">
-              <ImgUploaderWithCopper
-                setCopperedDownloadUrl={(url) => {
-                  setRoomAvatar(url);
-                }}
-                fileName={`new-room-avatar-${Date.now()}`}
-              >
-                <div className="relative group overflow-hidden rounded-lg">
-                  <img
-                    src={roomAvatar}
-                    className="w-24 h-24 mx-auto transition-all duration-300 group-hover:scale-110 group-hover:brightness-75 rounded"
-                  />
-                  <div
-                    className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-opacity-20 backdrop-blur-sm"
-                  >
-                    <span className={`${roomAvatarTextColor} font-bold px-2 py-1 rounded`}>
-                      上传头像
-                    </span>
-                  </div>
-                </div>
-              </ImgUploaderWithCopper>
-            </div>
-
-            {/* 房间名称 */}
-            <div className="mb-4">
-              <label className="label mb-2">
-                <span className="label-text">房间名称</span>
-              </label>
-              <input
-                type="text"
-                placeholder={roomName}
-                className="input input-bordered w-full"
-                onChange={(e) => {
-                  const inputValue = e.target.value;
-                  setRoomName(inputValue === "" ? `${String(userInfo?.username)}的房间` : inputValue);
-                }}
-              />
-            </div>
-
-            <MemberSelect
-              members={players}
-              selectedUserIds={selectedUserIds}
-              onSelectionChange={setSelectedUserIds}
-              searchInput={inputUserId}
-              onSearchInputChange={setInputUserId}
-              emptyMessage="当前空间内没有玩家哦"
-              searchPlaceholder="请输入要加入的玩家ID"
-            />
-          </div>
-          <div className="bottom-0 w-full bg-base-300 pt-4">
-            <button
-              type="button"
-              className="btn btn-primary w-full shadow-lg"
-              onClick={() => {
-                const userIds = [
-                  ...selectedUserIds,
-                  ...(inputUserId > 0 ? [inputUserId] : []),
-                ];
-                createRoom(Number(activeSpaceId), userIds);
-              }}
-            >
-              创建房间
-            </button>
-          </div>
+          <CreateRoomWindow
+            spaceId={activeSpaceId || -1}
+            spaceAvatar={spaces.find(space => (space.spaceId === activeSpaceId))?.avatar}
+            onSuccess={(roomId) => {
+              if (roomId) {
+                setActiveRoomId(roomId);
+              }
+              setIsRoomHandleOpen(false);
+            }}
+          />
         </PopWindow>
         <PopWindow isOpen={isShowSpacePanel} onClose={() => setIsShowSpacePanel(false)}>
           <SpaceDetailPanel></SpaceDetailPanel>
