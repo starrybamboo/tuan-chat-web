@@ -2,6 +2,8 @@ import type { SpaceContextType } from "@/components/chat/spaceContext";
 import type { Room } from "../../../api";
 import RoomWindow from "@/components/chat/roomWindow";
 import SpaceDetailPanel from "@/components/chat/sideDrawer/spaceDetailPanel";
+import RoomButton from "@/components/chat/smallComponents/roomButton";
+import SpaceButton from "@/components/chat/smallComponents/spaceButton";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import CreateSpaceWindow from "@/components/chat/window/createSpaceWindow";
@@ -217,45 +219,14 @@ export default function ChatPage() {
 
               {/* 全部空间列表 */}
               {spaces.map(space => (
-                <div
-                  className={`rounded ${activeSpaceId === space.spaceId ? "bg-info-content/40 " : ""} w-10 relative`}
+                <SpaceButton
+                  space={space}
+                  unreadMessageNumber={getSpaceUnreadMessagesNumber(space.spaceId ?? -1)}
+                  onclick={() => setActiveSpaceId(space.spaceId ?? -1)}
+                  isActive={activeSpaceId === space.spaceId}
                   key={space.spaceId}
                 >
-                  <div
-                    className={`absolute -left-[6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${
-                      activeSpaceId === space.spaceId ? "scale-y-100" : "scale-y-0"
-                    }`}
-                  >
-                  </div>
-                  <button
-                    className="tooltip tooltip-right w-10 btn btn-square"
-                    data-tip={space.name}
-                    type="button"
-                    onClick={() => {
-                      if (isPrivateChatMode) {
-                        navigate("/chat");
-                      }
-                      setActiveSpaceId(space.spaceId ?? -1);
-                    }}
-                  >
-                    <div className="indicator">
-                      {(() => {
-                        const unreadCount = getSpaceUnreadMessagesNumber(space.spaceId ?? -1);
-                        return unreadCount > 0 && (
-                          <span className="indicator-item badge badge-xs bg-error">
-                            {unreadCount}
-                          </span>
-                        );
-                      })()}
-                      <div className="avatar mask mask-squircle">
-                        <img
-                          src={space.avatar}
-                          alt={space.name}
-                        />
-                      </div>
-                    </div>
-                  </button>
-                </div>
+                </SpaceButton>
               ))}
               <button
                 className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10 photo"
@@ -297,35 +268,16 @@ export default function ChatPage() {
                       <div className="flex flex-col gap-2 py-2 px-1 overflow-auto w-full">
                         {rooms.filter(room => room.spaceId === activeSpaceId).map(room => (
                           <div className="flex items-center gap-1 group w-full" key={room.roomId} data-room-id={room.roomId}>
-                            <button
-                              key={room.roomId}
-                              className={`font-bold text-sm rounded-lg p-1 flex justify-start items-center flex-1 gap-2
-                               min-w-0 ${activeRoomId === room.roomId ? "bg-info-content/30" : "hover:bg-base-300"}`}
-                              type="button"
-                              onClick={() => {
+                            <RoomButton
+                              room={room}
+                              unreadMessageNumber={unreadMessagesNumber[room.roomId ?? -1]}
+                              onclick={() => {
                                 setActiveRoomId(room.roomId ?? -1);
                                 setIsOpenLeftDrawer(false);
                               }}
+                              isActive={activeRoomId === room.roomId}
                             >
-                              <div className="indicator">
-                                {(activeRoomId !== room.roomId && unreadMessagesNumber[room.roomId ?? -1] > 0)
-                                  && (
-                                    <span
-                                      className="indicator-item badge badge-xs bg-error"
-                                    >
-                                      {unreadMessagesNumber[room.roomId ?? -1]}
-                                    </span>
-                                  )}
-
-                                <div className="avatar mask mask-squircle w-8">
-                                  <img
-                                    src={room.avatar}
-                                    alt={room.name}
-                                  />
-                                </div>
-                              </div>
-                              <span className="truncate text-left">{room.name}</span>
-                            </button>
+                            </RoomButton>
                             {/* 设置按钮 - 在所有房间都显示（当前房间和悬浮房间） */}
                             <div
                               className="tooltip tooltip-left opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
