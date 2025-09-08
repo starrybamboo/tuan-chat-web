@@ -175,6 +175,7 @@ export default function EditProfilePop({ onClose }: { onClose?: () => void }) {
         <span className="text-lg font-semibold">ReadMe (支持 MarkDown 语法）</span>
 
         <MarkdownEditor defaultContent={user?.readMe} onChange={value => setContent(value)}></MarkdownEditor>
+
         <div className="flex items-center gap-4 mt-4">
           <button onClick={handleSave} className="btn btn-info px-16" type="button">
             保存
