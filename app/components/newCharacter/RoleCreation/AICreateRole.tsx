@@ -428,7 +428,7 @@ export default function AICreateRole({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* 头像上传 */}
-                  <div className="md:col-span-2">
+                  {/* <div className="md:col-span-2">
                     <div className="flex gap-2 mb-2 items-center font-semibold">
                       <span>角色头像</span>
                     </div>
@@ -447,7 +447,7 @@ export default function AICreateRole({
                     <div className="text-xs text-base-content/60 mt-2">
                       支持多种表情和姿态的差分图片
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* 角色名 */}
                   <div className="form-control">

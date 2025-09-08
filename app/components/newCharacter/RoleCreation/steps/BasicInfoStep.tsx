@@ -1,5 +1,4 @@
 import type { CharacterData } from "../types";
-import AIGenerationCard from "../components/AIGenerationCard";
 
 interface BasicInfoStepProps {
   characterData: CharacterData;
@@ -12,11 +11,7 @@ interface BasicInfoStepProps {
 
 export default function BasicInfoStep({
   characterData,
-  aiPrompt,
-  isGenerating,
   onCharacterDataChange,
-  onAiPromptChange,
-  onAIGenerate,
 }: BasicInfoStepProps) {
   const NAME_MAX = 32;
   const DESC_MAX = 150;
@@ -28,34 +23,21 @@ export default function BasicInfoStep({
             基础信息设置
           </h3>
 
-          <AIGenerationCard
-            title="AI智能生成角色"
-            description="描述你的想法，AI将为你创造独特的角色"
-            placeholder="描述你想要的角色，例如：一个勇敢的精灵战士，擅长弓箭，有着神秘的过去..."
-            prompt={aiPrompt}
-            isGenerating={isGenerating}
-            onPromptChange={onAiPromptChange}
-            onGenerate={onAIGenerate}
-          />
-
-          <div className="divider"></div>
-
           {/* 基础文本信息：纵向布局 */}
           <div className="space-y-6">
             {/* 头像上传 */}
-            <div>
+            {/* <div>
               <div className="flex gap-2 mb-2 items-center font-semibold">
                 <span>角色头像</span>
               </div>
               <div className="flex items-center">
                 <div className="w-20 h-20 border-2 border-dashed border-base-content/20 rounded-md flex items-center justify-center">
-                  {/* 头像预览 */}
                 </div>
               </div>
               <label className="label mt-2">
                 <span className="label-text-alt">支持多种表情和姿态的差分图片</span>
               </label>
-            </div>
+            </div> */}
 
             {/* 角色名 */}
             <div className="form-control">
