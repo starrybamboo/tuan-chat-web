@@ -1,12 +1,16 @@
 import { UserFollower } from "@/components/common/Follow/UserFollower";
-
 import { PopWindow } from "@/components/common/popWindow";
+import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import GNSSpiderChart from "@/components/profile/cards/GNSSpiderChart";
 import React from "react";
 
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
-import { DesktopProfileSidebar } from "./components/DesktopProfileSidebar";
-import { MobileProfileHeader } from "./components/MobileProfileHeader";
+import { FollowStats } from "./components/FollowStats";
+import { ProfileEditPanel } from "./components/ProfileEditPanel";
+import { UserActions } from "./components/UserActions";
+import { UserAvatar } from "./components/UserAvatar";
+import { UserProfile } from "./components/UserProfile";
 import { UserReadMe } from "./components/UserReadMe";
 import { useFollowData } from "./hooks/useFollowData";
 import { useProfileEditing } from "./hooks/useProfileEditing";
@@ -27,47 +31,115 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
   return (
     <div className="max-w-7xl mx-auto p-2 transition-all duration-300 md:flex">
       <div className="w-full flex flex-col md:max-w-1/4 py-4 md:py-8">
-        <MobileProfileHeader
-          user={user}
-          userId={userId}
-          loginUserId={loginUserId}
-          isLoading={userQuery.isLoading}
-          isEditingProfile={profileEditing.isEditingProfile}
-          editingUsername={profileEditing.editingUsername}
-          editingDescription={profileEditing.editingDescription}
-          followingCount={followData.followStats.following}
-          followersCount={followData.followStats.followers}
-          onUsernameChange={profileEditing.setEditingUsername}
-          onDescriptionChange={profileEditing.setEditingDescription}
-          onSaveProfile={profileEditing.saveProfile}
-          onCancelEditing={profileEditing.cancelEditingProfile}
-          onStartEditing={profileEditing.startEditingProfile}
-          onAvatarUpdate={profileEditing.handleAvatarUpdate}
-          onFollowingClick={followData.handleFollowingClick}
-          onFollowersClick={followData.handleFollowersClick}
-          isSaving={profileEditing.isSaving}
-        />
+        {/* 移动端布局 */}
+        <div className="md:hidden">
+          {/* 小屏幕布局 - 顶部栏样式 */}
+          <div className="flex flex-row items-center justify-between p-4 bg-base-200 rounded-2xl">
+            {/* 头像和用户名 */}
+            <div className="flex gap-4">
+              <UserAvatar
+                user={user}
+                userId={userId}
+                loginUserId={loginUserId}
+                isLoading={userQuery.isLoading}
+                size="sm"
+                onAvatarUpdate={profileEditing.handleAvatarUpdate}
+              />
+              <UserProfile
+                user={user}
+                userId={userId}
+                loginUserId={loginUserId}
+                isLoading={userQuery.isLoading}
+                profileEditing={profileEditing}
+                variant="mobile"
+              />
+            </div>
 
-        <DesktopProfileSidebar
-          user={user}
-          userId={userId}
-          loginUserId={loginUserId}
-          isLoading={userQuery.isLoading}
-          isEditingProfile={profileEditing.isEditingProfile}
-          editingUsername={profileEditing.editingUsername}
-          editingDescription={profileEditing.editingDescription}
-          followingCount={followData.followStats.following}
-          followersCount={followData.followStats.followers}
-          onUsernameChange={profileEditing.setEditingUsername}
-          onDescriptionChange={profileEditing.setEditingDescription}
-          onSaveProfile={profileEditing.saveProfile}
-          onCancelEditing={profileEditing.cancelEditingProfile}
-          onStartEditing={profileEditing.startEditingProfile}
-          onAvatarUpdate={profileEditing.handleAvatarUpdate}
-          onFollowingClick={followData.handleFollowingClick}
-          onFollowersClick={followData.handleFollowersClick}
-          isSaving={profileEditing.isSaving}
-        />
+            {/* 小屏幕操作按钮 */}
+            {!userQuery.isLoading && (
+              <div className="flex gap-2">
+                <UserActions
+                  user={user}
+                  userId={userId}
+                  loginUserId={loginUserId}
+                  isLoading={userQuery.isLoading}
+                  profileEditing={profileEditing}
+                  variant="mobile"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* 小屏幕编辑面板 */}
+          <ProfileEditPanel
+            isVisible={userId === loginUserId && profileEditing.isEditingProfile}
+            profileEditing={profileEditing}
+          />
+
+          {/* 关注粉丝统计 - 移动端 */}
+          <FollowStats
+            followingCount={followData.followStats.following}
+            followersCount={followData.followStats.followers}
+            onFollowingClick={followData.handleFollowingClick}
+            onFollowersClick={followData.handleFollowersClick}
+            variant="mobile"
+          />
+        </div>
+
+        {/* 桌面端布局 */}
+        <div className="hidden md:flex flex-col items-center rounded-2xl p-2">
+          {/* 头像 */}
+          <UserAvatar
+            user={user}
+            userId={userId}
+            loginUserId={loginUserId}
+            isLoading={userQuery.isLoading}
+            isEditingProfile={profileEditing.isEditingProfile}
+            size="lg"
+            onAvatarUpdate={profileEditing.handleAvatarUpdate}
+          />
+
+          {/* 用户名和简介 */}
+          <UserProfile
+            user={user}
+            userId={userId}
+            loginUserId={loginUserId}
+            isLoading={userQuery.isLoading}
+            profileEditing={profileEditing}
+            variant="desktop"
+          />
+
+          {/* 关注粉丝统计 - 桌面端 */}
+          <FollowStats
+            followingCount={followData.followStats.following}
+            followersCount={followData.followStats.followers}
+            onFollowingClick={followData.handleFollowingClick}
+            onFollowersClick={followData.handleFollowersClick}
+            variant="desktop"
+          />
+
+          {/* 用户标签 */}
+          <div className="mb-4 mt-4">
+            <TagManagement userId={userId} />
+          </div>
+
+          {/* 编辑个人资料按钮或其他操作按钮 */}
+          <UserActions
+            user={user}
+            userId={userId}
+            loginUserId={loginUserId}
+            isLoading={userQuery.isLoading}
+            profileEditing={profileEditing}
+            variant="desktop"
+          />
+
+          {/* GNS雷达图 */}
+          {!userQuery.isLoading && (
+            <div className="mt-6 w-full">
+              <GNSSpiderChart userId={userId} />
+            </div>
+          )}
+        </div>
       </div>
 
       <UserReadMe

@@ -50,8 +50,14 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   const getFallbackAvatar = () => {
     const initials = user?.username?.slice(0, 2).toUpperCase() || "?";
     const bgColors = [
-      "bg-red-500", "bg-blue-500", "bg-green-500", "bg-yellow-500",
-      "bg-purple-500", "bg-pink-500", "bg-indigo-500", "bg-teal-500"
+      "bg-red-500",
+      "bg-blue-500",
+      "bg-green-500",
+      "bg-yellow-500",
+      "bg-purple-500",
+      "bg-pink-500",
+      "bg-indigo-500",
+      "bg-teal-500",
     ];
     const colorIndex = user?.userId ? user.userId % bgColors.length : 0;
     const bgColor = bgColors[colorIndex];
@@ -61,7 +67,8 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
         size === "sm"
           ? "w-16 h-16 rounded-full text-lg"
           : "mask mask-circle w-full h-full text-4xl"
-      }`}>
+      }`}
+      >
         {initials}
       </div>
     );
@@ -83,36 +90,40 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
 
   const avatarContent = (
     <div className="relative group cursor-pointer">
-      {!imageError && user?.avatar ? (
-        <>
-          <img
-            src={user.avatar}
-            alt={user?.username}
-            className={`object-cover transition-all duration-300 ${
-              canEdit ? "group-hover:brightness-75" : ""
-            } ${
-              size === "sm"
-                ? "w-16 h-16 rounded-full"
-                : "mask mask-circle w-full h-full"
-            } ${imageLoading ? "opacity-0" : "opacity-100"}`}
-            onError={handleImageError}
-            onLoad={handleImageLoad}
-          />
-          {imageLoading && (
-            <div className={`absolute inset-0 skeleton ${
-              size === "sm"
-                ? "w-16 h-16 rounded-full"
-                : "mask mask-circle w-full h-full"
-            }`} />
+      {!imageError && user?.avatar
+        ? (
+            <>
+              <img
+                src={user.avatar}
+                alt={user?.username}
+                className={`object-cover transition-all duration-300 ${
+                  canEdit ? "group-hover:brightness-75" : ""
+                } ${
+                  size === "sm"
+                    ? "w-16 h-16 rounded-full"
+                    : "mask mask-circle w-full h-full"
+                } ${imageLoading ? "opacity-0" : "opacity-100"}`}
+                onError={handleImageError}
+                onLoad={handleImageLoad}
+              />
+              {imageLoading && (
+                <div className={`absolute inset-0 skeleton ${
+                  size === "sm"
+                    ? "w-16 h-16 rounded-full"
+                    : "mask mask-circle w-full h-full"
+                }`}
+                />
+              )}
+            </>
+          )
+        : (
+            getFallbackAvatar()
           )}
-        </>
-      ) : (
-        getFallbackAvatar()
-      )}
       {canEdit && (
         <div className={`absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/20 backdrop-blur-sm ${
           size === "sm" ? "rounded-full" : "mask mask-circle"
-        }`}>
+        }`}
+        >
           <span className="text-white font-medium text-xs px-2 py-1">
             {size === "sm" ? "更换" : "更换头像"}
           </span>
@@ -135,30 +146,33 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
             )
           : (
               <div className={isOwner ? "w-full h-full relative" : "pointer-events-none w-full h-full relative"}>
-                {!imageError && user?.avatar ? (
-                  <>
-                    <img
-                      src={user.avatar}
-                      alt={user?.username}
-                      className={`object-cover ${
-                        size === "sm"
-                          ? "w-16 h-16 rounded-full"
-                          : "mask mask-circle w-full h-full"
-                      } ${imageLoading ? "opacity-0" : "opacity-100"}`}
-                      onError={handleImageError}
-                      onLoad={handleImageLoad}
-                    />
-                    {imageLoading && (
-                      <div className={`absolute inset-0 skeleton ${
-                        size === "sm"
-                          ? "w-16 h-16 rounded-full"
-                          : "mask mask-circle w-full h-full"
-                      }`} />
+                {!imageError && user?.avatar
+                  ? (
+                      <>
+                        <img
+                          src={user.avatar}
+                          alt={user?.username}
+                          className={`object-cover ${
+                            size === "sm"
+                              ? "w-16 h-16 rounded-full"
+                              : "mask mask-circle w-full h-full"
+                          } ${imageLoading ? "opacity-0" : "opacity-100"}`}
+                          onError={handleImageError}
+                          onLoad={handleImageLoad}
+                        />
+                        {imageLoading && (
+                          <div className={`absolute inset-0 skeleton ${
+                            size === "sm"
+                              ? "w-16 h-16 rounded-full"
+                              : "mask mask-circle w-full h-full"
+                          }`}
+                          />
+                        )}
+                      </>
+                    )
+                  : (
+                      getFallbackAvatar()
                     )}
-                  </>
-                ) : (
-                  getFallbackAvatar()
-                )}
               </div>
             )}
         <UserStatusDot

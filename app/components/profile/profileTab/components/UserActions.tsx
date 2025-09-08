@@ -3,13 +3,17 @@ import { FollowButton } from "@/components/common/Follow/FollowButton";
 import React from "react";
 import { Link } from "react-router";
 
+interface ProfileEditingActions {
+  isEditingProfile: boolean;
+  startEditingProfile: () => void;
+}
+
 interface UserActionsProps {
   user: UserInfoResponse | undefined;
   userId: number;
   loginUserId: number;
   isLoading: boolean;
-  isEditingProfile: boolean;
-  onStartEditing: () => void;
+  profileEditing: ProfileEditingActions;
   variant?: "mobile" | "desktop";
 }
 
@@ -18,8 +22,7 @@ export const UserActions: React.FC<UserActionsProps> = ({
   userId,
   loginUserId,
   isLoading,
-  isEditingProfile,
-  onStartEditing,
+  profileEditing,
   variant = "desktop",
 }) => {
   if (isLoading)
@@ -27,6 +30,7 @@ export const UserActions: React.FC<UserActionsProps> = ({
 
   const isOwner = userId === loginUserId;
   const isMobile = variant === "mobile";
+  const { isEditingProfile, startEditingProfile } = profileEditing;
 
   if (isOwner) {
     if (isMobile) {
@@ -34,7 +38,7 @@ export const UserActions: React.FC<UserActionsProps> = ({
         <button
           type="button"
           className="btn btn-sm btn-ghost"
-          onClick={onStartEditing}
+          onClick={startEditingProfile}
           aria-label="编辑个人资料"
         >
           <svg
@@ -58,7 +62,7 @@ export const UserActions: React.FC<UserActionsProps> = ({
         <button
           className="btn flex w-full mt-4 border border-gray-300 hover:text-primary transition-colors h-10 cursor-pointer"
           type="button"
-          onClick={onStartEditing}
+          onClick={startEditingProfile}
           aria-label="编辑个人资料"
         >
           <svg

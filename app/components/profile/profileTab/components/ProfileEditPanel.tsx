@@ -1,28 +1,37 @@
 import React from "react";
 
-interface ProfileEditPanelProps {
-  isVisible: boolean;
+interface ProfileEditingState {
+  isEditingProfile: boolean;
   editingUsername: string;
   editingDescription: string;
-  onUsernameChange: (value: string) => void;
-  onDescriptionChange: (value: string) => void;
-  onSave: () => void;
-  onCancel: () => void;
+  setEditingUsername: (value: string) => void;
+  setEditingDescription: (value: string) => void;
+  saveProfile: () => void;
+  cancelEditingProfile: () => void;
   isSaving: boolean;
+}
+
+interface ProfileEditPanelProps {
+  isVisible: boolean;
+  profileEditing: ProfileEditingState;
 }
 
 export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
   isVisible,
-  editingUsername,
-  editingDescription,
-  onUsernameChange,
-  onDescriptionChange,
-  onSave,
-  onCancel,
-  isSaving,
+  profileEditing,
 }) => {
   if (!isVisible)
     return null;
+
+  const {
+    editingUsername,
+    editingDescription,
+    setEditingUsername,
+    setEditingDescription,
+    saveProfile,
+    cancelEditingProfile,
+    isSaving,
+  } = profileEditing;
 
   return (
     <div className="md:hidden p-4 bg-base-100 rounded-2xl mt-2 space-y-4">
@@ -36,7 +45,7 @@ export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
         <input
           type="text"
           value={editingUsername}
-          onChange={e => onUsernameChange(e.target.value)}
+          onChange={e => setEditingUsername(e.target.value)}
           className={`input input-bordered w-full ${
             editingUsername.length > 30 ? "input-error" : ""
           }`}
@@ -59,7 +68,7 @@ export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
         </label>
         <textarea
           value={editingDescription}
-          onChange={e => onDescriptionChange(e.target.value)}
+          onChange={e => setEditingDescription(e.target.value)}
           className={`textarea textarea-bordered w-full ${
             editingDescription.length > 253 ? "textarea-error" : ""
           }`}
@@ -79,7 +88,7 @@ export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
       {/* 操作按钮 */}
       <div className="flex gap-2 pt-2">
         <button
-          onClick={onSave}
+          onClick={saveProfile}
           className="btn btn-success flex-1"
           disabled={
             !editingUsername.trim()
@@ -97,7 +106,7 @@ export const ProfileEditPanel: React.FC<ProfileEditPanelProps> = ({
               )}
         </button>
         <button
-          onClick={onCancel}
+          onClick={cancelEditingProfile}
           className="btn btn-ghost flex-1"
         >
           取消

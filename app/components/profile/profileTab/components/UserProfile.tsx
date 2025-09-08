@@ -1,19 +1,23 @@
 import type { UserInfoResponse } from "../../../../../api";
 import React, { useState } from "react";
 
+interface ProfileEditingState {
+  isEditingProfile: boolean;
+  editingUsername: string;
+  editingDescription: string;
+  setEditingUsername: (value: string) => void;
+  setEditingDescription: (value: string) => void;
+  saveProfile: () => void;
+  cancelEditingProfile: () => void;
+  isSaving: boolean;
+}
+
 interface UserProfileProps {
   user: UserInfoResponse | undefined;
   userId: number;
   loginUserId: number;
   isLoading: boolean;
-  isEditingProfile: boolean;
-  editingUsername: string;
-  editingDescription: string;
-  onUsernameChange: (value: string) => void;
-  onDescriptionChange: (value: string) => void;
-  onSave: () => void;
-  onCancel: () => void;
-  isSaving: boolean;
+  profileEditing: ProfileEditingState;
   variant?: "mobile" | "desktop";
 }
 
@@ -22,19 +26,23 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   userId,
   loginUserId,
   isLoading,
-  isEditingProfile,
-  editingUsername,
-  editingDescription,
-  onUsernameChange,
-  onDescriptionChange,
-  onSave,
-  onCancel,
-  isSaving,
+  profileEditing,
   variant = "desktop",
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const isOwner = userId === loginUserId;
   const isMobile = variant === "mobile";
+
+  const {
+    isEditingProfile,
+    editingUsername,
+    editingDescription,
+    setEditingUsername,
+    setEditingDescription,
+    saveProfile,
+    cancelEditingProfile,
+    isSaving,
+  } = profileEditing;
 
   if (isLoading) {
     return (
@@ -49,18 +57,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     <div className={isMobile ? "w-52" : "w-full"}>
       {/* 用户名 */}
       <div className={isMobile ? "" : "self-start w-full mt-4"}>
-        {isOwner && isEditingProfile
+        {isOwner && isEditingProfile && !isMobile
           ? (
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   value={editingUsername}
-                  onChange={e => onUsernameChange(e.target.value)}
+                  onChange={e => setEditingUsername(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter")
-                      onSave();
+                      saveProfile();
                     if (e.key === "Escape")
-                      onCancel();
+                      cancelEditingProfile();
                   }}
                   className={`input input-sm input-bordered flex-1 ${
                     isMobile ? "text-lg" : "text-lg"
@@ -85,17 +93,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 
       {/* 描述 */}
       <div className={isMobile ? "mt-2" : "w-full mt-4"}>
-        {isOwner && isEditingProfile
+        {isOwner && isEditingProfile && !isMobile
           ? (
               <div className="space-y-2">
                 <textarea
                   value={editingDescription}
-                  onChange={e => onDescriptionChange(e.target.value)}
+                  onChange={e => setEditingDescription(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Escape")
-                      onCancel();
+                      cancelEditingProfile();
                     if (e.key === "Enter" && e.ctrlKey)
-                      onSave();
+                      saveProfile();
                   }}
                   className={`textarea textarea-bordered w-full text-sm resize-none ${
                     editingDescription.length > 253 ? "textarea-error" : ""
@@ -115,7 +123,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={onSave}
+                        onClick={saveProfile}
                         className="btn btn-sm btn-success"
                         disabled={
                           !editingUsername.trim()
@@ -127,7 +135,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                         保存
                       </button>
                       <button
-                        onClick={onCancel}
+                        onClick={cancelEditingProfile}
                         className="btn btn-sm btn-ghost"
                       >
                         取消
