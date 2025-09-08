@@ -118,11 +118,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             variant="desktop"
           />
 
-          {/* 用户标签 */}
-          <div className="mb-4 mt-4">
-            <TagManagement userId={userId} />
-          </div>
-
           {/* 编辑个人资料按钮或其他操作按钮 */}
           <UserActions
             user={user}
@@ -132,6 +127,11 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             profileEditing={profileEditing}
             variant="desktop"
           />
+
+          {/* 用户标签 */}
+          <div className="mb-4 mt-4">
+            <TagManagement userId={userId} />
+          </div>
 
           {/* GNS雷达图 */}
           {!userQuery.isLoading && (

@@ -19,7 +19,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   userId,
   loginUserId,
   isLoading,
-  isEditingProfile = false,
+  isEditingProfile: _isEditingProfile = false,
   size = "sm",
   onAvatarUpdate,
 }) => {
@@ -66,7 +66,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       <div className={`${bgColor} flex items-center justify-center text-white font-bold ${
         size === "sm"
           ? "w-16 h-16 rounded-full text-lg"
-          : "mask mask-circle w-full h-full text-4xl"
+          : "w-full h-full rounded-full text-4xl"
       }`}
       >
         {initials}
@@ -78,7 +78,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       <div className={`skeleton ${
         size === "sm"
           ? "w-16 h-16 rounded-full"
-          : "md:w-48 md:h-48 lg:w-54 lg:h-54 rounded-full"
+          : "md:w-46 md:h-46 lg:w-54 lg:h-54 rounded-full"
       }`}
       >
       </div>
@@ -86,42 +86,47 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   }
 
   const isOwner = userId === loginUserId;
-  const canEdit = isOwner && (size === "sm" || isEditingProfile);
+  const canEdit = isOwner; // 简化逻辑：只要是所有者就可以编辑头像
 
-  const avatarContent = (
-    <div className="relative group cursor-pointer">
-      {!imageError && user?.avatar
-        ? (
-            <>
-              <img
-                src={user.avatar}
-                alt={user?.username}
-                className={`object-cover transition-all duration-300 ${
-                  canEdit ? "group-hover:brightness-75" : ""
-                } ${
-                  size === "sm"
-                    ? "w-16 h-16 rounded-full"
-                    : "mask mask-circle w-full h-full"
-                } ${imageLoading ? "opacity-0" : "opacity-100"}`}
-                onError={handleImageError}
-                onLoad={handleImageLoad}
-              />
-              {imageLoading && (
-                <div className={`absolute inset-0 skeleton ${
-                  size === "sm"
-                    ? "w-16 h-16 rounded-full"
-                    : "mask mask-circle w-full h-full"
-                }`}
-                />
-              )}
-            </>
-          )
-        : (
-            getFallbackAvatar()
+  // 渲染头像图片内容（不包含交互层）
+  const renderAvatarImage = () => {
+    if (!imageError && user?.avatar) {
+      return (
+        <>
+          <img
+            src={user.avatar}
+            alt={user?.username}
+            className={`object-cover transition-all duration-300 ${
+              canEdit ? "group-hover:brightness-75" : ""
+            } ${
+              size === "sm"
+                ? "w-16 h-16 rounded-full"
+                : "w-full h-full rounded-full"
+            } ${imageLoading ? "opacity-0" : "opacity-100"}`}
+            onError={handleImageError}
+            onLoad={handleImageLoad}
+          />
+          {imageLoading && (
+            <div className={`absolute inset-0 skeleton ${
+              size === "sm"
+                ? "w-16 h-16 rounded-full"
+                : "w-full h-full rounded-full"
+            }`}
+            />
           )}
+        </>
+      );
+    }
+    return getFallbackAvatar();
+  };
+
+  // 渲染可编辑的头像内容
+  const avatarContent = (
+    <div className="relative group w-full h-full">
+      {renderAvatarImage()}
       {canEdit && (
         <div className={`absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/20 backdrop-blur-sm ${
-          size === "sm" ? "rounded-full" : "mask mask-circle"
+          size === "sm" ? "rounded-full" : "rounded-full"
         }`}
         >
           <span className="text-white font-medium text-xs px-2 py-1">
@@ -133,7 +138,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   );
 
   return (
-    <div className={size === "lg" ? "md:w-46 lg:w-54" : "w-16 h-16"}>
+    <div className={size === "lg" ? "md:w-46 md:h-46 lg:w-54 lg:h-54" : "w-16 h-16"}>
       <div className="w-full h-full relative">
         {canEdit
           ? (
@@ -141,38 +146,17 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
                 setCopperedDownloadUrl={onAvatarUpdate}
                 fileName={`userId-${user?.userId}`}
               >
-                {avatarContent}
+                <div className={`w-full h-full cursor-pointer ${
+                  size === "lg" ? "md:w-46 md:h-46 lg:w-54 lg:h-54" : "w-16 h-16"
+                }`}
+                >
+                  {avatarContent}
+                </div>
               </ImgUploaderWithCopper>
             )
           : (
               <div className={isOwner ? "w-full h-full relative" : "pointer-events-none w-full h-full relative"}>
-                {!imageError && user?.avatar
-                  ? (
-                      <>
-                        <img
-                          src={user.avatar}
-                          alt={user?.username}
-                          className={`object-cover ${
-                            size === "sm"
-                              ? "w-16 h-16 rounded-full"
-                              : "mask mask-circle w-full h-full"
-                          } ${imageLoading ? "opacity-0" : "opacity-100"}`}
-                          onError={handleImageError}
-                          onLoad={handleImageLoad}
-                        />
-                        {imageLoading && (
-                          <div className={`absolute inset-0 skeleton ${
-                            size === "sm"
-                              ? "w-16 h-16 rounded-full"
-                              : "mask mask-circle w-full h-full"
-                          }`}
-                          />
-                        )}
-                      </>
-                    )
-                  : (
-                      getFallbackAvatar()
-                    )}
+                {renderAvatarImage()}
               </div>
             )}
         <UserStatusDot

@@ -3,7 +3,6 @@
  */
 
 import type { Crop, PixelCrop } from "react-image-crop";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 
 import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
@@ -44,18 +43,19 @@ interface ImgUploaderWithCopperProps {
 
 /**
  * 图片上传组件，带裁剪
- * @param setDownloadUrl 填写的话就会上传裁剪前的图片，并在上传完后调用
- * @param setCopperedDownloadUrl 填写的话就会上传裁剪后的图片，并在上传后调用
- * @param children
- * @param fileName 上传后存在图床里面的文件名，裁剪后的图片会带-copper后缀
- * @param mutate
+ * @param {object} props 组件属性
+ * @param {(url: string) => void} [props.setDownloadUrl] 上传原图完成后的回调
+ * @param {(url: string) => void} [props.setCopperedDownloadUrl] 上传裁剪图完成后的回调
+ * @param {React.ReactNode} props.children 触发上传的子元素
+ * @param {string} props.fileName 上传到图床的文件名（裁剪后的图片会带 -copper 后缀）
+ * @param {(data: any) => void} [props.mutate] 可选的更新函数
  * @constructor
  */
 export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName, mutate }: ImgUploaderWithCopperProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadUtils = new UploadUtils();
   // 控制弹窗的显示与隐藏
-  const [isOpen, setIsOpen] = useSearchParamsState("imgUploaderWithCopperPop", false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const [imgSrc, setImgSrc] = useState("");
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);

@@ -88,7 +88,34 @@ export const UserReadMe: React.FC<UserReadMeProps> = ({
                   title={isOwner ? "点击编辑 ReadMe" : undefined}
                 >
                   <MarkDownViewer
-                    content={user?.readMe || "## Hi, welcome to my personal page!👋"}
+                    content={
+                      user?.readMe
+                      || (isOwner
+                        ? `## 👋 欢迎来到我的主页
+
+还没有写下个人 ReadMe？花几分钟介绍你自己，帮助关注者快速了解你。
+
+可以从这些开始（写完删除提示即可）：
+
+### 我是谁
+- 一句话自我介绍（角色/领域/兴趣）
+
+### 我在做什么
+- 当前项目 / 研究方向 / 学习路线
+
+### 我擅长
+- 技术栈/工具：\`React\` \`TypeScript\` \`Node.js\`（示例，可修改）
+
+### 我在寻找
+- 合作方向 / 招募 / 接受的反馈
+
+### 如何联系我
+- Email：your@email.com
+- 其它：Twitter / Telegram / 微信
+
+小贴士：支持 Markdown，使用列表、图片、代码块让内容更清晰。`
+                        : `该用户还没有撰写 ReadMe。`)
+                    }
                   />
                   {isOwner && (
                     <div className="absolute top-2 right-2 opacity-50 hover:opacity-100 transition-opacity">

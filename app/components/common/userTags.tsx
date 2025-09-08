@@ -121,147 +121,139 @@ function TagManagement({ userId, size = "default" }: TagManagementProps) {
   return (
     <div className="w-full mx-auto rounded-xl opacity-90 p-2">
       {/* 标签展示区域 */}
-      <div className="mb-2">
-        <div className={`flex justify-between items-center ${size === "default" ? "mb-4" : ""}`}>
-          {/* compact 不显示 */}
-          {size !== "compact" && (
-            <h2 className="text-lg font-semibold text-base-content">玩家标签</h2>
-          )}
-        </div>
 
-        <div className="flex flex-wrap gap-2">
-          {tags && tags.length > 0
-            ? (
-                tags.map(tag => (
-                  <div
-                    key={tag.tagId}
-                    className="group relative inline-flex items-center"
-                  >
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium transition-all hover:shadow-md cursor-default
+      <div className="flex flex-wrap gap-2">
+        {tags && tags.length > 0
+          ? (
+              tags.map(tag => (
+                <div
+                  key={tag.tagId}
+                  className="group relative inline-flex items-center"
+                >
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-all hover:shadow-md cursor-default
                         bg-${tag.color}-100 text-${tag.color}-800 ring-1 ring-${tag.color}-500/10`}
+                  >
+                    {tag.content}
+                  </span>
+                  {userId === loginUserId && (
+                    <button
+                      onClick={() => deleteTag(tag.tagId ?? -1)}
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center justify-center hover:bg-red-600"
+                      disabled={deleteTagMutation.isPending}
                     >
-                      {tag.content}
-                    </span>
-                    {userId === loginUserId && (
-                      <button
-                        onClick={() => deleteTag(tag.tagId ?? -1)}
-                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center justify-center hover:bg-red-600"
-                        disabled={deleteTagMutation.isPending}
-                      >
-                        x
-                      </button>
-                    )}
+                      x
+                    </button>
+                  )}
+                </div>
+              ))
+            )
+          : (
+              <div className="flex flex-col items-center justify-center py-8 px-4 w-full">
+                <div className="text-center space-y-3">
+                  <div className="w-16 h-16 mx-auto bg-base-200 rounded-full flex items-center justify-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-8 h-8 text-base-content/40"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                    </svg>
                   </div>
-                ))
-              )
-            : (
-                <div className="flex flex-col items-center justify-center py-8 px-4 w-full">
-                  <div className="text-center space-y-3">
-                    <div className="w-16 h-16 mx-auto bg-base-200 rounded-full flex items-center justify-center">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-8 h-8 text-base-content/40"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={1.5}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                      </svg>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-base-content/60 text-sm">还没有标签呢</p>
-                      {userId === loginUserId
-                        && (
-                          <p className="text-base-content/40 text-xs">添加一些标签来展示你的特色~</p>
-                        )}
+                  <div className="space-y-1">
+                    <p className="text-base-content/60 text-sm">还没有标签呢</p>
+                    {userId === loginUserId
+                      && (
+                        <p className="text-base-content/40 text-xs">添加一些标签来展示你的特色~</p>
+                      )}
 
-                    </div>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-          {/* 内联添加标签 */}
-          {userId === loginUserId && (
-            isAddingTag
-              ? (
-                  <div className="flex flex-col gap-2 p-3 bg-base-100 rounded-lg border border-base-300">
-                    {/* 输入框和按钮行 */}
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        value={newTagContent}
-                        onChange={e => setNewTagContent(e.target.value)}
-                        placeholder="输入标签内容"
-                        className="input input-sm input-bordered text-sm flex-1"
-                        maxLength={16}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter")
-                            saveNewTag();
-                          if (e.key === "Escape")
-                            cancelAddingTag();
-                        }}
-                        autoFocus
-                      />
-                      <button
-                        onClick={saveNewTag}
-                        className="btn btn-sm btn-success"
-                        disabled={!newTagContent.trim() || addTagMutation.isPending}
-                      >
-                        ✓
-                      </button>
-                      <button
-                        onClick={cancelAddingTag}
-                        className="btn btn-sm btn-ghost"
-                      >
-                        ✕
-                      </button>
-                    </div>
-
-                    {/* 颜色选择器 */}
-                    <div className="flex flex-col gap-2">
-                      <span className="text-xs text-base-content/70">选择颜色:</span>
-                      <div className="flex flex-wrap gap-2">
-                        {colorOptions.map(color => (
-                          <button
-                            key={color.id}
-                            onClick={() => setSelectedColor(color.id)}
-                            className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 ${
-                              selectedColor === color.id
-                                ? "border-base-content shadow-md scale-110"
-                                : "border-base-300 hover:border-base-content"
-                            }`}
-                            style={{ backgroundColor: color.hex }}
-                            title={color.name}
-                          />
-                        ))}
-                      </div>
-                      {/* 预览效果 */}
-                      {newTagContent.trim() && (
-                        <div className="mt-1">
-                          <span className="text-xs text-base-content/70">预览: </span>
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium
-                              bg-${selectedColor}-100 text-${selectedColor}-800 ring-1 ring-${selectedColor}-500/10`}
-                          >
-                            {newTagContent.trim()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+        {/* 内联添加标签 */}
+        {userId === loginUserId && (
+          isAddingTag
+            ? (
+                <div className="flex flex-col gap-2 p-3 bg-base-100 rounded-lg border border-base-300">
+                  {/* 输入框和按钮行 */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newTagContent}
+                      onChange={e => setNewTagContent(e.target.value)}
+                      placeholder="输入标签内容"
+                      className="input input-sm input-bordered text-sm flex-1"
+                      maxLength={16}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter")
+                          saveNewTag();
+                        if (e.key === "Escape")
+                          cancelAddingTag();
+                      }}
+                      autoFocus
+                    />
+                    <button
+                      onClick={saveNewTag}
+                      className="btn btn-sm btn-success"
+                      disabled={!newTagContent.trim() || addTagMutation.isPending}
+                    >
+                      ✓
+                    </button>
+                    <button
+                      onClick={cancelAddingTag}
+                      className="btn btn-sm btn-ghost"
+                    >
+                      ✕
+                    </button>
                   </div>
-                )
-              : (
-                  <button
-                    onClick={startAddingTag}
-                    className="px-3 py-1 rounded-full text-sm border-2 border-dashed border-base-300 text-base-content/60 hover:border-primary hover:text-primary transition-colors cursor-pointer"
-                  >
-                    + 添加标签
-                  </button>
-                )
-          )}
-        </div>
+
+                  {/* 颜色选择器 */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs text-base-content/70">选择颜色:</span>
+                    <div className="flex flex-wrap gap-2">
+                      {colorOptions.map(color => (
+                        <button
+                          key={color.id}
+                          onClick={() => setSelectedColor(color.id)}
+                          className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 ${
+                            selectedColor === color.id
+                              ? "border-base-content shadow-md scale-110"
+                              : "border-base-300 hover:border-base-content"
+                          }`}
+                          style={{ backgroundColor: color.hex }}
+                          title={color.name}
+                        />
+                      ))}
+                    </div>
+                    {/* 预览效果 */}
+                    {newTagContent.trim() && (
+                      <div className="mt-1">
+                        <span className="text-xs text-base-content/70">预览: </span>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium
+                              bg-${selectedColor}-100 text-${selectedColor}-800 ring-1 ring-${selectedColor}-500/10`}
+                        >
+                          {newTagContent.trim()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            : (
+                <button
+                  onClick={startAddingTag}
+                  className="px-3 py-1 rounded-full text-sm border-2 border-dashed border-base-300 text-base-content/60 hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                >
+                  + 添加标签
+                </button>
+              )
+        )}
       </div>
     </div>
   );
