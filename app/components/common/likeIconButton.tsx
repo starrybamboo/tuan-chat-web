@@ -68,12 +68,16 @@ export default function LikeIconButton({ targetInfo, className, icon, direction 
 
   return (
     <button
-      onClick={toggleLike}
-      className={`flex items-center ${direction === "row" ? "flex-row gap-1" : "flex-col"} ${className}`}
+      onClick={(e) => {
+        e.stopPropagation(); // 阻止冒泡
+        toggleLike();
+      }}
+      className={`flex items-center ${
+        direction === "row" ? "flex-row gap-1" : "flex-col"
+      } ${className}`}
       type="button"
       disabled={likeMutation.isPending || unlikeMutation.isPending}
     >
-
       {direction === "row"
         ? (
             // 横向：不加 relative/absolute，避免错位
