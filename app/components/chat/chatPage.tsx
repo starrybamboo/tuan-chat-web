@@ -13,7 +13,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import LeftChatList from "@/components/privateChat/components/Left​​ChatList​​";
 import RightChatView from "@/components/privateChat/components/RightChatView";
-import { Setting } from "@/icons";
+import { AddIcon, Setting } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import {
   useGetSpaceMembersQuery,
@@ -266,20 +266,7 @@ export default function ChatPage() {
                 }}
               >
                 <div className="avatar mask mask-squircle flex content-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
+                  <AddIcon></AddIcon>
                 </div>
               </button>
             </div>
@@ -312,7 +299,8 @@ export default function ChatPage() {
                           <div className="flex items-center gap-1 group w-full" key={room.roomId} data-room-id={room.roomId}>
                             <button
                               key={room.roomId}
-                              className={`font-bold text-sm rounded-lg p-1 hover:bg-base-300 flex justify-start items-center flex-1 gap-2 min-w-0 ${activeRoomId === room.roomId ? "bg-info-content/30" : ""}`}
+                              className={`font-bold text-sm rounded-lg p-1 flex justify-start items-center flex-1 gap-2
+                               min-w-0 ${activeRoomId === room.roomId ? "bg-info-content/30" : "hover:bg-base-300"}`}
                               type="button"
                               onClick={() => {
                                 setActiveRoomId(room.roomId ?? -1);
