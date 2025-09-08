@@ -18,6 +18,9 @@ interface TagManagementPopupProps {
 const TAG_CONTENT_MAX = 16; // 标签内容的最大字数，未来可能会往低了调
 const MAX_TAGS = 8; // 最大标签数量
 
+/**
+ * 用户个人标签的编辑弹窗
+ */
 export const TagManagementPop: React.FC<TagManagementPopupProps> = ({
   isOpen,
   onClose,

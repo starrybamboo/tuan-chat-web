@@ -1,7 +1,7 @@
 import type { MomentFeedRequest } from "../../../../api";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
-import { BarChartOutlineIcon, EmojiIconWhite, Image2Fill } from "@/icons";
+import { EmojiIconWhite, Image2Fill, XMarkICon } from "@/icons";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useEffect, useRef, useState } from "react";
 import { usePublishMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
@@ -103,8 +103,6 @@ export const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
     // 先把缩略图放到 UI（紧凑横向条）
     setImages(prev => [...prev, newImg]);
 
-    // 立刻按 EmojiWindow 的实现调用 UploadUtils.uploadImg 上传
-    // 保存 promise，发布时等待
     uploadingPromisesRef.current[id] = (async () => {
       try {
         const uploadedUrl = await uploadUtilsRef.current.uploadImg(file, 1);
@@ -149,14 +147,8 @@ export const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
       if (toRemove?.file && toRemove.url.startsWith("blob:")) {
         URL.revokeObjectURL(toRemove.url);
       }
-      // TODO: woc怎么连删除后端图片的功能都没有啊
       return prev.filter(p => p.id !== id);
     });
-    // 框架
-    // 如果有正在上传的 promise，移除追踪（无法真正 cancel fetch）
-    // if (uploadingPromisesRef.current[id]) {
-    //   delete uploadingPromisesRef.current[id];
-    // }
   };
   const handlePublish = async () => {
     if (!content.trim() || currentLength > maxLength || isPublishing) {
@@ -166,13 +158,12 @@ export const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
     setIsPublishing(true);
 
     try {
-      // 等待所有正在上传的 promise（如果有）
       const pending = Object.values(uploadingPromisesRef.current);
       if (pending.length > 0) {
         await Promise.all(pending.map(p => p.catch(() => undefined)));
       }
 
-      // 若存在上传失败的图片，阻止发布并提示（你可改为跳过或自动重试）
+      // 若存在上传失败的图片，阻止发布并提示
       const failed = images.find(i => i.error);
       if (failed) {
         // alert("有图片上传失败，请删除或重试后再发布");
@@ -180,10 +171,9 @@ export const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
         return;
       }
 
-      // 最终 imageUrls：优先使用 uploadedUrl（服务器 URL），否则使用 url（emoji 等外链）
+      // 优先使用 uploadedUrl（服务器 URL），否则使用 url（emoji 等外链）
       const imageUrls = images.map(i => i.uploadedUrl ?? i.url).filter(Boolean);
 
-      // 保持你的 API 格式（将 imageUrls 放入请求体）
       const request: MomentFeedRequest = {
         content: content.trim(),
         imageUrls,
@@ -275,14 +265,13 @@ export const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
                       </div>
                     )}
 
-                    {/* 删除按钮（位置固定，不会错位） */}
                     <button
                       type="button"
                       onClick={() => handleDeleteImage(img.id)}
-                      className="absolute top-1 right-1 bg-base-100/80 hover:bg-error hover:text-error-content rounded-full w-6 h-6 flex items-center justify-center text-sm"
+                      className="absolute top-1 right-1 bg-base-100/80 hover:bg-error hover:text-error-content rounded-full w-6 h-6 flex items-center justify-center text-sm duration-300"
                       aria-label="删除图片"
                     >
-                      ×
+                      <XMarkICon />
                     </button>
                   </div>
                 ))}
@@ -309,7 +298,7 @@ export const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
           <div className="flex items-center justify-between mt-3">
             <div className="flex items-center space-x-3">
               <button
-                className="text-base-content/60 hover:text-primary transition-colors p-1 rounded-full hover:bg-base-200 disabled:opacity-50"
+                className="text-base-content/60 hover:text-primary transition-colors p-1 rounded-full hover:bg-base-200 disabled:opacity-50 cursor-pointer"
                 type="button"
                 title="添加表情"
                 disabled={isPublishing}
@@ -327,15 +316,6 @@ export const PublishPostCard: React.FC<PublishBoxProps> = ({ loginUserId }) => {
                   <Image2Fill />
                 </div>
               </ImgUploader>
-
-              <button
-                className="text-base-content/60 hover:text-primary transition-colors p-1 rounded-full hover:bg-base-200 disabled:opacity-50"
-                type="button"
-                title="添加投票"
-                disabled={isPublishing}
-              >
-                <BarChartOutlineIcon />
-              </button>
             </div>
 
             {/* 右边：字数统计和发布按钮 */}
