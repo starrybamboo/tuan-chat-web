@@ -16,14 +16,15 @@ export default function RoomButton({ room, unreadMessageNumber, onclick, isActiv
       onClick={onclick}
     >
       <div className="indicator">
-        {(unreadMessageNumber && unreadMessageNumber > 0)
-          && (
-            <span
-              className="indicator-item badge badge-xs bg-error"
-            >
-              unreadMessageNumber
-            </span>
-          )}
+        {(!isActive && unreadMessageNumber && unreadMessageNumber > 0)
+          ? (
+              <span
+                className="indicator-item badge badge-xs bg-error"
+              >
+                {unreadMessageNumber}
+              </span>
+            )
+          : null}
         <div className="avatar mask mask-squircle w-8">
           <img
             src={room.avatar}

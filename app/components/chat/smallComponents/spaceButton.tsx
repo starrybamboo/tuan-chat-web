@@ -26,13 +26,14 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
       >
         <div className="indicator">
           {(unreadMessageNumber && unreadMessageNumber > 0)
-            && (
-              <span
-                className="indicator-item badge badge-xs bg-error"
-              >
-                unreadMessageNumber
-              </span>
-            )}
+            ? (
+                <span
+                  className="indicator-item badge badge-xs bg-error"
+                >
+                  {unreadMessageNumber}
+                </span>
+              )
+            : null}
           <div className="avatar mask mask-squircle">
             <img
               src={space.avatar}
