@@ -6,13 +6,15 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 
 import { tuanchat } from "api/instance";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function FeedPage() {
   const PAGE_SIZE = 10;
   const [feedRef, feedEntry] = useIntersectionObserver();
   const FETCH_ON_REMAIN = 2;
 
+  // 不感兴趣的feed
+  const [hiddenFeeds, setHiddenFeeds] = useState<number[]>([]);
   // 无限加载接口
   const feedInfiniteQuery = useInfiniteQuery({
     queryKey: ["pageFeed"],
@@ -32,10 +34,12 @@ export default function FeedPage() {
     refetchOnWindowFocus: false,
   });
 
-  // 将分页数据 flatten
+  // 将分页数据 flatten，过滤不感兴趣
   const feeds: MessageFeedWithStatsResponse[] = useMemo(() => {
-    return feedInfiniteQuery.data?.pages.flatMap(p => p.data?.list ?? []) ?? [];
-  }, [feedInfiniteQuery.data?.pages]);
+    return (
+      feedInfiniteQuery.data?.pages.flatMap(p => p.data?.list ?? []) ?? []
+    ).filter(f => !hiddenFeeds.includes(f.feed!.feedId!));
+  }, [feedInfiniteQuery.data?.pages, hiddenFeeds]);
 
   // 无限滚动逻辑
   useEffect(() => {
@@ -43,6 +47,11 @@ export default function FeedPage() {
       void feedInfiniteQuery.fetchNextPage();
     }
   }, [feedEntry?.isIntersecting, feedInfiniteQuery.isFetching, feedInfiniteQuery.hasNextPage, feedInfiniteQuery]);
+
+  // 点击不感兴趣
+  const handleDislike = (feedId: number) => {
+    setHiddenFeeds(prev => [...prev, feedId]);
+  };
 
   return (
     <div className="flex justify-center bg-gray-100 dark:bg-gray-900 min-h-screen p-4 sm:p-8">
@@ -90,7 +99,7 @@ export default function FeedPage() {
               className="cursor-pointer"
             >
               <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-xl transition-all duration-300 hover:scale-[1.01] hover:shadow-2xl">
-                {feed.feed ? <FeedPreview feed={feed.feed} stats={feed.stats!} /> : <div>加载失败或数据为空</div>}
+                {feed.feed ? <FeedPreview feed={feed.feed} stats={feed.stats!} onDislike={() => feed.feed?.feedId && handleDislike(feed.feed.feedId)} /> : <div>加载失败或数据为空</div>}
               </div>
             </div>
           ))}

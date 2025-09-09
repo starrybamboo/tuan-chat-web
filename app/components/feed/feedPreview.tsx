@@ -6,17 +6,26 @@ import LikeIconButton from "@/components/common/likeIconButton";
 import ShareIconButton from "@/components/common/shareIconButton";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { EllipsisVertical } from "@/icons";
+import React from "react";
 import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
+import CollectionIconButton from "../common/collection/collectionIconButton";
 import CommentIconButton from "../common/comment/commentIconButton";
+import DislikeIconButton from "../common/dislikeIconButton";
 
 interface FeedPreviewProps {
   feed: MessageFeedResponse;
   stats: FeedStatsResponse;
+  onDislike?: () => void;
 }
 
-export default function FeedPreview({ feed, stats }: FeedPreviewProps) {
+export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps) {
   const { data: messageResponse, isLoading } = useGetMessageByIdQuery(feed?.messageId ?? -1);
-  const [showComments, setShowComments] = useSearchParamsState<boolean>(`feedShowCommentsPop${feed?.feedId}`, false);
+  const [showComments, setShowComments] = useSearchParamsState<boolean>(
+    `feedShowCommentsPop${feed?.feedId}`,
+    false,
+  );
+
+  const [showMoreOptions, setShowMoreOptions] = React.useState(false);
 
   return (
     <div className="card bg-base-100 border border-base-300 shadow-md mb-4 hover:shadow-sm transition-shadow w-full">
@@ -68,7 +77,7 @@ export default function FeedPreview({ feed, stats }: FeedPreviewProps) {
           <div className="join items-end">
             <LikeIconButton
               targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "1" }}
-              className=" flex items-center justify-center join-item btn btn-sm btn-ghost"
+              className="flex items-center justify-center join-item btn btn-sm btn-ghost"
               direction="row"
             />
             <CommentIconButton
@@ -77,26 +86,48 @@ export default function FeedPreview({ feed, stats }: FeedPreviewProps) {
               showComments={showComments}
               onToggle={() => setShowComments(!showComments)}
             />
-
             <ShareIconButton searchKey={`feedShowSharePop${feed?.feedId}`} />
           </div>
 
-          <div className="flex flex-col items-end gap-1">
-            <button type="button" className="btn btn-sm btn-ghost rounded-full p-2">
-              <EllipsisVertical className="w-6 h-6" />
-            </button>
+          {/* 更多操作 */}
+          <div
+            className="relative flex flex-col items-end gap-1"
+            onMouseEnter={() => setShowMoreOptions(true)}
+            onMouseLeave={() => setShowMoreOptions(false)}
+          >
+            <div
+              className="relative"
+
+            >
+              <button className="btn btn-sm btn-ghost rounded-full p-2" type="button">
+                <EllipsisVertical className="w-6 h-6" />
+              </button>
+
+              {/* 悬浮菜单 */}
+              {showMoreOptions && (
+                <div className="absolute right-0 top-full mt-1 w-24 bg-base-100 border border-base-300 shadow-md rounded-md z-50">
+                  <CollectionIconButton
+                    targetInfo={{ resourceId: feed.feedId!, resourceType: "feed" }}
+                    className="w-full justify-start px-2 py-2 text-sm cursor-pointer hover:bg-base-200"
+                  />
+                  <DislikeIconButton
+                    className="w-full justify-start px-2 py-2 text-sm cursor-pointer hover:bg-base-200"
+                    onDislike={onDislike}
+                  />
+                </div>
+              )}
+
+            </div>
+
             {(feed.createTime || feed.messageId) && (
-              <div className="text-xs text-base-content/50 space-x-2 flex">
+              <div className="text-xs text-base-content/50 space-x-2 flex mt-1">
                 {feed.messageId && (
                   <span className="text-[10px]">
                     消息ID:
-                    {" "}
                     {feed.messageId}
                   </span>
                 )}
-                {feed.createTime && (
-                  <span className="text-[10px]">{feed.createTime}</span>
-                )}
+                {feed.createTime && <span className="text-[10px]">{feed.createTime}</span>}
               </div>
             )}
           </div>
@@ -106,7 +137,10 @@ export default function FeedPreview({ feed, stats }: FeedPreviewProps) {
       {/* 评论区，在showComments为true时直接展开 */}
       {showComments && (
         <div className="p-4 bg-base-200 border-t border-base-300">
-          <CommentPanel targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "1" }} className="h-full"></CommentPanel>
+          <CommentPanel
+            targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "1" }}
+            className="h-full"
+          />
         </div>
       )}
     </div>
