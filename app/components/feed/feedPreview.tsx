@@ -103,6 +103,7 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
 
         {/* 消息内容容器(固定尺寸) */}
         {messageResponse && (
+
           <RoomContext value={roomContextValue}>
             <SpaceContext value={spaceContextValue}>
               <ForwardMessage messageResponse={messageResponse} />
