@@ -6,7 +6,7 @@ import LikeIconButton from "@/components/common/likeIconButton";
 import ShareIconButton from "@/components/common/shareIconButton";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { EllipsisVertical } from "@/icons";
-import React from "react";
+import React, { useState } from "react";
 import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
 import CollectionIconButton from "../common/collection/collectionIconButton";
 import CommentIconButton from "../common/comment/commentIconButton";
@@ -24,11 +24,24 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
     `feedShowCommentsPop${feed?.feedId}`,
     false,
   );
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
 
-  const [showMoreOptions, setShowMoreOptions] = React.useState(false);
+  // 滑动消失
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  const handleDislikeClick = () => {
+    setIsRemoving(true); // 触发滑动动画
+    setTimeout(() => {
+      onDislike?.(); // 动画结束后移除 feed
+    }, 500); // 与 transition 时间一致
+  };
 
   return (
-    <div className="card bg-base-100 border border-base-300 shadow-md mb-4 hover:shadow-sm transition-shadow w-full">
+    <div
+      className={`card bg-base-100 border border-base-300 shadow-md mb-4 transition-all duration-500 ${
+        isRemoving ? "opacity-0 -translate-x-full" : "opacity-100 translate-x-0"
+      }`}
+    >
       <div className="card-body p-4 md:p-6 flex flex-col relative">
         {/* 头部 - 包含头像和标题 */}
         <div className="flex items-center gap-3 mb-2">
@@ -95,15 +108,12 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
             onMouseEnter={() => setShowMoreOptions(true)}
             onMouseLeave={() => setShowMoreOptions(false)}
           >
-            <div
-              className="relative"
-
-            >
+            <div className="relative">
               <button className="btn btn-sm btn-ghost rounded-full p-2" type="button">
                 <EllipsisVertical className="w-6 h-6" />
               </button>
 
-              {/* 悬浮菜单 */}
+              {/* 小型悬浮菜单 */}
               {showMoreOptions && (
                 <div className="absolute right-0 top-full mt-1 w-24 bg-base-100 border border-base-300 shadow-md rounded-md z-50">
                   <CollectionIconButton
@@ -112,11 +122,10 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
                   />
                   <DislikeIconButton
                     className="w-full justify-start px-2 py-2 text-sm cursor-pointer hover:bg-base-200"
-                    onDislike={onDislike}
+                    onDislike={handleDislikeClick}
                   />
                 </div>
               )}
-
             </div>
 
             {(feed.createTime || feed.messageId) && (
@@ -124,6 +133,7 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
                 {feed.messageId && (
                   <span className="text-[10px]">
                     消息ID:
+                    {" "}
                     {feed.messageId}
                   </span>
                 )}
