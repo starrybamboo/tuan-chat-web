@@ -9,7 +9,7 @@ interface TagManagementProps {
   size?: "default" | "compact"; // 展示的类型，compact会表现的更加紧凑一些
 }
 
-function TagManagement({ userId, size = "default" }: TagManagementProps) {
+function TagManagement({ userId }: TagManagementProps) {
   // 获取标签数据
   const { data: tagsData, isLoading } = useGetTagsQuery({
     tagType: 1,
@@ -123,57 +123,31 @@ function TagManagement({ userId, size = "default" }: TagManagementProps) {
       {/* 标签展示区域 */}
 
       <div className="flex flex-wrap gap-2">
-        {tags && tags.length > 0
-          ? (
-              tags.map(tag => (
-                <div
-                  key={tag.tagId}
-                  className="group relative inline-flex items-center"
-                >
-                  <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium transition-all hover:shadow-md cursor-default
+        {tags && tags.length > 0 && (
+          tags.map(tag => (
+            <div
+              key={tag.tagId}
+              className="group relative inline-flex items-center"
+            >
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium transition-all hover:shadow-md cursor-default
                         bg-${tag.color}-100 text-${tag.color}-800 ring-1 ring-${tag.color}-500/10`}
-                  >
-                    {tag.content}
-                  </span>
-                  {userId === loginUserId && (
-                    <button
-                      onClick={() => deleteTag(tag.tagId ?? -1)}
-                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center justify-center hover:bg-red-600"
-                      disabled={deleteTagMutation.isPending}
-                    >
-                      x
-                    </button>
-                  )}
-                </div>
-              ))
-            )
-          : (
-              <div className="flex flex-col items-center justify-center py-8 px-4 w-full">
-                <div className="text-center space-y-3">
-                  <div className="w-16 h-16 mx-auto bg-base-200 rounded-full flex items-center justify-center">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-8 h-8 text-base-content/40"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                    </svg>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-base-content/60 text-sm">还没有标签呢</p>
-                    {userId === loginUserId
-                      && (
-                        <p className="text-base-content/40 text-xs">添加一些标签来展示你的特色~</p>
-                      )}
-
-                  </div>
-                </div>
-              </div>
-            )}
+              >
+                {tag.content}
+              </span>
+              {userId === loginUserId && (
+                <button
+                  type="button"
+                  onClick={() => deleteTag(tag.tagId ?? -1)}
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center justify-center hover:bg-red-600"
+                  disabled={deleteTagMutation.isPending}
+                >
+                  x
+                </button>
+              )}
+            </div>
+          ))
+        )}
 
         {/* 内联添加标签 */}
         {userId === loginUserId && (
@@ -198,6 +172,7 @@ function TagManagement({ userId, size = "default" }: TagManagementProps) {
                       autoFocus
                     />
                     <button
+                      type="button"
                       onClick={saveNewTag}
                       className="btn btn-sm btn-success"
                       disabled={!newTagContent.trim() || addTagMutation.isPending}
@@ -205,6 +180,7 @@ function TagManagement({ userId, size = "default" }: TagManagementProps) {
                       ✓
                     </button>
                     <button
+                      type="button"
                       onClick={cancelAddingTag}
                       className="btn btn-sm btn-ghost"
                     >
@@ -218,6 +194,7 @@ function TagManagement({ userId, size = "default" }: TagManagementProps) {
                     <div className="flex flex-wrap gap-2">
                       {colorOptions.map(color => (
                         <button
+                          type="button"
                           key={color.id}
                           onClick={() => setSelectedColor(color.id)}
                           className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 ${
@@ -247,6 +224,7 @@ function TagManagement({ userId, size = "default" }: TagManagementProps) {
               )
             : (
                 <button
+                  type="button"
                   onClick={startAddingTag}
                   className="px-3 py-1 rounded-full text-sm border-2 border-dashed border-base-300 text-base-content/60 hover:border-primary hover:text-primary transition-colors cursor-pointer"
                 >

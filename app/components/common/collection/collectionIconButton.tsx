@@ -64,7 +64,7 @@ export default function CollectionIconButton({
         className={`${direction === "row" ? "w-5 h-5" : "w-6 h-6"}`}
       />
       <span className={`${direction === "row" ? "text-sm" : "text-xs mt-1"}`}>
-        {isCollected ? collectionCount : "收藏"}
+        {collectionCount}
       </span>
     </button>
   );
