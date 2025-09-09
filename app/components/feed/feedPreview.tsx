@@ -103,13 +103,12 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
 
         {/* 消息内容容器(固定尺寸) */}
         {messageResponse && (
-          <div className="border border-base-300 rounded-lg bg-base-50 p-2.5 overflow-hidden">
-            <RoomContext value={roomContextValue}>
-              <SpaceContext value={spaceContextValue}>
-                <ForwardMessage messageResponse={messageResponse} />
-              </SpaceContext>
-            </RoomContext>
-          </div>
+
+          <RoomContext value={roomContextValue}>
+            <SpaceContext value={spaceContextValue}>
+              <ForwardMessage messageResponse={messageResponse} />
+            </SpaceContext>
+          </RoomContext>
         )}
 
         {/* 右下角操作按钮 */}
@@ -142,8 +141,6 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
           </div>
         </div>
       )}
-
-      {/* 已确认场景下始终是转发消息，不渲染额外详情弹窗 */}
     </article>
   );
 }
