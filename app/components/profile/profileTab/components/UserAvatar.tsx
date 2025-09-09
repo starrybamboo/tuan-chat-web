@@ -75,12 +75,8 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   };
   if (isLoading) {
     return (
-      <div className={`skeleton ${
-        size === "sm"
-          ? "w-16 h-16 rounded-full"
-          : "md:w-46 md:h-46 lg:w-54 lg:h-54 rounded-full"
-      }`}
-      >
+      <div className={size === "lg" ? "w-full aspect-square" : "w-16 h-16"}>
+        <div className="skeleton w-full h-full rounded-full" />
       </div>
     );
   }
@@ -138,7 +134,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   );
 
   return (
-    <div className={size === "lg" ? "md:w-46 md:h-46 lg:w-54 lg:h-54" : "w-16 h-16"}>
+    <div className={size === "lg" ? "w-full aspect-square" : "w-16 h-16"}>
       <div className="w-full h-full relative">
         {canEdit
           ? (
@@ -147,7 +143,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
                 fileName={`userId-${user?.userId}`}
               >
                 <div className={`w-full h-full cursor-pointer ${
-                  size === "lg" ? "md:w-46 md:h-46 lg:w-54 lg:h-54" : "w-16 h-16"
+                  size === "lg" ? "" : "w-16 h-16"
                 }`}
                 >
                   {avatarContent}

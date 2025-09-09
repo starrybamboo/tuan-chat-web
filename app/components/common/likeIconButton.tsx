@@ -92,13 +92,13 @@ export default function LikeIconButton({
     >
       {direction === "row"
         ? (
-            <div className="w-6 h-6 flex items-center justify-center text-red-500">
+            <div className="w-5 h-5 flex items-center justify-center">
               {icon ?? defaultIcon}
             </div>
           )
         : (
             <div className="relative w-10 h-10">
-              <div className="absolute inset-0 text-red-500 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center">
                 {icon ?? defaultIcon}
               </div>
             </div>

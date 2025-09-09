@@ -1,12 +1,14 @@
 import type { FeedStatsResponse, MessageFeedResponse } from "../../../api";
-import { ChatBubble } from "@/components/chat/chatBubble";
+import { RoomContext } from "@/components/chat/roomContext";
+import ForwardMessage from "@/components/chat/smallComponents/forwardMessage";
+import { SpaceContext } from "@/components/chat/spaceContext";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import LikeIconButton from "@/components/common/likeIconButton";
 import ShareIconButton from "@/components/common/shareIconButton";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { EllipsisVertical } from "@/icons";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
 import CollectionIconButton from "../common/collection/collectionIconButton";
 import CommentIconButton from "../common/comment/commentIconButton";
@@ -19,12 +21,13 @@ interface FeedPreviewProps {
 }
 
 export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps) {
-  const { data: messageResponse, isLoading } = useGetMessageByIdQuery(feed?.messageId ?? -1);
+  const { data: messageResponse } = useGetMessageByIdQuery(feed?.messageId ?? -1);
   const [showComments, setShowComments] = useSearchParamsState<boolean>(
     `feedShowCommentsPop${feed?.feedId}`,
     false,
   );
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+  // 简化：此组件上下文中可以保证 message 一定是转发消息，不再需要额外预览弹窗
 
   // 滑动消失
   const [isRemoving, setIsRemoving] = useState(false);
@@ -36,62 +39,90 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
     }, 500); // 与 transition 时间一致
   };
 
+  // 为 ChatBubble 提供最简化的上下文
+  const roomContextValue = useMemo(() => ({
+    roomId: undefined,
+    roomMembers: [],
+    curMember: undefined,
+    roomRolesThatUserOwn: [],
+    curRoleId: undefined,
+    curAvatarId: undefined,
+    useChatBubbleStyle: false,
+    spaceId: undefined,
+    setReplyMessage: undefined,
+    chatHistory: undefined,
+    scrollToGivenMessage: undefined,
+  }), []);
+
+  const spaceContextValue = useMemo(() => ({
+    spaceId: undefined,
+    ruleId: undefined,
+    isSpaceOwner: false,
+    setActiveSpaceId: () => {},
+    setActiveRoomId: () => {},
+    toggleLeftDrawer: () => {},
+  }), []);
+
   return (
-    <div
-      className={`card bg-base-100 border border-base-300 shadow-md mb-4 transition-all duration-500 ${
-        isRemoving ? "opacity-0 -translate-x-full" : "opacity-100 translate-x-0"
-      }`}
+    <article
+      className={`bg-base-100 border border-base-300 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 overflow-hidden ${isRemoving ? "opacity-0 -translate-x-4" : "opacity-100 translate-x-0"}`}
     >
-      <div className="card-body p-4 md:p-6 flex flex-col relative">
-        {/* 头部 - 包含头像和标题 */}
-        <div className="flex items-center gap-3 mb-2">
-          <UserAvatarComponent
-            userId={feed?.userId ?? -1}
-            width={10}
-            isRounded={true}
-            withName={false}
-          />
-          <div className="flex-1">
-            <h2 className="card-title text-base-content text-lg leading-tight">
-              {feed.title || "未命名动态"}
-            </h2>
-            {feed.userId && (
-              <p className="text-sm text-base-content/60">
-                用户ID:
-                {" "}
-                {feed.userId}
-              </p>
+      <div className="p-4 flex flex-col gap-2 relative">
+        {/* 头部 */}
+        <div className="flex items-center gap-2">
+          <UserAvatarComponent userId={feed?.userId ?? -1} width={10} isRounded withName={true} />
+          {/* 更多操作 */}
+          <div className="relative" onMouseEnter={() => setShowMoreOptions(true)} onMouseLeave={() => setShowMoreOptions(false)}>
+            <button className="btn btn-xs btn-ghost btn-circle hover:bg-base-200" type="button">
+              <EllipsisVertical className="w-4 h-4 text-base-content/60" />
+            </button>
+            {showMoreOptions && (
+              <div className="absolute right-0 top-full mt-2 w-32 bg-base-100 border border-base-300 shadow-lg rounded-lg z-50 text-sm overflow-hidden">
+                <DislikeIconButton
+                  className="w-full justify-start px-3 py-2 hover:bg-base-200 transition-colors"
+                  onDislike={handleDislikeClick}
+                />
+              </div>
             )}
           </div>
         </div>
 
-        {/* 聊天消息/图片 */}
-        <div className="flex-1 overflow-y-auto mb-4">
-          {isLoading
-            ? (
-                <div className="text-sm text-base-content/40">加载中...</div>
-              )
-            : (
-                messageResponse && (
-                  <ChatBubble chatMessageResponse={messageResponse} useChatBubbleStyle={true} />
-                )
-              )}
-        </div>
+        {/* 标题单独一行 */}
+        {feed.title && (
+          <h2 className="font-extrabold leading-snug text-base-content/90 text-base line-clamp-2">
+            {feed.title}
+          </h2>
+        )}
 
-        {/* 正文内容 */}
+        {/* 文本描述 */}
         {feed.description && (
-          <p className="text-base-content/80 text-sm mb-4 whitespace-pre-line">
+          <p className="text-sm text-base-content/85 whitespace-pre-line leading-relaxed">
             {feed.description}
           </p>
         )}
 
-        {/* 底部操作栏 */}
-        <div className="flex justify-between items-center mt-auto">
-          <div className="join items-end">
+        {/* 消息内容容器(固定尺寸) */}
+        {messageResponse && (
+          <div className="border border-base-300 rounded-lg bg-base-50 p-2.5 overflow-hidden">
+            <RoomContext value={roomContextValue}>
+              <SpaceContext value={spaceContextValue}>
+                <ForwardMessage messageResponse={messageResponse} />
+              </SpaceContext>
+            </RoomContext>
+          </div>
+        )}
+
+        {/* 右下角操作按钮 */}
+        <div className="flex items-center justify-end mt-1">
+          <div className="flex items-center gap-2">
             <LikeIconButton
               targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "1" }}
-              className="flex items-center justify-center join-item btn btn-sm btn-ghost"
+              className="btn btn-xs btn-ghost text-base-content/60 hover:text-base-content hover:bg-base-200"
               direction="row"
+            />
+            <CollectionIconButton
+              targetInfo={{ resourceId: feed.feedId!, resourceType: "feed" }}
+              className="btn btn-xs btn-ghost text-base-content/60 hover:text-base-content hover:bg-base-200"
             />
             <CommentIconButton
               feedId={feed.feedId!}
@@ -101,58 +132,18 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
             />
             <ShareIconButton searchKey={`feedShowSharePop${feed?.feedId}`} />
           </div>
+        </div>
 
-          {/* 更多操作 */}
-          <div
-            className="relative flex flex-col items-end gap-1"
-            onMouseEnter={() => setShowMoreOptions(true)}
-            onMouseLeave={() => setShowMoreOptions(false)}
-          >
-            <div className="relative">
-              <button className="btn btn-sm btn-ghost rounded-full p-2" type="button">
-                <EllipsisVertical className="w-6 h-6" />
-              </button>
-
-              {/* 小型悬浮菜单 */}
-              {showMoreOptions && (
-                <div className="absolute right-0 top-full mt-1 w-24 bg-base-100 border border-base-300 shadow-md rounded-md z-50">
-                  <CollectionIconButton
-                    targetInfo={{ resourceId: feed.feedId!, resourceType: "feed" }}
-                    className="w-full justify-start px-2 py-2 text-sm cursor-pointer hover:bg-base-200"
-                  />
-                  <DislikeIconButton
-                    className="w-full justify-start px-2 py-2 text-sm cursor-pointer hover:bg-base-200"
-                    onDislike={handleDislikeClick}
-                  />
-                </div>
-              )}
-            </div>
-
-            {(feed.createTime || feed.messageId) && (
-              <div className="text-xs text-base-content/50 space-x-2 flex mt-1">
-                {feed.messageId && (
-                  <span className="text-[10px]">
-                    消息ID:
-                    {" "}
-                    {feed.messageId}
-                  </span>
-                )}
-                {feed.createTime && <span className="text-[10px]">{feed.createTime}</span>}
-              </div>
-            )}
+      </div>
+      {showComments && (
+        <div className="px-4 pb-4 border-t border-base-300/50 bg-base-50">
+          <div className="pt-3">
+            <CommentPanel targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "1" }} className="h-full" />
           </div>
         </div>
-      </div>
-
-      {/* 评论区，在showComments为true时直接展开 */}
-      {showComments && (
-        <div className="p-4 bg-base-200 border-t border-base-300">
-          <CommentPanel
-            targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "1" }}
-            className="h-full"
-          />
-        </div>
       )}
-    </div>
+
+      {/* 已确认场景下始终是转发消息，不渲染额外详情弹窗 */}
+    </article>
   );
 }

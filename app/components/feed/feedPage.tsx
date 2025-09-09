@@ -1,16 +1,15 @@
 import type { FeedPageRequest, MessageFeedWithStatsResponse } from "api";
-
 import FeedPreview from "@/components/feed/feedPreview";
-
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
-
 import { tuanchat } from "api/instance";
 import { useEffect, useMemo, useState } from "react";
 
 export default function FeedPage() {
   const PAGE_SIZE = 10;
   const [feedRef, feedEntry] = useIntersectionObserver();
+  // 顶部哨兵
+  const [topSentinelRef] = useIntersectionObserver();
   const FETCH_ON_REMAIN = 2;
 
   // 不感兴趣的feed
@@ -54,67 +53,33 @@ export default function FeedPage() {
   };
 
   return (
-    <div className="flex justify-center bg-gray-100 dark:bg-gray-900 min-h-screen p-4 sm:p-8">
-      <div className="w-full max-w-2xl">
-        <header className="mb-6 flex justify-between items-center px-4">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
-            Feed
-          </h1>
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              className="btn btn-circle btn-ghost text-2xl text-primary"
-              onClick={() => {}}
-              title="创作"
-            >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className="btn btn-circle btn-ghost text-2xl text-gray-600 dark:text-gray-300"
-              onClick={() => feedInfiniteQuery.refetch()}
-              title="刷新"
-            >
-              <svg
-                className="h-6 w-6"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path d="M17.65 6.35A7.96 7.96 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z" />
-              </svg>
-
-            </button>
-          </div>
+    <div className="min-h-screen bg-base-200/70 dark:bg-base-200">
+      <main className="mx-auto w-full max-w-2xl px-2 sm:px-4 flex flex-col">
+        <div ref={topSentinelRef} aria-hidden="true" className="h-px w-full" />
+        <header className="sticky top-0 z-20 bg-base-200/70 backdrop-blur border-b border-base-300 px-2 sm:px-4 py-3">
+          <h1 className="text-xl font-semibold">社区广场</h1>
         </header>
-
-        {/* 主 feed 流 */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4 py-4">
           {feeds.map((feed, index) => (
             <div
               ref={index === feeds.length - FETCH_ON_REMAIN ? feedRef : null}
               key={feed?.feed?.feedId}
-              className="cursor-pointer"
             >
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-xl transition-all duration-300 hover:scale-[1.01] hover:shadow-2xl">
-                {feed.feed ? <FeedPreview feed={feed.feed} stats={feed.stats!} onDislike={() => feed.feed?.feedId && handleDislike(feed.feed.feedId)} /> : <div>加载失败或数据为空</div>}
-              </div>
+              {feed.feed
+                ? <FeedPreview feed={feed.feed} stats={feed.stats!} onDislike={() => feed.feed?.feedId && handleDislike(feed.feed.feedId)} />
+                : <div className="text-sm opacity-60">加载失败或数据为空</div>}
             </div>
           ))}
           {feedInfiniteQuery.isFetchingNextPage && (
             <div className="text-center py-4">
-              <span className="loading loading-dots loading-lg text-gray-500"></span>
+              <span className="loading loading-dots loading-lg text-primary"></span>
             </div>
           )}
           {!feedInfiniteQuery.hasNextPage && feeds.length > 0 && (
-            <p className="text-center text-gray-500 dark:text-gray-400 py-4">
-              你已经浏览完所有内容啦！
-            </p>
+            <p className="text-center text-base-content/50 py-4 text-sm">你已经浏览完所有内容啦！</p>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

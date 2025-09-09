@@ -37,8 +37,8 @@ export default function CommentIconButton({
       {/* 评论图标 */}
       {direction === "row"
         ? (
-            <div className="w-5 h-6 flex items-center justify-center translate-y-[1px]">
-              <CommentOutline className="w-5 h-6" />
+            <div className="w-5 h-5 flex items-center justify-center">
+              <CommentOutline className="w-5 h-5" />
             </div>
           )
         : (
@@ -50,7 +50,7 @@ export default function CommentIconButton({
           )}
 
       {/* 评论数量 */}
-      <span className="text-xs whitespace-nowrap translate-y-[2.5px]">
+      <span className="text-xs whitespace-nowrap">
         {commentCount ?? 0}
       </span>
     </button>
