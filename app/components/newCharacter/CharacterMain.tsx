@@ -86,7 +86,10 @@ export default function CharacterMain() {
             selectedRoleId={selectedRoleId}
             setSelectedRoleId={setSelectedRoleId}
             setIsEditing={setIsEditing}
-            onSave={handleSave}
+            onEnterCreateEntry={() => {
+              // 进入创建入口（CreateEntry）
+              setMode("role");
+            }}
           />
         </label>
       </div>
