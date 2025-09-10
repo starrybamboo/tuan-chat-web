@@ -1,45 +1,33 @@
-import AIGenerationCard from "../components/AIGenerationCard";
 import AttributeEditor from "../components/AttributeEditor";
 
 interface AttributeStepProps {
   title: string;
   attributes: Record<string, string>;
-  aiPrompt: string;
-  aiPromptPlaceholder: string;
-  isGenerating: boolean;
   showInfoAlert?: boolean;
   onAttributeChange: (key: string, value: string) => void;
-  onAiPromptChange: (prompt: string) => void;
-  onAIGenerate: () => void;
+  onAddField?: (key: string, value: string) => void;
+  onDeleteField?: (key: string) => void;
+  onRenameField?: (oldKey: string, newKey: string) => void;
 }
 
 export default function AttributeStep({
   title,
   attributes,
-  aiPrompt,
-  aiPromptPlaceholder,
-  isGenerating,
   showInfoAlert = false,
   onAttributeChange,
-  onAiPromptChange,
-  onAIGenerate,
+  onAddField,
+  onDeleteField,
+  onRenameField,
 }: AttributeStepProps) {
   return (
     <div className="space-y-6">
-      <AIGenerationCard
-        title={`AI智能生成 ${title}`}
-        description="让AI为你快速生成合理的数值配置"
-        placeholder={aiPromptPlaceholder}
-        prompt={aiPrompt}
-        isGenerating={isGenerating}
-        onPromptChange={onAiPromptChange}
-        onGenerate={onAIGenerate}
-      />
-
       <AttributeEditor
         title={title}
         attributes={attributes}
         onChange={onAttributeChange}
+        onAddField={onAddField}
+        onDeleteField={onDeleteField}
+        onRenameField={onRenameField}
       />
 
       {showInfoAlert && (

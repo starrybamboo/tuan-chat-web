@@ -39,8 +39,9 @@ export default function NavigationButtons({
         : (
             <button
               type="button"
-              className="btn btn-success  rounded-md bg-gradient-to-r from-green-500 to-emerald-500 border-none"
+              className="btn btn-success  rounded-md bg-gradient-to-r from-green-500 to-emerald-500 border-none disabled:opacity-60 disabled:cursor-not-allowed"
               onClick={onComplete}
+              disabled={!canProceed}
             >
               完成创建 ✨
             </button>

@@ -3,8 +3,8 @@ export type CharacterData = {
   name: string;
   description: string;
   avatar: string;
-  // 规则和能力
-  ruleSystem: string;
+  // 规则ID（后端规则主键）
+  ruleId: number;
   act: Record<string, string>;
   basic: Record<string, string>;
   ability: Record<string, string>;

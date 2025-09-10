@@ -34,7 +34,7 @@ export default function AICreateRole({
     name: "",
     description: "",
     avatar: "",
-    ruleSystem: "",
+    ruleId: 0,
     act: {},
     basic: {},
     ability: {},
@@ -63,7 +63,7 @@ export default function AICreateRole({
   const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave || (() => {}));
 
   // 获取规则详情
-  const selectedRuleId = characterData.ruleSystem ? Number.parseInt(characterData.ruleSystem) : 0;
+  const selectedRuleId = characterData.ruleId || 0;
   const isValidRuleId = !Number.isNaN(selectedRuleId) && selectedRuleId > 0;
   const { data: ruleDetailData } = useRuleDetailQuery(selectedRuleId, {
     enabled: isValidRuleId, // 只有当 ruleId 有效时才发送请求
@@ -76,25 +76,25 @@ export default function AICreateRole({
   // 检查是否可以保存
   const canSave = characterData.name.trim()
     && characterData.description.trim()
-    && characterData.ruleSystem;
+    && characterData.ruleId;
 
   // 处理规则系统变更
-  const handleRuleSystemChange = (ruleSystemId: number) => {
-    setCharacterData(prev => ({ ...prev, ruleSystem: ruleSystemId.toString() }));
+  const handleruleIdChange = (currentRuleId: number) => {
+    setCharacterData(prev => ({ ...prev, ruleId: currentRuleId }));
 
     // 重置已加载的规则ID，这样可以触发新规则的数据初始化
     setLoadedRuleId(0);
 
     // 清除错误信息
-    if (errors.ruleSystem) {
-      setErrors(prev => ({ ...prev, ruleSystem: "" }));
+    if (errors.ruleId) {
+      setErrors(prev => ({ ...prev, ruleId: "" }));
     }
   };
 
   // 当规则数据加载完成时，自动填充默认属性
   useEffect(() => {
     // 当规则有效且规则数据加载完成时，并且（首次加载或规则发生了变更）
-    if (isValidRuleId && ruleDetailData && characterData.ruleSystem
+    if (isValidRuleId && ruleDetailData && characterData.ruleId
       && (loadedRuleId === 0 || loadedRuleId !== selectedRuleId)) {
       // 转换 actTemplate 为字符串类型
       const actData: Record<string, string> = {};
@@ -139,7 +139,7 @@ export default function AICreateRole({
       // 记录已加载的规则ID
       setLoadedRuleId(selectedRuleId);
     }
-  }, [isValidRuleId, ruleDetailData, characterData.ruleSystem, loadedRuleId, selectedRuleId]);
+  }, [isValidRuleId, ruleDetailData, characterData.ruleId, loadedRuleId, selectedRuleId]);
 
   // 处理基础信息变更
   const handleBasicInfoChange = (field: string, value: string) => {
@@ -210,7 +210,7 @@ export default function AICreateRole({
 
   // AI生成处理
   const handleAIGenerate = async () => {
-    if (!aiPrompt.trim() || !characterData.ruleSystem || !isValidRuleId) {
+    if (!aiPrompt.trim() || !characterData.ruleId || !isValidRuleId) {
       return;
     }
 
@@ -302,8 +302,8 @@ export default function AICreateRole({
       newErrors.description = "角色描述不能为空";
     }
 
-    if (!characterData.ruleSystem) {
-      newErrors.ruleSystem = "请选择规则系统";
+    if (!characterData.ruleId) {
+      newErrors.ruleId = "请选择规则系统";
     }
 
     setErrors(newErrors);
@@ -340,7 +340,7 @@ export default function AICreateRole({
       }
 
       // 3. 设置角色能力数据
-      if (characterData.ruleSystem && isValidRuleId) {
+      if (characterData.ruleId && isValidRuleId) {
         const ruleId = selectedRuleId; // 使用已验证的 ruleId
 
         setRoleAbility({
@@ -430,10 +430,10 @@ export default function AICreateRole({
                 <h3 className="card-title text-lg mb-4">⚙️ 规则系统</h3>
                 <RulesSection
                   currentRuleId={selectedRuleId}
-                  onRuleChange={handleRuleSystemChange}
+                  onRuleChange={handleruleIdChange}
                 />
-                {errors.ruleSystem && (
-                  <div className="text-error text-sm mt-2">{errors.ruleSystem}</div>
+                {errors.ruleId && (
+                  <div className="text-error text-sm mt-2">{errors.ruleId}</div>
                 )}
               </div>
             </div>
@@ -520,7 +520,7 @@ export default function AICreateRole({
         </div>
 
         {/* 角色属性 - 只有在选择规则系统后才显示 */}
-        {characterData.ruleSystem && (
+        {characterData.ruleId && (
           <>
             <div className="divider"></div>
             <div className="space-y-6">
@@ -581,7 +581,7 @@ export default function AICreateRole({
                   name: "",
                   description: "",
                   avatar: "",
-                  ruleSystem: "",
+                  ruleId: 0,
                   act: {},
                   basic: {},
                   ability: {},

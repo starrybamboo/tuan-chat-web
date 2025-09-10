@@ -108,7 +108,19 @@ export default function CharacterMain() {
               }}
             />
           )}
-          {mode === "self" && <CreateRoleBySelf onBack={() => setMode("role")} />}
+          {mode === "self" && (
+            <CreateRoleBySelf
+              onBack={() => setMode("role")}
+              setRoles={setRoles}
+              setSelectedRoleId={setSelectedRoleId}
+              onSave={handleSave}
+              onComplete={(role) => {
+                // 创建完成后切回角色模式并选中新建角色
+                setMode("role");
+                setSelectedRoleId(role.id);
+              }}
+            />
+          )}
           {mode === "AI" && (
             <AICreateRole
               setRoles={setRoles}
