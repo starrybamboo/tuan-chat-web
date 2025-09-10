@@ -243,6 +243,7 @@ export default function ModuleHome() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
   const itemsPerPage = 12; // 每页显示12个模组
 
   // 当前活跃的背景图片状态
@@ -264,8 +265,9 @@ export default function ModuleHome() {
   // 计算分页数据 - 使用 API 数据
   const moduleData = ModuleList.data?.data;
   // console.log("ModuleList data:", moduleData);
-  const totalPages = moduleData?.totalRecords ? Math.ceil(moduleData.totalRecords / itemsPerPage) : 1;
-  const currentItems = useMemo(() => {
+
+  // 先转换数据格式
+  const allItems = useMemo(() => {
     if (!moduleData?.list) {
       return [];
     }
@@ -274,7 +276,7 @@ export default function ModuleHome() {
       .filter((module: any) => module.moduleId && module.moduleId !== null && module.moduleId !== "null") // 过滤掉没有moduleId的数据
       .map((module: any) => ({
         id: `module-${module.moduleId}`,
-        rule: RuleList.data?.find(rule => rule.id === module.ruleId)?.name || "",
+        rule: RuleList.data?.find(rule => rule.ruleId === module.ruleId)?.ruleName ?? "",
         title: module.moduleName,
         image: (module.image && module.image !== null && module.image !== "null") ? module.image : 教室图片, // 更严格的空值检查
         content: module.description,
@@ -290,9 +292,31 @@ export default function ModuleHome() {
         minTime: module.minTime,
         maxTime: module.maxTime,
         parent: module.parent, // 从哪个模组fork来
-        instruction: module.instruction, // 指令字段
+        instruction: module.instruction, // md字段
       }));
   }, [moduleData, RuleList]);
+
+  // 前端搜索过滤
+  const filteredItems = useMemo(() => {
+    if (!searchKeyword.trim()) {
+      return allItems;
+    }
+
+    const keyword = searchKeyword.toLowerCase().trim();
+    return allItems.filter(item =>
+      item.title?.toLowerCase().includes(keyword)
+      || item.content?.toLowerCase().includes(keyword)
+      || item.authorName?.toLowerCase().includes(keyword)
+      || item.rule?.toLowerCase().includes(keyword),
+    );
+  }, [allItems, searchKeyword]);
+
+  // 重新计算分页（基于搜索结果）
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const currentItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredItems.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredItems, currentPage, itemsPerPage]);
 
   const [imagesReady, setImagesReady] = useState(false);
 
@@ -310,7 +334,7 @@ export default function ModuleHome() {
             };
           }),
       ),
-    ).then(() => {});
+    ).then(() => { });
   }
 
   useEffect(() => {
@@ -332,6 +356,12 @@ export default function ModuleHome() {
     if (element) {
       element.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+  };
+
+  // 处理搜索
+  const handleSearch = (value: string) => {
+    setSearchKeyword(value);
+    setCurrentPage(1); // 搜索时重置到第一页
   };
 
   return (
@@ -411,9 +441,8 @@ export default function ModuleHome() {
                     type="text"
                     className="input input-sm w-full pl-10 bg-base-200 border-2 border-base-300 focus:border-primary focus:bg-base-100 transition-colors"
                     placeholder="搜索模组..."
-                    value=""
-                    onChange={() => {}}
-                    // TODO: 绑定搜索状态和事件
+                    value={searchKeyword}
+                    onChange={e => handleSearch(e.target.value)}
                   />
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/60 pointer-events-none">
                     <svg className="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -459,15 +488,16 @@ export default function ModuleHome() {
                 <div className="flex flex-wrap gap-3">
                   {RuleList.data?.map(rule => (
                     <button
-                      key={rule.id}
+                      key={rule.ruleId}
                       type="button"
-                      className={`px-3 py-1 rounded-full text-xs md:text-sm font-semibold border transition-all duration-200 focus:outline-none cursor-pointer ${selectedRuleId === rule.id ? "bg-accent text-white" : "bg-accent/10"}`}
+                      className={`px-3 py-1 rounded-full text-xs md:text-sm font-semibold border transition-all duration-200 focus:outline-none cursor-pointer ${selectedRuleId === (rule.ruleId ?? null) ? "bg-accent text-white" : "bg-accent/10"}`}
                       onClick={() => {
-                        setSelectedRuleId(selectedRuleId === rule.id ? null : rule.id);
+                        setSelectedRuleId(selectedRuleId === rule.ruleId ? null : rule.ruleId ?? null);
                         setCurrentPage(1);
+                        setSearchKeyword(""); // 切换规则时清空搜索
                       }}
                     >
-                      {rule.name}
+                      {rule.ruleName ?? "未命名规则"}
                     </button>
                   ))}
                 </div>
@@ -561,7 +591,7 @@ export default function ModuleHome() {
                             minTime: card.minTime, // 模组可能需要花费时间
                             maxTime: card.maxTime,
                             parent: card.parent, // 从哪个模组fork来
-                            instruction: card.instruction, // 指令字段
+                            instruction: card.instruction, // md字段
                           },
                         },
                       });

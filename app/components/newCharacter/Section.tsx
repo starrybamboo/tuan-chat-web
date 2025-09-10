@@ -5,14 +5,16 @@ export default function Section({
   title,
   children,
   className = "",
+  defaultOpen = true,
 }: {
   title: string;
   children: React.ReactNode;
   className?: string;
+  defaultOpen?: boolean;
 }) {
   return (
     <div className={`collapse collapse-arrow border border-base-300 ${className}`}>
-      <input type="checkbox" defaultChecked />
+      <input type="checkbox" defaultChecked={defaultOpen} />
       <div className="collapse-title text-xl font-medium">
         {title}
       </div>

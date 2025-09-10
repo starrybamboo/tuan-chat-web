@@ -50,7 +50,7 @@ export const UserModulesList: React.FC<UserModulesListProps> = ({
       .filter((module: any) => module.moduleId && true && module.moduleId !== "null")
       .map((module: any) => ({
         id: `user-module-${module.moduleId}`,
-        rule: ruleListQuery.data?.find(rule => rule.id === module.ruleId)?.name || "",
+        rule: ruleListQuery.data?.find(rule => rule.ruleId === module.ruleId)?.ruleName ?? "",
         title: module.moduleName,
         image: (module.image && true && module.image !== "null") ? module.image : 教室图片,
         content: module.description,

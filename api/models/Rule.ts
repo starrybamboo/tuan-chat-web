@@ -10,6 +10,8 @@ export type Rule = {
     ruleName?: string;
     ruleDescription?: string;
     actTemplate?: Record<string, string>;
-    abilityDefault?: Record<string, Record<string, any>>;
+    abilityFormula?: Record<string, string>;
+    skillDefault?: Record<string, string>;
+    basicDefault?: Record<string, string>;
 };
 

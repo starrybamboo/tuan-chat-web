@@ -351,7 +351,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
           <div className="tab-content">
             <div className="fieldset bg-base-100 border-base-300 rounded-box border p-4 mb-4">
               {/* 使用 MarkDownViewer 显示用户内容 */}
-              <MarkDownViewer content={userContent} />
+              <MarkDownViewer content={moduleData.instruction || userContent} />
             </div>
           </div>
           <label className="tab">

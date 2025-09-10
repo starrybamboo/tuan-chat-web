@@ -167,7 +167,7 @@ export default function CharacterAvatar({
 
   return (
     <div className="w-2xs flex justify-center">
-      <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
+      <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] md:w-48" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
         <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
           <img

@@ -14,8 +14,16 @@ export type RoleAbility = {
      */
     act?: Record<string, string>;
     /**
+     * 基础属性字段
+     */
+    basic?: Record<string, string>;
+    /**
      * 能力字段，不能为空或null，必须为单层
      */
-    ability?: Record<string, number>;
+    ability?: Record<string, string>;
+    /**
+     * 技能字段
+     */
+    skill?: Record<string, string>;
 };
 

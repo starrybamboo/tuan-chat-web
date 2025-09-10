@@ -183,7 +183,7 @@ export default function CreateRole({
     if (isSuccess) {
       loadRoles();
     }
-  }, [isSuccess, loadRoles]);
+  }, [isSuccess]);
 
   // 重置状态的函数
   const resetState = useCallback(() => {

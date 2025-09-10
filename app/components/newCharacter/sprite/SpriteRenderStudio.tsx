@@ -328,8 +328,8 @@ export function SpriteRenderStudio({
         )}
 
         {/* 数据加载中的提示 */}
-        {initialAvatarId && !currentSprite && spritesAvatars.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center bg-base-200/50 z-10">
+        {!!initialAvatarId && !currentSprite && spritesAvatars.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center bg-base-200 z-10">
             <div className="flex flex-col items-center gap-2">
               <span className="loading loading-spinner loading-md"></span>
               <span className="text-sm text-base-content/70">加载立绘数据中...</span>
@@ -339,7 +339,7 @@ export function SpriteRenderStudio({
 
         {/* 图片切换加载指示器 */}
         {isImageLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-base-200/30 z-15">
+          <div className="absolute inset-0 flex items-center justify-center bg-base-200 z-15">
             <div className="flex flex-col items-center gap-2">
               <span className="loading loading-spinner loading-sm"></span>
               <span className="text-xs text-base-content/70">切换立绘中...</span>
