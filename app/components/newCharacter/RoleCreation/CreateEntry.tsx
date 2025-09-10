@@ -7,7 +7,7 @@ export default function CreateEntry({ AICreate, ExcelImport, createBySelf }: { A
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mx-auto max-w-3xl">
         {/* AI卡 */}
-        <div className="bg-base-100 rounded-xl p-6 shadow-sm border border-base-200 hover:shadow-lg transition-all duration-200 cursor-pointer h-100 transform hover:scale-105" onClick={AICreate}>
+        <div className="bg-base-100 rounded-xl p-6 shadow-sm border border-base-200 hover:shadow-lg transition-all duration-200 cursor-pointer transform hover:scale-105" onClick={AICreate}>
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-8 h-8 text-white">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />

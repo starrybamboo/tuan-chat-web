@@ -52,7 +52,7 @@ export function RoleAbilityDetail({ roleId }: { roleId: number }) {
       const updateData = (type === "ability")
         ? {
             abilityId,
-            ability: { [key]: Number(updateValue) },
+            ability: { [key]: updateValue },
           }
         : {
             abilityId,
