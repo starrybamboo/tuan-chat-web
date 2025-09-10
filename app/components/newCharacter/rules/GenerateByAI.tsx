@@ -1,7 +1,6 @@
 import type { Rule } from "api/models/Rule";
 import { useGenerateAbilityByRuleMutation, useGenerateBasicInfoByRuleMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
-import { deepOverrideTargetWithSource, flattenConstraints, wrapIntoNested } from "./ObjectExpansion";
 
 interface GenerateByAIProps {
   ruleId: number;
@@ -31,18 +30,10 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
     const handleSuccess = (data: any, isBasic: number) => {
       setDescription("");
 
-      // 用来合并
-      const mergedAbilityDefault: Record<string, Record<string, any>> = {};
-      for (const key in localRuleData?.abilityDefault) {
-        const ignoreKeys = ["0"];
-        if (ignoreKeys.includes(key)) {
-          mergedAbilityDefault[key] = localRuleData?.abilityDefault[key];
-          continue;
-        }
-
-        const base = localRuleData?.abilityDefault[key];
-        const wrappedOverride = wrapIntoNested([key], data.data);
-        mergedAbilityDefault[key] = deepOverrideTargetWithSource(base, wrappedOverride[key]);
+      // 新接口返回单层结构，直接合并
+      const mergedBasicDefault = {
+        ...localRuleData?.basicDefault,
+        ...(isBasic === 2 ? data.data : {}),
       };
 
       // 用于上传
@@ -56,27 +47,21 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
               return acc;
             }, {} as Record<string, string>)
           : localRuleData?.actTemplate ?? {},
-        abilityDefault: isBasic === 2 ? mergedAbilityDefault ?? localRuleData?.abilityDefault ?? {} : localRuleData?.abilityDefault ?? data.data ?? {},
+        basicDefault: isBasic === 2 ? mergedBasicDefault : localRuleData?.basicDefault ?? data.data ?? {},
       };
       onLocalRuleDataChange(newRuleData);
-      // 确保 ability 字段的值都是数字类型
-      const flattenedConstraints = flattenConstraints(newRuleData?.abilityDefault || {});
+      // 确保 ability 字段的值都是数字类型，新接口返回单层结构
+      const basicDefault = newRuleData?.basicDefault || {};
       const numericAbility: Record<string, number> = {};
-      Object.entries(flattenedConstraints).forEach(([key, value]) => {
-        if (typeof value === "object" && value !== null && "displayValue" in value) {
-          // 处理公式值对象
-          numericAbility[key] = Number(value.displayValue) || 0;
-        }
-        else {
-          // 处理普通数值
-          numericAbility[key] = Number(value) || 0;
-        }
+      Object.entries(basicDefault).forEach(([key, value]) => {
+        // 新接口直接返回字符串格式的数值
+        numericAbility[key] = Number(value) || 0;
       });
 
       updateFiledAbility({
         abilityId: id,
         act: newRuleData?.actTemplate || {},
-        ability: numericAbility,
+        basic: newRuleData?.basicDefault || {},
       });
     };
 

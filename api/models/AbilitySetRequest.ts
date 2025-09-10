@@ -19,8 +19,16 @@ export type AbilitySetRequest = {
      */
     act: Record<string, string>;
     /**
-     * 能力字段，不能为null
+     * 基础属性字段
      */
-    ability: Record<string, number>;
+    basic?: Record<string, string>;
+    /**
+     * 能力字段
+     */
+    ability?: Record<string, string>;
+    /**
+     * 技能字段
+     */
+    skill?: Record<string, string>;
 };
 

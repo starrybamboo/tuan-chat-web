@@ -6,9 +6,9 @@ export type CharacterData = {
   // 规则和能力
   ruleSystem: string;
   act: Record<string, number | string>;
-  basic: Record<string, number>;
-  ability: Record<string, number>;
-  skill: Record<string, number>;
+  basic: Record<string, string>;
+  ability: Record<string, string>;
+  skill: Record<string, string>;
 };
 
 export type RuleSystem = {

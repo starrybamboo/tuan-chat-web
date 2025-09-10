@@ -56,7 +56,7 @@ export function RoleListItem({ role, isSelected, onSelect, onDelete, isSelection
         : (
             <button
               type="button"
-              className="btn btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-gray-800 hover:text-white rounded-full p-1"
+              className="btn btn-ghost btn-xs text-error hover:bg-error/10 md:opacity-0 md:group-hover:opacity-100 opacity-70 rounded-full p-1"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete();

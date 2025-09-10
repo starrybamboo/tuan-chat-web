@@ -149,7 +149,7 @@ export default function PerformanceEditor({
                       />
                       <button
                         type="button"
-                        className="absolute -top-6 -right-3 btn btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-gray-800 hover:text-white rounded-full p-1"
+                        className="absolute -top-6 -right-3 btn btn-ghost btn-xs text-error hover:bg-error/10 md:opacity-0 md:group-hover:opacity-100 opacity-70 rounded-full p-1"
                         onClick={() => handleDeleteField(key)}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
@@ -182,13 +182,15 @@ export default function PerformanceEditor({
       {isEditing && (
         <fieldset className="border border-base-300 rounded-lg p-4 mt-4">
           <legend className="px-2 font-bold">添加新字段</legend>
-          <input
-            type="text"
-            placeholder="字段名称"
-            className="input input-bordered input-sm w-1/4 mt-2"
-            value={newKey}
-            onChange={e => setNewKey(e.target.value)}
-          />
+          <label className="input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none mt-2">
+            <input
+              type="text"
+              placeholder="字段名称"
+              className="text-sm font-medium bg-transparent border-none focus:outline-none outline-none w-24 flex-shrink-0"
+              value={newKey}
+              onChange={e => setNewKey(e.target.value)}
+            />
+          </label>
           <div className="relative w-full">
             <textarea
               placeholder="值"

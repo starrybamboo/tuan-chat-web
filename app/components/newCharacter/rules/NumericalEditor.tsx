@@ -1,158 +1,72 @@
-import { useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
-import { useEffect, useMemo, useState } from "react";
-import { FormulaParser } from "./FormulaParser";
-import { flattenConstraints } from "./ObjectExpansion";
+import { useUpdateKeyFieldMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
+import { useState } from "react";
 
-// 定义公式值的类型
-interface FormulaValue {
-  formula: string;
-  displayValue: number;
-}
+// Type for numerical data - flat structure
+type NumericalData = Record<string, string | number>;
 
-// Type for numerical constraints that supports formulas
-type NumericalConstraints = Record<string, Record<string, string | number | FormulaValue>>;
+// 字段类型枚举
+type FieldType = "basic" | "ability" | "skill";
 
 interface NumericalEditorProps {
-  constraints: NumericalConstraints;
-  onChange: (constraints: NumericalConstraints) => void;
+  data: NumericalData;
+  onChange: (data: NumericalData) => void;
   abilityId: number;
+  title?: string;
+  fieldType: FieldType; // 新增：指定要更新的字段类型
 }
 
 /**
  * 数值编辑器组件
- * 负责管理角色数值相关的字段，支持公式计算和约束组
- * 以两列布局展示数值字段，提供添加、编辑和删除功能
+ * 用于渲染和编辑数值数据的通用组件
  */
 export default function NumericalEditor({
-  constraints,
+  data,
   onChange,
   abilityId,
+  title = "数值数据",
+  fieldType,
 }: NumericalEditorProps) {
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
+  const { mutate: updateKeyField } = useUpdateKeyFieldMutation();
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [localConstraints, setLocalConstraints] = useState(constraints);
-
-  // 负数与非法输入修正（包括小数的情况）
-  const correctValues = (constraints: NumericalConstraints): NumericalConstraints => {
-    const corrected = { ...constraints };
-    Object.keys(corrected).forEach((totalKey) => {
-      const fields = corrected[totalKey];
-      Object.keys(fields).forEach((fieldKey) => {
-        const value = fields[fieldKey];
-        if (typeof value === "object" && "formula" in value) {
-          return; // 跳过公式值
-        }
-        const num = Number(value);
-        // 只允许整数，不允许小数
-        if (Number.isNaN(num) || num < 0 || !Number.isInteger(num)) {
-          fields[fieldKey] = 0;
-        }
-      });
-    });
-    return corrected;
-  };
-
-  // 当外部 constraints 改变时更新本地状态
-  useEffect(() => {
-    setLocalConstraints(constraints);
-  }, [constraints]);
-
-  // 将 constraints 转换为数组格式用于渲染
-  const constraintGroups = useMemo(() => {
-    return Object.entries(localConstraints).map(([totalKey, fields]) => ({
-      totalKey,
-      fields,
-    }));
-  }, [localConstraints]);
-
-  // 获取所有上下文数据
-  const getAllContext = (constraints: NumericalConstraints): Record<string, number> => {
-    const context: Record<string, number> = {};
-
-    // 处理静态字段（非0的约束组）
-    const staticFields = Object.entries(constraints)
-      .filter(([key]) => key !== "0")
-      .reduce((acc, [_, fields]) => ({ ...acc, ...fields }), {});
-
-    // 添加静态字段到上下文
-    Object.entries(staticFields).forEach(([key, value]) => {
-      if (typeof value === "string" && value.startsWith("=")) {
-        return;
-      }
-      if (typeof value === "object" && value !== null && "displayValue" in value) {
-        const formulaValue = value as FormulaValue;
-        context[key] = formulaValue.displayValue;
-        return;
-      }
-      const num = Number(value);
-      context[key] = Number.isNaN(num) ? 0 : num;
-    });
-
-    return context;
-  };
-
-  // 计算所有公式的值
-  const calculateFormulas = (constraints: NumericalConstraints, context: Record<string, number>) => {
-    const updatedConstraints = { ...constraints };
-    Object.keys(updatedConstraints).forEach((totalKey) => {
-      const fields = updatedConstraints[totalKey];
-      Object.keys(fields).forEach((fieldKey) => {
-        const value = fields[fieldKey];
-        if (typeof value === "string" && value.startsWith("=")) {
-          const evaluatedValue = FormulaParser.evaluate(value, context);
-          fields[fieldKey] = {
-            formula: value,
-            displayValue: evaluatedValue,
-          };
-        }
-      });
-    });
-    return updatedConstraints;
-  };
-
-  // 实时计算约束值
-  const calculatedConstraints = useMemo(() => {
-    const allContext = getAllContext(localConstraints);
-    return calculateFormulas(localConstraints, allContext);
-  }, [localConstraints]);
+  const [localData, setLocalData] = useState(data);
+  const [newFieldKey, setNewFieldKey] = useState("");
+  const [newFieldValue, setNewFieldValue] = useState("");
+  const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
+  const [tempFieldKey, setTempFieldKey] = useState("");
 
   // 处理字段值更新
   const handleExitEditing = () => {
     setIsTransitioning(true);
-    // 获取扁平化的约束数据
-    const flattenedConstraints = flattenConstraints(localConstraints);
-
-    // 计算所有公式并更新值
-    const allContext = getAllContext(localConstraints);
-    const updatedConstraints = calculateFormulas(localConstraints, allContext);
-
-    // 修正负数和非法输入
-    const correctedConstraints = correctValues(updatedConstraints);
 
     // 更新前端状态
-    setLocalConstraints(correctedConstraints);
-    onChange(correctedConstraints);
+    onChange(localData);
 
-    // 更新后端数据
-    // 确保 ability 字段的值都是数字类型
-    const numericAbility: Record<string, number> = {};
-    Object.entries(flattenedConstraints).forEach(([key, value]) => {
-      if (typeof value === "object" && value !== null && "displayValue" in value) {
-        // 处理公式值对象
-        numericAbility[key] = Number(value.displayValue) || 0;
-      }
-      else {
-        // 处理普通数值
-        numericAbility[key] = Number(value) || 0;
-      }
+    // 更新后端数据 - 将所有值转换为字符串类型
+    const stringData: Record<string, string> = {};
+    Object.entries(localData).forEach(([key, value]) => {
+      stringData[key] = String(value);
     });
 
-    const updatedAbility = {
+    // 根据字段类型构建更新对象
+    const updatedAbility: any = {
       abilityId,
-      act: {}, // 数值编辑器不修改表演字段，传空对象
-      ability: numericAbility,
     };
+
+    // 根据fieldType设置对应的字段
+    switch (fieldType) {
+      case "basic":
+        updatedAbility.basic = stringData;
+        break;
+      case "ability":
+        updatedAbility.ability = stringData;
+        break;
+      case "skill":
+        updatedAbility.skill = stringData;
+        break;
+    }
+
     updateFiledAbility(updatedAbility, {
       onSuccess: () => {
         setTimeout(() => {
@@ -167,33 +81,115 @@ export default function NumericalEditor({
   };
 
   // 处理字段值更新
-  const handleFieldUpdate = (totalKey: string, fieldKey: string, newValue: string) => {
-    const fields = localConstraints[totalKey];
-    const currentValue = fields[fieldKey];
+  const handleFieldUpdate = (fieldKey: string, newValue: string) => {
+    const updatedData = {
+      ...localData,
+      [fieldKey]: newValue,
+    };
+    setLocalData(updatedData);
+  };
 
-    // 如果是公式字段，不允许修改
-    if (typeof currentValue === "object" && "formula" in currentValue) {
-      return;
+  // 添加新字段
+  const handleAddField = () => {
+    if (!newFieldKey.trim() || newFieldKey in localData) {
+      return; // 字段名不能为空或重复
     }
 
-    // 非公式字段直接更新
-    const updatedConstraints = {
-      ...localConstraints,
-      [totalKey]: {
-        ...fields,
-        [fieldKey]: newValue,
-      },
+    const updatedData = {
+      ...localData,
+      [newFieldKey]: newFieldValue,
+    };
+    setLocalData(updatedData);
+
+    // 使用 API 更新字段 (根据 AbilityFieldUpdateRequest 定义)
+    const fieldUpdateRequest = {
+      abilityId,
+      // 根据字段类型使用对应的字段
+      ...(fieldType === "basic" && { basicFields: { [newFieldKey]: newFieldValue } }),
+      ...(fieldType === "ability" && { abilityFields: { [newFieldKey]: newFieldValue } }),
+      ...(fieldType === "skill" && { skillFields: { [newFieldKey]: newFieldValue } }),
     };
 
-    setLocalConstraints(updatedConstraints);
+    updateKeyField(fieldUpdateRequest, {
+      onSuccess: () => {
+        onChange(updatedData);
+        setNewFieldKey("");
+        setNewFieldValue("");
+      },
+    });
+  };
+
+  // 删除字段
+  const handleDeleteField = (fieldKey: string) => {
+    const updatedData = { ...localData };
+    delete updatedData[fieldKey];
+    setLocalData(updatedData);
+
+    // 使用 API 删除字段（传 null 表示删除）
+    const fieldUpdateRequest = {
+      abilityId,
+      // 根据字段类型使用对应的字段
+      ...(fieldType === "basic" && { basicFields: { [fieldKey]: null as any } }),
+      ...(fieldType === "ability" && { abilityFields: { [fieldKey]: null as any } }),
+      ...(fieldType === "skill" && { skillFields: { [fieldKey]: null as any } }),
+    };
+
+    updateKeyField(fieldUpdateRequest, {
+      onSuccess: () => {
+        onChange(updatedData);
+      },
+    });
+  };
+
+  // 修改字段名
+  const handleRenameField = (oldKey: string, newKey: string) => {
+    if (!newKey.trim() || newKey === oldKey || newKey in localData) {
+      return; // 新字段名不能为空、相同或重复
+    }
+
+    const value = localData[oldKey];
+    const updatedData = { ...localData };
+    delete updatedData[oldKey];
+    updatedData[newKey] = value;
+    setLocalData(updatedData);
+
+    // 删除旧字段，添加新字段
+    const fieldUpdateRequest = {
+      abilityId,
+      // 根据字段类型使用对应的字段
+      ...(fieldType === "basic" && {
+        basicFields: {
+          [oldKey]: null as any, // 删除旧字段，类型断言因为API支持null
+          [newKey]: String(value), // 添加新字段
+        },
+      }),
+      ...(fieldType === "ability" && {
+        abilityFields: {
+          [oldKey]: null as any,
+          [newKey]: String(value),
+        },
+      }),
+      ...(fieldType === "skill" && {
+        skillFields: {
+          [oldKey]: null as any,
+          [newKey]: String(value),
+        },
+      }),
+    };
+
+    updateKeyField(fieldUpdateRequest, {
+      onSuccess: () => {
+        onChange(updatedData);
+      },
+    });
   };
   return (
-    <div className={`space-y-6 bg-base-200 rounded-lg p-4 duration-300 transition-opacity ${isTransitioning ? "opacity-50" : ""
-    } ${isEditing ? "ring-2 ring-primary" : ""
-    }`}
+    <div className={`space-y-6 bg-base-200 rounded-lg p-4 duration-300 transition-opacity ${
+      isTransitioning ? "opacity-50" : ""
+    } ${isEditing ? "ring-2 ring-primary" : ""}`}
     >
       <div className="flex justify-between items-center mb-4">
-        <h3 className="font-bold">数值约束</h3>
+        <h3 className="font-bold">{title}</h3>
         <button
           type="button"
           onClick={isEditing ? handleExitEditing : () => setIsEditing(true)}
@@ -227,133 +223,121 @@ export default function NumericalEditor({
         </button>
       </div>
 
-      {constraintGroups.map(({ totalKey, fields }) => {
-        if (!totalKey)
-          return null;
-
-        const entries = Object.entries(fields);
-
-        const totalPoints = Number(totalKey);
-        const currentSum = Object.values(fields).reduce((sum: number, value) => {
-          if (typeof value === "object" && "displayValue" in value) {
-            return sum + (Number.isNaN(value.displayValue) ? 0 : value.displayValue);
-          }
-          const parsed = typeof value === "string" ? FormulaParser.parse(value) : Number(value);
-          const numericValue = Number(parsed);
-          return Number.isNaN(numericValue) ? sum : sum + numericValue;
-        }, 0);
-
-        const remainPoints = totalPoints - (Number(currentSum) || 0);
-
-        return (
-          <div
-            key={totalKey}
-            className={`bg-base-200 p-1 md:p-4 rounded-lg ${isEditing ? "bg-base-100" : ""
-            }`}
-          >
-            <div className="flex items-center mb-4">
-              <h3 className="font-bold">
-                {totalKey === "0" ? "动态约束组" : `总点数: ${totalPoints}`}
-              </h3>
-              <span
-                className={`font-semibold ${remainPoints < 0 ? "text-error font-bold pl-8" : "text-success pl-8"
-                }`}
-              >
-                {totalKey !== "0"
-                  ? remainPoints >= 0
-                    ? `剩余点数: ${remainPoints}`
-                    : `超出点数: ${-remainPoints}`
-                  : null}
-              </span>
-            </div>
-
-            {/* 根据类型选择不同布局 */}
-            <div className={
-              totalKey === "0"
-                ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-6"
-                : isEditing
-                  ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
-                  : "grid grid-cols-2 md:flex md:flex-wrap gap-2 md:gap-6"
-            }
-            >
-              {entries.map(([key]) => {
-                const calculatedValue = calculatedConstraints[totalKey][key];
-                if (totalKey === "0") {
-                  return (
-                    <div key={key} className="flex flex-col gap-1 mb-2">
-                      <div className="card bg-base-100 shadow-sm p-2 h-full">
-                        <div className="text-sm font-medium mb-1">{key}</div>
-                        <div className="text-base-content mt-0.5">
-                          {typeof calculatedValue === "object" && "displayValue" in calculatedValue
-                            ? calculatedValue.displayValue.toString()
-                            : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
-                        </div>
-                        {typeof calculatedValue === "object" && "formula" in calculatedValue && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            {calculatedValue.formula}
-                          </div>
-                        )}
-                      </div>
+      <div className="bg-base-200 p-4 rounded-lg">
+        <div className={
+          isEditing
+            ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"
+            : "grid grid-cols-2 md:flex md:flex-wrap gap-2 md:gap-6"
+        }
+        >
+          {Object.entries(localData).map(([key, value]) => (
+            <div key={key} className={isEditing ? "form-control" : "flex flex-col gap-1 flex-shrink-0"}>
+              {isEditing
+                ? (
+                    <div className="form-control">
+                      <label className="input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none">
+                        {/* 字段名编辑 */}
+                        {editingFieldKey === key
+                          ? (
+                              <input
+                                type="text"
+                                value={tempFieldKey}
+                                onChange={e => setTempFieldKey(e.target.value)}
+                                onBlur={() => {
+                                  if (tempFieldKey.trim() && tempFieldKey !== key) {
+                                    handleRenameField(key, tempFieldKey);
+                                  }
+                                  setEditingFieldKey(null);
+                                }}
+                                onKeyPress={(e) => {
+                                  if (e.key === "Enter") {
+                                    if (tempFieldKey.trim() && tempFieldKey !== key) {
+                                      handleRenameField(key, tempFieldKey);
+                                    }
+                                    setEditingFieldKey(null);
+                                  }
+                                }}
+                                className="text-sm font-medium whitespace-nowrap bg-transparent border-none focus:outline-none outline-none flex-shrink-0"
+                                autoFocus
+                              />
+                            )
+                          : (
+                              <span
+                                className="text-sm font-medium whitespace-nowrap cursor-pointer hover:text-primary flex-shrink-0 text-left"
+                                onClick={() => {
+                                  setEditingFieldKey(key);
+                                  setTempFieldKey(key);
+                                }}
+                                title="点击编辑字段名"
+                              >
+                                {key}
+                              </span>
+                            )}
+                        <div className="w-px h-4 bg-base-content/20"></div>
+                        {/* 字段值编辑 */}
+                        <input
+                          type="text"
+                          value={String(value)}
+                          onChange={e => handleFieldUpdate(key, e.target.value)}
+                          className="grow focus:outline-none border-none outline-none"
+                        />
+                        {/* 删除按钮 */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteField(key)}
+                          className="btn btn-ghost btn-xs text-error hover:bg-error/10"
+                          title="删除字段"
+                        >
+                          ✕
+                        </button>
+                      </label>
                     </div>
-                  );
-                }
-                else {
-                  return (
-                    <div key={key} className={isEditing ? "form-control" : "flex flex-col gap-1 flex-shrink-0"}>
-                      {isEditing
-                        ? (
-                            <div className="form-control">
-                              <label className="input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary">
-                                <span className="text-sm font-medium whitespace-nowrap">{key}</span>
-                                <div className="w-px h-4 bg-base-content/20"></div>
-                                <input
-                                  type="text"
-                                  value={typeof calculatedValue === "object" && "displayValue" in calculatedValue
-                                    ? calculatedValue.displayValue.toString()
-                                    : typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString()}
-                                  className="grow focus:outline-none"
-                                  disabled={!isEditing}
-                                  onChange={e => handleFieldUpdate(totalKey, key, e.target.value)}
-                                />
-                              </label>
-                            </div>
-                          )
-                        : (
-                            <>
-                              {(() => {
-                                const hasFormula = typeof calculatedValue === "object" && "formula" in calculatedValue;
-                                const displayText = hasFormula
-                                  ? (calculatedValue as any).displayValue?.toString()
-                                  : (typeof calculatedValue === "string" ? calculatedValue : calculatedValue.toString());
-                                return (
-                                  <>
-                                    <div
-                                      className={`flex items-center justify-between p-2 md:p-3 rounded-lg border bg-base-100/50 whitespace-nowrap ${hasFormula ? "border-primary/30" : "border-base-content/10"
-                                      }`}
-                                    >
-                                      <span className="font-medium text-sm md:text-base flex-shrink-0 md:mr-8">{key}</span>
-                                      <span className={`badge text-sm md:text-base flex-shrink-0 ${hasFormula ? "badge-primary" : "badge-ghost"}`}>
-                                        {displayText}
-                                      </span>
-                                    </div>
-                                    {hasFormula && (
-                                      <div className="text-xs text-base-content/60 mt-1">
-                                        {(calculatedValue as any).formula}
-                                      </div>
-                                    )}
-                                  </>
-                                );
-                              })()}
-                            </>
-                          )}
+                  )
+                : (
+                    <div className="flex items-center justify-between p-2 md:p-3 rounded-lg border bg-base-100/50 whitespace-nowrap border-base-content/10">
+                      <span className="font-medium text-sm md:text-base flex-shrink-0 md:mr-8">{key}</span>
+                      <span className="badge text-sm md:text-base flex-shrink-0 badge-ghost">
+                        {String(value)}
+                      </span>
                     </div>
-                  );
-                }
-              })}
+                  )}
             </div>
-          </div>
-        );
-      })}
+          ))}
+
+          {/* 添加新字段区域 */}
+          {isEditing && (
+            <div className="form-control col-span-full pt-2 border-t border-base-content/10">
+              <span className="text-sm text-base-content/50 mb-2 select-none">添加新字段</span>
+              <label className="input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none">
+                <input
+                  type="text"
+                  value={newFieldKey}
+                  onChange={e => setNewFieldKey(e.target.value)}
+                  placeholder="字段名"
+                  className="text-sm font-medium bg-transparent border-none focus:outline-none outline-none w-24 flex-shrink-0"
+                />
+                <div className="w-px h-4 bg-base-content/20"></div>
+                <input
+                  type="text"
+                  value={newFieldValue}
+                  onChange={e => setNewFieldValue(e.target.value)}
+                  placeholder="字段值"
+                  className="grow focus:outline-none border-none outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddField}
+                  disabled={!newFieldKey.trim() || newFieldKey in localData}
+                  className="btn btn-ghost btn-xs btn-primary"
+                  title="添加字段"
+                >
+                  ✓
+                </button>
+              </label>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

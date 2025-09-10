@@ -1,16 +1,12 @@
-import type { Rule } from "api/models/Rule";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import Section from "../Section";
-import ImportWithStCmd from "./ImportWithStCmd";
 import NumericalEditor from "./NumericalEditor";
-import { deepOverrideTargetWithSource, flattenConstraints, wrapIntoNested } from "./ObjectExpansion";
 import PerformanceEditor from "./PerformanceEditor";
 
 interface ExpansionModuleProps {
   isEditing?: boolean;
-  onRuleDataChange?: (ruleId: number, actTemplate: any, abilityDefault: any) => void;
   roleId: number;
   /**
    * 可选, 会默认选中对应的ruleId, 且不再展示选择规则的部分组件
@@ -24,107 +20,124 @@ interface ExpansionModuleProps {
  * 负责展示规则选择、表演字段和数值约束
  */
 export default function ExpansionModule({
-  onRuleDataChange,
   roleId,
   ruleId,
   onLoadingChange, // 1. 在 props 中解构出 onLoadingChange
 }: ExpansionModuleProps) {
   // 状态
   const selectedRuleId = ruleId ?? 1;
-  const [localRuleData, setLocalRuleData] = useState<Rule | null>(null);
 
   // API Hooks
   const abilityQuery = useAbilityByRuleAndRole(roleId, selectedRuleId || 0);
   const ruleDetailQuery = useRuleDetailQuery(selectedRuleId || 0);
   const setRoleAbilityMutation = useSetRoleAbilityMutation();
 
-  // 规则详情合并逻辑
-  const currentRuleData = useMemo(() => {
-    if (abilityQuery.data?.abilityId) {
-      return abilityQuery.data;
-    }
-    return ruleDetailQuery.data;
-  }, [abilityQuery.data, ruleDetailQuery.data]);
+  // 判断每个能力块是否使用规则模版数据
+  // 只有当两个查询都完成且没有错误时才进行判断
+  const isBasicUsingTemplate = !abilityQuery.isLoading && !ruleDetailQuery.isLoading
+    && (!abilityQuery.data?.basicDefault || Object.keys(abilityQuery.data.basicDefault || {}).length === 0)
+    && ruleDetailQuery.data?.basicDefault
+    && Object.keys(ruleDetailQuery.data.basicDefault).length > 0;
+  const isAbilityUsingTemplate = !abilityQuery.isLoading && !ruleDetailQuery.isLoading
+    && (!abilityQuery.data?.abilityDefault || Object.keys(abilityQuery.data.abilityDefault || {}).length === 0)
+    && ruleDetailQuery.data?.abilityFormula
+    && Object.keys(ruleDetailQuery.data.abilityFormula).length > 0;
+  const isSkillUsingTemplate = !abilityQuery.isLoading && !ruleDetailQuery.isLoading
+    && (!abilityQuery.data?.skillDefault || Object.keys(abilityQuery.data.skillDefault || {}).length === 0)
+    && ruleDetailQuery.data?.skillDefault
+    && Object.keys(ruleDetailQuery.data.skillDefault).length > 0;
 
   // 初始化能力数据
   useEffect(() => {
     if (ruleDetailQuery.data && !abilityQuery.data && !abilityQuery.isLoading) {
-      // 确保 ability 字段的值都是数字类型
-      const flattenedConstraints = flattenConstraints(ruleDetailQuery.data?.abilityDefault || {});
-      const numericAbility: Record<string, number> = {};
-      Object.entries(flattenedConstraints).forEach(([key, value]) => {
-        if (typeof value === "object" && value !== null && "displayValue" in value) {
-          // 处理公式值对象
-          numericAbility[key] = Number(value.displayValue) || 0;
-        }
-        else {
-          // 处理普通数值
-          numericAbility[key] = Number(value) || 0;
-        }
-      });
-
       setRoleAbilityMutation.mutate({
         ruleId: ruleDetailQuery.data?.ruleId || 0,
         roleId,
         act: ruleDetailQuery.data?.actTemplate || {},
-        ability: numericAbility,
+        basic: ruleDetailQuery.data?.basicDefault || {},
+        ability: ruleDetailQuery.data?.abilityFormula || {},
+        skill: ruleDetailQuery.data?.skillDefault || {},
       });
     }
-  }, [ruleDetailQuery.data, abilityQuery.data, abilityQuery.isLoading, roleId]);
+  }, [ruleDetailQuery.data, abilityQuery.data, abilityQuery.isLoading, roleId, setRoleAbilityMutation]);
 
-  // 构建本地规则副本（合并数值）
+  // 用于存储本地编辑状态的数据
+  const [localEdits, setLocalEdits] = useState<{
+    actTemplate?: any;
+    basicDefault?: any;
+    abilityFormula?: any;
+    skillDefault?: any;
+  }>({});
+
+  // 当 roleId 变化时，重置本地编辑状态，防止显示上一个角色的内容
   useEffect(() => {
-    if (currentRuleData && ruleDetailQuery.data) {
-      const detailAbilityDefault = ruleDetailQuery.data?.abilityDefault ?? {};
-      const abilityAbilityDefault = abilityQuery.data?.abilityDefault ?? {};
-      const mergedAbilityDefault: Record<string, Record<string, any>> = {};
+    setLocalEdits({});
+  }, [roleId]);
 
-      for (const key in detailAbilityDefault) {
-        const base = detailAbilityDefault[key];
-        if (typeof base === "object" && base !== null && !Array.isArray(base)) {
-          // 把 ability.abilityDefault 包装成嵌套结构：{ [key]: abilityAbilityDefault }
-          const wrappedOverride = wrapIntoNested([key], abilityAbilityDefault);
-
-          // 深度覆盖合并
-          mergedAbilityDefault[key] = deepOverrideTargetWithSource(
-            base,
-            wrappedOverride[key],
-          );
-        }
-      }
-
-      // 显式处理缺失字段，保证类型一致性
-      const safeData: Rule = {
-        ruleId: ruleDetailQuery.data?.ruleId,
-        ruleName: ruleDetailQuery.data?.ruleName || "",
-        ruleDescription: ruleDetailQuery.data?.ruleDescription || "",
-        actTemplate: (currentRuleData as any).actTemplate || {},
-        abilityDefault: mergedAbilityDefault,
-      };
-      setLocalRuleData(safeData);
+  // 构建当前渲染所需的数据
+  const renderData = useMemo(() => {
+    // 等待所有必要的数据加载完成
+    if (!ruleDetailQuery.data || ruleDetailQuery.isLoading || abilityQuery.isLoading) {
+      return null;
     }
-  }, [currentRuleData, abilityQuery.data?.abilityDefault, ruleDetailQuery.data, abilityQuery.isLoading, ruleDetailQuery.isLoading]);
+
+    // 确保查询返回的数据与当前的 roleId 匹配，防止显示错误的角色数据
+    if (abilityQuery.data && abilityQuery.data.roleId !== roleId) {
+      return null;
+    }
+
+    // 获取基础数据（优先使用 ability 数据，其次使用 rule 数据）
+    const baseActTemplate = abilityQuery.data?.actTemplate ?? ruleDetailQuery.data?.actTemplate ?? {};
+
+    // 对于基础属性：如果角色没有专属配置或为空对象，则使用规则模版
+    const baseBasicDefault = (abilityQuery.data?.basicDefault && Object.keys(abilityQuery.data.basicDefault).length > 0)
+      ? abilityQuery.data.basicDefault
+      : (ruleDetailQuery.data?.basicDefault || {});
+
+    // 对于能力配置：如果角色没有专属配置或为空对象，则使用规则模版
+    const baseAbilityFormula = (abilityQuery.data?.abilityDefault && Object.keys(abilityQuery.data.abilityDefault).length > 0)
+      ? abilityQuery.data.abilityDefault
+      : (ruleDetailQuery.data?.abilityFormula || {});
+
+    // 对于技能配置：如果角色没有专属配置或为空对象，则使用规则模版
+    const baseSkillDefault = (abilityQuery.data?.skillDefault && Object.keys(abilityQuery.data.skillDefault).length > 0)
+      ? abilityQuery.data.skillDefault
+      : (ruleDetailQuery.data?.skillDefault || {});
+
+    // 合并本地编辑的数据
+    return {
+      ruleId: ruleDetailQuery.data.ruleId,
+      ruleName: ruleDetailQuery.data.ruleName || "",
+      ruleDescription: ruleDetailQuery.data.ruleDescription || "",
+      actTemplate: localEdits.actTemplate ?? baseActTemplate,
+      basicDefault: localEdits.basicDefault ?? baseBasicDefault,
+      abilityFormula: localEdits.abilityFormula ?? baseAbilityFormula,
+      skillDefault: localEdits.skillDefault ?? baseSkillDefault,
+    };
+  }, [abilityQuery.data, ruleDetailQuery.data, abilityQuery.isLoading, ruleDetailQuery.isLoading, localEdits, roleId]);
 
   // 更新表演字段
   const handleActTemplateChange = (actTemplate: any) => {
-    if (!localRuleData)
-      return;
-    const updated = { ...localRuleData, actTemplate };
-    setLocalRuleData(updated);
-    onRuleDataChange?.(selectedRuleId, actTemplate, updated.abilityDefault);
+    setLocalEdits(prev => ({ ...prev, actTemplate }));
   };
 
-  // 更新数值约束
-  const handleAbilityDefaultChange = (abilityDefault: any) => {
-    if (!localRuleData)
-      return;
-    const updated = { ...localRuleData, abilityDefault };
-    setLocalRuleData(updated);
-    onRuleDataChange?.(selectedRuleId, updated.actTemplate, abilityDefault);
+  // 更新基础数值约束
+  const handleBasicDefaultChange = (newData: any) => {
+    setLocalEdits(prev => ({ ...prev, basicDefault: newData }));
+  };
+
+  // 更新能力数值约束
+  const handleAbilityDefaultChange = (newData: any) => {
+    setLocalEdits(prev => ({ ...prev, abilityFormula: newData }));
+  };
+
+  // 更新技能数值约束
+  const handleSkillDefaultChange = (newData: any) => {
+    setLocalEdits(prev => ({ ...prev, skillDefault: newData }));
   };
 
   // 检查加载状态
-  const isLoading = ruleDetailQuery.isLoading || abilityQuery.isLoading || !localRuleData;
+  const isLoading = ruleDetailQuery.isLoading || abilityQuery.isLoading || !renderData;
 
   // 2. 使用 useEffect 监听 isLoading 的变化
   useEffect(() => {
@@ -133,7 +146,7 @@ export default function ExpansionModule({
   }, [isLoading, onLoadingChange]);
 
   return (
-    <div className="space-y-6">
+    <div key={`expansion-module-${roleId}-${selectedRuleId}`} className="space-y-6">
       {/* 加载状态 */}
       {isLoading
         ? (
@@ -150,8 +163,34 @@ export default function ExpansionModule({
                 </div>
               </Section>
 
-              {/* 数值约束配置加载骨架 */}
-              <Section title="数值约束配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+              {/* 基础属性配置加载骨架 */}
+              <Section title="基础属性配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                <div className="space-y-4 animate-pulse">
+                  <div className="h-4 bg-base-300 rounded w-1/3"></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="h-16 bg-base-300 rounded"></div>
+                    <div className="h-16 bg-base-300 rounded"></div>
+                    <div className="h-16 bg-base-300 rounded"></div>
+                    <div className="h-16 bg-base-300 rounded"></div>
+                  </div>
+                </div>
+              </Section>
+
+              {/* 能力配置加载骨架 */}
+              <Section title="能力配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                <div className="space-y-4 animate-pulse">
+                  <div className="h-4 bg-base-300 rounded w-1/3"></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="h-16 bg-base-300 rounded"></div>
+                    <div className="h-16 bg-base-300 rounded"></div>
+                    <div className="h-16 bg-base-300 rounded"></div>
+                    <div className="h-16 bg-base-300 rounded"></div>
+                  </div>
+                </div>
+              </Section>
+
+              {/* 技能配置加载骨架 */}
+              <Section title="技能配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
                 <div className="space-y-4 animate-pulse">
                   <div className="h-4 bg-base-300 rounded w-1/3"></div>
                   <div className="grid grid-cols-2 gap-4">
@@ -167,31 +206,68 @@ export default function ExpansionModule({
           )
         : (
           /* 规则详情区域 */
-            localRuleData && (
+            renderData && (
               <>
                 <Section title="表演字段配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
                   <PerformanceEditor
-                    fields={{
-                      ...(localRuleData.actTemplate ?? ruleDetailQuery.data?.actTemplate ?? {}),
-                    }}
+                    fields={renderData.actTemplate}
                     onChange={handleActTemplateChange}
-                    abilityData={localRuleData.actTemplate ?? {}}
+                    abilityData={renderData.actTemplate}
                     abilityId={abilityQuery.data?.abilityId || 0}
                   />
                 </Section>
 
-                <Section title="数值约束配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+                <Section title="基础属性配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+                  {isBasicUsingTemplate && (
+                    <div className="alert alert-info mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      <span>当前显示的是基础属性规则模版，编辑后将保存为角色专属配置</span>
+                    </div>
+                  )}
                   <NumericalEditor
-                    constraints={{
-                      ...(localRuleData.abilityDefault ?? ruleDetailQuery.data?.abilityDefault ?? {}),
-                    }}
+                    data={renderData.basicDefault}
+                    onChange={handleBasicDefaultChange}
+                    abilityId={abilityQuery.data?.abilityId || 0}
+                    title="基础属性"
+                    fieldType="basic"
+                  />
+                </Section>
+
+                <Section title="能力配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+                  {isAbilityUsingTemplate && (
+                    <div className="alert alert-info mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      <span>当前显示的是能力规则模版，编辑后将保存为角色专属配置</span>
+                    </div>
+                  )}
+                  <NumericalEditor
+                    data={renderData.abilityFormula}
                     onChange={handleAbilityDefaultChange}
                     abilityId={abilityQuery.data?.abilityId || 0}
+                    title="能力数值"
+                    fieldType="ability"
                   />
-                  <ImportWithStCmd
-                    ruleId={selectedRuleId}
-                    roleId={roleId}
-                    onImportSuccess={() => { }}
+                </Section>
+
+                <Section title="技能配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+                  {isSkillUsingTemplate && (
+                    <div className="alert alert-info mb-4">
+                      <svg xmlns="http://www.w3.svg/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      <span>当前显示的是技能规则模版，编辑后将保存为角色专属配置</span>
+                    </div>
+                  )}
+                  <NumericalEditor
+                    data={renderData.skillDefault}
+                    onChange={handleSkillDefaultChange}
+                    abilityId={abilityQuery.data?.abilityId || 0}
+                    title="技能数值"
+                    fieldType="skill"
                   />
                 </Section>
               </>

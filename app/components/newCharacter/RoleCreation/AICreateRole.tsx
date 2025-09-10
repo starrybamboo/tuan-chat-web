@@ -4,7 +4,6 @@ import { useGenerateAbilityByRuleMutation, useGenerateBasicInfoByRuleMutation, u
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useCreateRoleMutation, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
-import { flattenConstraints } from "../rules/ObjectExpansion";
 import RulesSection from "../rules/RulesSection";
 import AIGenerationCard from "./components/AIGenerationCard";
 import AttributeEditor from "./components/AttributeEditor";
@@ -104,18 +103,12 @@ export default function AICreateRole({
         });
       }
 
-      // 扁平化 abilityDefault 为数字类型
-      const abilityData: Record<string, number> = {};
-      if (ruleDetailData.abilityDefault) {
-        const flattenedConstraints = flattenConstraints(ruleDetailData.abilityDefault);
-
-        Object.entries(flattenedConstraints).forEach(([key, value]) => {
-          if (typeof value === "object" && value !== null && "displayValue" in value) {
-            abilityData[key] = Number(value.displayValue) || 0;
-          }
-          else {
-            abilityData[key] = Number(value) || 0;
-          }
+      // 处理 basicDefault，新接口返回单层结构的字符串
+      const abilityData: Record<string, string> = {};
+      if (ruleDetailData.basicDefault) {
+        Object.entries(ruleDetailData.basicDefault).forEach(([key, value]) => {
+          // 新接口直接返回字符串格式的数值
+          abilityData[key] = String(value);
         });
       }
 
@@ -205,33 +198,14 @@ export default function AICreateRole({
           {
             onSuccess: (data) => {
               if (data?.data) {
-                // 使用与规则默认数据相同的处理方式
-                const abilityData: Record<string, number> = {};
+                // 新接口返回单层结构，直接处理
+                const abilityData: Record<string, string> = {};
 
-                try {
-                  // 首先尝试扁平化处理（类似规则默认数据）
-                  const flattenedConstraints = flattenConstraints(data.data);
-                  Object.entries(flattenedConstraints).forEach(([key, value]) => {
-                    if (typeof value === "object" && value !== null && "displayValue" in value) {
-                      abilityData[key] = Number(value.displayValue) || 0;
-                    }
-                    else {
-                      abilityData[key] = Number(value) || 0;
-                    }
-                  });
-                }
-                catch (error) {
-                  // 如果扁平化失败，说明数据结构不同，直接处理
-                  console.warn("扁平化AI生成的能力数据失败，尝试直接处理:", error);
-                  Object.entries(data.data).forEach(([key, value]) => {
-                    if (typeof value === "object" && value !== null && "displayValue" in value) {
-                      abilityData[key] = Number(value.displayValue) || 0;
-                    }
-                    else {
-                      abilityData[key] = Number(value) || 0;
-                    }
-                  });
-                }
+                // 直接处理单层数据结构
+                Object.entries(data.data).forEach(([key, value]) => {
+                  // 新接口直接返回字符串格式的数值
+                  abilityData[key] = String(value);
+                });
 
                 setCharacterData(prev => ({
                   ...prev,
@@ -318,11 +292,17 @@ export default function AICreateRole({
           actData[key] = String(value);
         });
 
+        // 将数值转换为字符串格式
+        const basicData: Record<string, string> = {};
+        Object.entries(characterData.ability || {}).forEach(([key, value]) => {
+          basicData[key] = String(value);
+        });
+
         setRoleAbility({
           ruleId,
           roleId,
           act: actData,
-          ability: characterData.ability,
+          basic: basicData,
         });
       }
 
