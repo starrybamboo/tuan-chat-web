@@ -52,7 +52,7 @@ export default function CharacterMain() {
   }, [selectedRoleId]);
 
   return (
-    <div className="drawer lg:drawer-open">
+    <div className="drawer lg:drawer-open h-full min-h-0">
       {/* 移动端悬浮按钮 */}
       <div className="lg:hidden fixed p-2 z-1">
         <label
@@ -95,9 +95,9 @@ export default function CharacterMain() {
       </div>
 
       {/* 主内容区 */}
-      <div className="drawer-content bg-base-100 md:bg-base-200">
+      <div className="drawer-content bg-base-100 md:bg-base-200 overflow-y-auto min-h-0">
         {/* 添加条件渲染，在小屏幕且抽屉打开时隐藏内容 */}
-        <div className="md:p-6 max-w-7xl mx-auto">
+        <div className="md:p-6 max-w-7xl mx-auto min-h-0">
           {mode === "role" && !currentRole && <CreateEntry AICreate={AICreate} ExcelImport={ExcelImport} createBySelf={createBySelf} />}
           {mode === "role" && currentRole && (
             <CharacterDetail
