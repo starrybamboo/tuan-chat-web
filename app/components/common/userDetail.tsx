@@ -124,21 +124,23 @@ export function UserDetail({ userId }: UserDetailProps) {
           {user?.userId !== loginUserId && (
             <div className="flex items-center gap-2 ml-auto">
               <FollowButton userId={user?.userId || 0} />
+
               <Link to={`/chat/private/${userId}`} className="flex-shrink-0">
                 <button
                   type="button"
-                  className="btn btn-sm flex items-center gap-1 h-8 min-h-0 px-3 border border-gray-300 hover:text-primary"
+                  className="btn btn-sm flex items-center h-8 px-3 border border-gray-300 hover:text-primary"
                 >
-                  <svg aria-label="私信" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="flex-shrink-0">
+                  <svg aria-label="私信" width="12" height="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="flex-shrink-0">
                     <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">
                       <rect width="20" height="16" x="2" y="4" rx="2"></rect>
                       <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
                     </g>
                   </svg>
-                  <span className="text-xs">私信</span>
+                  <span className="text-sm">私信</span>
                 </button>
               </Link>
             </div>
+
           )}
         </div>
 
