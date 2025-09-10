@@ -31,11 +31,11 @@ function TagManagement({ userId }: TagManagementProps) {
     { id: "indigo", name: "靳蓝色", hex: "#6366f1" },
     { id: "blue", name: "蓝色", hex: "#3b82f6" },
     { id: "purple", name: "紫色", hex: "#8b5cf6" },
-    { id: "teal", name: "蓝绿色", hex: "#14b8a6" },
-    { id: "amber", name: "琥珀色", hex: "#f59e0b" },
-    { id: "red", name: "红色", hex: "#ef4444" },
-    { id: "green", name: "绿色", hex: "#10b981" },
     { id: "pink", name: "粉色", hex: "#ec4899" },
+    { id: "red", name: "红色", hex: "#ef4444" },
+    { id: "amber", name: "琥珀色", hex: "#f59e0b" },
+    { id: "green", name: "绿色", hex: "#10b981" },
+    { id: "teal", name: "蓝绿色", hex: "#14b8a6" },
   ];
 
   // API mutations
@@ -121,7 +121,6 @@ function TagManagement({ userId }: TagManagementProps) {
   return (
     <div className="w-full mx-auto rounded-xl opacity-90 p-2">
       {/* 标签展示区域 */}
-
       <div className="flex flex-wrap gap-2">
         {tags && tags.length > 0 && (
           tags.map(tag => (
@@ -131,7 +130,7 @@ function TagManagement({ userId }: TagManagementProps) {
             >
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium transition-all hover:shadow-md cursor-default
-                        bg-${tag.color}-100 text-${tag.color}-800 ring-1 ring-${tag.color}-500/10`}
+                        bg-${tag.color}-100 text-${tag.color}-800 ring-1 ring-${tag.color}  `}
               >
                 {tag.content}
               </span>
@@ -139,10 +138,14 @@ function TagManagement({ userId }: TagManagementProps) {
                 <button
                   type="button"
                   onClick={() => deleteTag(tag.tagId ?? -1)}
-                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-xs flex items-center justify-center hover:bg-red-600"
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full
+                             opacity-0 group-hover:opacity-50 transition-opacity text-xs
+                             flex items-center justify-center hover:bg-red-600 hover:opacity-100
+                             shadow-sm border border-white/20 duration-300"
                   disabled={deleteTagMutation.isPending}
+                  title="删除标签"
                 >
-                  x
+                  ×
                 </button>
               )}
             </div>
@@ -153,7 +156,7 @@ function TagManagement({ userId }: TagManagementProps) {
         {userId === loginUserId && (
           isAddingTag
             ? (
-                <div className="flex flex-col gap-2 p-3 bg-base-100 rounded-lg border border-base-300">
+                <div className="flex flex-col gap-2 p-3 bg-base-100 rounded-lg border border-base-300 shadow-sm">
                   {/* 输入框和按钮行 */}
                   <div className="flex items-center gap-2">
                     <input
@@ -212,8 +215,8 @@ function TagManagement({ userId }: TagManagementProps) {
                       <div className="mt-1">
                         <span className="text-xs text-base-content/70">预览: </span>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium
-                              bg-${selectedColor}-100 text-${selectedColor}-800 ring-1 ring-${selectedColor}-500/10`}
+                          className={`px-3 py-1 rounded-full text-sm font-medium transition-all hover:shadow-md cursor-default
+                        bg-${selectedColor}-100 text-${selectedColor}-800 ring-1 ring-${selectedColor}  `}
                         >
                           {newTagContent.trim()}
                         </span>
