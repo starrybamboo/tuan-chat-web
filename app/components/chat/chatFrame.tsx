@@ -7,6 +7,7 @@ import type {
   MessageFeedRequest,
 } from "../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
+import ChatFrameContextMenu from "@/components/chat/chatFrameContextMenu";
 import { RoomContext } from "@/components/chat/roomContext";
 import UserIdToName from "@/components/chat/smallComponents/userIdToName";
 import { SpaceContext } from "@/components/chat/spaceContext";
@@ -503,6 +504,11 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
     closeContextMenu();
   }
 
+  // 处理回复消息
+  function handleReply(message: Message) {
+    roomContext.setReplyMessage && roomContext.setReplyMessage(message);
+  }
+
   if (chatHistory?.loading) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-base-200">
@@ -690,132 +696,22 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
         </ForwardWindow>
       </PopWindow>
       {/* 右键菜单 */}
-      {contextMenu && (() => {
-        const message = historyMessages.find(message => message.message.messageId === contextMenu.messageId);
-        return (
-          <div
-            className="fixed bg-base-100 shadow-lg rounded-md z-50"
-            style={{ top: contextMenu.y, left: contextMenu.x }}
-            onClick={e => e.stopPropagation()}
-          >
-            <ul className="menu p-2 w-40">
-              {
-                (spaceContext.isSpaceOwner || message?.message.userId === globalContext.userId)
-                && (
-                  <li>
-                    <a onClick={(e) => {
-                      e.preventDefault();
-                      handleDelete();
-                      closeContextMenu();
-                    }}
-                    >
-                      删除
-                    </a>
-                  </li>
-                )
-              }
-              <li>
-                <a onClick={(e) => {
-                  e.preventDefault();
-                  toggleMessageSelection(contextMenu.messageId);
-                  closeContextMenu();
-                }}
-                >
-                  多选
-                </a>
-              </li>
-              <li>
-                <a onClick={(e) => {
-                  e.preventDefault();
-                  roomContext.setReplyMessage && roomContext?.setReplyMessage(message?.message);
-                  closeContextMenu();
-                }}
-                >
-                  回复
-                </a>
-              </li>
-              {
-                (isSelecting) && (
-                  <li>
-                    <a onClick={(e) => {
-                      e.preventDefault();
-                      handleMoveMessages(
-                        historyMessages.findIndex(message => message.message.messageId === contextMenu.messageId),
-                        Array.from(selectedMessageIds),
-                      );
-                      closeContextMenu();
-                    }}
-                    >
-                      将选中消息移动到此消息下方
-                    </a>
-                  </li>
-                )
-              }
-              <li>
-                <a onClick={(e) => {
-                  e.preventDefault();
-                  toggleChatBubbleStyle();
-                }}
-                >
-                  切换到
-                  {useChatBubbleStyle ? "传统" : "气泡"}
-                  样式
-                </a>
-              </li>
-              {(() => {
-                if (message?.message.userId !== globalContext.userId && !spaceContext.isSpaceOwner) {
-                  return null;
-                }
-                if (!message || message.message.messageType !== 2) {
-                  return (
-                    <li>
-                      <a
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleEditMessage(contextMenu.messageId);
-                          closeContextMenu();
-                        }}
-                      >
-                        编辑文本
-                      </a>
-                    </li>
-                  );
-                }
-                // 图片消息
-                return (
-                  <>
-                    <li>
-                      <a
-                        onClick={(e) => {
-                          e.preventDefault();
-                          toggleBackground(contextMenu.messageId);
-                          closeContextMenu();
-                        }}
-                      >
-                        {
-                          message?.message.extra?.imageMessage?.background ? "取消设置为背景" : "设为背景"
-                        }
-                      </a>
-                    </li>
-                    <li>
-                      <a
-                        onClick={(e) => {
-                          e.preventDefault();
-                          const imgMessage = message?.message.extra?.imageMessage;
-                          imgMessage && handleAddEmoji(imgMessage);
-                          closeContextMenu();
-                        }}
-                      >
-                        添加到表情
-                      </a>
-                    </li>
-                  </>
-                );
-              })()}
-            </ul>
-          </div>
-        );
-      })()}
+      <ChatFrameContextMenu
+        contextMenu={contextMenu}
+        historyMessages={historyMessages}
+        isSelecting={isSelecting}
+        selectedMessageIds={selectedMessageIds}
+        useChatBubbleStyle={useChatBubbleStyle}
+        onClose={closeContextMenu}
+        onDelete={handleDelete}
+        onToggleSelection={toggleMessageSelection}
+        onReply={handleReply}
+        onMoveMessages={handleMoveMessages}
+        onToggleChatBubbleStyle={toggleChatBubbleStyle}
+        onEditMessage={handleEditMessage}
+        onToggleBackground={toggleBackground}
+        onAddEmoji={handleAddEmoji}
+      />
     </div>
   );
 }

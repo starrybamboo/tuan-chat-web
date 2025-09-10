@@ -1,5 +1,6 @@
 import type { SpaceContextType } from "@/components/chat/spaceContext";
 import type { Room } from "../../../api";
+import ChatPageContextMenu from "@/components/chat/chatPageContextMenu";
 import RoomWindow from "@/components/chat/roomWindow";
 import SpaceDetailPanel from "@/components/chat/sideDrawer/spaceDetailPanel";
 import RoomButton from "@/components/chat/smallComponents/roomButton";
@@ -25,7 +26,6 @@ import {
 } from "api/hooks/chatQueryHooks";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import { useSubscribeRoomMutation, useUnsubscribeRoomMutation } from "../../../api/hooks/messageSessionQueryHooks";
 
 /**
  * chat板块的主组件
@@ -117,9 +117,7 @@ export default function ChatPage() {
 
   // 右键菜单
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; roomId: number } | null>(null);
-  // 订阅房间的消息提醒
-  const subscribeRoomMutation = useSubscribeRoomMutation();
-  const unsubscribeRoomMutation = useUnsubscribeRoomMutation();
+
   // 关闭右键菜单
   function closeContextMenu() {
     setContextMenu(null);
@@ -376,31 +374,11 @@ export default function ChatPage() {
           )}
         </PopWindow>
       </div>
-      {contextMenu && (() => {
-        const isSubscribed = unreadMessagesNumber[contextMenu.roomId] !== undefined;
-        return (
-          <div
-            className="fixed bg-base-100 shadow-lg rounded-md z-40"
-            style={{ top: contextMenu.y, left: contextMenu.x }}
-            onClick={e => e.stopPropagation()}
-          >
-            <ul className="menu p-2 w-50">
-              {/* --- Notification Settings Menu --- */}
-              <li
-                className="relative group"
-                onClick={() => {
-                  isSubscribed ? unsubscribeRoomMutation.mutate(contextMenu.roomId) : subscribeRoomMutation.mutate(contextMenu.roomId);
-                  closeContextMenu();
-                }}
-              >
-                <div className="flex justify-between items-center w-full">
-                  <span>{isSubscribed ? "关闭消息提醒" : "开启消息提醒"}</span>
-                </div>
-              </li>
-            </ul>
-          </div>
-        );
-      })()}
+      <ChatPageContextMenu
+        contextMenu={contextMenu}
+        unreadMessagesNumber={unreadMessagesNumber}
+        onClose={closeContextMenu}
+      />
     </SpaceContext>
   );
 }
