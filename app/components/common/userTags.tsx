@@ -9,7 +9,7 @@ interface TagManagementProps {
   size?: "default" | "compact"; // 展示的类型，compact会表现的更加紧凑一些
 }
 
-function TagManagement({ userId, size = "default" }: TagManagementProps) {
+function TagManagement({ userId }: TagManagementProps) {
   // 获取标签数据
   const { data: tagsData, isLoading } = useGetTagsQuery({
     tagType: 1,
