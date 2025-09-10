@@ -4,7 +4,7 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { AddRingLight } from "@/icons";
 import { useGetRoleAvatarsQuery } from "api/queryHooks";
-import React, { use, useState } from "react";
+import React, { use } from "react";
 
 export function ExpressionChooser({
   roleId,
@@ -17,15 +17,14 @@ export function ExpressionChooser({
 }) {
   const roomContext = use(RoomContext);
   const [_, setIsRoleAddWindowOpen] = useSearchParamsState<boolean>("roleAddPop", false);
-  const [selectedRoleId, setSelectedRoleId] = useState(roleId);
 
+  const selectedRoleId = roleId;
   const roleAvatarsQuery = useGetRoleAvatarsQuery(selectedRoleId);
   const roleAvatars = roleAvatarsQuery.data?.data || [];
 
   const availableRoles = roomContext.roomRolesThatUserOwn;
 
   const handleRoleSelect = (role: UserRole) => {
-    setSelectedRoleId(role.roleId);
     handleRoleChange(role.roleId);
   };
 
