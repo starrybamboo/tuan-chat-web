@@ -1,5 +1,7 @@
 import { useUpdateKeyFieldMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
+import AddFieldForm from "../shared/AddFieldForm";
+import PerformanceField from "../shared/PerformanceField";
 
 interface PerformanceEditorProps {
   fields: Record<string, string>;
@@ -22,10 +24,6 @@ export default function PerformanceEditor({
   // 接入api
   const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
   const { mutate: updateKeyField } = useUpdateKeyFieldMutation();
-  const [newKey, setNewKey] = useState("");
-  const [newValue, setNewValue] = useState("");
-  // const [newItemName, setNewItemName] = useState("");
-  // const [newItemDesc, setNewItemDesc] = useState("");
   // 是否编辑
   const [isEditing, setIsEditing] = useState(false);
   // 编辑状态过渡
@@ -76,12 +74,21 @@ export default function PerformanceEditor({
     onChange(fields);
   };
 
-  const handleAddField = () => {
-    if (newKey.trim()) {
-      onChange({ ...fields, [newKey.trim()]: newValue });
-      setNewKey("");
-      setNewValue("");
+  const handleAddField = (key: string, value: string) => {
+    if (key.trim()) {
+      onChange({ ...fields, [key.trim()]: value });
     }
+  };
+
+  const handleValueChange = (key: string, value: string) => {
+    onChange({ ...fields, [key]: value });
+  };
+
+  const handleRename = (oldKey: string, newKey: string) => {
+    const newFields = { ...fields };
+    newFields[newKey] = newFields[oldKey];
+    delete newFields[oldKey];
+    onChange(newFields);
   };
 
   return (
@@ -128,44 +135,24 @@ export default function PerformanceEditor({
         </button>
       </div>
 
-      {/* 短字段区域 - 多列排布 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:5 gap-6">
+      {/* 表演字段区域 - 多列排布 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {shortFields.map(key => (
-          <div key={key} className="group">
+          <div key={key}>
             {isEditing
               ? (
-            // 编辑模式下的UI
-                  <div className="flex items-center gap-1">
-                    <fieldset className="fieldset relative bg-base-200 border-base-300 rounded-box w-full">
-                      <legend className="fieldset-legend text-sm">{key}</legend>
-                      <textarea
-                        onChange={(e) => {
-                          const newFields = { ...fields, [key]: e.target.value };
-                          onChange(newFields);
-                        }}
-                        value={fields[key] || ""}
-                        className="textarea textarea-bordered bg-base-100 rounded-md w-full min-h-32 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary border-none outline-none resize-none"
-                        rows={1}
-                      />
-                      <button
-                        type="button"
-                        className="absolute -top-6 -right-3 btn btn-ghost btn-xs text-error hover:bg-error/10 md:opacity-0 md:group-hover:opacity-100 opacity-70 rounded-full p-1"
-                        onClick={() => handleDeleteField(key)}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
-                          <path
-                            fill="currentColor"
-                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-                          />
-                        </svg>
-                      </button>
-                    </fieldset>
-                  </div>
+                  <PerformanceField
+                    fieldKey={key}
+                    value={fields[key] || ""}
+                    onValueChange={handleValueChange}
+                    onDelete={handleDeleteField}
+                    onRename={handleRename}
+                    placeholder="请输入表演描述..."
+                  />
                 )
               : (
-            // 非编辑模式下的UI
+                  // 非编辑模式下的UI
                   <div className="card bg-base-100 shadow-sm p-2 h-full">
-                    {/* <div className="text-primary">{key}</div> */}
                     <div className="divider">{key}</div>
                     <div className="text-base-content mt-0.5 flex justify-center p-2">
                       <div className="text-left">
@@ -176,40 +163,22 @@ export default function PerformanceEditor({
                 )}
           </div>
         ))}
-      </div>
 
-      {/* 添加新字段区域 */}
-      {isEditing && (
-        <fieldset className="border border-base-300 rounded-lg p-4 mt-4">
-          <legend className="px-2 font-bold">添加新字段</legend>
-          <label className="input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none mt-2">
-            <input
-              type="text"
-              placeholder="字段名称"
-              className="text-sm font-medium bg-transparent border-none focus:outline-none outline-none w-24 flex-shrink-0"
-              value={newKey}
-              onChange={e => setNewKey(e.target.value)}
-            />
-          </label>
-          <div className="relative w-full">
-            <textarea
-              placeholder="值"
-              className="textarea textarea-bordered bg-base-100 rounded-md w-full min-h-32 mt-4 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary border-none outline-none resize-none"
-              value={newValue}
-              onChange={e => setNewValue(e.target.value)}
-              rows={1}
-            />
-            <button
-              type="button"
-              className="btn btn-sm btn-primary absolute bottom-2 right-2"
-              onClick={handleAddField}
-              disabled={!newKey || !newValue}
-            >
-              添加字段
-            </button>
-          </div>
-        </fieldset>
-      )}
+        {/* 添加新字段区域 - 作为grid的一部分 */}
+        {isEditing && (
+          <AddFieldForm
+            onAddField={handleAddField}
+            existingKeys={shortFields}
+            layout="stacked"
+            placeholder={{
+              key: "字段名（如：性格特点、背景故事等）",
+              value: "请输入表演描述...",
+            }}
+            title="添加新表演字段"
+            showTitle={true}
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -1,8 +1,10 @@
 import { useUpdateKeyFieldMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
+import AddFieldForm from "../shared/AddFieldForm";
+import EditableField from "../shared/EditableField";
 
 // Type for numerical data - flat structure
-type NumericalData = Record<string, string | number>;
+type NumericalData = Record<string, string>;
 
 // 字段类型枚举
 type FieldType = "basic" | "ability" | "skill";
@@ -31,10 +33,6 @@ export default function NumericalEditor({
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [localData, setLocalData] = useState(data);
-  const [newFieldKey, setNewFieldKey] = useState("");
-  const [newFieldValue, setNewFieldValue] = useState("");
-  const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
-  const [tempFieldKey, setTempFieldKey] = useState("");
 
   // 处理字段值更新
   const handleExitEditing = () => {
@@ -43,11 +41,7 @@ export default function NumericalEditor({
     // 更新前端状态
     onChange(localData);
 
-    // 更新后端数据 - 将所有值转换为字符串类型
-    const stringData: Record<string, string> = {};
-    Object.entries(localData).forEach(([key, value]) => {
-      stringData[key] = String(value);
-    });
+    // 数据本身就是字符串格式，直接使用
 
     // 根据字段类型构建更新对象
     const updatedAbility: any = {
@@ -57,13 +51,13 @@ export default function NumericalEditor({
     // 根据fieldType设置对应的字段
     switch (fieldType) {
       case "basic":
-        updatedAbility.basic = stringData;
+        updatedAbility.basic = localData;
         break;
       case "ability":
-        updatedAbility.ability = stringData;
+        updatedAbility.ability = localData;
         break;
       case "skill":
-        updatedAbility.skill = stringData;
+        updatedAbility.skill = localData;
         break;
     }
 
@@ -90,11 +84,7 @@ export default function NumericalEditor({
   };
 
   // 添加新字段
-  const handleAddField = () => {
-    if (!newFieldKey.trim() || newFieldKey in localData) {
-      return; // 字段名不能为空或重复
-    }
-
+  const handleAddField = (newFieldKey: string, newFieldValue: string) => {
     const updatedData = {
       ...localData,
       [newFieldKey]: newFieldValue,
@@ -113,8 +103,6 @@ export default function NumericalEditor({
     updateKeyField(fieldUpdateRequest, {
       onSuccess: () => {
         onChange(updatedData);
-        setNewFieldKey("");
-        setNewFieldValue("");
       },
     });
   };
@@ -231,109 +219,27 @@ export default function NumericalEditor({
         }
         >
           {Object.entries(localData).map(([key, value]) => (
-            <div key={key} className={isEditing ? "form-control" : "flex flex-col gap-1 flex-shrink-0"}>
-              {isEditing
-                ? (
-                    <div className="form-control">
-                      <label className="input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none">
-                        {/* 字段名编辑 */}
-                        {editingFieldKey === key
-                          ? (
-                              <input
-                                type="text"
-                                value={tempFieldKey}
-                                onChange={e => setTempFieldKey(e.target.value)}
-                                onBlur={() => {
-                                  if (tempFieldKey.trim() && tempFieldKey !== key) {
-                                    handleRenameField(key, tempFieldKey);
-                                  }
-                                  setEditingFieldKey(null);
-                                }}
-                                onKeyPress={(e) => {
-                                  if (e.key === "Enter") {
-                                    if (tempFieldKey.trim() && tempFieldKey !== key) {
-                                      handleRenameField(key, tempFieldKey);
-                                    }
-                                    setEditingFieldKey(null);
-                                  }
-                                }}
-                                className="text-sm font-medium whitespace-nowrap bg-transparent border-none focus:outline-none outline-none flex-shrink-0"
-                                autoFocus
-                              />
-                            )
-                          : (
-                              <span
-                                className="text-sm font-medium whitespace-nowrap cursor-pointer hover:text-primary flex-shrink-0 text-left"
-                                onClick={() => {
-                                  setEditingFieldKey(key);
-                                  setTempFieldKey(key);
-                                }}
-                                title="点击编辑字段名"
-                              >
-                                {key}
-                              </span>
-                            )}
-                        <div className="w-px h-4 bg-base-content/20"></div>
-                        {/* 字段值编辑 */}
-                        <input
-                          type="text"
-                          value={String(value)}
-                          onChange={e => handleFieldUpdate(key, e.target.value)}
-                          className="grow focus:outline-none border-none outline-none"
-                        />
-                        {/* 删除按钮 */}
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteField(key)}
-                          className="btn btn-ghost btn-xs text-error hover:bg-error/10"
-                          title="删除字段"
-                        >
-                          ✕
-                        </button>
-                      </label>
-                    </div>
-                  )
-                : (
-                    <div className="flex items-center justify-between p-2 md:p-3 rounded-lg border bg-base-100/50 whitespace-nowrap border-base-content/10">
-                      <span className="font-medium text-sm md:text-base flex-shrink-0 md:mr-8">{key}</span>
-                      <span className="badge text-sm md:text-base flex-shrink-0 badge-ghost">
-                        {String(value)}
-                      </span>
-                    </div>
-                  )}
-            </div>
+            <EditableField
+              key={key}
+              fieldKey={key}
+              value={value}
+              isEditing={isEditing}
+              onValueChange={handleFieldUpdate}
+              onDelete={handleDeleteField}
+              onRename={handleRenameField}
+              className={isEditing ? "form-control" : "flex flex-col gap-1 flex-shrink-0"}
+            />
           ))}
 
           {/* 添加新字段区域 */}
           {isEditing && (
-            <div className="form-control col-span-full pt-2 border-t border-base-content/10">
-              <span className="text-sm text-base-content/50 mb-2 select-none">添加新字段</span>
-              <label className="input flex items-center gap-2 rounded-md transition focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary focus-within:outline-none">
-                <input
-                  type="text"
-                  value={newFieldKey}
-                  onChange={e => setNewFieldKey(e.target.value)}
-                  placeholder="字段名"
-                  className="text-sm font-medium bg-transparent border-none focus:outline-none outline-none w-24 flex-shrink-0"
-                />
-                <div className="w-px h-4 bg-base-content/20"></div>
-                <input
-                  type="text"
-                  value={newFieldValue}
-                  onChange={e => setNewFieldValue(e.target.value)}
-                  placeholder="字段值"
-                  className="grow focus:outline-none border-none outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddField}
-                  disabled={!newFieldKey.trim() || newFieldKey in localData}
-                  className="btn btn-ghost btn-xs btn-primary"
-                  title="添加字段"
-                >
-                  ✓
-                </button>
-              </label>
+            <div className="col-span-full">
+              <AddFieldForm
+                onAddField={handleAddField}
+                existingKeys={Object.keys(localData)}
+                layout="inline"
+                className="col-span-full pt-2 mt-2"
+              />
             </div>
           )}
         </div>

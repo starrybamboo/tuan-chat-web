@@ -71,6 +71,7 @@ export default function ExpansionModule({
 
   // 当 roleId 变化时，重置本地编辑状态，防止显示上一个角色的内容
   useEffect(() => {
+    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
     setLocalEdits({});
   }, [roleId]);
 

@@ -3,10 +3,11 @@ import type { CharacterData } from "./types";
 import { useGenerateAbilityByRuleMutation, useGenerateBasicInfoByRuleMutation, useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useCreateRoleMutation, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import RulesSection from "../rules/RulesSection";
 import AIGenerationCard from "./components/AIGenerationCard";
 import AttributeEditor from "./components/AttributeEditor";
+import CreatePageHeader from "./components/CreatePageHeader";
 
 interface AICreateRoleProps {
   onBack?: () => void;
@@ -70,7 +71,7 @@ export default function AICreateRole({
 
   // 常量
   const NAME_MAX = 32;
-  const DESC_MAX = 300;
+  const DESC_MAX = 140;
 
   // 检查是否可以保存
   const canSave = characterData.name.trim()
@@ -90,43 +91,55 @@ export default function AICreateRole({
     }
   };
 
-  // 初始化规则数据的回调函数
-  const initializeRuleData = useCallback(() => {
+  // 当规则数据加载完成时，自动填充默认属性
+  useEffect(() => {
     // 当规则有效且规则数据加载完成时，并且（首次加载或规则发生了变更）
     if (isValidRuleId && ruleDetailData && characterData.ruleSystem
       && (loadedRuleId === 0 || loadedRuleId !== selectedRuleId)) {
-      // 转换 actTemplate 为正确的类型
-      const actData: Record<string, number | string> = {};
+      // 转换 actTemplate 为字符串类型
+      const actData: Record<string, string> = {};
       if (ruleDetailData.actTemplate) {
         Object.entries(ruleDetailData.actTemplate).forEach(([key, value]) => {
-          actData[key] = value;
+          actData[key] = String(value);
         });
       }
 
-      // 处理 basicDefault，新接口返回单层结构的字符串
-      const abilityData: Record<string, string> = {};
+      // 处理 basicDefault，统一转换为字符串
+      const basicData: Record<string, string> = {};
       if (ruleDetailData.basicDefault) {
         Object.entries(ruleDetailData.basicDefault).forEach(([key, value]) => {
-          // 新接口直接返回字符串格式的数值
+          basicData[key] = String(value);
+        });
+      }
+
+      // 处理 abilityFormula，统一转换为字符串
+      const abilityData: Record<string, string> = {};
+      if (ruleDetailData.abilityFormula) {
+        Object.entries(ruleDetailData.abilityFormula).forEach(([key, value]) => {
           abilityData[key] = String(value);
+        });
+      }
+
+      // 处理 skillDefault，统一转换为字符串
+      const skillData: Record<string, string> = {};
+      if (ruleDetailData.skillDefault) {
+        Object.entries(ruleDetailData.skillDefault).forEach(([key, value]) => {
+          skillData[key] = String(value);
         });
       }
 
       setCharacterData(prev => ({
         ...prev,
-        act: actData,
-        ability: abilityData,
+        act: ruleDetailData.actTemplate || {},
+        basic: ruleDetailData.basicDefault || {},
+        ability: ruleDetailData.abilityFormula || {},
+        skill: ruleDetailData.skillDefault || {},
       }));
 
       // 记录已加载的规则ID
       setLoadedRuleId(selectedRuleId);
     }
   }, [isValidRuleId, ruleDetailData, characterData.ruleSystem, loadedRuleId, selectedRuleId]);
-
-  // 当规则数据加载完成时，自动填充默认属性
-  useEffect(() => {
-    initializeRuleData();
-  }, [initializeRuleData]);
 
   // 处理基础信息变更
   const handleBasicInfoChange = (field: string, value: string) => {
@@ -142,12 +155,57 @@ export default function AICreateRole({
   const handleAttributeChange = (
     section: "act" | "basic" | "ability" | "skill",
     key: string,
-    value: number | string,
+    value: string,
   ) => {
     setCharacterData(prev => ({
       ...prev,
       [section]: { ...prev[section], [key]: value },
     }));
+  };
+
+  // 处理添加字段
+  const handleAddField = (
+    section: "act" | "basic" | "ability" | "skill",
+    key: string,
+    value: string,
+  ) => {
+    setCharacterData(prev => ({
+      ...prev,
+      [section]: { ...prev[section], [key]: value },
+    }));
+  };
+
+  // 处理删除字段
+  const handleDeleteField = (
+    section: "act" | "basic" | "ability" | "skill",
+    key: string,
+  ) => {
+    setCharacterData((prev) => {
+      const newSection = { ...prev[section] };
+      delete newSection[key];
+      return {
+        ...prev,
+        [section]: newSection,
+      };
+    });
+  };
+
+  // 处理重命名字段
+  const handleRenameField = (
+    section: "act" | "basic" | "ability" | "skill",
+    oldKey: string,
+    newKey: string,
+  ) => {
+    setCharacterData((prev) => {
+      const value = prev[section][oldKey];
+      const newSection = { ...prev[section] };
+      delete newSection[oldKey];
+      newSection[newKey] = value;
+      return {
+        ...prev,
+        [section]: newSection,
+      };
+    });
   };
 
   // AI生成处理
@@ -170,7 +228,7 @@ export default function AICreateRole({
           {
             onSuccess: (data) => {
               if (data?.data) {
-                const actData: Record<string, number | string> = {};
+                const actData: Record<string, string> = {};
                 Object.entries(data.data).forEach(([key, value]) => {
                   actData[key] = typeof value === "object" ? JSON.stringify(value) : String(value);
                 });
@@ -198,12 +256,11 @@ export default function AICreateRole({
           {
             onSuccess: (data) => {
               if (data?.data) {
-                // 新接口返回单层结构，直接处理
+                // 新接口返回单层结构，统一转换为字符串
                 const abilityData: Record<string, string> = {};
 
                 // 直接处理单层数据结构
                 Object.entries(data.data).forEach(([key, value]) => {
-                  // 新接口直接返回字符串格式的数值
                   abilityData[key] = String(value);
                 });
 
@@ -286,23 +343,13 @@ export default function AICreateRole({
       if (characterData.ruleSystem && isValidRuleId) {
         const ruleId = selectedRuleId; // 使用已验证的 ruleId
 
-        // 转换 act 数据为字符串类型
-        const actData: Record<string, string> = {};
-        Object.entries(characterData.act).forEach(([key, value]) => {
-          actData[key] = String(value);
-        });
-
-        // 将数值转换为字符串格式
-        const basicData: Record<string, string> = {};
-        Object.entries(characterData.ability || {}).forEach(([key, value]) => {
-          basicData[key] = String(value);
-        });
-
         setRoleAbility({
           ruleId,
           roleId,
-          act: actData,
-          basic: basicData,
+          act: characterData.act,
+          basic: characterData.basic,
+          ability: characterData.ability,
+          skill: characterData.skill,
         });
       }
 
@@ -349,24 +396,17 @@ export default function AICreateRole({
   return (
     <div className="max-w-6xl mx-auto p-6">
       {/* 头部 */}
-      <div className="flex items-center gap-4 mb-8">
-        {onBack && (
-          <button type="button" className="btn btn-ghost" onClick={onBack}>
-            ← 返回
-          </button>
+      <CreatePageHeader
+        title="AI智能创建角色"
+        description="描述你的想法，AI将帮你创建完整的角色"
+        onBack={onBack}
+      >
+        {currentGenerationStep && (
+          <span className="ml-2 text-primary">
+            {currentGenerationStep}
+          </span>
         )}
-        <div>
-          <h1 className="text-2xl font-bold">AI智能创建角色</h1>
-          <p className="text-base-content/70">
-            描述你的想法，AI将帮你创建完整的角色
-            {currentGenerationStep && (
-              <span className="ml-2 text-primary">
-                {currentGenerationStep}
-              </span>
-            )}
-          </p>
-        </div>
-      </div>
+      </CreatePageHeader>
 
       <div className="space-y-6">
         {/* AI生成卡片 */}
@@ -489,6 +529,9 @@ export default function AICreateRole({
                 title="角色表演能力"
                 attributes={characterData.act}
                 onChange={(key, value) => handleAttributeChange("act", key, value)}
+                onAddField={(key, value) => handleAddField("act", key, value)}
+                onDeleteField={key => handleDeleteField("act", key)}
+                onRenameField={(oldKey, newKey) => handleRenameField("act", oldKey, newKey)}
               />
 
               {/* 基础能力值 */}
@@ -496,6 +539,9 @@ export default function AICreateRole({
                 title="基础能力值"
                 attributes={characterData.basic}
                 onChange={(key, value) => handleAttributeChange("basic", key, value)}
+                onAddField={(key, value) => handleAddField("basic", key, value)}
+                onDeleteField={key => handleDeleteField("basic", key)}
+                onRenameField={(oldKey, newKey) => handleRenameField("basic", oldKey, newKey)}
               />
 
               {/* 计算能力值 */}
@@ -503,6 +549,9 @@ export default function AICreateRole({
                 title="计算能力值"
                 attributes={characterData.ability}
                 onChange={(key, value) => handleAttributeChange("ability", key, value)}
+                onAddField={(key, value) => handleAddField("ability", key, value)}
+                onDeleteField={key => handleDeleteField("ability", key)}
+                onRenameField={(oldKey, newKey) => handleRenameField("ability", oldKey, newKey)}
               />
 
               {/* 技能设定 */}
@@ -510,6 +559,9 @@ export default function AICreateRole({
                 title="技能设定"
                 attributes={characterData.skill}
                 onChange={(key, value) => handleAttributeChange("skill", key, value)}
+                onAddField={(key, value) => handleAddField("skill", key, value)}
+                onDeleteField={key => handleDeleteField("skill", key)}
+                onRenameField={(oldKey, newKey) => handleRenameField("skill", oldKey, newKey)}
               />
             </div>
           </>

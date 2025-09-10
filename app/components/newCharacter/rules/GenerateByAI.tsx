@@ -30,10 +30,10 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
     const handleSuccess = (data: any, isBasic: number) => {
       setDescription("");
 
-      // 新接口返回单层结构，直接合并
+      // 直接使用数据，数据本身就是字符串格式
       const mergedBasicDefault = {
         ...localRuleData?.basicDefault,
-        ...(isBasic === 2 ? data.data : {}),
+        ...(isBasic === 2 ? data.data || {} : {}),
       };
 
       // 用于上传
@@ -42,21 +42,13 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
         ruleName: localRuleData?.ruleName ?? "",
         ruleDescription: localRuleData?.ruleDescription ?? "",
         actTemplate: isBasic === 1
-          ? Object.entries(data.data || {}).reduce((acc, [key, value]) => {
-              acc[key] = typeof value === "object" ? JSON.stringify(value) : String(value);
-              return acc;
-            }, {} as Record<string, string>)
+          ? data.data || {}
           : localRuleData?.actTemplate ?? {},
-        basicDefault: isBasic === 2 ? mergedBasicDefault : localRuleData?.basicDefault ?? data.data ?? {},
+        basicDefault: isBasic === 2
+          ? mergedBasicDefault
+          : (localRuleData?.basicDefault ?? data.data ?? {}),
       };
       onLocalRuleDataChange(newRuleData);
-      // 确保 ability 字段的值都是数字类型，新接口返回单层结构
-      const basicDefault = newRuleData?.basicDefault || {};
-      const numericAbility: Record<string, number> = {};
-      Object.entries(basicDefault).forEach(([key, value]) => {
-        // 新接口直接返回字符串格式的数值
-        numericAbility[key] = Number(value) || 0;
-      });
 
       updateFiledAbility({
         abilityId: id,

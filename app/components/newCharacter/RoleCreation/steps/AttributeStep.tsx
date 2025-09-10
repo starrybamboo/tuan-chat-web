@@ -3,12 +3,12 @@ import AttributeEditor from "../components/AttributeEditor";
 
 interface AttributeStepProps {
   title: string;
-  attributes: Record<string, number | string>;
+  attributes: Record<string, string>;
   aiPrompt: string;
   aiPromptPlaceholder: string;
   isGenerating: boolean;
   showInfoAlert?: boolean;
-  onAttributeChange: (key: string, value: number | string) => void;
+  onAttributeChange: (key: string, value: string) => void;
   onAiPromptChange: (prompt: string) => void;
   onAIGenerate: () => void;
 }

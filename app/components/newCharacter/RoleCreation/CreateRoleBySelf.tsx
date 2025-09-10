@@ -1,5 +1,6 @@
 import type { CharacterData } from "./types";
 import { useState } from "react";
+import CreatePageHeader from "./components/CreatePageHeader";
 import NavigationButtons from "./components/NavigationButtons";
 import StepIndicator from "./components/StepIndicator";
 import { RULE_SYSTEMS, SAMPLE_ATTRIBUTES, STEPS } from "./constants";
@@ -166,17 +167,11 @@ export default function CreateRoleBySelf({ onBack }: { onBack?: () => void }) {
   return (
     <div className="max-w-4xl mx-auto p-6">
       {/* 头部导航 */}
-      <div className="flex items-center gap-4 mb-8">
-        {onBack && (
-          <button type="button" className="btn btn-ghost" onClick={onBack}>
-            ← 返回
-          </button>
-        )}
-        <div>
-          <h1 className="text-2xl font-bold">逐步自主创建</h1>
-          <p className="text-base-content/70">手动填写角色信息，完全自定义角色的每一个细节</p>
-        </div>
-      </div>
+      <CreatePageHeader
+        title="逐步自主创建"
+        description="手动填写角色信息，完全自定义角色的每一个细节"
+        onBack={onBack}
+      />
 
       {/* 步骤指示器 */}
       <StepIndicator steps={STEPS} currentStep={currentStep} />

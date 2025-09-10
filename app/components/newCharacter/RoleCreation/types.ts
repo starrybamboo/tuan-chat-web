@@ -5,7 +5,7 @@ export type CharacterData = {
   avatar: string;
   // 规则和能力
   ruleSystem: string;
-  act: Record<string, number | string>;
+  act: Record<string, string>;
   basic: Record<string, string>;
   ability: Record<string, string>;
   skill: Record<string, string>;
