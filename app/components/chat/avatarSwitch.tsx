@@ -6,7 +6,7 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { AddRingLight } from "@/icons";
 import { getScreenSize } from "@/utils/getScreenSize";
 import React, { use, useEffect, useMemo } from "react";
-import { useGetUserRolesQuery } from "../../../api/queryHooks";
+import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
 
 export default function AvatarSwitch({
   curRoleId,
@@ -28,9 +28,20 @@ export default function AvatarSwitch({
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
 
+  // 获取当前角色的头像列表
+  const roleAvatarsQuery = useGetRoleAvatarsQuery(curRoleId > 0 ? curRoleId : -1);
+  const roleAvatars = useMemo(() => roleAvatarsQuery.data?.data ?? [], [roleAvatarsQuery.data?.data]);
+
   useEffect(() => {
-    setCurAvatarId(userRoles[0]?.avatarId ?? 0);
-  }, [userRoles]);
+    const currentRole = userRoles.find(role => role.roleId === curRoleId);
+    // 优先使用角色的头像列表中的第一个头像，如果没有则使用角色的默认头像
+    if (roleAvatars.length > 0) {
+      setCurAvatarId(roleAvatars[0].avatarId ?? -1);
+    }
+    else {
+      setCurAvatarId(currentRole?.avatarId ?? -1);
+    }
+  }, [setCurAvatarId, userRoles, roleAvatars]);
 
   if (curRoleId <= 0) {
     return (
