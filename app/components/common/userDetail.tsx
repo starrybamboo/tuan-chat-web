@@ -2,7 +2,6 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { useState } from "react";
 import { Link } from "react-router";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "../../../api/queryHooks";
@@ -25,9 +24,6 @@ export function UserDetail({ userId }: UserDetailProps) {
 
   const user = userQuery.data?.data;
   const [isFFWindowOpen, setIsFFWindowOpen] = useSearchParamsState<boolean>(`userEditPop${userId}`, false);
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const [relationTab, setRelationTab] = useState<"following" | "followers">("following");
 
   const followingsQuery = useGetUserFollowingsQuery(userId, {
     pageNo: 1,
@@ -44,18 +40,8 @@ export function UserDetail({ userId }: UserDetailProps) {
     followers: followersQuery.data?.data?.totalRecords || 0,
   };
 
-  // 在点击处理器中
-  const handleFollowingClick = () => {
-    setRelationTab("following"); // 使用 setState 来更新值
-    setIsFFWindowOpen(true);
-  };
-
-  const handleFollowersClick = () => {
-    setRelationTab("followers"); // 使用 setState 来更新值
-    setIsFFWindowOpen(true);
-  };
   return (
-    <div className="card bg-base-100 relative w-90">
+    <div className="card bg-base-100 relative w-90 shadow-lg">
       <div className="card-body p-4 gap-3">
         {/* 顶部：头像 + 名称/描述 */}
         <div className="flex items-start gap-4">
@@ -105,16 +91,9 @@ export function UserDetail({ userId }: UserDetailProps) {
                   )
                 : (
                     <div>
-                      <p className={`break-words mr-2 ${isExpanded ? "" : "line-clamp-2"}`}>
+                      <p className="break-words mr-2 line-clamp-2">
                         {user?.description ?? "这个人就是个杂鱼，什么也不愿意写喵~"}
                       </p>
-                      <button
-                        onClick={() => setIsExpanded(prev => !prev)}
-                        className="text-blue-400 text-xs mt-1 hover:underline"
-                        type="button"
-                      >
-                        {isExpanded ? "收起" : "展开"}
-                      </button>
                     </div>
                   )}
             </div>
@@ -130,15 +109,13 @@ export function UserDetail({ userId }: UserDetailProps) {
         <div className="flex items-center justify-between mt-2 gap-4">
           <div className="flex gap-6">
             <div
-              className="flex flex-col items-center hover:text-info cursor-pointer"
-              onClick={handleFollowingClick}
+              className="flex flex-col items-center pointer-events-none"
             >
               <span className="text-sm font-medium">{followStats.following}</span>
               <span className="text-[11px] opacity-70 leading-none mt-0.5">关注</span>
             </div>
             <div
-              className="flex flex-col items-center hover:text-info cursor-pointer"
-              onClick={handleFollowersClick}
+              className="flex flex-col items-center pointer-events-none"
             >
               <span className="text-sm font-medium">{followStats.followers}</span>
               <span className="text-[11px] opacity-70 leading-none mt-0.5">粉丝</span>
@@ -193,7 +170,7 @@ export function UserDetail({ userId }: UserDetailProps) {
           followersQuery.refetch();
         }}
       >
-        <UserFollower activeTab={relationTab} userId={userId} />
+        <UserFollower activeTab="following" userId={userId} />
       </PopWindow>
     </div>
   );
