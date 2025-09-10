@@ -1246,6 +1246,26 @@ export function Items(
   );
 }
 
+// 侦探图标
+// 其他关键词：线索
+export function Detective(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 256 256"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M248 112h-27.92l-47.5-65.41a16 16 0 0 0-25.31-.72l-12.85 14.9l-.2.23a7.95 7.95 0 0 1-12.44 0l-.2-.23l-12.85-14.9a16 16 0 0 0-25.31.72L35.92 112H8a8 8 0 0 0 0 16h240a8 8 0 0 0 0-16M96.34 56l.19.23l12.85 14.89a24 24 0 0 0 37.24 0l12.85-14.89c.06-.08.1-.15.17-.23l40.66 56H55.69ZM180 144a36 36 0 0 0-35.77 32h-32.46a36 36 0 1 0-1.83 16h36.12A36 36 0 1 0 180 144M76 200a20 20 0 1 1 20-20a20 20 0 0 1-20 20m104 0a20 20 0 1 1 20-20a20 20 0 0 1-20 20"
+      >
+      </path>
+    </svg>
+  );
+}
+
 /**
  * Webgal图标
  */
@@ -1354,6 +1374,64 @@ export function ConnectionIcon() {
       <circle cx="20" cy="20" r="2" />
       <circle cx="20" cy="4" r="2" />
       <circle cx="4" cy="20" r="2" />
+    </svg>
+  );
+}
+
+// 加号图标
+export function AddIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+// 五角星图标
+export function RoundStarBorder(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="m19.65 9.04l-4.84-.42l-1.89-4.45c-.34-.81-1.5-.81-1.84 0L9.19 8.63l-4.83.41c-.88.07-1.24 1.17-.57 1.75l3.67 3.18l-1.1 4.72c-.2.86.73 1.54 1.49 1.08l4.15-2.5l4.15 2.51c.76.46 1.69-.22 1.49-1.08l-1.1-4.73l3.67-3.18c.67-.58.32-1.68-.56-1.75M12 15.4l-3.76 2.27l1-4.28l-3.32-2.88l4.38-.38L12 6.1l1.71 4.04l4.38.38l-3.32 2.88l1 4.28z"
+      >
+      </path>
+    </svg>
+  );
+}
+
+// 不感兴趣图标
+export function DislikeLine(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="m2.808 1.393l18.385 18.385l-1.415 1.414l-3.746-3.747L12 21.485l-8.478-8.492a6 6 0 0 1 .033-8.023L1.394 2.808zm2.172 10.23L12 18.654l2.618-2.623l-9.646-9.645a4 4 0 0 0 .008 5.237m15.263-6.866a6 6 0 0 1 .236 8.236l-1.635 1.636l-1.414-1.414l1.59-1.592a4 4 0 0 0-5.683-5.606l-1.335 1.198l-1.336-1.197a4 4 0 0 0-1.155-.723l-2.25-2.25A6 6 0 0 1 12 4.53a6 6 0 0 1 8.242.228"
+      >
+      </path>
     </svg>
   );
 }

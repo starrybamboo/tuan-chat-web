@@ -1,6 +1,6 @@
 import { toast } from "react-hot-toast";
 
-export function CopyLinkButton() {
+export default function CopyLinkButton() {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -16,6 +16,7 @@ export function CopyLinkButton() {
     <button
       onClick={handleCopy}
       className="btn btn-primary"
+      type="button"
     >
       复制链接
     </button>

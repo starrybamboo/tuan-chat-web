@@ -16,7 +16,7 @@ interface ItemDetailProps {
   itemId: number;
 }
 
-function ItemDetail({ itemId }: ItemDetailProps) {
+function DisplayOfItemDetail({ itemId }: ItemDetailProps) {
   const { data, isLoading, isError } = useIdToSearchQuery(itemId);
 
   const item = (data ?? [])[0] as StageEntityResponse | undefined;
@@ -81,4 +81,4 @@ function ItemDetail({ itemId }: ItemDetailProps) {
   );
 };
 
-export default ItemDetail;
+export default DisplayOfItemDetail;

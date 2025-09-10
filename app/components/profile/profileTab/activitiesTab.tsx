@@ -35,9 +35,6 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
   const userData = userInfoData?.data;
   const allMoments = momentFeedData?.pages.flatMap(page => page.data?.list || []) || [];
 
-  // 兼容后端返回体的两种常见包装：resp.data 或 resp.data.data
-  // 例如： { success:true, data: { totalLikeCount:0, ... } }
-  // 或者： { success:true, data: { data: { totalLikeCount:0, ... } } }
   const stats = statsQuery.data?.data ?? statsQuery.data?.data ?? undefined;
 
   // 监听倒数第 RENDER_MIN 条：当它进入视口时触发加载下一页
@@ -143,7 +140,7 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                         </div>
 
                         <div className="flex justify-between items-center">
-                          <span className="text-base-content/60">获得点赞（总）</span>
+                          <span className="text-base-content/60">获得点赞</span>
                           <span className="font-semibold">
                             {typeof stats?.totalLikeCount === "number"
                               ? stats.totalLikeCount
@@ -152,7 +149,7 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                         </div>
 
                         <div className="flex justify-between items-center">
-                          <span className="text-base-content/60">获得评论（总）</span>
+                          <span className="text-base-content/60">获得评论</span>
                           <span className="font-semibold">
                             {typeof stats?.totalCommentCount === "number"
                               ? stats.totalCommentCount

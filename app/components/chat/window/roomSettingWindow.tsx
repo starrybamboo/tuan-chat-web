@@ -319,7 +319,7 @@ function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDia
               type="radio"
               name="room_setting_tabs"
             />
-            <WebgalIcon className="size-4" />
+            <WebgalIcon className="size-4 mr-1" />
             渲染
           </label>
           <div className="tab-content p-4 overflow-y-auto">

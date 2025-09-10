@@ -1,19 +1,12 @@
 import { RoomContext } from "@/components/chat/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { PopWindow } from "@/components/common/popWindow";
 import { UserDetail } from "@/components/common/userDetail";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { use } from "react";
+import { use, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { useParams } from "react-router";
-import {
-  useDeleteRoomMemberMutation,
-  useDeleteSpaceMemberMutation,
-  useGetSpaceMembersQuery,
-  useRevokePlayerMutation,
-  useSetPlayerMutation,
-  useTransferLeader,
-} from "../../../api/hooks/chatQueryHooks";
+import { useGetSpaceMembersQuery } from "../../../api/hooks/chatQueryHooks";
 import {
   useGetUserInfoQuery,
 } from "../../../api/queryHooks";
@@ -34,11 +27,13 @@ const sizeMap = {
 
 /**
  * 用户头像组件
- * @param userId 用户ID
- * @param width 头像宽度尺寸
- * @param isRounded 是否显示为圆形头像（true的时候是rounded-full，false的时候是rounded）
- * @param withName 是否显示用户名，默认为false
- * @param stopPopWindow 是否禁用点击弹出用户详情窗口，默认为false
+ * Props:
+ *  - userId: 用户ID
+ *  - width: 头像宽度尺寸 key
+ *  - isRounded: 是否圆形
+ *  - withName: 是否显示用户名
+ *  - stopPopWindow: 是否禁止悬浮弹窗
+ *  - uniqueKey: 弹窗唯一标识
  */
 export default function UserAvatarComponent({
   userId,
@@ -59,148 +54,213 @@ export default function UserAvatarComponent({
   // 控制用户详情的popWindow
   const popWindowKey = uniqueKey ? `userPop${uniqueKey}` : `userPop${userId}`;
 
-  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(popWindowKey, false);
+  // 改为内部 hover 状态，不再放到 URL 上
+  // 兼容旧的 searchParam，不再使用，仅保持读取避免影响外部 URL
+  useSearchParamsState<boolean>(popWindowKey, false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [hasMountedDetail, setHasMountedDetail] = useState(false); // 首次点击后再加载内容
+  const anchorRef = useRef<HTMLDivElement | null>(null);
+  const portalRef = useRef<HTMLDivElement | null>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; placement: "right" | "left" } | null>(null);
+
   const { spaceId: urlSpaceId } = useParams();
   const spaceId = Number(urlSpaceId);
-  const spaceMembers = useGetSpaceMembersQuery(spaceId).data?.data ?? [];
-  // userId()是当前组件显示的用户，member是userId对应的member
-  const member = spaceMembers.find(member => member.userId === userId);
+  // 仅用于在弹窗中可能需要的上下文信息（当前不再直接使用成员状态进行操作）
+  useGetSpaceMembersQuery(spaceId);
+  use(RoomContext); // 仍保持对上下文的订阅以便未来扩展
+  useGlobalContext();
 
-  const roomContext = use(RoomContext);
-  const roomId = roomContext.roomId ?? -1;
+  // 成员管理逻辑已迁移到 MemberLists 组件，保留最小数据上下文
 
-  // 当前登录用户的id
-  const curUserId = useGlobalContext().userId ?? -1;
+  // hover 逻辑：悬停打开，移出后延迟关闭；允许在 Portal 内容上保持
+  const openTimerRef = useRef<number | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+  const OPEN_DELAY = 120; // ms
+  const CLOSE_DELAY = 180; // ms
 
-  const mutateRoomMember = useDeleteRoomMemberMutation();
-  const mutateSpaceMember = useDeleteSpaceMemberMutation();
-  const setPlayerMutation = useSetPlayerMutation();
-  const revokePlayerMutation = useRevokePlayerMutation();
-  const transferLeader = useTransferLeader();
-
-  // 是否是群主
-  function isManager() {
-    const curMember = spaceMembers.find(member => member.userId === curUserId);
-    return (curMember?.memberType ?? -1) === 1;
-  }
-
-  const handleRemoveMember = async () => {
-    if (roomId > 0) {
-      mutateRoomMember.mutate(
-        { roomId, userIdList: [userId] },
-        {
-          onSettled: () => setIsOpen(false), // 最终关闭弹窗
-        },
-      );
+  const clearTimers = () => {
+    if (openTimerRef.current) {
+      window.clearTimeout(openTimerRef.current);
+      openTimerRef.current = null;
     }
-    else if (spaceId > 0) {
-      mutateSpaceMember.mutate(
-        { spaceId, userIdList: [userId] },
-        {
-          onSettled: () => setIsOpen(false),
-        },
-      );
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
     }
   };
 
-  function handleSetPlayer() {
-    setPlayerMutation.mutate({
-      spaceId,
-      uidList: [userId],
-    }, {
-      onSettled: () => setIsOpen(false),
-    });
-  }
+  const doOpen = () => {
+    setHasMountedDetail(true);
+    setIsOpen(true);
+  };
+  const doClose = () => setIsOpen(false);
 
-  function handRevokePlayer() {
-    revokePlayerMutation.mutate({
-      spaceId,
-      uidList: [userId],
-    }, {
-      onSettled: () => setIsOpen(false),
-    });
-  }
+  const handleMouseEnter = () => {
+    if (stopPopWindow)
+      return; // 不显示弹窗
+    if (closeTimerRef.current) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    if (isOpen)
+      return; // 已打开
+    openTimerRef.current = window.setTimeout(doOpen, OPEN_DELAY);
+  };
 
-  function handTransferRoomOwner() {
-    transferLeader.mutate({
-      spaceId,
-      newLeaderId: userId,
-    }, {
-      onSettled: () => setIsOpen(false),
-    });
-  }
+  const handleMouseLeave = () => {
+    if (stopPopWindow)
+      return;
+    if (openTimerRef.current) {
+      window.clearTimeout(openTimerRef.current);
+      openTimerRef.current = null;
+    }
+    closeTimerRef.current = window.setTimeout(doClose, CLOSE_DELAY);
+  };
+
+  // 仍保留点击跳转个人主页（仅 stopPopWindow 情况）
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    if (!stopPopWindow)
+      return; // 只有 stopPopWindow=true 时响应点击
+    e.stopPropagation();
+    window.location.href = `/profile/${userId}`;
+  }, [stopPopWindow, userId]);
+  const containerClass = `relative inline-flex ${withName ? "flex-row items-center gap-2" : "flex-col items-center"} group cursor-pointer`;
+
+  // 计算定位：优先右侧，不够则左侧
+  const recompute = useCallback(() => {
+    const anchor = anchorRef.current;
+    if (!anchor) {
+      return;
+    }
+    const rect = anchor.getBoundingClientRect();
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+    const cardW = 360; // 约等于 22rem (352) + margin
+    const cardH = 420; // 估计高度，后续用 ResizeObserver 可更精确
+    const gap = 8;
+    let placement: "right" | "left" = "right";
+    let left = rect.right + gap;
+    if (left + cardW > viewportW) {
+      // 尝试左侧
+      if (rect.left - gap - cardW > 0) {
+        placement = "left";
+        left = rect.left - gap - cardW;
+      }
+      else {
+        // clamp 到窗口内
+        left = Math.min(Math.max(8, viewportW - cardW - 8), left);
+      }
+    }
+    let top = rect.top + (rect.height / 2) - cardH / 2;
+    top = Math.min(Math.max(8, top), viewportH - cardH - 8);
+    setPos({ left, top, placement });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (isOpen) {
+      recompute();
+    }
+  }, [isOpen, recompute]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    const handler = () => recompute();
+    window.addEventListener("scroll", handler, true);
+    window.addEventListener("resize", handler);
+    return () => {
+      window.removeEventListener("scroll", handler, true);
+      window.removeEventListener("resize", handler);
+    };
+  }, [isOpen, recompute]);
+
+  // 外部点击与 ESC 关闭
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    const onDocClick = (e: MouseEvent) => {
+      const anchor = anchorRef.current;
+      const portalNode = portalRef.current;
+      if (
+        (anchor && (anchor === e.target || anchor.contains(e.target as Node)))
+        || (portalNode && portalNode.contains(e.target as Node))
+      ) {
+        return;
+      }
+      setIsOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [isOpen]);
+
+  // 卸载前清理 timer
+  useEffect(() => () => clearTimers(), []);
+
+  // Portal 容器
+  useEffect(() => {
+    if (!portalRef.current) {
+      const div = document.createElement("div");
+      div.setAttribute("data-avatar-portal", "");
+      document.body.appendChild(div);
+      portalRef.current = div;
+    }
+    return () => {
+      // 不删除以复用
+    };
+  }, []);
 
   return (
-    <>
+    <div
+      ref={anchorRef}
+      className={containerClass}
+      onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <div className="avatar">
         <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""}`}>
           <img
             src={userQuery.isPending || userQuery.error || !userQuery.data?.data?.avatar ? undefined : userQuery.data?.data?.avatar}
             alt="Avatar"
             className="hover:scale-110 transition-transform"
-            onClick={() => { !stopPopWindow && setIsOpen(true); }}
           />
         </div>
       </div>
-      {
-        withName && (
-          <div
-            className={`text-sm whitespace-nowrap min-w-0 ${(userQuery.data?.data?.username ?? "").length > 5 ? "truncate max-w-[7em]" : ""}`}
-          >
-            {userQuery.data?.data?.username}
-          </div>
-        )
-      }
-      <div className="absolute">
-        {
-          (isOpen && !stopPopWindow) && (
-            <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>
-              <div className="items-center justify-center gap-y-4 flex flex-col">
-                <UserDetail userId={userId}></UserDetail>
-                {
-                  (spaceId > 0) && (
-                    curUserId === userId
-                      ? (
-                          <div className="gap-4 flex">
-                            <button type="button" className="btn btn-error" onClick={handleRemoveMember}>
-                              退出群聊
-                            </button>
-                          </div>
-                        )
-                      : (
-                          (isManager())
-                          && (
-                            <div className="gap-4 flex">
-                              <button type="button" className="btn btn-error" onClick={handleRemoveMember}>
-                                踢出成员
-                              </button>
-                              {
-                                ((member?.memberType ?? -1) === 3) && (
-                                  <button type="button" className="btn btn-info" onClick={handleSetPlayer}>
-                                    设为玩家
-                                  </button>
-                                )
-                              }
-                              {
-                                ((member?.memberType ?? -1) === 2) && (
-                                  <button type="button" className="btn btn-info" onClick={handRevokePlayer}>
-                                    撤销成员身份
-                                  </button>
-                                )
-                              }
-                              <button type="button" className="btn btn-info" onClick={handTransferRoomOwner}>
-                                转让KP
-                              </button>
-                            </div>
-                          )
-                        )
-                  )
-                }
-              </div>
-            </PopWindow>
-          )
-        }
-      </div>
-    </>
+      {withName && (
+        <div
+          className={`text-sm whitespace-nowrap min-w-0 ${(userQuery.data?.data?.username ?? "").length > 8 ? "truncate max-w-[10em]" : ""}`}
+        >
+          {userQuery.data?.data?.username}
+        </div>
+      )}
+      {/* Portal 卡片 */}
+      {portalRef.current && hasMountedDetail && isOpen && !stopPopWindow && pos && createPortal(
+        <div
+          style={{
+            position: "fixed",
+            left: pos.left,
+            top: pos.top,
+            zIndex: 9999,
+          }}
+          className={`group/avatar-card transition transform origin-${pos.placement === "right" ? "left" : "right"} animate-in fade-in zoom-in duration-150`}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          <UserDetail userId={userId} />
+        </div>,
+        portalRef.current,
+      )}
+    </div>
   );
 }

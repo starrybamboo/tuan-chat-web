@@ -181,7 +181,7 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
         {/* 动态内容 - 可点击区域 */}
         <div className="mb-4">
           <div
-            className="text-base-content whitespace-pre-wrap pl-16 cursor-pointer hover:text-primary transition-colors rounded-lg p-2 -m-2"
+            className="text-base-content whitespace-pre-wrap cursor-pointer pl-18 hover:text-primary transition-colors rounded-lg p-2 -m-2"
             onClick={handleContentClick}
           >
             {displayContent}
