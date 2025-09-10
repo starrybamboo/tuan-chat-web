@@ -124,11 +124,20 @@ export default function CreateRoleBySelf({ onBack, setRoles, setSelectedRoleId, 
     switch (currentStep) {
       case 1:
         return (
-          <BasicInfoStep characterData={characterData} onCharacterDataChange={handleCharacterDataChange} />
+          <BasicInfoStep
+            characterData={characterData}
+            onCharacterDataChange={handleCharacterDataChange}
+          />
         );
 
       case 2:
-        return <RulesSection currentRuleId={characterData.ruleId} onRuleChange={handleRuleChange} />;
+        return (
+          <RulesSection
+            large
+            currentRuleId={characterData.ruleId}
+            onRuleChange={handleRuleChange}
+          />
+        );
 
       case 3:
         return (
