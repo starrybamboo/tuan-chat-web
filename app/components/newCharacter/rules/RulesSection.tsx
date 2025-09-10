@@ -1,7 +1,7 @@
 // RulesSection.tsx
 
 import type { Rule } from "api/models/Rule";
-import { useRulePageQuery } from "api/hooks/ruleQueryHooks";
+import { useRuleListQuery, useRulePageQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useState } from "react";
 
 interface RulesSectionProps {
@@ -21,17 +21,35 @@ export default function RulesSection({
   large = false,
 }: RulesSectionProps) {
   // 分页和搜索状态
+  // 初始页：若传入的 currentRuleId 不在第一页，则通过一次全量(上限)列表定位所在页
   const [pageNum, setPageNum] = useState(1);
   // const [pageSize, setPageSize] = useState(4);
   const [keyword, setKeyword] = useState("");
 
-  // 查询（分页 + 关键词）
+  // 每页大小（分页展示固定 4）
   const pageSize = 4;
   const { data: rules = [] as Rule[] } = useRulePageQuery({
     pageNo: pageNum,
     pageSize,
     keyword,
   });
+
+  // 仅在需要定位初始页时获取完整列表（限制100条）
+  const { data: allRules = [] } = useRuleListQuery();
+
+  // 根据当前选中规则定位所在页（只在初始 mount 或 currentRuleId 变化时尝试）
+  useEffect(() => {
+    if (!currentRuleId || !allRules.length)
+      return;
+    // 找到选中规则索引
+    const idx = allRules.findIndex(r => r.ruleId === currentRuleId);
+    if (idx === -1)
+      return;
+    const targetPage = Math.floor(idx / pageSize) + 1;
+    // 只有当目标页与当前不同且当前仍是第一页（避免用户已翻页后被重置）时设置
+    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+    setPageNum(p => (p === 1 ? targetPage : p));
+  }, [currentRuleId, allRules, pageSize]);
 
   // 当首次有数据且未选择规则时，默认选中第一个
   useEffect(() => {
