@@ -1,6 +1,7 @@
 import type { Tag } from "../../../api";
 
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { CheckIcon, PlusOutline, XMarkICon } from "@/icons";
 import React, { useState } from "react";
 import { useAddTagMutation, useDeleteTagMutation, useGetTagsQuery } from "../../../api/hooks/userTagQurryHooks";
 
@@ -145,7 +146,7 @@ function TagManagement({ userId }: TagManagementProps) {
                   disabled={deleteTagMutation.isPending}
                   title="删除标签"
                 >
-                  ×
+                  <XMarkICon />
                 </button>
               )}
             </div>
@@ -180,14 +181,14 @@ function TagManagement({ userId }: TagManagementProps) {
                       className="btn btn-sm btn-success"
                       disabled={!newTagContent.trim() || addTagMutation.isPending}
                     >
-                      ✓
+                      <CheckIcon className="w-5 h-5" />
                     </button>
                     <button
                       type="button"
                       onClick={cancelAddingTag}
                       className="btn btn-sm btn-ghost"
                     >
-                      ✕
+                      <XMarkICon className="w-5 h-5" />
                     </button>
                   </div>
 
@@ -229,10 +230,14 @@ function TagManagement({ userId }: TagManagementProps) {
                 <button
                   type="button"
                   onClick={startAddingTag}
-                  className="px-3 py-1 rounded-full text-sm border-2 border-dashed border-base-300 text-base-content/60 hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                  className="px-3 py-1 rounded-full text-sm border-2 border-dashed border-base-300
+             text-base-content/60 hover:border-primary hover:text-primary
+             transition-colors cursor-pointer flex items-center gap-1"
                 >
-                  + 添加标签
+                  <PlusOutline className="w-4 h-4" />
+                  <span>添加标签</span>
                 </button>
+
               )
         )}
       </div>
