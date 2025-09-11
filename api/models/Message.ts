@@ -28,10 +28,6 @@ export type Message = {
      */
     roleId: number;
     /**
-     * 模组角色id
-     */
-    stageEntityId?: number;
-    /**
      * 内容
      */
     content: string;

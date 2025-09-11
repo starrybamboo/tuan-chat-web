@@ -18,5 +18,13 @@ export type PostCreateRequest = {
      * 帖子内容
      */
     content?: string;
+    /**
+     * 转发的消息的ID
+     */
+    messageId?: number;
+    /**
+     * 封面图片URL
+     */
+    coverImage?: string;
 };
 

@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { MomentFeedWithStatsResponse } from './MomentFeedWithStatsResponse';
+import type { FeedWithStatsResponse } from './FeedWithStatsResponse';
 /**
  * 游标翻页返回
  */
-export type CursorPageBaseResponseMomentFeedWithStatsResponse = {
+export type CursorPageBaseResponseFeedWithStatsResponse = {
     /**
      * 游标（下次翻页带上这参数）
      */
@@ -18,6 +18,6 @@ export type CursorPageBaseResponseMomentFeedWithStatsResponse = {
     /**
      * 数据列表
      */
-    list?: Array<MomentFeedWithStatsResponse>;
+    list?: Array<FeedWithStatsResponse>;
 };
 

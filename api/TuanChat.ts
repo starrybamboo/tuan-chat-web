@@ -16,7 +16,6 @@ import { CollectionListItemControllerService } from './services/CollectionListIt
 import { CommentControllerService } from './services/CommentControllerService';
 import { CommitControllerService } from './services/CommitControllerService';
 import { CommunityService } from './services/CommunityService';
-import { CommunityMemberService } from './services/CommunityMemberService';
 import { CommunityPostService } from './services/CommunityPostService';
 import { CounterService } from './services/CounterService';
 import { DiceCommentControllerService } from './services/DiceCommentControllerService';
@@ -62,7 +61,6 @@ export class TuanChat {
     public readonly commentController: CommentControllerService;
     public readonly commitController: CommitControllerService;
     public readonly community: CommunityService;
-    public readonly communityMember: CommunityMemberService;
     public readonly communityPost: CommunityPostService;
     public readonly counter: CounterService;
     public readonly diceCommentController: DiceCommentControllerService;
@@ -98,7 +96,7 @@ export class TuanChat {
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
         this.request = new HttpRequest({
-            BASE: config?.BASE ?? 'http://39.103.58.31:8081',
+            BASE: config?.BASE ?? 'http://localhost:8081',
             VERSION: config?.VERSION ?? '1.0',
             WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
             CREDENTIALS: config?.CREDENTIALS ?? 'include',
@@ -119,7 +117,6 @@ export class TuanChat {
         this.commentController = new CommentControllerService(this.request);
         this.commitController = new CommitControllerService(this.request);
         this.community = new CommunityService(this.request);
-        this.communityMember = new CommunityMemberService(this.request);
         this.communityPost = new CommunityPostService(this.request);
         this.counter = new CounterService(this.request);
         this.diceCommentController = new DiceCommentControllerService(this.request);

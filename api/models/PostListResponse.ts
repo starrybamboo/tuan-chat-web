@@ -4,9 +4,9 @@
 /* eslint-disable */
 import type { ChatMessageResponse } from './ChatMessageResponse';
 /**
- * 帖子信息响应
+ * 帖子列表项信息响应
  */
-export type PostResponse = {
+export type PostListResponse = {
     /**
      * 帖子ID
      */
@@ -24,17 +24,13 @@ export type PostResponse = {
      */
     title?: string;
     /**
-     * 帖子内容
+     * 内容缩略
      */
-    content?: string;
+    description?: string;
     /**
      * 封面图片URL
      */
     coverImage?: string;
     message?: ChatMessageResponse;
-    /**
-     * 发布时间
-     */
-    createTime?: string;
 };
 
