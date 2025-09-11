@@ -177,7 +177,6 @@ function ActivitiesPage() {
                 </div>
               )}
 
-              {/* 取消了手动"加载更多"按钮 —— 由倒数第 RENDER_MIN 个元素进入视口自动触发加载 */}
               {!hasNextPage && activities.length > 0 && (
                 <div className="text-center py-4 text-base-content/40 text-sm">已经到底了</div>
               )}
