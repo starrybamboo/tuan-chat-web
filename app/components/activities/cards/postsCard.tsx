@@ -18,9 +18,9 @@ interface PostsCardProp {
  * 发布的动态预览卡片组件
  */
 export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => {
-  const feed = dynamic?.feed ?? {};
-  const userId = dynamic?.feed.userId ?? -1;
-  const feedId = feed?.feedId ?? -1;
+  const res = dynamic?.response ?? {};
+  const userId = res?.userId ?? -1;
+  const feedId = res?.feedId ?? -1;
 
   const [showMenu, setShowMenu] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -29,7 +29,7 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
   const [isCommentMenuOpen, setIsCommentMenuOpen] = useState(false);
 
   // 获取用户信息
-  const { data: userInfoData, isLoading: userInfoLoading } = useGetUserInfoQuery(userId || 0);
+  const { data: userInfoData, isLoading: userInfoLoading } = useGetUserInfoQuery(userId || -1);
 
   // 使用API获取的数据或默认数据
   const userData = userInfoData?.data;
@@ -51,8 +51,8 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
   const handleDelete = async () => {
     // TODO: 接入弹窗来提示用户是否删除
 
-    // 优先从 feed.feedId 获取
-    const feedIdNum = feed?.feedId !== undefined ? Number(feed.feedId) : Number.NaN;
+    // 优先从 res.feedId 获取
+    const feedIdNum = res?.feedId !== undefined ? Number(res.feedId) : Number.NaN;
 
     if (!Number.isFinite(feedIdNum)) {
       // TODO: 无法获取 feedId：明确提示并记录 TODO
@@ -90,12 +90,12 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
   }, [feedId]);
 
   // 图片数组字段名（后端示例是 imageUrls
-  const images = Array.isArray(feed?.imageUrls) ? feed.imageUrls : [];
+  const images = Array.isArray(res?.imageUrls) ? res.imageUrls : [];
   // 时间字段 createTime
-  const publishTime = feed?.createTime ?? "";
+  const publishTime = res?.createTime ?? "";
 
   // 截取内容预览（如果内容过长）
-  const contentPreview = feed?.content ?? "";
+  const contentPreview = res?.content ?? "";
   const isContentLong = contentPreview.length > 200;
   const displayContent = isContentLong ? `${contentPreview.slice(0, 200)}...` : contentPreview;
 
@@ -206,7 +206,7 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
           >
             {/* 点赞组件 */}
             <LikeIconButton
-              targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "4" }}
+              targetInfo={{ targetId: res?.feedId ?? -1, targetType: "4" }}
               className="w-9 h-6"
               direction="row"
             />
@@ -232,7 +232,7 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
         {isCommentMenuOpen && (
           <div className="mt-6 p-6 bg-base-200 rounded-lg">
             <CommentPanel
-              targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "4" }}
+              targetInfo={{ targetId: res?.feedId ?? -1, targetType: "4" }}
             />
           </div>
         )}

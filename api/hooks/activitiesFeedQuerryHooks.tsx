@@ -100,10 +100,10 @@ export function usePublishMomentFeedMutation() {
 /**
  * 获取动态总体统计信息
  */
-export function useGetMomentFeedStatsQuery() {
+export function useGetMomentFeedStatsQuery(userId: number) {
     return useQuery({
-        queryKey: ['getMomentFeedStats'],
-        queryFn: () => tuanchat.feedController.getMomentFeedStats(),
+        queryKey: ['getMomentFeedStats', userId],
+        queryFn: () => tuanchat.feedController.getMomentFeedStats(userId),
         staleTime: 5 * 60 * 1000,
         gcTime: 30 * 60 * 1000, // 缓存30分钟
     });
