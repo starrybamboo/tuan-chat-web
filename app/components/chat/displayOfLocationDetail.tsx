@@ -1,4 +1,4 @@
-import { useModuleItemDetailQuery } from "api/hooks/moduleQueryHooks";
+import { useLocationDetailQuery } from "api/hooks/moduleQueryHooks";
 
 interface EntityInfo {
   description?: string;
@@ -12,48 +12,49 @@ interface StageEntityResponse {
   entityInfo?: EntityInfo;
 }
 
-function DisplayOfItemDetail({ itemId }: { itemId: number }) {
-  const { data, isLoading, isError } = useModuleItemDetailQuery(itemId);
+function DisplayOfLocationDetail({ locationId }: { locationId: number }) {
+  const { data, isLoading, isError } = useLocationDetailQuery(locationId);
 
-  const item = (data ?? [])[0] as StageEntityResponse | undefined;
-  const entityInfo = item?.entityInfo;
+  const location = (data ?? [])[0] as StageEntityResponse | undefined;
+  const entityInfo = location?.entityInfo;
 
   if (isLoading) {
     return <div className="text-neutral-500 dark:text-neutral-300">加载中...</div>;
   }
 
-  if (isError || !item || !entityInfo) {
-    return <div className="text-red-500 dark:text-red-300">加载失败或未找到物品信息</div>;
+  if (isError || !location || !entityInfo) {
+    return <div className="text-red-500 dark:text-red-300">加载失败或未找到地点信息</div>;
   }
 
-  const { name } = item;
+  const { name } = location;
   const { description, image, tip } = entityInfo;
 
   return (
     <div className="max-w-md w-full mx-auto mt-6 bg-neutral-50 dark:bg-neutral-800 rounded-xl shadow-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
-      {/* 头部区域 */}
-      <div className="p-5 border-b border-neutral-200 dark:border-neutral-700">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-lg flex items-center justify-center bg-neutral-100 dark:bg-neutral-700 overflow-hidden">
-            {image
-              ? (
-                  <img
-                    src={image}
-                    alt={name ?? "物品图片"}
-                    className="w-full h-full object-cover transition-transform duration-300"
-                  />
-                )
-              : (
-                  <span className="text-neutral-400 dark:text-neutral-300 text-sm text-center px-2">
-                    该物品没有图片
-                  </span>
-                )}
-          </div>
-          <h2 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100">{name ?? "未命名物品"}</h2>
-        </div>
+      <div className="w-full h-64 bg-neutral-100 dark:bg-neutral-700 overflow-hidden">
+        {image
+          ? (
+              <img
+                src={image}
+                alt={name ?? "地点图片"}
+                className="w-full h-full object-cover transition-transform duration-300"
+              />
+            )
+          : (
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="text-neutral-400 dark:text-neutral-300 text-sm text-center px-4">
+                  该地点没有图片
+                </span>
+              </div>
+            )}
       </div>
 
-      {/* 内容区域 */}
+      <div className="p-5 border-b border-neutral-200 dark:border-neutral-700">
+        <h2 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100 text-center">
+          {name ?? "未命名地点"}
+        </h2>
+      </div>
+
       <div className="p-5 space-y-6">
         {description && (
           <div>
@@ -77,4 +78,4 @@ function DisplayOfItemDetail({ itemId }: { itemId: number }) {
   );
 };
 
-export default DisplayOfItemDetail;
+export default DisplayOfLocationDetail;
