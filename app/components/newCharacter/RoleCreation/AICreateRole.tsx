@@ -79,6 +79,11 @@ export default function AICreateRole({
     && characterData.description.trim()
     && characterData.ruleId;
 
+  // 检查基础信息是否完整（用于AI生成）
+  const isBasicInfoComplete = characterData.name.trim()
+    && characterData.description.trim()
+    && characterData.ruleId;
+
   // 处理规则系统变更
   const handleruleIdChange = (currentRuleId: number) => {
     setCharacterData(prev => ({ ...prev, ruleId: currentRuleId }));
@@ -211,7 +216,28 @@ export default function AICreateRole({
 
   // AI生成处理
   const handleAIGenerate = async () => {
-    if (!aiPrompt.trim() || !characterData.ruleId || !isValidRuleId) {
+    // 验证基础信息是否完整
+    if (!isBasicInfoComplete) {
+      // 设置错误提示
+      const newErrors: Record<string, string> = {};
+      if (!characterData.name.trim()) {
+        newErrors.name = "请先填写角色名称";
+      }
+      if (!characterData.description.trim()) {
+        newErrors.description = "请先填写角色描述";
+      }
+      if (!characterData.ruleId) {
+        newErrors.ruleId = "请先选择规则系统";
+      }
+      setErrors(newErrors);
+      return;
+    }
+
+    if (!aiPrompt.trim()) {
+      return;
+    }
+
+    if (!isValidRuleId) {
       return;
     }
 
@@ -456,13 +482,18 @@ export default function AICreateRole({
             {/* 基础信息 */}
             <div className="card bg-base-100 shadow-sm rounded-2xl border-2 border-base-content/10">
               <div className="card-body md:min-h-[448px]">
-                <h3 className="card-title text-lg mb-4">📝 基础信息</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="card-title text-lg">📝 基础信息</h3>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* 角色名 */}
                   <div className="form-control">
                     <div className="flex gap-2 mb-2 items-center font-semibold">
                       <span>角色名称</span>
+                      {characterData.name.trim() && (
+                        <span className="text-success text-xs">✓</span>
+                      )}
                       <span className="label-text-alt text-base-content/60">
                         {characterData.name.length}
                         /
@@ -471,7 +502,7 @@ export default function AICreateRole({
                     </div>
                     <input
                       type="text"
-                      className={`input input-bordered rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary ${errors.name ? "input-error" : ""}`}
+                      className={`input input-bordered rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary ${errors.name ? "input-error" : characterData.name.trim() ? "input-success" : ""}`}
                       placeholder="输入角色名称"
                       value={characterData.name}
                       maxLength={NAME_MAX}
@@ -486,6 +517,9 @@ export default function AICreateRole({
                   <div className="form-control md:col-span-2">
                     <div className="flex gap-2 mb-2 items-center font-semibold">
                       <span>角色描述</span>
+                      {characterData.description.trim() && (
+                        <span className="text-success text-xs">✓</span>
+                      )}
                       <span className="label-text-alt text-base-content/60">
                         {characterData.description.length}
                         /
@@ -493,7 +527,7 @@ export default function AICreateRole({
                       </span>
                     </div>
                     <textarea
-                      className={`textarea textarea-bordered rounded-md min-h-[220px] resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary ${errors.description ? "textarea-error" : ""}`}
+                      className={`textarea textarea-bordered rounded-md min-h-[220px] resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary ${errors.description ? "textarea-error" : characterData.description.trim() ? "textarea-success" : ""}`}
                       placeholder="描述角色的背景故事、性格特点、外貌特征等..."
                       value={characterData.description}
                       maxLength={DESC_MAX}
@@ -516,9 +550,25 @@ export default function AICreateRole({
           placeholder="例如：一个来自北方的勇敢战士，擅长双手剑，有着保护弱者的坚定信念，曾经是皇家骑士团的成员..."
           prompt={aiPrompt}
           isGenerating={isGenerating}
+          disabled={!isBasicInfoComplete}
           onPromptChange={setAiPrompt}
           onGenerate={handleAIGenerate}
         />
+
+        {/* 基础信息完整性提示 */}
+        {!isBasicInfoComplete && (
+          <div className="alert alert-info">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+              <h3 className="font-bold">请先完善基础信息</h3>
+              <div className="text-sm">
+                需要填写角色名称、角色描述并选择规则系统后才能使用AI生成功能
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 角色属性 - 只有在选择规则系统后才显示 */}
         {characterData.ruleId && (

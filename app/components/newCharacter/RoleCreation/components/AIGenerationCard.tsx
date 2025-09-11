@@ -4,6 +4,7 @@ interface AIGenerationCardProps {
   placeholder: string;
   prompt: string;
   isGenerating: boolean;
+  disabled?: boolean;
   onPromptChange: (value: string) => void;
   onGenerate: () => void;
   onExcelImport?: () => void;
@@ -15,6 +16,7 @@ export default function AIGenerationCard({
   placeholder,
   prompt,
   isGenerating,
+  disabled = false,
   onPromptChange,
   onGenerate,
   onExcelImport,
@@ -35,17 +37,18 @@ export default function AIGenerationCard({
         </div>
         <div className="space-y-3">
           <textarea
-            className="textarea textarea-bordered rounded-md w-full min-h-[120px] bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            className={`textarea textarea-bordered rounded-md w-full min-h-[120px] bg-base-100 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
             placeholder={placeholder}
             value={prompt}
+            disabled={disabled}
             onChange={e => onPromptChange(e.target.value)}
           />
           <div className="flex gap-4">
             <button
               type="button"
-              className="btn btn-primary text-white rounded-md flex-1 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 border-none hover:from-purple-600 hover:to-pink-600 dark:hover:from-purple-700 dark:hover:to-pink-700"
+              className={`btn btn-primary text-white rounded-md flex-1 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 border-none hover:from-purple-600 hover:to-pink-600 dark:hover:from-purple-700 dark:hover:to-pink-700 ${disabled || isGenerating ? "btn-disabled" : ""}`}
               onClick={onGenerate}
-              disabled={isGenerating}
+              disabled={disabled || isGenerating}
             >
               {isGenerating
                 ? (
