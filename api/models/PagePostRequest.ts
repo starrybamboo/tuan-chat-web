@@ -7,16 +7,20 @@
  */
 export type PagePostRequest = {
     /**
-     * 页码
+     * 游标（上次翻页的最后一条记录的标识）
      */
-    pageNo?: number;
+    cursor?: number;
     /**
      * 每页大小
      */
     pageSize?: number;
     /**
-     * 社区ID
+     * 社区ID,获取社区帖子列表必填
      */
-    communityId: number;
+    communityId?: number;
+    /**
+     * 用户ID,用于查询特定用户的社区帖子,可选
+     */
+    userId?: number;
 };
 

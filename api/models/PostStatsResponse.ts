@@ -3,13 +3,13 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Feed统计信息响应
+ * 帖子统计信息响应
  */
-export type FeedStatsResponse = {
+export type PostStatsResponse = {
     /**
-     * Feed ID
+     * 帖子ID
      */
-    feedId?: number;
+    postId?: number;
     /**
      * 点赞数量
      */

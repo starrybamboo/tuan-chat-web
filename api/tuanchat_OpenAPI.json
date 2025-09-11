@@ -67,10 +67,6 @@
       "description": "消息会话相关接口"
     },
     {
-      "name": "CommunityMember",
-      "description": "社区成员管理"
-    },
-    {
       "name": "UserPreference",
       "description": "用户偏好接口"
     },
@@ -1405,6 +1401,78 @@
         }
       }
     },
+    "/capi/rule/updateFields": {
+      "put": {
+        "tags": [
+          "RuleController"
+        ],
+        "summary": "更新规则字段",
+        "description": "更新规则的JSON字段，支持字段重命名和删除。新key为null表示删除该字段。",
+        "operationId": "updateRuleFields",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuleFieldUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/room/mute": {
       "put": {
         "tags": [
@@ -2496,7 +2564,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultLong"
+                  "$ref": "#/components/schemas/ApiResultStageResponse"
                 }
               }
             }
@@ -7467,6 +7535,150 @@
         }
       }
     },
+    "/capi/role/ability/byRule": {
+      "post": {
+        "tags": [
+          "AbilityController"
+        ],
+        "summary": "更新能力",
+        "description": "更新指定角色的能力信息，act和ability字段不能同时为null或者空json",
+        "operationId": "updateRoleAbility_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AbilityUpdateRequest2"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/role/ability/byRule/field": {
+      "post": {
+        "tags": [
+          "AbilityController"
+        ],
+        "summary": "更新能力字段",
+        "description": "更改能力字段或删除字段",
+        "operationId": "updateRoleAbilityField_1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AbilityFieldUpdateRequest2"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/rating/page": {
       "post": {
         "tags": [
@@ -8756,228 +8968,12 @@
         }
       }
     },
-    "/capi/feed": {
-      "post": {
-        "tags": [
-          "FeedController"
-        ],
-        "summary": "发布图文/聊天消息Feed",
-        "operationId": "publishFeed",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MessageFeedRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultMessageFeedResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "FeedController"
-        ],
-        "summary": "删除图文/聊天消息Feed",
-        "operationId": "deleteFeed",
-        "parameters": [
-          {
-            "name": "feedId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/feed/stats/batch": {
-      "post": {
-        "tags": [
-          "FeedController"
-        ],
-        "summary": "批量获取图文/聊天消息Feed统计信息",
-        "operationId": "batchGetFeedStats",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "type": "integer",
-                  "format": "int64"
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultMapLongFeedStatsResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/capi/feed/page": {
       "post": {
         "tags": [
           "FeedController"
         ],
-        "summary": "分页查询图文/聊天消息Feed列表",
+        "summary": "分页查询首页Feed列表",
         "description": "使用游标翻页",
         "operationId": "pageFeed",
         "requestBody": {
@@ -8996,7 +8992,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseMessageFeedWithStatsResponse"
+                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseFeedWithStatsResponse"
                 }
               }
             }
@@ -9067,7 +9063,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseMomentFeedWithStatsResponse"
+                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseFeedWithStatsResponse"
                 }
               }
             }
@@ -9208,7 +9204,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseMomentFeedWithStatsResponse"
+                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseFeedWithStatsResponse"
                 }
               }
             }
@@ -9263,6 +9259,17 @@
         ],
         "summary": "获取动态Feed统计",
         "operationId": "getMomentFeedStats",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -9340,78 +9347,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultMomentFeedWithStatsResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/feed/activity/user": {
-      "post": {
-        "tags": [
-          "FeedController"
-        ],
-        "summary": "获取用户的用户活动Feed时间线",
-        "operationId": "getUserFeedTimeline",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FeedPageRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseFeed"
+                  "$ref": "#/components/schemas/ApiResultFeedWithStatsResponse"
                 }
               }
             }
@@ -9742,19 +9678,19 @@
         }
       }
     },
-    "/capi/community/post/update": {
+    "/capi/community/post/publish": {
       "post": {
         "tags": [
           "CommunityPost"
         ],
-        "summary": "Update post",
-        "description": "更新帖子",
-        "operationId": "updatePost",
+        "summary": "Publish post",
+        "description": "发布帖子",
+        "operationId": "publishPost",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PostUpdateRequest"
+                "$ref": "#/components/schemas/PostCreateRequest"
               }
             }
           },
@@ -9766,7 +9702,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultBoolean"
+                  "$ref": "#/components/schemas/ApiResultPostWithStatsResponse"
                 }
               }
             }
@@ -9814,19 +9750,19 @@
         }
       }
     },
-    "/capi/community/post/publish": {
+    "/capi/community/post/posts": {
       "post": {
         "tags": [
           "CommunityPost"
         ],
-        "summary": "Publish post",
-        "description": "发布帖子",
-        "operationId": "publishPost",
+        "summary": "List user posts",
+        "description": "获取用户发布的帖子",
+        "operationId": "pageUserPosts",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PostCreateRequest"
+                "$ref": "#/components/schemas/PagePostRequest"
               }
             }
           },
@@ -9838,7 +9774,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultPostResponse"
+                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponsePostListWithStatsResponse"
                 }
               }
             }
@@ -9910,660 +9846,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultPageBaseRespPostResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/community/post/list": {
-      "post": {
-        "tags": [
-          "CommunityPost"
-        ],
-        "summary": "List community posts",
-        "description": "获取社区帖子列表",
-        "operationId": "listCommunityPosts",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "integer",
-                "format": "int64"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultListPostResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/community/post/detail": {
-      "post": {
-        "tags": [
-          "CommunityPost"
-        ],
-        "summary": "Get post detail",
-        "description": "获取帖子详情",
-        "operationId": "getPostDetail",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "integer",
-                "format": "int64"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultPostResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/community/post/delete": {
-      "post": {
-        "tags": [
-          "CommunityPost"
-        ],
-        "summary": "Delete post",
-        "description": "删除帖子",
-        "operationId": "deletePost",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "integer",
-                "format": "int64"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultBoolean"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/community/member/restore": {
-      "post": {
-        "tags": [
-          "CommunityMember"
-        ],
-        "summary": "Restore member status",
-        "description": "恢复社区成员状态",
-        "operationId": "restoreMemberStatus",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CommunityMemberRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultBoolean"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/community/member/mute": {
-      "post": {
-        "tags": [
-          "CommunityMember"
-        ],
-        "summary": "Mute member",
-        "description": "禁言社区成员",
-        "operationId": "muteMember",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CommunityMemberRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultBoolean"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/community/member/list": {
-      "post": {
-        "tags": [
-          "CommunityMember"
-        ],
-        "summary": "List community members",
-        "description": "获取社区成员列表",
-        "operationId": "listMembers",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "integer",
-                "format": "int64"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultListCommunityMemberResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/community/member/kick": {
-      "post": {
-        "tags": [
-          "CommunityMember"
-        ],
-        "summary": "Kick out member",
-        "description": "踢出社区成员",
-        "operationId": "kickOutMember",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CommunityMemberRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultBoolean"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/community/member/join": {
-      "post": {
-        "tags": [
-          "CommunityMember"
-        ],
-        "summary": "Join community",
-        "description": "加入社区",
-        "operationId": "joinCommunity",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "integer",
-                "format": "int64"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultBoolean"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/community/member/check": {
-      "post": {
-        "tags": [
-          "CommunityMember"
-        ],
-        "summary": "Check membership",
-        "description": "检查用户是否为社区成员",
-        "operationId": "checkMembership",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CommunityMemberRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultBoolean"
+                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponsePostListWithStatsResponse"
                 }
               }
             }
@@ -15611,78 +14894,6 @@
         }
       }
     },
-    "/capi/feed/stats": {
-      "get": {
-        "tags": [
-          "FeedController"
-        ],
-        "summary": "获取图文/聊天消息Feed统计信息",
-        "operationId": "getFeedStats",
-        "parameters": [
-          {
-            "name": "feedId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultFeedStatsResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/capi/feed/moment/detail": {
       "get": {
         "tags": [
@@ -15707,79 +14918,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultMomentFeedWithStatsResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/feed/detail": {
-      "get": {
-        "tags": [
-          "FeedController"
-        ],
-        "summary": "根据ID获取图文/聊天消息Feed详情",
-        "operationId": "getFeedById",
-        "parameters": [
-          {
-            "name": "feedId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultMessageFeedWithStatsResponse"
+                  "$ref": "#/components/schemas/ApiResultFeedWithStatsResponse"
                 }
               }
             }
@@ -15888,83 +15027,32 @@
         }
       }
     },
-    "/capi/community/post/my-posts": {
+    "/capi/community/post/detail": {
       "get": {
         "tags": [
           "CommunityPost"
         ],
-        "summary": "List user posts",
-        "description": "获取用户发布的帖子",
-        "operationId": "listUserPosts",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultListPostResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
+        "summary": "Get post detail",
+        "description": "获取帖子详情",
+        "operationId": "getPostDetail",
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
             }
           }
-        }
-      }
-    },
-    "/capi/community/member/my-communities": {
-      "get": {
-        "tags": [
-          "CommunityMember"
         ],
-        "summary": "List user communities",
-        "description": "获取用户所属社区ID列表",
-        "operationId": "listUserCommunities",
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultListLong"
+                  "$ref": "#/components/schemas/ApiResultPostWithStatsResponse"
                 }
               }
             }
@@ -17107,6 +16195,79 @@
           }
         }
       }
+    },
+    "/capi/community/post/delete": {
+      "delete": {
+        "tags": [
+          "CommunityPost"
+        ],
+        "summary": "Delete post",
+        "description": "删除帖子",
+        "operationId": "deletePost",
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultBoolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -17558,6 +16719,19 @@
             "type": "integer",
             "description": "空间规则",
             "format": "int64"
+          },
+          "roomMap": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "description": "房间（场景）地图",
+              "items": {
+                "type": "integer",
+                "description": "房间（场景）地图",
+                "format": "int64"
+              }
+            },
+            "description": "房间（场景）地图"
           }
         },
         "description": "空间信息更新请求"
@@ -17592,40 +16766,93 @@
             },
             "description": "表演相关字段模板，如性别、年龄等信息"
           },
-          "abilityDefault": {
+          "abilityFormula": {
             "type": "object",
             "additionalProperties": {
-              "type": "object",
-              "description": "数值相关默认值，如力量、敏捷等属性值，null代表删除这个字段，力量: 0代表添加力量字段或者修改力量字段为0",
-              "example": {
-                "320": {
-                  "会计": 5,
-                  "人类学": 1
-                },
-                "480": {
-                  "力量": 0,
-                  "体质": 0,
-                  "体型": null
-                },
-                "500": null
-              }
-            },
-            "description": "数值相关默认值，如力量、敏捷等属性值，null代表删除这个字段，力量: 0代表添加力量字段或者修改力量字段为0",
-            "example": {
-              "320": {
-                "会计": 5,
-                "人类学": 1
-              },
-              "480": {
-                "力量": 0,
-                "体质": 0,
-                "体型": null
-              },
-              "500": null
+              "type": "string"
+            }
+          },
+          "skillDefault": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "basicDefault": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
             }
           }
         },
         "description": "规则更新请求对象"
+      },
+      "RuleFieldUpdateRequest": {
+        "required": [
+          "ruleId"
+        ],
+        "type": "object",
+        "properties": {
+          "ruleId": {
+            "type": "integer",
+            "description": "规则ID",
+            "format": "int64",
+            "example": 1
+          },
+          "actTemplateFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "表演模板字段映射，新key为null代表删除字段",
+              "example": "{\"旧key\":\"新key\",\"要删除的key\":null}"
+            },
+            "description": "表演模板字段映射，新key为null代表删除字段",
+            "example": {
+              "旧key": "新key",
+              "要删除的key": null
+            }
+          },
+          "abilityFormulaFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "能力公式字段映射，新key为null代表删除字段",
+              "example": "{\"旧key\":\"新key\",\"要删除的key\":null}"
+            },
+            "description": "能力公式字段映射，新key为null代表删除字段",
+            "example": {
+              "旧key": "新key",
+              "要删除的key": null
+            }
+          },
+          "skillDefaultFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "技能默认值字段映射，新key为null代表删除字段",
+              "example": "{\"旧key\":\"新key\",\"要删除的key\":null}"
+            },
+            "description": "技能默认值字段映射，新key为null代表删除字段",
+            "example": {
+              "旧key": "新key",
+              "要删除的key": null
+            }
+          },
+          "basicDefaultFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "基础默认值字段映射，新key为null代表删除字段",
+              "example": "{\"旧key\":\"新key\",\"要删除的key\":null}"
+            },
+            "description": "基础默认值字段映射，新key为null代表删除字段",
+            "example": {
+              "旧key": "新key",
+              "要删除的key": null
+            }
+          }
+        },
+        "description": "规则字段更新请求"
       },
       "RoomMuteRequest": {
         "required": [
@@ -17753,17 +16980,41 @@
               "体型": "体型描述"
             }
           },
+          "basic": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "基础属性字段，不能为空或null，必须为单层",
+              "example": "{\"str\":\"50\",\"力量\":\"$str\"}"
+            },
+            "description": "基础属性字段，不能为空或null，必须为单层",
+            "example": {
+              "str": "50",
+              "力量": "$str"
+            }
+          },
           "ability": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
+              "type": "string",
               "description": "能力字段，不能为空或null，必须为单层",
-              "format": "int32"
+              "example": "{\"db\":\"1d4\"}"
             },
             "description": "能力字段，不能为空或null，必须为单层",
             "example": {
-              "力量": 85,
-              "敏捷": 90
+              "db": "1d4"
+            }
+          },
+          "skill": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "技能字段，不能为空或null，必须为单层",
+              "example": "{\"侦查\":\"六十\"}"
+            },
+            "description": "技能字段，不能为空或null，必须为单层",
+            "example": {
+              "侦查": "六十"
             }
           }
         },
@@ -17792,7 +17043,33 @@
               "旧key2": "新key2"
             }
           },
+          "basicFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "新key为null代表删除",
+              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
+            },
+            "description": "新key为null代表删除",
+            "example": {
+              "旧key": "新key",
+              "旧key2": "新key2"
+            }
+          },
           "abilityFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "新key为null代表删除",
+              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
+            },
+            "description": "新key为null代表删除",
+            "example": {
+              "旧key": "新key",
+              "旧key2": "新key2"
+            }
+          },
+          "skillFields": {
             "type": "object",
             "additionalProperties": {
               "type": "string",
@@ -18183,11 +17460,6 @@
             "description": "角色id",
             "format": "int64"
           },
-          "stageEntityId": {
-            "type": "integer",
-            "description": "模组角色id",
-            "format": "int64"
-          },
           "content": {
             "type": "string",
             "description": "内容"
@@ -18415,24 +17687,29 @@
             "description": "头像原始url"
           },
           "spriteXPosition": {
-            "type": "string",
-            "description": "立绘x坐标"
+            "type": "number",
+            "description": "立绘x坐标",
+            "format": "double"
           },
           "spriteYPosition": {
-            "type": "string",
-            "description": "立绘y坐标"
+            "type": "number",
+            "description": "立绘y坐标",
+            "format": "double"
           },
           "spriteScale": {
-            "type": "string",
-            "description": "立绘缩放"
+            "type": "number",
+            "description": "立绘缩放",
+            "format": "double"
           },
           "spriteTransparency": {
-            "type": "string",
-            "description": "立绘透明度"
+            "type": "number",
+            "description": "立绘透明度",
+            "format": "double"
           },
           "spriteRotation": {
-            "type": "string",
-            "description": "立绘旋转角度"
+            "type": "number",
+            "description": "立绘旋转角度",
+            "format": "double"
           }
         }
       },
@@ -19616,10 +18893,6 @@
         "description": "数据列表"
       },
       "RuleCreateRequest": {
-        "required": [
-          "abilityDefault",
-          "actTemplate"
-        ],
         "type": "object",
         "properties": {
           "ruleName": {
@@ -19640,13 +18913,23 @@
             },
             "description": "表演相关字段模板，如性别、年龄等信息"
           },
-          "abilityDefault": {
+          "abilityFormula": {
             "type": "object",
             "additionalProperties": {
-              "type": "object",
-              "description": "数值相关默认值，如力量、敏捷等属性值"
-            },
-            "description": "数值相关默认值，如力量、敏捷等属性值"
+              "type": "string"
+            }
+          },
+          "skillDefault": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "basicDefault": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         },
         "description": "规则创建请求对象"
@@ -19721,10 +19004,22 @@
               "type": "string"
             }
           },
-          "abilityDefault": {
+          "abilityFormula": {
             "type": "object",
             "additionalProperties": {
-              "type": "object"
+              "type": "string"
+            }
+          },
+          "skillDefault": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "basicDefault": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
             }
           }
         },
@@ -19969,8 +19264,6 @@
       },
       "AbilitySetRequest": {
         "required": [
-          "ability",
-          "act",
           "roleId",
           "ruleId"
         ],
@@ -19990,26 +19283,50 @@
             "type": "object",
             "additionalProperties": {
               "type": "string",
-              "description": "表演相关字段，不能或null",
+              "description": "表演相关字段",
               "example": "{\"外貌\":\"外貌描述\",\"体型\":\"体型描述\"}"
             },
-            "description": "表演相关字段，不能或null",
+            "description": "表演相关字段",
             "example": {
               "外貌": "外貌描述",
               "体型": "体型描述"
             }
           },
+          "basic": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "基础属性字段",
+              "example": "{\"str\":\"50\",\"力量\":\"$astr\"}"
+            },
+            "description": "基础属性字段",
+            "example": {
+              "str": "50",
+              "力量": "$astr"
+            }
+          },
           "ability": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
-              "description": "能力字段，不能为null",
-              "format": "int32"
+              "type": "string",
+              "description": "能力字段,依赖于其他字段",
+              "example": "{\"db\":\"1d4\"}"
             },
-            "description": "能力字段，不能为null",
+            "description": "能力字段,依赖于其他字段",
             "example": {
-              "力量": 85,
-              "敏捷": 90
+              "db": "1d4"
+            }
+          },
+          "skill": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "技能字段",
+              "example": "{\"侦查\":\"60\"}"
+            },
+            "description": "技能字段",
+            "example": {
+              "侦查": "60"
             }
           }
         },
@@ -20127,21 +19444,182 @@
               "体型": "体型描述"
             }
           },
+          "basic": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "基础属性字段，不能为空或null，必须为单层",
+              "example": "{\"str\":\"50\",\"力量\":\"$str\"}"
+            },
+            "description": "基础属性字段，不能为空或null，必须为单层",
+            "example": {
+              "str": "50",
+              "力量": "$str"
+            }
+          },
           "ability": {
             "type": "object",
             "additionalProperties": {
-              "type": "integer",
+              "type": "string",
               "description": "能力字段，不能为空或null，必须为单层",
-              "format": "int32"
+              "example": "{\"db\":\"1d4\"}"
             },
             "description": "能力字段，不能为空或null，必须为单层",
             "example": {
-              "力量": 85,
-              "敏捷": 90
+              "db": "1d4"
+            }
+          },
+          "skill": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "技能字段，不能为空或null，必须为单层",
+              "example": "{\"侦查\":\"六十\"}"
+            },
+            "description": "技能字段，不能为空或null，必须为单层",
+            "example": {
+              "侦查": "六十"
             }
           }
         },
         "description": "角色能力"
+      },
+      "AbilityUpdateRequest2": {
+        "required": [
+          "roleId",
+          "ruleId"
+        ],
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ruleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "act": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "表演相关字段，不能为null，必须为单层",
+              "example": "{\"外貌\":\"外貌描述\",\"体型\":\"体型描述\"}"
+            },
+            "description": "表演相关字段，不能为null，必须为单层",
+            "example": {
+              "外貌": "外貌描述",
+              "体型": "体型描述"
+            }
+          },
+          "basic": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "基础属性字段，不能为null，必须为单层",
+              "example": "{\"str\":\"50\",\"力量\":\"$str\"}"
+            },
+            "description": "基础属性字段，不能为null，必须为单层",
+            "example": {
+              "str": "50",
+              "力量": "$str"
+            }
+          },
+          "ability": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "能力字段，不能为null，必须为单层",
+              "example": "{\"db\":\"1d4\"}"
+            },
+            "description": "能力字段，不能为null，必须为单层",
+            "example": {
+              "db": "1d4"
+            }
+          },
+          "skill": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "技能字段，不能为null，必须为单层",
+              "example": "{\"侦查\":\"六十\"}"
+            },
+            "description": "技能字段，不能为null，必须为单层",
+            "example": {
+              "侦查": "六十"
+            }
+          }
+        },
+        "description": "能力更新请求"
+      },
+      "AbilityFieldUpdateRequest2": {
+        "required": [
+          "roleId",
+          "ruleId"
+        ],
+        "type": "object",
+        "properties": {
+          "roleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ruleId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "actFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "新key为null代表删除",
+              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
+            },
+            "description": "新key为null代表删除",
+            "example": {
+              "旧key": "新key",
+              "旧key2": "新key2"
+            }
+          },
+          "basicFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "新key为null代表删除",
+              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
+            },
+            "description": "新key为null代表删除",
+            "example": {
+              "旧key": "新key",
+              "旧key2": "新key2"
+            }
+          },
+          "abilityFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "新key为null代表删除",
+              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
+            },
+            "description": "新key为null代表删除",
+            "example": {
+              "旧key": "新key",
+              "旧key2": "新key2"
+            }
+          },
+          "skillFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "新key为null代表删除",
+              "example": "{\"旧key\":\"新key\",\"旧key2\":\"新key2\"}"
+            },
+            "description": "新key为null代表删除",
+            "example": {
+              "旧key": "新key",
+              "旧key2": "新key2"
+            }
+          }
+        }
       },
       "RatingPageRequest": {
         "required": [
@@ -20453,6 +19931,97 @@
           }
         },
         "description": "新建模组请求"
+      },
+      "ApiResultStageResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StageResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "StageResponse": {
+        "type": "object",
+        "properties": {
+          "moduleId": {
+            "type": "integer",
+            "description": "模组Id，如果用户是模组创建者，moduleId不为空，可以对模组进行修改",
+            "format": "int64"
+          },
+          "stageId": {
+            "type": "integer",
+            "description": "暂存区id",
+            "format": "int64"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "模组创建者id",
+            "format": "int64"
+          },
+          "branchId": {
+            "type": "integer",
+            "description": "处于哪个分支",
+            "format": "int64"
+          },
+          "image": {
+            "type": "string",
+            "description": "模组封面"
+          },
+          "moduleName": {
+            "type": "string",
+            "description": "模组名称"
+          },
+          "description": {
+            "type": "string",
+            "description": "模组的描述"
+          },
+          "maxTime": {
+            "type": "integer",
+            "description": "模组可能需要花费的时间，以小时为单位",
+            "format": "int32"
+          },
+          "maxPeople": {
+            "type": "integer",
+            "description": "模组需要人数",
+            "format": "int32"
+          },
+          "minTime": {
+            "type": "integer",
+            "description": "模组可能需要花费的时间，以小时为单位",
+            "format": "int32"
+          },
+          "minPeople": {
+            "type": "integer",
+            "description": "模组需要人数",
+            "format": "int32"
+          },
+          "parent": {
+            "type": "string",
+            "description": "从哪个模组fork来"
+          },
+          "authorName": {
+            "type": "string",
+            "description": "作者"
+          }
+        },
+        "description": "暂存区响应"
       },
       "ModulePageByUserRequest": {
         "required": [
@@ -20803,6 +20372,7 @@
             "format": "double"
           },
           "pageSize": {
+            "minimum": 1,
             "type": "integer",
             "description": "每页大小",
             "format": "int32"
@@ -21320,164 +20890,6 @@
         },
         "description": "基础返回体"
       },
-      "MessageFeedRequest": {
-        "required": [
-          "title"
-        ],
-        "type": "object",
-        "properties": {
-          "feedId": {
-            "type": "integer",
-            "description": "Feed ID，创建时不需要传，修改时必传",
-            "format": "int64"
-          },
-          "messageId": {
-            "type": "integer",
-            "description": "关联的消息ID，无法修改",
-            "format": "int64"
-          },
-          "title": {
-            "maxLength": 100,
-            "minLength": 0,
-            "type": "string",
-            "description": "标题"
-          },
-          "description": {
-            "maxLength": 1000,
-            "minLength": 0,
-            "type": "string",
-            "description": "描述"
-          }
-        },
-        "description": "Feed创建/修改请求"
-      },
-      "ApiResultMessageFeedResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/MessageFeedResponse"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "MessageFeedResponse": {
-        "type": "object",
-        "properties": {
-          "feedId": {
-            "type": "integer",
-            "description": "Feed ID",
-            "format": "int64"
-          },
-          "userId": {
-            "type": "integer",
-            "description": "发布者用户ID",
-            "format": "int64"
-          },
-          "messageId": {
-            "type": "integer",
-            "description": "关联的消息ID",
-            "format": "int64"
-          },
-          "title": {
-            "type": "string",
-            "description": "标题"
-          },
-          "description": {
-            "type": "string",
-            "description": "描述"
-          },
-          "token": {
-            "type": "integer",
-            "description": "feed token",
-            "format": "int64"
-          },
-          "createTime": {
-            "type": "string",
-            "description": "创建时间",
-            "format": "date-time"
-          }
-        },
-        "description": "消息转发Feed响应"
-      },
-      "ApiResultMapLongFeedStatsResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/FeedStatsResponse"
-            },
-            "description": "返回对象"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "FeedStatsResponse": {
-        "type": "object",
-        "properties": {
-          "feedId": {
-            "type": "integer",
-            "description": "Feed ID",
-            "format": "int64"
-          },
-          "likeCount": {
-            "type": "integer",
-            "description": "点赞数量",
-            "format": "int32"
-          },
-          "commentCount": {
-            "type": "integer",
-            "description": "评论数量",
-            "format": "int32"
-          },
-          "collectionCount": {
-            "type": "integer",
-            "description": "收藏数量",
-            "format": "int32"
-          },
-          "isLiked": {
-            "type": "boolean",
-            "description": "当前用户是否已点赞"
-          },
-          "isCollected": {
-            "type": "boolean",
-            "description": "当前用户是否已收藏"
-          }
-        },
-        "description": "Feed统计信息响应"
-      },
       "FeedPageRequest": {
         "type": "object",
         "properties": {
@@ -21487,6 +20899,7 @@
             "format": "double"
           },
           "pageSize": {
+            "minimum": 1,
             "type": "integer",
             "description": "每页大小",
             "format": "int32"
@@ -21499,7 +20912,7 @@
         },
         "description": "Feed分页请求"
       },
-      "ApiResultCursorPageBaseResponseMessageFeedWithStatsResponse": {
+      "ApiResultCursorPageBaseResponseFeedWithStatsResponse": {
         "required": [
           "success"
         ],
@@ -21519,12 +20932,12 @@
             "description": "错误消息"
           },
           "data": {
-            "$ref": "#/components/schemas/CursorPageBaseResponseMessageFeedWithStatsResponse"
+            "$ref": "#/components/schemas/CursorPageBaseResponseFeedWithStatsResponse"
           }
         },
         "description": "基础返回体"
       },
-      "CursorPageBaseResponseMessageFeedWithStatsResponse": {
+      "CursorPageBaseResponseFeedWithStatsResponse": {
         "type": "object",
         "properties": {
           "cursor": {
@@ -21540,175 +20953,30 @@
             "type": "array",
             "description": "数据列表",
             "items": {
-              "$ref": "#/components/schemas/MessageFeedWithStatsResponse"
+              "$ref": "#/components/schemas/FeedWithStatsResponse"
             }
           }
         },
         "description": "游标翻页返回"
       },
-      "MessageFeedWithStatsResponse": {
+      "FeedWithStatsResponse": {
         "type": "object",
         "properties": {
-          "feed": {
-            "$ref": "#/components/schemas/MessageFeedResponse"
+          "type": {
+            "type": "integer",
+            "description": "Feed类型",
+            "format": "int32"
+          },
+          "response": {
+            "type": "object",
+            "description": "Feed基础信息"
           },
           "stats": {
-            "$ref": "#/components/schemas/FeedStatsResponse"
+            "type": "object",
+            "description": "Feed统计信息"
           }
         },
         "description": "转发消息Feed详情响应（包含统计信息）"
-      },
-      "ApiResultCursorPageBaseResponseMomentFeedWithStatsResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/CursorPageBaseResponseMomentFeedWithStatsResponse"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "CursorPageBaseResponseMomentFeedWithStatsResponse": {
-        "type": "object",
-        "properties": {
-          "cursor": {
-            "type": "number",
-            "description": "游标（下次翻页带上这参数）",
-            "format": "double"
-          },
-          "isLast": {
-            "type": "boolean",
-            "description": "是否最后一页"
-          },
-          "list": {
-            "type": "array",
-            "description": "数据列表",
-            "items": {
-              "$ref": "#/components/schemas/MomentFeedWithStatsResponse"
-            }
-          }
-        },
-        "description": "游标翻页返回"
-      },
-      "ModuleVo": {
-        "type": "object",
-        "properties": {
-          "moduleId": {
-            "type": "integer",
-            "description": "模组ID",
-            "format": "int64"
-          },
-          "moduleName": {
-            "type": "string",
-            "description": "模组名称"
-          },
-          "authorName": {
-            "type": "string",
-            "description": "模组作者名字"
-          },
-          "imageUrl": {
-            "type": "string",
-            "description": "模组封面URL"
-          },
-          "moduleDescription": {
-            "type": "string",
-            "description": "模组描述"
-          }
-        },
-        "description": "模组信息VO"
-      },
-      "MomentFeedResponse": {
-        "type": "object",
-        "properties": {
-          "feedId": {
-            "type": "integer",
-            "description": "Feed ID",
-            "format": "int64"
-          },
-          "userId": {
-            "type": "integer",
-            "description": "发布者用户ID",
-            "format": "int64"
-          },
-          "content": {
-            "type": "string",
-            "description": "动态文字内容"
-          },
-          "imageUrls": {
-            "type": "array",
-            "description": "上传图片url",
-            "items": {
-              "type": "string",
-              "description": "上传图片url"
-            }
-          },
-          "token": {
-            "type": "integer",
-            "description": "feed token",
-            "format": "int64"
-          },
-          "moduleVO": {
-            "$ref": "#/components/schemas/ModuleVo"
-          },
-          "createTime": {
-            "type": "string",
-            "description": "创建时间",
-            "format": "date-time"
-          }
-        },
-        "description": "用户动态Feed响应"
-      },
-      "MomentFeedWithStatsResponse": {
-        "type": "object",
-        "properties": {
-          "feed": {
-            "$ref": "#/components/schemas/MomentFeedResponse"
-          },
-          "stats": {
-            "$ref": "#/components/schemas/MomentStatsResponse"
-          }
-        },
-        "description": "动态feed详情响应（包含统计信息）"
-      },
-      "MomentStatsResponse": {
-        "type": "object",
-        "properties": {
-          "feedId": {
-            "type": "integer",
-            "description": "Feed ID",
-            "format": "int64"
-          },
-          "likeCount": {
-            "type": "integer",
-            "description": "点赞数量",
-            "format": "int32"
-          },
-          "commentCount": {
-            "type": "integer",
-            "description": "评论数量",
-            "format": "int32"
-          },
-          "isLiked": {
-            "type": "boolean",
-            "description": "当前用户是否已点赞"
-          }
-        },
-        "description": "用户动态统计信息响应"
       },
       "ApiResultMomentFeedTotalStatsResponse": {
         "required": [
@@ -21781,7 +21049,7 @@
         },
         "description": "动态创建请求"
       },
-      "ApiResultMomentFeedWithStatsResponse": {
+      "ApiResultFeedWithStatsResponse": {
         "required": [
           "success"
         ],
@@ -21801,304 +21069,10 @@
             "description": "错误消息"
           },
           "data": {
-            "$ref": "#/components/schemas/MomentFeedWithStatsResponse"
+            "$ref": "#/components/schemas/FeedWithStatsResponse"
           }
         },
         "description": "基础返回体"
-      },
-      "ApiResultCursorPageBaseResponseFeed": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/CursorPageBaseResponseFeed"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "CollectEventMeta": {
-        "type": "object",
-        "properties": {
-          "contentId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "contentTitle": {
-            "type": "string"
-          },
-          "contentDescription": {
-            "type": "string"
-          },
-          "coverImageUrl": {
-            "type": "string"
-          }
-        }
-      },
-      "ContributeEventMeta": {
-        "type": "object",
-        "properties": {
-          "moduleId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "contentTitle": {
-            "type": "string"
-          },
-          "contentDescription": {
-            "type": "string"
-          }
-        }
-      },
-      "CursorPageBaseResponseFeed": {
-        "type": "object",
-        "properties": {
-          "cursor": {
-            "type": "number",
-            "description": "游标（下次翻页带上这参数）",
-            "format": "double"
-          },
-          "isLast": {
-            "type": "boolean",
-            "description": "是否最后一页"
-          },
-          "list": {
-            "type": "array",
-            "description": "数据列表",
-            "items": {
-              "$ref": "#/components/schemas/Feed"
-            }
-          }
-        },
-        "description": "游标翻页返回"
-      },
-      "Feed": {
-        "type": "object",
-        "properties": {
-          "feedId": {
-            "type": "integer",
-            "description": "Feed唯一ID",
-            "format": "int64"
-          },
-          "fromUserId": {
-            "type": "integer",
-            "description": "发布者用户ID",
-            "format": "int64"
-          },
-          "toUserId": {
-            "type": "integer",
-            "description": "接收者用户ID",
-            "format": "int64"
-          },
-          "status": {
-            "type": "string",
-            "description": "Feed状态，1.正常 0.已删除",
-            "format": "byte"
-          },
-          "type": {
-            "type": "integer",
-            "description": "0.首页feed 1.ThumbsUpEvent  2.CommentEvent 3. CollectEvent",
-            "format": "int32"
-          },
-          "meta": {
-            "$ref": "#/components/schemas/MetaData"
-          },
-          "token": {
-            "type": "integer",
-            "description": "同一feed来源的唯一表示符",
-            "format": "int64"
-          },
-          "createTime": {
-            "type": "string",
-            "description": "创建时间",
-            "format": "date-time"
-          },
-          "updateTime": {
-            "type": "string",
-            "description": "更新时间",
-            "format": "date-time"
-          }
-        },
-        "description": "feed"
-      },
-      "FollowEventMeta": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "userName": {
-            "type": "string"
-          },
-          "userAvatar": {
-            "type": "string"
-          }
-        }
-      },
-      "MessageFeedEventMeta": {
-        "type": "object",
-        "properties": {
-          "feedId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "title": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          }
-        }
-      },
-      "MessageFeedMeta": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "messageId": {
-            "type": "integer",
-            "format": "int64"
-          }
-        }
-      },
-      "MetaData": {
-        "type": "object",
-        "properties": {
-          "messageFeedMeta": {
-            "$ref": "#/components/schemas/MessageFeedMeta"
-          },
-          "postFeedMeta": {
-            "$ref": "#/components/schemas/PostFeedMeta"
-          },
-          "momentFeedMeta": {
-            "$ref": "#/components/schemas/MomentFeedMeta"
-          },
-          "contributeEventMeta": {
-            "$ref": "#/components/schemas/ContributeEventMeta"
-          },
-          "followEventMeta": {
-            "$ref": "#/components/schemas/FollowEventMeta"
-          },
-          "collectEventMeta": {
-            "$ref": "#/components/schemas/CollectEventMeta"
-          },
-          "moduleEventMeta": {
-            "$ref": "#/components/schemas/ModuleEventMeta"
-          },
-          "playEventMeta": {
-            "$ref": "#/components/schemas/PlayEventMeta"
-          },
-          "postEventMeta": {
-            "$ref": "#/components/schemas/PostEventMeta"
-          },
-          "messageFeedEventMeta": {
-            "$ref": "#/components/schemas/MessageFeedEventMeta"
-          }
-        },
-        "description": "Feed元数据，JSON格式"
-      },
-      "ModuleEventMeta": {
-        "type": "object",
-        "properties": {
-          "moduleId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "moduleName": {
-            "type": "string"
-          },
-          "moduleImage": {
-            "type": "string"
-          },
-          "moduleDescription": {
-            "type": "string"
-          }
-        }
-      },
-      "MomentFeedMeta": {
-        "type": "object",
-        "properties": {
-          "content": {
-            "type": "string"
-          },
-          "imageUrls": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "moduleId": {
-            "type": "integer",
-            "format": "int64"
-          }
-        }
-      },
-      "PlayEventMeta": {
-        "type": "object",
-        "properties": {
-          "spaceId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "spaceName": {
-            "type": "string"
-          },
-          "gameImage": {
-            "type": "string"
-          }
-        }
-      },
-      "PostEventMeta": {
-        "type": "object",
-        "properties": {
-          "postId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "title": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          }
-        }
-      },
-      "PostFeedMeta": {
-        "type": "object",
-        "properties": {
-          "postId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "coverImageUrl": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          }
-        }
       },
       "EmojiCreateRequest": {
         "required": [
@@ -22176,30 +21150,6 @@
         },
         "description": "更新社区请求"
       },
-      "PostUpdateRequest": {
-        "required": [
-          "communityPostId"
-        ],
-        "type": "object",
-        "properties": {
-          "communityPostId": {
-            "type": "integer",
-            "description": "帖子ID",
-            "format": "int64"
-          },
-          "title": {
-            "maxLength": 128,
-            "minLength": 0,
-            "type": "string",
-            "description": "帖子标题"
-          },
-          "content": {
-            "type": "string",
-            "description": "帖子内容"
-          }
-        },
-        "description": "更新帖子请求"
-      },
       "PostCreateRequest": {
         "required": [
           "communityId",
@@ -22221,11 +21171,20 @@
           "content": {
             "type": "string",
             "description": "帖子内容"
+          },
+          "messageId": {
+            "type": "integer",
+            "description": "转发的消息的ID",
+            "format": "int64"
+          },
+          "coverImage": {
+            "type": "string",
+            "description": "封面图片URL"
           }
         },
         "description": "发布帖子请求"
       },
-      "ApiResultPostResponse": {
+      "ApiResultPostWithStatsResponse": {
         "required": [
           "success"
         ],
@@ -22245,7 +21204,7 @@
             "description": "错误消息"
           },
           "data": {
-            "$ref": "#/components/schemas/PostResponse"
+            "$ref": "#/components/schemas/PostWithStatsResponse"
           }
         },
         "description": "基础返回体"
@@ -22276,54 +21235,95 @@
             "type": "string",
             "description": "帖子内容"
           },
-          "status": {
+          "coverImage": {
             "type": "string",
-            "description": "帖子状态：0-正常，1-删除",
-            "format": "byte"
+            "description": "封面图片URL"
+          },
+          "message": {
+            "$ref": "#/components/schemas/ChatMessageResponse"
           },
           "createTime": {
             "type": "string",
             "description": "发布时间",
             "format": "date-time"
-          },
-          "updateTime": {
-            "type": "string",
-            "description": "更新时间",
-            "format": "date-time"
           }
         },
         "description": "帖子信息响应"
       },
-      "PagePostRequest": {
-        "required": [
-          "communityId"
-        ],
+      "PostStatsResponse": {
         "type": "object",
         "properties": {
-          "pageNo": {
-            "minimum": 1,
+          "postId": {
             "type": "integer",
-            "description": "页码",
-            "format": "int32",
-            "default": 1
+            "description": "帖子ID",
+            "format": "int64"
+          },
+          "likeCount": {
+            "type": "integer",
+            "description": "点赞数量",
+            "format": "int32"
+          },
+          "commentCount": {
+            "type": "integer",
+            "description": "评论数量",
+            "format": "int32"
+          },
+          "collectionCount": {
+            "type": "integer",
+            "description": "收藏数量",
+            "format": "int32"
+          },
+          "isLiked": {
+            "type": "boolean",
+            "description": "当前用户是否已点赞"
+          },
+          "isCollected": {
+            "type": "boolean",
+            "description": "当前用户是否已收藏"
+          }
+        },
+        "description": "帖子统计信息响应"
+      },
+      "PostWithStatsResponse": {
+        "type": "object",
+        "properties": {
+          "post": {
+            "$ref": "#/components/schemas/PostResponse"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/PostStatsResponse"
+          }
+        },
+        "description": "帖子信息及统计信息响应"
+      },
+      "PagePostRequest": {
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "number",
+            "description": "游标（上次翻页的最后一条记录的标识）",
+            "format": "double"
           },
           "pageSize": {
-            "maximum": 100,
             "minimum": 1,
             "type": "integer",
             "description": "每页大小",
-            "format": "int32",
-            "default": 10
+            "format": "int32"
           },
           "communityId": {
             "type": "integer",
-            "description": "社区ID",
+            "description": "社区ID,获取社区帖子列表必填",
+            "format": "int64"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "用户ID,用于查询特定用户的社区帖子,可选",
             "format": "int64"
           }
         },
         "description": "分页查询社区帖子请求"
       },
-      "ApiResultPageBaseRespPostResponse": {
+      "ApiResultCursorPageBaseResponsePostListWithStatsResponse": {
         "required": [
           "success"
         ],
@@ -22343,28 +21343,18 @@
             "description": "错误消息"
           },
           "data": {
-            "$ref": "#/components/schemas/PageBaseRespPostResponse"
+            "$ref": "#/components/schemas/CursorPageBaseResponsePostListWithStatsResponse"
           }
         },
         "description": "基础返回体"
       },
-      "PageBaseRespPostResponse": {
+      "CursorPageBaseResponsePostListWithStatsResponse": {
         "type": "object",
         "properties": {
-          "pageNo": {
-            "type": "integer",
-            "description": "当前页数",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "description": "每页查询数量",
-            "format": "int32"
-          },
-          "totalRecords": {
-            "type": "integer",
-            "description": "总记录数",
-            "format": "int64"
+          "cursor": {
+            "type": "number",
+            "description": "游标（下次翻页带上这参数）",
+            "format": "double"
           },
           "isLast": {
             "type": "boolean",
@@ -22374,48 +21364,20 @@
             "type": "array",
             "description": "数据列表",
             "items": {
-              "$ref": "#/components/schemas/PostResponse"
+              "$ref": "#/components/schemas/PostListWithStatsResponse"
             }
           }
         },
-        "description": "基础翻页返回"
+        "description": "游标翻页返回"
       },
-      "ApiResultListPostResponse": {
-        "required": [
-          "success"
-        ],
+      "PostListResponse": {
         "type": "object",
         "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
+          "communityPostId": {
             "type": "integer",
-            "description": "错误码",
-            "format": "int32"
+            "description": "帖子ID",
+            "format": "int64"
           },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "$ref": "#/components/schemas/PostResponse"
-            }
-          }
-        },
-        "description": "基础返回体"
-      },
-      "CommunityMemberRequest": {
-        "required": [
-          "communityId",
-          "userId"
-        ],
-        "type": "object",
-        "properties": {
           "communityId": {
             "type": "integer",
             "description": "社区ID",
@@ -22423,66 +21385,38 @@
           },
           "userId": {
             "type": "integer",
-            "description": "用户ID",
+            "description": "发布者用户ID",
             "format": "int64"
+          },
+          "title": {
+            "type": "string",
+            "description": "帖子标题"
+          },
+          "description": {
+            "type": "string",
+            "description": "内容缩略"
+          },
+          "coverImage": {
+            "type": "string",
+            "description": "封面图片URL"
+          },
+          "message": {
+            "$ref": "#/components/schemas/ChatMessageResponse"
           }
         },
-        "description": "社区成员请求"
+        "description": "帖子列表项信息响应"
       },
-      "ApiResultListCommunityMemberResponse": {
-        "required": [
-          "success"
-        ],
+      "PostListWithStatsResponse": {
         "type": "object",
         "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
+          "postListItem": {
+            "$ref": "#/components/schemas/PostListResponse"
           },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "$ref": "#/components/schemas/CommunityMemberResponse"
-            }
+          "stats": {
+            "$ref": "#/components/schemas/PostStatsResponse"
           }
         },
-        "description": "基础返回体"
-      },
-      "CommunityMemberResponse": {
-        "type": "object",
-        "properties": {
-          "communityId": {
-            "type": "integer",
-            "description": "社区ID",
-            "format": "int64"
-          },
-          "userId": {
-            "type": "integer",
-            "description": "用户ID",
-            "format": "int64"
-          },
-          "status": {
-            "type": "string",
-            "description": "状态：0-正常，1-禁言，2-踢出",
-            "format": "byte"
-          },
-          "createTime": {
-            "type": "string",
-            "description": "加入时间",
-            "format": "date-time"
-          }
-        },
-        "description": "社区成员响应"
+        "description": "帖子列表项及统计信息响应"
       },
       "ApiResultCommunityResponse": {
         "required": [
@@ -23166,11 +22100,6 @@
             "description": "发送者扮演的角色的id",
             "format": "int64"
           },
-          "stageEntityId": {
-            "type": "integer",
-            "description": "发送者扮演的模组角色id",
-            "format": "int64"
-          },
           "avatarId": {
             "type": "integer",
             "description": "发送者扮演的角色的立绘id",
@@ -23250,6 +22179,7 @@
             "format": "double"
           },
           "pageSize": {
+            "minimum": 1,
             "type": "integer",
             "description": "每页大小",
             "format": "int32"
@@ -23788,72 +22718,6 @@
         },
         "description": "基础返回体"
       },
-      "StageResponse": {
-        "type": "object",
-        "properties": {
-          "moduleId": {
-            "type": "integer",
-            "description": "模组Id，如果用户是模组创建者，moduleId不为空，可以对模组进行修改",
-            "format": "int64"
-          },
-          "stageId": {
-            "type": "integer",
-            "description": "暂存区id",
-            "format": "int64"
-          },
-          "userId": {
-            "type": "integer",
-            "description": "模组创建者id",
-            "format": "int64"
-          },
-          "branchId": {
-            "type": "integer",
-            "description": "处于哪个分支",
-            "format": "int64"
-          },
-          "image": {
-            "type": "string",
-            "description": "模组封面"
-          },
-          "moduleName": {
-            "type": "string",
-            "description": "模组名称"
-          },
-          "description": {
-            "type": "string",
-            "description": "模组的描述"
-          },
-          "maxTime": {
-            "type": "integer",
-            "description": "模组可能需要花费的时间，以小时为单位",
-            "format": "int32"
-          },
-          "maxPeople": {
-            "type": "integer",
-            "description": "模组需要人数",
-            "format": "int32"
-          },
-          "minTime": {
-            "type": "integer",
-            "description": "模组可能需要花费的时间，以小时为单位",
-            "format": "int32"
-          },
-          "minPeople": {
-            "type": "integer",
-            "description": "模组需要人数",
-            "format": "int32"
-          },
-          "parent": {
-            "type": "string",
-            "description": "从哪个模组fork来"
-          },
-          "authorName": {
-            "type": "string",
-            "description": "作者"
-          }
-        },
-        "description": "暂存区响应"
-      },
       "ApiResultListSpaceMember": {
         "required": [
           "success"
@@ -24311,56 +23175,6 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultFeedStatsResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/FeedStatsResponse"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "ApiResultMessageFeedWithStatsResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/MessageFeedWithStatsResponse"
-          }
-        },
-        "description": "基础返回体"
-      },
       "ApiResultEmoji": {
         "required": [
           "success"
@@ -24453,37 +23267,6 @@
             "description": "返回对象",
             "items": {
               "$ref": "#/components/schemas/Emoji"
-            }
-          }
-        },
-        "description": "基础返回体"
-      },
-      "ApiResultListLong": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "type": "integer",
-              "description": "返回对象",
-              "format": "int64"
             }
           }
         },

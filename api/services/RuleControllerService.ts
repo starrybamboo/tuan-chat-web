@@ -8,6 +8,7 @@ import type { ApiResultRule } from '../models/ApiResultRule';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { RuleCloneRequest } from '../models/RuleCloneRequest';
 import type { RuleCreateRequest } from '../models/RuleCreateRequest';
+import type { RuleFieldUpdateRequest } from '../models/RuleFieldUpdateRequest';
 import type { RulePageRequest } from '../models/RulePageRequest';
 import type { RuleUpdateRequest } from '../models/RuleUpdateRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -27,6 +28,29 @@ export class RuleControllerService {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/capi/rule/update',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 更新规则字段
+     * 更新规则的JSON字段，支持字段重命名和删除。新key为null表示删除该字段。
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public updateRuleFields(
+        requestBody: RuleFieldUpdateRequest,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'PUT',
+            url: '/capi/rule/updateFields',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

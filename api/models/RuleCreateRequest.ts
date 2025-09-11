@@ -17,10 +17,9 @@ export type RuleCreateRequest = {
     /**
      * 表演相关字段模板，如性别、年龄等信息
      */
-    actTemplate: Record<string, string>;
-    /**
-     * 数值相关默认值，如力量、敏捷等属性值
-     */
-    abilityDefault: Record<string, Record<string, any>>;
+    actTemplate?: Record<string, string>;
+    abilityFormula?: Record<string, string>;
+    skillDefault?: Record<string, string>;
+    basicDefault?: Record<string, string>;
 };
 
