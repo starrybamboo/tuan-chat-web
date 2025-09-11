@@ -409,24 +409,13 @@ export default function AICreateRole({
       </CreatePageHeader>
 
       <div className="space-y-6">
-        {/* AI生成卡片 */}
-
-        <AIGenerationCard
-          title="描述你的角色想法"
-          description="详细描述角色的背景、性格、能力特点，AI会根据描述生成完整的角色信息"
-          placeholder="例如：一个来自北方的勇敢战士，擅长双手剑，有着保护弱者的坚定信念，曾经是皇家骑士团的成员..."
-          prompt={aiPrompt}
-          isGenerating={isGenerating}
-          onPromptChange={setAiPrompt}
-          onGenerate={handleAIGenerate}
-        />
 
         {/* 主要内容区域 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 左侧：规则选择 */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 ">
             <div className="card bg-base-100 shadow-sm rounded-2xl border-2 border-base-content/10">
-              <div className="card-body">
+              <div className="card-body md:min-h-[448px]">
                 <h3 className="card-title text-lg mb-4">⚙️ 规则系统</h3>
                 <RulesSection
                   currentRuleId={selectedRuleId}
@@ -443,7 +432,7 @@ export default function AICreateRole({
           <div className="lg:col-span-2 space-y-6">
             {/* 基础信息 */}
             <div className="card bg-base-100 shadow-sm rounded-2xl border-2 border-base-content/10">
-              <div className="card-body">
+              <div className="card-body md:min-h-[448px]">
                 <h3 className="card-title text-lg mb-4">📝 基础信息</h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -503,7 +492,7 @@ export default function AICreateRole({
                       </span>
                     </div>
                     <textarea
-                      className={`textarea textarea-bordered rounded-md min-h-[120px] resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary ${errors.description ? "textarea-error" : ""}`}
+                      className={`textarea textarea-bordered rounded-md min-h-[220px] resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary ${errors.description ? "textarea-error" : ""}`}
                       placeholder="描述角色的背景故事、性格特点、外貌特征等..."
                       value={characterData.description}
                       maxLength={DESC_MAX}
@@ -518,6 +507,17 @@ export default function AICreateRole({
             </div>
           </div>
         </div>
+
+        {/* AI生成卡片 */}
+        <AIGenerationCard
+          title="描述你的角色想法"
+          description="详细描述角色的背景、性格、能力特点，AI会根据描述生成完整的角色信息"
+          placeholder="例如：一个来自北方的勇敢战士，擅长双手剑，有着保护弱者的坚定信念，曾经是皇家骑士团的成员..."
+          prompt={aiPrompt}
+          isGenerating={isGenerating}
+          onPromptChange={setAiPrompt}
+          onGenerate={handleAIGenerate}
+        />
 
         {/* 角色属性 - 只有在选择规则系统后才显示 */}
         {characterData.ruleId && (
