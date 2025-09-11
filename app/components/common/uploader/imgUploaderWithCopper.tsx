@@ -32,22 +32,20 @@ function centerSquareCrop(mediaWidth: number, mediaHeight: number) {
 }
 
 interface ImgUploaderWithCopperProps {
-  // 如果useState的话就填set函数. 会在返回后将downLoadUrl作为参数传入
-  // 如果没填就不会向oss上传图片
   setDownloadUrl?: (newUrl: string) => void | undefined;
   setCopperedDownloadUrl?: (newUrl: string) => void | undefined;
   children: React.ReactNode;
-  fileName: string;
+  fileName?: string;
   mutate?: (data: any) => void;
 }
 
 /**
  * 图片上传组件，带裁剪
  * @param {object} props 组件属性
- * @param {(url: string) => void} [props.setDownloadUrl] 上传原图完成后的回调
- * @param {(url: string) => void} [props.setCopperedDownloadUrl] 上传裁剪图完成后的回调
+ * @param {(url: string) => void} [props.setDownloadUrl] 上传原图完成后的回调, 会在返回后将downLoadUrl作为参数传入，如果没填就不会向oss上传图片
+ * @param {(url: string) => void} [props.setCopperedDownloadUrl] 上传裁剪图完成后的回调，同上。
  * @param {React.ReactNode} props.children 触发上传的子元素
- * @param {string} props.fileName 上传到图床的文件名（裁剪后的图片会带 -copper 后缀）
+ * @param {string} props.fileName 没什么用的参数，为了兼容旧代码。在图床使用hash作为文件名。
  * @param {(data: any) => void} [props.mutate] 可选的更新函数
  * @constructor
  */
@@ -182,7 +180,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
     const originalFile = imgFile.current;
     const fileWithNewName = new File(
       [originalFile],
-      fileName,
+      fileName ?? originalFile.name,
       {
         type: originalFile.type,
         lastModified: originalFile.lastModified,
