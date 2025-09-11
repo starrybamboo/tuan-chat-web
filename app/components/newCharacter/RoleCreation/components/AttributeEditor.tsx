@@ -37,7 +37,7 @@ export default function AttributeEditor({
     onRenameField?.(oldKey, newKey);
   };
   return (
-    <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
+    <div className="card bg-base-200">
       <div className="card-body">
         <h3 className="card-title text-lg flex items-center gap-2">
           ⚡

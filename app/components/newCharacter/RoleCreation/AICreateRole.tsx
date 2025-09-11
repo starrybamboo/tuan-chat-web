@@ -5,6 +5,7 @@ import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useCreateRoleMutation, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useEffect, useState } from "react";
 import RulesSection from "../rules/RulesSection";
+import Section from "../Section";
 import AIGenerationCard from "./components/AIGenerationCard";
 import AttributeEditor from "./components/AttributeEditor";
 import CreatePageHeader from "./components/CreatePageHeader";
@@ -75,6 +76,11 @@ export default function AICreateRole({
 
   // 检查是否可以保存
   const canSave = characterData.name.trim()
+    && characterData.description.trim()
+    && characterData.ruleId;
+
+  // 检查基础信息是否完整（用于AI生成）
+  const isBasicInfoComplete = characterData.name.trim()
     && characterData.description.trim()
     && characterData.ruleId;
 
@@ -210,7 +216,28 @@ export default function AICreateRole({
 
   // AI生成处理
   const handleAIGenerate = async () => {
-    if (!aiPrompt.trim() || !characterData.ruleId || !isValidRuleId) {
+    // 验证基础信息是否完整
+    if (!isBasicInfoComplete) {
+      // 设置错误提示
+      const newErrors: Record<string, string> = {};
+      if (!characterData.name.trim()) {
+        newErrors.name = "请先填写角色名称";
+      }
+      if (!characterData.description.trim()) {
+        newErrors.description = "请先填写角色描述";
+      }
+      if (!characterData.ruleId) {
+        newErrors.ruleId = "请先选择规则系统";
+      }
+      setErrors(newErrors);
+      return;
+    }
+
+    if (!aiPrompt.trim()) {
+      return;
+    }
+
+    if (!isValidRuleId) {
       return;
     }
 
@@ -220,8 +247,8 @@ export default function AICreateRole({
     try {
       const ruleId = selectedRuleId; // 使用已验证的 ruleId
 
-      // 生成基础信息 (act)
-      setCurrentGenerationStep("生成角色描述...");
+      // 生成角色表演能力 (act)
+      setCurrentGenerationStep("生成角色表演能力...");
       await new Promise((resolve) => {
         generateBasicInfoByRule(
           { ruleId, prompt: aiPrompt },
@@ -241,32 +268,55 @@ export default function AICreateRole({
               resolve(data);
             },
             onError: (error) => {
-              console.error("生成基础信息失败:", error);
+              console.error("生成角色表演能力失败:", error);
               resolve(null);
             },
           },
         );
       });
 
-      // 生成能力数据 (ability)
-      setCurrentGenerationStep("生成能力数据...");
+      // 生成基础信息、能力数据和技能 (basic + ability + skill)
+      setCurrentGenerationStep("生成基础信息、能力数据和技能...");
       await new Promise((resolve) => {
         generateAbilityByRule(
           { ruleId, prompt: aiPrompt },
           {
             onSuccess: (data) => {
               if (data?.data) {
-                // 新接口返回单层结构，统一转换为字符串
-                const abilityData: Record<string, string> = {};
+                // 处理返回的嵌套数据结构
+                const responseData = data.data;
 
-                // 直接处理单层数据结构
-                Object.entries(data.data).forEach(([key, value]) => {
-                  abilityData[key] = String(value);
-                });
+                // 提取 basic 数据
+                const basicData: Record<string, string> = {};
+                if (responseData.basic) {
+                  Object.entries(responseData.basic).forEach(([key, value]) => {
+                    basicData[key] = String(value);
+                  });
+                }
+
+                // 提取 ability 数据（对应"属性"字段）
+                const abilityData: Record<string, string> = {};
+                if (responseData.属性 || responseData.ability) {
+                  const abilitySource = responseData.属性 || responseData.ability;
+                  Object.entries(abilitySource).forEach(([key, value]) => {
+                    abilityData[key] = String(value);
+                  });
+                }
+
+                // 提取 skill 数据（对应"技能"字段）
+                const skillData: Record<string, string> = {};
+                if (responseData.技能 || responseData.skill) {
+                  const skillSource = responseData.技能 || responseData.skill;
+                  Object.entries(skillSource).forEach(([key, value]) => {
+                    skillData[key] = String(value);
+                  });
+                }
 
                 setCharacterData(prev => ({
                   ...prev,
+                  basic: { ...prev.basic, ...basicData },
                   ability: { ...prev.ability, ...abilityData },
+                  skill: { ...prev.skill, ...skillData },
                 }));
               }
               resolve(data);
@@ -409,24 +459,12 @@ export default function AICreateRole({
       </CreatePageHeader>
 
       <div className="space-y-6">
-        {/* AI生成卡片 */}
-
-        <AIGenerationCard
-          title="描述你的角色想法"
-          description="详细描述角色的背景、性格、能力特点，AI会根据描述生成完整的角色信息"
-          placeholder="例如：一个来自北方的勇敢战士，擅长双手剑，有着保护弱者的坚定信念，曾经是皇家骑士团的成员..."
-          prompt={aiPrompt}
-          isGenerating={isGenerating}
-          onPromptChange={setAiPrompt}
-          onGenerate={handleAIGenerate}
-        />
-
         {/* 主要内容区域 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 左侧：规则选择 */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 ">
             <div className="card bg-base-100 shadow-sm rounded-2xl border-2 border-base-content/10">
-              <div className="card-body">
+              <div className="card-body md:min-h-[448px]">
                 <h3 className="card-title text-lg mb-4">⚙️ 规则系统</h3>
                 <RulesSection
                   currentRuleId={selectedRuleId}
@@ -443,36 +481,19 @@ export default function AICreateRole({
           <div className="lg:col-span-2 space-y-6">
             {/* 基础信息 */}
             <div className="card bg-base-100 shadow-sm rounded-2xl border-2 border-base-content/10">
-              <div className="card-body">
-                <h3 className="card-title text-lg mb-4">📝 基础信息</h3>
+              <div className="card-body md:min-h-[448px]">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="card-title text-lg">📝 基础信息</h3>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* 头像上传 */}
-                  {/* <div className="md:col-span-2">
-                    <div className="flex gap-2 mb-2 items-center font-semibold">
-                      <span>角色头像</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 border-2 border-dashed border-base-content/20 rounded-md flex items-center justify-center">
-                        <svg className="w-8 h-8 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                      </div>
-                      <div className="text-sm text-base-content/60">
-                        点击上传或拖拽图片到此处
-                        <br />
-                        支持 JPG、PNG 格式
-                      </div>
-                    </div>
-                    <div className="text-xs text-base-content/60 mt-2">
-                      支持多种表情和姿态的差分图片
-                    </div>
-                  </div> */}
-
                   {/* 角色名 */}
                   <div className="form-control">
                     <div className="flex gap-2 mb-2 items-center font-semibold">
                       <span>角色名称</span>
+                      {characterData.name.trim() && (
+                        <span className="text-success text-xs">✓</span>
+                      )}
                       <span className="label-text-alt text-base-content/60">
                         {characterData.name.length}
                         /
@@ -481,7 +502,7 @@ export default function AICreateRole({
                     </div>
                     <input
                       type="text"
-                      className={`input input-bordered rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary ${errors.name ? "input-error" : ""}`}
+                      className={`input input-bordered rounded-md w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary ${errors.name ? "input-error" : characterData.name.trim() ? "input-success" : ""}`}
                       placeholder="输入角色名称"
                       value={characterData.name}
                       maxLength={NAME_MAX}
@@ -496,6 +517,9 @@ export default function AICreateRole({
                   <div className="form-control md:col-span-2">
                     <div className="flex gap-2 mb-2 items-center font-semibold">
                       <span>角色描述</span>
+                      {characterData.description.trim() && (
+                        <span className="text-success text-xs">✓</span>
+                      )}
                       <span className="label-text-alt text-base-content/60">
                         {characterData.description.length}
                         /
@@ -503,7 +527,7 @@ export default function AICreateRole({
                       </span>
                     </div>
                     <textarea
-                      className={`textarea textarea-bordered rounded-md min-h-[120px] resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary ${errors.description ? "textarea-error" : ""}`}
+                      className={`textarea textarea-bordered rounded-md min-h-[220px] resize-y w-full transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary ${errors.description ? "textarea-error" : characterData.description.trim() ? "textarea-success" : ""}`}
                       placeholder="描述角色的背景故事、性格特点、外貌特征等..."
                       value={characterData.description}
                       maxLength={DESC_MAX}
@@ -519,50 +543,149 @@ export default function AICreateRole({
           </div>
         </div>
 
+        {/* AI生成卡片 */}
+        <AIGenerationCard
+          title="描述你的角色想法"
+          description="详细描述角色的背景、性格、能力特点，AI会根据描述生成完整的角色信息"
+          placeholder="例如：一个来自北方的勇敢战士，擅长双手剑，有着保护弱者的坚定信念，曾经是皇家骑士团的成员..."
+          prompt={aiPrompt}
+          isGenerating={isGenerating}
+          disabled={!isBasicInfoComplete}
+          onPromptChange={setAiPrompt}
+          onGenerate={handleAIGenerate}
+        />
+
+        {/* 基础信息完整性提示 */}
+        {!isBasicInfoComplete && (
+          <div className="alert alert-info">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+              <h3 className="font-bold">请先完善基础信息</h3>
+              <div className="text-sm">
+                需要填写角色名称、角色描述并选择规则系统后才能使用AI生成功能
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 角色属性 - 只有在选择规则系统后才显示 */}
         {characterData.ruleId && (
           <>
             <div className="divider"></div>
             <div className="space-y-6">
               {/* 角色表演能力 */}
-              <AttributeEditor
-                title="角色表演能力"
-                attributes={characterData.act}
-                onChange={(key, value) => handleAttributeChange("act", key, value)}
-                onAddField={(key, value) => handleAddField("act", key, value)}
-                onDeleteField={key => handleDeleteField("act", key)}
-                onRenameField={(oldKey, newKey) => handleRenameField("act", oldKey, newKey)}
-              />
+              <Section title="角色表演能力" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+                {currentGenerationStep === "生成角色表演能力..."
+                  ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="flex flex-col items-center gap-4">
+                          <span className="loading loading-spinner loading-lg text-primary"></span>
+                          <div className="text-center">
+                            <div className="text-lg font-medium text-primary">AI正在生成中...</div>
+                            <div className="text-sm text-base-content/60 mt-1">
+                              {currentGenerationStep}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  : (
+                      <AttributeEditor
+                        title="角色表演能力"
+                        attributes={characterData.act}
+                        onChange={(key, value) => handleAttributeChange("act", key, value)}
+                        onAddField={(key, value) => handleAddField("act", key, value)}
+                        onDeleteField={key => handleDeleteField("act", key)}
+                        onRenameField={(oldKey, newKey) => handleRenameField("act", oldKey, newKey)}
+                      />
+                    )}
+              </Section>
 
               {/* 基础能力值 */}
-              <AttributeEditor
-                title="基础能力值"
-                attributes={characterData.basic}
-                onChange={(key, value) => handleAttributeChange("basic", key, value)}
-                onAddField={(key, value) => handleAddField("basic", key, value)}
-                onDeleteField={key => handleDeleteField("basic", key)}
-                onRenameField={(oldKey, newKey) => handleRenameField("basic", oldKey, newKey)}
-              />
+              <Section title="基础属性配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+                {currentGenerationStep === "生成基础信息、能力数据和技能..."
+                  ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="flex flex-col items-center gap-4">
+                          <span className="loading loading-spinner loading-lg text-primary"></span>
+                          <div className="text-center">
+                            <div className="text-lg font-medium text-primary">AI正在生成中...</div>
+                            <div className="text-sm text-base-content/60 mt-1">
+                              {currentGenerationStep}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  : (
+                      <AttributeEditor
+                        title="基础能力值"
+                        attributes={characterData.basic}
+                        onChange={(key, value) => handleAttributeChange("basic", key, value)}
+                        onAddField={(key, value) => handleAddField("basic", key, value)}
+                        onDeleteField={key => handleDeleteField("basic", key)}
+                        onRenameField={(oldKey, newKey) => handleRenameField("basic", oldKey, newKey)}
+                      />
+                    )}
+              </Section>
 
               {/* 计算能力值 */}
-              <AttributeEditor
-                title="计算能力值"
-                attributes={characterData.ability}
-                onChange={(key, value) => handleAttributeChange("ability", key, value)}
-                onAddField={(key, value) => handleAddField("ability", key, value)}
-                onDeleteField={key => handleDeleteField("ability", key)}
-                onRenameField={(oldKey, newKey) => handleRenameField("ability", oldKey, newKey)}
-              />
+              <Section title="能力配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+                {currentGenerationStep === "生成基础信息、能力数据和技能..."
+                  ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="flex flex-col items-center gap-4">
+                          <span className="loading loading-spinner loading-lg text-primary"></span>
+                          <div className="text-center">
+                            <div className="text-lg font-medium text-primary">AI正在生成中...</div>
+                            <div className="text-sm text-base-content/60 mt-1">
+                              {currentGenerationStep}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  : (
+                      <AttributeEditor
+                        title="计算能力值"
+                        attributes={characterData.ability}
+                        onChange={(key, value) => handleAttributeChange("ability", key, value)}
+                        onAddField={(key, value) => handleAddField("ability", key, value)}
+                        onDeleteField={key => handleDeleteField("ability", key)}
+                        onRenameField={(oldKey, newKey) => handleRenameField("ability", oldKey, newKey)}
+                      />
+                    )}
+              </Section>
 
               {/* 技能设定 */}
-              <AttributeEditor
-                title="技能设定"
-                attributes={characterData.skill}
-                onChange={(key, value) => handleAttributeChange("skill", key, value)}
-                onAddField={(key, value) => handleAddField("skill", key, value)}
-                onDeleteField={key => handleDeleteField("skill", key)}
-                onRenameField={(oldKey, newKey) => handleRenameField("skill", oldKey, newKey)}
-              />
+              <Section title="技能设定" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+                {currentGenerationStep === "生成基础信息、能力数据和技能..."
+                  ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="flex flex-col items-center gap-4">
+                          <span className="loading loading-spinner loading-lg text-primary"></span>
+                          <div className="text-center">
+                            <div className="text-lg font-medium text-primary">AI正在生成中...</div>
+                            <div className="text-sm text-base-content/60 mt-1">
+                              {currentGenerationStep}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  : (
+                      <AttributeEditor
+                        title="技能设定"
+                        attributes={characterData.skill}
+                        onChange={(key, value) => handleAttributeChange("skill", key, value)}
+                        onAddField={(key, value) => handleAddField("skill", key, value)}
+                        onDeleteField={key => handleDeleteField("skill", key)}
+                        onRenameField={(oldKey, newKey) => handleRenameField("skill", oldKey, newKey)}
+                      />
+                    )}
+              </Section>
             </div>
           </>
         )}

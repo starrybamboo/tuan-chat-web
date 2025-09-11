@@ -1,11 +1,13 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
+import { useNavigate } from "react-router";
 // eslint-disable-next-line ts/ban-ts-comment
 // @ts-expect-error
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
+import LinkComponent from "./linkHandler";
 // 由于tailwind的preflight.css覆盖了原本的html样式，这里需要重新定义样式
 const MARKDOWN_STYLES = `
   [&_h1]:text-4xl [&_h1]:font-bold [&_h1]:my-6
@@ -115,16 +117,20 @@ function MediaEmbed({ type, src }: { type: string; src: string }) {
 
 /**
  * markdown渲染器，很简单，传一个string就可以用
- * @param content markdown内容
+ * @param props - 组件属性
+ * @param props.content - markdown内容
  * @constructor
  */
 export function MarkDownViewer({ content }: { content: string }) {
+  const navigate = useNavigate();
+
   return (
     <div className={`prose max-w-none ${MARKDOWN_STYLES} overflow-hidden`}>
       <ReactMarkdown
         rehypePlugins={[rehypeRaw, rehypeSanitize]}
         remarkPlugins={[remarkGfm]}
         components={{
+          a: (props: any) => <LinkComponent {...props} navigate={navigate} />,
           code(props) {
             const { children, className, node, ...rest } = props;
             const match = /language-(\w+)/.exec(className || "");
@@ -145,7 +151,8 @@ export function MarkDownViewer({ content }: { content: string }) {
           },
           p({ node, children, ...props }: any) {
             // 收集所有文本节点内容
-            const textContent = React.Children.toArray(children)
+            const childrenArray = Array.isArray(children) ? children : [children];
+            const textContent = childrenArray
               .map(child => typeof child === "string" ? child : "")
               .join("");
 

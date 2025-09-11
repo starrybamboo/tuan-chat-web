@@ -177,7 +177,10 @@ export default function NumericalEditor({
     } ${isEditing ? "ring-2 ring-primary" : ""}`}
     >
       <div className="flex justify-between items-center mb-4">
-        <h3 className="font-bold">{title}</h3>
+        <h3 className="card-title text-lg flex items-center gap-2 ml-1">
+          ⚡
+          {title}
+        </h3>
         <button
           type="button"
           onClick={isEditing ? handleExitEditing : () => setIsEditing(true)}
