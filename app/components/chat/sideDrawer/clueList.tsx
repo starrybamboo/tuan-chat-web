@@ -3,6 +3,7 @@ import { useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
 import { useGetRoomItemsQuery, useGetRoomLocationsQuery } from "api/hooks/spaceModuleHooks";
 import { use, useMemo, useState } from "react";
 import DisplayOfItemDetail from "../displayOfItemsDetail";
+import DisplayOfLocationDetail from "../displayOfLocationDetail";
 import { RoomContext } from "../roomContext";
 
 export default function ClueList() {
@@ -27,6 +28,7 @@ export default function ClueList() {
   };
 
   const [selectedItemId, setSelectedItemId] = useState<number>(-1);
+  const [selectedLocationId, setSelectedLocationId] = useState<number>(-1);
 
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const toggleSection = (sectionId: string) => {
@@ -204,6 +206,7 @@ export default function ClueList() {
                             <button
                               type="button"
                               className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+                              onClick={() => setSelectedLocationId(location.id ?? -1)}
                             >
                               查看
                             </button>
@@ -225,6 +228,15 @@ export default function ClueList() {
       >
         {selectedItemId && (
           <DisplayOfItemDetail itemId={selectedItemId} />
+        )}
+      </PopWindow>
+      {/* 地点详情窗口 */}
+      <PopWindow
+        isOpen={selectedLocationId > 0}
+        onClose={() => setSelectedLocationId(-1)}
+      >
+        {selectedLocationId && (
+          <DisplayOfLocationDetail locationId={selectedLocationId} />
         )}
       </PopWindow>
     </div>
