@@ -108,19 +108,31 @@ export function UserDetail({ userId }: UserDetailProps) {
         {/* 统计 + 操作区域 */}
         <div className="flex items-center justify-between mt-2 gap-4">
           <div className="flex gap-6">
-            <div
-              className="flex flex-col items-center pointer-events-none"
-            >
-              <span className="text-sm font-medium">{followStats.following}</span>
-              <span className="text-[11px] opacity-70 leading-none mt-0.5">关注</span>
+            {/* 关注 */}
+            <div className="flex flex-col items-center">
+              <a
+                href={`/profile/${userId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span className="text-sm font-medium pr-2">{followStats.following}</span>
+                <span className="text-[11px] opacity-70 leading-none mt-0.5">关注</span>
+              </a>
             </div>
-            <div
-              className="flex flex-col items-center pointer-events-none"
-            >
-              <span className="text-sm font-medium">{followStats.followers}</span>
-              <span className="text-[11px] opacity-70 leading-none mt-0.5">粉丝</span>
+
+            {/* 粉丝 */}
+            <div className="flex flex-col items-center">
+              <a
+                href={`/profile/${userId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span className="text-sm font-medium pr-2">{followStats.followers}</span>
+                <span className="text-[11px] opacity-70 leading-none mt-0.5">粉丝</span>
+              </a>
             </div>
           </div>
+
           {user?.userId !== loginUserId && (
             <div className="flex items-center gap-2 ml-auto">
               <FollowButton userId={user?.userId || 0} />
