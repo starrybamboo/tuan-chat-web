@@ -1435,3 +1435,21 @@ export function DislikeLine(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+// 对勾图标
+// 其他关键词：确认，完成，勾选，成功，正确
+export function CheckIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      {...props}
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
