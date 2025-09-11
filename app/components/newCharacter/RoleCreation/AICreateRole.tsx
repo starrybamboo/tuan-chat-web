@@ -221,8 +221,8 @@ export default function AICreateRole({
     try {
       const ruleId = selectedRuleId; // 使用已验证的 ruleId
 
-      // 生成基础信息 (act)
-      setCurrentGenerationStep("生成角色描述...");
+      // 生成角色表演能力 (act)
+      setCurrentGenerationStep("生成角色表演能力...");
       await new Promise((resolve) => {
         generateBasicInfoByRule(
           { ruleId, prompt: aiPrompt },
@@ -242,32 +242,55 @@ export default function AICreateRole({
               resolve(data);
             },
             onError: (error) => {
-              console.error("生成基础信息失败:", error);
+              console.error("生成角色表演能力失败:", error);
               resolve(null);
             },
           },
         );
       });
 
-      // 生成能力数据 (ability)
-      setCurrentGenerationStep("生成能力数据...");
+      // 生成基础信息、能力数据和技能 (basic + ability + skill)
+      setCurrentGenerationStep("生成基础信息、能力数据和技能...");
       await new Promise((resolve) => {
         generateAbilityByRule(
           { ruleId, prompt: aiPrompt },
           {
             onSuccess: (data) => {
               if (data?.data) {
-                // 新接口返回单层结构，统一转换为字符串
-                const abilityData: Record<string, string> = {};
+                // 处理返回的嵌套数据结构
+                const responseData = data.data;
 
-                // 直接处理单层数据结构
-                Object.entries(data.data).forEach(([key, value]) => {
-                  abilityData[key] = String(value);
-                });
+                // 提取 basic 数据
+                const basicData: Record<string, string> = {};
+                if (responseData.basic) {
+                  Object.entries(responseData.basic).forEach(([key, value]) => {
+                    basicData[key] = String(value);
+                  });
+                }
+
+                // 提取 ability 数据（对应"属性"字段）
+                const abilityData: Record<string, string> = {};
+                if (responseData.属性 || responseData.ability) {
+                  const abilitySource = responseData.属性 || responseData.ability;
+                  Object.entries(abilitySource).forEach(([key, value]) => {
+                    abilityData[key] = String(value);
+                  });
+                }
+
+                // 提取 skill 数据（对应"技能"字段）
+                const skillData: Record<string, string> = {};
+                if (responseData.技能 || responseData.skill) {
+                  const skillSource = responseData.技能 || responseData.skill;
+                  Object.entries(skillSource).forEach(([key, value]) => {
+                    skillData[key] = String(value);
+                  });
+                }
 
                 setCharacterData(prev => ({
                   ...prev,
+                  basic: { ...prev.basic, ...basicData },
                   ability: { ...prev.ability, ...abilityData },
+                  skill: { ...prev.skill, ...skillData },
                 }));
               }
               resolve(data);
@@ -437,28 +460,6 @@ export default function AICreateRole({
                 <h3 className="card-title text-lg mb-4">📝 基础信息</h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* 头像上传 */}
-                  {/* <div className="md:col-span-2">
-                    <div className="flex gap-2 mb-2 items-center font-semibold">
-                      <span>角色头像</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 border-2 border-dashed border-base-content/20 rounded-md flex items-center justify-center">
-                        <svg className="w-8 h-8 text-base-content/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                      </div>
-                      <div className="text-sm text-base-content/60">
-                        点击上传或拖拽图片到此处
-                        <br />
-                        支持 JPG、PNG 格式
-                      </div>
-                    </div>
-                    <div className="text-xs text-base-content/60 mt-2">
-                      支持多种表情和姿态的差分图片
-                    </div>
-                  </div> */}
-
                   {/* 角色名 */}
                   <div className="form-control">
                     <div className="flex gap-2 mb-2 items-center font-semibold">
