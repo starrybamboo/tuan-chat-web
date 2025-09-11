@@ -175,41 +175,50 @@ export default function CommunityPostList() {
 
               {/* 帖子内容区域 */}
               <div
-                className="flex gap-4"
+                className="space-y-4"
                 onClick={() => navigate(`/community/${communityId}/${post?.postListItem?.communityPostId}`)}
               >
-                {/* 左侧内容：优先显示message，没有message则显示coverImage */}
-                {post?.postListItem?.message?.message
-                  ? (
-                      <div className="flex-shrink-0">
-                        <div className="w-32 h-24 rounded-lg overflow-hidden bg-base-200">
-                          <RoomContext value={roomContextValue}>
-                            <SpaceContext value={spaceContextValue}>
-                              <ForwardMessage messageResponse={post?.postListItem?.message} />
-                            </SpaceContext>
-                          </RoomContext>
-                        </div>
-                      </div>
-                    )
-                  : post?.postListItem?.coverImage
-                    ? (
-                        <div className="flex-shrink-0">
-                          <div className="w-32 h-24 rounded-lg overflow-hidden bg-base-200">
-                            <img
-                              src={post.postListItem.coverImage}
-                              alt="帖子封面"
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                          </div>
-                        </div>
-                      )
-                    : null}
-
-                {/* 右侧内容 */}
-                <div className="flex-1 min-w-0">
+                {/* 正文内容 */}
+                <div className="w-full">
                   <p className="text-base-content/80 line-clamp-3 break-all lg:break-normal text-sm leading-relaxed">
                     {post?.postListItem?.description}
                   </p>
+                </div>
+
+                {/* 封面图片和转发消息：智能布局 */}
+                <div className="w-full overflow-hidden">
+                  {/* 检查是否有转发消息或封面图片 */}
+                  {(post?.postListItem?.message?.message || post?.postListItem?.coverImage) && (
+                    <div className="flex gap-2 lg:gap-4 overflow-hidden items-start">
+                      {/* 转发消息组件 */}
+                      {post?.postListItem?.message?.message && (
+                        <div className={`${post?.postListItem?.coverImage ? "flex-1 min-w-0 lg:flex-none lg:max-w-md" : "w-full"} overflow-hidden`}>
+                          <div className={`rounded-lg overflow-hidden bg-base-200 ${post?.postListItem?.coverImage ? "h-32 lg:h-40" : "h-auto"}`}>
+                            <RoomContext value={roomContextValue}>
+                              <SpaceContext value={spaceContextValue}>
+                                <div className={`w-full h-full overflow-hidden ${post?.postListItem?.coverImage ? "transform scale-90 lg:scale-100 origin-top-left lg:origin-center" : "transform scale-75 origin-top-left"}`}>
+                                  <ForwardMessage messageResponse={post?.postListItem?.message} />
+                                </div>
+                              </SpaceContext>
+                            </RoomContext>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 封面图片组件 */}
+                      {post?.postListItem?.coverImage && (
+                        <div className={`${post?.postListItem?.message?.message ? "flex-shrink-0 w-32 lg:w-fit" : "w-full"} overflow-hidden`}>
+                          <div className={`rounded-lg overflow-hidden bg-base-200 ${post?.postListItem?.message?.message ? "w-32 h-32 lg:w-fit lg:h-40" : "w-full h-32"}`}>
+                            <img
+                              src={post.postListItem.coverImage}
+                              alt="帖子封面"
+                              className={`h-full object-cover group-hover:scale-105 transition-transform duration-300 ${post?.postListItem?.message?.message ? "w-32 lg:w-auto" : "w-full"}`}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
