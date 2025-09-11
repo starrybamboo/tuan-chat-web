@@ -25,7 +25,7 @@ export default function RoomButton({ room, unreadMessageNumber, onclick, isActiv
               </span>
             )
           : null}
-        <div className="avatar mask mask-squircle w-8">
+        <div className="mask mask-squircle size-8">
           <img
             src={room.avatar}
             alt={room.name}
