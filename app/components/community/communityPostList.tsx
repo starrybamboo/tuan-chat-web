@@ -20,11 +20,15 @@ import {
 
 const PAGE_SIZE = 10;
 
+interface CommunityPostListProps {
+  onPostClick?: (postId: number) => void;
+}
+
 /**
  * 社区帖子列表
  * @constructor
  */
-export default function CommunityPostList() {
+export default function CommunityPostList({ onPostClick }: CommunityPostListProps = {}) {
   const communityContext = use(CommunityContext);
 
   const communityId = communityContext.communityId ?? -1;
@@ -176,7 +180,17 @@ export default function CommunityPostList() {
               {/* 帖子内容区域 */}
               <div
                 className="space-y-4"
-                onClick={() => navigate(`/community/${communityId}/${post?.postListItem?.communityPostId}`)}
+                onClick={() => {
+                  const postId = post?.postListItem?.communityPostId;
+                  if (postId) {
+                    if (onPostClick) {
+                      onPostClick(postId);
+                    }
+                    else {
+                      navigate(`/community/${communityId}/${postId}`);
+                    }
+                  }
+                }}
               >
                 {/* 正文内容 */}
                 <div className="w-full">
@@ -232,9 +246,6 @@ export default function CommunityPostList() {
                     isRounded={true}
                     withName={true}
                   />
-                  <div className="text-xs text-base-content/40">
-                    <span>刚刚</span>
-                  </div>
                 </div>
 
                 {/* 右侧统计信息 TODO: 抽出为统一的组件 */}
