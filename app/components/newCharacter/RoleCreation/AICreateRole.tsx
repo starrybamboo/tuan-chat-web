@@ -433,7 +433,6 @@ export default function AICreateRole({
       </CreatePageHeader>
 
       <div className="space-y-6">
-
         {/* 主要内容区域 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* 左侧：规则选择 */}
@@ -528,50 +527,114 @@ export default function AICreateRole({
             <div className="space-y-6">
               {/* 角色表演能力 */}
               <Section title="角色表演能力" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
-                <AttributeEditor
-                  title="角色表演能力"
-                  attributes={characterData.act}
-                  onChange={(key, value) => handleAttributeChange("act", key, value)}
-                  onAddField={(key, value) => handleAddField("act", key, value)}
-                  onDeleteField={key => handleDeleteField("act", key)}
-                  onRenameField={(oldKey, newKey) => handleRenameField("act", oldKey, newKey)}
-                />
+                {currentGenerationStep === "生成角色表演能力..."
+                  ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="flex flex-col items-center gap-4">
+                          <span className="loading loading-spinner loading-lg text-primary"></span>
+                          <div className="text-center">
+                            <div className="text-lg font-medium text-primary">AI正在生成中...</div>
+                            <div className="text-sm text-base-content/60 mt-1">
+                              {currentGenerationStep}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  : (
+                      <AttributeEditor
+                        title="角色表演能力"
+                        attributes={characterData.act}
+                        onChange={(key, value) => handleAttributeChange("act", key, value)}
+                        onAddField={(key, value) => handleAddField("act", key, value)}
+                        onDeleteField={key => handleDeleteField("act", key)}
+                        onRenameField={(oldKey, newKey) => handleRenameField("act", oldKey, newKey)}
+                      />
+                    )}
               </Section>
 
               {/* 基础能力值 */}
               <Section title="基础属性配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
-                <AttributeEditor
-                  title="基础能力值"
-                  attributes={characterData.basic}
-                  onChange={(key, value) => handleAttributeChange("basic", key, value)}
-                  onAddField={(key, value) => handleAddField("basic", key, value)}
-                  onDeleteField={key => handleDeleteField("basic", key)}
-                  onRenameField={(oldKey, newKey) => handleRenameField("basic", oldKey, newKey)}
-                />
+                {currentGenerationStep === "生成基础信息、能力数据和技能..."
+                  ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="flex flex-col items-center gap-4">
+                          <span className="loading loading-spinner loading-lg text-primary"></span>
+                          <div className="text-center">
+                            <div className="text-lg font-medium text-primary">AI正在生成中...</div>
+                            <div className="text-sm text-base-content/60 mt-1">
+                              {currentGenerationStep}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  : (
+                      <AttributeEditor
+                        title="基础能力值"
+                        attributes={characterData.basic}
+                        onChange={(key, value) => handleAttributeChange("basic", key, value)}
+                        onAddField={(key, value) => handleAddField("basic", key, value)}
+                        onDeleteField={key => handleDeleteField("basic", key)}
+                        onRenameField={(oldKey, newKey) => handleRenameField("basic", oldKey, newKey)}
+                      />
+                    )}
               </Section>
 
               {/* 计算能力值 */}
               <Section title="能力配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
-                <AttributeEditor
-                  title="计算能力值"
-                  attributes={characterData.ability}
-                  onChange={(key, value) => handleAttributeChange("ability", key, value)}
-                  onAddField={(key, value) => handleAddField("ability", key, value)}
-                  onDeleteField={key => handleDeleteField("ability", key)}
-                  onRenameField={(oldKey, newKey) => handleRenameField("ability", oldKey, newKey)}
-                />
+                {currentGenerationStep === "生成基础信息、能力数据和技能..."
+                  ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="flex flex-col items-center gap-4">
+                          <span className="loading loading-spinner loading-lg text-primary"></span>
+                          <div className="text-center">
+                            <div className="text-lg font-medium text-primary">AI正在生成中...</div>
+                            <div className="text-sm text-base-content/60 mt-1">
+                              {currentGenerationStep}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  : (
+                      <AttributeEditor
+                        title="计算能力值"
+                        attributes={characterData.ability}
+                        onChange={(key, value) => handleAttributeChange("ability", key, value)}
+                        onAddField={(key, value) => handleAddField("ability", key, value)}
+                        onDeleteField={key => handleDeleteField("ability", key)}
+                        onRenameField={(oldKey, newKey) => handleRenameField("ability", oldKey, newKey)}
+                      />
+                    )}
               </Section>
 
               {/* 技能设定 */}
               <Section title="技能设定" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
-                <AttributeEditor
-                  title="技能设定"
-                  attributes={characterData.skill}
-                  onChange={(key, value) => handleAttributeChange("skill", key, value)}
-                  onAddField={(key, value) => handleAddField("skill", key, value)}
-                  onDeleteField={key => handleDeleteField("skill", key)}
-                  onRenameField={(oldKey, newKey) => handleRenameField("skill", oldKey, newKey)}
-                />
+                {currentGenerationStep === "生成基础信息、能力数据和技能..."
+                  ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="flex flex-col items-center gap-4">
+                          <span className="loading loading-spinner loading-lg text-primary"></span>
+                          <div className="text-center">
+                            <div className="text-lg font-medium text-primary">AI正在生成中...</div>
+                            <div className="text-sm text-base-content/60 mt-1">
+                              {currentGenerationStep}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  : (
+                      <AttributeEditor
+                        title="技能设定"
+                        attributes={characterData.skill}
+                        onChange={(key, value) => handleAttributeChange("skill", key, value)}
+                        onAddField={(key, value) => handleAddField("skill", key, value)}
+                        onDeleteField={key => handleDeleteField("skill", key)}
+                        onRenameField={(oldKey, newKey) => handleRenameField("skill", oldKey, newKey)}
+                      />
+                    )}
               </Section>
             </div>
           </>
