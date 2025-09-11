@@ -171,7 +171,20 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
               className="bg-base-100 rounded-2xl border border-base-200 shadow-sm p-6 transition-all duration-300 hover:shadow-lg hover:border cursor-pointer group"
             >
               {/* 标题头部 */}
-              <div className="flex items-start justify-between mb-4">
+              <div
+                className="flex items-start justify-between mb-4 cursor-pointer"
+                onClick={() => {
+                  const postId = post?.postListItem?.communityPostId;
+                  if (postId) {
+                    if (onPostClick) {
+                      onPostClick(postId);
+                    }
+                    else {
+                      navigate(`/community/${communityId}/${postId}`);
+                    }
+                  }
+                }}
+              >
                 <h3 className="text-xl font-bold group-hover:text-info transition-colors line-clamp-2 flex-1 mr-4">
                   {post?.postListItem?.title || "无标题帖子"}
                 </h3>
