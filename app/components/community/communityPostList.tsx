@@ -1,17 +1,18 @@
 import type { StoredPost } from "@/components/community/postEditor";
+import type { PostListWithStatsResponse } from "api";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import Pagination from "@/components/common/form/pagination";
 import IllegalURLPage from "@/components/common/illegalURLPage";
 import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { CommunityContext } from "@/components/community/communityContext";
 import PostEditor from "@/components/community/postEditor";
-import React, { use } from "react";
+import { useIntersectionObserver } from "@uidotdev/usehooks";
+import React, { use, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import {
   useDeletePostMutation,
-  usePageCommunityPostsQuery,
+  usePageCommunityPostsInfiniteQuery,
   usePublishPostMutation,
 } from "../../../api/hooks/communityQueryHooks";
 
@@ -26,19 +27,31 @@ export default function CommunityPostList() {
 
   const communityId = communityContext.communityId ?? -1;
 
-  const [pageNoStr, setPageNo] = useSearchParamsState<number>("pageNo", 1);
-  const pageNo = Number(pageNoStr);
-
   const navigate = useNavigate();
 
   const [isPublishWindowOpen, setIsPublishWindowOpen] = useSearchParamsState<boolean>("editPop", false);
 
-  // 获取帖子列表
-  const pageCommunityPostsQuery = usePageCommunityPostsQuery(
-    { communityId, pageNo, pageSize: PAGE_SIZE },
-  );
-  const posts = pageCommunityPostsQuery.data?.data?.list ?? [];
-  const totalPages = Math.ceil((pageCommunityPostsQuery.data?.data?.totalRecords ?? 0) / PAGE_SIZE);
+  // 无限滚动相关
+  const [postRef, postEntry] = useIntersectionObserver();
+  const FETCH_ON_REMAIN = 2;
+
+  // 获取帖子列表 - 使用无限查询
+  const pageCommunityPostsQuery = usePageCommunityPostsInfiniteQuery({
+    communityId,
+    pageSize: PAGE_SIZE,
+  });
+
+  // 将分页数据 flatten
+  const posts: PostListWithStatsResponse[] = useMemo(() => {
+    return pageCommunityPostsQuery.data?.pages.flatMap(p => p.data?.list ?? []) ?? [];
+  }, [pageCommunityPostsQuery.data?.pages]);
+
+  // 无限滚动逻辑
+  useEffect(() => {
+    if (postEntry?.isIntersecting && !pageCommunityPostsQuery.isFetching && pageCommunityPostsQuery.hasNextPage) {
+      void pageCommunityPostsQuery.fetchNextPage();
+    }
+  }, [postEntry?.isIntersecting, pageCommunityPostsQuery.isFetching, pageCommunityPostsQuery.hasNextPage, pageCommunityPostsQuery]);
 
   // 删除帖子mutation
   const deletePostMutation = useDeletePostMutation();
@@ -85,6 +98,7 @@ export default function CommunityPostList() {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-base-content">社区帖子</h2>
         <button
+          type="button"
           className="btn btn-info gap-2 shadow-lg hover:shadow/30"
           onClick={() => setIsPublishWindowOpen(true)}
         >
@@ -128,7 +142,7 @@ export default function CommunityPostList() {
           </svg>
           <h3 className="text-xl text-base-content/50 mb-2">暂无帖子</h3>
           <p className="text-base-content/40 mb-4">成为第一个在此社区发帖的人</p>
-          <button className="btn btn-info btn-sm" onClick={() => setIsPublishWindowOpen(true)}>
+          <button type="button" className="btn btn-info btn-sm" onClick={() => setIsPublishWindowOpen(true)}>
             发布帖子
           </button>
         </div>
@@ -136,29 +150,31 @@ export default function CommunityPostList() {
 
       {posts.length > 0 && (
         <div className="space-y-5">
-          {posts.map(post => (
+          {posts.map((post, index) => (
             <div
-              key={post.communityPostId}
+              key={post?.postListItem?.communityPostId}
+              ref={index === posts.length - FETCH_ON_REMAIN ? postRef : null}
               className="bg-base-100 rounded-2xl border border-base-200 shadow-sm p-6 transition-all duration-300 hover:shadow-lg hover:border cursor-pointer group"
             >
               <div className="flex items-start gap-4">
-                <UserAvatarComponent userId={post.userId ?? -1} width={12} isRounded={true}></UserAvatarComponent>
-                <div className="flex-1" onClick={() => navigate(`/community/${communityId}/${post.communityPostId}`)}>
+                <UserAvatarComponent userId={post?.postListItem?.userId ?? -1} width={12} isRounded={true}></UserAvatarComponent>
+                <div className="flex-1" onClick={() => navigate(`/community/${communityId}/${post?.postListItem?.communityPostId}`)}>
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="text-xl font-bold group-hover:text-info transition-colors line-clamp-1">
-                        {post.title || "无标题帖子"}
+                        {post?.postListItem?.title || "无标题帖子"}
                       </h3>
                       <p className="text-base-content/80 mt-2 line-clamp-3 break-all lg:break-normal">
-                        {post.content}
+                        {post?.postListItem?.description}
                       </p>
                     </div>
 
                     <button
+                      type="button"
                       className="btn btn-circle btn-sm btn-ghost text-error/60 hover:text-error group-hover:opacity-100 opacity-0 transition-opacity"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeletePost(post.communityPostId ?? -1);
+                        handleDeletePost(post?.postListItem?.communityPostId ?? -1);
                       }}
                       aria-label="删除帖子"
                     >
@@ -196,7 +212,6 @@ export default function CommunityPostList() {
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                           />
                         </svg>
-                        {new Date(post.createTime ?? "").toLocaleDateString()}
                       </span>
 
                       <span className="inline-flex items-center">
@@ -241,17 +256,18 @@ export default function CommunityPostList() {
               </div>
             </div>
           ))}
-        </div>
-      )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-8 flex justify-center">
-          <Pagination
-            total={totalPages}
-            onChange={newPageNo => setPageNo(newPageNo)}
-            initialPageNo={pageNo}
-          />
+          {/* Loading indicator for infinite scroll */}
+          {pageCommunityPostsQuery.isFetchingNextPage && (
+            <div className="flex justify-center py-4">
+              <span className="loading loading-dots loading-lg text-primary"></span>
+            </div>
+          )}
+
+          {/* End of posts indicator */}
+          {!pageCommunityPostsQuery.hasNextPage && posts.length > 0 && (
+            <p className="text-center text-base-content/50 py-4 text-sm">你已经浏览完所有帖子啦！</p>
+          )}
         </div>
       )}
 
