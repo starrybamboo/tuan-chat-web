@@ -5,6 +5,7 @@ import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useCreateRoleMutation, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useEffect, useState } from "react";
 import RulesSection from "../rules/RulesSection";
+import Section from "../Section";
 import AIGenerationCard from "./components/AIGenerationCard";
 import AttributeEditor from "./components/AttributeEditor";
 import CreatePageHeader from "./components/CreatePageHeader";
@@ -525,44 +526,52 @@ export default function AICreateRole({
             <div className="divider"></div>
             <div className="space-y-6">
               {/* 角色表演能力 */}
-              <AttributeEditor
-                title="角色表演能力"
-                attributes={characterData.act}
-                onChange={(key, value) => handleAttributeChange("act", key, value)}
-                onAddField={(key, value) => handleAddField("act", key, value)}
-                onDeleteField={key => handleDeleteField("act", key)}
-                onRenameField={(oldKey, newKey) => handleRenameField("act", oldKey, newKey)}
-              />
+              <Section title="角色表演能力" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+                <AttributeEditor
+                  title="角色表演能力"
+                  attributes={characterData.act}
+                  onChange={(key, value) => handleAttributeChange("act", key, value)}
+                  onAddField={(key, value) => handleAddField("act", key, value)}
+                  onDeleteField={key => handleDeleteField("act", key)}
+                  onRenameField={(oldKey, newKey) => handleRenameField("act", oldKey, newKey)}
+                />
+              </Section>
 
               {/* 基础能力值 */}
-              <AttributeEditor
-                title="基础能力值"
-                attributes={characterData.basic}
-                onChange={(key, value) => handleAttributeChange("basic", key, value)}
-                onAddField={(key, value) => handleAddField("basic", key, value)}
-                onDeleteField={key => handleDeleteField("basic", key)}
-                onRenameField={(oldKey, newKey) => handleRenameField("basic", oldKey, newKey)}
-              />
+              <Section title="基础属性配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+                <AttributeEditor
+                  title="基础能力值"
+                  attributes={characterData.basic}
+                  onChange={(key, value) => handleAttributeChange("basic", key, value)}
+                  onAddField={(key, value) => handleAddField("basic", key, value)}
+                  onDeleteField={key => handleDeleteField("basic", key)}
+                  onRenameField={(oldKey, newKey) => handleRenameField("basic", oldKey, newKey)}
+                />
+              </Section>
 
               {/* 计算能力值 */}
-              <AttributeEditor
-                title="计算能力值"
-                attributes={characterData.ability}
-                onChange={(key, value) => handleAttributeChange("ability", key, value)}
-                onAddField={(key, value) => handleAddField("ability", key, value)}
-                onDeleteField={key => handleDeleteField("ability", key)}
-                onRenameField={(oldKey, newKey) => handleRenameField("ability", oldKey, newKey)}
-              />
+              <Section title="能力配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+                <AttributeEditor
+                  title="计算能力值"
+                  attributes={characterData.ability}
+                  onChange={(key, value) => handleAttributeChange("ability", key, value)}
+                  onAddField={(key, value) => handleAddField("ability", key, value)}
+                  onDeleteField={key => handleDeleteField("ability", key)}
+                  onRenameField={(oldKey, newKey) => handleRenameField("ability", oldKey, newKey)}
+                />
+              </Section>
 
               {/* 技能设定 */}
-              <AttributeEditor
-                title="技能设定"
-                attributes={characterData.skill}
-                onChange={(key, value) => handleAttributeChange("skill", key, value)}
-                onAddField={(key, value) => handleAddField("skill", key, value)}
-                onDeleteField={key => handleDeleteField("skill", key)}
-                onRenameField={(oldKey, newKey) => handleRenameField("skill", oldKey, newKey)}
-              />
+              <Section title="技能设定" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+                <AttributeEditor
+                  title="技能设定"
+                  attributes={characterData.skill}
+                  onChange={(key, value) => handleAttributeChange("skill", key, value)}
+                  onAddField={(key, value) => handleAddField("skill", key, value)}
+                  onDeleteField={key => handleDeleteField("skill", key)}
+                  onRenameField={(oldKey, newKey) => handleRenameField("skill", oldKey, newKey)}
+                />
+              </Section>
             </div>
           </>
         )}

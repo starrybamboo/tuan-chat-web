@@ -20,7 +20,7 @@ export default function AttributeStep({
   onRenameField,
 }: AttributeStepProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-base-100 p-4 rounded-lg">
       <AttributeEditor
         title={title}
         attributes={attributes}
