@@ -30,22 +30,22 @@ export type RoleAvatar = {
     /**
      * 立绘x坐标
      */
-    spriteXPosition?: string;
+    spriteXPosition?: number;
     /**
      * 立绘y坐标
      */
-    spriteYPosition?: string;
+    spriteYPosition?: number;
     /**
      * 立绘缩放
      */
-    spriteScale?: string;
+    spriteScale?: number;
     /**
      * 立绘透明度
      */
-    spriteTransparency?: string;
+    spriteTransparency?: number;
     /**
      * 立绘旋转角度
      */
-    spriteRotation?: string;
+    spriteRotation?: number;
 };
 

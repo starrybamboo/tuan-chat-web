@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { Feed } from './Feed';
+import type { PostListWithStatsResponse } from './PostListWithStatsResponse';
 /**
  * 游标翻页返回
  */
-export type CursorPageBaseResponseFeed = {
+export type CursorPageBaseResponsePostListWithStatsResponse = {
     /**
      * 游标（下次翻页带上这参数）
      */
@@ -18,6 +18,6 @@ export type CursorPageBaseResponseFeed = {
     /**
      * 数据列表
      */
-    list?: Array<Feed>;
+    list?: Array<PostListWithStatsResponse>;
 };
 

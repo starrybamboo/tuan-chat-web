@@ -14,7 +14,7 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
   // 获取用户信息
   const { data: userInfoData, isLoading: userInfoLoading } = useGetUserInfoQuery(userId);
   // 拉取总体统计（总点赞/总评论/总动态）
-  const statsQuery = useGetMomentFeedStatsQuery();
+  const statsQuery = useGetMomentFeedStatsQuery(userId);
 
   // 离底部还有 RENDER_MIN 个动态，开始发起请求
   const RENDER_MIN = 3;
@@ -234,7 +234,7 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                           {/* 动态列表：在渲染到倒数第3条时将其 ref 指向 lastThirdRef */}
                           {allMoments.map((dynamic, index) => {
                             const isSentinel = index === allMoments.length - RENDER_MIN;
-                            const wrapperKey = dynamic.feed?.feedId || index;
+                            const wrapperKey = dynamic.stats?.feedId || index;
                             return (
                               <div
                                 key={wrapperKey}

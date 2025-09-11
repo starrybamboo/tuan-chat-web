@@ -29,33 +29,8 @@ function ActivitiesPage() {
     error,
   } = useGetFollowingMomentFeedInfiniteQuery(feedRequest);
 
-  // 合并分页并按 feedId 去重（保留首次出现顺序）
   const activities = useMemo(() => {
-    const pages = (feedData?.pages ?? []) as any[];
-    const all = pages.flatMap((p: any) => p?.data?.list ?? []);
-
-    const seen = new Set<number | string>();
-    const seenFp = new Set<string>();
-    const out: any[] = [];
-
-    for (const item of all) {
-      const id = item?.feed?.feedId;
-      if (id !== null && id !== undefined) {
-        if (!seen.has(id)) {
-          seen.add(id);
-          out.push(item);
-        }
-      }
-      else {
-        // 极少数没有 feedId 的情况，用 createTime+content 做指纹避免重复
-        const fp = `${item?.feed?.createTime ?? ""}::${String(item?.feed?.content ?? "")}`;
-        if (!seenFp.has(fp)) {
-          seenFp.add(fp);
-          out.push(item);
-        }
-      }
-    }
-    return out;
+    return feedData?.pages.flatMap(page => page?.data?.list || []) || [];
   }, [feedData]);
 
   // sentinel ref：用于监听倒数第 RENDER_MIN 个动态何时进入视口
@@ -180,7 +155,7 @@ function ActivitiesPage() {
               )}
 
               {activities.map((item, idx) => {
-                const feedId = item?.feed?.feedId;
+                const feedId = item?.response?.feedId;
                 const key = `feed-${feedId ?? idx}`;
 
                 // 将 sentinelRef 挂载在倒数第 RENDER_MIN 个 item（或长度 <= RENDER_MIN 时挂在第 0 个）
@@ -202,7 +177,6 @@ function ActivitiesPage() {
                 </div>
               )}
 
-              {/* 取消了手动“加载更多”按钮 —— 由倒数第 RENDER_MIN 个元素进入视口自动触发加载 */}
               {!hasNextPage && activities.length > 0 && (
                 <div className="text-center py-4 text-base-content/40 text-sm">已经到底了</div>
               )}

@@ -15,15 +15,15 @@ export type AbilitySetRequest = {
      */
     ruleId: number;
     /**
-     * 表演相关字段，不能或null
+     * 表演相关字段
      */
-    act: Record<string, string>;
+    act?: Record<string, string>;
     /**
      * 基础属性字段
      */
     basic?: Record<string, string>;
     /**
-     * 能力字段
+     * 能力字段,依赖于其他字段
      */
     ability?: Record<string, string>;
     /**

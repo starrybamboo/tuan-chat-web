@@ -2,8 +2,7 @@ import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import LikeIconButton from "@/components/common/likeIconButton";
-import { PopWindow } from "@/components/common/popWindow";
-import { UserDetail } from "@/components/common/userDetail";
+import UserAvatarComponent from "@/components/common/userAvatar";
 import { CommentOutline } from "@/icons";
 import React, { useCallback, useState } from "react";
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
@@ -15,21 +14,20 @@ interface PostsCardProp {
 }
 
 /**
- * 发布的动态预览卡片组件
+ * 发布的动态，Feed，帖子预览卡片组件
  */
 export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => {
-  const feed = dynamic?.feed ?? {};
-  const userId = dynamic?.feed.userId ?? -1;
-  const feedId = feed?.feedId ?? -1;
+  const res = dynamic?.response ?? {};
+  const userId = res?.userId ?? -1;
+  const feedId = res?.feedId ?? -1;
 
   const [showMenu, setShowMenu] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isUserDetailCardOpen, setIsUserDetailCardOpen] = useState(false);
   const [isMomentDetailOpen, setIsMomentDetailOpen] = useState(false);
   const [isCommentMenuOpen, setIsCommentMenuOpen] = useState(false);
 
   // 获取用户信息
-  const { data: userInfoData, isLoading: userInfoLoading } = useGetUserInfoQuery(userId || 0);
+  const { data: userInfoData, isLoading: userInfoLoading } = useGetUserInfoQuery(userId || -1);
 
   // 使用API获取的数据或默认数据
   const userData = userInfoData?.data;
@@ -40,10 +38,6 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
 
   const deleteMutation = useDeleteMomentFeedMutation();
 
-  const closeUserCard = useCallback(() => {
-    setIsUserDetailCardOpen(false);
-  }, []);
-
   const closeMomentDetail = useCallback(() => {
     setIsMomentDetailOpen(false);
   }, []);
@@ -51,8 +45,8 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
   const handleDelete = async () => {
     // TODO: 接入弹窗来提示用户是否删除
 
-    // 优先从 feed.feedId 获取
-    const feedIdNum = feed?.feedId !== undefined ? Number(feed.feedId) : Number.NaN;
+    // 优先从 res.feedId 获取
+    const feedIdNum = res?.feedId !== undefined ? Number(res.feedId) : Number.NaN;
 
     if (!Number.isFinite(feedIdNum)) {
       // TODO: 无法获取 feedId：明确提示并记录 TODO
@@ -77,12 +71,6 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
 
   const handleShare = () => 0;
 
-  const handleAvatarClick = useCallback(() => {
-    if (userId) {
-      setIsUserDetailCardOpen(true);
-    }
-  }, [userId]);
-
   const handleContentClick = useCallback(() => {
     if (feedId > 0) {
       setIsMomentDetailOpen(true);
@@ -90,12 +78,12 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
   }, [feedId]);
 
   // 图片数组字段名（后端示例是 imageUrls
-  const images = Array.isArray(feed?.imageUrls) ? feed.imageUrls : [];
+  const images = Array.isArray(res?.imageUrls) ? res.imageUrls : [];
   // 时间字段 createTime
-  const publishTime = feed?.createTime ?? "";
+  const publishTime = res?.createTime ?? "";
 
   // 截取内容预览（如果内容过长）
-  const contentPreview = feed?.content ?? "";
+  const contentPreview = res?.content ?? "";
   const isContentLong = contentPreview.length > 200;
   const displayContent = isContentLong ? `${contentPreview.slice(0, 200)}...` : contentPreview;
 
@@ -118,12 +106,7 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
                 <div className="skeleton w-12 h-12 rounded-full flex-shrink-0"></div>
               )
             : (
-                <img
-                  className="w-12 h-12 rounded-full object-cover cursor-pointer mr-2 hover:opacity-80 transition-opacity flex-shrink-0"
-                  src={data.avatar}
-                  onClick={handleAvatarClick}
-                  alt="用户头像"
-                />
+                <UserAvatarComponent userId={userId} width={12} isRounded={true} />
               )}
 
           <div className="flex flex-col justify-between min-w-0 flex-1">
@@ -151,7 +134,7 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
               ⋯
             </button>
 
-            {/* 每个动态的二级菜单 */}
+            {/* 每个二级菜单 */}
             {showMenu && (
               <div className="absolute right-0 top-full mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg py-1 z-20 min-w-[120px]">
                 {loginUserId === userId
@@ -161,7 +144,7 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
                         className="w-full px-4 py-2 text-left text-sm text-error hover:bg-error/10 transition-colors"
                         type="button"
                       >
-                        删除动态
+                        删除
                       </button>
                     )
                   : (
@@ -178,7 +161,7 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
           </div>
         </div>
 
-        {/* 动态内容 - 可点击区域 */}
+        {/* 内容 - 可点击区域 */}
         <div className="mb-4">
           <div
             className="text-base-content whitespace-pre-wrap cursor-pointer pl-18 hover:text-primary transition-colors rounded-lg p-2 -m-2"
@@ -206,7 +189,7 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
           >
             {/* 点赞组件 */}
             <LikeIconButton
-              targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "4" }}
+              targetInfo={{ targetId: res?.feedId ?? -1, targetType: "4" }}
               className="w-9 h-6"
               direction="row"
             />
@@ -225,25 +208,18 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
             className="flex items-center space-x-1 text-sm text-base-content/60 hover:text-success hover:bg-success/10 transition-colors px-2 py-1 rounded-full"
             type="button"
           >
-            {/* <span className="text-base">📤</span> */}
-            {/* <span className="font-medium">{Number(stats?.shareCount ?? stats?.shares ?? 0)}</span> */}
           </button>
         </div>
         {isCommentMenuOpen && (
           <div className="mt-6 p-6 bg-base-200 rounded-lg">
             <CommentPanel
-              targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "4" }}
+              targetInfo={{ targetId: res?.feedId ?? -1, targetType: "4" }}
             />
           </div>
         )}
-
-        {/* UserDetail 弹窗 */}
-        <PopWindow isOpen={isUserDetailCardOpen} onClose={closeUserCard}>
-          <UserDetail userId={userId} />
-        </PopWindow>
       </div>
 
-      {/* 动态详情弹窗 */}
+      {/* 详情弹窗 */}
       <MomentDetailView
         feedId={feedId}
         loginUserId={loginUserId}
