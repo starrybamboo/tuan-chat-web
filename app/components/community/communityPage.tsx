@@ -86,7 +86,7 @@ export default function CommunityPage() {
     <CommunityContext value={communityContext}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-6">
         {/* 顶部社区列表 */}
-        <div className="bg-base-100 rounded-2xl shadow-sm border border-base-200 p-4 lg:p-6">
+        <div className="rounded-2xl shadow-sm border border-base-200 p-4 lg:p-6">
           {communityList.length > 0
             ? (
                 <div className="relative">
@@ -134,7 +134,7 @@ export default function CommunityPage() {
                         className="flex-shrink-0 flex flex-col items-center group cursor-pointer"
                         style={{ scrollSnapAlign: "start" }}
                       >
-                        {/* 圆形社区头像 - 模仿小黑盒风格 */}
+                        {/* 圆形社区头像 */}
                         <div className="relative mb-2">
                           <div className={`w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full overflow-hidden border-3 transition-all duration-200 group-hover:scale-105 group-hover:shadow-lg ${
                             community.communityId === communityId
