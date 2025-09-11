@@ -27,26 +27,53 @@ function TagManagement({ userId }: TagManagementProps) {
   const [newTagContent, setNewTagContent] = useState("");
   const [selectedColor, setSelectedColor] = useState("blue");
 
-  // 颜色选项配置
+  // 颜色选项配置 - 按照指定顺序排列
   const colorOptions = [
-    { id: "indigo", name: "靳蓝色", hex: "#6366f1" },
     { id: "blue", name: "蓝色", hex: "#3b82f6" },
+    { id: "green", name: "绿色", hex: "#10b981" },
+    { id: "indigo", name: "靛蓝色", hex: "#6366f1" },
     { id: "purple", name: "紫色", hex: "#8b5cf6" },
     { id: "pink", name: "粉色", hex: "#ec4899" },
     { id: "red", name: "红色", hex: "#ef4444" },
     { id: "amber", name: "琥珀色", hex: "#f59e0b" },
-    { id: "green", name: "绿色", hex: "#10b981" },
     { id: "teal", name: "蓝绿色", hex: "#14b8a6" },
   ];
+
+  // 预定义的颜色类名映射，确保 Tailwind CSS 能够正确识别
+  const colorClassMap: Record<string, string> = {
+    blue: "bg-blue-100 text-blue-800 ring-blue-300",
+    green: "bg-green-100 text-green-800 ring-green-300",
+    indigo: "bg-indigo-100 text-indigo-800 ring-indigo-300",
+    purple: "bg-purple-100 text-purple-800 ring-purple-300",
+    pink: "bg-pink-100 text-pink-800 ring-pink-300",
+    red: "bg-red-100 text-red-800 ring-red-300",
+    amber: "bg-amber-100 text-amber-800 ring-amber-300",
+    teal: "bg-teal-100 text-teal-800 ring-teal-300",
+  };
 
   // API mutations
   const addTagMutation = useAddTagMutation();
   const deleteTagMutation = useDeleteTagMutation();
 
+  // 获取颜色类名的函数，如果颜色不存在则返回蓝色
+  const getColorClass = (color: string): string => {
+    return colorClassMap[color] || colorClassMap.blue;
+  };
+
+  // 验证并修正颜色值的函数
+  const validateColor = (color: string): string => {
+    return colorOptions.find(option => option.id === color)?.id || "blue";
+  };
+
   // 当API数据加载完成时更新本地状态
   React.useEffect(() => {
     if (tagsData?.data) {
-      setLocalTags(tagsData.data);
+      // 修正颜色值，确保所有颜色都是有效的
+      const validatedTags = tagsData.data.map(tag => ({
+        ...tag,
+        color: validateColor(tag.color || "blue"),
+      }));
+      setLocalTags(validatedTags);
     }
     else if (tagsData?.data === null || (Array.isArray(tagsData?.data) && tagsData.data.length === 0)) {
       // 明确处理空数据的情况
@@ -72,10 +99,11 @@ function TagManagement({ userId }: TagManagementProps) {
   const saveNewTag = async () => {
     if (newTagContent.trim() && newTagContent.length <= 16) {
       try {
+        const validatedColor = validateColor(selectedColor);
         const response = await addTagMutation.mutateAsync({
           content: newTagContent.trim(),
           tagType: 1,
-          color: selectedColor,
+          color: validatedColor,
           targetId: userId ?? -1,
         });
 
@@ -83,7 +111,7 @@ function TagManagement({ userId }: TagManagementProps) {
           const newTag: Tag = {
             tagId: response.data.tagId,
             content: newTagContent.trim(),
-            color: selectedColor,
+            color: validatedColor,
           };
           setLocalTags(prev => [...prev, newTag]);
         }
@@ -130,8 +158,7 @@ function TagManagement({ userId }: TagManagementProps) {
               className="group relative inline-flex items-center"
             >
               <span
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-all hover:shadow-md cursor-default
-                        bg-${tag.color}-100 text-${tag.color}-800 ring-1 ring-${tag.color}  `}
+                className={`px-3 py-1 rounded-full text-sm font-medium transition-all hover:shadow-md cursor-default ring-1 ${getColorClass(tag.color || "blue")}`}
               >
                 {tag.content}
               </span>
@@ -216,8 +243,7 @@ function TagManagement({ userId }: TagManagementProps) {
                       <div className="mt-1">
                         <span className="text-xs text-base-content/70">预览: </span>
                         <span
-                          className={`px-3 py-1 rounded-full text-sm font-medium transition-all hover:shadow-md cursor-default
-                        bg-${selectedColor}-100 text-${selectedColor}-800 ring-1 ring-${selectedColor}  `}
+                          className={`px-3 py-1 rounded-full text-sm font-medium transition-all hover:shadow-md cursor-default ring-1 ${getColorClass(selectedColor)}`}
                         >
                           {newTagContent.trim()}
                         </span>
