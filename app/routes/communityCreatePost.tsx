@@ -1,10 +1,8 @@
-import type { StoredPost } from "@/components/community/postEditor";
 import type { Route } from "./+types/home";
 import PostEditor from "@/components/community/postEditor";
+import { useCommunityPostPublish } from "@/components/community/useCommunityPostPublish";
 import React from "react";
-import toast from "react-hot-toast";
 import { useNavigate, useSearchParams } from "react-router";
-import { usePublishPostMutation } from "../../api/hooks/communityQueryHooks";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -23,41 +21,8 @@ export default function CommunityCreatePost() {
   // 获取转发的消息ID
   const messageId = searchParams.get("messageId") ? Number(searchParams.get("messageId")) : undefined;
 
-  const publishPostMutation = usePublishPostMutation();
-
-  const handlePublishPost = async (post: StoredPost & { selectedCommunityId?: number }) => {
-    const { title, content, selectedCommunityId } = post;
-
-    if (!title?.trim() || !content?.trim()) {
-      return false;
-    }
-
-    if (!selectedCommunityId) {
-      toast.error("请选择一个社区");
-      return false;
-    }
-
-    try {
-      await publishPostMutation.mutateAsync({
-        communityId: selectedCommunityId,
-        title: title.trim(),
-        content: content.trim(),
-        messageId, // 添加messageId参数
-      });
-      toast.success("帖子发布成功！");
-
-      // 发布成功后导航到目标社区
-      setTimeout(() => {
-        navigate(`/community/${selectedCommunityId}`);
-      }, 1000);
-
-      return true;
-    }
-    catch (error) {
-      toast.error(`发布帖子失败, ${error}`);
-      return false;
-    }
-  };
+  // 使用自定义hook处理发布逻辑
+  const { publishPost } = useCommunityPostPublish(messageId);
 
   const handleClose = () => {
     // 关闭时导航到首页
@@ -68,7 +33,7 @@ export default function CommunityCreatePost() {
     <div className="h-full bg-base-200">
       <PostEditor
         onClose={handleClose}
-        onSubmit={handlePublishPost}
+        onSubmit={publishPost}
         enableCommunitySelection={true}
         defaultCommunityId={undefined}
       />

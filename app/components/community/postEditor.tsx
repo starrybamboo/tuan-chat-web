@@ -1,5 +1,8 @@
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import MarkdownEditor from "@/components/common/markdown/markdownEditor";
+import { ImgUploader } from "@/components/common/uploader/imgUploader";
+import CommunitySelector from "@/components/community/communitySelector";
+import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useEffect, useState } from "react";
 import { useListCommunitiesQuery } from "../../../api/hooks/communityQueryHooks";
 
@@ -7,6 +10,7 @@ export interface StoredPost {
   title?: string;
   content?: string;
   selectedCommunityId?: number;
+  coverImage?: string; // 封面图片URL
 }
 
 interface PostEditorProps {
@@ -37,6 +41,9 @@ export default function PostEditor({
 
   const [title, setTitle] = useState(storedPost.title ?? "");
   const [content, setContent] = useState(storedPost.content ?? "");
+  const [coverImage, setCoverImage] = useState<string | undefined>(storedPost.coverImage);
+  const [coverImageFile, setCoverImageFile] = useState<File | undefined>(undefined); // 临时存储文件对象用于预览
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [selectedCommunityId, setSelectedCommunityId] = useState<number | undefined>(
     storedPost.selectedCommunityId ?? defaultCommunityId,
   );
@@ -45,13 +52,34 @@ export default function PostEditor({
   const listCommunitiesQuery = useListCommunitiesQuery();
   const communityList = listCommunitiesQuery.data?.data ?? [];
 
+  // 创建上传工具实例
+  const uploadUtils = new UploadUtils();
+
+  // 处理图片上传
+  const handleImageUpload = async (file: File) => {
+    try {
+      setIsUploadingImage(true);
+      setCoverImageFile(file); // 设置文件用于预览
+      const imageUrl = await uploadUtils.uploadImg(file, 4); // scene 4 表示模组图片
+      setCoverImage(imageUrl);
+    }
+    catch (error) {
+      console.error("图片上传失败:", error);
+      // 可以在这里添加错误提示
+    }
+    finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   useEffect(() => {
     setStoredPost({
       title,
       content,
+      coverImage,
       selectedCommunityId: enableCommunitySelection ? selectedCommunityId : undefined,
     });
-  }, [title, content, selectedCommunityId, setStoredPost, enableCommunitySelection]);
+  }, [title, content, coverImage, selectedCommunityId, setStoredPost, enableCommunitySelection]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +92,7 @@ export default function PostEditor({
     const isSuccess = await onSubmit({
       title,
       content,
+      coverImage,
       selectedCommunityId: enableCommunitySelection ? selectedCommunityId : undefined,
     });
     setIsPublishing(false);
@@ -71,6 +100,8 @@ export default function PostEditor({
       return;
     setTitle("");
     setContent("");
+    setCoverImage(undefined);
+    setCoverImageFile(undefined);
     setSelectedCommunityId(defaultCommunityId);
     if (onClose) {
       onClose();
@@ -112,25 +143,86 @@ export default function PostEditor({
             />
           </div>
 
-          {/* 社区选择器 */}
+          {/* 封面图片上传 */}
+          <div>
+            <label className="label">
+              <span className="label-text">封面图片 (可选)</span>
+            </label>
+
+            <div className="flex flex-col space-y-2">
+              {/* 图片预览区域 */}
+              {(coverImage || coverImageFile) && (
+                <div className="relative w-full max-w-md">
+                  <img
+                    src={coverImageFile ? URL.createObjectURL(coverImageFile) : coverImage}
+                    alt="封面预览"
+                    className="w-full h-48 object-cover rounded-lg border border-base-300"
+                  />
+                  {isUploadingImage && (
+                    <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                      <span className="loading loading-spinner loading-lg text-white"></span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCoverImage(undefined);
+                      setCoverImageFile(undefined);
+                    }}
+                    className="absolute top-2 right-2 btn btn-sm btn-circle btn-error"
+                    disabled={isUploadingImage}
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {/* 上传按钮 */}
+              {!coverImage && !coverImageFile && (
+                <div className="flex flex-col space-y-3">
+                  {/* 移动端大块上传区域 */}
+                  <div className="block">
+                    <ImgUploader setImg={handleImageUpload}>
+                      <div className="w-full h-32 border-2 border-dashed border-base-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-8 w-8 text-base-content/50 mb-1"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                          />
+                        </svg>
+                        <span className="text-sm text-base-content/70">点击上传封面图片</span>
+                      </div>
+                    </ImgUploader>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 社区选择器 - 使用可复用组件 */}
           {enableCommunitySelection && (
             <div>
               <label className="label">
                 <span className="label-text">发布到社区</span>
+                {!selectedCommunityId && (
+                  <span className="label-text-alt text-error">请选择一个社区</span>
+                )}
               </label>
-              <select
-                className="select select-bordered w-full"
-                value={selectedCommunityId || ""}
-                onChange={e => setSelectedCommunityId(Number(e.target.value) || undefined)}
-                required
-              >
-                <option value="">请选择社区</option>
-                {communityList.map(community => (
-                  <option key={community.communityId} value={community.communityId}>
-                    {community.name}
-                  </option>
-                ))}
-              </select>
+
+              <CommunitySelector
+                communityList={communityList}
+                selectedCommunityId={selectedCommunityId}
+                onSelect={setSelectedCommunityId}
+                required={true}
+              />
             </div>
           )}
 
