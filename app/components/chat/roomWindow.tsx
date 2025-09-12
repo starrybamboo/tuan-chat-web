@@ -180,7 +180,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       curMember,
       roomRolesThatUserOwn,
       curRoleId,
-      curAvatarId: roleAvatars[curAvatarId]?.avatarId ?? -1,
+      curAvatarId,
       useChatBubbleStyle,
       spaceId,
       setReplyMessage,
