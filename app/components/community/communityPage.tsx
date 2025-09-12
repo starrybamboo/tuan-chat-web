@@ -76,9 +76,10 @@ export default function CommunityPage() {
                     <h2 className="text-2xl font-bold text-base-content">社区帖子</h2>
                   )}
           </div>
+          {/* 桌面端发帖按钮 */}
           <button
             type="button"
-            className="btn btn-info gap-2 shadow-lg hover:shadow/30"
+            className="hidden md:flex btn btn-info gap-2 shadow-lg hover:shadow/30"
             onClick={handleCreatePost}
           >
             <svg
@@ -98,6 +99,24 @@ export default function CommunityPage() {
         <div className="flex-1 min-w-0">
           <CommunityPostList onPostClick={handlePostClick} />
         </div>
+
+        {/* 移动端浮动创作按钮 */}
+        <button
+          type="button"
+          className="md:hidden fixed bottom-8 right-8 z-50 btn btn-square btn-neutral btn-lg shadow-2xl transition-all duration-300"
+          onClick={handleCreatePost}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-7 w-7"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
       </div>
     </CommunityContext>
   );
