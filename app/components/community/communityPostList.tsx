@@ -1,21 +1,15 @@
-import type { StoredPost } from "@/components/community/postEditor";
 import type { PostListWithStatsResponse } from "api";
 import { RoomContext } from "@/components/chat/roomContext";
 import ForwardMessage from "@/components/chat/smallComponents/forwardMessage";
 import { SpaceContext } from "@/components/chat/spaceContext";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import IllegalURLPage from "@/components/common/illegalURLPage";
-import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { CommunityContext } from "@/components/community/communityContext";
-import PostEditor from "@/components/community/postEditor";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import React, { use, useEffect, useMemo } from "react";
-import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import {
   usePageCommunityPostsInfiniteQuery,
-  usePublishPostMutation,
 } from "../../../api/hooks/communityQueryHooks";
 
 const PAGE_SIZE = 10;
@@ -34,8 +28,6 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
   const communityId = communityContext.communityId ?? -1;
 
   const navigate = useNavigate();
-
-  const [isPublishWindowOpen, setIsPublishWindowOpen] = useSearchParamsState<boolean>("editPop", false);
 
   // 为 ChatBubble 提供最简化的上下文
   const roomContextValue = useMemo(() => ({
@@ -82,53 +74,12 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
     }
   }, [postEntry?.isIntersecting, pageCommunityPostsQuery.isFetching, pageCommunityPostsQuery.hasNextPage, pageCommunityPostsQuery]);
 
-  const publishPostMutation = usePublishPostMutation();
-  const handlePublishPost = async (post: StoredPost) => {
-    const { title, content } = post;
-    if (!title?.trim() || !content?.trim()) {
-      return false;
-    }
-    try {
-      await publishPostMutation.mutateAsync({
-        communityId,
-        title: title.trim(),
-        content: content.trim(),
-      });
-      return true;
-    }
-    catch (error) {
-      toast.error(`发布帖子失败, ${error}`);
-      return false;
-    }
-  };
-
   if (Number.isNaN(communityId)) {
     return (<IllegalURLPage info="您所找的社区不存在" />);
   }
 
   return (
     <div className="space-y-8">
-      {/* Header with publish button */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-base-content">社区帖子</h2>
-        <button
-          type="button"
-          className="btn btn-info gap-2 shadow-lg hover:shadow/30"
-          onClick={() => setIsPublishWindowOpen(true)}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          发布新帖
-        </button>
-      </div>
-
       {/* Loading State */}
       {pageCommunityPostsQuery.isLoading && (
         <div className="flex flex-col items-center justify-center py-16">
@@ -155,10 +106,7 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
             />
           </svg>
           <h3 className="text-xl text-base-content/50 mb-2">暂无帖子</h3>
-          <p className="text-base-content/40 mb-4">成为第一个在此社区发帖的人</p>
-          <button type="button" className="btn btn-info btn-sm" onClick={() => setIsPublishWindowOpen(true)}>
-            发布帖子
-          </button>
+          <p className="text-base-content/40">成为第一个在此社区发帖的人</p>
         </div>
       )}
 
@@ -334,18 +282,6 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
           )}
         </div>
       )}
-
-      {/* Publish Window */}
-      <PopWindow
-        isOpen={isPublishWindowOpen}
-        onClose={() => setIsPublishWindowOpen(false)}
-        fullScreen
-      >
-        <PostEditor
-          onClose={() => setIsPublishWindowOpen(false)}
-          onSubmit={handlePublishPost}
-        />
-      </PopWindow>
     </div>
   );
 }

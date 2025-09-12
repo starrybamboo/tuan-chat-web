@@ -1,10 +1,14 @@
 import type { CommunityContextType } from "@/components/community/communityContext";
+import IllegalURLPage from "@/components/common/illegalURLPage";
 import { CommunityContext } from "@/components/community/communityContext";
 import CommunityList from "@/components/community/communityList";
 import CommunityPostList from "@/components/community/communityPostList";
 import React, { useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
-import { useListCommunitiesQuery } from "../../../api/hooks/communityQueryHooks";
+import {
+  useGetCommunityInfoQuery,
+  useListCommunitiesQuery,
+} from "../../../api/hooks/communityQueryHooks";
 
 /**
  * 社区界面
@@ -20,6 +24,12 @@ export default function CommunityPage() {
     return listCommunitiesQuery.data?.data ?? [];
   }, [listCommunitiesQuery.data?.data]);
 
+  // 获取当前社区详细信息
+  const getCommunityInfoQuery = useGetCommunityInfoQuery(communityId);
+  const currentCommunity = useMemo(() => {
+    return getCommunityInfoQuery.data?.data;
+  }, [getCommunityInfoQuery.data?.data]);
+
   const communityContext: CommunityContextType = useMemo(() => {
     return { communityId };
   }, [communityId]);
@@ -28,6 +38,15 @@ export default function CommunityPage() {
   const handlePostClick = (postId: number) => {
     navigate(`/community/${communityId}/post/${postId}`);
   };
+
+  // 处理创建帖子按钮点击
+  const handleCreatePost = () => {
+    navigate(`/community/create`);
+  };
+
+  if (Number.isNaN(communityId)) {
+    return (<IllegalURLPage info="您所找的社区不存在" />);
+  }
 
   return (
     <CommunityContext value={communityContext}>
@@ -38,6 +57,42 @@ export default function CommunityPage() {
           currentCommunityId={communityId}
           isLoading={listCommunitiesQuery.isLoading}
         />
+
+        {/* 社区描述和发帖按钮 */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex-1">
+            {getCommunityInfoQuery.isLoading
+              ? (
+                  <div className="flex items-center gap-2">
+                    <span className="loading loading-spinner loading-sm"></span>
+                    <span className="text-base-content/60">加载中...</span>
+                  </div>
+                )
+              : currentCommunity?.description
+                ? (
+                    <h2 className="text-2xl font-bold text-base-content">{currentCommunity.description}</h2>
+                  )
+                : (
+                    <h2 className="text-2xl font-bold text-base-content">社区帖子</h2>
+                  )}
+          </div>
+          <button
+            type="button"
+            className="btn btn-info gap-2 shadow-lg hover:shadow/30"
+            onClick={handleCreatePost}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            发布新帖
+          </button>
+        </div>
 
         {/* 帖子列表 */}
         <div className="flex-1 min-w-0">

@@ -72,7 +72,7 @@ export default function CommunityList({
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl shadow-sm border border-base-200 p-4 lg:p-6">
+      <div className="rounded-2xl shadow-sm border border-base-200 p-3 lg:p-4">
         <div className="flex justify-center items-center h-32">
           <span className="loading loading-spinner loading-lg"></span>
         </div>
@@ -81,7 +81,7 @@ export default function CommunityList({
   }
 
   return (
-    <div className="rounded-2xl shadow-sm border border-base-200 p-4 lg:p-6">
+    <div className="rounded-2xl shadow-sm border border-base-200 p-3 lg:p-4">
       {communityList.length > 0
         ? (
             <div className="relative">
@@ -114,7 +114,7 @@ export default function CommunityList({
               {/* 社区列表滚动容器 */}
               <div
                 ref={scrollContainerRef}
-                className="flex gap-4 lg:gap-6 overflow-x-auto scrollbar-hide py-2 px-2 lg:px-12"
+                className="flex gap-3 lg:gap-4 overflow-x-auto scrollbar-hide py-1 px-1 lg:px-8"
                 style={{
                   scrollSnapType: "x mandatory",
                   scrollbarWidth: "none",

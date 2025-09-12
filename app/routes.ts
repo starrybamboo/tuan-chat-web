@@ -18,6 +18,7 @@ export default [
     route("module/detail/:id?", "routes/module/detail.tsx"),
     route("chat/:spaceId?/:roomId?", "routes/chat.tsx"),
     route("community/:communityId?", "routes/community.tsx"),
+    route("community/create", "routes/communityCreatePost.tsx"),
     route("community/:communityId/post/:postId", "routes/communityPost.tsx"),
     route("post/:postId", "routes/post.tsx"),
     route("settings", "routes/settings.tsx"),
