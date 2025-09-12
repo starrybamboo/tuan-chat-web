@@ -194,14 +194,14 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
             />
           </div>
 
-          <button
+          <div
             onClick={handleComment}
             className="flex items-center space-x-1 text-sm hover:text-primary hover:bg-primary/10 transition-colors px-2 py-1 rounded-full"
-            type="button"
           >
             <CommentOutline className="h-6 w-5" />
             <span className="font-medium">0</span>
-          </button>
+          </div>
+
           <button
             onClick={handleShare}
             className="flex items-center space-x-1 text-sm text-base-content/60 hover:text-success hover:bg-success/10 transition-colors px-2 py-1 rounded-full"
