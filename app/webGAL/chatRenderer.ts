@@ -14,6 +14,7 @@ export class ChatRenderer {
   private MAX_VOCAL: number = 5;
 
   private readonly spaceId: number;
+  private roomMap: Record<string, Array<number>> = {};
   private sceneEditor: SceneEditor;
   private uploadedSpritesFileNameMap = new Map<number, string>(); // avatarId -> spriteFileName
   private roleAvatarsMap = new Map<number, RoleAvatar>(); // 渲染时候获取的avatar信息
@@ -33,7 +34,14 @@ export class ChatRenderer {
   public async initializeRenderer(): Promise<void> {
     await this.sceneEditor.initRender();
     this.onRenderProcessChange({ message: "开始渲染" });
+
     this.rooms = (await tuanchat.roomController.getUserRooms(this.spaceId)).data ?? [];
+
+    const spaceInfo = await tuanchat.spaceController.getSpaceInfo(this.spaceId);
+    const roomMap = spaceInfo?.data?.roomMap;
+    this.roomMap = roomMap || {};
+    console.log(roomMap);
+    console.log(this.rooms);
 
     const renderedRooms: Room[] = []; // 成功渲染的房间
     for (let i = 0; i < this.rooms.length; i++) {
@@ -53,8 +61,26 @@ export class ChatRenderer {
       }
       catch (e) { console.error(e); }
     }
-    const branchSentence = `choose:${renderedRooms.map(room => `${room.name?.split("\n").join("")}:${this.getSceneName(room)}.txt`).join("|")}`;
+
+    const branchSentence = this.getBranchSentence(renderedRooms,
+      // .filter(room => this.roomMap[room.roomId!] === undefined || this.roomMap[room.roomId!].length === 0),
+    );
     await this.sceneEditor.addLineToRenderer(branchSentence, "start");
+  }
+
+  /**
+   * 生成webgal中的branchSentence
+   * @param rooms 要跳转的房间列表
+   * @private
+   */
+  private getBranchSentence(rooms: Room[]): string {
+    if (rooms.length === 0)
+      return "choose:返回初始节点:start.txt";
+    return `choose:${
+      rooms
+        .map(room => `${room.name?.split("\n").join("")}:${this.getSceneName(room)}.txt`)
+        .join("|")
+    }`;
   }
 
   private async fetchAvatar(avatarId: number): Promise<RoleAvatar | null> {
@@ -292,6 +318,13 @@ export class ChatRenderer {
           }
         }
       }
+
+      const branchRoomIds = this.roomMap[room.roomId!] ?? [];
+      const branchRooms = this.rooms.filter(
+        targetRoom => branchRoomIds.includes(targetRoom.roomId!),
+      );
+      const branchSentence = this.getBranchSentence(branchRooms);
+      await this.sceneEditor.addLineToRenderer(branchSentence, sceneName);
 
       return true;
     }
