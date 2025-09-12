@@ -784,6 +784,8 @@ export function CommentOutline(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+// 竖直三个点
 export function EllipsisVertical(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
