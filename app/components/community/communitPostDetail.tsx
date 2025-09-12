@@ -85,63 +85,65 @@ export default function CommunityPostDetail({
         </div>
       )}
 
-      {/* 主要内容区域：封面、标题、正文 */}
-      <div className="md:bg-base-100 md:rounded-lg md:p-6 w-full md:card md:shadow-xl">
-        {/* 封面图片 */}
-        {post?.post?.coverImage && (
-          <div className="mb-6 -mx-6 md:mx-0">
-            <img
-              src={post.post.coverImage}
-              alt="封面"
-              className="w-full max-h-80 object-cover md:rounded-lg"
-            />
-          </div>
-        )}
-
-        {/* 标题 */}
-        <h2 className="text-2xl font-semibold text-left mb-6">
-          {post?.post?.title || "无标题"}
-        </h2>
-
-        {/* 作者信息 */}
-        <div className="flex flex-row items-center gap-2 mb-4">
-          <UserAvatarComponent userId={post?.post?.userId ?? -1} width={10} isRounded={true} withName={true} stopPopWindow={true}></UserAvatarComponent>
-          {/* 关注按钮 */}
-          {authorId !== -1 && (
-            <button
-              type="button"
-              onClick={handleFollowClick}
-              disabled={isFollowLoading}
-              className={`btn btn-sm ml-auto ${
-                isFollowed
-                  ? "btn-ghost border border-base-300"
-                  : "btn-primary"
-              } ${isFollowLoading ? "loading" : ""}`}
-            >
-              {isFollowLoading ? "" : isFollowed ? "已关注" : "关注"}
-            </button>
-          )}
+      {/* 封面图片 - 手机端占满屏幕宽度，桌面端与内容卡片宽度一致 */}
+      {post?.post?.coverImage && (
+        <div className="-mx-4 sm:-mx-6 md:mx-0 mb-6 md:mb-0">
+          <img
+            src={post.post.coverImage}
+            alt="封面"
+            className="w-full max-h-80 object-cover md:rounded-lg"
+          />
         </div>
+      )}
 
-        {/* 转发消息展示 */}
-        {post?.post?.message && (
-          <div className="mb-6">
-            <RoomContext value={roomContextValue}>
-              <SpaceContext value={spaceContextValue}>
-                <ForwardMessage messageResponse={post.post.message} />
-              </SpaceContext>
-            </RoomContext>
+      {/* 主要内容区域：标题、正文等 */}
+      <div className="md:bg-base-100 md:rounded-lg w-full md:card md:shadow-xl md:mt-6">
+        <div className="px-0 md:px-6 py-0 md:py-6">
+          {/* 标题 */}
+          <h2 className="text-2xl font-semibold text-left mb-6">
+            {post?.post?.title || "无标题"}
+          </h2>
+
+          {/* 作者信息 */}
+          <div className="flex flex-row items-center gap-2 mb-4">
+            <UserAvatarComponent userId={post?.post?.userId ?? -1} width={10} isRounded={true} withName={true} stopPopWindow={true}></UserAvatarComponent>
+            {/* 关注按钮 */}
+            {authorId !== -1 && (
+              <button
+                type="button"
+                onClick={handleFollowClick}
+                disabled={isFollowLoading}
+                className={`btn btn-sm ml-auto ${
+                  isFollowed
+                    ? "btn-ghost border border-base-300"
+                    : "btn-primary"
+                } ${isFollowLoading ? "loading" : ""}`}
+              >
+                {isFollowLoading ? "" : isFollowed ? "已关注" : "关注"}
+              </button>
+            )}
           </div>
-        )}
 
-        {/* 正文内容 */}
-        <MarkDownViewer content={post?.post?.content ?? ""}></MarkDownViewer>
+          {/* 转发消息展示 */}
+          {post?.post?.message && (
+            <div className="mb-6">
+              <RoomContext value={roomContextValue}>
+                <SpaceContext value={spaceContextValue}>
+                  <ForwardMessage messageResponse={post.post.message} />
+                </SpaceContext>
+              </RoomContext>
+            </div>
+          )}
 
-        {/* 发布时间 */}
-        <div className="text-sm text-gray-500 mt-6 pt-4 md:border-t border-base-200">
-          发布于
-          {" "}
-          {new Date(post?.post?.createTime ?? "").toLocaleString()}
+          {/* 正文内容 */}
+          <MarkDownViewer content={post?.post?.content ?? ""}></MarkDownViewer>
+
+          {/* 发布时间 */}
+          <div className="text-sm text-gray-500 mt-6 pt-4 md:border-t border-base-200">
+            发布于
+            {" "}
+            {new Date(post?.post?.createTime ?? "").toLocaleString()}
+          </div>
         </div>
       </div>
 

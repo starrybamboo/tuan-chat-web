@@ -109,26 +109,26 @@ export default function PostEditor({
   };
 
   return (
-    <div className="card bg-base-100 shadow-md h-full w-full">
-      <div className="card-body flex h-full">
-        <h2 className="card-title">
+    <div className="card bg-base-100 shadow-md h-full w-full max-w-full overflow-hidden">
+      <div className="card-body flex h-full max-w-full">
+        <h2 className="card-title flex-wrap">
           创建帖子
-          <span className="text-sm font-normal text-base-content/70 flex items-center badge badge-outline">
+          <span className="text-sm font-normal text-base-content/70 flex items-center badge badge-outline flex-shrink-0">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
               width="16"
               height="16"
-              className="mr-1 fill-info"
+              className="mr-1 fill-info flex-shrink-0"
             >
               <path
                 d="M12 1c6.075 0 11 4.925 11 11s-4.925 11-11 11S1 18.075 1 12 5.925 1 12 1Zm0 2a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 13a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm1-9v8h-2V7h2Z"
               />
             </svg>
-            所有改动都会实时保存到浏览器本地
+            <span className="whitespace-nowrap">所有改动都会实时保存到浏览器本地</span>
           </span>
         </h2>
-        <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col">
+        <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col min-w-0 overflow-hidden">
           <div>
             <label className="label">
               <span className="label-text">标题</span>
@@ -136,7 +136,7 @@ export default function PostEditor({
             <input
               type="text"
               placeholder="标题"
-              className="input input-bordered w-full"
+              className="input input-bordered w-full max-w-full"
               value={title}
               onChange={e => setTitle(e.target.value)}
               required
@@ -152,11 +152,11 @@ export default function PostEditor({
             <div className="flex flex-col space-y-2">
               {/* 图片预览区域 */}
               {(coverImage || coverImageFile) && (
-                <div className="relative w-full max-w-md">
+                <div className="relative w-full max-w-full sm:max-w-md">
                   <img
                     src={coverImageFile ? URL.createObjectURL(coverImageFile) : coverImage}
                     alt="封面预览"
-                    className="w-full h-48 object-cover rounded-lg border border-base-300"
+                    className="w-full h-48 object-cover rounded-lg border border-base-300 max-w-full"
                   />
                   {isUploadingImage && (
                     <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
@@ -226,7 +226,7 @@ export default function PostEditor({
             </div>
           )}
 
-          <MarkdownEditor onChange={(value) => { setContent(value); }} className="flex-1" defaultContent={content}></MarkdownEditor>
+          <MarkdownEditor onChange={(value) => { setContent(value); }} className="flex-1 min-w-0 overflow-hidden" defaultContent={content}></MarkdownEditor>
           <div className="flex justify-end">
             <button
               type="submit"
