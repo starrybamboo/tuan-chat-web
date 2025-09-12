@@ -6,6 +6,7 @@ import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import React, { useMemo } from "react";
 import { useGetPostDetailQuery } from "../../../api/hooks/communityQueryHooks";
+import { useUserFollowMutation, useUserIsFollowedQuery, useUserUnfollowMutation } from "../../../api/hooks/userFollowQueryHooks";
 
 /**
  * 点开帖子后显示的界面，显示帖子详情
@@ -23,6 +24,24 @@ export default function CommunityPostDetail({
 }) {
   const postDetailQuery = useGetPostDetailQuery(postId);
   const post = postDetailQuery.data?.data;
+  const authorId = post?.post?.userId ?? -1;
+
+  // 关注相关hooks
+  const isFollowedQuery = useUserIsFollowedQuery(authorId);
+  const followMutation = useUserFollowMutation();
+  const unfollowMutation = useUserUnfollowMutation();
+
+  const isFollowed = isFollowedQuery.data?.data ?? false;
+  const isFollowLoading = followMutation.isPending || unfollowMutation.isPending;
+
+  const handleFollowClick = () => {
+    if (isFollowed) {
+      unfollowMutation.mutate(authorId);
+    }
+    else {
+      followMutation.mutate(authorId);
+    }
+  };
 
   // 为 ForwardMessage 提供最简化的上下文
   const roomContextValue = useMemo(() => ({
@@ -56,7 +75,7 @@ export default function CommunityPostDetail({
           <button
             type="button"
             onClick={onBack}
-            className="btn btn-ghost btn-sm gap-2"
+            className="btn btn-ghost btn-primary btn-sm gap-2 rounded-lg"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -73,7 +92,7 @@ export default function CommunityPostDetail({
           <div className="mb-6 -mx-6 md:mx-0">
             <img
               src={post.post.coverImage}
-              alt="帖子封面"
+              alt="封面"
               className="w-full max-h-80 object-cover md:rounded-lg"
             />
           </div>
@@ -86,12 +105,27 @@ export default function CommunityPostDetail({
 
         {/* 作者信息 */}
         <div className="flex flex-row items-center gap-2 mb-4">
-          <UserAvatarComponent userId={post?.post?.userId ?? -1} width={10} isRounded={true} withName={true}></UserAvatarComponent>
+          <UserAvatarComponent userId={post?.post?.userId ?? -1} width={10} isRounded={true} withName={true} stopPopWindow={true}></UserAvatarComponent>
+          {/* 关注按钮 */}
+          {authorId !== -1 && (
+            <button
+              type="button"
+              onClick={handleFollowClick}
+              disabled={isFollowLoading}
+              className={`btn btn-sm ml-auto ${
+                isFollowed
+                  ? "btn-ghost border border-base-300"
+                  : "btn-primary"
+              } ${isFollowLoading ? "loading" : ""}`}
+            >
+              {isFollowLoading ? "" : isFollowed ? "已关注" : "关注"}
+            </button>
+          )}
         </div>
 
         {/* 转发消息展示 */}
         {post?.post?.message && (
-          <div className="mb-6 border-2 border-base-300 rounded-lg p-2">
+          <div className="mb-6">
             <RoomContext value={roomContextValue}>
               <SpaceContext value={spaceContextValue}>
                 <ForwardMessage messageResponse={post.post.message} />
