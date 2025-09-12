@@ -1,4 +1,5 @@
-import type { FeedPageRequest, MessageFeedWithStatsResponse } from "api";
+import type { CommunityPostFeed, FeedWithStats } from "@/types/feedTypes";
+import type { FeedPageRequest } from "api";
 import FeedPreview from "@/components/feed/feedPreview";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
@@ -21,23 +22,31 @@ export default function FeedPage() {
       return tuanchat.feedController.pageFeed(pageParam as FeedPageRequest);
     },
     getNextPageParam: (lastPage) => {
-      if (lastPage.data === undefined || lastPage.data?.isLast) {
+      if (!lastPage.data || lastPage.data.isLast)
         return undefined;
-      }
-      else {
-        const params: FeedPageRequest = { pageSize: PAGE_SIZE, cursor: lastPage.data?.cursor };
-        return params;
-      }
+      return { pageSize: PAGE_SIZE, cursor: lastPage.data.cursor };
     },
-    initialPageParam: { pageSize: PAGE_SIZE, cursor: null } as unknown as FeedPageRequest,
+    initialPageParam: { pageSize: PAGE_SIZE, cursor: undefined as number | undefined },
     refetchOnWindowFocus: false,
   });
 
   // 将分页数据 flatten，过滤不感兴趣
-  const feeds: MessageFeedWithStatsResponse[] = useMemo(() => {
+  const feeds: FeedWithStats<CommunityPostFeed>[] = useMemo(() => {
     return (
-      feedInfiniteQuery.data?.pages.flatMap(p => p.data?.list ?? []) ?? []
-    ).filter(f => !hiddenFeeds.includes(f.feed!.feedId!));
+      feedInfiniteQuery.data?.pages.flatMap((page) => {
+      // page.data?.list 是 FeedWithStatsResponse[] 类型，需要转换为 FeedWithStats<CommunityPostFeed>[]
+        if (page.data?.list) {
+          return page.data.list.map(item => ({
+            ...item,
+            // 将 response 字段转换为 CommunityPostFeed 类型
+            response: item.response as CommunityPostFeed,
+            // 将 stats 字段转换为 FeedStats 类型
+            stats: item.stats as FeedWithStats<CommunityPostFeed>["stats"],
+          }));
+        }
+        return [];
+      }) ?? []
+    ).filter(f => !hiddenFeeds.includes(f.stats?.postId ?? -1));
   }, [feedInfiniteQuery.data?.pages, hiddenFeeds]);
 
   // 无限滚动逻辑
@@ -48,8 +57,8 @@ export default function FeedPage() {
   }, [feedEntry?.isIntersecting, feedInfiniteQuery.isFetching, feedInfiniteQuery.hasNextPage, feedInfiniteQuery]);
 
   // 点击不感兴趣
-  const handleDislike = (feedId: number) => {
-    setHiddenFeeds(prev => [...prev, feedId]);
+  const handleDislike = (postId: number) => {
+    setHiddenFeeds(prev => [...prev, postId]);
   };
 
   return (
@@ -63,11 +72,19 @@ export default function FeedPage() {
           {feeds.map((feed, index) => (
             <div
               ref={index === feeds.length - FETCH_ON_REMAIN ? feedRef : null}
-              key={feed?.feed?.feedId}
+              key={feed.stats?.postId}
             >
-              {feed.feed
-                ? <FeedPreview feed={feed.feed} stats={feed.stats!} onDislike={() => feed.feed?.feedId && handleDislike(feed.feed.feedId)} />
-                : <div className="text-sm opacity-60">加载失败或数据为空</div>}
+              {feed.stats?.postId
+                ? (
+                    <FeedPreview
+                      feed={feed.response}
+                      stats={feed.stats}
+                      onDislike={() => handleDislike(feed.stats!.postId)}
+                    />
+                  )
+                : (
+                    <div className="text-sm opacity-60">加载失败或数据为空</div>
+                  )}
             </div>
           ))}
           {feedInfiniteQuery.isFetchingNextPage && (
