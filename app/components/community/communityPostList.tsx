@@ -128,7 +128,7 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
                       onPostClick(postId);
                     }
                     else {
-                      navigate(`/post/${postId}`);
+                      navigate(`/community/${communityId}/${postId}`);
                     }
                   }
                 }}
@@ -148,7 +148,7 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
                       onPostClick(postId);
                     }
                     else {
-                      navigate(`/post/${postId}`);
+                      navigate(`/community/${communityId}/${postId}`);
                     }
                   }
                 }}

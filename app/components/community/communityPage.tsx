@@ -36,7 +36,7 @@ export default function CommunityPage() {
 
   // 处理帖子点击，导航到帖子详情页
   const handlePostClick = (postId: number) => {
-    navigate(`/post/${postId}`);
+    navigate(`/community/${communityId}/${postId}`);
   };
 
   // 处理创建帖子按钮点击
