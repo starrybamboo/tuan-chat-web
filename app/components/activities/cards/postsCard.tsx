@@ -183,8 +183,9 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
 
         {/* 操作栏 */}
         <div className="flex items-center space-x-4 sm:space-x-6 pt-3 border-t border-base-300">
-          <div
-            className="flex transition-colors px-2 py-1 rounded-full hover:text-error hover:bg-error/10"
+          <button
+            className="flex items-center space-x-1 text-sm transition-colors px-2 py-1 rounded-full hover:text-error hover:bg-error/10"
+            type="button"
           >
             {/* 点赞组件 */}
             <LikeIconButton
@@ -192,16 +193,16 @@ export const PostsCard: React.FC<PostsCardProp> = ({ dynamic, loginUserId }) => 
               className="w-9 h-6"
               direction="row"
             />
-          </div>
+          </button>
 
-          <div
+          <button
             onClick={handleComment}
             className="flex items-center space-x-1 text-sm hover:text-primary hover:bg-primary/10 transition-colors px-2 py-1 rounded-full"
+            type="button"
           >
             <CommentOutline className="h-6 w-5" />
             <span className="font-medium">0</span>
-          </div>
-
+          </button>
           <button
             onClick={handleShare}
             className="flex items-center space-x-1 text-sm text-base-content/60 hover:text-success hover:bg-success/10 transition-colors px-2 py-1 rounded-full"

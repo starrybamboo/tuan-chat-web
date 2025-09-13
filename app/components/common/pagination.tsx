@@ -1,4 +1,3 @@
-import { BaselineArrowBackIosNew, ChevronRight } from "@/icons";
 import React, { useEffect, useMemo, useState } from "react";
 
 /**
@@ -13,9 +12,6 @@ interface PaginationProps {
   responsive?: boolean;
 }
 
-/**
- * 仿照 B站，Google 类似的按钮分页，支持响应式布局显示
- */
 const Pagination: React.FC<PaginationProps> = ({
   totalPages,
   currentPage,
@@ -98,7 +94,8 @@ const Pagination: React.FC<PaginationProps> = ({
   return (
     <div
       className={
-        `join flex flex-wrap justify-center ${className} gap-1 md:gap-2`
+        `join flex flex-wrap justify-center ${className}`
+        + ` gap-1 md:gap-2`
       }
       role="navigation"
       aria-label="分页导航"
@@ -111,7 +108,18 @@ const Pagination: React.FC<PaginationProps> = ({
           disabled={currentPage === 1}
           aria-label="上一页"
         >
-          <BaselineArrowBackIosNew />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         </button>
       )}
 
@@ -154,7 +162,18 @@ const Pagination: React.FC<PaginationProps> = ({
           disabled={currentPage === totalPages}
           aria-label="下一页"
         >
-          <ChevronRight className="w-5 h-5" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <path d="M9 6l6 6-6 6" />
+          </svg>
         </button>
       )}
     </div>
