@@ -1,6 +1,8 @@
+import RoomButton from "@/components/chat/smallComponents/roomButton";
+import SpaceButton from "@/components/chat/smallComponents/spaceButton";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import {
   useGetUserRoomsQueries,
@@ -13,7 +15,25 @@ function ForwardWindow({ onClickRoom, handlePublishFeed }:
   const userSpacesQuery = useGetUserSpacesQuery();
   const spaces = userSpacesQuery.data?.data ?? [];
   const userRoomsQueries = useGetUserRoomsQueries(spaces);
-  const rooms = userRoomsQueries.map(query => query.data?.data ?? []).flat();
+
+  // 选中的空间ID
+  const [selectedSpaceId, setSelectedSpaceId] = useState<number | null>(null);
+
+  // 空间对应的房间列表
+  const spaceIdToRooms = useMemo(() => {
+    const result: Record<number, any[]> = {};
+    for (const space of spaces) {
+      const spaceId = space.spaceId ?? -1;
+      result[spaceId] = userRoomsQueries.find(query =>
+        query.data?.data?.some(room => room.spaceId === space.spaceId),
+      )?.data?.data ?? [];
+    }
+    return result;
+  }, [spaces, userRoomsQueries]);
+
+  // 当前选中空间的房间列表
+  const currentRooms = selectedSpaceId ? spaceIdToRooms[selectedSpaceId] ?? [] : [];
+
   const [isOpenPublishFeedWindow, setIsOpenPublishFeedWindow] = useSearchParamsState<boolean>(`forwardPop`, false);
   const [feedData, setFeedData] = useState({
     title: "",
@@ -44,29 +64,66 @@ function ForwardWindow({ onClickRoom, handlePublishFeed }:
     }
   };
   return (
-    <div className="gap-2 flex flex-col items-center overflow-auto">
-      <button className="btn" type="button" onClick={() => setIsOpenPublishFeedWindow(true)}>
+    <div className="flex flex-col gap-4 w-full max-w-2xl mx-auto">
+      <button className="btn btn-primary self-center" type="button" onClick={() => setIsOpenPublishFeedWindow(true)}>
         分享到社区
       </button>
-      或者选择转发到群组：
-      {
-        rooms.map(room => (
-          <button
-            key={room.roomId}
-            className="btn btn-ghost flex justify-start w-full gap-2"
-            type="button"
-            onClick={() => onClickRoom(room.roomId ?? -1)}
-          >
-            <div className="avatar mask mask-squircle w-8">
-              <img
-                src={room.avatar}
-                alt={room.name}
-              />
-            </div>
-            <span>{room.name}</span>
-          </button>
-        ))
-      }
+
+      <div className="divider text-sm">或者选择转发到群组</div>
+
+      <div className="flex flex-row bg-base-100 border border-base-300 rounded-lg overflow-hidden h-80 md:h-96">
+        {/* 空间列表 */}
+        <div className="flex flex-col p-2 gap-2 bg-base-300/40 w-16 md:w-20 flex-shrink-0">
+          {spaces.map(space => (
+            <SpaceButton
+              key={space.spaceId}
+              space={space}
+              unreadMessageNumber={0}
+              onclick={() => setSelectedSpaceId(space.spaceId ?? -1)}
+              isActive={selectedSpaceId === space.spaceId}
+            />
+          ))}
+        </div>
+
+        <div className="w-px bg-base-300 flex-shrink-0"></div>
+
+        {/* 房间列表 */}
+        <div className="flex flex-col py-2 flex-1 min-w-0 overflow-hidden w-48 md:w-56">
+          <div className="flex flex-col gap-2 h-full overflow-auto px-1">
+            {selectedSpaceId
+              ? (
+                  <>
+                    <div className="text-center font-bold text-sm mb-2 px-2 py-1 bg-base-200/50 rounded mx-1 flex-shrink-0">
+                      {spaces.find(s => s.spaceId === selectedSpaceId)?.name}
+                    </div>
+                    {currentRooms.map(room => (
+                      <div key={room.roomId} className="px-1 flex-shrink-0">
+                        <RoomButton
+                          room={room}
+                          unreadMessageNumber={0}
+                          onclick={() => onClickRoom(room.roomId ?? -1)}
+                          isActive={false}
+                        />
+                      </div>
+                    ))}
+                    {currentRooms.length === 0 && (
+                      <div className="flex items-center justify-center flex-1 text-base-content/50 text-sm">
+                        该空间暂无房间
+                      </div>
+                    )}
+                  </>
+                )
+              : (
+                  <div className="flex items-center justify-center h-full text-base-content/50 text-sm">
+                    <div className="text-center">
+                      <div className="text-4xl mb-2">👈</div>
+                      <div>请选择左侧空间</div>
+                    </div>
+                  </div>
+                )}
+          </div>
+        </div>
+      </div>
       <PopWindow isOpen={isOpenPublishFeedWindow} onClose={() => setIsOpenPublishFeedWindow(false)}>
         <div className="p-4 w-full max-w-md">
           <h3 className="text-lg font-bold mb-4">分享到社区</h3>
