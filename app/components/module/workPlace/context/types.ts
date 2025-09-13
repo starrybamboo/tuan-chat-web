@@ -48,6 +48,4 @@ export enum ModuleListEnum {
   STAGE = "stage",
   HISTORY = "history",
   BRANCH = "branch",
-  MAP = "map",
-  BACK = "back",
 }

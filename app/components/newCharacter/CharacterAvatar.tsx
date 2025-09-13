@@ -1,10 +1,10 @@
 import type { RoleAvatar } from "api";
 import type { Role } from "./types";
-import { useUpdateAvatarTitleMutation, useUploadAvatarMutation } from "@/../api/queryHooks";
+import { useUploadAvatarMutation } from "@/../api/queryHooks";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { PopWindow } from "../common/popWindow";
 import { AvatarPreview } from "./sprite/AvatarPreview";
 import { CharacterCopper } from "./sprite/CharacterCopper";
@@ -53,7 +53,6 @@ export default function CharacterAvatar({
   // 删除弹窗用
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useSearchParamsState<boolean>(`deleteAvatarPop`, false);
   const [avatarToDeleteIndex, setAvatarToDeleteIndex] = useState<number | null>(null);
-  const avatarTitles = useRef<string[]>([]);
 
   // 响应式切换显示模式
   useEffect(() => {
@@ -67,13 +66,8 @@ export default function CharacterAvatar({
     return () => mediaQuery.removeEventListener("change", handleResize);
   }, []);
 
-  useEffect(() => {
-    avatarTitles.current = roleAvatars.map(avatar => avatar.avatarTitle || "");
-  }, [roleAvatars]);
-
   // 使用新的 hook
   const { mutate } = useUploadAvatarMutation();
-  const { mutate: updateAvatarTitle } = useUpdateAvatarTitleMutation();
 
   // post删除头像请求
   const { mutate: deleteAvatar } = useMutation({
@@ -258,22 +252,7 @@ export default function CharacterAvatar({
                   </div>
                   {/* 标题截断优化 */}
                   <p className="text-center w-full truncate max-w-full px-1 text-sm mt-1">
-                    <select
-                      className="bg-white"
-                      value={avatarTitles.current[index] || "冷静"}
-                      onChange={(e) => {
-                        updateAvatarTitle({ avatarTitle: e.target.value, avatarId: item.avatarId!, roleId: role.id! });
-                        avatarTitles.current[index] = e.target.value;
-                      }}
-                    >
-                      <option value="愤怒">愤怒</option>
-                      <option value="开心">开心</option>
-                      <option value="难过">难过</option>
-                      <option value="惊讶">惊讶</option>
-                      <option value="害怕">害怕</option>
-                      <option value="冷静">冷静</option>
-                      <option value="绝望">绝望</option>
-                    </select>
+                    {item.avatarTitle}
                   </p>
                 </li>
               ))}

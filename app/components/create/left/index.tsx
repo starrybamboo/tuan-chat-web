@@ -45,9 +45,6 @@ function LeftContent() {
             <Branch />
           </div>
         );
-      case ModuleListEnum.BACK:
-        // 返回上一级，跳转回 /create 路由
-        return null; // 不渲染任何内容
 
       default:
         return (

@@ -52,7 +52,6 @@ import {
   LikeRecordControllerService, type CommentPageRequest, type CommentAddRequest,
   type RoleCreateRequest
 } from "api";
-import { use } from 'react';
 
 // ==================== 角色管理 ====================
 /**
@@ -357,11 +356,11 @@ export function useApplyCropMutation() {
           avatarId,
           avatarUrl: currentAvatar.avatarUrl, // 保持原有的avatarUrl
           spriteUrl: newSpriteUrl, // 使用新的spriteUrl
-          spriteXPosition: finalTransform.positionX,
-          spriteYPosition: finalTransform.positionY,
-          spriteScale: finalTransform.scale,
-          spriteTransparency: finalTransform.alpha,
-          spriteRotation: finalTransform.rotation,
+          spriteXPosition: finalTransform.positionX.toString(),
+          spriteYPosition: finalTransform.positionY.toString(),
+          spriteScale: finalTransform.scale.toString(),
+          spriteTransparency: finalTransform.alpha.toString(),
+          spriteRotation: finalTransform.rotation.toString(),
         });
 
         if (!updateRes.success) {
@@ -408,11 +407,11 @@ export function useUpdateAvatarTransformMutation() {
           avatarId,
           avatarUrl: currentAvatar.avatarUrl,
           spriteUrl: currentAvatar.spriteUrl,
-          spriteXPosition: t.positionX,
-          spriteYPosition: t.positionY,
-          spriteScale: t.scale,
-          spriteTransparency: t.alpha,
-          spriteRotation: t.rotation,
+          spriteXPosition: t.positionX.toString(),
+          spriteYPosition: t.positionY.toString(),
+          spriteScale: t.scale.toString(),
+          spriteTransparency: t.alpha.toString(),
+          spriteRotation: t.rotation.toString(),
         });
 
         if (!updateRes.success) {
@@ -438,9 +437,9 @@ export function useUpdateAvatarTransformMutation() {
 
 export function useUploadAvatarMutation() {
   const queryClient = useQueryClient();
-  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; spriteUrl: string; roleId: number; transform?: Transform; avatarTitle?: string }>({
+  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; spriteUrl: string; roleId: number; transform?: Transform }>({
     mutationKey: ["uploadAvatar"],
-    mutationFn: async ({ avatarUrl, spriteUrl, roleId, transform, avatarTitle }) => {
+    mutationFn: async ({ avatarUrl, spriteUrl, roleId, transform }) => {
       if (!avatarUrl || !roleId || !spriteUrl) {
         console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;
@@ -479,12 +478,11 @@ export function useUploadAvatarMutation() {
             avatarId,
             avatarUrl,
             spriteUrl,
-            avatarTitle,
-            spriteXPosition: t.positionX,
-            spriteYPosition: t.positionY,
-            spriteScale: t.scale,
-            spriteTransparency: t.alpha,
-            spriteRotation: t.rotation,
+            spriteXPosition: t.positionX.toString(),
+            spriteYPosition: t.positionY.toString(),
+            spriteScale: t.scale.toString(),
+            spriteTransparency: t.alpha.toString(),
+            spriteRotation: t.rotation.toString(),
           });
           if (!uploadRes.success) {
             console.error("头像更新失败", uploadRes);
@@ -508,29 +506,6 @@ export function useUploadAvatarMutation() {
       console.error("Mutation failed:", error.message || error);
     },
   });
-}
-
-export function useUpdateAvatarTitleMutation() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationKey: ["updateAvatarTitle"],
-    mutationFn: async ({ avatarId, avatarTitle, roleId }: { avatarId: number; avatarTitle: string; roleId: number }) => {
-      if (!avatarId || !avatarTitle) {
-        console.error("参数错误：avatarId 或 title 为空");
-        return undefined;
-      }
-      try {
-        const res = await tuanchat.avatarController.updateRoleAvatar({ avatarId, avatarTitle })
-      }
-      catch (error) {
-        console.error("更新头像标题请求失败", error);
-        throw error;
-      }
-    },
-    onSuccess: (_ , variables) => {
-      queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", variables.roleId] });
-    },
-  })
 }
 
 // 根据头像id获取头像
