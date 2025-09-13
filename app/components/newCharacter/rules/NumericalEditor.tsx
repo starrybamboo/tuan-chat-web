@@ -215,12 +215,7 @@ export default function NumericalEditor({
       </div>
 
       <div className="bg-base-200 p-4 rounded-lg">
-        <div className={
-          isEditing
-            ? "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3"
-            : "grid grid-cols-2 md:flex md:flex-wrap gap-2 md:gap-6"
-        }
-        >
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {Object.entries(localData).map(([key, value]) => (
             <EditableField
               key={key}
