@@ -465,7 +465,15 @@ export default function AICreateRole({
           <div className="lg:col-span-1 ">
             <div className="card bg-base-100 shadow-sm rounded-2xl border-2 border-base-content/10">
               <div className="card-body md:min-h-[448px]">
-                <h3 className="card-title text-lg mb-4">⚙️ 规则系统</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="card-title text-lg">⚙️ 规则系统</h3>
+                  {!characterData.ruleId && !errors.ruleId && (
+                    <span className="text-warning text-xs">请选择以使用AI功能</span>
+                  )}
+                  {characterData.ruleId && (
+                    <span className="text-success text-xs">✓</span>
+                  )}
+                </div>
                 <RulesSection
                   currentRuleId={selectedRuleId}
                   onRuleChange={handleruleIdChange}
@@ -491,9 +499,13 @@ export default function AICreateRole({
                   <div className="form-control">
                     <div className="flex gap-2 mb-2 items-center font-semibold">
                       <span>角色名称</span>
-                      {characterData.name.trim() && (
-                        <span className="text-success text-xs">✓</span>
-                      )}
+                      {characterData.name.trim()
+                        ? (
+                            <span className="text-success text-xs">✓</span>
+                          )
+                        : (
+                            <span className="text-error text-xs">✕ 请填写以使用AI创建角色</span>
+                          )}
                       <span className="label-text-alt text-base-content/60">
                         {characterData.name.length}
                         /
@@ -517,9 +529,13 @@ export default function AICreateRole({
                   <div className="form-control md:col-span-2">
                     <div className="flex gap-2 mb-2 items-center font-semibold">
                       <span>角色描述</span>
-                      {characterData.description.trim() && (
-                        <span className="text-success text-xs">✓</span>
-                      )}
+                      {characterData.description.trim()
+                        ? (
+                            <span className="text-success text-xs">✓</span>
+                          )
+                        : (
+                            <span className="text-error text-xs">✕ 请填写以使用AI创建角色</span>
+                          )}
                       <span className="label-text-alt text-base-content/60">
                         {characterData.description.length}
                         /
@@ -554,21 +570,6 @@ export default function AICreateRole({
           onPromptChange={setAiPrompt}
           onGenerate={handleAIGenerate}
         />
-
-        {/* 基础信息完整性提示 */}
-        {!isBasicInfoComplete && (
-          <div className="alert alert-info">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <div>
-              <h3 className="font-bold">请先完善基础信息</h3>
-              <div className="text-sm">
-                需要填写角色名称、角色描述并选择规则系统后才能使用AI生成功能
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* 角色属性 - 只有在选择规则系统后才显示 */}
         {characterData.ruleId && (
