@@ -1,15 +1,17 @@
+import useSearchParamsState from "../customHooks/useSearchParamState";
+import { PopWindow } from "../popWindow";
 import CopyLinkButton from "./copyLinkButton";
-import useSearchParamsState from "./customHooks/useSearchParamState";
-import { PopWindow } from "./popWindow";
-import ShareToQQButton from "./shareToQQButton";
+import SavePictureButton from "./savePictureButton";
 
 interface shareIconButtonProps {
   searchKey: string;
   className?: string;
+  title?: string;
 }
 export default function ShareIconButton({
   searchKey,
   className,
+  title,
 }: shareIconButtonProps) {
   const [showShare, setShowShare] = useSearchParamsState<boolean>(searchKey, false);
   return (
@@ -34,11 +36,10 @@ export default function ShareIconButton({
       </button>
       <PopWindow isOpen={showShare} onClose={() => setShowShare(false)}>
         <div className="overflow-y-auto space-y-4 h-[40vh] w-[30vw] flex flex-col items-center justify-center">
-          <h2 className="text-xl font-bold">分享至</h2>
+          <h2 className="text-xl font-bold ">分享方式</h2>
           <div className="flex gap-4 mt-4">
-            <button className="btn btn-primary" type="button">社区</button>
-            <ShareToQQButton feedId={1} />
-            <CopyLinkButton />
+            <SavePictureButton />
+            <CopyLinkButton title={title} />
           </div>
         </div>
       </PopWindow>
