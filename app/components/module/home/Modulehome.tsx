@@ -13,23 +13,23 @@ import 教室图片 from "./images/教室.webp";
 // import 楼道图片 from "./images/楼道.webp";
 
 // 示例tag数组，可根据实际数据源替换
-const tags = [
-  "TRPG",
-  "冒险",
-  "合作",
-  "推理",
-  "恐怖",
-  "短剧本",
-  "长剧本",
-  "新手友好",
-  "高难度",
-  "单元剧",
-  "剧情驱动",
-  "规则轻量",
-  "规则复杂",
-  "经典",
-  "原创",
-];
+// const tags = [
+//   "TRPG",
+//   "冒险",
+//   "合作",
+//   "推理",
+//   "恐怖",
+//   "短剧本",
+//   "长剧本",
+//   "新手友好",
+//   "高难度",
+//   "单元剧",
+//   "剧情驱动",
+//   "规则轻量",
+//   "规则复杂",
+//   "经典",
+//   "原创",
+// ];
 
 // 卡片内容类型定义
 interface ContentCardProps {
@@ -502,7 +502,7 @@ export default function ModuleHome() {
                   ))}
                 </div>
               </div>
-              <div className="flex-1">
+              {/* <div className="flex-1">
                 <h2 className="text-lg md:text-xl font-bold mb-4 ">全部标签</h2>
                 <div className="flex flex-wrap gap-3">
                   {tags.map(tag => (
@@ -511,7 +511,7 @@ export default function ModuleHome() {
                     </span>
                   ))}
                 </div>
-              </div>
+              </div> */}
               <div className="divider mt-0 mb-8 md:mb-8"></div>
             </div>
             <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10">
