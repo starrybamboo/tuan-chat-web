@@ -1,7 +1,4 @@
 import type { PostListWithStatsResponse } from "api";
-import { RoomContext } from "@/components/chat/roomContext";
-import ForwardMessage from "@/components/chat/smallComponents/forwardMessage";
-import { SpaceContext } from "@/components/chat/spaceContext";
 import IllegalURLPage from "@/components/common/illegalURLPage";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { CommunityContext } from "@/components/community/communityContext";
@@ -11,6 +8,7 @@ import { useNavigate } from "react-router";
 import {
   usePageCommunityPostsInfiniteQuery,
 } from "../../../api/hooks/communityQueryHooks";
+import SlidableChatPreview from "./slidableChatPreview";
 
 const PAGE_SIZE = 10;
 
@@ -28,30 +26,6 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
   const communityId = communityContext.communityId ?? -1;
 
   const navigate = useNavigate();
-
-  // 为 ChatBubble 提供最简化的上下文
-  const roomContextValue = useMemo(() => ({
-    roomId: undefined,
-    roomMembers: [],
-    curMember: undefined,
-    roomRolesThatUserOwn: [],
-    curRoleId: undefined,
-    curAvatarId: undefined,
-    useChatBubbleStyle: false,
-    spaceId: undefined,
-    setReplyMessage: undefined,
-    chatHistory: undefined,
-    scrollToGivenMessage: undefined,
-  }), []);
-
-  const spaceContextValue = useMemo(() => ({
-    spaceId: undefined,
-    ruleId: undefined,
-    isSpaceOwner: false,
-    setActiveSpaceId: () => {},
-    setActiveRoomId: () => {},
-    toggleLeftDrawer: () => {},
-  }), []);
 
   // 无限滚动相关
   const [postRef, postEntry] = useIntersectionObserver();
@@ -169,13 +143,12 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
                       {post?.postListItem?.message?.message && (
                         <div className={`${post?.postListItem?.coverImage ? "flex-1 min-w-0 lg:flex-none lg:max-w-md" : "w-full"} overflow-hidden`}>
                           <div className={`rounded-lg overflow-hidden bg-base-200 ${post?.postListItem?.coverImage ? "h-32 lg:h-40" : "h-auto"}`}>
-                            <RoomContext value={roomContextValue}>
-                              <SpaceContext value={spaceContextValue}>
-                                <div className={`w-full h-full overflow-hidden ${post?.postListItem?.coverImage ? "transform scale-90 lg:scale-100 origin-top-left lg:origin-center" : "transform scale-75 origin-top-left"}`}>
-                                  <ForwardMessage messageResponse={post?.postListItem?.message} />
-                                </div>
-                              </SpaceContext>
-                            </RoomContext>
+                            <SlidableChatPreview
+                              messageResponse={post?.postListItem?.message}
+                              maxHeight="160px"
+                              showAvatars={true}
+                              beFull={false}
+                            />
                           </div>
                         </div>
                       )}
