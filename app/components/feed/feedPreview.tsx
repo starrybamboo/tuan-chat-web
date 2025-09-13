@@ -1,18 +1,17 @@
 import type { FeedStats } from "@/types/feedTypes";
 import type { PostListResponse } from "api";
-import { RoomContext } from "@/components/chat/roomContext";
-import ForwardMessage from "@/components/chat/smallComponents/forwardMessage";
-import { SpaceContext } from "@/components/chat/spaceContext";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import LikeIconButton from "@/components/common/likeIconButton";
 import ShareIconButton from "@/components/common/shareIconButton";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { EllipsisVertical } from "@/icons";
-import React, { useMemo, useState } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router";
 import CollectionIconButton from "../common/collection/collectionIconButton";
 import CommentIconButton from "../common/comment/commentIconButton";
 import DislikeIconButton from "../common/dislikeIconButton";
+import SlidableChatPreview from "../community/slidableChatPreview";
 
 interface FeedPreviewProps {
   feed?: PostListResponse;
@@ -25,11 +24,18 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
     `feedShowCommentsPop${feed?.communityPostId}`,
     false,
   );
+
+  const navigate = useNavigate();
+
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   // 简化：此组件上下文中可以保证 message 一定是转发消息，不再需要额外预览弹窗
 
   // 滑动消失
   const [isRemoving, setIsRemoving] = useState(false);
+
+  const handlejumpToPostDetail = () => {
+    navigate(`/community/${feed?.communityId}/${feed?.communityPostId}`);
+  };
 
   const handleDislikeClick = () => {
     setIsRemoving(true); // 触发滑动动画
@@ -37,30 +43,6 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
       onDislike?.(); // 动画结束后移除 feed
     }, 500); // 与 transition 时间一致
   };
-
-  // 为 ChatBubble 提供最简化的上下文
-  const roomContextValue = useMemo(() => ({
-    roomId: undefined,
-    roomMembers: [],
-    curMember: undefined,
-    roomRolesThatUserOwn: [],
-    curRoleId: undefined,
-    curAvatarId: undefined,
-    useChatBubbleStyle: false,
-    spaceId: undefined,
-    setReplyMessage: undefined,
-    chatHistory: undefined,
-    scrollToGivenMessage: undefined,
-  }), []);
-
-  const spaceContextValue = useMemo(() => ({
-    spaceId: undefined,
-    ruleId: undefined,
-    isSpaceOwner: false,
-    setActiveSpaceId: () => {},
-    setActiveRoomId: () => {},
-    toggleLeftDrawer: () => {},
-  }), []);
 
   // 暂时用社区详情代替
   // const [showDetail, setShowDetail] = useState(false);
@@ -91,29 +73,37 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
           </div>
         </div>
 
-        {/* 标题单独一行 */}
-        {feed?.title && (
-          <h2 className="font-extrabold leading-snug text-base-content/90 text-base line-clamp-2">
-            {feed.title}
-          </h2>
-        )}
+        {/* 可点击区域：消息内容、标题、描述 */}
+        <div
+          className="cursor-pointer group space-y-2"
+          onClick={handlejumpToPostDetail}
+          tabIndex={0}
+          role="button"
+        >
+          {/* 消息内容容器(固定尺寸) */}
+          {feed?.message && (
+            <SlidableChatPreview
+              messageResponse={feed.message}
+              maxHeight="160px"
+              showAvatars={true}
+              beFull={true}
+            />
+          )}
 
-        {/* 文本描述 */}
-        {feed?.description && (
-          <p className="text-sm text-base-content/85 whitespace-pre-line leading-relaxed">
-            {feed.description}
-          </p>
-        )}
+          {/* 标题单独一行 */}
+          {feed?.title && (
+            <h2 className="font-extrabold leading-snug text-base-content/90 text-base line-clamp-2 group-hover:underline">
+              {feed.title}
+            </h2>
+          )}
 
-        {/* 消息内容容器(固定尺寸) */}
-        {feed?.message && (
-
-          <RoomContext value={roomContextValue}>
-            <SpaceContext value={spaceContextValue}>
-              <ForwardMessage messageResponse={feed.message} />
-            </SpaceContext>
-          </RoomContext>
-        )}
+          {/* 文本描述 */}
+          {feed?.description && (
+            <p className="text-sm text-base-content/85 whitespace-pre-line leading-relaxed">
+              {feed.description}
+            </p>
+          )}
+        </div>
 
         {/* 右下角操作按钮 */}
         <div className="flex items-center justify-end mt-1">
