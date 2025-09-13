@@ -3,6 +3,7 @@ import { PreviewMessage } from "@/components/chat/smallComponents/previewMessage
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import React, { useMemo } from "react";
 import { useGetRoleQuery } from "../../../api/queryHooks";
+import BetterImg from "../common/betterImg";
 
 /**
  * 可滑动的聊天记录预览组件，显示转发消息的预览。
@@ -141,7 +142,10 @@ function ChatMessageItem({
       const imgMsg = message.extra?.imageMessage;
       return (
         <div className="text-xs text-base-content/70">
-          [图片消息]
+          <BetterImg
+            src={imgMsg?.url}
+            className="max-h-24 max-w-32 rounded"
+          />
           {imgMsg?.background && <span className="ml-1">(已设为背景)</span>}
         </div>
       );

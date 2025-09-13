@@ -73,6 +73,16 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
           </div>
         </div>
 
+        {/* 消息内容容器(固定尺寸) */}
+        {feed?.message && (
+          <SlidableChatPreview
+            messageResponse={feed.message}
+            maxHeight="160px"
+            showAvatars={true}
+            beFull={true}
+          />
+        )}
+
         {/* 可点击区域：消息内容、标题、描述 */}
         <div
           className="cursor-pointer group space-y-2"
@@ -80,16 +90,6 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
           tabIndex={0}
           role="button"
         >
-          {/* 消息内容容器(固定尺寸) */}
-          {feed?.message && (
-            <SlidableChatPreview
-              messageResponse={feed.message}
-              maxHeight="160px"
-              showAvatars={true}
-              beFull={true}
-            />
-          )}
-
           {/* 标题单独一行 */}
           {feed?.title && (
             <h2 className="font-extrabold leading-snug text-base-content/90 text-base line-clamp-2 group-hover:underline">
