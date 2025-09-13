@@ -1,8 +1,12 @@
+import { sleep } from "ahooks/es/utils/testingHelpers";
+
+import type { GenerationParams, TTSRequest } from "@/tts";
+
+import { createDefaultGenerationParams, EmoControlMethod, ttsApi } from "@/tts";
 import { checkGameExist, terreApis } from "@/webGAL/index";
 
 import type { ChatMessageResponse, RoleAvatar } from "../../api";
 
-import { tuanchat } from "../../api/instance";
 import { checkFileExist, getAsyncMsg, uploadFile } from "./fileOperator";
 
 type Game = {
@@ -53,20 +57,20 @@ export class SceneEditor {
   private roleAvatarToTransformString(avatar: RoleAvatar): string {
     // Convert angle to radians (avatar.spriteRotation is in degrees)
     const rotationRad = avatar.spriteRotation
-      ? (Number.parseFloat(avatar.spriteRotation) * Math.PI / 180)
+      ? (avatar.spriteRotation * Math.PI / 180)
       : 0;
 
     // Create the transform object
     const transform = {
       position: {
-        x: avatar.spriteXPosition ? Number.parseFloat(avatar.spriteXPosition) : 0,
-        y: avatar.spriteYPosition ? Number.parseFloat(avatar.spriteYPosition) : 0,
+        x: avatar.spriteXPosition ?? 0,
+        y: avatar.spriteYPosition ?? 0,
       },
       scale: {
-        x: avatar.spriteScale ? Number.parseFloat(avatar.spriteScale) : 1,
-        y: avatar.spriteScale ? Number.parseFloat(avatar.spriteScale) : 1,
+        x: avatar.spriteScale ?? 1,
+        y: avatar.spriteScale ?? 1,
       },
-      alpha: avatar.spriteTransparency ? Number.parseFloat(avatar.spriteTransparency) : 1,
+      alpha: avatar.spriteTransparency ?? 1,
       rotation: rotationRad,
     };
 
@@ -162,37 +166,231 @@ export class SceneEditor {
       + ((hash * 0x811C9DC5) >>> 0).toString(16).padStart(8, "0");
   }
 
-  // return the file name
-  public async uploadVocal(message: ChatMessageResponse): Promise<string | undefined> {
-    const modelName = "鸣潮";
-    const speakerName = "散华";
-    const emotion = "中立_neutral";
+  /**
+   * 异步生成语音 - 基于新的 TTS API
+   * @param message 聊天消息
+   * @param refVocal 参考音频文件
+   * @param options TTS 生成选项
+   * @returns Promise<{ success: boolean; fileName?: string; jobId?: string; error?: string }>
+   */
+  public async generateVocalAsync(
+    message: ChatMessageResponse,
+    refVocal: File,
+    options: {
+      emotionControl?: EmoControlMethod;
+      emotionWeight?: number;
+      emotionText?: string;
+      generationParams?: Partial<GenerationParams>;
+      maxTokensPerSegment?: number;
+    } = {},
+  ): Promise<{ success: boolean; fileName?: string; jobId?: string; error?: string }> {
+    const text = message.message.content;
+    const {
+      emotionControl = EmoControlMethod.REFERENCE,
+      emotionWeight = 0.8,
+      emotionText,
+      generationParams = {},
+      maxTokensPerSegment = 120,
+    } = options;
+
+    // 使用hash作为文件名
+    const identifyString = `tts_${text}_${refVocal.name}_${emotionControl}_async`;
+    const hash = this.simpleHash(identifyString);
+    const fileName = `${hash}.wav`;
+
+    try {
+      // 1. 上传参考音频
+      const uploadResult = await ttsApi.uploadFile(refVocal);
+      if (!uploadResult.fileId) {
+        return { success: false, error: "参考音频上传失败" };
+      }
+
+      // 2. 创建异步 TTS 请求
+      const ttsRequest: TTSRequest = {
+        promptFileId: uploadResult.fileId,
+        text,
+        emoControlMethod: emotionControl,
+        emoWeight: emotionWeight,
+        emoText: emotionText,
+        emoRandom: false,
+        generation: { ...createDefaultGenerationParams(), ...generationParams },
+        maxTextTokensPerSegment: maxTokensPerSegment,
+        async_mode: true, // 异步模式
+      };
+
+      // 3. 创建 TTS 任务
+      const response = await ttsApi.createTTS(ttsRequest);
+
+      if (typeof response === "object" && "jobId" in response) {
+        return {
+          success: true,
+          jobId: response.jobId,
+          fileName, // 预期的文件名
+        };
+      }
+      else {
+        return { success: false, error: "创建 TTS 任务失败，未收到 jobId" };
+      }
+    }
+    catch (error) {
+      console.error("异步语音生成失败:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "未知错误",
+      };
+    }
+  }
+
+  /**
+   * 检查并下载异步生成的语音文件
+   * @param jobId TTS 任务 ID
+   * @param expectedFileName 期望的文件名
+   * @returns Promise<string | undefined> 成功返回文件名，失败返回 undefined
+   */
+  public async downloadAsyncVocal(jobId: string, expectedFileName: string): Promise<string | undefined> {
+    try {
+      // 1. 检查任务状态
+      const status = await ttsApi.getTTSStatus(jobId);
+
+      if (status.status !== "succeeded") {
+        console.log(`TTS 任务 ${jobId} 状态: ${status.status}, 进度: ${status.progress}%`);
+        return undefined;
+      }
+
+      if (!status.audioUrl) {
+        console.error(`TTS 任务 ${jobId} 已完成但没有音频 URL`);
+        return undefined;
+      }
+
+      // 2. 下载音频文件
+      const audioBlob = await ttsApi.downloadFile(status.audioUrl.split("/").pop()!);
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      try {
+        // 3. 上传到 WebGAL
+        const uploadedFileName = await uploadFile(
+          audioUrl,
+          `games/${this.game.name}/game/vocal/`,
+          expectedFileName,
+        );
+
+        // 清理临时 URL
+        URL.revokeObjectURL(audioUrl);
+        return uploadedFileName;
+      }
+      catch (uploadError) {
+        console.error("音频文件上传到 WebGAL 失败:", uploadError);
+        URL.revokeObjectURL(audioUrl);
+        return undefined;
+      }
+    }
+    catch (error) {
+      console.error(`检查异步语音任务 ${jobId} 失败:`, error);
+      return undefined;
+    }
+  }
+
+  /**
+   * 上传语音文件
+   * @param message
+   * @param refVocal
+   */
+  public async uploadVocal(message: ChatMessageResponse, refVocal?: File): Promise<string | undefined> {
     const text = message.message.content;
 
     // 使用hash作为文件名, 用于避免重复生成语音
-    const identifyString = `${modelName}_${speakerName}_${emotion}_${text}`;
+    const identifyString = `tts_${text}_${refVocal?.name || "default"}`;
     const hash = this.simpleHash(identifyString);
     const fileName = `${hash}.wav`;
+
+    if (!refVocal)
+      return;
+
+    // 检查文件是否已存在
     if (await checkFileExist(`games/${this.game.name}/game/vocal/`, fileName)) {
       return fileName;
     }
+    const result = await this.generateVocalAsync(message, refVocal);
+    if (result.success && result.jobId) {
+      console.log("异步任务已创建，任务ID:", result.jobId);
+      console.log("预期文件名:", result.fileName);
 
-    const response = await tuanchat.ttsController.textToVoiceHobbyist({
-      accessToken: "86737b862a54e0de7b32a4b1ff48cd5f",
-      modelName,
-      speakerName,
-      emotion,
-      text,
-    });
-    const vocalUrl = response?.downloadUrl;
-    if (vocalUrl) {
-      return await uploadFile(vocalUrl, `games/${this.game.name}/game/vocal/`, fileName);
+      // 一段语音最多等5分钟
+      for (let i = 0; i < 150; i++) {
+        const fileName = await this.downloadAsyncVocal(result.jobId!, result.fileName!);
+        if (fileName) {
+          console.log("异步语音生成完成，文件名:", fileName);
+          return fileName;
+        }
+        await sleep(2000);
+      }
     }
-    return undefined;
+    else {
+      console.error("异步任务创建失败:", result.error);
+    }
   }
 }
 
 export async function editScene(game: string, scene: string, content: string) {
   const path = `games/${game}/game/scene/${scene}.txt`;
   await terreApis.manageGameControllerEditTextFile({ path, textFile: content });
+}
+
+/**
+ * 生成语音的简化接口，基于新的 TTS API
+ * @param text 要生成语音的文本
+ * @param refVocal 参考音频文件
+ * @param options 生成选项
+ * @returns Promise<{ success: boolean; audioUrl?: string; error?: string }>
+ */
+export async function generateSpeechSimple(
+  text: string,
+  refVocal: File,
+  options: {
+    emotionControl?: EmoControlMethod;
+    maxTokensPerSegment?: number;
+  } = {},
+): Promise<{ success: boolean; audioUrl?: string; error?: string }> {
+  const {
+    emotionControl = EmoControlMethod.NONE,
+    maxTokensPerSegment = 120,
+  } = options;
+
+  try {
+    // 1. 上传参考音频
+    const uploadResult = await ttsApi.uploadFile(refVocal);
+    if (!uploadResult.fileId) {
+      return { success: false, error: "参考音频上传失败" };
+    }
+
+    // 2. 创建 TTS 请求（同步模式）
+    const ttsRequest: TTSRequest = {
+      promptFileId: uploadResult.fileId,
+      text,
+      emoControlMethod: emotionControl,
+      emoWeight: 0.8,
+      emoRandom: false,
+      generation: createDefaultGenerationParams(),
+      maxTextTokensPerSegment: maxTokensPerSegment,
+      async_mode: false, // 同步模式
+    };
+
+    // 3. 生成语音
+    const response = await ttsApi.createTTS(ttsRequest);
+
+    if (response instanceof Blob) {
+      const audioUrl = URL.createObjectURL(response);
+      return { success: true, audioUrl };
+    }
+    else {
+      return { success: false, error: "TTS API 返回格式异常" };
+    }
+  }
+  catch (error) {
+    console.error("生成语音失败:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "未知错误",
+    };
+  }
 }
