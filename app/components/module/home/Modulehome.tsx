@@ -4,13 +4,13 @@ import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
-import Carousel from "./carousel";
-// 导入本地图片
-import 办公室图片 from "./images/办公室.webp";
-import 天台图片 from "./images/天台.webp";
-import 操场图片 from "./images/操场.webp";
+// import Carousel from "./carousel";
+// // 导入本地图片
+// import 办公室图片 from "./images/办公室.webp";
+// import 天台图片 from "./images/天台.webp";
+// import 操场图片 from "./images/操场.webp";
 import 教室图片 from "./images/教室.webp";
-import 楼道图片 from "./images/楼道.webp";
+// import 楼道图片 from "./images/楼道.webp";
 
 // 示例tag数组，可根据实际数据源替换
 const tags = [
@@ -204,38 +204,38 @@ export default function ModuleHome() {
   const navigate = useNavigate();
 
   // 轮播图数据 - 五张图片实现循环显示
-  const heroImages = useMemo(() => [
-    {
-      img: 教室图片,
-      alt: "教室场景",
-      title: "探索无限创意",
-      description: "发现精彩的模组内容，开启你的创作之旅",
-    },
-    {
-      img: 操场图片,
-      alt: "操场场景",
-      title: "分享精彩时刻",
-      description: "记录每一个难忘的游戏瞬间，与社区分享你的故事",
-    },
-    {
-      img: 办公室图片,
-      alt: "办公室场景",
-      title: "创造独特世界",
-      description: "用你的想象力构建独一无二的游戏体验",
-    },
-    {
-      img: 天台图片,
-      alt: "天台场景",
-      title: "社区协作",
-      description: "与全球创作者一起构建精彩的内容世界",
-    },
-    {
-      img: 楼道图片,
-      alt: "楼道场景",
-      title: "创新突破",
-      description: "突破传统界限，创造前所未有的游戏体验",
-    },
-  ], []);
+  // const heroImages = useMemo(() => [
+  //   {
+  //     img: 教室图片,
+  //     alt: "教室场景",
+  //     title: "探索无限创意",
+  //     description: "发现精彩的模组内容，开启你的创作之旅",
+  //   },
+  //   {
+  //     img: 操场图片,
+  //     alt: "操场场景",
+  //     title: "分享精彩时刻",
+  //     description: "记录每一个难忘的游戏瞬间，与社区分享你的故事",
+  //   },
+  //   {
+  //     img: 办公室图片,
+  //     alt: "办公室场景",
+  //     title: "创造独特世界",
+  //     description: "用你的想象力构建独一无二的游戏体验",
+  //   },
+  //   {
+  //     img: 天台图片,
+  //     alt: "天台场景",
+  //     title: "社区协作",
+  //     description: "与全球创作者一起构建精彩的内容世界",
+  //   },
+  //   {
+  //     img: 楼道图片,
+  //     alt: "楼道场景",
+  //     title: "创新突破",
+  //     description: "突破传统界限，创造前所未有的游戏体验",
+  //   },
+  // ], []);
 
   const RuleList = useRuleListQuery();
 
@@ -246,15 +246,15 @@ export default function ModuleHome() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const itemsPerPage = 12; // 每页显示12个模组
 
-  // 当前活跃的背景图片状态
-  const [activeBackgroundImage, setActiveBackgroundImage] = useState<string>(
-    heroImages.length > 0 ? heroImages[0].img : "",
-  );
+  // // 当前活跃的背景图片状态
+  // const [activeBackgroundImage, setActiveBackgroundImage] = useState<string>(
+  //   heroImages.length > 0 ? heroImages[0].img : "",
+  // );
 
-  // 处理轮播图活跃项变化的回调函数
-  const handleActiveImageChange = (activeItem: any) => {
-    setActiveBackgroundImage(activeItem.img);
-  };
+  // // 处理轮播图活跃项变化的回调函数
+  // const handleActiveImageChange = (activeItem: any) => {
+  //   setActiveBackgroundImage(activeItem.img);
+  // };
 
   const ModuleList = useModuleListQuery({
     pageNo: currentPage,
@@ -399,23 +399,23 @@ export default function ModuleHome() {
       </div> */}
       {/* 轮播图区域 */}
       {/* 四图并排轮播图区域 */}
-      <div className="w-full py-16 bg-base-200 relative overflow-hidden">
-        {/* 背景层容器 - 限制模糊效果范围 */}
-        <div className="hidden md:block absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-          {/* 动态背景图 - 使用当前活跃图片的高斯模糊 */}
-          <div
+      {/* <div className="w-full py-16 bg-base-200 relative overflow-hidden"> */}
+      {/* 背景层容器 - 限制模糊效果范围 */}
+      {/* <div className="hidden md:block absolute top-0 left-0 w-full h-full overflow-hidden z-0"> */}
+      {/* 动态背景图 - 使用当前活跃图片的高斯模糊 */}
+      {/* <div
             className="absolute -top-6 -left-6 w-[calc(100%+48px)] h-[calc(100%+48px)] bg-cover bg-center transition-all duration-700 ease-out"
             style={{
               backgroundImage: `url(${activeBackgroundImage || heroImages[0]?.img})`,
               filter: "blur(20px)",
             }}
-          />
-          {/* 遮罩层 */}
-          <div className="absolute top-0 left-0 w-full h-full bg-black/10" />
-        </div>
+          /> */}
+      {/* 遮罩层 */}
+      {/* <div className="absolute top-0 left-0 w-full h-full bg-black/10" /> */}
+      {/* </div> */}
 
-        {/* 轮播图内容 */}
-        <div className="relative z-10">
+      {/* 轮播图内容 */}
+      {/* <div className="relative z-10">
           <Carousel
             items={heroImages}
             className="w-full"
@@ -423,8 +423,8 @@ export default function ModuleHome() {
             interval={4000}
             onActiveChange={handleActiveImageChange}
           />
-        </div>
-      </div>
+        </div> */}
+      {/* </div> */}
       {/* 其他内容区域 */}
       <div className="p-8">
 
