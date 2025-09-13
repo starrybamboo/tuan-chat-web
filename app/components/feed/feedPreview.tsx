@@ -3,7 +3,7 @@ import type { PostListResponse } from "api";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import LikeIconButton from "@/components/common/likeIconButton";
-import ShareIconButton from "@/components/common/shareIconButton";
+import ShareIconButton from "@/components/common/share/shareIconButton";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { EllipsisVertical } from "@/icons";
 import { useState } from "react";
