@@ -245,6 +245,7 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
     send(constructForwardRequest(forwardRoomId));
     setIsForwardWindowOpen(false);
     updateSelectedMessageIds(new Set());
+    toast("已转发消息");
   }
 
   function toggleBackground(messageId: number) {

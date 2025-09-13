@@ -189,7 +189,7 @@ export default function ChatPage() {
         <OpenAbleDrawer isOpen={getScreenSize() === "sm" ? isOpenLeftDrawer : true} className="h-full z-10 w-full bg-base-100">
           <div className="h-full flex flex-row w-full md:w-max">
             {/* 空间列表 */}
-            <div className="flex flex-col p-2 gap-2 bg-base-300/40 h-full flex-wrap">
+            <div className="flex flex-col p-2 gap-2 bg-base-300/40 h-full overflow-y-auto overflow-x-hidden">
               {/* 私信入口 */}
               <div className="rounded w-10 relative">
                 <div

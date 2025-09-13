@@ -64,63 +64,66 @@ function ForwardWindow({ onClickRoom, handlePublishFeed }:
     }
   };
   return (
-    <div className="flex flex-col gap-4 w-full max-w-2xl mx-auto">
-      <button className="btn btn-primary self-center" type="button" onClick={() => setIsOpenPublishFeedWindow(true)}>
-        分享到社区
-      </button>
+    <>
+      <div className="flex flex-col gap-4 w-full max-w-2xl mx-auto">
+        <button className="btn btn-primary self-center" type="button" onClick={() => setIsOpenPublishFeedWindow(true)}>
+          分享到社区
+        </button>
 
-      <div className="divider text-sm">或者选择转发到群组</div>
+        <div className="divider text-sm">或者选择转发到群组</div>
 
-      <div className="flex flex-row bg-base-100 border border-base-300 rounded-lg overflow-hidden h-80 md:h-96">
         {/* 空间列表 */}
-        <div className="flex flex-col p-2 gap-2 bg-base-300/40 w-16 md:w-20 flex-shrink-0">
-          {spaces.map(space => (
-            <SpaceButton
-              key={space.spaceId}
-              space={space}
-              unreadMessageNumber={0}
-              onclick={() => setSelectedSpaceId(space.spaceId ?? -1)}
-              isActive={selectedSpaceId === space.spaceId}
-            />
-          ))}
-        </div>
+        <div className="flex flex-row bg-base-100 border border-base-300 rounded-lg h-80 md:h-96">
+          {/* 空间列表 */}
+          <div className="flex flex-col p-2 gap-2 bg-base-300/40 flex-shrink-0 overflow-y-auto relative">
+            {spaces.map(space => (
+              <SpaceButton
+                key={space.spaceId}
+                space={space}
+                unreadMessageNumber={0}
+                onclick={() => setSelectedSpaceId(space.spaceId ?? -1)}
+                isActive={selectedSpaceId === space.spaceId}
+              />
+            ))}
+          </div>
 
-        <div className="w-px bg-base-300 flex-shrink-0"></div>
+          <div className="w-px bg-base-300 flex-shrink-0"></div>
 
-        {/* 房间列表 */}
-        <div className="flex flex-col py-2 flex-1 min-w-0 overflow-hidden w-48 md:w-56">
-          <div className="flex flex-col gap-2 h-full overflow-auto px-1">
-            {selectedSpaceId
-              ? (
-                  <>
-                    <div className="text-center font-bold text-sm mb-2 px-2 py-1 bg-base-200/50 rounded mx-1 flex-shrink-0">
-                      {spaces.find(s => s.spaceId === selectedSpaceId)?.name}
-                    </div>
-                    {currentRooms.map(room => (
-                      <div key={room.roomId} className="px-1 flex-shrink-0">
-                        <RoomButton
-                          room={room}
-                          unreadMessageNumber={0}
-                          onclick={() => onClickRoom(room.roomId ?? -1)}
-                          isActive={false}
-                        />
+          {/* 房间列表 */}
+          <div className="flex flex-col py-2 flex-1 min-w-0 w-48 md:w-56 overflow-hidden">
+            <div className="flex flex-col gap-2 h-full overflow-auto px-1">
+              {selectedSpaceId
+                ? (
+                    <>
+                      <div className="text-center font-bold text-sm mb-2 px-2 py-1 bg-base-200/50 rounded mx-1 flex-shrink-0">
+                        {spaces.find(s => s.spaceId === selectedSpaceId)?.name}
                       </div>
-                    ))}
-                    {currentRooms.length === 0 && (
-                      <div className="flex items-center justify-center flex-1 text-base-content/50 text-sm">
-                        该空间暂无房间
+                      {currentRooms.map(room => (
+                        <div key={room.roomId} className="px-1 flex-shrink-0">
+                          <RoomButton
+                            room={room}
+                            unreadMessageNumber={0}
+                            onclick={() => onClickRoom(room.roomId ?? -1)}
+                            isActive={false}
+                          />
+                        </div>
+                      ))}
+                      {currentRooms.length === 0 && (
+                        <div className="flex items-center justify-center flex-1 text-base-content/50 text-sm">
+                          该空间暂无房间
+                        </div>
+                      )}
+                    </>
+                  )
+                : (
+                    <div className="flex items-center justify-center h-full text-base-content/50 text-sm">
+                      <div className="text-center">
+                        <div className="text-4xl mb-2">👈</div>
+                        <div>请选择左侧空间</div>
                       </div>
-                    )}
-                  </>
-                )
-              : (
-                  <div className="flex items-center justify-center h-full text-base-content/50 text-sm">
-                    <div className="text-center">
-                      <div className="text-4xl mb-2">👈</div>
-                      <div>请选择左侧空间</div>
                     </div>
-                  </div>
-                )}
+                  )}
+            </div>
           </div>
         </div>
       </div>
@@ -171,7 +174,7 @@ function ForwardWindow({ onClickRoom, handlePublishFeed }:
           </div>
         </div>
       </PopWindow>
-    </div>
+    </>
   );
 }
 
