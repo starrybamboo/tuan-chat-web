@@ -14,6 +14,7 @@ export default function CharacterMain() {
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [mode, setMode] = useState<"self" | "AI" | "excel" | "role">("role");
+  const [animationTrigger, setAnimationTrigger] = useState(0); // 动画触发器
   const currentRole = roles.find(r => r.id === selectedRoleId);
 
   const handleSave = (updatedRole: Role) => {
@@ -89,6 +90,7 @@ export default function CharacterMain() {
             onEnterCreateEntry={() => {
               // 进入创建入口（CreateEntry）
               setMode("role");
+              setAnimationTrigger(prev => prev + 1); // 触发动画
             }}
           />
         </label>
@@ -98,7 +100,14 @@ export default function CharacterMain() {
       <div className="drawer-content bg-base-100 md:bg-base-200 overflow-y-auto min-h-0">
         {/* 添加条件渲染，在小屏幕且抽屉打开时隐藏内容 */}
         <div className="md:p-6 max-w-7xl mx-auto min-h-0">
-          {mode === "role" && !currentRole && <CreateEntry AICreate={AICreate} ExcelImport={ExcelImport} createBySelf={createBySelf} />}
+          {mode === "role" && !currentRole && (
+            <CreateEntry
+              AICreate={AICreate}
+              ExcelImport={ExcelImport}
+              createBySelf={createBySelf}
+              animationTrigger={animationTrigger}
+            />
+          )}
           {mode === "role" && currentRole && (
             <CharacterDetail
               role={currentRole}
