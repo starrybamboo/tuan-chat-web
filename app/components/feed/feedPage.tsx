@@ -1,5 +1,5 @@
-import type { CommunityPostFeed, FeedWithStats } from "@/types/feedTypes";
-import type { FeedPageRequest } from "api";
+import type { FeedWithStats } from "@/types/feedTypes";
+import type { FeedPageRequest, PostListResponse, PostStatsResponse } from "api";
 import FeedPreview from "@/components/feed/feedPreview";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
@@ -31,18 +31,43 @@ export default function FeedPage() {
   });
 
   // 将分页数据 flatten，过滤不感兴趣
-  const feeds: FeedWithStats<CommunityPostFeed>[] = useMemo(() => {
+  const feeds: FeedWithStats<PostListResponse>[] = useMemo(() => {
     return (
       feedInfiniteQuery.data?.pages.flatMap((page) => {
-      // page.data?.list 是 FeedWithStatsResponse[] 类型，需要转换为 FeedWithStats<CommunityPostFeed>[]
+        // page.data?.list 是 FeedWithStatsResponse[] 类型，需要根据type转换为不同类型
         if (page.data?.list) {
-          return page.data.list.map(item => ({
-            ...item,
-            // 将 response 字段转换为 CommunityPostFeed 类型
-            response: item.response as CommunityPostFeed,
-            // 将 stats 字段转换为 FeedStats 类型
-            stats: item.stats as FeedWithStats<CommunityPostFeed>["stats"],
-          }));
+          return page.data.list.map((item) => {
+            // 根据feed类型进行正确的类型转换
+            if (item.type === 2) {
+              // type为2时，response是PostListResponse，stats是PostStatsResponse
+              const postListResponse = item.response as PostListResponse;
+              const postStatsResponse = item.stats as PostStatsResponse;
+
+              // 转换为FeedStats格式
+              const feedStats = {
+                postId: postStatsResponse.postId ?? -1,
+                likeCount: postStatsResponse.likeCount ?? 0,
+                commentCount: postStatsResponse.commentCount ?? 0,
+                collectionCount: postStatsResponse.collectionCount ?? 0,
+                isLiked: postStatsResponse.isLiked ?? false,
+                isCollected: postStatsResponse.isCollected ?? false,
+              };
+
+              return {
+                type: item.type,
+                response: postListResponse,
+                stats: feedStats,
+              };
+            }
+            else {
+              // 其他类型的feed，保持原有逻辑
+              return {
+                ...item,
+                response: item.response as PostListResponse,
+                stats: item.stats as FeedWithStats<PostListResponse>["stats"],
+              };
+            }
+          });
         }
         return [];
       }) ?? []

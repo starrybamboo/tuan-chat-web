@@ -36,6 +36,7 @@ export default function CommunityCreatePost() {
         onSubmit={publishPost}
         enableCommunitySelection={true}
         defaultCommunityId={undefined}
+        messageId={messageId}
       />
     </div>
   );

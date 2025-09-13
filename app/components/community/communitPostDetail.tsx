@@ -1,12 +1,9 @@
-import { RoomContext } from "@/components/chat/roomContext";
-import ForwardMessage from "@/components/chat/smallComponents/forwardMessage";
-import { SpaceContext } from "@/components/chat/spaceContext";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import UserAvatarComponent from "@/components/common/userAvatar";
-import React, { useMemo } from "react";
 import { useGetPostDetailQuery } from "../../../api/hooks/communityQueryHooks";
 import { useUserFollowMutation, useUserIsFollowedQuery, useUserUnfollowMutation } from "../../../api/hooks/userFollowQueryHooks";
+import SlidableChatPreview from "./slidableChatPreview";
 
 /**
  * 点开帖子后显示的界面，显示帖子详情
@@ -42,30 +39,6 @@ export default function CommunityPostDetail({
       followMutation.mutate(authorId);
     }
   };
-
-  // 为 ForwardMessage 提供最简化的上下文
-  const roomContextValue = useMemo(() => ({
-    roomId: undefined,
-    roomMembers: [],
-    curMember: undefined,
-    roomRolesThatUserOwn: [],
-    curRoleId: undefined,
-    curAvatarId: undefined,
-    useChatBubbleStyle: false,
-    spaceId: undefined,
-    setReplyMessage: undefined,
-    chatHistory: undefined,
-    scrollToGivenMessage: undefined,
-  }), []);
-
-  const spaceContextValue = useMemo(() => ({
-    spaceId: undefined,
-    ruleId: undefined,
-    isSpaceOwner: false,
-    setActiveSpaceId: () => {},
-    setActiveRoomId: () => {},
-    toggleLeftDrawer: () => {},
-  }), []);
 
   return (
     <div className="gap-4 ">
@@ -127,11 +100,12 @@ export default function CommunityPostDetail({
           {/* 转发消息展示 */}
           {post?.post?.message && (
             <div className="mb-6">
-              <RoomContext value={roomContextValue}>
-                <SpaceContext value={spaceContextValue}>
-                  <ForwardMessage messageResponse={post.post.message} />
-                </SpaceContext>
-              </RoomContext>
+              <SlidableChatPreview
+                messageResponse={post.post.message}
+                maxHeight="400px"
+                showAvatars={true}
+                beFull={true}
+              />
             </div>
           )}
 
