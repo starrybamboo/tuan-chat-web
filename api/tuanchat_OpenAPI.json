@@ -15184,8 +15184,8 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "byte"
             }
           }
         ],
@@ -21529,7 +21529,7 @@
           "targetType": {
             "type": "integer",
             "description": "评论目标类型",
-            "format": "int32"
+            "format": "int64"
           },
           "content": {
             "type": "string",
@@ -21566,9 +21566,8 @@
             "format": "int64"
           },
           "targetType": {
-            "type": "integer",
-            "description": "评论目标类型",
-            "format": "int32"
+            "type": "string",
+            "description": "评论目标类型"
           },
           "childLimit": {
             "maximum": 20,
@@ -21693,9 +21692,9 @@
             }
           },
           "targetType": {
-            "type": "integer",
+            "type": "string",
             "description": "目标类型(1-feed, 2-post, 3-module等)",
-            "format": "int32"
+            "format": "byte"
           }
         },
         "description": "评论计数查询请求参数"

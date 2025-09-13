@@ -13,6 +13,6 @@ export type CommentCountRequest = {
     /**
      * 目标类型(1-feed, 2-post, 3-module等)
      */
-    targetType: number;
+    targetType: string;
 };
 
