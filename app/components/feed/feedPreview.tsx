@@ -1,4 +1,5 @@
-import type { CommunityPostFeed, FeedStats } from "@/types/feedTypes";
+import type { FeedStats } from "@/types/feedTypes";
+import type { PostListResponse } from "api";
 import { RoomContext } from "@/components/chat/roomContext";
 import ForwardMessage from "@/components/chat/smallComponents/forwardMessage";
 import { SpaceContext } from "@/components/chat/spaceContext";
@@ -9,19 +10,17 @@ import ShareIconButton from "@/components/common/shareIconButton";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { EllipsisVertical } from "@/icons";
 import React, { useMemo, useState } from "react";
-import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
 import CollectionIconButton from "../common/collection/collectionIconButton";
 import CommentIconButton from "../common/comment/commentIconButton";
 import DislikeIconButton from "../common/dislikeIconButton";
 
 interface FeedPreviewProps {
-  feed?: CommunityPostFeed;
+  feed?: PostListResponse;
   stats: FeedStats;
   onDislike?: () => void;
 }
 
 export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps) {
-  const { data: messageResponse } = useGetMessageByIdQuery(feed?.communityPostId ?? -1);
   const [showComments, setShowComments] = useSearchParamsState<boolean>(
     `feedShowCommentsPop${feed?.communityPostId}`,
     false,
@@ -107,11 +106,11 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
         )}
 
         {/* 消息内容容器(固定尺寸) */}
-        {messageResponse && (
+        {feed?.message && (
 
           <RoomContext value={roomContextValue}>
             <SpaceContext value={spaceContextValue}>
-              <ForwardMessage messageResponse={messageResponse} />
+              <ForwardMessage messageResponse={feed.message} />
             </SpaceContext>
           </RoomContext>
         )}
@@ -120,12 +119,13 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
         <div className="flex items-center justify-end mt-1">
           <div className="flex items-center gap-2">
             <LikeIconButton
-              targetInfo={{ targetId: feed?.communityPostId ?? -1, targetType: "1" }}
+              targetInfo={{ targetId: feed?.communityPostId ?? -1, targetType: "2" }}
               className="btn btn-xs btn-ghost text-base-content/60 hover:text-base-content hover:bg-base-200"
               direction="row"
+              likeCount={stats.likeCount}
             />
             <CollectionIconButton
-              targetInfo={{ resourceId: feed?.communityPostId ?? -1, resourceType: "feed" }}
+              targetInfo={{ resourceId: feed?.communityPostId ?? -1, resourceType: "2" }}
               className="btn btn-xs btn-ghost text-base-content/60 hover:text-base-content hover:bg-base-200"
             />
             <CommentIconButton
@@ -142,7 +142,7 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
       {showComments && (
         <div className="px-4 pb-4 border-t border-base-300/50 bg-base-50">
           <div className="pt-3">
-            <CommentPanel targetInfo={{ targetId: feed?.communityPostId ?? -1, targetType: "1" }} className="h-full" />
+            <CommentPanel targetInfo={{ targetId: feed?.communityPostId ?? -1, targetType: "2" }} className="h-full" />
           </div>
         </div>
       )}
