@@ -34,7 +34,8 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
     isError: momentError,
   } = useGetMomentByIdQuery(feedId, isOpen);
 
-  const feed = momentData?.data?.feed ?? {};
+  const feed = momentData?.data?.response ?? {};
+  const stats = momentData?.data?.stats ?? {};
   const userId = feed?.userId ?? -1;
 
   // 获取用户信息
@@ -68,10 +69,6 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
       console.error("删除失败", err);
       setIsDeleting(false);
     }
-  };
-
-  const handleComment = () => {
-    // 评论功能占位
   };
 
   const handleShare = () => {
@@ -257,25 +254,24 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
 
               {/* 操作栏 */}
               <div className="flex items-center justify-center space-x-8 py-4 border-t border-base-300 bg-base-50">
-                <button
-                  className="flex items-center space-x-2 text-base transition-colors px-4 py-2 rounded-full hover:text-error hover:bg-error/10"
-                  type="button"
+                <div
+                  className="flex items-center space-x-2 text-base transition-colors px-4 py-2 rounded-full text-error bg-error/10"
                 >
                   <LikeIconButton
                     targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "4" }}
-                    className="w-10 h-8"
+                    className="w-10 h-6"
                     direction="row"
                   />
-                </button>
+                </div>
 
-                <button
-                  onClick={handleComment}
-                  className="flex items-center space-x-2 text-base text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors px-4 py-2 rounded-full"
-                  type="button"
+                <div
+                  className="flex items-center space-x-2 text-base text-base-content/70 text-primary bg-primary/10 transition-colors px-4 py-2 rounded-full"
                 >
-                  <span className="text-xl">💬</span>
-                  <span className="font-medium">0</span>
-                </button>
+                  <CommentOutline className="h-6 w-5" />
+                  <span className="font-medium">
+                    {stats.commentCount || 0}
+                  </span>
+                </div>
 
                 <button
                   onClick={handleShare}
