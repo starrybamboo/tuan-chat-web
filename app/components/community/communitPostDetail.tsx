@@ -1,12 +1,11 @@
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import PostActionBar from "@/components/community/postActionBar";
-// import PostCommentPanel from "@/components/community/postCommentPanel";
+import PostCommentPanel from "@/components/community/postCommentPanel";
 import { useMemo, useState } from "react";
 import { useGetCommentPageInfiniteQuery } from "../../../api/hooks/commentQueryHooks";
 import { useGetPostDetailQuery } from "../../../api/hooks/communityQueryHooks";
 import { useUserFollowMutation, useUserIsFollowedQuery, useUserUnfollowMutation } from "../../../api/hooks/userFollowQueryHooks";
-import CommentPanel from "../common/comment/commentPanel";
 import SlidableChatPreview from "./slidableChatPreview";
 
 /**
@@ -153,13 +152,13 @@ export default function CommunityPostDetail({
           />
         </div>
 
-        {/* <PostCommentPanel
+        <PostCommentPanel
           targetInfo={{ targetType: "2", targetId: postId }}
           onReply={(userName, commentId) => {
             setReplyTo({ userName, commentId });
           }}
-        /> */}
-        <CommentPanel targetInfo={{ targetId: postId ?? -1, targetType: "2" }} />
+        />
+        {/* <CommentPanel targetInfo={{ targetId: postId ?? -1, targetType: "2" }} /> */}
       </div>
 
       {/* 移动端：底部固定操作栏 */}
