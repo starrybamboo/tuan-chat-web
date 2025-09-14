@@ -14,7 +14,7 @@ import {
   useGetRoomRoleQuery,
   useUpdateRoomMutation,
 } from "api/hooks/chatQueryHooks";
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router";
 import { useImmer } from "use-immer";
@@ -24,6 +24,7 @@ export interface RenderProps {
   spritePosition: "left" | "middle" | "right";
   useVocal: boolean; // 是否使用语音合成功能
   skipRegex?: string; // 跳过语句的正则表达式
+  referenceAudio?: File; // 参考音频文件
 }
 
 /**
@@ -112,6 +113,9 @@ function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDia
   });
   const [isRendering, setIsRendering] = useState(false);
   const [renderProcess, setRenderProcess] = useState<RenderProcess>({});
+
+  // 音频文件引用
+  const audioFileRef = useRef<HTMLInputElement>(null);
 
   // 监听头像变化，自动调整文字颜色
   useEffect(() => {
@@ -345,6 +349,60 @@ function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDia
                   </div>
                 </label>
               </div>
+
+              {
+                renderProps.useVocal && (
+                  <div className="form-control space-y-2">
+                    <label className="label p-0">
+                      <span className="label-text text-base-content font-medium">参考音频 (可选)</span>
+                    </label>
+                    <div className="flex gap-2 w-full">
+                      <input
+                        ref={audioFileRef}
+                        type="file"
+                        accept="audio/*"
+                        className="file-input file-input-bordered flex-1"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            updateRenderProps((draft) => {
+                              draft.referenceAudio = file;
+                            });
+                            toast.success(`已选择音频文件: ${file.name}`);
+                          }
+                        }}
+                      />
+                      {renderProps.referenceAudio && (
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm"
+                          onClick={() => {
+                            updateRenderProps((draft) => {
+                              draft.referenceAudio = undefined;
+                            });
+                            if (audioFileRef.current) {
+                              audioFileRef.current.value = "";
+                            }
+                            toast.success("已清除参考音频");
+                          }}
+                        >
+                          清除
+                        </button>
+                      )}
+                    </div>
+                    {renderProps.referenceAudio && (
+                      <div className="text-sm text-base-content/70">
+                        已选择:
+                        {" "}
+                        {renderProps.referenceAudio.name}
+                      </div>
+                    )}
+                    <div className="text-xs text-base-content/50">
+                      上传参考音频文件，用于语音合成时的音色参考。支持 MP3、WAV 等格式。
+                    </div>
+                  </div>
+                )
+              }
 
               {/* 跳过语句的正则表达式输入 */}
               <div className="form-control space-y-2">

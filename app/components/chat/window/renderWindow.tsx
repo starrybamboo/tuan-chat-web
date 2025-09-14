@@ -10,6 +10,7 @@ export interface RenderProps {
   spritePosition: "left" | "middle" | "right";
   useVocal: boolean; // 是否使用语音合成功能
   skipRegex?: string; // 跳过语句的正则表达式
+  referenceAudio?: File; // 参考音频文件
 }
 
 /**

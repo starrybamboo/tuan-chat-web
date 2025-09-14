@@ -169,7 +169,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 />
               </div>
               <div className="flex flex-col items-start">
-                <div className="flex justify-between items-center w-full">
+                <div className="flex items-center gap-4">
                   <span
                     onClick={handleRoleNameClick}
                     className={`text-sm text-base-content/85 pb-1 cursor-pointer transition-all duration-200 hover:text-primary ${canEdit ? "hover:underline" : ""}`}
