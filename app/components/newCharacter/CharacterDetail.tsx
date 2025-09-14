@@ -267,41 +267,9 @@ export default function CharacterDetail({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* 左侧：立绘与简介、规则选择（固定） */}
         <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
-          {/* 桌面端规则选择区域 */}
-          <div className="hidden md:block">
-            <div
-              className="card bg-base-100 shadow-sm rounded-2xl border-2 border-base-content/10 cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200"
-              onClick={handleOpenRuleModal}
-            >
-              <div className="card-body p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-sm">当前规则</h3>
-                      <p className="text-primary font-medium">
-                        {currentRuleData?.ruleName || "未选择规则"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-base-content/50">
-                    <span className="text-xs">点击切换</span>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
           {/* 立绘与简介卡片 */}
           <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl md:border-2 md:border-base-content/10">
-            <div className="card-body">
+            <div className="card-body p-4">
               {/* 移动端显示的头部区域 */}
               <div className="md:hidden mb-4 pl-4 pr-4">
                 <div className="flex items-center justify-between gap-3 mb-3">
@@ -351,7 +319,7 @@ export default function CharacterDetail({
                 <div className="divider my-0" />
               </div>
 
-              <div className="flex justify-center">
+              <div className="flex justify-center mt-6 mb-2">
                 <CharacterAvatar
                   role={localRole}
                   roleAvatars={roleAvatars}
@@ -365,7 +333,7 @@ export default function CharacterDetail({
                   onAvatarUpload={handleAvatarUpload}
                 />
               </div>
-              <div className="divider mt-4" />
+              <div className="divider mt-4 mb-0" />
               {/* 基础信息与编辑（已移至左侧） */}
               <div>
                 {isEditing
@@ -404,10 +372,11 @@ export default function CharacterDetail({
                     )
                   : (
                       <>
+                        <p className="font-bold text-center text-xl mb-4">{localRole.name}</p>
                         <p className="text-base md:text-lg whitespace-pre-wrap break-words max-w-full overflow-hidden md:min-h-22 text-center">
                           {localRole.description || "暂无描述"}
                         </p>
-                        <div className="text-xs text-center mt-8">
+                        <div className="text-xs text-center mt-24">
                           <p>
                             角色ID号：
                             {localRole.id}
@@ -423,38 +392,40 @@ export default function CharacterDetail({
                         </div>
                       </>
                     )}
-
                 {/* 顶部已提供编辑/保存按钮 */}
+
               </div>
+
             </div>
-          </div>
-          {/* 移动端规则选择区域 */}
-          <div className="md:hidden">
-            <div
-              className="card bg-base-100 shadow-sm rounded-2xl cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200"
-              onClick={handleOpenRuleModal}
-            >
-              <div className="card-body p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+
+            <div>
+              <div className="divider p-4 my-0" />
+              <div
+                className="card bg-base-100 rounded-2xl cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200"
+                onClick={handleOpenRuleModal}
+              >
+                <div className="card-body p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm">当前规则</h3>
+                        <p className="text-primary font-medium text-sm">
+                          {currentRuleData?.ruleName || "未选择规则"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-base-content/50">
+                      <span className="text-xs">切换</span>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-sm">当前规则</h3>
-                      <p className="text-primary font-medium text-sm">
-                        {currentRuleData?.ruleName || "未选择规则"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-base-content/50">
-                    <span className="text-xs">切换</span>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
                   </div>
                 </div>
               </div>

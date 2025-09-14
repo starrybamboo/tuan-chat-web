@@ -1,5 +1,5 @@
 import { useUpdateKeyFieldMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AddFieldForm from "../shared/AddFieldForm";
 import EditableField from "../shared/EditableField";
 
@@ -33,6 +33,10 @@ export default function NumericalEditor({
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [localData, setLocalData] = useState(data);
+
+  useEffect(() => {
+    setLocalData(data);
+  }, [data]);
 
   // 处理字段值更新
   const handleExitEditing = () => {
