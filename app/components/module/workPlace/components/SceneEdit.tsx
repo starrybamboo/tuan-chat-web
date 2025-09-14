@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -10,6 +11,7 @@ import Veditor from "./veditor";
 interface SceneEditProps {
   scene: StageEntityResponse;
   id: string | number; // 当前sceneEdit在moduleTabs中的id
+  onRegisterSave?: (fn: () => void) => void;
 }
 
 const types = {
@@ -78,7 +80,7 @@ function Folder({ moduleData, entityType, onClick, onDelete }:
   );
 }
 
-export default function SceneEdit({ scene, id }: SceneEditProps) {
+export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps) {
   const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
   const { stageId, removeModuleTabItem } = useModuleContext();
 
@@ -299,6 +301,15 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     }, 300);
   };
 
+  // 对外注册保存函数（保持稳定引用，避免 effect 依赖 handleSave）
+  const saveRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    saveRef.current = handleSave;
+  });
+  useEffect(() => {
+    onRegisterSave?.(() => saveRef.current());
+  }, [onRegisterSave]);
+
   return (
     <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
       {/* 场景信息卡片 */}
@@ -363,33 +374,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
               </>
             </div>
           </div>
-          {/* 操作按钮 */}
-          <div className="card-actions justify-end">
-            <button
-              type="submit"
-              onClick={handleSave}
-              className={`btn btn-primary ${isTransitioning ? "scale-95" : ""}`}
-              disabled={isTransitioning}
-            >
-              {isTransitioning
-                ? (
-                    <span className="loading loading-spinner loading-xs"></span>
-                  )
-                : (
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path
-                          d="M20 6L9 17l-5-5"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      保存
-                    </span>
-                  )}
-            </button>
-          </div>
+          {/* 保存按钮已统一移至 EditModule 的全局固定按钮 */}
         </div>
       </div>
 

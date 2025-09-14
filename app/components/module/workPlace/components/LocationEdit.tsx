@@ -1,17 +1,19 @@
+/* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
-import { CharacterCopper } from "@/components/newCharacter/sprite/CharacterCopper";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useModuleContext } from "../context/_moduleContext";
 import Veditor from "./veditor";
 
 interface LocationEditProps {
   location: StageEntityResponse;
+  onRegisterSave?: (fn: () => void) => void;
 }
 
-export default function LocationEdit({ location }: LocationEditProps) {
-  const entityInfo = location.entityInfo || {};
+export default function LocationEdit({ location, onRegisterSave }: LocationEditProps) {
+  const entityInfo = useMemo(() => location.entityInfo || {}, [location.entityInfo]);
   const { stageId, removeModuleTabItem } = useModuleContext();
 
   const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(item => item.entityType === 3);
@@ -28,7 +30,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
   useEffect(() => {
     setLocalLocation({ ...entityInfo });
     setName(location.name);
-  }, [location]);
+  }, [location, entityInfo]);
 
   // 接入接口
   const { mutate: updateLocation } = useUpdateEntityMutation(stageId as number);
@@ -58,6 +60,15 @@ export default function LocationEdit({ location }: LocationEditProps) {
     }, 300);
   };
 
+  // 对外注册保存函数（保持稳定引用，避免 effect 依赖 handleSave）
+  const saveRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    saveRef.current = handleSave;
+  });
+  useEffect(() => {
+    onRegisterSave?.(() => saveRef.current());
+  }, [onRegisterSave]);
+
   const generateUniqueFileName = (name: string): string => {
     const timestamp = Date.now();
     return `sceneModule-${name}-${timestamp}`;
@@ -85,7 +96,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
         <div className="card-body">
           <div className="flex items-start gap-8">
             {/* 头像 */}
-            <CharacterCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleAvatarChange} fileName={uniqueFileName} scene={4}>
+            <ImgUploaderWithCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleAvatarChange} fileName={uniqueFileName}>
               <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
                 <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
@@ -96,7 +107,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
                   />
                 </div>
               </div>
-            </CharacterCopper>
+            </ImgUploaderWithCopper>
 
             {/* 右侧内容 */}
             <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
@@ -132,28 +143,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
               </>
             </div>
           </div>
-          {/* 操作按钮 */}
-          <div className="card-actions justify-end">
-            <button
-              type="submit"
-              onClick={handleSave}
-              className={`btn btn-primary ${isTransitioning ? "scale-95" : ""}`}
-              disabled={isTransitioning}
-            >
-              {isTransitioning
-                ? (
-                    <span className="loading loading-spinner loading-xs"></span>
-                  )
-                : (
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                      </svg>
-                      保存
-                    </span>
-                  )}
-            </button>
-          </div>
+          {/* 保存按钮已统一移至 EditModule 的全局固定按钮 */}
         </div>
       </div>
     </div>

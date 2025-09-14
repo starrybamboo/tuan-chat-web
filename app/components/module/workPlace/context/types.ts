@@ -50,4 +50,5 @@ export enum ModuleListEnum {
   BRANCH = "branch",
   MAP = "map",
   BACK = "back",
+  COMMIT = "commit",
 }

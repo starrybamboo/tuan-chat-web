@@ -1,7 +1,6 @@
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleListEnum } from "@/components/module/workPlace/context/types";
-import Branch from "./components/branchList";
-import History from "./history";
+import MapModule from "./components/MapModule";
 import ModuleItems from "./moduleItems";
 
 function LeftContent() {
@@ -32,17 +31,18 @@ function LeftContent() {
           </div>
         );
 
-      case ModuleListEnum.HISTORY:
+      case ModuleListEnum.MAP:
         return (
           <div className="h-full bg-base-100">
-            <History />
-          </div>
-        );
-
-      case ModuleListEnum.BRANCH:
-        return (
-          <div className="h-full bg-base-100 p-2">
-            <Branch />
+            {editingStageId
+              ? (
+                  <MapModule stageId={editingStageId as number} />
+                )
+              : (
+                  <div className="p-4">
+                    <p className="text-gray-600">请先选择一个模组以查看地图</p>
+                  </div>
+                )}
           </div>
         );
       case ModuleListEnum.BACK:
@@ -52,7 +52,7 @@ function LeftContent() {
       default:
         return (
           <div className="h-full bg-base-100 p-4">
-            <p className="text-gray-600">未知的列表类型</p>
+            <p className="text-gray-600">请选择上方功能：暂存区或地图</p>
           </div>
         );
     }

@@ -34,12 +34,14 @@ function RoleModuleTabItem({
   isSelected,
   onTabClick,
   onCloseClick,
+  registerSave,
 }: {
   roleModuleItem: RoleModuleItem;
   role: StageEntityResponse;
   isSelected: boolean;
-  onTabClick: (id: string) => void;
+  onTabClick: (id: string, entiryType: "role" | "scene" | "map" | "location" | "item") => void;
   onCloseClick: (id: string) => void;
+  registerSave: (fn: () => void) => void;
 }) {
   const { id, label } = roleModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -60,7 +62,7 @@ function RoleModuleTabItem({
           name="WorkSpaceTab"
           className="tab"
           aria-label={label}
-          onClick={onTabClick.bind(null, id.toString())}
+          onClick={onTabClick.bind(null, id.toString(), "role")}
         />
         <div
           className={`
@@ -78,7 +80,7 @@ function RoleModuleTabItem({
         {label}
       </label>
       <div className="tab-content h-fit! bg-base-100 border-base-300 p-6">
-        <NPCEdit role={role} />
+        <NPCEdit role={role} onRegisterSave={registerSave} />
       </div>
     </>
   );
@@ -90,12 +92,14 @@ function ItemModuleTabItem({
   isSelected,
   onTabClick,
   onCloseClick,
+  registerSave,
 }: {
   itemModuleItem: ItemModuleItem;
   item: StageEntityResponse;
   isSelected: boolean;
-  onTabClick: (id: string) => void;
+  onTabClick: (id: string, entiryType: "role" | "scene" | "map" | "location" | "item") => void;
   onCloseClick: (id: string) => void;
+  registerSave: (fn: () => void) => void;
 }) {
   const { id, label } = itemModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -114,7 +118,7 @@ function ItemModuleTabItem({
           name="WorkSpaceTab"
           className="tab"
           aria-label={label}
-          onClick={onTabClick.bind(null, id.toString())}
+          onClick={onTabClick.bind(null, id.toString(), "item")}
         />
         <div
           className={`
@@ -132,7 +136,7 @@ function ItemModuleTabItem({
         {label}
       </label>
       <div className="tab-content h-fit! bg-base-100 border-base-300 p-6">
-        <ItemEdit item={item} />
+        <ItemEdit item={item} onRegisterSave={registerSave} />
       </div>
     </>
   );
@@ -144,12 +148,14 @@ function LocationModuleTabItem({
   isSelected,
   onTabClick,
   onCloseClick,
+  registerSave,
 }: {
   sceneModuleItem: ModuleTabItem;
   location: StageEntityResponse; // 这里用 any，实际可替换为具体类型
   isSelected: boolean;
-  onTabClick: (id: string) => void;
+  onTabClick: (id: string, entiryType: "role" | "scene" | "map" | "location" | "item") => void;
   onCloseClick: (id: string) => void;
+  registerSave: (fn: () => void) => void;
 }) {
   const { id, label } = sceneModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -169,7 +175,7 @@ function LocationModuleTabItem({
           name="WorkSpaceTab"
           className="tab"
           aria-label={label}
-          onClick={onTabClick.bind(null, id.toString())}
+          onClick={onTabClick.bind(null, id.toString(), "location")}
         />
         <div
           className={`
@@ -188,7 +194,7 @@ function LocationModuleTabItem({
       </label>
       <div className="tab-content bg-base-100 border-base-300 p-6">
         {/* 这里可替换为具体的 SceneEdit 组件 */}
-        <LocationEdit location={location} />
+        <LocationEdit location={location} onRegisterSave={registerSave} />
       </div>
     </>
   );
@@ -200,12 +206,14 @@ function SceneModuleTabItem({
   isSelected,
   onTabClick,
   onCloseClick,
+  registerSave,
 }: {
   sceneModuleItem: SceneModuleItem;
   scene: StageEntityResponse;
   isSelected: boolean;
-  onTabClick: (id: string) => void;
+  onTabClick: (id: string, entiryType: "role" | "scene" | "map" | "location" | "item") => void;
   onCloseClick: (id: string) => void;
+  registerSave: (fn: () => void) => void;
 }) {
   const { id, label } = sceneModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -225,7 +233,7 @@ function SceneModuleTabItem({
           name="WorkSpaceTab"
           className="tab"
           aria-label={label}
-          onClick={onTabClick.bind(null, id.toString())}
+          onClick={onTabClick.bind(null, id.toString(), "scene")}
         />
         <div
           className={`
@@ -246,6 +254,7 @@ function SceneModuleTabItem({
         <SceneEdit
           scene={scene}
           id={id}
+          onRegisterSave={registerSave}
         />
       </div>
     </>
@@ -258,12 +267,14 @@ function MapModuleTabItem({
   isSelected,
   onTabClick,
   onCloseClick,
+  registerSave,
 }: {
   mapModuleItem: MapModuleItem;
   map: StageEntityResponse;
   isSelected: boolean;
-  onTabClick: (id: string) => void;
+  onTabClick: (id: string, entiryType: "role" | "scene" | "map" | "location" | "item") => void;
   onCloseClick: (id: string) => void;
+  registerSave: (fn: () => void) => void;
 }) {
   const { id, label } = mapModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -283,7 +294,7 @@ function MapModuleTabItem({
           name="WorkSpaceTab"
           className="tab"
           aria-label={label}
-          onClick={onTabClick.bind(null, id.toString())}
+          onClick={onTabClick.bind(null, id.toString(), "map")}
         />
         <div
           className={`
@@ -301,7 +312,7 @@ function MapModuleTabItem({
         {label}
       </label>
       <div className="tab-content bg-base-100 border-base-300 p-6">
-        <MapEdit map={map} />
+        <MapEdit map={map} onRegisterSave={registerSave} />
       </div>
     </>
   );
@@ -310,6 +321,26 @@ function MapModuleTabItem({
 export default function EditModule() {
   const { moduleTabItems, currentSelectedTabId, setCurrentSelectedTabId, removeModuleTabItem }
     = useModuleContext();
+  // 保存函数注册表
+  const saveHandlersRef = useRef<Record<string, () => void>>({});
+  const registerSaveForTab = (tabId: string, fn: () => void) => {
+    saveHandlersRef.current[tabId] = fn;
+  };
+
+  // 包装 tab 切换：先保存当前，再切换
+  const handleTabClick = (nextId: string, _entiryType: "role" | "scene" | "map" | "location" | "item") => {
+    // 再尝试保存当前标签
+    if (currentSelectedTabId && saveHandlersRef.current[currentSelectedTabId]) {
+      try {
+        saveHandlersRef.current[currentSelectedTabId]!();
+      }
+      catch (e) {
+        // 忽略保存异常，继续切换
+        console.error("保存当前标签时出错:", e);
+      }
+    }
+    setCurrentSelectedTabId(nextId);
+  };
   const roleModuleItems = moduleTabItems.filter(item =>
     item.type === ModuleItemEnum.ROLE,
   );
@@ -326,6 +357,31 @@ export default function EditModule() {
     item.type === ModuleItemEnum.MAP,
   );
 
+  // 运行期推导当前实体类型（用于控制全局保存按钮显隐）
+  let currentType: "role" | "scene" | "map" | "location" | "item" | null = null;
+  const current = moduleTabItems.find(i => i.id === currentSelectedTabId);
+  if (current) {
+    switch (current.type) {
+      case ModuleItemEnum.ROLE:
+        currentType = "role";
+        break;
+      case ModuleItemEnum.SCENE:
+        currentType = "scene";
+        break;
+      case ModuleItemEnum.MAP:
+        currentType = "map";
+        break;
+      case ModuleItemEnum.LOCATION:
+        currentType = "location";
+        break;
+      case ModuleItemEnum.ITEM:
+        currentType = "item";
+        break;
+      default:
+        currentType = null;
+    }
+  }
+
   return (
     <div className="h-screen p-4 overflow-y-scroll">
       <div className="w-full h-full tabs tabs-lift">
@@ -335,8 +391,9 @@ export default function EditModule() {
             role={item.content}
             roleModuleItem={item}
             isSelected={item.id === currentSelectedTabId}
-            onTabClick={setCurrentSelectedTabId}
+            onTabClick={handleTabClick}
             onCloseClick={removeModuleTabItem}
+            registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
           />
         ))}
         {
@@ -346,8 +403,9 @@ export default function EditModule() {
               itemModuleItem={item}
               item={item.content}
               isSelected={item.id === currentSelectedTabId}
-              onTabClick={setCurrentSelectedTabId}
+              onTabClick={handleTabClick}
               onCloseClick={removeModuleTabItem}
+              registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
             />
           ))
         }
@@ -358,8 +416,9 @@ export default function EditModule() {
               sceneModuleItem={item}
               location={item.content}
               isSelected={item.id === currentSelectedTabId}
-              onTabClick={setCurrentSelectedTabId}
+              onTabClick={handleTabClick}
               onCloseClick={removeModuleTabItem}
+              registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
             />
           ))
         }
@@ -370,8 +429,9 @@ export default function EditModule() {
               sceneModuleItem={item}
               scene={item.content}
               isSelected={item.id === currentSelectedTabId}
-              onTabClick={setCurrentSelectedTabId}
+              onTabClick={handleTabClick}
               onCloseClick={removeModuleTabItem}
+              registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
             />
           ))
         }
@@ -382,11 +442,45 @@ export default function EditModule() {
               mapModuleItem={item}
               map={item.content}
               isSelected={item.id === currentSelectedTabId}
-              onTabClick={setCurrentSelectedTabId}
+              onTabClick={handleTabClick}
               onCloseClick={removeModuleTabItem}
+              registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
             />
           ))
         }
+        {
+          moduleTabItems.length === 0 && (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center space-y-4">
+                <h1 className="text-2xl font-bold text-foreground">模组编辑器</h1>
+                <p className="text-muted-foreground max-w-md">
+                  使用左侧的侧边栏来管理你的游戏模组。你可以创建和编辑角色、物品、地点和剧情，
+                  并通过可视化地图查看剧情节点之间的连接关系。
+                </p>
+              </div>
+            </div>
+          )
+        }
+      </div>
+      {/* 全局固定保存按钮：当当前实体为 map 或没有选中标签时隐藏 */}
+      <div className={`fixed top-20 left-20 md:top-14 md:left-100 ${currentType === null || currentType === "map" ? "hidden" : "block"}`}>
+        <button
+          type="button"
+          onClick={() => {
+            if (currentSelectedTabId && saveHandlersRef.current[currentSelectedTabId]) {
+              saveHandlersRef.current[currentSelectedTabId]!();
+            }
+          }}
+          className="btn btn-primary"
+          disabled={!currentSelectedTabId || currentType === "map"}
+        >
+          <span className="flex items-center gap-1">
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            保存
+          </span>
+        </button>
       </div>
     </div>
   );

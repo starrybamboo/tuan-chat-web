@@ -1,69 +1,126 @@
 import type { StageEntityResponse } from "api";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
-import { useAddEntityMutation, useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
+import { useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useState } from "react";
-import Section from "./section";
 
 function ItemListItem({
   item,
   isSelected,
   onClick,
   onDelete,
+  deleteMode,
 }: {
   item: StageEntityResponse;
   isSelected: boolean;
   onClick: () => void;
   onDelete?: () => void;
+  deleteMode?: boolean;
 }) {
+  const [confirming, setConfirming] = useState(false);
   return (
     <div
       className={`group w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""}`}
       onClick={onClick}
     >
       {/* 左侧内容 */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0">
         <img
-          src={item.entityInfo!.image || "./favicon.ico"}
+          src={item.entityInfo!.image || "/favicon.ico"}
           alt="item"
           style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
         />
-        <div className="flex flex-col">
-          <p className="self-baseline font-medium">{item.name}</p>
-          <p className="text-xs text-gray-500 self-baseline mt-0.5 line-clamp-1">{item.entityInfo!.description}</p>
+        <div className="flex flex-col min-w-0">
+          <p className="text-sm font-medium truncate">{item.name}</p>
+          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.entityInfo!.description}</p>
         </div>
       </div>
 
       {/* 右侧按钮 */}
       {onDelete && (
-        <button
-          type="button"
-          className="btn btn-ghost btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1 hover:[&>svg]:stroke-error"
-          onClick={(e) => {
-            if (onDelete)
-              onDelete();
-            e.stopPropagation();
-          }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1">
+          {deleteMode && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs opacity-100 hover:bg-base-300 rounded-full p-1 hover:[&>svg]:stroke-error"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete?.();
+              }}
+              aria-label="立即删除物品"
+              title="删除"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+          {!deleteMode && confirming && (
+            <>
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConfirming(false);
+                }}
+                aria-label="取消删除"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="btn btn-error btn-xs text-error-content"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConfirming(false);
+                  onDelete?.();
+                }}
+                aria-label="确认删除物品"
+              >
+                删除
+              </button>
+            </>
+          )}
+          {!deleteMode && !confirming && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs md:opacity-0 md:group-hover:opacity-100 opacity-70 hover:bg-base-300 rounded-full p-1 hover:[&>svg]:stroke-error"
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirming(true);
+              }}
+              aria-label="删除物品"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
 // 物品列表
-export default function ItemList({ stageId }: { stageId: number }) {
+export default function ItemList({ stageId, searchQuery: controlledQuery, deleteMode }: { stageId: number; searchQuery?: string; deleteMode?: boolean; showCreateButton?: boolean }) {
   const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem } = useModuleContext();
   // const queryClient = useQueryClient();
 
@@ -80,7 +137,6 @@ export default function ItemList({ stageId }: { stageId: number }) {
   const { data } = useQueryEntitiesQuery(stageId);
 
   // 创建物品并添加物品
-  const { mutate: addItem } = useAddEntityMutation(1);
   const { mutate: deleteItem } = useDeleteEntityMutation();
   const { mutate: updateScene } = useUpdateEntityMutation(stageId);
 
@@ -88,36 +144,19 @@ export default function ItemList({ stageId }: { stageId: number }) {
 
   // 添加搜索状态
   const [searchQuery, setSearchQuery] = useState("");
+  const effectiveQuery = (controlledQuery ?? searchQuery).toLowerCase();
 
-  // 根据搜索查询过滤列表
-  const filteredList = list?.filter(i =>
-    i.name?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  // 根据搜索查询过滤列表，并按 id 升序稳定排序
+  const filteredList = list?.filter(i => i.name?.toLowerCase().includes(effectiveQuery));
+  const sortedList = filteredList?.slice().sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
 
   const sceneList = data?.data?.filter(i => i.entityType === 3);
-  const isEmpty = !filteredList || filteredList.length === 0;
-  const handleCreateItemSubmit = () => {
-    let t = 1;
-    let name = "新物品1";
-    while (list!.some(item => item.name === name)) {
-      name = `新物品${t}`;
-      t++;
-    }
-    addItem({
-      stageId,
-      name,
-      entityInfo: {
-        tip: "悄悄地告诉kp",
-        description: "新物品です", // 描述
-        image: "./favicon.ico",
-      },
-    });
-  };
+  const isEmpty = !sortedList || sortedList.length === 0;
 
   return (
-    <Section label="物品" onClick={handleCreateItemSubmit}>
-      <>
-        {/* 添加搜索框 */}
+    <>
+      {/* 受控时隐藏本地搜索框 */}
+      {controlledQuery === undefined && (
         <div className="px-2 pb-2">
           <label className="input input-bordered flex items-center gap-2">
             <svg className="h-4 w-4 opacity-70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -133,40 +172,40 @@ export default function ItemList({ stageId }: { stageId: number }) {
             />
           </label>
         </div>
+      )}
 
-        {isEmpty
-          ? (
-              <div className="text-sm text-gray-500 px-2 py-4">
-                暂时没有物品哦
-              </div>
-            )
-          : (
-              filteredList.map((item, index) => (
-                <ItemListItem
-                  // key={item.entityInfo!.itemId}
-                  key={index}
-                  item={item}
-                  isSelected={currentSelectedTabId === item.id!.toString()}
-                  onClick={() => handleClick(item)}
-                  onDelete={() => {
-                    removeModuleTabItem(item.id!.toString());
-                    deleteItem({
-                      id: item.id!,
-                      stageId,
-                    }, {
-                      onSuccess: () => {
-                        const newScenes = sceneList?.map((scene) => {
-                          const newItems = scene.entityInfo?.items.filter((i: string | undefined) => i !== item.name);
-                          return { ...scene, entityInfo: { ...scene.entityInfo, items: newItems } };
-                        });
-                        newScenes?.forEach(scene => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
-                      },
-                    });
-                  }}
-                />
-              ))
-            )}
-      </>
-    </Section>
+      {isEmpty
+        ? (
+            <div className="text-sm text-gray-500 px-2 py-4">
+              暂时没有物品哦
+            </div>
+          )
+        : (
+            sortedList!.map(item => (
+              <ItemListItem
+                key={item.id!.toString()}
+                item={item}
+                isSelected={currentSelectedTabId === item.id!.toString()}
+                onClick={() => handleClick(item)}
+                deleteMode={deleteMode}
+                onDelete={() => {
+                  removeModuleTabItem(item.id!.toString());
+                  deleteItem({
+                    id: item.id!,
+                    stageId,
+                  }, {
+                    onSuccess: () => {
+                      const newScenes = sceneList?.map((scene) => {
+                        const newItems = scene.entityInfo?.items.filter((i: string | undefined) => i !== item.name);
+                        return { ...scene, entityInfo: { ...scene.entityInfo, items: newItems } };
+                      });
+                      newScenes?.forEach(scene => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
+                    },
+                  });
+                }}
+              />
+            ))
+          )}
+    </>
   );
 }
