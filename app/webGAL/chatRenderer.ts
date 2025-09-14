@@ -11,8 +11,6 @@ import { tuanchat } from "../../api/instance";
  */
 
 export class ChatRenderer {
-  private MAX_VOCAL: number = 5;
-
   private readonly spaceId: number;
   private roomMap: Record<string, Array<number>> = {};
   private sceneEditor: SceneEditor;
@@ -214,9 +212,6 @@ export class ChatRenderer {
         .filter(msg => msg.message)
         .sort((a, b) => a.message.position - b.message.position);
 
-      // 最多生成几段音频 仅供在tts api不足的情况下进行限制
-      let maxVocal = this.renderProps.useVocal ? this.MAX_VOCAL : 0;
-
       // 立绘的状态
       const spriteState = new Set<string>();
 
@@ -272,16 +267,14 @@ export class ChatRenderer {
               // 生成语音
               let vocalFileName: string | undefined;
               // 不是系统角色，且不是空行，且不是指令，则生成语音
-              if (maxVocal > 0
-                && message.roleId !== 0
+              if (message.roleId !== 0
                 && message.roleId !== 2 // 骰娘的id
                 && segment !== ""
                 && !message.content.startsWith(".")
                 && !message.content.startsWith("。")
                 && !message.content.startsWith("%")) {
                 // 将聊天内容替换为 segment
-                vocalFileName = await this.sceneEditor.uploadVocal({ ...messageResponse, message: { ...messageResponse.message, content: segment } }, this.renderProps.referenceAudio);
-                maxVocal--;
+                vocalFileName = await this.sceneEditor.uploadVocal({ ...messageResponse, message: { ...messageResponse.message, content: segment } }, this.renderProps.referenceAudio); ;
               }
               else {
                 vocalFileName = undefined;
