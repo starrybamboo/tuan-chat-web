@@ -56,6 +56,7 @@ export default function CharacterDetail({
   const [selectedRuleId, setSelectedRuleId] = useState<number>(1);
   const [isRuleLoading, setIsRuleLoading] = useState(false);
   const [isExpansionLoading, setIsExpansionLoading] = useState(true); // <--- 新增这一行, 默认为 true
+  const [isRuleModalOpen, setIsRuleModalOpen] = useState(false); // 规则选择弹窗状态
 
   // 获取当前规则详情
   const { data: currentRuleData } = useRuleDetailQuery(selectedRuleId);
@@ -64,8 +65,14 @@ export default function CharacterDetail({
   const handleRuleChange = (newRuleId: number) => {
     setIsRuleLoading(true);
     setSelectedRuleId(newRuleId);
+    setIsRuleModalOpen(false); // 关闭弹窗
     // 模拟加载延迟
     setTimeout(() => setIsRuleLoading(false), 300);
+  };
+
+  // 打开规则选择弹窗
+  const handleOpenRuleModal = () => {
+    setIsRuleModalOpen(true);
   };
 
   // 当切换到不同角色时，更新本地状态
@@ -260,18 +267,9 @@ export default function CharacterDetail({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* 左侧：立绘与简介、规则选择（固定） */}
         <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
-          {/* 桌面端规则选择区域 */}
-          <div className="hidden md:block">
-            <Section title="规则选择" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100" defaultOpen={false}>
-              <RulesSection
-                currentRuleId={selectedRuleId}
-                onRuleChange={handleRuleChange}
-              />
-            </Section>
-          </div>
           {/* 立绘与简介卡片 */}
           <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl md:border-2 md:border-base-content/10">
-            <div className="card-body">
+            <div className="card-body p-4">
               {/* 移动端显示的头部区域 */}
               <div className="md:hidden mb-4 pl-4 pr-4">
                 <div className="flex items-center justify-between gap-3 mb-3">
@@ -321,7 +319,7 @@ export default function CharacterDetail({
                 <div className="divider my-0" />
               </div>
 
-              <div className="flex justify-center">
+              <div className="flex justify-center mt-6 mb-2">
                 <CharacterAvatar
                   role={localRole}
                   roleAvatars={roleAvatars}
@@ -335,7 +333,7 @@ export default function CharacterDetail({
                   onAvatarUpload={handleAvatarUpload}
                 />
               </div>
-              <div className="divider mt-4" />
+              <div className="divider mt-4 mb-0" />
               {/* 基础信息与编辑（已移至左侧） */}
               <div>
                 {isEditing
@@ -374,10 +372,11 @@ export default function CharacterDetail({
                     )
                   : (
                       <>
+                        <p className="font-bold text-center text-xl mb-4">{localRole.name}</p>
                         <p className="text-base md:text-lg whitespace-pre-wrap break-words max-w-full overflow-hidden md:min-h-22 text-center">
                           {localRole.description || "暂无描述"}
                         </p>
-                        <div className="text-xs text-center mt-8">
+                        <div className="text-xs text-center mt-24">
                           <p>
                             角色ID号：
                             {localRole.id}
@@ -393,19 +392,44 @@ export default function CharacterDetail({
                         </div>
                       </>
                     )}
-
                 {/* 顶部已提供编辑/保存按钮 */}
+
+              </div>
+
+            </div>
+
+            <div>
+              <div className="divider p-4 my-0" />
+              <div
+                className="card bg-base-100 rounded-2xl cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200"
+                onClick={handleOpenRuleModal}
+              >
+                <div className="card-body p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm">当前规则</h3>
+                        <p className="text-primary font-medium text-sm">
+                          {currentRuleData?.ruleName || "未选择规则"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-base-content/50">
+                      <span className="text-xs">切换</span>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          {/* 移动端规则选择区域 */}
-          <div className="md:hidden">
-            <Section title="规则选择" className="rounded-2xl bg-base-100" defaultOpen={false}>
-              <RulesSection
-                currentRuleId={selectedRuleId}
-                onRuleChange={handleRuleChange}
-              />
-            </Section>
           </div>
         </div>
 
@@ -493,6 +517,34 @@ export default function CharacterDetail({
               )}
         </div>
       </div>
+
+      {/* 规则选择弹窗 */}
+      {isRuleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setIsRuleModalOpen(false)}>
+          <div className="bg-base-100 rounded-2xl shadow-2xl max-w-md w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold">选择规则系统</h3>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-circle btn-ghost"
+                  onClick={() => setIsRuleModalOpen(false)}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="max-h-96 overflow-y-auto">
+                <RulesSection
+                  currentRuleId={selectedRuleId}
+                  onRuleChange={handleRuleChange}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -235,12 +235,19 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                           {allMoments.map((dynamic, index) => {
                             const isSentinel = index === allMoments.length - RENDER_MIN;
                             const wrapperKey = dynamic.stats?.feedId || index;
+                            const key = `feed-${dynamic?.response?.feedId ?? 0}`;
                             return (
                               <div
                                 key={wrapperKey}
                                 ref={isSentinel ? lastThirdRef : undefined}
                               >
-                                <PostsCard dynamic={dynamic} loginUserId={userId} />
+                                <PostsCard
+                                  key={key}
+                                  data={dynamic.response}
+                                  stats={dynamic.stats}
+                                  loginUserId={userId}
+                                  type="default"
+                                />
                               </div>
                             );
                           })}

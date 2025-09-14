@@ -46,7 +46,7 @@ export default function AIGenerationCard({
           <div className="flex gap-4">
             <button
               type="button"
-              className={`btn btn-primary text-white rounded-md flex-1 bg-gradient-to-r from-purple-500 to-pink-500 dark:from-purple-600 dark:to-pink-600 border-none hover:from-purple-600 hover:to-pink-600 dark:hover:from-purple-700 dark:hover:to-pink-700 ${disabled || isGenerating ? "btn-disabled" : ""}`}
+              className={`btn btn-primary text-white rounded-md flex-1 bg-gradient-to-r from-purple-500 to-pink-400 dark:from-purple-600 dark:to-pink-600 border-none hover:from-purple-600 hover:to-pink-600 dark:hover:from-purple-700 dark:hover:to-pink-700 ${disabled || isGenerating ? "btn-disabled" : ""}`}
               onClick={onGenerate}
               disabled={disabled || isGenerating}
             >
@@ -63,7 +63,7 @@ export default function AIGenerationCard({
                     </>
                   )}
             </button>
-            <button type="button" className="btn btn-outline rounded-md text-purple-400 dark:text-purple-300 border-purple-300 dark:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:border-purple-400 dark:hover:border-purple-500" onClick={onExcelImport}>
+            <button type="button" className="btn btn-outline rounded-md" onClick={onExcelImport}>
               Excel导入
             </button>
           </div>

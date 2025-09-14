@@ -17,8 +17,7 @@ interface LikeIconButtonProps {
   className?: string;
   icon?: React.ReactNode;
   direction?: "row" | "column";
-  /** 外部可选传入点赞数，避免重复请求 */
-  likeCount?: number;
+  likeCount?: number; // 外部可选传入点赞数，避免重复请求
 }
 
 export default function LikeIconButton({
@@ -42,7 +41,7 @@ export default function LikeIconButton({
 
   // 优先用外部传入的 likeCount
   const finalLikeCount
-    = likeCount !== undefined ? likeCount : likeCountQuery.data?.data ?? 0;
+      = likeCount !== undefined ? likeCount : likeCountQuery.data?.data ?? 0;
 
   const likeMutation = useLikeMutation();
   const unlikeMutation = useUnlikeMutation();
@@ -59,7 +58,12 @@ export default function LikeIconButton({
     >
       <path
         d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-        fill={isLiked ? "currentColor" : "none"}
+        className={
+          isLiked
+            ? "fill-pink-400 stroke-pink-400 dark:fill-pink-500 dark:stroke-pink-500"
+            : "dark:fill-gray-700"
+        }
+        style={{ transition: "all 0.2s ease" }}
       />
     </svg>
   );
@@ -84,9 +88,11 @@ export default function LikeIconButton({
         e.stopPropagation();
         toggleLike();
       }}
-      className={`flex items-center justify-center ${
-        direction === "row" ? "flex-row gap-1" : "flex-col"
-      } ${className}`}
+      className={`
+      flex items-center justify-center
+      ${direction === "row" ? "flex-row gap-1" : "flex-col"} 
+      ${className} 
+      `}
       type="button"
       disabled={likeMutation.isPending || unlikeMutation.isPending}
     >
@@ -104,7 +110,10 @@ export default function LikeIconButton({
             </div>
           )}
 
-      <span className="text-xs mt-1">
+      <span className={`w-4 ${isLiked
+        ? "text-pink-400 dark:text-pink-500"
+        : ""}`}
+      >
         {likeCountQuery.isLoading && likeCount === undefined
           ? "..."
           : finalLikeCount}

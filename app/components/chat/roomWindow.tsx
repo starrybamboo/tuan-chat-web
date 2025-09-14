@@ -52,7 +52,7 @@ import {
   useGetRoomRoleQuery,
   useGetSpaceInfoQuery,
 } from "../../../api/hooks/chatQueryHooks";
-import { useGetRoleAvatarsQuery, useGetUserRolesQuery } from "../../../api/queryHooks";
+import { useGetUserRolesQuery } from "../../../api/queryHooks";
 import DisplayOfItemDetail from "./displayOfItemsDetail";
 import ClueList from "./sideDrawer/clueList";
 
@@ -115,11 +115,31 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const roomRolesThatUserOwn = useMemo(() => {
     return roomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
   }, [roomRoles, userRoles]);
-  const [curRoleId, setCurRoleId] = useState(roomRolesThatUserOwn[0]?.roleId ?? -1);
-  // 获取当前用户选择角色的所有头像(表情差分)
-  const roleAvatarQuery = useGetRoleAvatarsQuery(curRoleId ?? -1);
-  const roleAvatars = useMemo(() => roleAvatarQuery.data?.data ?? [], [roleAvatarQuery.data?.data]);
-  const [curAvatarId, setCurAvatarId] = useState(0);
+
+  // 房间ID到角色ID的映射
+  const [curRoleIdMap, setCurRoleIdMap] = useLocalStorage<Record<number, number>>(
+    "curRoleIdMap",
+    {},
+  );
+  // 角色ID到头像ID的映射
+  const [curAvatarIdMap, setCurAvatarIdMap] = useLocalStorage<Record<number, number>>(
+    "curAvatarIdMap",
+    {},
+  );
+  const curRoleId = curRoleIdMap[roomId] ?? roomRolesThatUserOwn[0]?.roleId ?? -1;
+  const setCurRoleId = useCallback((roleId: number) => {
+    setCurRoleIdMap(prevMap => ({
+      ...prevMap,
+      [roomId]: roleId,
+    }));
+  }, [roomId, setCurRoleIdMap]);
+  const curAvatarId = curAvatarIdMap[curRoleId] ?? -1;
+  const setCurAvatarId = useCallback((_avatarId: number) => {
+    setCurAvatarIdMap(prevMap => ({
+      ...prevMap,
+      [curRoleId]: _avatarId,
+    }));
+  }, [curRoleId, setCurAvatarIdMap]);
 
   const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
   // 渲染对话
@@ -187,12 +207,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       chatHistory,
       scrollToGivenMessage,
     };
-  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, roleAvatars, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage]);
+  }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
-
-  useEffect(() => {
-    setCurRoleId(roomRolesThatUserOwn[0]?.roleId ?? -1);
-  }, [roomRolesThatUserOwn]);
 
   // (输入状态 websocket 逻辑... 保持不变)
   const roomChatStatues = webSocketUtils.chatStatus[roomId] ?? [];
@@ -482,7 +498,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           </div>
         </div>
         <div className="h-px bg-base-300"></div>
-        <div className="flex-1 w-full flex bg-base-100 relative">
+        <div className="flex-1 w-full flex bg-base-100 relative min-h-0">
           <div className="flex flex-col flex-1 h-full">
             {/* 聊天框 */}
             <div className="bg-base-100 flex-1 flex-shrink-0">
@@ -582,11 +598,11 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               </div>
             </form>
           </div>
-          <OpenAbleDrawer isOpen={sideDrawerState === "user"} className="h-full bg-base-100 overflow-auto z-20">
+          <OpenAbleDrawer isOpen={sideDrawerState === "user"} className="h-full bg-base-100 overflow-auto z-20 flex-shrink-0">
             <div className="w-px bg-base-300"></div>
             <RoomUserList></RoomUserList>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "role"} className="h-full bg-base-100 overflow-auto z-20">
+          <OpenAbleDrawer isOpen={sideDrawerState === "role"} className="h-full bg-base-100 overflow-auto z-20 flex-shrink-0">
             <div className="w-px bg-base-300"></div>
             <RoomRoleList></RoomRoleList>
           </OpenAbleDrawer>

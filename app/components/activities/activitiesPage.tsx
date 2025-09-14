@@ -162,12 +162,25 @@ function ActivitiesPage() {
                 if (idx === sentinelIndex) {
                   return (
                     <div key={key} ref={(el) => { sentinelRef.current = el as HTMLElement; }}>
-                      <PostsCard dynamic={item} loginUserId={loginUserId} />
+                      <PostsCard
+                        data={item.response}
+                        stats={item.stats}
+                        loginUserId={loginUserId}
+                        type="default"
+                      />
                     </div>
                   );
                 }
 
-                return <PostsCard key={key} dynamic={item} loginUserId={loginUserId} />;
+                return (
+                  <PostsCard
+                    key={key}
+                    data={item.response}
+                    stats={item.stats}
+                    loginUserId={loginUserId}
+                    type="default"
+                  />
+                );
               })}
 
               {!isLoading && !isError && activities.length === 0 && (

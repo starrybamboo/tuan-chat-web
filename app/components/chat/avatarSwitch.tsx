@@ -16,8 +16,8 @@ export default function AvatarSwitch({
 }: {
   curRoleId: number;
   curAvatarId: number;
-  setCurAvatarId: (value: React.SetStateAction<number>) => void;
-  setCurRoleId: (value: React.SetStateAction<number>) => void;
+  setCurAvatarId: (value: number) => void;
+  setCurRoleId: (value: number) => void;
 }) {
   const roomContext = use(RoomContext);
   const globalContext = useGlobalContext();
@@ -34,6 +34,8 @@ export default function AvatarSwitch({
 
   useEffect(() => {
     const currentRole = userRoles.find(role => role.roleId === curRoleId);
+    if (curAvatarId > 0)
+      return;
     // 优先使用角色的头像列表中的第一个头像，如果没有则使用角色的默认头像
     if (roleAvatars.length > 0) {
       setCurAvatarId(roleAvatars[0].avatarId ?? -1);
