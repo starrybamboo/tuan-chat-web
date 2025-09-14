@@ -40,7 +40,7 @@ export default function EditableField({
   if (!isEditing) {
     return (
       <div className="flex items-center justify-between p-2 md:p-3 rounded-lg border bg-base-100/50 whitespace-nowrap border-base-content/10">
-        <span className="font-medium text-sm md:text-base flex-shrink-0 md:mr-8">{fieldKey}</span>
+        <span className="font-medium text-sm md:text-base flex-shrink-0 md:mr-4">{fieldKey}</span>
         <span className="badge text-sm md:text-base flex-shrink-0 badge-ghost">
           {String(value)}
         </span>

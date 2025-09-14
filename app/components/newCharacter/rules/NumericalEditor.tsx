@@ -1,5 +1,5 @@
 import { useUpdateKeyFieldMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AddFieldForm from "../shared/AddFieldForm";
 import EditableField from "../shared/EditableField";
 
@@ -33,6 +33,10 @@ export default function NumericalEditor({
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [localData, setLocalData] = useState(data);
+
+  useEffect(() => {
+    setLocalData(data);
+  }, [data]);
 
   // 处理字段值更新
   const handleExitEditing = () => {
@@ -215,12 +219,7 @@ export default function NumericalEditor({
       </div>
 
       <div className="bg-base-200 p-4 rounded-lg">
-        <div className={
-          isEditing
-            ? "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3"
-            : "grid grid-cols-2 md:flex md:flex-wrap gap-2 md:gap-6"
-        }
-        >
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {Object.entries(localData).map(([key, value]) => (
             <EditableField
               key={key}

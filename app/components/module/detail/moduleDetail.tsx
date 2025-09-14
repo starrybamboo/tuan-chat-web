@@ -15,23 +15,23 @@ import userContent from "./readmeDemo.md?raw";
 function MainContent({ moduleData }: { moduleData: ModuleData }) {
   const navigate = useNavigate();
   // 示例tag数组，可根据实际数据源替换
-  const tags = [
-    "TRPG",
-    "冒险",
-    "合作",
-    "推理",
-    "恐怖",
-    "短剧本",
-    "长剧本",
-    "新手友好",
-    "高难度",
-    "单元剧",
-    "剧情驱动",
-    "规则轻量",
-    "规则复杂",
-    "经典",
-    "原创",
-  ];
+  // const tags = [
+  //   "TRPG",
+  //   "冒险",
+  //   "合作",
+  //   "推理",
+  //   "恐怖",
+  //   "短剧本",
+  //   "长剧本",
+  //   "新手友好",
+  //   "高难度",
+  //   "单元剧",
+  //   "剧情驱动",
+  //   "规则轻量",
+  //   "规则复杂",
+  //   "经典",
+  //   "原创",
+  // ];
   const params = useParams();
   // const navigate = useNavigate();
   const moduleId = Number(params.id);
@@ -224,22 +224,49 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
               </div>
             </div>
           )}
+          <div className="flex flex-col md:flex-row justify-center md:justify-start items-center mt-6 mb-6 gap-4">
+            <Author userId={moduleData.userId} />
+            {/* 原有按钮 - 只在桌面端显示 */}
+            <button
+              type="button"
+              className="hidden md:flex cursor-pointer z-50 relative items-center px-4 py-4 border-4 border-ac bg-transparent font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0"
+              onClick={() => setIsGroupSelectOpen(true)}
+            >
+              <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
+              {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
+              <span className="relative z-10 group-hover:text-white transition-colors duration-300">应用至群聊</span>
+              <svg
+                className="w-8 h-8 relative z-10 group-hover:text-white transition-colors duration-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
       {/* 应用按钮行 - 占据mb-24的空间 */}
       <div className="flex flex-col md:flex-row justify-center md:justify-end items-center mt-6 mb-6 gap-4">
         {/* tag渲染，最左侧 */}
-        <div className="flex flex-row flex-wrap gap-2 md:mr-auto md:ml-0 mb-2 md:mb-0">
-          {tags.map(tag => (
+        <div className="flex flex-row flex-wrap gap-6 md:mr-auto md:ml-0 mb-2 md:mb-0">
+
+          {/* {tags.map(tag => (
             <span key={tag} className="badge badge-info badge-outline px-3 py-1 text-xs font-semibold">
               {tag}
             </span>
-          ))}
+          ))} */}
         </div>
         {/* 仿 GitHub 按钮组 */}
-        <div className="inline-flex rounded-md border border-base-300 flex-shrink-0 mr-3">
+        {/* <div className="inline-flex rounded-md border border-base-300 flex-shrink-0 mr-3">
           <button type="button" className="btn-md flex items-center gap-1 px-4 py-2 rounded-l-md border-r border-base-300 hover:bg-base-200 focus:bg-base-200 transition-colors cursor-pointer">
-            {/* 眼睛图标 */}
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z" />
               <circle cx="12" cy="12" r="3" />
@@ -253,38 +280,14 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
             <span className="ml-1 text-xs bg-base-100 rounded px-1">0</span>
           </button>
           <button type="button" className="btn-md flex items-center gap-1 px-4 py-2 rounded-r-md hover:bg-base-200 focus:bg-base-200 transition-colors cursor-pointer">
-            {/* 五角星图标 */}
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
             </svg>
             <span className="text-sm">Star</span>
             <span className="ml-1 text-xs bg-base-100 rounded px-1">0</span>
           </button>
-        </div>
-        {/* 原有按钮 - 只在桌面端显示 */}
-        <button
-          type="button"
-          className="hidden md:flex cursor-pointer z-50 relative items-center px-4 py-4 border-4 border-ac bg-transparent font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0"
-          onClick={() => setIsGroupSelectOpen(true)}
-        >
-          <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
-          {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
-          <span className="relative z-10 group-hover:text-white transition-colors duration-300">应用至群聊</span>
-          <svg
-            className="w-8 h-8 relative z-10 group-hover:text-white transition-colors duration-300"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </button>
+        </div> */}
+
       </div>
       <div className="rounded-md overflow-hidden mb-4 flex flex-col gap-2">
         {/* 作者信息常规展示 */}
@@ -294,9 +297,9 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
               <div className="flex flex-col gap-4">
                 {/* 作者信息行 */}
                 <div className="flex flex-row items-center justify-center gap-4 w-full">
-                  <Author userId={moduleData.userId} />
+                  {/* <Author userId={moduleData.userId} /> */}
                   {/* 桌面端按钮组 */}
-                  <div className="hidden md:flex gap-4 items-center justify-end flex-1">
+                  {/* <div className="hidden md:flex gap-4 items-center justify-end flex-1">
                     <button type="button" className="btn btn-outline  btn-ghost rounded-md">
                       Branch
                     </button>
@@ -316,7 +319,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
                     >
                       Clone
                     </button>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>
