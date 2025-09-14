@@ -1,8 +1,12 @@
-import CommentPanel from "@/components/common/comment/commentPanel";
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import UserAvatarComponent from "@/components/common/userAvatar";
+import PostActionBar from "@/components/community/postActionBar";
+// import PostCommentPanel from "@/components/community/postCommentPanel";
+import { useMemo, useState } from "react";
+import { useGetCommentPageInfiniteQuery } from "../../../api/hooks/commentQueryHooks";
 import { useGetPostDetailQuery } from "../../../api/hooks/communityQueryHooks";
 import { useUserFollowMutation, useUserIsFollowedQuery, useUserUnfollowMutation } from "../../../api/hooks/userFollowQueryHooks";
+import CommentPanel from "../common/comment/commentPanel";
 import SlidableChatPreview from "./slidableChatPreview";
 
 /**
@@ -28,6 +32,12 @@ export default function CommunityPostDetail({
   const followMutation = useUserFollowMutation();
   const unfollowMutation = useUserUnfollowMutation();
 
+  // 获取评论数量
+  const commentQuery = useGetCommentPageInfiniteQuery({ targetType: "2", targetId: postId });
+  const commentCount = useMemo(() => {
+    return commentQuery.data?.pages.flatMap(p => p.data ?? []).length ?? 0;
+  }, [commentQuery.data?.pages]);
+
   const isFollowed = isFollowedQuery.data?.data ?? false;
   const isFollowLoading = followMutation.isPending || unfollowMutation.isPending;
 
@@ -40,8 +50,13 @@ export default function CommunityPostDetail({
     }
   };
 
+  // 回复状态管理
+  const [replyTo, setReplyTo] = useState<{ userName: string; commentId: number } | null>(null);
+
   return (
-    <div className="gap-4 ">
+    <div className="gap-4 pb-32 md:pb-4">
+      {" "}
+      {/* 移动端需要底部padding为固定操作栏留空间，桌面端不需要 */}
       {/* 返回按钮 */}
       {onBack && (
         <div className="mb-4">
@@ -121,9 +136,43 @@ export default function CommunityPostDetail({
         </div>
       </div>
 
+      {/* 评论区 - 使用专门的帖子评论组件 */}
       <div className="md:bg-base-100 md:card md:shadow-xl p-4 mt-6 gap-4">
         <p className="text-xl font-semibold">评论</p>
-        <CommentPanel targetInfo={{ targetType: "2", targetId: postId }}></CommentPanel>
+
+        {/* 桌面端：评论操作栏放在评论列表上方 */}
+        <div className="hidden md:block mb-4">
+          <PostActionBar
+            likeTargetInfo={{ targetType: "2", targetId: postId }}
+            _commentTargetInfo={{ targetType: "2", targetId: postId }}
+            commentCount={commentCount}
+            shareSearchKey={`post-${postId}-share`}
+            shareTitle={post?.post?.title}
+            replyTo={replyTo}
+            onSetReplyTo={setReplyTo}
+          />
+        </div>
+
+        {/* <PostCommentPanel
+          targetInfo={{ targetType: "2", targetId: postId }}
+          onReply={(userName, commentId) => {
+            setReplyTo({ userName, commentId });
+          }}
+        /> */}
+        <CommentPanel targetInfo={{ targetId: postId ?? -1, targetType: "2" }} />
+      </div>
+
+      {/* 移动端：底部固定操作栏 */}
+      <div className="md:hidden">
+        <PostActionBar
+          likeTargetInfo={{ targetType: "2", targetId: postId }}
+          _commentTargetInfo={{ targetType: "2", targetId: postId }}
+          commentCount={commentCount}
+          shareSearchKey={`post-${postId}-share`}
+          shareTitle={post?.post?.title}
+          replyTo={replyTo}
+          onSetReplyTo={setReplyTo}
+        />
       </div>
     </div>
   );
