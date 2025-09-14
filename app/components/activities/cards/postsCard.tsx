@@ -262,7 +262,6 @@ export const PostsCard: React.FC<PostsCardProps> = ({
               targetInfo={{ targetId: postId ?? -1, targetType }}
               className="w-9 h-6 cursor-pointer"
               direction="row"
-              likeCount={stats?.likeCount}
             />
           </div>
 
