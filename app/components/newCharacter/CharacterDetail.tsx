@@ -97,7 +97,7 @@ export default function CharacterDetail({
     // 使用updateRole保存到后端
     updateRole(updatedRole, {
       onSuccess: () => {
-        // console.log("音频文件上传并保存成功:", audioUrl);
+        console.warn("音频文件上传并保存成功:", audioUrl);
       },
       onError: (error) => {
         console.error("保存音频URL失败:", error);

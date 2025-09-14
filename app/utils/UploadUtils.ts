@@ -8,10 +8,10 @@ export class UploadUtils {
   /**
    * 上传音频文件
    * @param file 音频文件
-   * @param scene 上传场景 5.音频文件（新增场景）
+   * @param scene 上传场景 1.聊天室,2.表情包，3.角色差分 4.模组图片（暂时使用场景1）
    * @param maxDuration 最大时长（秒），默认30秒
    */
-  async uploadAudio(file: File, scene: 5 = 5, maxDuration = 30): Promise<string> {
+  async uploadAudio(file: File, scene: 1 | 2 | 3 | 4 = 1, maxDuration = 30): Promise<string> {
     // 检查文件类型
     if (!file.type.startsWith("audio/")) {
       throw new Error("只支持音频文件格式");

@@ -19,6 +19,7 @@ export default function AudioUploadModal({
 }: AudioUploadModalProps) {
   const [selectedAudioFile, setSelectedAudioFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // 音频上传工具实例
   const uploadUtils = useMemo(() => new UploadUtils(), []);
@@ -26,6 +27,62 @@ export default function AudioUploadModal({
   // 处理音频文件选择
   const handleAudioFileSelect = (file: File) => {
     setSelectedAudioFile(file);
+  };
+
+  // 检查文件类型是否为音频
+  const isAudioFile = (file: File) => {
+    const audioTypes = [
+      "audio/mpeg",
+      "audio/wav",
+      "audio/mp4",
+      "audio/aac",
+      "audio/ogg",
+      "audio/webm",
+    ];
+    const audioExtensions = [".mp3", ".wav", ".m4a", ".aac", ".ogg"];
+
+    return audioTypes.includes(file.type)
+      || audioExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+  };
+
+  // 处理拖拽进入
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  // 处理拖拽离开
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // 只有当拖拽完全离开上传区域时才设置为false
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
+  };
+
+  // 处理拖拽悬停
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  // 处理文件拖拽放下
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const audioFile = files.find(file => isAudioFile(file));
+
+    if (audioFile) {
+      handleAudioFileSelect(audioFile);
+    }
+    else if (files.length > 0) {
+      toast.error("请选择音频文件（MP3、WAV、M4A、AAC、OGG）");
+    }
   };
 
   // 处理音频上传
@@ -37,8 +94,8 @@ export default function AudioUploadModal({
       setIsUploading(true);
       toast.loading("正在上传音频文件...", { id: "audio-upload" });
 
-      // 上传音频文件，场景为5（音频文件），最大时长30秒
-      const audioUrl = await uploadUtils.uploadAudio(selectedAudioFile, 5, 30);
+      // 上传音频文件，使用场景1（聊天室），最大时长30秒
+      const audioUrl = await uploadUtils.uploadAudio(selectedAudioFile, 1, 30);
 
       toast.success("音频文件上传成功！", { id: "audio-upload" });
 
@@ -115,7 +172,17 @@ export default function AudioUploadModal({
             </div>
 
             {/* 文件上传区域 */}
-            <div className="border-2 border-dashed border-base-300 rounded-lg p-6 text-center">
+            <div
+              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                isDragOver
+                  ? "border-primary bg-primary/5"
+                  : "border-base-300 hover:border-primary/50"
+              }`}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+            >
               <input
                 type="file"
                 accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg"
@@ -124,7 +191,14 @@ export default function AudioUploadModal({
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    handleAudioFileSelect(file);
+                    if (isAudioFile(file)) {
+                      handleAudioFileSelect(file);
+                    }
+                    else {
+                      toast.error("请选择音频文件（MP3、WAV、M4A、AAC、OGG）");
+                      // 清空input值，允许重新选择同一个文件
+                      e.target.value = "";
+                    }
                   }
                 }}
               />
@@ -164,9 +238,13 @@ export default function AudioUploadModal({
                         </svg>
                       </div>
                       <div>
-                        <p className="font-medium">选择音频文件</p>
+                        <p className="font-medium">
+                          {isDragOver ? "释放文件以上传" : "选择音频文件"}
+                        </p>
                         <p className="text-sm text-base-content/60">
-                          点击下方按钮或拖拽文件到此处
+                          {isDragOver
+                            ? "松开鼠标即可开始上传音频文件"
+                            : "点击下方按钮或拖拽文件到此处"}
                         </p>
                       </div>
                       <button
