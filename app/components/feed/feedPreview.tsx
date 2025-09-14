@@ -1,36 +1,41 @@
-import type { CommunityPostFeed, FeedStats } from "@/types/feedTypes";
-import { RoomContext } from "@/components/chat/roomContext";
-import ForwardMessage from "@/components/chat/smallComponents/forwardMessage";
-import { SpaceContext } from "@/components/chat/spaceContext";
+import type { FeedStats } from "@/types/feedTypes";
+import type { PostListResponse } from "api";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import LikeIconButton from "@/components/common/likeIconButton";
-import ShareIconButton from "@/components/common/shareIconButton";
+import ShareIconButton from "@/components/common/share/shareIconButton";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { EllipsisVertical } from "@/icons";
-import React, { useMemo, useState } from "react";
-import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
+import { useState } from "react";
+import { useNavigate } from "react-router";
 import CollectionIconButton from "../common/collection/collectionIconButton";
 import CommentIconButton from "../common/comment/commentIconButton";
 import DislikeIconButton from "../common/dislikeIconButton";
+import SlidableChatPreview from "../community/slidableChatPreview";
 
 interface FeedPreviewProps {
-  feed?: CommunityPostFeed;
+  feed?: PostListResponse;
   stats: FeedStats;
   onDislike?: () => void;
 }
 
 export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps) {
-  const { data: messageResponse } = useGetMessageByIdQuery(feed?.communityPostId ?? -1);
   const [showComments, setShowComments] = useSearchParamsState<boolean>(
     `feedShowCommentsPop${feed?.communityPostId}`,
     false,
   );
+
+  const navigate = useNavigate();
+
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   // 简化：此组件上下文中可以保证 message 一定是转发消息，不再需要额外预览弹窗
 
   // 滑动消失
   const [isRemoving, setIsRemoving] = useState(false);
+
+  const handlejumpToPostDetail = () => {
+    navigate(`/community/${feed?.communityId}/${feed?.communityPostId}`);
+  };
 
   const handleDislikeClick = () => {
     setIsRemoving(true); // 触发滑动动画
@@ -38,30 +43,6 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
       onDislike?.(); // 动画结束后移除 feed
     }, 500); // 与 transition 时间一致
   };
-
-  // 为 ChatBubble 提供最简化的上下文
-  const roomContextValue = useMemo(() => ({
-    roomId: undefined,
-    roomMembers: [],
-    curMember: undefined,
-    roomRolesThatUserOwn: [],
-    curRoleId: undefined,
-    curAvatarId: undefined,
-    useChatBubbleStyle: false,
-    spaceId: undefined,
-    setReplyMessage: undefined,
-    chatHistory: undefined,
-    scrollToGivenMessage: undefined,
-  }), []);
-
-  const spaceContextValue = useMemo(() => ({
-    spaceId: undefined,
-    ruleId: undefined,
-    isSpaceOwner: false,
-    setActiveSpaceId: () => {},
-    setActiveRoomId: () => {},
-    toggleLeftDrawer: () => {},
-  }), []);
 
   // 暂时用社区详情代替
   // const [showDetail, setShowDetail] = useState(false);
@@ -92,40 +73,49 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
           </div>
         </div>
 
-        {/* 标题单独一行 */}
-        {feed?.title && (
-          <h2 className="font-extrabold leading-snug text-base-content/90 text-base line-clamp-2">
-            {feed.title}
-          </h2>
-        )}
-
-        {/* 文本描述 */}
-        {feed?.description && (
-          <p className="text-sm text-base-content/85 whitespace-pre-line leading-relaxed">
-            {feed.description}
-          </p>
-        )}
-
         {/* 消息内容容器(固定尺寸) */}
-        {messageResponse && (
-
-          <RoomContext value={roomContextValue}>
-            <SpaceContext value={spaceContextValue}>
-              <ForwardMessage messageResponse={messageResponse} />
-            </SpaceContext>
-          </RoomContext>
+        {feed?.message && (
+          <SlidableChatPreview
+            messageResponse={feed.message}
+            maxHeight="160px"
+            showAvatars={true}
+            beFull={true}
+          />
         )}
+
+        {/* 可点击区域：消息内容、标题、描述 */}
+        <div
+          className="cursor-pointer group space-y-2"
+          onClick={handlejumpToPostDetail}
+          tabIndex={0}
+          role="button"
+        >
+          {/* 标题单独一行 */}
+          {feed?.title && (
+            <h2 className="font-extrabold leading-snug text-base-content/90 text-base line-clamp-2 group-hover:underline">
+              {feed.title}
+            </h2>
+          )}
+
+          {/* 文本描述 */}
+          {feed?.description && (
+            <p className="text-sm text-base-content/85 whitespace-pre-line leading-relaxed">
+              {feed.description}
+            </p>
+          )}
+        </div>
 
         {/* 右下角操作按钮 */}
         <div className="flex items-center justify-end mt-1">
           <div className="flex items-center gap-2">
             <LikeIconButton
-              targetInfo={{ targetId: feed?.communityPostId ?? -1, targetType: "1" }}
+              targetInfo={{ targetId: feed?.communityPostId ?? -1, targetType: "2" }}
               className="btn btn-xs btn-ghost text-base-content/60 hover:text-base-content hover:bg-base-200"
               direction="row"
+              likeCount={stats.likeCount}
             />
             <CollectionIconButton
-              targetInfo={{ resourceId: feed?.communityPostId ?? -1, resourceType: "feed" }}
+              targetInfo={{ resourceId: feed?.communityPostId ?? -1, resourceType: "2" }}
               className="btn btn-xs btn-ghost text-base-content/60 hover:text-base-content hover:bg-base-200"
             />
             <CommentIconButton
@@ -142,7 +132,7 @@ export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps
       {showComments && (
         <div className="px-4 pb-4 border-t border-base-300/50 bg-base-50">
           <div className="pt-3">
-            <CommentPanel targetInfo={{ targetId: feed?.communityPostId ?? -1, targetType: "1" }} className="h-full" />
+            <CommentPanel targetInfo={{ targetId: feed?.communityPostId ?? -1, targetType: "2" }} className="h-full" />
           </div>
         </div>
       )}

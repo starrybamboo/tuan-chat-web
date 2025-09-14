@@ -4,6 +4,7 @@ import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import CommunitySelector from "@/components/community/communitySelector";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useEffect, useState } from "react";
+import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
 import { useListCommunitiesQuery } from "../../../api/hooks/communityQueryHooks";
 
 export interface StoredPost {
@@ -18,6 +19,7 @@ interface PostEditorProps {
   onSubmit: (post: StoredPost) => Promise<boolean>;
   enableCommunitySelection?: boolean; // 是否启用社区选择
   defaultCommunityId?: number; // 默认社区ID
+  messageId?: number; // 转发的消息ID
 }
 
 /**
@@ -27,6 +29,7 @@ interface PostEditorProps {
  * @param props.onSubmit 提交按钮的回调函数，异步执行, 传入帖子的标题和内容。如果发送成功，返回true，否则返回false。
  * @param props.enableCommunitySelection 是否启用社区选择功能
  * @param props.defaultCommunityId 默认社区ID
+ * @param props.messageId 转发的消息ID
  * @constructor
  */
 export default function PostEditor({
@@ -34,6 +37,7 @@ export default function PostEditor({
   onSubmit,
   enableCommunitySelection = false,
   defaultCommunityId,
+  messageId,
 }: PostEditorProps) {
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
 
@@ -51,6 +55,10 @@ export default function PostEditor({
   // 获取社区列表（仅在启用社区选择时）
   const listCommunitiesQuery = useListCommunitiesQuery();
   const communityList = listCommunitiesQuery.data?.data ?? [];
+
+  // 获取转发的消息信息（如果有）
+  const messageQuery = useGetMessageByIdQuery(messageId || 0);
+  const forwardMessage = messageId && messageQuery.data ? messageQuery.data : null;
 
   // 创建上传工具实例
   const uploadUtils = new UploadUtils();
@@ -128,6 +136,37 @@ export default function PostEditor({
             <span className="whitespace-nowrap">所有改动都会实时保存到浏览器本地</span>
           </span>
         </h2>
+
+        {/* 转发消息预览 */}
+        {forwardMessage && (
+          <div className="card bg-base-200 border border-base-300 mb-4">
+            <div className="card-body p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z" />
+                </svg>
+                <span className="text-sm font-medium text-base-content/70">转发消息</span>
+              </div>
+              <div className="text-sm">
+                <div className="font-medium mb-1">
+                  用户
+                  {forwardMessage.message.userId}
+                </div>
+                <div className="text-base-content/80 line-clamp-3">{forwardMessage.message.content}</div>
+                {forwardMessage.message.messageType !== 1 && (
+                  <div className="text-xs text-base-content/60 mt-1">
+                    [
+                    {forwardMessage.message.messageType === 2
+                      ? "图片"
+                      : forwardMessage.message.messageType === 3 ? "文件" : "其他"}
+                    ]
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4 flex-1 flex flex-col min-w-0 overflow-hidden">
           <div>
             <label className="label">

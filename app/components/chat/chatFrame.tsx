@@ -4,7 +4,6 @@ import type {
   ChatMessageResponse,
   ImageMessage,
   Message,
-  MessageFeedRequest,
 } from "../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
 import ChatFrameContextMenu from "@/components/chat/chatFrameContextMenu";
@@ -25,7 +24,6 @@ import {
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
 import { useCreateEmojiMutation, useGetUserEmojisQuery } from "../../../api/hooks/emojiQueryHooks";
-import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
 
 export const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
 function Header() {
@@ -64,7 +62,6 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
   // Mutations
   // const moveMessageMutation = useMoveMessageMutation();
   const deleteMessageMutation = useDeleteMessageMutation();
-  const publishFeedMutation = usePublishFeedMutation();
   const updateMessageMutation = useUpdateMessageMutation();
   const updateMessage = (message: Message) => {
     updateMessageMutation.mutate(message);
@@ -263,7 +260,8 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
     });
   }
 
-  async function handlePublishFeed({ title, description }: { title: string; description: string }): Promise<boolean> {
+  // 新增：生成转发消息并返回消息ID
+  async function generateForwardMessage(): Promise<number | null> {
     // 发送提示信息
     const firstMessageResult = await sendMessageMutation.mutateAsync({
       roomId,
@@ -274,28 +272,20 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
       extra: {},
     });
     if (!firstMessageResult.success)
-      return false;
+      return null;
 
     // 发送转发请求
     const forwardResult = await sendMessageMutation.mutateAsync(
       constructForwardRequest(roomId),
     );
     if (!forwardResult.success || !forwardResult.data)
-      return false;
-
-    // 发布feed
-    const feedRequest: MessageFeedRequest = {
-      messageId: forwardResult.data.messageId,
-      title: title || "default",
-      description: description || "default",
-    };
-    const publishResult = await publishFeedMutation.mutateAsync(feedRequest);
+      return null;
 
     // 清理状态
     setIsForwardWindowOpen(false);
     updateSelectedMessageIds(new Set());
 
-    return publishResult.success;
+    return forwardResult.data.messageId;
   }
 
   async function handleAddEmoji(imgMessage: ImageMessage) {
@@ -692,7 +682,7 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
       <PopWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
         <ForwardWindow
           onClickRoom={roomId => handleForward(roomId)}
-          handlePublishFeed={handlePublishFeed}
+          generateForwardMessage={generateForwardMessage}
         >
         </ForwardWindow>
       </PopWindow>
