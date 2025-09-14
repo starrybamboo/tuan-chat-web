@@ -3,7 +3,6 @@
  */
 
 import type { Crop, PixelCrop } from "react-image-crop";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 
 import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
@@ -33,29 +32,28 @@ function centerSquareCrop(mediaWidth: number, mediaHeight: number) {
 }
 
 interface ImgUploaderWithCopperProps {
-  // 如果useState的话就填set函数. 会在返回后将downLoadUrl作为参数传入
-  // 如果没填就不会向oss上传图片
   setDownloadUrl?: (newUrl: string) => void | undefined;
   setCopperedDownloadUrl?: (newUrl: string) => void | undefined;
   children: React.ReactNode;
-  fileName: string;
+  fileName?: string;
   mutate?: (data: any) => void;
 }
 
 /**
  * 图片上传组件，带裁剪
- * @param setDownloadUrl 填写的话就会上传裁剪前的图片，并在上传完后调用
- * @param setCopperedDownloadUrl 填写的话就会上传裁剪后的图片，并在上传后调用
- * @param children
- * @param fileName 上传后存在图床里面的文件名，裁剪后的图片会带-copper后缀
- * @param mutate
+ * @param {object} props 组件属性
+ * @param {(url: string) => void} [props.setDownloadUrl] 上传原图完成后的回调, 会在返回后将downLoadUrl作为参数传入，如果没填就不会向oss上传图片
+ * @param {(url: string) => void} [props.setCopperedDownloadUrl] 上传裁剪图完成后的回调，同上。
+ * @param {React.ReactNode} props.children 触发上传的子元素
+ * @param {string} props.fileName 没什么用的参数，为了兼容旧代码。在图床使用hash作为文件名。
+ * @param {(data: any) => void} [props.mutate] 可选的更新函数
  * @constructor
  */
 export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, children, fileName, mutate }: ImgUploaderWithCopperProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadUtils = new UploadUtils();
   // 控制弹窗的显示与隐藏
-  const [isOpen, setIsOpen] = useSearchParamsState("imgUploaderWithCopperPop", false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const [imgSrc, setImgSrc] = useState("");
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -182,7 +180,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
     const originalFile = imgFile.current;
     const fileWithNewName = new File(
       [originalFile],
-      fileName,
+      fileName ?? originalFile.name,
       {
         type: originalFile.type,
         lastModified: originalFile.lastModified,

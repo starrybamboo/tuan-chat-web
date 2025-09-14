@@ -1,4 +1,4 @@
-import {useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient} from "@tanstack/react-query";
+import {keepPreviousData, useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient} from "@tanstack/react-query";
 import type {RuleCloneRequest} from "../models/RuleCloneRequest";
 import type {RuleCreateRequest} from "../models/RuleCreateRequest";
 import type {RulePageRequest} from "../models/RulePageRequest";
@@ -7,7 +7,8 @@ import type {ApiResultLong} from "../models/ApiResultLong";
 import type {ApiResultPageBaseRespRuleResponse} from "../models/ApiResultPageBaseRespRuleResponse";
 import type {ApiResultRule} from "../models/ApiResultRule";
 import type {ApiResultVoid} from "../models/ApiResultVoid";
-import type { GameRule } from '@/components/newCharacter/types';
+import type {Rule} from "../models/Rule";
+
 import {tuanchat} from "../instance";
 
 /**
@@ -128,61 +129,44 @@ export function useDeleteRuleMutation() {
 }
 
 // 获取规则详情角色界面
-export function useRuleDetailQuery(ruleId: number) {
+export function useRuleDetailQuery(ruleId: number, options?: { enabled?: boolean }) {
     return useQuery({
       queryKey: ["ruleDetail", ruleId],
-      queryFn: async () => {
+      queryFn: async (): Promise<Rule> => {
         const res = await tuanchat.ruleController.getRuleDetail(ruleId)
         if (res.success && res.data) {
-          // 将后端数据结构转换为前端需要的 `GameRule` 类型
-          return {
-            id: res.data.ruleId || 0,
-            name: res.data.ruleName || "",
-            description: res.data.ruleDescription || "",
-            performance: res.data.actTemplate || {}, // 表演字段
-            numerical: res.data.abilityDefault || {}, // 数值约束
-          };
+          return res.data;
         }
         throw new Error('获取规则详情失败');
-      }
+      },
+      enabled: options?.enabled ?? true, // 默认启用，但允许通过 options 禁用
     })
   }
 
-//分页获取规则
-export function useRulePageMutation() {
-  return useMutation({
-    mutationKey: ["ruleList"],
-    mutationFn: async (params: RulePageRequest): Promise<GameRule[]> => {
-      const res = await tuanchat.ruleController.getRulePage(params);
-      if (res.success && res.data?.list) {
-        // 将后端数据结构转换为前端需要的 `GameRule` 类型
-        return res.data.list.map(rule => ({
-          id: rule.ruleId || 0,
-          name: rule.ruleName || "",
-          description: rule.ruleDescription || "",
-          performance: {}, // 表演字段
-          numerical: {}, // 数值约束
-        }));
-      }
-      throw new Error('获取规则列表失败');
-    }
-  });
+// 分页获取规则（useQuery 版本）
+export function useRulePageQuery(params: RulePageRequest) {
+    return useQuery<Rule[], Error>({
+        queryKey: ["ruleList", params],
+        queryFn: async (): Promise<Rule[]> => {
+            const res = await tuanchat.ruleController.getRulePage(params);
+            if (res.success && res.data?.list) {
+                return res.data.list;
+            }
+            return [] as Rule[];
+        },
+        staleTime: 30_000,
+        // 在翻页/搜索时保留上一页数据避免闪烁（React Query v5）
+        placeholderData: keepPreviousData,
+    });
 }
 
 export function useRuleListQuery() {
   return useQuery({
     queryKey: ["ruleList"],
-    queryFn: async () => {
+    queryFn: async (): Promise<Rule[]> => {
       const res = await tuanchat.ruleController.getRulePage({ pageNo: 1, pageSize: 100 });
       if (res.success && res.data?.list) {
-        // 将后端数据结构转换为前端需要的 `GameRule` 类型
-        return res.data.list.map(rule => ({
-          id: rule.ruleId || 0,
-          name: rule.ruleName || "",
-          description: rule.ruleDescription || "",
-          performance: {}, // 表演字段
-          numerical: {}, // 数值约束
-        }));
+        return res.data.list;
       }
       throw new Error('获取规则列表失败');
     },

@@ -1,15 +1,47 @@
+import WebgalStarter from "@/components/chat/smallComponents/webgalStarter";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import UpdatesPopWindow from "@/components/topbanner/updatesWindow";
+import { ConnectionIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus } from "@/utils/auth/authapi";
+import { isElectronEnv } from "@/utils/isElectronEnv";
 import { QueryClient, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import LoginButton from "../auth/LoginButton";
 import ThemeSwitch from "../themeSwitch";
 
 const queryClient = new QueryClient();
 
+function ActivitiesButton() {
+  return (
+    <div className="tooltip tooltip-bottom" data-tip="动态">
+      <Link
+        to="/activities"
+        aria-label="动态"
+        className="btn btn-ghost btn-square hover:bg-base-200 transition-colors duration-200"
+      >
+        <ConnectionIcon />
+      </Link>
+    </div>
+  );
+}
+
 export default function Topbar() {
+  const switchRef = useRef<HTMLDivElement | null>(null);
+
+  // 点击处理：如果点击发生在 switchRef 内部，则不重复触发；否则查找内部 input 并触发它
+  const handleClick = (e?: React.MouseEvent) => {
+    // 如果事件存在并且点击目标位于 ThemeSwitch 内部，就不做任何事（避免双触发）
+    if (e && switchRef.current && switchRef.current.contains(e.target as Node)) {
+      return;
+    }
+
+    const input = switchRef.current?.querySelector<HTMLInputElement>("input[type=\"checkbox\"]");
+    if (input) {
+      input.click();
+    }
+  };
+
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
@@ -94,7 +126,6 @@ export default function Topbar() {
             <ul className="dropdown-content z-[50] menu p-2 shadow bg-base-200 rounded-box w-52 mt-3 text-base-content">
               <li><a onClick={() => handleNavigation("/feed")}>推荐</a></li>
               <li><a onClick={() => handleNavigation("/community/1")}>社区</a></li>
-              <li><a onClick={() => handleNavigation("/activities")}>动态</a></li>
               <li><a onClick={() => handleNavigation("/chat")}>聊天</a></li>
               <li><a onClick={() => handleNavigation("/role")}>角色</a></li>
               <li><a onClick={() => handleNavigation("/module")}>模组</a></li>
@@ -116,7 +147,6 @@ export default function Topbar() {
           <div className="hidden lg:flex gap-7">
             <a onClick={() => navigate("/feed")} className="font-normal text-base hover:underline cursor-default ">推荐</a>
             <a onClick={() => navigate("/community/1")} className="font-normal text-base hover:underline cursor-default">社区</a>
-            <a onClick={() => navigate("/activities")} className="font-normal text-base hover:underline cursor-default">动态</a>
             <a onClick={() => navigate("/chat")} className="font-normal text-base hover:underline cursor-default">聊天</a>
             <a onClick={() => navigate("/role")} className="font-normal text-base hover:underline cursor-default">角色</a>
             <a onClick={() => navigate("/module")} className="font-normal text-base hover:underline cursor-default">模组</a>
@@ -128,9 +158,7 @@ export default function Topbar() {
         {/* 右侧用户区域 */}
         {!isLoading && (
           <div className="navbar-end gap-1 md:gap-2">
-            <div className="scale-75 md:scale-100">
-              <ThemeSwitch />
-            </div>
+            <ActivitiesButton />
             {isLoggedIn
               ? (
                   <div className="dropdown dropdown-end">
@@ -158,6 +186,34 @@ export default function Topbar() {
                       <li>
                         <a onClick={() => handleUserNavigation("/settings")}>设置</a>
                       </li>
+                      <li
+                        className="flex justify-between cursor-pointer"
+                        onClick={e => handleClick(e)}
+                        role="button"
+                        aria-label="切换主题"
+                      >
+                        <div className="flex justify-between gap-2">
+                          <span className="select-none pr-10">主题切换</span>
+                          <div className="scale-70" ref={switchRef}>
+                            <ThemeSwitch />
+                          </div>
+                        </div>
+                      </li>
+                      {
+                        isElectronEnv() && (
+                          <li
+                            className="flex justify-between cursor-pointer"
+                            onClick={handleClick}
+                            role="button"
+                            aria-label="切换主题"
+                          >
+                            <WebgalStarter className="flex justify-between gap-2 w-full">
+                              <span className="select-none">启动WebGAL</span>
+                              <WebgalIcon className="size-5"></WebgalIcon>
+                            </WebgalStarter>
+                          </li>
+                        )
+                      }
                       <li>
                         <a onClick={handleLogout}>
                           退出登录

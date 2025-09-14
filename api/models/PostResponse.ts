@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ChatMessageResponse } from './ChatMessageResponse';
 /**
  * 帖子信息响应
  */
@@ -27,16 +28,13 @@ export type PostResponse = {
      */
     content?: string;
     /**
-     * 帖子状态：0-正常，1-删除
+     * 封面图片URL
      */
-    status?: string;
+    coverImage?: string;
+    message?: ChatMessageResponse;
     /**
      * 发布时间
      */
     createTime?: string;
-    /**
-     * 更新时间
-     */
-    updateTime?: string;
 };
 

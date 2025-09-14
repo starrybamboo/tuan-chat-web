@@ -56,16 +56,16 @@ export default function SpaceDetailPanel() {
     });
   }
   return (
-    <div className="flex flex-row gap-4 h-full">
+    <div className="flex flex-row gap-4 h-full w-full max-w-3xl">
       {/* name of each tab group should be unique */}
       <div className="tabs tabs-lift h-full">
         {/* 群成员列表 */}
         <label className="tab">
-          <input type="radio" name="my_tabs_4" defaultChecked />
+          <input type="radio" name="space_detail_tabs" defaultChecked />
           <MemberIcon className="size-4"></MemberIcon>
           群成员
         </label>
-        <div className="tab-content space-y-2">
+        <div className="tab-content space-y-2 p-4 overflow-y-auto">
           <div className="flex flex-row justify-center items-center gap-2 px-4">
             <p>
               空间成员-
@@ -88,11 +88,11 @@ export default function SpaceDetailPanel() {
         </div>
         {/* 角色列表 */}
         <label className="tab">
-          <input type="radio" name="my_tabs_4" />
+          <input type="radio" name="space_detail_tabs" />
           <GirlIcon className="size-4"></GirlIcon>
           角色
         </label>
-        <div className="tab-content space-y-2">
+        <div className="tab-content space-y-2 p-4 overflow-y-auto">
           <div className="flex flex-row justify-center items-center gap-2 px-4">
             <p>
               角色列表-
@@ -111,34 +111,37 @@ export default function SpaceDetailPanel() {
             }
           </div>
           {/* TODO: 适配新的角色列表 */}
-          {spaceRoles.map(role => (
-            <div
-              key={role.roleId}
-              className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg items-center "
-            >
-              {/* role列表 */}
-              <RoleAvatarComponent
-                avatarId={role.avatarId ?? 0}
-                width={8}
-                isRounded={true}
-                withTitle={false}
-              />
-              <div className="flex flex-col items-center gap-2 text-sm font-medium">
-                <span>{role.roleName}</span>
+          {spaceRoles.map((role) => {
+            const roleInfo = role.entityInfo as { avatarId?: number; roleName?: string } | undefined;
+            return (
+              <div
+                key={role.id}
+                className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg items-center "
+              >
+                {/* role列表 */}
+                <RoleAvatarComponent
+                  avatarId={roleInfo?.avatarId ?? 0}
+                  width={8}
+                  isRounded={true}
+                  withTitle={false}
+                />
+                <div className="flex flex-col items-center gap-2 text-sm font-medium">
+                  <span>{role.name || roleInfo?.roleName || "未命名角色"}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {/* 设置窗口 */}
         {
           spaceContext.isSpaceOwner && (
             <>
               <label className="tab">
-                <input type="radio" name="my_tabs_4" />
+                <input type="radio" name="space_detail_tabs" />
                 <Setting className="size-4"></Setting>
                 设置
               </label>
-              <div className="tab-content">
+              <div className="tab-content p-4 overflow-y-auto">
                 <SpaceSettingWindow onClose={() => { setIsShowSpacePanel(false); }}></SpaceSettingWindow>
               </div>
             </>
@@ -146,7 +149,7 @@ export default function SpaceDetailPanel() {
         }
       </div>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
-        <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
+        <AddRoleWindow handleAddRole={handleAddRole} addModuleRole={false}></AddRoleWindow>
       </PopWindow>
       <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
         <AddMemberWindow handleAddMember={handleAddMember}></AddMemberWindow>

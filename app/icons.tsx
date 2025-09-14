@@ -784,6 +784,8 @@ export function CommentOutline(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+// 竖直三个点
 export function EllipsisVertical(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -1217,6 +1219,351 @@ export function AddRingLight(props: SVGProps<SVGSVGElement>) {
       <g fill="none" stroke="currentColor">
         <circle cx="12" cy="12" r="9"></circle>
         <path strokeLinecap="square" d="M12 15V9m3 3H9"></path>
+      </g>
+    </svg>
+  );
+}
+
+// 物品图标
+export function Items(
+  props: SVGProps<SVGSVGElement>,
+) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 14 14"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M8 3.02L13.5.5M8 3.02l5.5 1.48m-7 9c3.5 0 6-1.24 6-4c0-3-1.5-5-4.5-6.5l1.18-1.53a.65.65 0 0 0-.56-.95H4.38a.65.65 0 0 0-.56 1L5 3C2 4.52.5 6.52.5 9.52c0 2.74 2.5 3.98 6 3.98Z"
+      >
+      </path>
+    </svg>
+  );
+}
+
+// 侦探图标
+// 其他关键词：线索
+export function Detective(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 256 256"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="M248 112h-27.92l-47.5-65.41a16 16 0 0 0-25.31-.72l-12.85 14.9l-.2.23a7.95 7.95 0 0 1-12.44 0l-.2-.23l-12.85-14.9a16 16 0 0 0-25.31.72L35.92 112H8a8 8 0 0 0 0 16h240a8 8 0 0 0 0-16M96.34 56l.19.23l12.85 14.89a24 24 0 0 0 37.24 0l12.85-14.89c.06-.08.1-.15.17-.23l40.66 56H55.69ZM180 144a36 36 0 0 0-35.77 32h-32.46a36 36 0 1 0-1.83 16h36.12A36 36 0 1 0 180 144M76 200a20 20 0 1 1 20-20a20 20 0 0 1-20 20m104 0a20 20 0 1 1 20-20a20 20 0 0 1-20 20"
+      >
+      </path>
+    </svg>
+  );
+}
+
+/**
+ * Webgal图标
+ */
+export function WebgalIcon(
+  props: SVGProps<SVGSVGElement>,
+) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      version="1.0"
+      width="1em"
+      height="1em"
+      {...props}
+      viewBox="0 0 512.000000 512.000000"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <g transform="translate(0.000000,512.000000) scale(0.100000,-0.100000)" fill="currentColor" stroke="none">
+        <path
+          d="M0 2560 l0 -2560 898 0 897 1 -68 36 c-131 70 -230 208 -278 389 -27 101 -38 386 -19 502 28 177 119 349 234 444 112 94 239 138 396 138 159 0 286 -43 383 -131 l42 -38 -64 -64 -63 -65 -56 39 c-160 113 -382 102 -504 -24 -56 -57 -91 -123 -120 -222 -20 -71 -23 -101 -22 -270 0 -206 13 -292 57 -389 84 -183 279 -242 510 -156 l57 21 0 215 0 214 -134 0 -134 0 -11 63 c-6 35 -11 76 -11 90 l0 27 255 0 255 0 0 -360 0 -359 -32 -17 c-18 -10 -69 -32 -113 -50 l-80 -33 187 -1 187 0 29 93 c17 50 112 346 212 657 99 311 194 603 209 650 l28 85 137 0 138 0 78 -240 c43 -132 142 -438 220 -680 78 -242 150 -468 161 -503 l21 -62 149 0 149 0 2 743 3 742 110 0 110 0 3 -647 2 -648 328 0 c181 0 331 -2 333 -5 3 -2 0 -45 -6 -95 l-11 -90 33 0 33 0 -1 1053 c0 861 -3 1045 -13 1012 -18 -59 -33 -83 -85 -138 -52 -55 -143 -105 -241 -132 -53 -14 -119 -19 -352 -22 l-288 -5 0 747 0 747 278 -5 c221 -3 289 -7 337 -21 198 -56 289 -153 302 -318 12 -160 -71 -292 -214 -342 l-38 -13 68 -22 c37 -13 88 -37 114 -55 51 -35 107 -109 122 -160 6 -19 10 515 10 1382 l1 1412 -2560 0 -2560 0 0 -2560z m1593 658 c3 -24 34 -299 69 -611 34 -313 64 -565 65 -560 3 8 163 1031 163 1039 0 2 56 4 124 4 l124 0 6 -37 c9 -57 114 -771 133 -902 9 -63 18 -110 20 -105 1 5 34 263 73 574 39 311 73 582 77 603 l6 37 98 0 c80 0 99 -3 99 -14 0 -8 -45 -325 -100 -703 -55 -378 -103 -707 -107 -731 l-6 -43 -136 3 -136 3 -76 520 c-41 286 -77 526 -80 533 -2 7 -35 -203 -73 -465 -38 -263 -73 -504 -78 -535 l-10 -58 -138 0 -138 0 -6 38 c-4 20 -42 305 -86 632 -44 327 -86 644 -95 704 -8 60 -15 111 -15 113 0 2 49 3 109 3 l108 0 6 -42z m2182 -25 c-4 -37 -11 -77 -16 -90 l-9 -23 -305 0 -305 0 0 -230 0 -230 270 0 270 0 0 -90 0 -90 -270 0 -270 0 0 -245 0 -245 330 0 330 0 0 -90 0 -90 -445 0 -445 0 0 745 0 745 436 0 436 0 -7 -67z"
+        />
+        <path
+          d="M4360 2865 l0 -225 143 0 c78 0 158 5 178 10 99 28 149 100 149 215 -1 171 -86 225 -357 225 l-113 0 0 -225z"
+        />
+        <path
+          d="M4360 2204 l0 -256 168 4 c180 6 226 16 290 65 48 37 72 93 72 177 0 93 -17 143 -65 192 -59 59 -123 74 -313 74 l-152 0 0 -256z"
+        />
+        <path
+          d="M3147 917 c-59 -199 -108 -365 -107 -369 0 -5 99 -8 220 -8 121 0 220 3 220 8 1 14 -215 732 -220 732 -3 0 -54 -163 -113 -363z"
+        />
+        <path
+          d="M2928 188 l-54 -183 193 -3 c106 -1 280 -1 386 0 l193 3 -52 172 c-28 94 -55 176 -58 182 -5 8 -95 11 -280 11 l-273 0 -55 -182z"
+        />
+      </g>
+    </svg>
+  );
+}
+
+// 放大图标
+// 其他关键词：加号，增加，放大镜，缩放，放大操作
+export function ZoomInIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="8" />
+      <path d="M21 21l-4.35-4.35" />
+      <line x1="11" y1="8" x2="11" y2="14" />
+      <line x1="8" y1="11" x2="14" y2="11" />
+    </svg>
+  );
+}
+
+// 缩小图标
+// 其他关键词：减号，减少，缩小镜，缩放，缩小操作
+export function ZoomOutIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="8" />
+      <path d="M21 21l-4.35-4.35" />
+      <line x1="8" y1="11" x2="14" y2="11" />
+    </svg>
+  );
+}
+
+// 逆时针旋转图标（线框样式）
+// 其他关键词：撤销，返回，左旋转，刷新，重置
+export function RotateLeftIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+    </svg>
+  );
+}
+
+// 顺时针旋转图标（线框样式）
+// 其他关键词：重做，前进，右旋转，刷新，重置
+export function RotateRightIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+    </svg>
+  );
+}
+
+// 连接点图标（被动态组件复用）
+// 其他关键词：节点，链接，关系图，网络，拓扑，动态
+export function ConnectionIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="text-base-content"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="9" cy="9" r="2" />
+      <path d="M13 19l6-6" />
+      <path d="m21 3-6 6" />
+      <path d="m11 11 6 6" />
+      <circle cx="20" cy="20" r="2" />
+      <circle cx="20" cy="4" r="2" />
+      <circle cx="4" cy="20" r="2" />
+    </svg>
+  );
+}
+
+// 加号图标
+export function AddIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+// 五角星图标
+export function RoundStarBorder(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="m19.65 9.04l-4.84-.42l-1.89-4.45c-.34-.81-1.5-.81-1.84 0L9.19 8.63l-4.83.41c-.88.07-1.24 1.17-.57 1.75l3.67 3.18l-1.1 4.72c-.2.86.73 1.54 1.49 1.08l4.15-2.5l4.15 2.51c.76.46 1.69-.22 1.49-1.08l-1.1-4.73l3.67-3.18c.67-.58.32-1.68-.56-1.75M12 15.4l-3.76 2.27l1-4.28l-3.32-2.88l4.38-.38L12 6.1l1.71 4.04l4.38.38l-3.32 2.88l1 4.28z"
+      >
+      </path>
+    </svg>
+  );
+}
+
+// 不感兴趣图标
+export function DislikeLine(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="m2.808 1.393l18.385 18.385l-1.415 1.414l-3.746-3.747L12 21.485l-8.478-8.492a6 6 0 0 1 .033-8.023L1.394 2.808zm2.172 10.23L12 18.654l2.618-2.623l-9.646-9.645a4 4 0 0 0 .008 5.237m15.263-6.866a6 6 0 0 1 .236 8.236l-1.635 1.636l-1.414-1.414l1.59-1.592a4 4 0 0 0-5.683-5.606l-1.335 1.198l-1.336-1.197a4 4 0 0 0-1.155-.723l-2.25-2.25A6 6 0 0 1 12 4.53a6 6 0 0 1 8.242.228"
+      >
+      </path>
+    </svg>
+  );
+}
+
+// 对勾图标
+// 其他关键词：确认，完成，勾选，成功，正确
+export function CheckIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      {...props}
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+// 返回箭头图标（粗体填充样式）
+// 其他关键词：后退，返回上一级，撤销
+export function ArrowBackThickFill(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        d="M10 2a1 1 0 0 0-1.79-.614l-7 9a1 1 0 0 0 0 1.228l7 9A1 1 0 0 0 10 20v-3.99c5.379.112 7.963 1.133 9.261 2.243c1.234 1.055 1.46 2.296 1.695 3.596l.061.335a1 1 0 0 0 1.981-.122c.171-2.748-.086-6.73-2.027-10.061C19.087 8.768 15.695 6.282 10 6.022z"
+        clipRule="evenodd"
+      >
+      </path>
+    </svg>
+  );
+}
+
+// 下载图标
+export function SharpDownload(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z"></path>
+    </svg>
+  );
+}
+
+// 链接图标
+export function Link(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        d="m12.922 16.587l-3.671 3.671a3.896 3.896 0 0 1-5.504-5.509l-.002.002l3.671-3.671a1.3 1.3 0 0 0-1.837-1.835l.001-.001l-3.671 3.671a6.494 6.494 0 0 0 9.187 9.175l-.003.002l3.671-3.671a1.3 1.3 0 0 0-1.837-1.835l.001-.001zM24.007 6.489A6.494 6.494 0 0 0 12.921 1.9L9.25 5.571a1.3 1.3 0 1 0 1.835 1.837l.001-.001l3.671-3.671a3.896 3.896 0 0 1 5.504 5.509l.002-.002l-3.671 3.671a1.3 1.3 0 1 0 1.835 1.837l.001-.001l3.671-3.671a6.43 6.43 0 0 0 1.908-4.58V6.49z"
+      >
+      </path>
+      <path
+        fill="currentColor"
+        d="M7.412 16.592c.235.235.559.38.918.38s.683-.145.918-.38L16.59 9.25a1.3 1.3 0 0 0-1.837-1.835l.001-.001l-7.342 7.342c-.235.235-.38.559-.38.918s.145.683.38.918"
+      >
+      </path>
+    </svg>
+  );
+}
+// 三个向上小箭头图标（带动画效果）
+// 其他关键词：更多，展开，加载更多，提交
+export function ChevronSmallTripleUp(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width="1em"
+      height="1em"
+      {...props}
+    >
+      <g
+        fill="none"
+        stroke="currentColor"
+        strokeDasharray="10"
+        strokeDashoffset="10"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      >
+        <path d="M12 14l-5 5M12 14l5 5">
+          <animate
+            fill="freeze"
+            attributeName="stroke-dashoffset"
+            dur="0.3s"
+            values="10;0"
+          >
+          </animate>
+        </path>
+        <path d="M12 9l-5 5M12 9l5 5">
+          <animate
+            fill="freeze"
+            attributeName="stroke-dashoffset"
+            begin="0.3s"
+            dur="0.3s"
+            values="10;0"
+          >
+          </animate>
+        </path>
+        <path d="M12 4l-5 5M12 4l5 5">
+          <animate
+            fill="freeze"
+            attributeName="stroke-dashoffset"
+            begin="0.6s"
+            dur="0.3s"
+            values="10;0"
+          >
+          </animate>
+        </path>
       </g>
     </svg>
   );

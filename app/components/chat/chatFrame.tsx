@@ -2,11 +2,11 @@ import type { VirtuosoHandle } from "react-virtuoso";
 import type {
   ChatMessageRequest,
   ChatMessageResponse,
-  FeedRequest,
   ImageMessage,
   Message,
 } from "../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
+import ChatFrameContextMenu from "@/components/chat/chatFrameContextMenu";
 import { RoomContext } from "@/components/chat/roomContext";
 import UserIdToName from "@/components/chat/smallComponents/userIdToName";
 import { SpaceContext } from "@/components/chat/spaceContext";
@@ -24,7 +24,6 @@ import {
   useUpdateMessageMutation,
 } from "../../../api/hooks/chatQueryHooks";
 import { useCreateEmojiMutation, useGetUserEmojisQuery } from "../../../api/hooks/emojiQueryHooks";
-import { usePublishFeedMutation } from "../../../api/hooks/FeedQueryHooks";
 
 export const CHAT_VIRTUOSO_INDEX_SHIFTER = 100000;
 function Header() {
@@ -35,23 +34,19 @@ function Header() {
   );
 }
 
-function ScrollSeekPlaceholder({ height }: { height: number }) {
-  return (
-    <div
-      className="bg-base-200 rounded-lg my-1"
-      style={{ height: height - 10 }} // 减去margin
-    />
-  );
-}
-
 /**
  * 聊天框（不带输入部分）
  * @param useChatBubbleStyle 是否使用气泡样式
+ * @param setUseChatBubbleStyle 设置气泡样式的函数
  * @param virtuosoRef 虚拟列表的ref
  * @constructor
  */
-export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
-{ useChatBubbleStyle: boolean; virtuosoRef: React.RefObject<VirtuosoHandle | null> }) {
+export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, virtuosoRef }:
+{
+  useChatBubbleStyle: boolean;
+  setUseChatBubbleStyle: (value: boolean | ((prev: boolean) => boolean)) => void;
+  virtuosoRef: React.RefObject<VirtuosoHandle | null>;
+}) {
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
@@ -67,7 +62,6 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   // Mutations
   // const moveMessageMutation = useMoveMessageMutation();
   const deleteMessageMutation = useDeleteMessageMutation();
-  const publishFeedMutation = usePublishFeedMutation();
   const updateMessageMutation = useUpdateMessageMutation();
   const updateMessage = (message: Message) => {
     updateMessageMutation.mutate(message);
@@ -105,7 +99,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
   }, [chatHistory, receivedMessages, roomId]);
 
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
-    return (roomContext.chatHistory?.messages ?? []).filter(msg => msg.message.status !== 1);
+    return roomContext.chatHistory?.messages ?? [];
   }, [roomContext.chatHistory?.messages]);
   /**
    * 虚拟列表
@@ -123,16 +117,19 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    * 新消息提醒
    */
   const unreadMessageNumber = webSocketUtils.unreadMessagesNumber[roomId] ?? 0;
-  const updateUnreadMessagesNumber = webSocketUtils.updateUnreadMessagesNumber;
-  // useEffect(() => {
-  //   sendNotificationWithGrant();
-  // }, [historyMessages]);
+  const updateLastReadSyncId = webSocketUtils.updateLastReadSyncId;
+  // 监听新消息，如果在底部，则设置群聊消息为已读；
+  useEffect(() => {
+    if (isAtBottomRef.current) {
+      updateLastReadSyncId(roomId);
+    }
+  }, [historyMessages, roomId, updateLastReadSyncId]);
   /**
    * scroll相关
    */
   const scrollToBottom = () => {
     virtuosoRef?.current?.scrollToIndex(messageIndexToVirtuosoIndex(historyMessages.length - 1));
-    updateUnreadMessagesNumber(roomId, 0);
+    updateLastReadSyncId(roomId);
   };
   useEffect(() => {
     let timer = null;
@@ -146,6 +143,64 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
         clearTimeout(timer);
     };
   }, [chatHistory?.loading]);
+
+  /**
+   * 背景图片随聊天记录而改变
+   */
+  const imgNode = useMemo(() => {
+    return historyMessages
+      .map((msg, index) => {
+        return { index, imageMessage: msg.message.extra?.imageMessage };
+      })
+      .filter(item => item.imageMessage && item.imageMessage.background);
+  }, [historyMessages]);
+
+  const [currentVirtuosoIndex, setCurrentVirtuosoIndex] = useState(0);
+  const [currentBackgroundUrl, setCurrentBackgroundUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Convert the virtuoso index (which is shifted) to the actual array index.
+    const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
+    // Find the last background image that appears at or before the current scroll position.
+    let newBgUrl: string | null = null;
+    for (const bg of imgNode) {
+      if (bg.index <= currentMessageIndex) {
+        newBgUrl = bg.imageMessage?.url ?? null;
+      }
+      else {
+        break;
+      }
+    }
+
+    if (newBgUrl !== currentBackgroundUrl) {
+      setCurrentBackgroundUrl(newBgUrl);
+    }
+  }, [currentVirtuosoIndex, imgNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
+
+  /**
+   * 为什么要在这里加上一个这么一个莫名其妙的多余变量呢？
+   * 目的是为了让背景图片从url到null的切换时也能触发transition的动画，如果不加，那么，动画部分的css就会变成这样：
+   *         style={{
+   *           backgroundImage: currentBackgroundUrl ? `url('${currentBackgroundUrl}')` : "none",
+   *           opacity: currentBackgroundUrl ? 1 : 0,
+   *         }}    // 错误代码！
+   * 当currentBackgroundUrl从url变为null时，浏览器会因为backgroundImage已经变成了null，导致动画来不及播放，背景直接就消失了
+   * 而加上这么一给state后
+   *         style={{
+   *           backgroundImage: displayedBgUrl ? `url('${displayedBgUrl}')` : "none",
+   *           opacity: currentBackgroundUrl ? 1 : 0,
+   *         }}   // 正确的
+   * 当currentBackgroundUrl 从 url_A 变为 null时
+   * 此时，opacity 因为 currentBackgroundUrl 是 null 而变为 0，淡出动画开始。
+   * 但我们故意不更新 displayedBgUrl！它依然保持着 url_A 的值。
+   * 结果就是：背景图层虽然要变透明了，但它的 backgroundImage 样式里依然是上一张图片。这样，动画就有了可以“操作”的视觉内容，能够平滑地将这张图片淡出，直到完全透明。
+   */
+  const [displayedBgUrl, setDisplayedBgUrl] = useState(currentBackgroundUrl);
+  useEffect(() => {
+    if (currentBackgroundUrl) {
+      setDisplayedBgUrl(currentBackgroundUrl);
+    }
+  }, [currentBackgroundUrl]);
 
   /**
    * 消息选择
@@ -187,6 +242,7 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     send(constructForwardRequest(forwardRoomId));
     setIsForwardWindowOpen(false);
     updateSelectedMessageIds(new Set());
+    toast("已转发消息");
   }
 
   function toggleBackground(messageId: number) {
@@ -204,7 +260,8 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     });
   }
 
-  async function handlePublishFeed({ title, description }: { title: string; description: string }): Promise<boolean> {
+  // 新增：生成转发消息并返回消息ID
+  async function generateForwardMessage(): Promise<number | null> {
     // 发送提示信息
     const firstMessageResult = await sendMessageMutation.mutateAsync({
       roomId,
@@ -215,28 +272,20 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
       extra: {},
     });
     if (!firstMessageResult.success)
-      return false;
+      return null;
 
     // 发送转发请求
     const forwardResult = await sendMessageMutation.mutateAsync(
       constructForwardRequest(roomId),
     );
     if (!forwardResult.success || !forwardResult.data)
-      return false;
-
-    // 发布feed
-    const feedRequest: FeedRequest = {
-      messageId: forwardResult.data.messageId,
-      title: title || "default",
-      description: description || "default",
-    };
-    const publishResult = await publishFeedMutation.mutateAsync(feedRequest);
+      return null;
 
     // 清理状态
     setIsForwardWindowOpen(false);
     updateSelectedMessageIds(new Set());
 
-    return publishResult.success;
+    return forwardResult.data.messageId;
   }
 
   async function handleAddEmoji(imgMessage: ImageMessage) {
@@ -405,6 +454,15 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     const messageElement = target.closest("[data-message-id]");
     setContextMenu({ x: e.clientX, y: e.clientY, messageId: Number(messageElement?.getAttribute("data-message-id")) });
   }
+  // 处理点击外部关闭菜单的逻辑
+  useEffect(() => {
+    if (contextMenu) {
+      window.addEventListener("click", closeContextMenu);
+    }
+    return () => {
+      window.removeEventListener("click", closeContextMenu);
+    };
+  }, [contextMenu]); // 依赖于contextMenu状态
 
   function handleBatchDelete() {
     for (const messageId of selectedMessageIds) {
@@ -431,6 +489,17 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
     setContextMenu(null);
   }
 
+  // 切换消息样式
+  function toggleChatBubbleStyle() {
+    setUseChatBubbleStyle(prev => !prev);
+    closeContextMenu();
+  }
+
+  // 处理回复消息
+  function handleReply(message: Message) {
+    roomContext.setReplyMessage && roomContext.setReplyMessage(message);
+  }
+
   if (chatHistory?.loading) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-base-200">
@@ -453,12 +522,13 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    */
   const renderMessage = (index: number, chatMessageResponse: ChatMessageResponse) => {
     const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageId);
-    const draggable = spaceContext.isSpaceOwner || chatMessageResponse.message.userId === globalContext.userId;
+    const draggable = (roomContext.curMember?.memberType ?? 3) < 3;
     const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
     return ((
       <div
         key={chatMessageResponse.message.messageId}
-        className={`pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""}`}
+        className={`
+        pl-6 relative group transition-opacity ${isSelected ? "bg-info-content/40" : ""} ${isDragging ? "pointer-events-auto" : ""}`}
         data-message-id={chatMessageResponse.message.messageId}
         onClick={(e) => {
           if (isSelecting || e.ctrlKey) {
@@ -494,11 +564,25 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
    * 渲染
    */
   return (
-    <div className="h-full">
+    <div className="h-full relative">
+      {/* Background Image Layer */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
+        style={{
+          backgroundImage: displayedBgUrl ? `url('${displayedBgUrl}')` : "none",
+          opacity: currentBackgroundUrl ? 1 : 0,
+        }}
+      />
+      {/* Overlay for tint and blur */}
+      <div
+        className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-xs z-0 transition-opacity duration-500"
+        style={{
+          opacity: currentBackgroundUrl ? 1 : 0,
+        }}
+      />
       <div
         className="overflow-y-auto flex flex-col relative h-full"
         onContextMenu={handleContextMenu}
-        onClick={closeContextMenu}
       >
         {selectedMessageIds.size > 0 && (
           <div
@@ -555,37 +639,27 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
             data={historyMessages}
             firstItemIndex={CHAT_VIRTUOSO_INDEX_SHIFTER - historyMessages.length} // 使用这个技巧来在react-virtuoso中实现反向无限滚动
             initialTopMostItemIndex={historyMessages.length - 1}
-            // alignToBottom
             followOutput={true}
-            overscan={2000}
+            overscan={10} // 不要设得太大，会导致rangeChange更新不及时
             ref={virtuosoRef}
             context={{
-              // fetchNextPage: () => messagesInfiniteQuery?.fetchNextPage(),
-              // isFetching: messagesInfiniteQuery?.isFetching || false,
               isAtTopRef: isAtBottomRef,
+            }}
+            rangeChanged={({ endIndex }) => {
+              // Update state with the end-most visible item's index.
+              setCurrentVirtuosoIndex((endIndex));
             }}
             itemContent={(index, chatMessageResponse) => renderMessage(index, chatMessageResponse)}
             atBottomStateChange={(atBottom) => {
-              atBottom && updateUnreadMessagesNumber(roomId, 0);
+              atBottom && updateLastReadSyncId(roomId);
               isAtBottomRef.current = atBottom;
             }}
             atTopStateChange={(atTop) => {
-              // (atTop) && fetchNextPage();
               isAtTopRef.current = atTop;
             }}
             components={{
               Header,
-              ScrollSeekPlaceholder,
             }}
-            scrollSeekConfiguration={{
-              enter: velocity => Math.abs(velocity) > 600, // 滚动速度阈值
-              exit: velocity => Math.abs(velocity) < 50,
-            }}
-            // onWheel={(e) => {
-            //   if (e.deltaY < 0 && isAtTopRef.current) {
-            //     fetchNextPage();
-            //   }
-            // }}
             atTopThreshold={1200}
             atBottomThreshold={200}
           />
@@ -608,126 +682,27 @@ export default function ChatFrame({ useChatBubbleStyle, virtuosoRef }:
       <PopWindow isOpen={isForwardWindowOpen} onClose={() => setIsForwardWindowOpen(false)}>
         <ForwardWindow
           onClickRoom={roomId => handleForward(roomId)}
-          handlePublishFeed={handlePublishFeed}
+          generateForwardMessage={generateForwardMessage}
         >
         </ForwardWindow>
       </PopWindow>
       {/* 右键菜单 */}
-      {contextMenu && (() => {
-        const message = historyMessages.find(message => message.message.messageId === contextMenu.messageId);
-        return (
-          <div
-            className="fixed bg-base-100 shadow-lg rounded-md z-50"
-            style={{ top: contextMenu.y, left: contextMenu.x }}
-            onClick={e => e.stopPropagation()}
-          >
-            <ul className="menu p-2 w-40">
-              {
-                (spaceContext.isSpaceOwner || message?.message.userId === globalContext.userId)
-                && (
-                  <li>
-                    <a onClick={(e) => {
-                      e.preventDefault();
-                      handleDelete();
-                      closeContextMenu();
-                    }}
-                    >
-                      删除
-                    </a>
-                  </li>
-                )
-              }
-              <li>
-                <a onClick={(e) => {
-                  e.preventDefault();
-                  toggleMessageSelection(contextMenu.messageId);
-                  closeContextMenu();
-                }}
-                >
-                  多选
-                </a>
-              </li>
-              <li>
-                <a onClick={(e) => {
-                  e.preventDefault();
-                  roomContext.setReplyMessage && roomContext?.setReplyMessage(message?.message);
-                  closeContextMenu();
-                }}
-                >
-                  回复
-                </a>
-              </li>
-              {
-                (isSelecting) && (
-                  <li>
-                    <a onClick={(e) => {
-                      e.preventDefault();
-                      handleMoveMessages(
-                        historyMessages.findIndex(message => message.message.messageId === contextMenu.messageId),
-                        Array.from(selectedMessageIds),
-                      );
-                      closeContextMenu();
-                    }}
-                    >
-                      将选中消息移动到此消息下方
-                    </a>
-                  </li>
-                )
-              }
-              {(() => {
-                if (message?.message.userId !== globalContext.userId && !spaceContext.isSpaceOwner) {
-                  return null;
-                }
-                if (!message || message.message.messageType !== 2) {
-                  return (
-                    <li>
-                      <a
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleEditMessage(contextMenu.messageId);
-                          closeContextMenu();
-                        }}
-                      >
-                        编辑文本
-                      </a>
-                    </li>
-                  );
-                }
-                // 图片消息
-                return (
-                  <>
-                    <li>
-                      <a
-                        onClick={(e) => {
-                          e.preventDefault();
-                          toggleBackground(contextMenu.messageId);
-                          closeContextMenu();
-                        }}
-                      >
-                        {
-                          message?.message.extra?.imageMessage?.background ? "取消设置为背景" : "设为背景"
-                        }
-                      </a>
-                    </li>
-                    <li>
-                      <a
-                        onClick={(e) => {
-                          e.preventDefault();
-                          const imgMessage = message?.message.extra?.imageMessage;
-                          imgMessage && handleAddEmoji(imgMessage);
-                          closeContextMenu();
-                        }}
-                      >
-                        添加到表情
-                      </a>
-                    </li>
-                  </>
-                );
-              })()}
-            </ul>
-          </div>
-        );
-      })()}
+      <ChatFrameContextMenu
+        contextMenu={contextMenu}
+        historyMessages={historyMessages}
+        isSelecting={isSelecting}
+        selectedMessageIds={selectedMessageIds}
+        useChatBubbleStyle={useChatBubbleStyle}
+        onClose={closeContextMenu}
+        onDelete={handleDelete}
+        onToggleSelection={toggleMessageSelection}
+        onReply={handleReply}
+        onMoveMessages={handleMoveMessages}
+        onToggleChatBubbleStyle={toggleChatBubbleStyle}
+        onEditMessage={handleEditMessage}
+        onToggleBackground={toggleBackground}
+        onAddEmoji={handleAddEmoji}
+      />
     </div>
   );
 }

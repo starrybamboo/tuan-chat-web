@@ -22,7 +22,7 @@ const SceneDetail: React.FC<SceneDetailProps> = ({ data }) => {
         <div className="grid grid-cols-2 gap-2 text-sm">
           {data.moduleSceneName && (
             <div>
-              <span className="font-medium text-gray-600">场景名称: </span>
+              <span className="font-medium text-gray-600">剧情名称: </span>
               <span className="text-gray-800">{data.moduleSceneName}</span>
             </div>
           )}
@@ -32,7 +32,7 @@ const SceneDetail: React.FC<SceneDetailProps> = ({ data }) => {
       {/* 场景描述 */}
       {data.description && (
         <div className="w-full">
-          <h4 className="font-semibold text-lg mb-2">场景描述</h4>
+          <h4 className="font-semibold text-lg mb-2">剧情描述</h4>
           <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">
             {data.description}
           </p>
@@ -42,7 +42,7 @@ const SceneDetail: React.FC<SceneDetailProps> = ({ data }) => {
       {/* KP提示 */}
       {data.tip && (
         <div className="w-full">
-          <h4 className="font-semibold text-lg mb-2 text-orange-600">KP提示</h4>
+          <h4 className="font-semibold text-lg mb-2 text-orange-600">剧情详细</h4>
           <p className="text-gray-700 bg-orange-50 p-3 rounded-lg border-l-4 border-orange-200">
             {data.tip}
           </p>

@@ -2,6 +2,7 @@ import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import type {BatchLikeRecordRequest} from "../models/BatchLikeRecordRequest";
 import type {LikeRecordRequest} from "../models/LikeRecordRequest";
 import type {PageBaseRequest} from "../models/PageBaseRequest";
+import type {LikeCountRequest} from "../models/LikeCountRequest";
 import {tuanchat} from "../instance";
 
 /**
@@ -18,6 +19,31 @@ export function useIsLikedQuery(request: LikeRecordRequest) {
 }
 
 /**
+ * 获取点赞数量
+ * @param request 点赞记录请求
+ */
+export function useGetLikeCountQuery(request: LikeRecordRequest) {
+    return useQuery({
+        queryKey: ['getLikeCount', request],
+        queryFn: () => tuanchat.likeRecordController.getLikeCount(request.targetId, request.targetType),
+        staleTime: 300000, // 5分钟缓存
+        enabled: !!request.targetId && !!request.targetType
+    });
+}
+
+/**
+ * 批量获取点赞数量
+ * @param requestBody 批量查询请求
+ */
+export function useBatchGetLikeCountQuery(requestBody: LikeCountRequest) {
+    return useQuery({
+        queryKey: ['batchGetLikeCount', requestBody],
+        queryFn: () => tuanchat.likeRecordController.batchGetLikeCount(requestBody),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
+/**
  * 点赞操作
  */
 export function useLikeMutation() {
@@ -28,7 +54,9 @@ export function useLikeMutation() {
         onSuccess: (_, variables) => {
             // 使相关查询失效
             queryClient.invalidateQueries({queryKey: ['isLiked', variables]});
+            queryClient.invalidateQueries({queryKey: ['getLikeCount', variables]});
             queryClient.invalidateQueries({queryKey: ['batchIsLiked']});
+            queryClient.invalidateQueries({queryKey: ['batchGetLikeCount']});
         }
     });
 }
@@ -44,7 +72,9 @@ export function useUnlikeMutation() {
         onSuccess: (_, variables) => {
             // 使相关查询失效
             queryClient.invalidateQueries({queryKey: ['isLiked', variables]});
+            queryClient.invalidateQueries({queryKey: ['getLikeCount', variables]});
             queryClient.invalidateQueries({queryKey: ['batchIsLiked']});
+            queryClient.invalidateQueries({queryKey: ['batchGetLikeCount']});
         }
     });
 }

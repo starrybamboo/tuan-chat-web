@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultPageBaseRespModule } from '../models/ApiResultPageBaseRespModule';
+import type { ApiResultStageResponse } from '../models/ApiResultStageResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { ModuleCreateRequest } from '../models/ModuleCreateRequest';
 import type { ModulePageByUserRequest } from '../models/ModulePageByUserRequest';
@@ -40,12 +40,12 @@ export class ModuleControllerService {
      * 新增一个剧本，没有场景和角色
      * 返回对应的id
      * @param requestBody
-     * @returns ApiResultLong OK
+     * @returns ApiResultStageResponse OK
      * @throws ApiError
      */
     public addModule(
         requestBody: ModuleCreateRequest,
-    ): CancelablePromise<ApiResultLong> {
+    ): CancelablePromise<ApiResultStageResponse> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/module',

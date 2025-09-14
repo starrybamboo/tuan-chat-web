@@ -37,10 +37,10 @@ function EntityListItem({
     >
       <div className="avatar">
         <div className="w-12 h-12 rounded-full">
-          {entityType === "role" && entityInfo.avatarId
+          {entityType === "role"
             ? (
                 <RoleAvatar
-                  avatarId={entityInfo.avatarId}
+                  avatarId={entityInfo.avatarId ?? (entity.entityInfo?.avatarIds && entity.entityInfo.avatarIds.length > 0 ? entity.entityInfo.avatarIds[0] : 0)}
                   width={12}
                   isRounded={true}
                   stopPopWindow={true}

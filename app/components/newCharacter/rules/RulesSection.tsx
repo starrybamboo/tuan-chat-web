@@ -1,11 +1,13 @@
 // RulesSection.tsx
-import type { GameRule } from "../types";
-import { useRulePageMutation } from "api/hooks/ruleQueryHooks";
-import { useEffect, useMemo, useState } from "react";
+
+import type { Rule } from "api/models/Rule";
+import { useRuleListQuery, useRulePageQuery } from "api/hooks/ruleQueryHooks";
+import { useEffect, useState } from "react";
 
 interface RulesSectionProps {
   currentRuleId: number;
   onRuleChange: (newRuleId: number) => void;
+  large?: boolean; // 巨大模式：使用卡片宫格外观（类似 RuleSelectionStep）
 }
 
 /**
@@ -16,39 +18,45 @@ interface RulesSectionProps {
 export default function RulesSection({
   currentRuleId,
   onRuleChange,
+  large = false,
 }: RulesSectionProps) {
   // 分页和搜索状态
+  // 初始页：若传入的 currentRuleId 不在第一页，则通过一次全量(上限)列表定位所在页
   const [pageNum, setPageNum] = useState(1);
-  const [pageSize, setPageSize] = useState(4);
+  // const [pageSize, setPageSize] = useState(4);
   const [keyword, setKeyword] = useState("");
 
-  // 状态
-  const [rules, setRules] = useState<GameRule[]>([]);
-  // const [filteredRules, setFilteredRules] = useState<GameRule[]>([]); // 删除这行
+  // 每页大小（分页展示固定 4）
+  const pageSize = 4;
+  const { data: rules = [] as Rule[] } = useRulePageQuery({
+    pageNo: pageNum,
+    pageSize,
+    keyword,
+  });
 
-  // API Hooks
-  const rulePageMutation = useRulePageMutation();
+  // 仅在需要定位初始页时获取完整列表（限制100条）
+  const { data: allRules = [] } = useRuleListQuery();
 
-  // 初始化规则分页获取
+  // 根据当前选中规则定位所在页（只在初始 mount 或 currentRuleId 变化时尝试）
   useEffect(() => {
-    const fetchRules = async () => {
-      try {
-        const result = await rulePageMutation.mutateAsync({ pageNo: 1, pageSize: 10 });
-        if (result && result.length > 0) {
-          setRules(result);
-          // 如果未选择规则，默认选第一个
-          if (!currentRuleId) {
-            onRuleChange(result[0].id);
-          }
-        }
-      }
-      catch (err) {
-        console.error("规则加载失败:", err);
-      }
-    };
+    if (!currentRuleId || !allRules.length)
+      return;
+    // 找到选中规则索引
+    const idx = allRules.findIndex(r => r.ruleId === currentRuleId);
+    if (idx === -1)
+      return;
+    const targetPage = Math.floor(idx / pageSize) + 1;
+    // 只有当目标页与当前不同且当前仍是第一页（避免用户已翻页后被重置）时设置
+    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+    setPageNum(p => (p === 1 ? targetPage : p));
+  }, [currentRuleId, allRules, pageSize]);
 
-    fetchRules();
-  }, []);
+  // 当首次有数据且未选择规则时，默认选中第一个
+  useEffect(() => {
+    if (!currentRuleId && rules.length > 0) {
+      onRuleChange(rules[0].ruleId || 0);
+    }
+  }, [rules, currentRuleId, onRuleChange]);
 
   // 处理搜索输入
   const handleSearchInput = (value: string) => {
@@ -56,164 +64,123 @@ export default function RulesSection({
     setPageNum(1); // 重置页码
   };
 
-  // 监听搜索关键词变化
-  // 使用 useMemo 处理搜索过滤
-  const filteredRulesList = useMemo(() => {
-    if (!keyword.trim()) {
-      return rules;
-    }
-
-    const searchTerm = keyword.toLowerCase();
-    return rules.filter(
-      rule =>
-        rule.name.toLowerCase().includes(searchTerm)
-        || rule.description?.toLowerCase().includes(searchTerm),
-    );
-  }, [keyword, rules]);
-
-  return (
-    <div className="bg-base-200 rounded-lg p-4">
-      <div className="flex flex-col gap-4">
-        {/* 搜索和分页控制 */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-            <div className="relative w-full sm:w-72">
-              <input
-                type="text"
-                placeholder="搜索规则..."
-                defaultValue={keyword}
-                onChange={e => handleSearchInput(e.target.value)}
-                className="input input-bordered w-full pl-10 pr-4 py-2 rounded-lg focus:ring-primary"
-              />
-              <svg
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPageNum(1);
-                rulePageMutation.mutate({
-                  pageNo: pageNum,
-                  pageSize,
-                  keyword,
-                });
-              }}
-              className="select select-bordered w-full sm:w-auto hidden sm:block"
-            >
-              <option value={10}>10条/页</option>
-              <option value={20}>20条/页</option>
-              <option value={50}>50条/页</option>
-            </select>
-          </div>
-
-          <div className="join bg-base-200 rounded-lg shadow-sm">
-            <button
-              type="button"
-              onClick={() => {
-                setPageNum(p => Math.max(p - 1, 1));
-                rulePageMutation.mutate({
-                  pageNo: pageNum - 1,
-                  pageSize,
-                  keyword,
-                });
-              }}
-              disabled={pageNum === 1}
-              className="join-item btn btn-ghost px-4 py-2 disabled:opacity-50"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                width="20"
-                height="20"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            </button>
-
-            <div className="join-item btn btn-ghost px-4 py-2 font-normal w-24 text-center pointer-events-none">
-              第
-              {" "}
-              {pageNum}
-              {" "}
-              页
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setPageNum(p => p + 1);
-                rulePageMutation.mutate({
-                  pageNo: pageNum + 1,
-                  pageSize,
-                  keyword,
-                });
-              }}
-              disabled={
-                // 如果返回的数据少于 pageSize，说明没有下一页
-                (rulePageMutation.data?.length || 0) < pageSize
-              }
-              className="join-item btn btn-ghost px-4 py-2 disabled:opacity-50"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                width="20"
-                height="20"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
-          </div>
+  // 提取搜索与分页控件（两种模式共用）
+  const searchBar = (
+    (rules.length || keyword.trim()) && (
+      <div className="flex justify-between items-center gap-3">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="搜索规则..."
+            value={keyword}
+            onChange={e => handleSearchInput(e.target.value)}
+            className={`input input-bordered input-sm w-full pl-8 pr-4 ${large ? "md:input-md" : ""}`}
+          />
+          <svg
+            className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
         </div>
-
-        {/* 规则列表 */}
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {filteredRulesList.map(rule => (
-            <div
-              key={rule.id}
-              className={`card bg-base-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${
-                currentRuleId === rule.id ? "ring-2 ring-primary" : ""
-              }`}
-              onClick={() => onRuleChange(rule.id)}
-            >
-              <div className="card-body p-4">
-                <h3 className="card-title text-sm">{rule.name}</h3>
-                <p className="text-xs text-gray-500 line-clamp-2">
-                  {rule.description}
-                </p>
-              </div>
-            </div>
-          ))}
+        <div className="join">
+          <button
+            type="button"
+            onClick={() => setPageNum(p => Math.max(p - 1, 1))}
+            disabled={pageNum === 1}
+            className="join-item btn btn-ghost btn-sm disabled:opacity-50"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <div className="join-item btn btn-ghost btn-sm font-normal pointer-events-none text-xs">{pageNum}</div>
+          <button
+            type="button"
+            onClick={() => setPageNum(p => p + 1)}
+            disabled={rules.length < pageSize}
+            className="join-item btn btn-ghost btn-sm disabled:opacity-50"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </button>
         </div>
-
-        {/* 没有搜索结果的提示 */}
-        {filteredRulesList.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            没有找到匹配的规则
-          </div>
-        )}
       </div>
+    )
+  );
+
+  if (large) {
+    return (
+      <div className="space-y-6">
+        <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
+          <div className="card-body">
+            <h3 className="card-title flex items-center gap-2">⚙️ 选择规则系统</h3>
+            <div className="mt-4 space-y-4">
+              {searchBar}
+              <div className="grid gap-4 grid-cols-1">
+                {rules.map(rule => (
+                  <div
+                    key={rule.ruleId}
+                    className={`card cursor-pointer transition-all bg-base-100 shadow-xs rounded-2xl border border-base-content/10 ${currentRuleId === rule.ruleId
+                      ? "border-primary ring-2 ring-primary bg-primary/5"
+                      : "border-base-300 hover:border-base-400 hover:bg-base-200/60"
+                    }`}
+                    onClick={() => onRuleChange(rule.ruleId || 0)}
+                  >
+                    <div className="card-body p-5 md:p-6 min-h-[128px]">
+                      <div className="flex h-full items-center justify-between gap-4 md:gap-6">
+                        <div>
+                          <h4 className="font-medium text-base">{rule.ruleName}</h4>
+                          <p className="text-sm text-base-content/70 line-clamp-2">{rule.ruleDescription}</p>
+                        </div>
+                        {currentRuleId === rule.ruleId && (
+                          <div className="badge badge-primary badge-sm md:badge-md">已选择</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {rules.length === 0 && (
+                <div className="text-center py-6 text-base-content/60 text-sm">没有找到匹配的规则</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 默认紧凑模式
+  return (
+    <div className="space-y-3">
+      {searchBar}
+      <div className="space-y-2 max-h-96 overflow-y-auto">
+        {rules.map(rule => (
+          <div
+            key={rule.ruleId}
+            className={`p-3 rounded-lg bg-base-100 hover:bg-base-200 transition-colors cursor-pointer border-2 ${currentRuleId === rule.ruleId
+              ? "border-primary bg-primary/5"
+              : "border-transparent"
+            }`}
+            onClick={() => onRuleChange(rule.ruleId || 0)}
+          >
+            <h3 className="font-medium text-sm mb-1">{rule.ruleName}</h3>
+            <p className="text-xs text-base-content/60 line-clamp-2">{rule.ruleDescription}</p>
+          </div>
+        ))}
+      </div>
+      {rules.length === 0 && (
+        <div className="text-center py-6 text-base-content/60 text-sm">没有找到匹配的规则</div>
+      )}
     </div>
   );
 }

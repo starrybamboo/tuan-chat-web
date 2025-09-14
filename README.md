@@ -3,11 +3,31 @@
 这是团剧共创的前端项目。项目采用react作为框架，采用响应式界面设计。使用electron构建pc客户端，使用混合开发模式构建安卓客户端。基于webgal导出跑团replay。
 ## 在开始之前
 
+### node版本
+请确保你的node版本在22及以上。
+
 ### 安装依赖
 
 ```bash
 pnpm install
 ```
+
+### electron安装与配置
+如果你的开发不涉及electron，可跳过此步。
+
+在安装electron依赖的时候，如果遇到
+```
+Electron failed to install correctly,
+ please delete node_modules/electron and try installing again
+```
+尝试
+```bash
+node node_modules/electron/install.js
+```
+
+如果要执行electron-build
+请先把webgal-terre解压到extraResources下，并把terre.exe放在extraResources同级目录下。
+
 
 ### 配置环境
 
@@ -36,10 +56,7 @@ VITE_TERRE_WS=ws://localhost:3001/api/webgalsync
 
 ![开启Run eslint --fix on save](https://ycn45b70r8yz.feishu.cn/space/api/box/stream/download/asynccode/?code=NmJlMTFkOWRmNTBlOWYxMTUxYzk1ZDhkM2Y5OGIyMDBfYUttUVd1TWtYcEVzQld6d3lZQlFHTGdqbnUzck5uclZfVG9rZW46TGF0aGJmdEtqb2F3V3h4cGkySGNpQ2ZYbmxnXzE3NTAwNzI1MDc6MTc1MDA3NjEwN19WNA)
 
-
-
-### 启动！
-
+### 启动！！！
 ```bash
 pnpm dev
 ```

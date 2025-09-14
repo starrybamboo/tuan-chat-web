@@ -25,8 +25,6 @@ interface SpriteCropperProps {
   characterName: string;
   // 裁剪完成回调（单体模式）
   onCropComplete?: (croppedImageUrl: string) => void;
-  // 批量裁剪完成回调
-  onBatchCropComplete?: (croppedImages: { avatarId: number; croppedImageUrl: string }[]) => void;
   // 关闭组件回调
   onClose?: () => void;
 }
@@ -42,7 +40,6 @@ export function SpriteCropper({
   initialSpriteIndex = 0,
   characterName,
   onCropComplete,
-  onBatchCropComplete,
 }: SpriteCropperProps) {
   // 确定工作模式
   const isBatchMode = roleAvatars.length > 0;
@@ -235,6 +232,103 @@ export function SpriteCropper({
     }
   }
 
+  /**
+   * 将canvas数据转换为Blob
+   */
+  async function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob);
+        }
+        else {
+          reject(new Error("Failed to convert canvas to blob"));
+        }
+      }, "image/png", 0.9);
+    });
+  }
+
+  /**
+   * 获取指定图片的裁剪结果（通用函数）
+   */
+  async function getCroppedImageFromImg(img: HTMLImageElement): Promise<string> {
+    if (!completedCrop) {
+      throw new Error("No completed crop");
+    }
+
+    // 如果是当前显示的图片，直接使用现有的处理逻辑
+    if (imgRef.current && img.src === imgRef.current.src) {
+      return await getCroppedImageDataUrl();
+    }
+
+    // 对于其他图片，确保尺寸和当前图片一致
+    const currentImg = imgRef.current;
+    if (!currentImg) {
+      throw new Error("No current image reference");
+    }
+
+    // 设置临时图片的显示尺寸和当前图片一致
+    const tempDisplayWidth = currentImg.width;
+    const tempDisplayHeight = currentImg.height;
+
+    // 计算缩放比例
+    const scaleToCurrentDisplay = Math.min(
+      tempDisplayWidth / img.naturalWidth,
+      tempDisplayHeight / img.naturalHeight,
+    );
+
+    img.width = img.naturalWidth * scaleToCurrentDisplay;
+    img.height = img.naturalHeight * scaleToCurrentDisplay;
+
+    // 创建临时预览canvas
+    const tempPreviewCanvas = document.createElement("canvas");
+
+    // 使用canvasPreview处理图片（和当前预览完全相同的逻辑）
+    await canvasPreview(
+      img,
+      tempPreviewCanvas,
+      completedCrop,
+      1,
+      0,
+    );
+
+    // 创建最终输出canvas
+    const scaleX = img.naturalWidth / img.width;
+    const scaleY = img.naturalHeight / img.height;
+
+    const outputCanvas = new OffscreenCanvas(
+      completedCrop.width * scaleX,
+      completedCrop.height * scaleY,
+    );
+    const outputCtx = outputCanvas.getContext("2d");
+    if (!outputCtx) {
+      throw new Error("No 2d context");
+    }
+
+    // 将预览canvas的内容复制到输出canvas
+    outputCtx.drawImage(
+      tempPreviewCanvas,
+      0,
+      0,
+      tempPreviewCanvas.width,
+      tempPreviewCanvas.height,
+      0,
+      0,
+      outputCanvas.width,
+      outputCanvas.height,
+    );
+
+    const blob = await outputCanvas.convertToBlob({
+      type: "image/png",
+    });
+
+    return new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+  }
+
   // 使用防抖效果更新预览画布
   useDebounceEffect(
     async () => {
@@ -424,112 +518,6 @@ export function SpriteCropper({
   }
 
   /**
-   * 将canvas数据转换为Blob
-   */
-  async function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
-    return new Promise((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (blob) {
-          resolve(blob);
-        }
-        else {
-          reject(new Error("Failed to convert canvas to blob"));
-        }
-      }, "image/png", 0.9);
-    });
-  }
-
-  /**
-   * 处理批量裁剪完成
-   */
-  async function handleBatchComplete() {
-    if (isBatchMode && batchResults.length > 0) {
-      onBatchCropComplete?.(batchResults);
-    }
-  }
-
-  /**
-   * 获取指定图片的裁剪结果（通用函数）
-   */
-  async function getCroppedImageFromImg(img: HTMLImageElement): Promise<string> {
-    if (!completedCrop) {
-      throw new Error("No completed crop");
-    }
-
-    // 如果是当前显示的图片，直接使用现有的处理逻辑
-    if (imgRef.current && img.src === imgRef.current.src) {
-      return await getCroppedImageDataUrl();
-    }
-
-    // 对于其他图片，确保尺寸和当前图片一致
-    const currentImg = imgRef.current;
-    if (!currentImg) {
-      throw new Error("No current image reference");
-    }
-
-    // 设置临时图片的显示尺寸和当前图片一致
-    const tempDisplayWidth = currentImg.width;
-    const tempDisplayHeight = currentImg.height;
-
-    // 计算缩放比例
-    const scaleToCurrentDisplay = Math.min(
-      tempDisplayWidth / img.naturalWidth,
-      tempDisplayHeight / img.naturalHeight,
-    );
-
-    img.width = img.naturalWidth * scaleToCurrentDisplay;
-    img.height = img.naturalHeight * scaleToCurrentDisplay;
-
-    // 创建临时预览canvas
-    const tempPreviewCanvas = document.createElement("canvas");
-
-    // 使用canvasPreview处理图片（和当前预览完全相同的逻辑）
-    await canvasPreview(
-      img,
-      tempPreviewCanvas,
-      completedCrop,
-      1,
-      0,
-    );
-
-    // 创建最终输出canvas
-    const scaleX = img.naturalWidth / img.width;
-    const scaleY = img.naturalHeight / img.height;
-
-    const outputCanvas = new OffscreenCanvas(
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
-    );
-    const outputCtx = outputCanvas.getContext("2d");
-    if (!outputCtx) {
-      throw new Error("No 2d context");
-    }
-
-    // 将预览canvas的内容复制到输出canvas
-    outputCtx.drawImage(
-      tempPreviewCanvas,
-      0,
-      0,
-      tempPreviewCanvas.width,
-      tempPreviewCanvas.height,
-      0,
-      0,
-      outputCanvas.width,
-      outputCanvas.height,
-    );
-
-    const blob = await outputCanvas.convertToBlob({
-      type: "image/png",
-    });
-
-    return new Promise<string>((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.readAsDataURL(blob);
-    });
-  }
-
-  /**
    * 应用相同裁剪参数到所有立绘
    */
   async function handleBatchCropAll() {
@@ -673,7 +661,7 @@ export function SpriteCropper({
             </div>
           </div>
           <div
-            className="flex gap-2 overflow-x-auto justify-start max-w-[416px] scrollbar-thin scrollbar-track-transparent scrollbar-thumb-primary/30 hover:scrollbar-thumb-primary/50"
+            className="gap-2 overflow-x-auto justify-start max-w-[96px] md:max-w-[416px] scrollbar-thin scrollbar-track-transparent scrollbar-thumb-primary/30 hover:scrollbar-thumb-primary/50 hidden md:flex"
             onWheel={(e) => {
               // 防止页面滚动
               e.preventDefault();
@@ -707,7 +695,7 @@ export function SpriteCropper({
 
       <div className="flex flex-col lg:flex-row gap-8 justify-center">
         {/* 左侧：原始图片裁剪区域 */}
-        <div className="w-full lg:w-1/2 p-2 gap-4 flex flex-col items-center">
+        <div className="w-full md:w-1/2 p-2 gap-4 flex flex-col items-center">
           <h2 className="text-xl font-bold">裁剪预览</h2>
           <div className="w-full rounded-lg flex items-center justify-center">
             {currentUrl && (
@@ -725,6 +713,7 @@ export function SpriteCropper({
                   onLoad={onImageLoad}
                   style={{
                     maxHeight: "70vh",
+                    minWidth: "20vh",
                   }}
                   crossOrigin="anonymous"
                 />
@@ -743,8 +732,6 @@ export function SpriteCropper({
                 transform={transform}
                 characterName={characterName}
                 dialogContent="这是一段示例对话内容。"
-                characterNameTextSize="text-sm"
-                dialogTextSize="text-sm"
               />
 
               <TransformControl
@@ -845,19 +832,6 @@ export function SpriteCropper({
                       )}
                 </div>
               </div>
-              {/* 批量模式下单独显示“完成”按钮在操作区下方 */}
-              {operationMode === "batch" && (
-                <div className="flex justify-center items-center">
-                  <button
-                    className="btn btn-success btn-block md:max-w-[288px]"
-                    onClick={handleBatchComplete}
-                    type="button"
-                    disabled={batchResults.length === 0}
-                  >
-                    完成
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         )}

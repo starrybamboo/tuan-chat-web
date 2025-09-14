@@ -5,41 +5,75 @@ import type { LikeRecordRequest } from "../../../api";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import React from "react";
 import { toast } from "react-hot-toast";
-import { useGetCounterQuery } from "../../../api/hooks/couterQueryHooks";
-import { useIsLikedQuery, useLikeMutation, useUnlikeMutation } from "../../../api/hooks/likeQueryHooks";
+import {
+  useGetLikeCountQuery,
+  useIsLikedQuery,
+  useLikeMutation,
+  useUnlikeMutation,
+} from "../../../api/hooks/likeQueryHooks";
 
 interface LikeIconButtonProps {
   targetInfo: LikeRecordRequest;
   className?: string;
   icon?: React.ReactNode;
   direction?: "row" | "column";
+  likeCount?: number; // 外部可选传入点赞数，避免重复请求
 }
-export default function LikeIconButton({ targetInfo, className, icon, direction = "column" }: LikeIconButtonProps) {
+
+export default function LikeIconButton({
+  targetInfo,
+  className,
+  icon,
+  direction = "column",
+  likeCount,
+}: LikeIconButtonProps) {
   const isLikedQuery = useIsLikedQuery({
     targetId: targetInfo.targetId,
     targetType: targetInfo.targetType,
   });
 
+  const likeCountQuery = useGetLikeCountQuery({
+    targetId: targetInfo.targetId,
+    targetType: targetInfo.targetType,
+  });
+
   const isLiked = isLikedQuery.data?.data;
-  const likeCount = useGetCounterQuery({ targetId: targetInfo.targetId, targetType: Number(targetInfo.targetType) }).data?.data ?? 0;
+
+  // 优先用外部传入的 likeCount
+  const finalLikeCount
+      = likeCount !== undefined ? likeCount : likeCountQuery.data?.data ?? 0;
 
   const likeMutation = useLikeMutation();
   const unlikeMutation = useUnlikeMutation();
 
   const userId: number | null = useGlobalContext().userId;
+
   const defaultIcon = (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className="h-5 w-5"
+    >
       <path
         d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
-        fill={isLiked ? "currentColor" : "none"}
+        className={
+          isLiked
+            ? "fill-pink-400 stroke-pink-400 dark:fill-pink-500 dark:stroke-pink-500"
+            : "dark:fill-gray-700"
+        }
+        style={{ transition: "all 0.2s ease" }}
       />
     </svg>
-  );// 没有传入icon时使用默认图标
+  );
 
   const toggleLike = () => {
     if (userId == null) {
       toast.error("请先登录！");
+      return;
     }
+
     if (isLiked) {
       unlikeMutation.mutate(targetInfo);
     }
@@ -50,32 +84,40 @@ export default function LikeIconButton({ targetInfo, className, icon, direction 
 
   return (
     <button
-      onClick={toggleLike}
-      className={`flex flex-col items-center  ${direction === "row" ? "flex-row gap-1" : "flex-col"
-      }  ${className}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        toggleLike();
+      }}
+      className={`
+      flex items-center justify-center
+      ${direction === "row" ? "flex-row gap-1" : "flex-col"} 
+      ${className} 
+      `}
       type="button"
+      disabled={likeMutation.isPending || unlikeMutation.isPending}
     >
-      {/* eslint-disable-next-line style/multiline-ternary */}
-      {direction === "row" ? (
-      // 横向：不加 relative/absolute，避免错位
-        <div className={`w-5 h-5 flex items-center justify-center ${isLiked ? "text-red-500" : ""}`}>
-          {icon ?? defaultIcon}
-        </div>
-      ) : (
-      // 竖向：保留原来的效果
-        <div className="relative w-10 h-10">
-          <div className={`absolute inset-0 ${isLiked ? "text-red-500" : ""}`}>
-            {icon ?? defaultIcon}
-          </div>
-        </div>
-      )}
+      {direction === "row"
+        ? (
+            <div className="w-5 h-5 flex items-center justify-center">
+              {icon ?? defaultIcon}
+            </div>
+          )
+        : (
+            <div className="relative w-10 h-10">
+              <div className="absolute inset-0 flex items-center justify-center">
+                {icon ?? defaultIcon}
+              </div>
+            </div>
+          )}
 
-      {/* <div className="relative w-10 h-10"> */}
-      {/*  <div className={`absolute inset-0 ${isLiked ? "text-red-500" : ""}`}> */}
-      {/*    {icon ?? defaultIcon} */}
-      {/*  </div> */}
-      {/* </div> */}
-      <span className="text-xs mt-1">{isLiked ? likeCount + 1 : likeCount}</span>
+      <span className={`w-4 ${isLiked
+        ? "text-pink-400 dark:text-pink-500"
+        : ""}`}
+      >
+        {likeCountQuery.isLoading && likeCount === undefined
+          ? "..."
+          : finalLikeCount}
+      </span>
     </button>
   );
 }

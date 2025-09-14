@@ -2,12 +2,10 @@ import { RoomContext } from "@/components/chat/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import { RoleDetail } from "@/components/common/roleDetail";
-import { useGlobalContext } from "@/components/globalContextProvider";
+import { getScreenSize } from "@/utils/getScreenSize";
 import { use } from "react";
-import { useDeleteRole1Mutation } from "../../../api/hooks/chatQueryHooks";
 import {
   useGetRoleAvatarQuery,
-  useGetUserRolesQuery,
 } from "../../../api/queryHooks";
 
 const sizeMap = {
@@ -27,11 +25,12 @@ const sizeMap = {
 
 /**
  * 用户头像组件
- * @param userId 头像ID
+ * @param avatarId
  * @param width 头像宽度尺寸
  * @param isRounded 是否显示为圆形头像（true的时候是rounded-full，false的时候是rounded）
  * @param withTitle 是否显示头像对应的标题（并非roleName）
  * @param stopPopWindow 是否禁用点击弹出角色详情窗口，默认为false
+ * @param alt
  */
 export default function RoleAvatarComponent({ avatarId, width, isRounded, withTitle = false, stopPopWindow = false, alt = "avatar" }: {
   avatarId: number;
@@ -42,31 +41,14 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
   alt?: string;
 }) {
   const avatarQuery = useGetRoleAvatarQuery(avatarId);
-  const userId = useGlobalContext().userId ?? -1;
-  const userRole = useGetUserRolesQuery(userId);
+  const roleAvatar = avatarQuery.data?.data;
+  const roleId = roleAvatar?.roleId;
 
   // 控制角色详情的popWindow
-  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`rolePop${avatarId}`, false);
-  const roleAvatar = avatarQuery.data?.data;
+  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`rolePop${roleId}`, false);
 
   const roomContext = use(RoomContext);
   const roomId = roomContext?.roomId ?? -1;
-  // 是否是群主
-  function isManager() {
-    return roomContext.curMember?.memberType === 1;
-  }
-
-  const deleteRoleMutation = useDeleteRole1Mutation();
-  const handleRemoveRole = async () => {
-    if (!roomId || !roleAvatar?.roleId)
-      return;
-    deleteRoleMutation.mutate(
-      { roomId, roleIdList: [roleAvatar?.roleId] },
-      {
-        onSettled: () => setIsOpen(false), // 最终关闭弹窗
-      },
-    );
-  };
 
   return (
     <div className="flex flex-col items-center">
@@ -92,17 +74,9 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
       <div className="absolute">
         {
           (isOpen && !stopPopWindow && roomId) && (
-            <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>
-              <div className="items-center justify-center gap-y-4 flex flex-col w-full overflow-auto">
+            <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)} fullScreen={getScreenSize() === "sm"}>
+              <div className="justify-center w-full">
                 <RoleDetail roleId={roleAvatar?.roleId ?? -1}></RoleDetail>
-                {
-                  // 用户是群主或者当前角色是用户所有才能踢出角色
-                  (isManager() || userRole.data?.data?.find(role => role.roleId === roleAvatar?.roleId)) && (
-                    <button type="button" className="btn btn-error" onClick={handleRemoveRole}>
-                      踢出角色
-                    </button>
-                  )
-                }
               </div>
             </PopWindow>
           )

@@ -1,39 +1,129 @@
 import type { ModuleData } from "./constants";
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
+import { PopWindow } from "@/components/common/popWindow";
+import { useGlobalContext } from "@/components/globalContextProvider";
+import { useCreateSpaceMutation, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
-import { useMemo } from "react";
-import { useParams } from "react-router";
+import { useImportFromModuleMutation } from "api/hooks/spaceModuleHooks";
+import { useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router";
 import Author from "./author";
 import ContentTab from "./contentTab";
 import IssueTab from "./issueTab";
 import userContent from "./readmeDemo.md?raw";
 
 function MainContent({ moduleData }: { moduleData: ModuleData }) {
+  const navigate = useNavigate();
   // 示例tag数组，可根据实际数据源替换
-  const tags = [
-    "TRPG",
-    "冒险",
-    "合作",
-    "推理",
-    "恐怖",
-    "短剧本",
-    "长剧本",
-    "新手友好",
-    "高难度",
-    "单元剧",
-    "剧情驱动",
-    "规则轻量",
-    "规则复杂",
-    "经典",
-    "原创",
-  ];
+  // const tags = [
+  //   "TRPG",
+  //   "冒险",
+  //   "合作",
+  //   "推理",
+  //   "恐怖",
+  //   "短剧本",
+  //   "长剧本",
+  //   "新手友好",
+  //   "高难度",
+  //   "单元剧",
+  //   "剧情驱动",
+  //   "规则轻量",
+  //   "规则复杂",
+  //   "经典",
+  //   "原创",
+  // ];
   const params = useParams();
   // const navigate = useNavigate();
-  const moduleId = params.id;
+  const moduleId = Number(params.id);
+  // 选择群聊弹窗
+  const [isGroupSelectOpen, setIsGroupSelectOpen] = useState(false);
 
   // 获取 moduleInfo 数据
   const { data: moduleInfoData, isLoading, error } = useModuleInfoQuery(Number(moduleId!));
   const moduleInfo = useMemo(() => moduleInfoData?.data?.responses || [], [moduleInfoData]);
+  // 获取用户Id
+  const globalContext = useGlobalContext();
+  // 获取 userSpace 数据
+  const getUserSpaces = useGetUserSpacesQuery();
+  const userSpaces = useMemo(() => getUserSpaces.data?.data ?? [], [getUserSpaces.data?.data]);
+  const spaces = userSpaces.filter(space => space.userId === Number(globalContext.userId));
+
+  // 模组导入群聊
+  const importFromModule = useImportFromModuleMutation();
+  // 导入成功后显示弹窗
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  // 导入失败后显示弹窗
+  const [showErrorToast, setShowErrorToast] = useState(false);
+  // 处理模组导入
+  const handleModuleImport = (spaceId: number) => {
+    // 暂时只能推测试模组
+    importFromModule.mutate({ spaceId, moduleId }, {
+      onSuccess: () => {
+        setIsGroupSelectOpen(false);
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+      },
+      onError: () => {
+        setIsGroupSelectOpen(false);
+        setShowErrorToast(true);
+        setTimeout(() => setShowErrorToast(false), 3000);
+      },
+    });
+  };
+
+  // 创建空间并导入模组
+  const createSpaceMutation = useCreateSpaceMutation();
+  // 确认跳转弹窗
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [newSpaceId, setNewSpaceId] = useState<number | null>(null);
+
+  const handleDirectCreateSpaceAndImport = () => {
+    createSpaceMutation.mutate({
+      userIdList: [],
+      avatar: moduleData.image,
+      spaceName: moduleData.moduleName,
+      ruleId: moduleData.ruleId || 1,
+    }, {
+      onSuccess: (data) => {
+        const newSpaceId = data.data?.spaceId;
+        if (newSpaceId) {
+          importFromModule.mutate({ spaceId: newSpaceId, moduleId }, {
+            onSuccess: () => {
+              setIsGroupSelectOpen(false);
+              setShowSuccessToast(true);
+              setTimeout(() => setShowSuccessToast(false), 3000);
+              setNewSpaceId(newSpaceId);
+              setShowConfirmPopup(true);
+            },
+            onError: () => {
+              setIsGroupSelectOpen(false);
+              setShowErrorToast(true);
+              setTimeout(() => setShowErrorToast(false), 3000);
+            },
+          });
+        }
+      },
+      onError: () => {
+        setIsGroupSelectOpen(false);
+        setShowErrorToast(true);
+        setTimeout(() => setShowErrorToast(false), 3000);
+      },
+    });
+  };
+
+  // 处理跳转到新空间
+  const handleNavigateToNewSpace = () => {
+    if (newSpaceId) {
+      navigate(`/chat/${newSpaceId}`);
+      setShowConfirmPopup(false);
+    }
+  };
+
+  // 处理取消跳转
+  const handleCancelNavigate = () => {
+    setShowConfirmPopup(false);
+    setNewSpaceId(null);
+  };
 
   // 在组件层级使用 CloneModule hooks
   // const { cloneModule, isLoading: isCloning } = useCloneModule(moduleInfoData, moduleData);
@@ -134,22 +224,49 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
               </div>
             </div>
           )}
+          <div className="flex flex-col md:flex-row justify-center md:justify-start items-center mt-6 mb-6 gap-4">
+            <Author userId={moduleData.userId} />
+            {/* 原有按钮 - 只在桌面端显示 */}
+            <button
+              type="button"
+              className="hidden md:flex cursor-pointer z-50 relative items-center px-4 py-4 border-4 border-ac bg-transparent font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0"
+              onClick={() => setIsGroupSelectOpen(true)}
+            >
+              <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
+              {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
+              <span className="relative z-10 group-hover:text-white transition-colors duration-300">应用至群聊</span>
+              <svg
+                className="w-8 h-8 relative z-10 group-hover:text-white transition-colors duration-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
       {/* 应用按钮行 - 占据mb-24的空间 */}
       <div className="flex flex-col md:flex-row justify-center md:justify-end items-center mt-6 mb-6 gap-4">
         {/* tag渲染，最左侧 */}
-        <div className="flex flex-row flex-wrap gap-2 md:mr-auto md:ml-0 mb-2 md:mb-0">
-          {tags.map(tag => (
+        <div className="flex flex-row flex-wrap gap-6 md:mr-auto md:ml-0 mb-2 md:mb-0">
+
+          {/* {tags.map(tag => (
             <span key={tag} className="badge badge-info badge-outline px-3 py-1 text-xs font-semibold">
               {tag}
             </span>
-          ))}
+          ))} */}
         </div>
         {/* 仿 GitHub 按钮组 */}
-        <div className="inline-flex rounded-md border border-base-300 flex-shrink-0 mr-3">
+        {/* <div className="inline-flex rounded-md border border-base-300 flex-shrink-0 mr-3">
           <button type="button" className="btn-md flex items-center gap-1 px-4 py-2 rounded-l-md border-r border-base-300 hover:bg-base-200 focus:bg-base-200 transition-colors cursor-pointer">
-            {/* 眼睛图标 */}
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M1.5 12s4-7 10.5-7 10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z" />
               <circle cx="12" cy="12" r="3" />
@@ -163,37 +280,14 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
             <span className="ml-1 text-xs bg-base-100 rounded px-1">0</span>
           </button>
           <button type="button" className="btn-md flex items-center gap-1 px-4 py-2 rounded-r-md hover:bg-base-200 focus:bg-base-200 transition-colors cursor-pointer">
-            {/* 五角星图标 */}
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
             </svg>
             <span className="text-sm">Star</span>
             <span className="ml-1 text-xs bg-base-100 rounded px-1">0</span>
           </button>
-        </div>
-        {/* 原有按钮 - 只在桌面端显示 */}
-        <button
-          type="button"
-          className="hidden md:flex cursor-pointer z-50 relative items-center px-4 py-4 border-4 border-ac bg-transparent font-bold text-xl overflow-hidden group transition-all duration-300 hover:border-white flex-shrink-0"
-        >
-          <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
-          {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
-          <span className="relative z-10 group-hover:text-white transition-colors duration-300">应用至群聊</span>
-          <svg
-            className="w-8 h-8 relative z-10 group-hover:text-white transition-colors duration-300"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </button>
+        </div> */}
+
       </div>
       <div className="rounded-md overflow-hidden mb-4 flex flex-col gap-2">
         {/* 作者信息常规展示 */}
@@ -203,19 +297,29 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
               <div className="flex flex-col gap-4">
                 {/* 作者信息行 */}
                 <div className="flex flex-row items-center justify-center gap-4 w-full">
-                  <Author userId={moduleData.userId} />
+                  {/* <Author userId={moduleData.userId} /> */}
                   {/* 桌面端按钮组 */}
-                  <div className="hidden md:flex gap-4 items-center justify-end flex-1">
+                  {/* <div className="hidden md:flex gap-4 items-center justify-end flex-1">
                     <button type="button" className="btn btn-outline  btn-ghost rounded-md">
                       Branch
                     </button>
                     <button
                       type="button"
                       className="btn btn-outline btn-ghost rounded-md"
+                    // disabled={isCloning}
+                    // onClick={async () => {
+                    //   try {
+                    //     await cloneModule();
+                    //     navigate("/create");
+                    //   }
+                    //   catch (error) {
+                    //     console.error("克隆模组失败:", error);
+                    //   }
+                    // }}
                     >
                       Clone
                     </button>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>
@@ -250,7 +354,7 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
           <div className="tab-content">
             <div className="fieldset bg-base-100 border-base-300 rounded-box border p-4 mb-4">
               {/* 使用 MarkDownViewer 显示用户内容 */}
-              <MarkDownViewer content={userContent} />
+              <MarkDownViewer content={moduleData.instruction || userContent} />
             </div>
           </div>
           <label className="tab">
@@ -277,6 +381,112 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
           </div>
         </div>
       </div>
+      <PopWindow isOpen={isGroupSelectOpen} onClose={() => setIsGroupSelectOpen(false)}>
+        <div className="flex flex-col gap-y-4 pb-4 max-h-[80vh] overflow-y-auto">
+          <span className="text-lg font-semibold">选择操作</span>
+
+          {/* 一键创建空间按钮 */}
+          <div className="bg-base-200 p-4 rounded-lg">
+            <h3 className="font-medium mb-2">创建新空间</h3>
+            <button
+              type="button"
+              className="btn btn-success w-full"
+              onClick={handleDirectCreateSpaceAndImport}
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              一键创建空间并导入模组
+            </button>
+            <p className="text-sm text-gray-500 mt-2">
+              将使用当前模组的头像、名称和规则创建新空间
+            </p>
+          </div>
+
+          <div className="divider">或选择现有群聊</div>
+
+          <span className="text-lg font-semibold">请选择需要应用的群聊</span>
+          {
+            spaces.map(space => (
+              <div className="flex gap-x-4 items-center p-2 bg-base-100 rounded-lg w-full justify-between" key={space.spaceId}>
+                <div className="flex items-center gap-2">
+                  <img
+                    src={space.avatar}
+                    alt={space.name}
+                    className="w-8 h-8 rounded-full"
+                  />
+                  <span className="text-sm font-medium">
+                    {space.name}
+                  </span>
+                </div>
+                {space.moduleId
+                  ? (
+                      <button
+                        type="button"
+                        className="btn btn-disabled w-20"
+                        onClick={() => { handleModuleImport(space.spaceId ?? -1); }}
+                      >
+                        已应用
+                      </button>
+                    )
+                  : (
+                      <button
+                        type="button"
+                        className="btn w-20"
+                        onClick={() => { handleModuleImport(space.spaceId ?? -1); }}
+                      >
+                        应用
+                      </button>
+                    )}
+              </div>
+            ))
+          }
+        </div>
+      </PopWindow>
+      {/* 在现有的 PopWindow 组件后面添加确认弹窗 */}
+      <PopWindow isOpen={showConfirmPopup} onClose={handleCancelNavigate}>
+        <div className="flex flex-col items-center p-6 gap-4">
+          <div className="text-2xl font-bold text-success">
+            <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            空间创建成功！
+          </div>
+
+          <p className="text-center text-gray-600">
+            模组已成功导入到新空间
+            <br />
+            <span className="font-semibold">{moduleData.moduleName}</span>
+          </p>
+
+          <div className="flex gap-4 mt-4">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={handleCancelNavigate}
+            >
+              稍后查看
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleNavigateToNewSpace}
+            >
+              立即前往
+            </button>
+          </div>
+        </div>
+      </PopWindow>
+      {showSuccessToast && (
+        <div className="fixed bottom-6 right-6 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50 fade-in-out">
+          ✅ 应用成功！
+        </div>
+      )}
+      {showErrorToast && (
+        <div className="fixed bottom-6 right-6 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50 fade-in-out">
+          ❌ 应用失败！
+        </div>
+      )}
     </div>
   );
 }

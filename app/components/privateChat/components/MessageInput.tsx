@@ -152,7 +152,7 @@ export default function MessageInput({
             onClick={handleSendMessage}
             disabled={!messageInput.trim() && imgFiles.length === 0 && emojiUrls.length === 0}
           >
-            发送 (Enter)
+            发送
           </button>
         </div>
       </div>

@@ -3,49 +3,24 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
-import type { ApiResultListPostResponse } from '../models/ApiResultListPostResponse';
-import type { ApiResultPageBaseRespPostResponse } from '../models/ApiResultPageBaseRespPostResponse';
-import type { ApiResultPostResponse } from '../models/ApiResultPostResponse';
+import type { ApiResultCursorPageBaseResponsePostListWithStatsResponse } from '../models/ApiResultCursorPageBaseResponsePostListWithStatsResponse';
+import type { ApiResultPostWithStatsResponse } from '../models/ApiResultPostWithStatsResponse';
 import type { PagePostRequest } from '../models/PagePostRequest';
 import type { PostCreateRequest } from '../models/PostCreateRequest';
-import type { PostUpdateRequest } from '../models/PostUpdateRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
 export class CommunityPostService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * Update post
-     * 更新帖子
-     * @param requestBody
-     * @returns ApiResultBoolean OK
-     * @throws ApiError
-     */
-    public updatePost(
-        requestBody: PostUpdateRequest,
-    ): CancelablePromise<ApiResultBoolean> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/capi/community/post/update',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
      * Publish post
      * 发布帖子
      * @param requestBody
-     * @returns ApiResultPostResponse OK
+     * @returns ApiResultPostWithStatsResponse OK
      * @throws ApiError
      */
     public publishPost(
         requestBody: PostCreateRequest,
-    ): CancelablePromise<ApiResultPostResponse> {
+    ): CancelablePromise<ApiResultPostWithStatsResponse> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/community/post/publish',
@@ -60,15 +35,38 @@ export class CommunityPostService {
         });
     }
     /**
+     * List user posts
+     * 获取用户发布的帖子
+     * @param requestBody
+     * @returns ApiResultCursorPageBaseResponsePostListWithStatsResponse OK
+     * @throws ApiError
+     */
+    public pageUserPosts(
+        requestBody: PagePostRequest,
+    ): CancelablePromise<ApiResultCursorPageBaseResponsePostListWithStatsResponse> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/community/post/posts',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
      * Page community posts
      * 分页获取社区帖子
      * @param requestBody
-     * @returns ApiResultPageBaseRespPostResponse OK
+     * @returns ApiResultCursorPageBaseResponsePostListWithStatsResponse OK
      * @throws ApiError
      */
     public pageCommunityPosts(
         requestBody: PagePostRequest,
-    ): CancelablePromise<ApiResultPageBaseRespPostResponse> {
+    ): CancelablePromise<ApiResultCursorPageBaseResponsePostListWithStatsResponse> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/community/post/page',
@@ -83,43 +81,21 @@ export class CommunityPostService {
         });
     }
     /**
-     * List community posts
-     * 获取社区帖子列表
-     * @param requestBody
-     * @returns ApiResultListPostResponse OK
-     * @throws ApiError
-     */
-    public listCommunityPosts(
-        requestBody: number,
-    ): CancelablePromise<ApiResultListPostResponse> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/capi/community/post/list',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
      * Get post detail
      * 获取帖子详情
-     * @param requestBody
-     * @returns ApiResultPostResponse OK
+     * @param postId
+     * @returns ApiResultPostWithStatsResponse OK
      * @throws ApiError
      */
     public getPostDetail(
-        requestBody: number,
-    ): CancelablePromise<ApiResultPostResponse> {
+        postId: number,
+    ): CancelablePromise<ApiResultPostWithStatsResponse> {
         return this.httpRequest.request({
-            method: 'POST',
+            method: 'GET',
             url: '/capi/community/post/detail',
-            body: requestBody,
-            mediaType: 'application/json',
+            query: {
+                'postId': postId,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,
@@ -131,36 +107,19 @@ export class CommunityPostService {
     /**
      * Delete post
      * 删除帖子
-     * @param requestBody
+     * @param postId
      * @returns ApiResultBoolean OK
      * @throws ApiError
      */
     public deletePost(
-        requestBody: number,
+        postId: number,
     ): CancelablePromise<ApiResultBoolean> {
         return this.httpRequest.request({
-            method: 'POST',
+            method: 'DELETE',
             url: '/capi/community/post/delete',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
+            query: {
+                'postId': postId,
             },
-        });
-    }
-    /**
-     * List user posts
-     * 获取用户发布的帖子
-     * @returns ApiResultListPostResponse OK
-     * @throws ApiError
-     */
-    public listUserPosts(): CancelablePromise<ApiResultListPostResponse> {
-        return this.httpRequest.request({
-            method: 'GET',
-            url: '/capi/community/post/my-posts',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

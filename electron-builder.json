@@ -1,8 +1,31 @@
 {
+  "appId": "com.tuan.chat",
   "productName": "团剧共创",
-  "files": ["./electron/main.cjs", "./build"],
+  "copyright": "Copyright © 2025 ${tuan-chat}",
+  "files": ["./electron", "./build"],
+  "extraResources": [
+    {
+      "from": "./extraResources/",
+      "to": "extraResources"
+    }
+  ],
   "extraFiles": ["./videos", "./cvideo"],
   "directories": {
-    "output": "./buileder"
+    "output": "./release"
+  },
+  "win": {
+    "target": "nsis"
+  },
+  "mac": {
+    "target": "dmg"
+  },
+  "linux": {
+    "target": "AppImage"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
   }
 }

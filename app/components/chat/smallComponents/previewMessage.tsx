@@ -4,8 +4,9 @@ import { useGetRoleQuery } from "../../../../api/queryHooks";
 
 /**
  * 消息预览组件，用于显示消息的简要内容
- * @param message 可以是Message对象或消息ID 如果传的是id就从历史消息里面找，没找到就去query。如果是Message类型就直接拿来用
- * @param className 自定义样式类名
+ * @param props 组件属性
+ * @param props.message 可以是Message对象或消息ID 如果传的是id就从历史消息里面找，没找到就去query。如果是Message类型就直接拿来用
+ * @param props.className 自定义样式类名
  */
 export function PreviewMessage({ message, className }: {
   message: Message | number; // 允许message为id
@@ -20,11 +21,15 @@ export function PreviewMessage({ message, className }: {
   const useRoleRequest = useGetRoleQuery(messageBody?.roleId ?? -1);
   const role = useRoleRequest.data?.data;
   const isTextMessage = messageBody?.messageType === 1;
+  const isDeleted = messageBody?.status === 1;
+
   return (
     <span className={`text-sm line-clamp-3 opacity-60 break-words ${className}`}>
-      {role?.roleName || "YOU_KNOW_WHO"}
-      {": "}
-      {isTextMessage ? messageBody.content : "非文本消息"}
+      {
+        isDeleted
+          ? "[原消息已被删除]"
+          : `【${role?.roleName || "YOU_KNOW_WHO"}】: ${isTextMessage ? messageBody.content : "非文本消息"}`
+      }
     </span>
   );
 }

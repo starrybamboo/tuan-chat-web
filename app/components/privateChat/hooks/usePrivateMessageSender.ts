@@ -98,7 +98,7 @@ export function usePrivateMessageSender({ webSocketUtils, userId, currentContact
     finally {
       setIsSubmitting(false);
       if (deletedContactIds.includes(currentContactUserId)) {
-        setDeletedContactIds(deletedContactIds.filter(id => id === currentContactUserId));
+        setDeletedContactIds(deletedContactIds.filter(id => id !== currentContactUserId));
       }
     }
   };

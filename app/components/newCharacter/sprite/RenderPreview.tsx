@@ -3,8 +3,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react"; // 引入 R
 
 // --- 关键步骤 1: 定义你的基准尺寸 ---
 // 假设所有的 transform 值都是在 1280x720 (16:9) 的画布上设定的
-const REFERENCE_WIDTH = 1280;
-const REFERENCE_HEIGHT = 720;
+const REFERENCE_WIDTH = 2560;
+const REFERENCE_HEIGHT = 1440;
 
 /**
  * 渲染预览组件的属性接口
@@ -18,10 +18,6 @@ interface RenderPreviewProps {
   characterName?: string;
   // 对话内容，用于遮罩中的显示
   dialogContent?: string;
-  // 角色名称文字大小类名，默认为 text-xs
-  characterNameTextSize?: string;
-  // 对话内容文字大小类名，默认为 text-xs
-  dialogTextSize?: string;
 }
 
 /**
@@ -33,8 +29,6 @@ export function RenderPreview({
   transform,
   characterName = "角色名",
   dialogContent = "对话内容",
-  characterNameTextSize = "text-xs",
-  dialogTextSize = "text-xs",
 }: RenderPreviewProps) {
   // --- 关键步骤 2: 创建 ref 和 state ---
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,16 +57,16 @@ export function RenderPreview({
     return () => resizeObserver.disconnect();
   }, []); // 空依赖数组，确保 effect 只运行一次来设置观察者
 
+  // 计算缩放比例, 二者应该是相等的
+  const scaleX = containerSize.width / REFERENCE_WIDTH;
+  const scaleY = containerSize.height / REFERENCE_HEIGHT;
+
   // --- 关键步骤 4: 根据当前容器尺寸计算缩放后的 transform ---
   const scaledTransform = useMemo(() => {
     // 在容器尺寸未知时（初始渲染），避免除以0，直接返回原始transform
     if (containerSize.width === 0 || containerSize.height === 0) {
       return transform;
     }
-
-    // 计算缩放比例
-    const scaleX = containerSize.width / REFERENCE_WIDTH;
-    const scaleY = containerSize.height / REFERENCE_HEIGHT;
 
     // 返回一个新的 transform 对象，其中位置信息已被缩放
     // 注意：scale, rotation, alpha 保持不变，因为它们本身就是相对值
@@ -85,7 +79,7 @@ export function RenderPreview({
 
   return (
     <>
-      <div ref={containerRef} className="relative w-full aspect-video overflow-hidden bg-base-200">
+      <div ref={containerRef} className="relative w-full aspect-video overflow-hidden bg-black">
         {/* 裁剪后的图像 - 左侧显示 */}
         <canvas
           ref={previewCanvasRef}
@@ -97,11 +91,11 @@ export function RenderPreview({
           }}
         />
         {/* 底部1/3的黑色半透明遮罩 */}
-        <div className="absolute bottom-0 w-full h-[30%] bg-black/50">
-          <div className="absolute top-0 left-[6%] text-white">
+        <div className="absolute bottom-0 w-full h-[29%] bg-black/30 mx-[1%] mb-[1%] rounded">
+          <div className="absolute top-0 left-[8%] text-white">
             <p className="text-white leading-snug">
-              <span className={`block ${characterNameTextSize} font-medium`}>{characterName}</span>
-              <span className={`block ${dialogTextSize} mt-1`}>{dialogContent}</span>
+              <span className="block font-medium mt-[3%] text-transparent bg-clip-text bg-gradient-to-b from-white to-cyan-100" style={{ fontSize: `${55 * scaleX}px` }}>{characterName}</span>
+              <span className="block mt-[1%]" style={{ fontSize: `${55 * scaleX}px` }}>{dialogContent}</span>
             </p>
           </div>
         </div>

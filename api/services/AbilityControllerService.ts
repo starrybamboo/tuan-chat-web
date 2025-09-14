@@ -3,9 +3,11 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AbilityFieldUpdateRequest } from '../models/AbilityFieldUpdateRequest';
+import type { AbilityFieldUpdateRequest2 } from '../models/AbilityFieldUpdateRequest2';
 import type { AbilityPageRequest } from '../models/AbilityPageRequest';
 import type { AbilitySetRequest } from '../models/AbilitySetRequest';
 import type { AbilityUpdateRequest } from '../models/AbilityUpdateRequest';
+import type { AbilityUpdateRequest2 } from '../models/AbilityUpdateRequest2';
 import type { ApiResultListItemResponse } from '../models/ApiResultListItemResponse';
 import type { ApiResultListRoleAbility } from '../models/ApiResultListRoleAbility';
 import type { ApiResultLong } from '../models/ApiResultLong';
@@ -184,7 +186,7 @@ export class AbilityControllerService {
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public addItem(
+    public addItem1(
         itemId: number,
         abilityId: number,
     ): CancelablePromise<ApiResultVoid> {
@@ -221,6 +223,52 @@ export class AbilityControllerService {
                 'itemId': itemId,
                 'abilityId': abilityId,
             },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 更新能力
+     * 更新指定角色的能力信息，act和ability字段不能同时为null或者空json
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public updateRoleAbility1(
+        requestBody: AbilityUpdateRequest2,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/role/ability/byRule',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 更新能力字段
+     * 更改能力字段或删除字段
+     * @param requestBody
+     * @returns ApiResultVoid OK
+     * @throws ApiError
+     */
+    public updateRoleAbilityField1(
+        requestBody: AbilityFieldUpdateRequest2,
+    ): CancelablePromise<ApiResultVoid> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/role/ability/byRule/field',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

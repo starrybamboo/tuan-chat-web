@@ -1,172 +1,141 @@
-import type { Feed } from "../../../api";
-import { ChatBubble } from "@/components/chat/chatBubble";
-import CommentPanel from "@/components/common/comment/commentPanel";
-import { CopyLinkButton } from "@/components/common/copyLinkButton";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import LikeIconButton from "@/components/common/likeIconButton";
-import { PopWindow } from "@/components/common/popWindow";
-import ShareToQQButton from "@/components/common/shareToQQButton";
-import UserAvatarComponent from "@/components/common/userAvatar";
-import { CommentOutline, EllipsisVertical } from "@/icons";
-import React from "react";
-import { useGetMessageByIdQuery } from "../../../api/hooks/chatQueryHooks";
-import { useGetFeedByIdQuery } from "../../../api/hooks/FeedQueryHooks";
-
-export default function FeedPreview({ feed }: { feed: Feed }) {
-  const { data: messageResponse, isLoading } = useGetMessageByIdQuery(feed?.messageId ?? -1);
-  const feedQuery = useGetFeedByIdQuery(feed?.feedId ?? -1);
-  const commentCount = feedQuery?.data?.stats?.commentCount;
-  const [showComments, setShowComments] = useSearchParamsState<boolean>(`feedShowCommentsPop${feed?.feedId}`, false);
-  const [showShare, setShowShare] = useSearchParamsState<boolean>(`feedShowSharePop${feed?.feedId}`, false);
-  return (
-    <div className="card bg-base-100 border border-base-300 shadow-md mb-4 hover:shadow-sm transition-shadow w-full h-125">
-      <div className="card-body p-4 md:p-6 flex flex-col overflow-hidden h-full relative">
-        <div className=" min-h-0 mb-16 overflow-y-auto h-2/3">
-          {/* 聊天消息 */}
-          {isLoading
-            ? (
-                <div className="text-sm text-base-content/40">加载中...</div>
-              )
-            : (
-                messageResponse && (
-                  <div className="mb-4">
-                    <ChatBubble chatMessageResponse={messageResponse} useChatBubbleStyle={true} />
-                  </div>
-                )
-              )}
-        </div>
-
-        <div className="flex flex-col gap-3 mt-4">
-          {/* 相关信息 */}
-
-          {/* 头部 - 包含头像和标题 */}
-          <div className="flex items-start gap-3 mb-0">
-            <UserAvatarComponent
-              userId={feed?.userId ?? -1}
-              width={10}
-              isRounded={true}
-              withName={false}
-            />
-            <div className="flex-1">
-              <h2 className="card-title text-base-content">
-                {feed.title || "未命名动态"}
-                {feed.feedId && (
-                  <span className="text-sm font-normal text-base-content/60 ml-2">
-                    #
-                    {feed.feedId}
-                  </span>
-                )}
-              </h2>
-              {feed.userId && (
-                <p className="text-xs text-base-content/60 mt-1">
-                  用户ID:
-                  {" "}
-                  {feed.userId}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* 正文内容 */}
-          {feed.description && (
-            <p className="text-base-content/80 text-sm mb-0 whitespace-pre-line">
-              {feed.description}
-            </p>
-          )}
-
-          <div>
-            <div className="card-actions flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mt-0">
-              <div className="join">
-
-                {/* 点赞按钮 */}
-                <div onClick={e => e.stopPropagation()} className="w-12 h-8 flex items-center justify-center join-item btn btn-sm btn-ghost">
-                  <LikeIconButton
-                    targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "1" }}
-                    className="w-9 h-6"
-                    direction="row"
-                  />
-                </div>
-
-                {/* 评论按钮 */}
-                <button
-                  type="button"
-                  className="w-12 h-10 flex  items-center justify-center join-item btn btn-sm btn-ghost p-0 -translate-y-0.5"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowComments(!showComments);
-                  }}
-                >
-                  <CommentOutline className="h-6 w-5" />
-                  <span className="text-xs">{`${commentCount}`}</span>
-                </button>
-
-                {/* 分享按钮 */}
-                <button
-                  type="button"
-                  className="w-12 h-8 flex  items-center justify-center join-item btn btn-sm btn-ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowShare(!showShare);
-                  }}
-                >
-                  <div className="w-5 h-5">
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <g transform="scale(1.2) translate(-2,-2)">
-                        <path
-                          d="M14 5v4C7 10 4 15 3 20c2.5-3.5 6-5.1 11-5.1V19l7-7zm2 4.83L18.17 12L16 14.17V12.9h-2c-2.07 0-3.93.38-5.66.95c1.4-1.39 3.2-2.48 5.94-2.85l1.72-.27z"
-                        />
-                      </g>
-                    </svg>
-                  </div>
-                </button>
-                {/* 更多按钮 */}
-                <button type="button" className="w-12 h-12 flex items-center justify-center join-item btn btn-sm btn-ghost absolute bottom-4 right-4 rounded-full ">
-                  <EllipsisVertical />
-                </button>
-              </div>
-            </div>
-
-            {/* ID和时间 */}
-            <div className="flex flex-col items-start gap-1">
-              {(feed.createTime || feed.messageId) && (
-                <div className="text-xs text-base-content/50 space-x-2 flex">
-                  {feed.messageId && (
-                    <span className="text-[10px]">
-                      消息ID:
-                      {feed?.messageId}
-                    </span>
-                  )}
-                  {feed.createTime && (
-                    <span className="text-[10px]">{feed.createTime}</span>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-      {/* 评论和分享弹窗 */}
-      <PopWindow isOpen={showComments} onClose={() => setShowComments(false)}>
-        <div className="overflow-y-auto space-y-4 h-[80vh] w-[60vw] sm:w-[60vw]">
-          <CommentPanel targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "1" }} className="h-full"></CommentPanel>
-        </div>
-      </PopWindow>
-      <PopWindow isOpen={showShare} onClose={() => setShowShare(false)}>
-        <div className="overflow-y-auto space-y-4 h-[40vh] w-[30vw] flex flex-col items-center justify-center">
-          <h2 className="text-xl font-bold">分享至</h2>
-          <div className="flex gap-4 mt-4">
-            {/* eslint-disable-next-line react-dom/no-missing-button-type */}
-            <button className="btn btn-primary">社区</button>
-            <ShareToQQButton feedId={1} />
-            <CopyLinkButton />
-          </div>
-        </div>
-      </PopWindow>
-    </div>
-  );
-};
+// import type { FeedStats } from "@/types/feedTypes";
+// import type { PostListResponse } from "api";
+// import CommentPanel from "@/components/common/comment/commentPanel";
+// import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+// import LikeIconButton from "@/components/common/likeIconButton";
+// import ShareIconButton from "@/components/common/shareIconButton";
+// import UserAvatarComponent from "@/components/common/userAvatar";
+// import { EllipsisVertical } from "@/icons";
+// import { useState } from "react";
+// import { useNavigate } from "react-router";
+// import CollectionIconButton from "../common/collection/collectionIconButton";
+// import CommentIconButton from "../common/comment/commentIconButton";
+// import DislikeIconButton from "../common/dislikeIconButton";
+// import SlidableChatPreview from "../community/slidableChatPreview";
+//
+// interface FeedPreviewProps {
+//   feed?: PostListResponse;
+//   stats: FeedStats;
+//   onDislike?: () => void;
+// }
+//
+// export default function FeedPreview({ feed, stats, onDislike }: FeedPreviewProps) {
+//   const [showComments, setShowComments] = useSearchParamsState<boolean>(
+//     `feedShowCommentsPop${feed?.communityPostId}`,
+//     false,
+//   );
+//
+//   const navigate = useNavigate();
+//
+//   const [showMoreOptions, setShowMoreOptions] = useState(false);
+//   // 简化：此组件上下文中可以保证 message 一定是转发消息，不再需要额外预览弹窗
+//
+//   // 滑动消失
+//   const [isRemoving, setIsRemoving] = useState(false);
+//
+//   const handlejumpToPostDetail = () => {
+//     navigate(`/community/${feed?.communityId}/${feed?.communityPostId}`);
+//   };
+//
+//   const handleDislikeClick = () => {
+//     setIsRemoving(true); // 触发滑动动画
+//     setTimeout(() => {
+//       onDislike?.(); // 动画结束后移除 feed
+//     }, 500); // 与 transition 时间一致
+//   };
+//
+//   // 暂时用社区详情代替
+//   // const [showDetail, setShowDetail] = useState(false);
+//   // if (showDetail) {
+//   //   return <CommunityPostDetail postId={feed?.communityPostId ?? -1}  />;
+//   // }
+//   return (
+//     <article
+//       className={`bg-base-100 border border-base-300 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 overflow-hidden ${isRemoving ? "opacity-0 -translate-x-4" : "opacity-100 translate-x-0"}`}
+//     >
+//       <div className="p-4 flex flex-col gap-2 relative">
+//         {/* 头部 */}
+//         <div className="flex items-center gap-2 justify-between">
+//           <UserAvatarComponent userId={feed?.userId ?? -1} width={10} isRounded withName={true} />
+//           {/* 更多操作 */}
+//           <div className="relative" onMouseEnter={() => setShowMoreOptions(true)} onMouseLeave={() => setShowMoreOptions(false)}>
+//             <button className="btn btn-xs btn-ghost btn-circle hover:bg-base-200" type="button">
+//               <EllipsisVertical className="w-4 h-4 text-base-content/60" />
+//             </button>
+//             {showMoreOptions && (
+//               <div className="absolute right-0 top-full mt-2 w-32 bg-base-100 border border-base-300 shadow-lg rounded-lg z-50 text-sm overflow-hidden">
+//                 <DislikeIconButton
+//                   className="w-full justify-start px-3 py-2 hover:bg-base-200 transition-colors"
+//                   onDislike={handleDislikeClick}
+//                 />
+//               </div>
+//             )}
+//           </div>
+//         </div>
+//
+//         {/* 消息内容容器(固定尺寸) */}
+//         {feed?.message && (
+//           <SlidableChatPreview
+//             messageResponse={feed.message}
+//             maxHeight="160px"
+//             showAvatars={true}
+//             beFull={true}
+//           />
+//         )}
+//
+//         {/* 可点击区域：消息内容、标题、描述 */}
+//         <div
+//           className="cursor-pointer group space-y-2"
+//           onClick={handlejumpToPostDetail}
+//           tabIndex={0}
+//           role="button"
+//         >
+//           {/* 标题单独一行 */}
+//           {feed?.title && (
+//             <h2 className="font-extrabold leading-snug text-base-content/90 text-base line-clamp-2 group-hover:underline">
+//               {feed.title}
+//             </h2>
+//           )}
+//
+//           {/* 文本描述 */}
+//           {feed?.description && (
+//             <p className="text-sm text-base-content/85 whitespace-pre-line leading-relaxed">
+//               {feed.description}
+//             </p>
+//           )}
+//         </div>
+//
+//         {/* 右下角操作按钮 */}
+//         <div className="flex items-center justify-end mt-1">
+//           <div className="flex items-center gap-2">
+//             <LikeIconButton
+//               targetInfo={{ targetId: feed?.communityPostId ?? -1, targetType: "2" }}
+//               className="btn btn-xs btn-ghost text-base-content/60 hover:text-base-content hover:bg-base-200"
+//               direction="row"
+//               likeCount={stats.likeCount}
+//             />
+//             <CollectionIconButton
+//               targetInfo={{ resourceId: feed?.communityPostId ?? -1, resourceType: "2" }}
+//               className="btn btn-xs btn-ghost text-base-content/60 hover:text-base-content hover:bg-base-200"
+//             />
+//             <CommentIconButton
+//               feedId={feed?.communityPostId ?? -1}
+//               commentCount={stats.commentCount}
+//               showComments={showComments}
+//               onToggle={() => setShowComments(!showComments)}
+//             />
+//             <ShareIconButton searchKey={`feedShowSharePop${feed?.communityPostId}`} />
+//           </div>
+//         </div>
+//
+//       </div>
+//       {showComments && (
+//         <div className="px-4 pb-4 border-t border-base-300/50 bg-base-50">
+//           <div className="pt-3">
+//             <CommentPanel targetInfo={{ targetId: feed?.communityPostId ?? -1, targetType: "2" }} className="h-full" />
+//           </div>
+//         </div>
+//       )}
+//     </article>
+//   );
+// }

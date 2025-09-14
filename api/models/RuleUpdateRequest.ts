@@ -22,9 +22,8 @@ export type RuleUpdateRequest = {
      * 表演相关字段模板，如性别、年龄等信息
      */
     actTemplate?: Record<string, string>;
-    /**
-     * 数值相关默认值，如力量、敏捷等属性值，null代表删除这个字段，力量: 0代表添加力量字段或者修改力量字段为0
-     */
-    abilityDefault?: Record<string, Record<string, any>>;
+    abilityFormula?: Record<string, string>;
+    skillDefault?: Record<string, string>;
+    basicDefault?: Record<string, string>;
 };
 

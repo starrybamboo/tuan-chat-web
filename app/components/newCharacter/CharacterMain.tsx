@@ -1,26 +1,21 @@
 import type { Role } from "./types";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CharacterDetail from "./CharacterDetail";
-// import { RoleCard } from "./RoleCard";
+import AICreateRole from "./RoleCreation/AICreateRole";
+import CreateEntry from "./RoleCreation/CreateEntry";
+import CreateRoleBySelf from "./RoleCreation/CreateRoleBySelf";
+import ExcelImportRole from "./RoleCreation/ExcelImportRole";
 import { Sidebar } from "./Sidebar";
 
 export default function CharacterMain() {
   const [roles, setRoles] = useState<Role[]>([]);
-  // const [isLoading, setIsLoading] = useState(false);
-  // const { roles, initializeRoles, setRoles, isLoading } = useRolesInitialization(roleQuery);
 
   // 状态管理
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [mode, setMode] = useState<"self" | "AI" | "excel" | "role">("role");
+  const [animationTrigger, setAnimationTrigger] = useState(0); // 动画触发器
   const currentRole = roles.find(r => r.id === selectedRoleId);
-
-  // useEffect(() => {
-  //   const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
-  //   if (drawerCheckbox) {
-  //     drawerCheckbox.checked = selectedRoleId !== null; // 有角色 ID 时打开，否则关闭
-  //   }
-  // }, [selectedRoleId]);
-  // 保存角色
 
   const handleSave = (updatedRole: Role) => {
     let IsChangeAvatar = false;
@@ -38,8 +33,27 @@ export default function CharacterMain() {
     setSelectedRoleId(updatedRole.id);
   };
 
+  // 空状态的创建
+  const AICreate = () => {
+    setMode("AI");
+  };
+  const ExcelImport = () => {
+    setMode("excel");
+  };
+
+  const createBySelf = () => {
+    setMode("self");
+  };
+
+  // 切换角色时，将模式设置回self
+  useEffect(() => {
+    if (selectedRoleId !== null) {
+      setMode("role");
+    }
+  }, [selectedRoleId]);
+
   return (
-    <div className="drawer lg:drawer-open">
+    <div className="drawer lg:drawer-open h-full min-h-0">
       {/* 移动端悬浮按钮 */}
       <div className="lg:hidden fixed p-2 z-1">
         <label
@@ -65,7 +79,7 @@ export default function CharacterMain() {
       <input id="character-drawer" type="checkbox" className="drawer-toggle" />
 
       {/* 使用抽象出的 Sidebar 组件 */}
-      <div className="drawer-side z-10">
+      <div className="drawer-side z-50">
         <label htmlFor="character-drawer" className="drawer-overlay">
           <Sidebar
             roles={roles}
@@ -73,38 +87,64 @@ export default function CharacterMain() {
             selectedRoleId={selectedRoleId}
             setSelectedRoleId={setSelectedRoleId}
             setIsEditing={setIsEditing}
+            onEnterCreateEntry={() => {
+              // 进入创建入口（CreateEntry）
+              setMode("role");
+              setAnimationTrigger(prev => prev + 1); // 触发动画
+            }}
           />
         </label>
       </div>
 
       {/* 主内容区 */}
-      <div className="drawer-content bg-base-200">
+      <div className="drawer-content bg-base-100 md:bg-base-200 overflow-y-auto min-h-0">
         {/* 添加条件渲染，在小屏幕且抽屉打开时隐藏内容 */}
-        <div className="p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-base-100 max-w-7xl mx-auto">
-          {currentRole
-            ? (
-                <CharacterDetail
-                  role={currentRole}
-                  isEditing={isEditing}
-                  onEdit={() => setIsEditing(true)}
-                  onSave={handleSave}
-                />
-              )
-            : (
-                <EmptyState />
-              )}
+        <div className="md:p-6 max-w-7xl mx-auto min-h-0">
+          {mode === "role" && !currentRole && (
+            <CreateEntry
+              AICreate={AICreate}
+              ExcelImport={ExcelImport}
+              createBySelf={createBySelf}
+              animationTrigger={animationTrigger}
+            />
+          )}
+          {mode === "role" && currentRole && (
+            <CharacterDetail
+              role={currentRole}
+              isEditing={isEditing}
+              onEdit={() => setIsEditing(true)}
+              onSave={handleSave}
+              onBack={() => {
+                setSelectedRoleId(null);
+                setIsEditing(false);
+              }}
+            />
+          )}
+          {mode === "self" && (
+            <CreateRoleBySelf
+              onBack={() => setMode("role")}
+              setRoles={setRoles}
+              setSelectedRoleId={setSelectedRoleId}
+              onSave={handleSave}
+              onComplete={(role) => {
+                // 创建完成后切回角色模式并选中新建角色
+                setMode("role");
+                setSelectedRoleId(role.id);
+              }}
+            />
+          )}
+          {mode === "AI" && (
+            <AICreateRole
+              setRoles={setRoles}
+              setSelectedRoleId={setSelectedRoleId}
+              onSave={handleSave}
+              onBack={() => setMode("role")} // 返回到CreateEntry页面
+              onComplete={() => setMode("role")} // 完成后切换回角色模式
+            />
+          )}
+          {mode === "excel" && <ExcelImportRole onBack={() => setMode("role")} />}
         </div>
       </div>
     </div>
   );
-}
-
-// 空状态组件
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center h-full min-h-[calc(100vh-4rem)] text-base-content/70">
-      <div className="text-2xl mb-2">🏰</div>
-      <p>请选择或创建角色</p>
-    </div>
-  );
-}
+};

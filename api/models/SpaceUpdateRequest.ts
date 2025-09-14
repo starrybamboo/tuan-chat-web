@@ -26,5 +26,9 @@ export type SpaceUpdateRequest = {
      * 空间规则
      */
     ruleId?: number;
+    /**
+     * 房间（场景）地图
+     */
+    roomMap?: Record<string, Array<number>>;
 };
 

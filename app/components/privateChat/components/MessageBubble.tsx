@@ -21,7 +21,6 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
             src={imgData?.url}
             size={{ width: imgData?.width, height: imgData?.height }}
             className="max-h-[40vh] max-w-[300px] rounded-lg"
-            popWindowKey={`${message.messageId}img_${imgData.url}`}
           />
         </div>
       );
@@ -42,8 +41,8 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
   // 获取消息气泡的样式类
   const getMessageBubbleClass = () => {
     const baseClass = isOwn
-      ? "bg-info text-info-content rounded-lg max-w-[70%] h-full"
-      : "bg-base-300 text-base-content rounded-lg max-w-[70%] h-full";
+      ? "bg-info text-info-content dark:text-white rounded-lg max-w-[70%] h-full"
+      : "bg-base-300 dark:bg-gray-700 text-base-content rounded-lg max-w-[70%] h-full";
 
     if (message.messageType === 2) {
       // 图片消息减少内边距

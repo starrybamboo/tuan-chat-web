@@ -21,7 +21,7 @@ export type CommentAddRequest = {
     /**
      * 评论目标类型
      */
-    targetType: number;
+    targetType: string;
     /**
      * 评论内容
      */

@@ -62,6 +62,7 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
           onChange={e => setCommandInput(e.target.value)}
         />
         <button
+          type="button"
           className="btn btn-accent absolute bottom-4 right-2"
           onClick={handleImport}
           disabled={!commandInput.trim()}

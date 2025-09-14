@@ -1,12 +1,25 @@
-import { RoomContext } from "@/components/chat/roomContext";
+import { SpaceContext } from "@/components/chat/spaceContext";
+import launchWebGal from "@/utils/launchWebGal";
+import { pollPort } from "@/utils/pollPort";
 import { ChatRenderer } from "@/webGAL/chatRenderer";
 import { use, useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
 
 export interface RenderProps {
   spritePosition: "left" | "middle" | "right";
   useVocal: boolean; // 是否使用语音合成功能
   skipRegex?: string; // 跳过语句的正则表达式
+  referenceAudio?: File; // 参考音频文件
+}
+
+/**
+ * 渲染进度
+ */
+export interface RenderProcess {
+  percent?: number;
+  message?: string;
+  subMessage?: string;
 }
 
 // 预设的正则表达式选项
@@ -24,14 +37,14 @@ const regexOptions = [
 ];
 
 export default function RenderWindow() {
-  const roomContext = use(RoomContext);
-  const roomId = roomContext?.roomId ?? -1;
+  const spaceId = use(SpaceContext).spaceId ?? -1;
   const [renderProps, updateRenderProps] = useImmer<RenderProps>({
     spritePosition: "left",
     useVocal: false,
     skipRegex: "", // 初始化 skipRegex
   });
   const [isRendering, setIsRendering] = useState(false);
+  const [renderProcess, setRenderProcess] = useState<RenderProcess>({});
 
   // 从localStorage初始化数据
   useEffect(() => {
@@ -45,8 +58,17 @@ export default function RenderWindow() {
     // 保存数据到localStorage
     localStorage.setItem("renderProps", JSON.stringify(renderProps));
     setIsRendering(true);
+    setRenderProcess({});
+    launchWebGal();
+    await pollPort(3001).catch(() => toast.error("WebGAL 启动失败"));
     try {
-      const renderer = new ChatRenderer(roomId, renderProps);
+      const renderer = new ChatRenderer(spaceId, renderProps, (process) => {
+        setRenderProcess(currentProcess => ({ // <-- Use the functional update form
+          percent: Math.max(process.percent ?? 0, currentProcess.percent ?? 0),
+          message: process.message ?? currentProcess.message,
+          subMessage: process.subMessage ?? currentProcess.subMessage,
+        }));
+      });
       await renderer.initializeRenderer();
     }
     catch (error) {
@@ -54,12 +76,12 @@ export default function RenderWindow() {
     }
     setIsRendering(false);
 
-    const webgalUrl = `http://localhost:3001/#/game/%20preview_${roomId}`;
+    const webgalUrl = `http://localhost:3001/#/game/%20preview_${spaceId}`;
     window.open(webgalUrl, "");
   }
 
   return (
-    <div className="card p-4 space-y-4 max-w-2xl mx-auto h-[30vh]">
+    <div className="card p-4 space-y-4 w-full md:w-[60vw] h-[40vh]">
       <h2 className="text-xl font-bold text-base-content">渲染设置</h2>
 
       {/* 语音合成开关 */}
@@ -125,8 +147,32 @@ export default function RenderWindow() {
         className={`btn btn-primary w-full mt-2 ${isRendering ? "btn-disabled" : ""}`}
         type="button"
       >
-        {isRendering ? "渲染中..." : "开始渲染"}
+        {isRendering ? "渲染中，请勿关闭此窗口" : "开始渲染"}
       </button>
+
+      {/* 渲染进度显示区域 */}
+      {isRendering && (
+        <div className="space-y-2 pt-2">
+          <div className="flex justify-between text-sm font-medium text-base-content">
+            <span>{renderProcess.message || "准备中..."}</span>
+            <span>
+              {renderProcess.percent?.toFixed(1) ?? 0}
+              %
+            </span>
+          </div>
+          <progress
+            className="progress progress-primary w-full"
+            value={renderProcess.percent ?? 0}
+            max="100"
+          >
+          </progress>
+          {renderProcess.subMessage && (
+            <p className="text-xs text-base-content/70 text-center h-4">
+              {renderProcess.subMessage}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

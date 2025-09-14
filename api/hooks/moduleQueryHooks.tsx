@@ -241,7 +241,7 @@ export function useAddMutation() {
 export function useAddEntityMutation(entityType: 1 | 2 | 3 | 4 | 5) {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: Omit<EntityAddRequest, 'entityType'>) => tuanchat.stageController.add({...req, entityType}),
+        mutationFn: (req: Omit<EntityAddRequest, 'entityType'>) => tuanchat.stageController.add({ ...req, entityType }),
         mutationKey: ['addEntity'],
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
@@ -256,7 +256,7 @@ export function useAddEntityWithoutTypeMutation() {
         mutationFn: async (req: EntityAddRequest) => {
             // 添加请求前的验证和调试
             console.warn("AddEntity API 请求数据:", req);
-            
+
             // 验证必需字段
             if (!req.stageId || typeof req.stageId !== 'number') {
                 throw new TypeError(`Invalid stageId: ${req.stageId}`);
@@ -267,7 +267,7 @@ export function useAddEntityWithoutTypeMutation() {
             if (!req.entityType || typeof req.entityType !== 'number' || req.entityType < 1 || req.entityType > 5) {
                 throw new TypeError(`Invalid entityType: ${req.entityType}`);
             }
-            
+
             try {
                 const result = await tuanchat.stageController.add(req);
                 console.warn("AddEntity API 响应成功:", result);
@@ -275,7 +275,7 @@ export function useAddEntityWithoutTypeMutation() {
             } catch (error: any) {
                 console.error("AddEntity API 请求失败:", error);
                 console.error("失败的请求数据:", req);
-                
+
                 // 如果是400错误，提供更详细的错误信息
                 if (error?.status === 400) {
                     console.error("400错误详情:", {
@@ -329,7 +329,7 @@ export function useUpdateEntityMutation(stageId: number) {
 export function useDeleteEntityMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({id, stageId}: {id: number, stageId: number}) => tuanchat.stageController.delete({id}),
+        mutationFn: ({ id, stageId }: { id: number, stageId: number }) => tuanchat.stageController.delete({ id }),
         mutationKey: ['deleteEntity'],
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['queryEntities', variables.stageId] });
@@ -354,7 +354,7 @@ export function useAddRoleMutation() {
 export function useUploadModuleRoleAvatarMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async ({ avatarUrl, spriteUrl, id }: { avatarUrl: string; spriteUrl: string; id: number } ) => {
+        mutationFn: async ({ avatarUrl, spriteUrl, id }: { avatarUrl: string; spriteUrl: string; id: number }) => {
             const res = await tuanchat.avatarController.setRoleAvatar({});
             if (!res.success || !res.data) {
                 console.error("头像创建失败", res);
@@ -379,5 +379,27 @@ export function useIdToSearchQuery(id: number) {
             const res = await tuanchat.stageController.get(id);
             return res.data;
         }
+    });
+}
+
+export function useModuleItemDetailQuery(itemId: number) {
+    return useQuery({
+        queryKey: ['item-detail', itemId],
+        queryFn: async () => {
+            const res = await tuanchat.stageController.get(itemId);
+            return res.data;
+        },
+        enabled: itemId > 0,
+    });
+}
+
+export function useLocationDetailQuery(locationId: number) {
+    return useQuery({
+        queryKey: ['location-detail', locationId],
+        queryFn: async () => {
+            const res = await tuanchat.stageController.get(locationId);
+            return res.data;
+        },
+        enabled: locationId > 0,
     });
 }

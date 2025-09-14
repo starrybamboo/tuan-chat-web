@@ -1,79 +1,52 @@
-import type { StoredPost } from "@/components/community/postEditor";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import Pagination from "@/components/common/form/pagination";
+import type { PostListWithStatsResponse } from "api";
 import IllegalURLPage from "@/components/common/illegalURLPage";
-import { PopWindow } from "@/components/common/popWindow";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { CommunityContext } from "@/components/community/communityContext";
-import PostEditor from "@/components/community/postEditor";
-import React, { use } from "react";
-import toast from "react-hot-toast";
+import { useIntersectionObserver } from "@uidotdev/usehooks";
+import React, { use, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
 import {
-  useDeletePostMutation,
-  usePageCommunityPostsQuery,
-  usePublishPostMutation,
+  usePageCommunityPostsInfiniteQuery,
 } from "../../../api/hooks/communityQueryHooks";
+import SlidableChatPreview from "./slidableChatPreview";
 
 const PAGE_SIZE = 10;
+
+interface CommunityPostListProps {
+  onPostClick?: (postId: number) => void;
+}
 
 /**
  * 社区帖子列表
  * @constructor
  */
-export default function CommunityPostList() {
+export default function CommunityPostList({ onPostClick }: CommunityPostListProps = {}) {
   const communityContext = use(CommunityContext);
 
   const communityId = communityContext.communityId ?? -1;
 
-  const [pageNoStr, setPageNo] = useSearchParamsState<number>("pageNo", 1);
-  const pageNo = Number(pageNoStr);
-
   const navigate = useNavigate();
 
-  const [isPublishWindowOpen, setIsPublishWindowOpen] = useSearchParamsState<boolean>("editPop", false);
+  // 无限滚动相关
+  const [postRef, postEntry] = useIntersectionObserver();
+  const FETCH_ON_REMAIN = 2;
+  // 获取帖子列表 - 使用无限查询
+  const pageCommunityPostsQuery = usePageCommunityPostsInfiniteQuery({
+    communityId,
+    pageSize: PAGE_SIZE,
+  });
 
-  // 获取帖子列表
-  const pageCommunityPostsQuery = usePageCommunityPostsQuery(
-    { communityId, pageNo, pageSize: PAGE_SIZE },
-  );
-  const posts = pageCommunityPostsQuery.data?.data?.list ?? [];
-  const totalPages = Math.ceil((pageCommunityPostsQuery.data?.data?.totalRecords ?? 0) / PAGE_SIZE);
+  // 将分页数据 flatten
+  const posts: PostListWithStatsResponse[] = useMemo(() => {
+    return pageCommunityPostsQuery.data?.pages.flatMap(p => p.data?.list ?? []) ?? [];
+  }, [pageCommunityPostsQuery.data?.pages]);
 
-  // 删除帖子mutation
-  const deletePostMutation = useDeletePostMutation();
-
-  // 处理删除帖子
-  const handleDeletePost = (postId: number) => {
-    deletePostMutation.mutate(postId, {
-      onSuccess: () => {
-        toast.success("帖子删除成功", {
-          icon: "🗑️",
-        });
-        pageCommunityPostsQuery.refetch();
-      },
-    });
-  };
-
-  const publishPostMutation = usePublishPostMutation();
-  const handlePublishPost = async (post: StoredPost) => {
-    const { title, content } = post;
-    if (!title?.trim() || !content?.trim()) {
-      return false;
+  // 无限滚动逻辑
+  useEffect(() => {
+    if (postEntry?.isIntersecting && !pageCommunityPostsQuery.isFetching && pageCommunityPostsQuery.hasNextPage) {
+      void pageCommunityPostsQuery.fetchNextPage();
     }
-    try {
-      await publishPostMutation.mutateAsync({
-        communityId,
-        title: title.trim(),
-        content: content.trim(),
-      });
-      return true;
-    }
-    catch (error) {
-      toast.error(`发布帖子失败, ${error}`);
-      return false;
-    }
-  };
+  }, [postEntry?.isIntersecting, pageCommunityPostsQuery.isFetching, pageCommunityPostsQuery.hasNextPage, pageCommunityPostsQuery]);
 
   if (Number.isNaN(communityId)) {
     return (<IllegalURLPage info="您所找的社区不存在" />);
@@ -81,26 +54,6 @@ export default function CommunityPostList() {
 
   return (
     <div className="space-y-8">
-      {/* Header with publish button */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-base-content">社区帖子</h2>
-        <button
-          className="btn btn-info gap-2 shadow-lg hover:shadow/30"
-          onClick={() => setIsPublishWindowOpen(true)}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          发布新帖
-        </button>
-      </div>
-
       {/* Loading State */}
       {pageCommunityPostsQuery.isLoading && (
         <div className="flex flex-col items-center justify-center py-16">
@@ -127,145 +80,181 @@ export default function CommunityPostList() {
             />
           </svg>
           <h3 className="text-xl text-base-content/50 mb-2">暂无帖子</h3>
-          <p className="text-base-content/40 mb-4">成为第一个在此社区发帖的人</p>
-          <button className="btn btn-info btn-sm" onClick={() => setIsPublishWindowOpen(true)}>
-            发布帖子
-          </button>
+          <p className="text-base-content/40">成为第一个在此社区发帖的人</p>
         </div>
       )}
 
       {posts.length > 0 && (
         <div className="space-y-5">
-          {posts.map(post => (
+          {posts.map((post, index) => (
             <div
-              key={post.communityPostId}
+              key={post?.postListItem?.communityPostId}
+              ref={index === posts.length - FETCH_ON_REMAIN ? postRef : null}
               className="bg-base-100 rounded-2xl border border-base-200 shadow-sm p-6 transition-all duration-300 hover:shadow-lg hover:border cursor-pointer group"
             >
-              <div className="flex items-start gap-4">
-                <UserAvatarComponent userId={post.userId ?? -1} width={12} isRounded={true}></UserAvatarComponent>
-                <div className="flex-1" onClick={() => navigate(`/community/${communityId}/${post.communityPostId}`)}>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-xl font-bold group-hover:text-info transition-colors line-clamp-1">
-                        {post.title || "无标题帖子"}
-                      </h3>
-                      <p className="text-base-content/80 mt-2 line-clamp-3 break-all lg:break-normal">
-                        {post.content}
-                      </p>
-                    </div>
+              {/* 标题头部 */}
+              <div
+                className="flex items-start justify-between mb-4 cursor-pointer"
+                onClick={() => {
+                  const postId = post?.postListItem?.communityPostId;
+                  if (postId) {
+                    if (onPostClick) {
+                      onPostClick(postId);
+                    }
+                    else {
+                      navigate(`/community/${communityId}/${postId}`);
+                    }
+                  }
+                }}
+              >
+                <h3 className="text-xl font-bold group-hover:text-info transition-colors line-clamp-2 flex-1 mr-4">
+                  {post?.postListItem?.title || "无标题帖子"}
+                </h3>
+              </div>
 
-                    <button
-                      className="btn btn-circle btn-sm btn-ghost text-error/60 hover:text-error group-hover:opacity-100 opacity-0 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeletePost(post.communityPostId ?? -1);
-                      }}
-                      aria-label="删除帖子"
+              {/* 帖子内容区域 */}
+              <div
+                className="space-y-4"
+                onClick={() => {
+                  const postId = post?.postListItem?.communityPostId;
+                  if (postId) {
+                    if (onPostClick) {
+                      onPostClick(postId);
+                    }
+                    else {
+                      navigate(`/community/${communityId}/${postId}`);
+                    }
+                  }
+                }}
+              >
+                {/* 正文内容 */}
+                <div className="w-full">
+                  <p className="text-base-content/80 line-clamp-3 break-all lg:break-normal text-sm leading-relaxed">
+                    {post?.postListItem?.description}
+                  </p>
+                </div>
+
+                {/* 封面图片和转发消息：智能布局 */}
+                <div className="w-full overflow-hidden">
+                  {/* 检查是否有转发消息或封面图片 */}
+                  {(post?.postListItem?.message?.message || post?.postListItem?.coverImage) && (
+                    <div className="flex gap-2 lg:gap-4 overflow-hidden items-start">
+                      {/* 转发消息组件 */}
+                      {post?.postListItem?.message?.message && (
+                        <div className={`${post?.postListItem?.coverImage ? "flex-1 min-w-0 lg:flex-none lg:max-w-md" : "w-full"} overflow-hidden`}>
+                          <div className={`rounded-lg overflow-hidden bg-base-200 ${post?.postListItem?.coverImage ? "h-32 lg:h-40" : "h-auto"}`}>
+                            <SlidableChatPreview
+                              messageResponse={post?.postListItem?.message}
+                              maxHeight="160px"
+                              showAvatars={true}
+                              beFull={false}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 封面图片组件 */}
+                      {post?.postListItem?.coverImage && (
+                        <div className={`${post?.postListItem?.message?.message ? "flex-shrink-0 w-32 lg:w-fit" : "w-full"} overflow-hidden`}>
+                          <div className={`rounded-lg overflow-hidden bg-base-200 ${post?.postListItem?.message?.message ? "w-32 h-32 lg:w-fit lg:h-40" : "w-full h-32"}`}>
+                            <img
+                              src={post.postListItem.coverImage}
+                              alt="帖子封面"
+                              className={`h-full object-cover group-hover:scale-105 transition-transform duration-300 ${post?.postListItem?.message?.message ? "w-32 lg:w-auto" : "w-full"}`}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 底部信息 */}
+              <div className="flex items-center justify-between mt-4 pt-3 border-t border-base-200/80">
+                {/* 左侧用户信息 */}
+                <div className="flex items-center gap-3">
+                  <UserAvatarComponent
+                    userId={post?.postListItem?.userId ?? -1}
+                    width={6}
+                    isRounded={true}
+                    withName={true}
+                  />
+                </div>
+
+                {/* 右侧统计信息 TODO: 抽出为统一的组件 */}
+                <div className="flex items-center gap-4 text-sm text-base-content/50">
+                  <span className="inline-flex items-center gap-1">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.8}
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                      />
+                    </svg>
+                    <span>{post?.stats?.likeCount ?? 0}</span>
+                  </span>
 
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-base-200/80">
-                    <div className="flex items-center gap-3 text-sm text-base-content/50">
-                      <span className="inline-flex items-center">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 mr-1"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.8}
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                        {new Date(post.createTime ?? "").toLocaleDateString()}
-                      </span>
+                  <span className="inline-flex items-center gap-1">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.8}
+                        d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"
+                      />
+                    </svg>
+                    <span>{post?.stats?.commentCount ?? 0}</span>
+                  </span>
 
-                      <span className="inline-flex items-center">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-4 w-4 mr-1"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.8}
-                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-
-                    <div className="badge badge-outline badge-sm flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-3.5 w-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"
-                        />
-                      </svg>
-                      <span>
-                        999回复
-                      </span>
-                    </div>
-                  </div>
+                  <span className="inline-flex items-center gap-1">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.8}
+                        d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                      />
+                    </svg>
+                    <span>{post?.stats?.collectionCount ?? 0}</span>
+                  </span>
                 </div>
               </div>
             </div>
           ))}
+
+          {/* Loading indicator for infinite scroll */}
+          {pageCommunityPostsQuery.isFetchingNextPage && (
+            <div className="flex justify-center py-4">
+              <span className="loading loading-dots loading-lg text-primary"></span>
+            </div>
+          )}
+
+          {/* End of posts indicator */}
+          {!pageCommunityPostsQuery.hasNextPage && posts.length > 0 && (
+            <p className="text-center text-base-content/50 py-4 text-sm">你已经浏览完所有帖子啦！</p>
+          )}
         </div>
       )}
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-8 flex justify-center">
-          <Pagination
-            total={totalPages}
-            onChange={newPageNo => setPageNo(newPageNo)}
-            initialPageNo={pageNo}
-          />
-        </div>
-      )}
-
-      {/* Publish Window */}
-      <PopWindow
-        isOpen={isPublishWindowOpen}
-        onClose={() => setIsPublishWindowOpen(false)}
-        fullScreen
-      >
-        <PostEditor
-          onClose={() => setIsPublishWindowOpen(false)}
-          onSubmit={handlePublishPost}
-        />
-      </PopWindow>
     </div>
   );
 }

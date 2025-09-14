@@ -2,7 +2,6 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
 import TagManagement from "@/components/common/userTags";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import { useState } from "react";
 import { Link } from "react-router";
 import { useGetUserFollowersQuery, useGetUserFollowingsQuery } from "../../../api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "../../../api/queryHooks";
@@ -25,9 +24,6 @@ export function UserDetail({ userId }: UserDetailProps) {
 
   const user = userQuery.data?.data;
   const [isFFWindowOpen, setIsFFWindowOpen] = useSearchParamsState<boolean>(`userEditPop${userId}`, false);
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const [relationTab, setRelationTab] = useState<"following" | "followers">("following");
 
   const followingsQuery = useGetUserFollowingsQuery(userId, {
     pageNo: 1,
@@ -44,206 +40,128 @@ export function UserDetail({ userId }: UserDetailProps) {
     followers: followersQuery.data?.data?.totalRecords || 0,
   };
 
-  // 在点击处理器中
-  const handleFollowingClick = () => {
-    setRelationTab("following"); // 使用 setState 来更新值
-    setIsFFWindowOpen(true);
-  };
-
-  const handleFollowersClick = () => {
-    setRelationTab("followers"); // 使用 setState 来更新值
-    setIsFFWindowOpen(true);
-  };
   return (
-    <div className="card bg-base-100 relative w-90">
-      {/* 主体 */}
-      <div className="card-body">
-        {/* 头像-名字-描述 */}
-        <div className="flex flex-col items-start">
-          <div className="relative rounded-md overflow-hidden w-full">
-            {/* 原图片 - 移除圆角样式 */}
-            <img
-              // 未来在这里会让用户上传背景图片
-              // src="https://s21.ax1x.com/2025/03/31/pEs53vD.jpg" // 测试用的固定图片
-              src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzY2NiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+"
-              className="w-full object-cover object-center rounded-md sm:scale-150 md:scale-130 lg:scale-100 h-40 scale-150"
-              alt="用户背景"
-              onError={(e) => {
-                // No Image 灰色字样
-                e.currentTarget.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTUwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgZmlsbD0iIzY2NiI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+";
-                e.currentTarget.onerror = null;
-              }}
-            />
-
-            {/* 透明挖角层 */}
-            <div className="absolute bottom-0 right-0 rounded-sm
-                  border-[20px] border-transparent
-                  border-b-gray-200/30 border-r-gray-200/30"
-            />
-
-            {/* 更新背景按钮 */}
-            <button
-              type="button"
-              className="absolute bottom-1.5 right-1.5 p-1.5 bg-black/40 rounded-full
-               backdrop-blur-sm hover:bg-black/80 transition-colors duration-200 cursor-pointer"
-              aria-label="更新背景"
-            >
-              {/* 相机图标 - 使用 Heroicons 图标 */}
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4 text-white"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-            </button>
-          </div>
-          <div className="relative px-4 w-full">
-            {/* 头像 */}
-            <div className="avatar absolute left-4 -top-9">
-              <div
-                className="rounded-full ring-4 ring-base-100 bg-base-100 w-16"
-              >
-                {userQuery.isLoading
-                  ? (
-                      <div className="skeleton w-24 h-24"></div>
-                    )
-                  : (
-                      <Link
-                        to={`/profile/${userId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <img
-                          src={user?.avatar || undefined}
-                          alt={user?.username}
-                          className="mask mask-circle"
-                        />
-                      </Link>
-                    )}
-              </div>
+    <div className="card bg-base-100 relative w-90 shadow-lg">
+      <div className="card-body p-4 gap-3">
+        {/* 顶部：头像 + 名称/描述 */}
+        <div className="flex items-start gap-4">
+          <div className="avatar">
+            <div className="rounded-full ring-2 ring-base-100 bg-base-100 w-16 h-16">
+              {userQuery.isLoading
+                ? (
+                    <div className="skeleton w-16 h-16" />
+                  )
+                : (
+                    <a
+                      href={`/profile/${userId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <img
+                        src={user?.avatar || undefined}
+                        alt={user?.username}
+                        className="mask mask-circle w-16 h-16 object-cover"
+                      />
+                    </a>
+                  )}
             </div>
-            {/* 关注按钮（头像右侧） */}
-            {user?.userId !== loginUserId && (
-              <div className="absolute block left-38">
-                <FollowButton userId={user?.userId || 0} />
-              </div>
-            )}
           </div>
-
-          {/* 主要信息 */}
-          <div className="flex justify-between w-full pl-2">
-            {/* 名字和描述 */}
-            <div className="pt-12">
-              <div className="flex items-center">
-                {userQuery.isLoading
-                  ? (
-                      <div className="skeleton h-8 w-48 pr-4"></div>
-                    )
-                  : (
-                      <Link
-                        to={`/profile/${userId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-2xl font-bold mr-2 hover:underline cursor-pointer"
-                      >
-                        {user?.username || "未知用户"}
-                      </Link>
-                    )}
-                <UserStatusDot status={user?.activeStatus}></UserStatusDot>
-              </div>
-              {/* 个人描述 */}
-              <div className="py-2">
-                {userQuery.isLoading
-                  ? (
-                      <div className="skeleton h-6 w-32"></div>
-                    )
-                  : (
-                      <div>
-                        <p
-                          className={`text-base break-words sm:text-md lg:text-sm mr-4 ${
-                            isExpanded ? "" : "line-clamp-2"
-                          }`}
-                        >
-                          {user?.description ?? "这个人就是个杂鱼，什么也不愿意写喵~"}
-                        </p>
-                        <button
-                          onClick={() => setIsExpanded(prev => !prev)}
-                          className="text-blue-400 text-xs mt-1 hover:underline"
-                          type="button"
-                        >
-                          {isExpanded ? "收起" : "展开"}
-                        </button>
-                      </div>
-                    )}
-              </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center flex-wrap gap-2">
+              {userQuery.isLoading
+                ? (
+                    <div className="skeleton h-6 w-32" />
+                  )
+                : (
+                    <a
+                      href={`/profile/${userId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xl font-semibold hover:underline cursor-pointer truncate max-w-xs"
+                    >
+                      {user?.username || "未知用户"}
+                    </a>
+                  )}
+              <UserStatusDot status={user?.activeStatus} />
+            </div>
+            <div className="mt-1 text-sm leading-snug">
+              {userQuery.isLoading
+                ? (
+                    <div className="skeleton h-4 w-40" />
+                  )
+                : (
+                    <div>
+                      <p className="break-words mr-2 line-clamp-2">
+                        {user?.description ?? "这个人就是个杂鱼，什么也不愿意写喵~"}
+                      </p>
+                    </div>
+                  )}
             </div>
           </div>
         </div>
 
         {/* 用户标签 */}
-        <hr></hr>
-        <TagManagement userId={userId} size="compact"></TagManagement>
+        <div className="pt-1">
+          <TagManagement userId={userId} />
+        </div>
 
-        {/* 次要信息 */}
-        <div className="relative pl-8">
-          <div className="flex">
-            {/* 关注/粉丝数 */}
-            <div className="flex gap-8 justify-items-end ml-auto">
-              <div
-                className="flex flex-col items-center hover:text-info transition-colors cursor-pointer"
-                onClick={handleFollowingClick}
+        {/* 统计 + 操作区域 */}
+        <div className="flex items-center justify-between mt-2 gap-4">
+          <div className="flex gap-6">
+            {/* 关注 */}
+            <div className="flex flex-col items-center">
+              <a
+                href={`/profile/${userId}`}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                <div className="stat-value text-sm">{followStats.following}</div>
-                <div className="stat-title text-sm">关注</div>
-              </div>
+                <span className="text-sm font-medium pr-2">{followStats.following}</span>
+                <span className="text-[11px] opacity-70 leading-none mt-0.5">关注</span>
+              </a>
+            </div>
 
-              <div
-                className="flex flex-col items-center hover:text-info transition-colors cursor-pointer"
-                onClick={handleFollowersClick}
+            {/* 粉丝 */}
+            <div className="flex flex-col items-center">
+              <a
+                href={`/profile/${userId}`}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                <div className="stat-value text-sm text-center">{followStats.followers}</div>
-                <div className="stat-title text-sm">粉丝</div>
-              </div>
+                <span className="text-sm font-medium pr-2">{followStats.followers}</span>
+                <span className="text-[11px] opacity-70 leading-none mt-0.5">粉丝</span>
+              </a>
             </div>
           </div>
+
+          {user?.userId !== loginUserId && (
+            <div className="flex items-center gap-2 ml-auto">
+              <FollowButton userId={user?.userId || 0} />
+
+              <Link to={`/chat/private/${userId}`} className="flex-shrink-0">
+                <button
+                  type="button"
+                  className="btn btn-sm flex items-center h-8 px-3 border border-gray-300 hover:text-primary"
+                >
+                  <svg aria-label="私信" width="12" height="12" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="flex-shrink-0">
+                    <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">
+                      <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                    </g>
+                  </svg>
+                  <span className="text-sm">私信</span>
+                </button>
+              </Link>
+            </div>
+
+          )}
         </div>
-        {user?.userId !== loginUserId && (
-          <Link to={`/chat/private/${userId}`} className="flex-shrink-0">
-            <button
-              type="button"
-              className="btn flex items-center justify-center w-full border border-gray-300 rounded-3 xl hover:text-primary transition-colors h-8 cursor-pointer"
-            >
-              <svg aria-label="私信" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="flex-shrink-0">
-                <g strokeLinejoin="round" strokeLinecap="round" strokeWidth="2" fill="none" stroke="currentColor">
-                  <rect width="20" height="16" x="2" y="4" rx="2"></rect>
-                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
-                </g>
-              </svg>
-              <span className="text-sm">私信</span>
-            </button>
-          </Link>
-        )}
 
         {/* 加载错误处理 */}
         {userQuery.isError && (
-          <div className="alert alert-error mt-4">
+          <div className="alert alert-error mt-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="stroke-current shrink-0 h-6 w-6"
+              className="stroke-current shrink-0 h-5 w-5"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -258,7 +176,6 @@ export function UserDetail({ userId }: UserDetailProps) {
           </div>
         )}
       </div>
-      {/* 相关的弹窗组件 */}
       <PopWindow
         isOpen={isFFWindowOpen}
         onClose={() => {
@@ -267,7 +184,7 @@ export function UserDetail({ userId }: UserDetailProps) {
           followersQuery.refetch();
         }}
       >
-        <UserFollower activeTab={relationTab} userId={userId}></UserFollower>
+        <UserFollower activeTab="following" userId={userId} />
       </PopWindow>
     </div>
   );

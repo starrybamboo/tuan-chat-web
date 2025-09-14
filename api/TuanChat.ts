@@ -6,6 +6,7 @@ import type { BaseHttpRequest } from './core/BaseHttpRequest';
 import type { OpenAPIConfig } from './core/OpenAPI';
 import { FetchHttpRequest } from './core/FetchHttpRequest';
 import { AbilityControllerService } from './services/AbilityControllerService';
+import { AiReportControllerService } from './services/AiReportControllerService';
 import { AiWritingControllerService } from './services/AiWritingControllerService';
 import { AvatarControllerService } from './services/AvatarControllerService';
 import { ChatControllerService } from './services/ChatControllerService';
@@ -15,7 +16,6 @@ import { CollectionListItemControllerService } from './services/CollectionListIt
 import { CommentControllerService } from './services/CommentControllerService';
 import { CommitControllerService } from './services/CommitControllerService';
 import { CommunityService } from './services/CommunityService';
-import { CommunityMemberService } from './services/CommunityMemberService';
 import { CommunityPostService } from './services/CommunityPostService';
 import { CounterService } from './services/CounterService';
 import { DiceCommentControllerService } from './services/DiceCommentControllerService';
@@ -51,6 +51,7 @@ import { WebsocketDocService } from './services/WebsocketDocService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class TuanChat {
     public readonly abilityController: AbilityControllerService;
+    public readonly aiReportController: AiReportControllerService;
     public readonly aiWritingController: AiWritingControllerService;
     public readonly avatarController: AvatarControllerService;
     public readonly chatController: ChatControllerService;
@@ -60,7 +61,6 @@ export class TuanChat {
     public readonly commentController: CommentControllerService;
     public readonly commitController: CommitControllerService;
     public readonly community: CommunityService;
-    public readonly communityMember: CommunityMemberService;
     public readonly communityPost: CommunityPostService;
     public readonly counter: CounterService;
     public readonly diceCommentController: DiceCommentControllerService;
@@ -96,7 +96,7 @@ export class TuanChat {
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
         this.request = new HttpRequest({
-            BASE: config?.BASE ?? 'http://39.103.58.31:8081',
+            BASE: config?.BASE ?? 'http://localhost:8081',
             VERSION: config?.VERSION ?? '1.0',
             WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
             CREDENTIALS: config?.CREDENTIALS ?? 'include',
@@ -107,6 +107,7 @@ export class TuanChat {
             ENCODE_PATH: config?.ENCODE_PATH,
         });
         this.abilityController = new AbilityControllerService(this.request);
+        this.aiReportController = new AiReportControllerService(this.request);
         this.aiWritingController = new AiWritingControllerService(this.request);
         this.avatarController = new AvatarControllerService(this.request);
         this.chatController = new ChatControllerService(this.request);
@@ -116,7 +117,6 @@ export class TuanChat {
         this.commentController = new CommentControllerService(this.request);
         this.commitController = new CommitControllerService(this.request);
         this.community = new CommunityService(this.request);
-        this.communityMember = new CommunityMemberService(this.request);
         this.communityPost = new CommunityPostService(this.request);
         this.counter = new CounterService(this.request);
         this.diceCommentController = new DiceCommentControllerService(this.request);

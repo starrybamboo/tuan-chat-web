@@ -286,7 +286,7 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
                 </div>
                 {searching
                   ? (
-                      <div className="flex flex-col w-full h-full">
+                      <div className="flex flex-col w-full">
                         {searchUserInfo
                           ? (
                               <div
@@ -327,7 +327,7 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
                       </div>
                     )
                   : (
-                      <div className="flex flex-col w-full h-full">
+                      <div className="flex flex-col w-full">
                         {
                           friendUserInfos.map((friend, index) => {
                             return (

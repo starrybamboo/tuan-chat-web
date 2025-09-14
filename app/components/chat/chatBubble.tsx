@@ -1,8 +1,8 @@
 import type { ChatMessageResponse, Message } from "api";
 import { ExpressionChooser } from "@/components/chat/expressionChooser";
-import ForwardMessage from "@/components/chat/forwardMessage";
 import RoleChooser from "@/components/chat/roleChooser";
 import { RoomContext } from "@/components/chat/roomContext";
+import ForwardMessage from "@/components/chat/smallComponents/forwardMessage";
 import { PreviewMessage } from "@/components/chat/smallComponents/previewMessage";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import BetterImg from "@/components/common/betterImg";
@@ -83,8 +83,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
           <BetterImg
             src={imgMsg?.url || message.extra?.fileMessage?.url}
             size={{ width: imgMsg?.width, height: imgMsg?.height }}
-            className="max-h-[40vh] w-full"
-            popWindowKey={`${message.messageId}img_${imgMsg?.url}`}
+            className="max-h-[40vh] w-max "
           />
           {imgMsg?.background && <div className="text-xs text-gray-500 dark:text-gray-400">已设置为背景</div>}
         </div>
@@ -156,7 +155,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       {useChatBubbleStyle
         ? (
             <div
-              className="flex w-full items-start gap-1 pb-2"
+              className="flex w-full items-start gap-1 py-1 group"
               key={message.messageId}
             >
               {/* Avatar */}
@@ -170,16 +169,19 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 />
               </div>
               <div className="flex flex-col items-start">
-                <div>
-                  <span onClick={handleRoleNameClick} className={`text-sm text-base-content/85 pb-1 cursor-pointer ${canEdit ? "hover:underline" : ""}`}>
+                <div className="flex items-center gap-4">
+                  <span
+                    onClick={handleRoleNameClick}
+                    className={`text-sm text-base-content/85 pb-1 cursor-pointer transition-all duration-200 hover:text-primary ${canEdit ? "hover:underline" : ""}`}
+                  >
                     {role?.roleName?.trim() || "Undefined"}
                   </span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 pl-2">
+                  <span className="text-xs text-base-content/50 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100">
                     {formattedTime}
                   </span>
                 </div>
                 <div
-                  className="max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow bg-base-200 text-base"
+                  className="max-w-xs sm:max-w-md break-words rounded-lg px-4 py-2 shadow bg-base-200 text-base transition-all duration-200 hover:shadow-lg hover:bg-base-300 cursor-pointer"
                 >
                   {renderedContent}
                 </div>
@@ -187,7 +189,10 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
             </div>
           )
         : (
-            <div className="flex w-full pb-4" key={message.messageId}>
+            <div
+              className="flex w-full py-2"
+              key={message.messageId}
+            >
               {/* 圆角矩形头像 */}
               <div className="flex-shrink-0 pr-3">
                 <div className="w-20 h-20 rounded-md overflow-hidden" onClick={handleAvatarClick}>
@@ -204,15 +209,21 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               {/* 消息内容 */}
               <div className="flex-1 overflow-auto p-1 pr-5">
                 {/* 角色名 */}
-                <div
-                  className={`cursor-pointer font-semibold ${userId === message.userId ? "hover:underline" : ""}`}
-                  onClick={handleRoleNameClick}
-                >
-                  {role?.roleName?.trim() || "Undefined"}
+                <div className="flex justify-between items-center w-full">
+                  <div
+                    className={`cursor-pointer font-semibold transition-all duration-200 hover:text-primary ${userId === message.userId ? "hover:underline" : ""}`}
+                    onClick={handleRoleNameClick}
+                  >
+                    <div className="w-[30vw] truncate">
+                      { `【${role?.roleName?.trim() || "Undefined"}】`}
+                    </div>
+                  </div>
+                  <div className="text-xs text-base-content/50 pt-1 ml-auto transition-opacity duration-200 opacity-0 group-hover:opacity-100">
+                    {formattedTime}
+                  </div>
                 </div>
-                {renderedContent}
-                <div className="text-xs text-gray-500 dark:text-gray-400 pt-1">
-                  {formattedTime}
+                <div className="transition-all duration-200 hover:bg-base-200/50 rounded-lg p-2 cursor-pointer">
+                  {renderedContent}
                 </div>
               </div>
             </div>
@@ -228,6 +239,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
                 <ExpressionChooser
                   roleId={message.roleId}
                   handleExpressionChange={handleExpressionChange}
+                  handleRoleChange={handleRoleChange}
                 >
                 </ExpressionChooser>
               </div>

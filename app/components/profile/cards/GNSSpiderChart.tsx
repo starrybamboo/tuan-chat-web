@@ -17,7 +17,10 @@ interface GNSSpiderChartProps {
   userId: number;
 }
 
-function GNSSpiderChart({ userId }: GNSSpiderChartProps) {
+/**
+ * GNS 雷达图小卡片，调用了 GNSPreferenceEditor 弹窗，供用户编辑
+ */
+const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
   const [ratings, setRatings] = useState<Ratings>({
     Gamism: 0,
     Narrativism: 0,
@@ -76,7 +79,7 @@ function GNSSpiderChart({ userId }: GNSSpiderChartProps) {
     }
     catch (error) {
       console.error("保存GNS偏好失败:", error);
-      // 这里可以添加错误提示
+      // TODO: 这里可以添加错误提示
     }
   };
 
@@ -224,8 +227,7 @@ function GNSSpiderChart({ userId }: GNSSpiderChartProps) {
               </svg>
             </div>
             <h3 className="text-lg font-medium text-gray-600 mb-2">暂未设置 GNS 偏好</h3>
-            {/* <p className="text-sm text-gray-500">该用户还没有设置游戏偏好</p> */}
-            <p className="text-sm text-gray-500">暂时无法获取其他用户游戏偏好，下个版本才能开始修</p>
+            <p className="text-sm text-gray-500">唔...该用户还没有设置游戏偏好呢</p>
           </div>
         </div>
       );
@@ -365,6 +367,6 @@ function GNSSpiderChart({ userId }: GNSSpiderChartProps) {
       </PopWindow>
     </div>
   );
-}
+};
 
 export default GNSSpiderChart;

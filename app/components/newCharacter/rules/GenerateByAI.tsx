@@ -1,12 +1,11 @@
-import type { GameRule } from "../types";
+import type { Rule } from "api/models/Rule";
 import { useGenerateAbilityByRuleMutation, useGenerateBasicInfoByRuleMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
-import { deepOverrideTargetWithSource, flattenConstraints, wrapIntoNested } from "./ObjectExpansion";
 
 interface GenerateByAIProps {
   ruleId: number;
-  localRuleData: GameRule | null;
-  onLocalRuleDataChange: (data: GameRule) => void;
+  localRuleData: Rule | null;
+  onLocalRuleDataChange: (data: Rule) => void;
   type: number;
 }
 
@@ -26,40 +25,36 @@ export default function GenerateByAI({ ruleId, localRuleData, onLocalRuleDataCha
 
   const handleGenerate = () => {
     setIsTransitioning(true);
-    const id = localRuleData?.id || 0;
+    const id = localRuleData?.ruleId || 0;
 
     const handleSuccess = (data: any, isBasic: number) => {
       setDescription("");
 
-      // 用来合并
-      const mergedNumerical: Record<string, any> = {};
-      for (const key in localRuleData?.numerical) {
-        const ignoreKeys = ["0"];
-        if (ignoreKeys.includes(key)) {
-          mergedNumerical[key] = localRuleData?.numerical[key];
-          continue;
-        }
-
-        const base = localRuleData?.numerical[key];
-        const wrappedOverride = wrapIntoNested([key], data.data);
-        mergedNumerical[key] = deepOverrideTargetWithSource(base, wrappedOverride[key]);
+      // 直接使用数据，数据本身就是字符串格式
+      const mergedBasicDefault = {
+        ...localRuleData?.basicDefault,
+        ...(isBasic === 2 ? data.data || {} : {}),
       };
 
       // 用于上传
-      const newRuleData = {
-        id,
-        name: localRuleData?.name ?? "",
-        description: localRuleData?.description ?? "",
-        performance: isBasic === 1
-          ? Object.entries(data.data || {}).reduce((acc, [key, value]) => {
-              acc[key] = typeof value === "object" ? JSON.stringify(value) : String(value);
-              return acc;
-            }, {} as Record<string, string>)
-          : localRuleData?.performance ?? {},
-        numerical: isBasic === 2 ? mergedNumerical ?? localRuleData?.numerical ?? {} : localRuleData?.numerical ?? data.data ?? {},
+      const newRuleData: Rule = {
+        ruleId: id,
+        ruleName: localRuleData?.ruleName ?? "",
+        ruleDescription: localRuleData?.ruleDescription ?? "",
+        actTemplate: isBasic === 1
+          ? data.data || {}
+          : localRuleData?.actTemplate ?? {},
+        basicDefault: isBasic === 2
+          ? mergedBasicDefault
+          : (localRuleData?.basicDefault ?? data.data ?? {}),
       };
       onLocalRuleDataChange(newRuleData);
-      updateFiledAbility({ abilityId: id, act: newRuleData?.performance, ability: flattenConstraints(newRuleData?.numerical) ?? {} });
+
+      updateFiledAbility({
+        abilityId: id,
+        act: newRuleData?.actTemplate || {},
+        basic: newRuleData?.basicDefault || {},
+      });
     };
 
     if (type === 0) {

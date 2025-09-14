@@ -4,32 +4,32 @@ import { useRuleListQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
-import Carousel from "./carousel";
-// 导入本地图片
-import 办公室图片 from "./images/办公室.webp";
-import 天台图片 from "./images/天台.webp";
-import 操场图片 from "./images/操场.webp";
+// import Carousel from "./carousel";
+// // 导入本地图片
+// import 办公室图片 from "./images/办公室.webp";
+// import 天台图片 from "./images/天台.webp";
+// import 操场图片 from "./images/操场.webp";
 import 教室图片 from "./images/教室.webp";
-import 楼道图片 from "./images/楼道.webp";
+// import 楼道图片 from "./images/楼道.webp";
 
 // 示例tag数组，可根据实际数据源替换
-const tags = [
-  "TRPG",
-  "冒险",
-  "合作",
-  "推理",
-  "恐怖",
-  "短剧本",
-  "长剧本",
-  "新手友好",
-  "高难度",
-  "单元剧",
-  "剧情驱动",
-  "规则轻量",
-  "规则复杂",
-  "经典",
-  "原创",
-];
+// const tags = [
+//   "TRPG",
+//   "冒险",
+//   "合作",
+//   "推理",
+//   "恐怖",
+//   "短剧本",
+//   "长剧本",
+//   "新手友好",
+//   "高难度",
+//   "单元剧",
+//   "剧情驱动",
+//   "规则轻量",
+//   "规则复杂",
+//   "经典",
+//   "原创",
+// ];
 
 // 卡片内容类型定义
 interface ContentCardProps {
@@ -204,38 +204,38 @@ export default function ModuleHome() {
   const navigate = useNavigate();
 
   // 轮播图数据 - 五张图片实现循环显示
-  const heroImages = useMemo(() => [
-    {
-      img: 教室图片,
-      alt: "教室场景",
-      title: "探索无限创意",
-      description: "发现精彩的模组内容，开启你的创作之旅",
-    },
-    {
-      img: 操场图片,
-      alt: "操场场景",
-      title: "分享精彩时刻",
-      description: "记录每一个难忘的游戏瞬间，与社区分享你的故事",
-    },
-    {
-      img: 办公室图片,
-      alt: "办公室场景",
-      title: "创造独特世界",
-      description: "用你的想象力构建独一无二的游戏体验",
-    },
-    {
-      img: 天台图片,
-      alt: "天台场景",
-      title: "社区协作",
-      description: "与全球创作者一起构建精彩的内容世界",
-    },
-    {
-      img: 楼道图片,
-      alt: "楼道场景",
-      title: "创新突破",
-      description: "突破传统界限，创造前所未有的游戏体验",
-    },
-  ], []);
+  // const heroImages = useMemo(() => [
+  //   {
+  //     img: 教室图片,
+  //     alt: "教室场景",
+  //     title: "探索无限创意",
+  //     description: "发现精彩的模组内容，开启你的创作之旅",
+  //   },
+  //   {
+  //     img: 操场图片,
+  //     alt: "操场场景",
+  //     title: "分享精彩时刻",
+  //     description: "记录每一个难忘的游戏瞬间，与社区分享你的故事",
+  //   },
+  //   {
+  //     img: 办公室图片,
+  //     alt: "办公室场景",
+  //     title: "创造独特世界",
+  //     description: "用你的想象力构建独一无二的游戏体验",
+  //   },
+  //   {
+  //     img: 天台图片,
+  //     alt: "天台场景",
+  //     title: "社区协作",
+  //     description: "与全球创作者一起构建精彩的内容世界",
+  //   },
+  //   {
+  //     img: 楼道图片,
+  //     alt: "楼道场景",
+  //     title: "创新突破",
+  //     description: "突破传统界限，创造前所未有的游戏体验",
+  //   },
+  // ], []);
 
   const RuleList = useRuleListQuery();
 
@@ -243,17 +243,18 @@ export default function ModuleHome() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedRuleId, setSelectedRuleId] = useState<number | null>(null);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
   const itemsPerPage = 12; // 每页显示12个模组
 
-  // 当前活跃的背景图片状态
-  const [activeBackgroundImage, setActiveBackgroundImage] = useState<string>(
-    heroImages.length > 0 ? heroImages[0].img : "",
-  );
+  // // 当前活跃的背景图片状态
+  // const [activeBackgroundImage, setActiveBackgroundImage] = useState<string>(
+  //   heroImages.length > 0 ? heroImages[0].img : "",
+  // );
 
-  // 处理轮播图活跃项变化的回调函数
-  const handleActiveImageChange = (activeItem: any) => {
-    setActiveBackgroundImage(activeItem.img);
-  };
+  // // 处理轮播图活跃项变化的回调函数
+  // const handleActiveImageChange = (activeItem: any) => {
+  //   setActiveBackgroundImage(activeItem.img);
+  // };
 
   const ModuleList = useModuleListQuery({
     pageNo: currentPage,
@@ -264,8 +265,9 @@ export default function ModuleHome() {
   // 计算分页数据 - 使用 API 数据
   const moduleData = ModuleList.data?.data;
   // console.log("ModuleList data:", moduleData);
-  const totalPages = moduleData?.totalRecords ? Math.ceil(moduleData.totalRecords / itemsPerPage) : 1;
-  const currentItems = useMemo(() => {
+
+  // 先转换数据格式
+  const allItems = useMemo(() => {
     if (!moduleData?.list) {
       return [];
     }
@@ -274,7 +276,7 @@ export default function ModuleHome() {
       .filter((module: any) => module.moduleId && module.moduleId !== null && module.moduleId !== "null") // 过滤掉没有moduleId的数据
       .map((module: any) => ({
         id: `module-${module.moduleId}`,
-        rule: RuleList.data?.find(rule => rule.id === module.ruleId)?.name || "",
+        rule: RuleList.data?.find(rule => rule.ruleId === module.ruleId)?.ruleName ?? "",
         title: module.moduleName,
         image: (module.image && module.image !== null && module.image !== "null") ? module.image : 教室图片, // 更严格的空值检查
         content: module.description,
@@ -290,9 +292,31 @@ export default function ModuleHome() {
         minTime: module.minTime,
         maxTime: module.maxTime,
         parent: module.parent, // 从哪个模组fork来
-        instruction: module.instruction, // 指令字段
+        instruction: module.instruction, // md字段
       }));
   }, [moduleData, RuleList]);
+
+  // 前端搜索过滤
+  const filteredItems = useMemo(() => {
+    if (!searchKeyword.trim()) {
+      return allItems;
+    }
+
+    const keyword = searchKeyword.toLowerCase().trim();
+    return allItems.filter(item =>
+      item.title?.toLowerCase().includes(keyword)
+      || item.content?.toLowerCase().includes(keyword)
+      || item.authorName?.toLowerCase().includes(keyword)
+      || item.rule?.toLowerCase().includes(keyword),
+    );
+  }, [allItems, searchKeyword]);
+
+  // 重新计算分页（基于搜索结果）
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const currentItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredItems.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredItems, currentPage, itemsPerPage]);
 
   const [imagesReady, setImagesReady] = useState(false);
 
@@ -310,7 +334,7 @@ export default function ModuleHome() {
             };
           }),
       ),
-    ).then(() => {});
+    ).then(() => { });
   }
 
   useEffect(() => {
@@ -332,6 +356,12 @@ export default function ModuleHome() {
     if (element) {
       element.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+  };
+
+  // 处理搜索
+  const handleSearch = (value: string) => {
+    setSearchKeyword(value);
+    setCurrentPage(1); // 搜索时重置到第一页
   };
 
   return (
@@ -369,23 +399,23 @@ export default function ModuleHome() {
       </div> */}
       {/* 轮播图区域 */}
       {/* 四图并排轮播图区域 */}
-      <div className="w-full py-16 bg-base-200 relative overflow-hidden">
-        {/* 背景层容器 - 限制模糊效果范围 */}
-        <div className="hidden md:block absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-          {/* 动态背景图 - 使用当前活跃图片的高斯模糊 */}
-          <div
+      {/* <div className="w-full py-16 bg-base-200 relative overflow-hidden"> */}
+      {/* 背景层容器 - 限制模糊效果范围 */}
+      {/* <div className="hidden md:block absolute top-0 left-0 w-full h-full overflow-hidden z-0"> */}
+      {/* 动态背景图 - 使用当前活跃图片的高斯模糊 */}
+      {/* <div
             className="absolute -top-6 -left-6 w-[calc(100%+48px)] h-[calc(100%+48px)] bg-cover bg-center transition-all duration-700 ease-out"
             style={{
               backgroundImage: `url(${activeBackgroundImage || heroImages[0]?.img})`,
               filter: "blur(20px)",
             }}
-          />
-          {/* 遮罩层 */}
-          <div className="absolute top-0 left-0 w-full h-full bg-black/10" />
-        </div>
+          /> */}
+      {/* 遮罩层 */}
+      {/* <div className="absolute top-0 left-0 w-full h-full bg-black/10" /> */}
+      {/* </div> */}
 
-        {/* 轮播图内容 */}
-        <div className="relative z-10">
+      {/* 轮播图内容 */}
+      {/* <div className="relative z-10">
           <Carousel
             items={heroImages}
             className="w-full"
@@ -393,8 +423,8 @@ export default function ModuleHome() {
             interval={4000}
             onActiveChange={handleActiveImageChange}
           />
-        </div>
-      </div>
+        </div> */}
+      {/* </div> */}
       {/* 其他内容区域 */}
       <div className="p-8">
 
@@ -411,9 +441,8 @@ export default function ModuleHome() {
                     type="text"
                     className="input input-sm w-full pl-10 bg-base-200 border-2 border-base-300 focus:border-primary focus:bg-base-100 transition-colors"
                     placeholder="搜索模组..."
-                    value=""
-                    onChange={() => {}}
-                    // TODO: 绑定搜索状态和事件
+                    value={searchKeyword}
+                    onChange={e => handleSearch(e.target.value)}
                   />
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/60 pointer-events-none">
                     <svg className="h-[1em] opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -459,20 +488,21 @@ export default function ModuleHome() {
                 <div className="flex flex-wrap gap-3">
                   {RuleList.data?.map(rule => (
                     <button
-                      key={rule.id}
+                      key={rule.ruleId}
                       type="button"
-                      className={`px-3 py-1 rounded-full text-xs md:text-sm font-semibold border transition-all duration-200 focus:outline-none cursor-pointer ${selectedRuleId === rule.id ? "bg-accent text-white" : "bg-accent/10"}`}
+                      className={`px-3 py-1 rounded-full text-xs md:text-sm font-semibold border transition-all duration-200 focus:outline-none cursor-pointer ${selectedRuleId === (rule.ruleId ?? null) ? "bg-accent text-white" : "bg-accent/10"}`}
                       onClick={() => {
-                        setSelectedRuleId(selectedRuleId === rule.id ? null : rule.id);
+                        setSelectedRuleId(selectedRuleId === rule.ruleId ? null : rule.ruleId ?? null);
                         setCurrentPage(1);
+                        setSearchKeyword(""); // 切换规则时清空搜索
                       }}
                     >
-                      {rule.name}
+                      {rule.ruleName ?? "未命名规则"}
                     </button>
                   ))}
                 </div>
               </div>
-              <div className="flex-1">
+              {/* <div className="flex-1">
                 <h2 className="text-lg md:text-xl font-bold mb-4 ">全部标签</h2>
                 <div className="flex flex-wrap gap-3">
                   {tags.map(tag => (
@@ -481,12 +511,12 @@ export default function ModuleHome() {
                     </span>
                   ))}
                 </div>
-              </div>
+              </div> */}
               <div className="divider mt-0 mb-8 md:mb-8"></div>
             </div>
             <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10">
               {(() => {
-                if (ModuleList.isLoading || !imagesReady) {
+                if (ModuleList.isLoading || (currentItems.length !== 0 && !imagesReady)) {
                   return Array.from({ length: 8 }, (_, index) => (
                     <div key={`loading-skeleton-${index}-${Math.random()}`} className="animate-pulse">
                       <div className="bg-base-300 aspect-square rounded-none mb-4"></div>
@@ -561,7 +591,7 @@ export default function ModuleHome() {
                             minTime: card.minTime, // 模组可能需要花费时间
                             maxTime: card.maxTime,
                             parent: card.parent, // 从哪个模组fork来
-                            instruction: card.instruction, // 指令字段
+                            instruction: card.instruction, // md字段
                           },
                         },
                       });

@@ -31,6 +31,10 @@ export type RoleResponse = {
      */
     speakerName?: string;
     /**
+     * tts时使用的音色
+     */
+    voiceUrl?: string;
+    /**
      * 属于哪个用户，0代表是全局角色
      */
     userId?: number;

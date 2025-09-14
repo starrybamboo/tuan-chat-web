@@ -79,6 +79,31 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
 
   // 加入从 WebSocket 接收到的实时消息
   const wsMessages = webSocketUtils.receivedDirectMessages;
+
+  const prevWsMessagesRef = useRef<Record<number, DirectMessageEvent[]>>({});
+
+  useEffect(() => {
+    Object.keys(wsMessages).forEach((key) => {
+      const contactId = Number(key);
+      const currentMessages = wsMessages[Number(key)];
+      const prevMessages = prevWsMessagesRef.current[contactId] || [];
+
+      // 只有当消息数量增加时，才从删除列表中恢复
+      if (deletedContactIds.includes(contactId) && currentMessages.length > prevMessages.length) {
+        // 检查新增的消息是否为非已读标记消息
+        const newMessages = currentMessages.slice(prevMessages.length);
+        const hasNewValidMessages = newMessages.some(msg => msg.messageType !== 10000);
+
+        if (hasNewValidMessages) {
+          setDeletedContactIds(prev => prev.filter(id => id !== contactId));
+        }
+      }
+    });
+
+    // 更新引用
+    prevWsMessagesRef.current = { ...wsMessages };
+  }, [wsMessages, deletedContactIds, setDeletedContactIds]);
+
   const sortedWsMessages = useMemo(() => {
     const sorted: Record<number, DirectMessageEvent[]> = {};
     // 遍历每个联系人的消息
@@ -320,14 +345,14 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
                 <div className="p-2 pt-4 flex flex-col gap-2">
                   <div className="flex">
                     <button
-                      className="btn btn-ghost flex justify-center w-1/2 gap-2"
+                      className="btn btn-ghost flex justify-center items-center h-8 w-1/2 gap-2"
                       type="button"
                       onClick={handleMemberClick}
                     >
                       <MemberIcon />
                     </button>
                     <button
-                      className="btn btn-ghost btn-sm flex justify-center w-1/2 gap-2"
+                      className="btn btn-ghost btn-sm flex justify-center items-center h-8 w-1/2 gap-2"
                       type="button"
                       onClick={handleXMarkClick}
                     >
