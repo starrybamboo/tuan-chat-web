@@ -40,8 +40,6 @@ export class ChatRenderer {
     const spaceInfo = await tuanchat.spaceController.getSpaceInfo(this.spaceId);
     const roomMap = spaceInfo?.data?.roomMap;
     this.roomMap = roomMap || {};
-    console.log(roomMap);
-    console.log(this.rooms);
 
     const renderedRooms: Room[] = []; // 成功渲染的房间
     for (let i = 0; i < this.rooms.length; i++) {
@@ -282,7 +280,7 @@ export class ChatRenderer {
                 && !message.content.startsWith("。")
                 && !message.content.startsWith("%")) {
                 // 将聊天内容替换为 segment
-                vocalFileName = await this.sceneEditor.uploadVocal({ ...messageResponse, message: { ...messageResponse.message, content: segment } });
+                vocalFileName = await this.sceneEditor.uploadVocal({ ...messageResponse, message: { ...messageResponse.message, content: segment } }, this.renderProps.referenceAudio);
                 maxVocal--;
               }
               else {

@@ -1,5 +1,7 @@
 import type { Route } from "./+types/create";
+import MainWork from "@/components/module/workPlace/MainWork";
 import Work from "@/components/module/workPlace/work";
+import { useParams } from "react-router";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -12,7 +14,6 @@ export function meta(_args: Route.MetaArgs) {
 }
 
 export default function Create() {
-  return (
-    <Work />
-  );
+  const { editingStageId } = useParams();
+  return editingStageId ? <MainWork /> : <Work />;
 }

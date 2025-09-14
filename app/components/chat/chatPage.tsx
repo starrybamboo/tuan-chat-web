@@ -10,6 +10,7 @@ import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import CreateSpaceWindow from "@/components/chat/window/createSpaceWindow";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
+import { useScreenSize } from "@/components/common/customHooks/useScreenSize";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
@@ -17,7 +18,6 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import LeftChatList from "@/components/privateChat/components/Left​​ChatList​​";
 import RightChatView from "@/components/privateChat/components/RightChatView";
 import { AddIcon, Setting } from "@/icons";
-import { getScreenSize } from "@/utils/getScreenSize";
 import {
   useGetSpaceMembersQuery,
   useGetUserRoomsQueries,
@@ -40,11 +40,10 @@ export default function ChatPage() {
 
   const isPrivateChatMode = urlSpaceId === "private";
 
-  // const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useState(
-  //   !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (getScreenSize() === "sm" && !isPrivateChatMode),
-  // );
+  const screenSize = useScreenSize();
+
   const [isOpenLeftDrawer, setIsOpenLeftDrawer] = useState(
-    !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (getScreenSize() === "sm" && !isPrivateChatMode),
+    !(urlSpaceId && urlRoomId) || (!urlRoomId && isPrivateChatMode) || (screenSize === "sm" && !isPrivateChatMode),
   );
 
   const [storedIds, setStoredChatIds] = useLocalStorage<{ spaceId?: number | null; roomId?: number | null }>("storedChatIds", {});
@@ -60,13 +59,13 @@ export default function ChatPage() {
   const setActiveSpaceId = (spaceId: number | null) => {
     setStoredChatIds({ spaceId, roomId: null });
     const newSearchParams = new URLSearchParams(searchParam);
-    getScreenSize() === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
+    screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     navigate(`/chat/${spaceId ?? "private"}/${""}?${newSearchParams}`);
   };
   const setActiveRoomId = (roomId: number | null) => {
     setStoredChatIds({ spaceId: activeSpaceId, roomId });
     const newSearchParams = new URLSearchParams(searchParam);
-    getScreenSize() === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
+    screenSize === "sm" && newSearchParams.set("leftDrawer", `${isOpenLeftDrawer}`);
     navigate(`/chat/${activeSpaceId ?? "private"}/${roomId}?${searchParam}`);
   };
 
@@ -186,10 +185,10 @@ export default function ChatPage() {
     <SpaceContext value={spaceContext}>
       <div className="flex flex-row bg-base-100 flex-1 h-full relative">
         {/* 只有小屏才允许收起侧边栏 */}
-        <OpenAbleDrawer isOpen={getScreenSize() === "sm" ? isOpenLeftDrawer : true} className="h-full z-10 w-full bg-base-100">
+        <OpenAbleDrawer isOpen={screenSize === "sm" ? isOpenLeftDrawer : true} className="h-full z-10 w-full bg-base-100">
           <div className="h-full flex flex-row w-full md:w-max">
             {/* 空间列表 */}
-            <div className="flex flex-col p-2 gap-2 bg-base-300/40 h-full flex-wrap">
+            <div className="flex flex-col p-2 gap-2 bg-base-300/40 h-full overflow-y-auto overflow-x-hidden">
               {/* 私信入口 */}
               <div className="rounded w-10 relative">
                 <div
