@@ -4,7 +4,7 @@ import CollectionIconButton from "@/components/common/collection/collectionIconB
 import CommentPanel from "@/components/common/comment/commentPanel";
 import DislikeIconButton from "@/components/common/dislikeIconButton";
 import LikeIconButton from "@/components/common/likeIconButton";
-import ShareIconButton from "@/components/common/shareIconButton";
+import ShareIconButton from "@/components/common/share/shareIconButton";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import SlidableChatPreview from "@/components/community/slidableChatPreview";
 import { CommentOutline } from "@/icons";
