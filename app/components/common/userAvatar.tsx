@@ -42,13 +42,15 @@ export default function UserAvatarComponent({
   withName = false,
   stopPopWindow = false,
   uniqueKey,
+  clickEnterProfilePage = true,
 }: {
   userId: number;
   width: keyof typeof sizeMap; // 头像的宽度
   isRounded: boolean; // 是否是圆的
   withName?: boolean; // 是否显示名字
-  stopPopWindow?: boolean; // 点击后是否会产生userDetail弹窗
+  stopPopWindow?: boolean; // hover 是否会产生userDetail弹窗
   uniqueKey?: string; // 用于控制弹窗的唯一key，默认是userId
+  clickEnterProfilePage?: boolean; // 点击头像是否直接个人主页
 }) {
   const userQuery = useGetUserInfoQuery(userId);
   // 控制用户详情的popWindow
@@ -230,11 +232,28 @@ export default function UserAvatarComponent({
     >
       <div className="avatar">
         <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""}`}>
-          <img
-            src={userQuery.isPending || userQuery.error || !userQuery.data?.data?.avatar ? undefined : userQuery.data?.data?.avatar}
-            alt="Avatar"
-            className="hover:scale-110 transition-transform"
-          />
+          {clickEnterProfilePage
+            ? (
+                <a
+                  href={`/profile/${userId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xl font-semibold hover:underline cursor-pointer truncate max-w-xs"
+                >
+                  <img
+                    src={userQuery.isPending || userQuery.error || !userQuery.data?.data?.avatar ? undefined : userQuery.data?.data?.avatar}
+                    alt="Avatar"
+                    className="hover:scale-110 transition-transform"
+                  />
+                </a>
+              )
+            : (
+                <img
+                  src={userQuery.isPending || userQuery.error || !userQuery.data?.data?.avatar ? undefined : userQuery.data?.data?.avatar}
+                  alt="Avatar"
+                  className="hover:scale-110 transition-transform"
+                />
+              )}
         </div>
       </div>
       {withName && (
