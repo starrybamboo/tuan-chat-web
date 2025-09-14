@@ -255,17 +255,17 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
               {/* 操作栏 */}
               <div className="flex items-center justify-center space-x-8 py-4 border-t border-base-300 bg-base-50">
                 <div
-                  className="flex items-center space-x-2 text-base transition-colors px-4 py-2 rounded-full text-error bg-error/10"
+                  className="flex items-center space-x-2 text-base transition-colors px-4 py-2 rounded-full"
                 >
                   <LikeIconButton
                     targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "4" }}
-                    className="w-10 h-6"
+                    className="w-10 h-6 cursor-pointer"
                     direction="row"
                   />
                 </div>
 
                 <div
-                  className="flex items-center space-x-2 text-base text-base-content/70 text-primary bg-primary/10 transition-colors px-4 py-2 rounded-full"
+                  className="flex items-center space-x-2 text-base px-4 py-2 rounded-full"
                 >
                   <CommentOutline className="h-6 w-5" />
                   <span className="font-medium">

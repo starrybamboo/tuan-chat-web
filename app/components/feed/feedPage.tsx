@@ -1,6 +1,6 @@
 import type { FeedWithStats } from "@/types/feedTypes";
 import type { FeedPageRequest, PostListResponse, PostStatsResponse } from "api";
-import FeedPreview from "@/components/feed/feedPreview";
+import PostsCard from "@/components/activities/cards/postsCard";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { tuanchat } from "api/instance";
@@ -101,10 +101,11 @@ export default function FeedPage() {
             >
               {feed.stats?.postId
                 ? (
-                    <FeedPreview
-                      feed={feed.response}
+                    <PostsCard
+                      data={feed.response}
                       stats={feed.stats}
                       onDislike={() => handleDislike(feed.stats!.postId)}
+                      type="feed"
                     />
                   )
                 : (
