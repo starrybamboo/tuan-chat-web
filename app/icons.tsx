@@ -1476,7 +1476,6 @@ export function ArrowBackThickFill(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 // 链接图标
 export function Link(props: SVGProps<SVGSVGElement>) {
   return (
@@ -1500,7 +1499,6 @@ export function Link(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-
 // 三个向上小箭头图标（带动画效果）
 // 其他关键词：更多，展开，加载更多，提交
 export function ChevronSmallTripleUp(props: SVGProps<SVGSVGElement>) {
