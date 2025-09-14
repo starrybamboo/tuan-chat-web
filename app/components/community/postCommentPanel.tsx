@@ -54,16 +54,16 @@ export default function PostCommentPanel({
  */
 function PostCommentComponent({
   comment,
-  onReply,
+  // onReply,
 }: {
   comment: CommentVO;
   onReply?: (userName: string, commentId: number) => void;
 }) {
-  const handleReply = () => {
-    if (onReply && comment.userInfo?.userName && comment.commentId) {
-      onReply(comment.userInfo.userName, comment.commentId);
-    }
-  };
+  // const handleReply = () => {
+  //   if (onReply && comment.userInfo?.userName && comment.commentId) {
+  //     onReply(comment.userInfo.userName, comment.commentId);
+  //   }
+  // };
 
   return (
     <div className="mb-4">
@@ -71,7 +71,7 @@ function PostCommentComponent({
       <CommentComponent comment={comment} />
 
       {/* 添加回复按钮 */}
-      <div className="ml-12 mt-2">
+      {/* <div className="ml-12 mt-2">
         <button
           type="button"
           className="text-sm text-gray-500 hover:text-primary transition-colors"
@@ -79,7 +79,7 @@ function PostCommentComponent({
         >
           回复
         </button>
-      </div>
+      </div> */}
     </div>
   );
 }
