@@ -61,7 +61,7 @@ export default function LikeIconButton({
         className={
           isLiked
             ? "fill-pink-400 stroke-pink-400 dark:fill-pink-500 dark:stroke-pink-500"
-            : "stroke-gray-600 dark:fill-gray-700 dark:stroke-gray-500"
+            : "dark:fill-gray-700"
         }
         style={{ transition: "all 0.2s ease" }}
       />
@@ -112,7 +112,7 @@ export default function LikeIconButton({
 
       <span className={`w-4 ${isLiked
         ? "text-pink-400 dark:text-pink-500"
-        : "text-gray-600"}`}
+        : ""}`}
       >
         {likeCountQuery.isLoading && likeCount === undefined
           ? "..."
