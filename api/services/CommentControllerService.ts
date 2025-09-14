@@ -140,7 +140,7 @@ export class CommentControllerService {
      */
     public getCommentCount(
         targetId: number,
-        targetType: string,
+        targetType: number,
     ): CancelablePromise<ApiResultInteger> {
         return this.httpRequest.request({
             method: 'GET',

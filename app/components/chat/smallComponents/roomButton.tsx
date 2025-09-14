@@ -10,7 +10,7 @@ export default function RoomButton({ room, unreadMessageNumber, onclick, isActiv
   return (
     <button
       key={room.roomId}
-      className={`font-bold text-sm rounded-lg p-1 flex justify-start items-center flex-1 gap-2
+      className={`font-bold text-sm rounded-lg p-1 flex justify-start items-center gap-2 w-full
                                min-w-0 ${isActive ? "bg-info-content/30" : "hover:bg-base-300"}`}
       type="button"
       onClick={onclick}
