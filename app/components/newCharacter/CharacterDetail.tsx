@@ -4,6 +4,7 @@ import type { Role } from "./types";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
+import AudioUploadModal from "./AudioUploadModal";
 import CharacterAvatar from "./CharacterAvatar";
 import ExpansionModule from "./rules/ExpansionModule";
 import RulesSection from "./rules/RulesSection";
@@ -57,9 +58,13 @@ export default function CharacterDetail({
   const [isRuleLoading, setIsRuleLoading] = useState(false);
   const [isExpansionLoading, setIsExpansionLoading] = useState(true); // <--- 新增这一行, 默认为 true
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false); // 规则选择弹窗状态
+  const [isAudioModalOpen, setIsAudioModalOpen] = useState(false); // 音频上传弹窗状态
 
   // 获取当前规则详情
   const { data: currentRuleData } = useRuleDetailQuery(selectedRuleId);
+  // 接口部分
+  // 发送post数据部分,保存角色数据
+  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
 
   // 处理规则变更
   const handleRuleChange = (newRuleId: number) => {
@@ -73,6 +78,31 @@ export default function CharacterDetail({
   // 打开规则选择弹窗
   const handleOpenRuleModal = () => {
     setIsRuleModalOpen(true);
+  };
+
+  // 打开音频上传弹窗
+  const handleOpenAudioModal = () => {
+    setIsAudioModalOpen(true);
+  };
+
+  // 处理音频上传成功
+  const handleAudioUploadSuccess = (audioUrl: string) => {
+    // 更新本地角色状态，添加音频URL
+    const updatedRole = {
+      ...localRole,
+      voiceUrl: audioUrl,
+    };
+    setLocalRole(updatedRole);
+
+    // 使用updateRole保存到后端
+    updateRole(updatedRole, {
+      onSuccess: () => {
+        // console.log("音频文件上传并保存成功:", audioUrl);
+      },
+      onError: (error) => {
+        console.error("保存音频URL失败:", error);
+      },
+    });
   };
 
   // 当切换到不同角色时，更新本地状态
@@ -124,9 +154,6 @@ export default function CharacterDetail({
     }
   }, [isSuccess, roleAvatarsResponse, localRole.avatarId]);
 
-  // 接口部分
-  // 发送post数据部分,保存角色数据
-  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
   // 干净的文本
   const cleanText = (text: string) => {
     if (!text)
@@ -381,14 +408,14 @@ export default function CharacterDetail({
                             角色ID号：
                             {localRole.id}
                           </p>
-                          <p>
+                          {/* <p>
                             采用模型：
                             {localRole.modelName || "暂无描述"}
                           </p>
                           <p>
                             语音来源：
                             {localRole.speakerName || "暂无描述"}
-                          </p>
+                          </p> */}
                         </div>
                       </>
                     )}
@@ -401,10 +428,10 @@ export default function CharacterDetail({
             <div>
               <div className="divider p-4 my-0" />
               <div
-                className="card bg-base-100 rounded-2xl cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200"
+                className="card bg-base-100 rounded-2xl cursor-pointer transition-all duration-200"
                 onClick={handleOpenRuleModal}
               >
-                <div className="card-body p-4">
+                <div className="card-body p-4 hover:bg-base-300">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -429,6 +456,38 @@ export default function CharacterDetail({
                   </div>
                 </div>
               </div>
+              <div className="divider p-4 my-0" />
+
+              {/* 音频上传卡片 */}
+              <div
+                className="card bg-base-100 rounded-2xl cursor-pointer transition-all duration-200 mb-4"
+                onClick={handleOpenAudioModal}
+              >
+                <div className="card-body p-4 hover:bg-base-300">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm">上传音频</h3>
+                        <p className="text-secondary font-medium text-sm">
+                          用于AI生成角色音色
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-base-content/50">
+                      <span className="text-xs">上传</span>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -545,6 +604,13 @@ export default function CharacterDetail({
           </div>
         </div>
       )}
+
+      {/* 音频上传弹窗 */}
+      <AudioUploadModal
+        isOpen={isAudioModalOpen}
+        onClose={() => setIsAudioModalOpen(false)}
+        onSuccess={handleAudioUploadSuccess}
+      />
     </div>
   );
 }

@@ -17,6 +17,7 @@ import type { RoomAddRequest } from './models/RoomAddRequest';
 // import type { RoleAbilityTable } from './models/RoleAbilityTable';
 import type { RoleAvatar } from './models/RoleAvatar';
 import type { RoleAvatarCreateRequest } from './models/RoleAvatarCreateRequest';
+import type { RoleUpdateRequest } from './models/RoleUpdateRequest';
 import type { UserLoginRequest } from './models/UserLoginRequest';
 import type { UserRegisterRequest } from './models/UserRegisterRequest';
 import type { RolePageQueryRequest } from './models/RolePageQueryRequest'
@@ -53,6 +54,7 @@ import {
   type RoleCreateRequest
 } from "api";
 import { use } from 'react';
+import type { Role } from '@/components/newCharacter/types';
 
 // ==================== 角色管理 ====================
 /**
@@ -72,7 +74,7 @@ export function useGetRoleQuery(roleId: number) {
  * 更新角色信息（带本地角色状态）
  * @param onSave 保存成功的回调函数，接收本地角色状态
  */
-export function useUpdateRoleWithLocalMutation(onSave: (localRole: any) => void) {
+export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["UpdateRole"],
@@ -83,6 +85,9 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: any) => void)
           roleName: data.name,
           description: data.description,
           avatarId: data.avatarId,
+          modelName: data.modelName,
+          speakerName: data.speakerName,
+          voiceUrl: data.voiceUrl,
         });
         return updateRes;
       }
