@@ -1,164 +1,152 @@
-# TTS API 前端接口
+# TTS API 客户端
 
-这个模块为IndexTTS后端提供了完整的TypeScript前端接口。
+这个目录包含了与 IndexTTS2 后端服务通信的前端 API 客户端代码。
 
-## 文件结构
+## 文件说明
 
-- `apis.ts` - 核心API接口定义和HTTP客户端
-- `index.ts` - 模块入口文件，导出所有类型和工具函数
-- `hooks.tsx` - React Query hooks，用于在React组件中使用TTS功能
+- `apis.ts` - 主要的 API 接口定义和客户端类
+- `examples.ts` - 使用示例和工具函数
+- `README.md` - 本说明文件
 
-## 使用方法
+## 快速开始
 
-### 1. 基本使用
+### 1. 创建 API 实例
 
 ```typescript
-import { ttsApi, createDefaultTTSRequest, EmoControlMethod } from "@/tts";
+import { createTTSApi } from './apis';
 
-// 上传音频文件
-const uploadResult = await ttsApi.uploadFile(audioFile);
-console.log(uploadResult.fileId);
-
-// 创建TTS任务
-const ttsRequest = {
-  ...createDefaultTTSRequest(uploadResult.fileId, "你好，这是一个测试文本。"),
-  emoControlMethod: EmoControlMethod.NONE,
-  async_mode: true
-};
-
-const result = await ttsApi.createTTS(ttsRequest);
-console.log(result.jobId);
+// 创建 TTS API 实例（默认连接到 localhost:9000）
+const ttsApi = createTTSApi('http://localhost:9000');
 ```
 
-### 2. 使用React Hooks
+### 2. 基础文本转语音
 
 ```typescript
-import { 
-  useUploadFile, 
-  useCreateTTS, 
-  useTTSJobPolling,
-  useHealthCheck
-} from "@/tts/hooks";
+import type { InferRequest } from './apis';
 
-function TTSComponent() {
-  const { data: health, isLoading: healthLoading } = useHealthCheck();
-  const uploadMutation = useUploadFile();
-  const createTTSMutation = useCreateTTS();
-  const { 
-    status, 
-    isCompleted, 
-    isSucceeded, 
-    progress, 
-    audioUrl 
-  } = useTTSJobPolling(jobId);
+const request: InferRequest = {
+  text: "你好，这是一个测试。",
+  prompt_audio_path: "examples/voice_01.wav", // 音色参考音频
+  return_audio_base64: true, // 返回 base64 编码的音频
+};
 
-  // 使用hooks...
+const result = await ttsApi.infer(request);
+console.log('生成结果:', result);
+```
+
+### 3. 情感控制
+
+```typescript
+// 使用情感向量
+const emotionRequest: InferRequest = {
+  text: "今天真是太开心了！",
+  prompt_audio_path: "examples/voice_01.wav",
+  emo_mode: 2, // 情感向量模式
+  emo_vector: [0.8, 0.1, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0], // 喜悦情感
+  return_audio_base64: true,
+};
+
+// 使用情感描述文本
+const textEmotionRequest: InferRequest = {
+  text: "这让我感到很难过。",
+  prompt_audio_path: "examples/voice_01.wav",
+  emo_mode: 3, // 情感文本模式
+  emo_text: "悲伤，失落，沮丧",
+  return_audio_base64: true,
+};
+```
+
+## API 接口
+
+### 主要接口
+
+- `health()` - 健康检查
+- `debug()` - 获取调试信息  
+- `modelInfo()` - 获取模型信息
+- `infer(request)` - 文本转语音推理
+- `segment(request)` - 文本分句
+- `examples()` - 获取示例数据
+- `config()` - 获取系统配置
+
+### 情感控制模式
+
+- `0` - 与音色参考音频相同的情感
+- `1` - 使用情感参考音频
+- `2` - 使用情感向量控制
+- `3` - 使用情感描述文本控制
+
+### 情感向量
+
+8 维向量，对应以下情感：
+- `[0]` 喜 (joy)
+- `[1]` 怒 (anger)  
+- `[2]` 哀 (sadness)
+- `[3]` 惧 (fear)
+- `[4]` 厌恶 (disgust)
+- `[5]` 低落 (low)
+- `[6]` 惊喜 (surprise)
+- `[7]` 平静 (calm)
+
+## 工具函数
+
+### 音频处理
+
+```typescript
+import { base64ToAudioUrl, downloadBase64Audio, playBase64Audio } from './examples';
+
+// 将 base64 转换为音频 URL
+const audioUrl = base64ToAudioUrl(audioBase64);
+
+// 下载音频文件
+downloadBase64Audio(audioBase64, 'my_audio.wav');
+
+// 直接播放音频
+const audio = playBase64Audio(audioBase64);
+```
+
+## 配置说明
+
+### 默认参数
+
+- `temperature: 0.8` - 控制生成的随机性
+- `top_p: 0.8` - nucleus sampling 参数
+- `top_k: 30` - top-k sampling 参数
+- `num_beams: 3` - beam search 数量
+- `repetition_penalty: 10.0` - 重复惩罚
+
+### 限制
+
+- 情感向量和不能超过 1.5
+- 情感权重最大值 1.6
+- 最大文本 tokens 通常为 400
+- 最大 Mel tokens 通常为 1500
+
+## 错误处理
+
+```typescript
+try {
+  const result = await ttsApi.infer(request);
+  // 处理成功结果
+} catch (error) {
+  console.error('TTS 请求失败:', error);
+  // 处理错误
 }
 ```
-
-### 3. 情感控制方法
-
-```typescript
-import { EmoControlMethod } from "@/tts";
-
-// 无情感控制
-const request1 = {
-  emoControlMethod: EmoControlMethod.NONE,
-  // ...
-};
-
-// 使用参考音频控制情感
-const request2 = {
-  emoControlMethod: EmoControlMethod.REFERENCE,
-  emoRefFileId: "uploaded-reference-file-id",
-  emoWeight: 0.8,
-  // ...
-};
-
-// 使用情感向量控制
-const request3 = {
-  emoControlMethod: EmoControlMethod.VECTOR,
-  emoVec: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8], // 8个浮点数
-  // ...
-};
-
-// 使用文本描述控制情感
-const request4 = {
-  emoControlMethod: EmoControlMethod.TEXT,
-  emoText: "高兴的、激动的",
-  // ...
-};
-```
-
-### 4. 任务状态监控
-
-```typescript
-import { useTTSJobPolling, JobStatus } from "@/tts";
-
-function TaskMonitor({ jobId }: { jobId: string }) {
-  const {
-    status,
-    isInProgress,
-    isCompleted,
-    isSucceeded,
-    isFailed,
-    progress,
-    stage,
-    audioUrl,
-    errorMessage
-  } = useTTSJobPolling(jobId);
-
-  if (isInProgress) {
-    return <div>进度: {progress}% - {stage}</div>;
-  }
-
-  if (isSucceeded && audioUrl) {
-    return <audio src={audioUrl} controls />;
-  }
-
-  if (isFailed) {
-    return <div>错误: {errorMessage}</div>;
-  }
-
-  return <div>等待中...</div>;
-}
-```
-
-## 环境变量
-
-确保在`.env`文件中设置TTS后端URL：
-
-```
-VITE_TTS_URL=http://localhost:8000
-```
-
-## API 接口说明
-
-### 核心接口
-
-- `healthCheck()` - 健康检查
-- `uploadFile(file)` - 上传音频文件
-- `getSegments(request)` - 文本分段
-- `createTTS(request)` - 创建TTS任务
-- `getTTSStatus(jobId)` - 获取任务状态
-- `getTTSJobs()` - 获取所有任务
-- `downloadFile(filename)` - 下载音频文件
-
-### 主要类型
-
-- `TTSRequest` - TTS请求参数
-- `TTSJobStatus` - 任务状态
-- `GenerationParams` - 生成参数
-- `SegmentsRequest/Response` - 文本分段相关
-
-### 工具函数
-
-- `createDefaultGenerationParams()` - 创建默认生成参数
-- `createDefaultTTSRequest(promptFileId, text)` - 创建默认TTS请求
 
 ## 注意事项
 
-1. 所有API调用都会抛出异常，需要适当的错误处理
-2. 异步模式下，需要通过轮询获取任务状态
-3. 上传的音频文件应该是支持的格式（wav、mp3、flac、m4a）
-4. 情感向量必须是8个浮点数的数组
+1. 确保后端服务正在运行（默认端口 9000）
+2. 音频文件路径需要是服务器可访问的路径
+3. base64 音频数据可能很大，注意内存使用
+4. 长文本建议先使用 `segment()` 接口分句处理
+5. 生成质量受音色参考音频质量影响
+
+## 完整示例
+
+查看 `examples.ts` 文件获取完整的使用示例，包括：
+
+- 基础 TTS 推理
+- 高级情感控制
+- 文本分句处理
+- 系统信息获取
+- 音频播放和下载
