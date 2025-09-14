@@ -516,7 +516,7 @@ export default function ModuleHome() {
             </div>
             <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10">
               {(() => {
-                if (ModuleList.isLoading || !imagesReady) {
+                if (ModuleList.isLoading || (currentItems.length !== 0 && !imagesReady)) {
                   return Array.from({ length: 8 }, (_, index) => (
                     <div key={`loading-skeleton-${index}-${Math.random()}`} className="animate-pulse">
                       <div className="bg-base-300 aspect-square rounded-none mb-4"></div>
