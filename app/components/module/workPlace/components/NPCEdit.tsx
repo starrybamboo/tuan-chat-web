@@ -9,14 +9,16 @@ import { useQueryEntitiesQuery, useUpdateEntityMutation, useUploadModuleRoleAvat
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
 import { useDeleteRoleAvatarMutation } from "api/queryHooks";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useModuleContext } from "../context/_moduleContext";
 
 interface NPCEditProps {
   role: StageEntityResponse;
+  // allow parent to register this edit's save handler
+  onRegisterSave?: (fn: () => void) => void;
 }
 
-export default function NPCEdit({ role }: NPCEditProps) {
+export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
   // 接入接口
   const { mutate: updateRoleAvatar } = useUploadModuleRoleAvatarMutation();
   const { mutate: deleteAvatar } = useDeleteRoleAvatarMutation();
@@ -29,7 +31,6 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const [localRole, setLocalRole] = useState({ ...entityInfo });
   const [ability, setAbility] = useState(entityInfo.ability || {});
   const [name, setName] = useState(role.name);
-  const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [charCount, setCharCount] = useState(entityInfo.description?.length || 0);
 
@@ -50,43 +51,74 @@ export default function NPCEdit({ role }: NPCEditProps) {
   // 规则能力搜索框
   const [abilitySearchQuery, setAbilitySearchQuery] = useState("");
 
-  useEffect(() => {
-    if (role) {
-      setLocalRole({ ...entityInfo });
-      setAbility(entityInfo.ability || {});
-      setCharCount(entityInfo.description?.length || 0);
-      setName(role.name);
-    }
-  }, [entityInfo, role]);
+  // 不再使用编辑模式/同步 props 到 state 的副作用，初始值已从 props 派生
 
   // 接入接口
   const { mutate: updateRole } = useUpdateEntityMutation(stageId as number);
 
+  // 引用最新状态，供防抖保存时使用
+  const localRoleRef = useRef(localRole);
+  const abilityRef = useRef(ability);
+  const nameRef = useRef(name);
+  useEffect(() => {
+    localRoleRef.current = localRole;
+  }, [localRole]);
+  useEffect(() => {
+    abilityRef.current = ability;
+  }, [ability]);
+  useEffect(() => {
+    nameRef.current = name;
+  }, [name]);
+
   const handleSave = () => {
     setIsTransitioning(true);
     setTimeout(() => {
-      const updatedRole = { ...localRole, ability };
+      const updatedRole = { ...localRoleRef.current, ability: abilityRef.current };
       setIsTransitioning(false);
-      setIsEditing(false);
       const oldName = role.name;
-      if (name !== oldName) {
+      if (nameRef.current !== oldName) {
         removeModuleTabItem(role.id!.toString());
         // 同步更新scene
         const newScenes = sceneEntities?.map((scene) => {
-          const newRoles = scene.entityInfo?.roles.map((role: string | undefined) => role === oldName ? name : role);
+          const newRoles = scene.entityInfo?.roles.map((role: string | undefined) => role === oldName ? nameRef.current : role);
           return { ...scene, entityInfo: { ...scene.entityInfo, roles: newRoles } };
         });
         newScenes?.forEach(scene => updateRole({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
       }
-      updateRole({ id: role.id!, entityType: 2, entityInfo: updatedRole, name });
+      updateRole({ id: role.id!, entityType: 2, entityInfo: updatedRole, name: nameRef.current });
     }, 300);
   };
 
-  const handleEdit = () => setIsEditing(true);
-  const handleCancel = () => {
-    setLocalRole({ ...entityInfo, name: role.name! });
-    setIsEditing(false);
+  // 对外注册保存函数（保持稳定引用，避免依赖 handleSave）
+  const saveRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    saveRef.current = handleSave;
+  });
+  useEffect(() => {
+    if (onRegisterSave) {
+      onRegisterSave(() => saveRef.current());
+    }
+  }, [onRegisterSave]);
+
+  // 自动保存防抖（在 handleSave 定义之后，避免使用前定义）
+  const saveTimer = useRef<NodeJS.Timeout | null>(null);
+  const scheduleSave = () => {
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+    }
+    saveTimer.current = setTimeout(() => {
+      handleSave();
+    }, 8000);
   };
+
+  // 组件卸载时清理未触发的自动保存定时器
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+      }
+    };
+  }, []);
 
   // 处理添加能力
   const handleAddAbilities = () => {
@@ -254,8 +286,10 @@ export default function NPCEdit({ role }: NPCEditProps) {
     }
   }
 
+  // register handled above using saveRef to keep a stable reference
+
   return (
-    <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
+    <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""} relative`}>
       <PopWindow isOpen={changeAvatarConfirmOpen} onClose={handleCancelChangeAvatar}>
         <div className="h-full w-full flex flex-col">
           <div className="flex flex-col md:flex-row gap-4 min-h-0 justify-center">
@@ -281,7 +315,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
               <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center">
                 {roleAvatars.map((item, index) => (
                   <li
-                    key={`${item}`}
+                    key={`${item.avatarId ?? index}`}
                     className="relative w-full max-w-[128px] flex flex-col items-center rounded-lg transition-colors"
                     onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
                   >
@@ -290,26 +324,18 @@ export default function NPCEdit({ role }: NPCEditProps) {
                       <img
                         src={item.avatarUrl || "/favicon.ico"}
                         alt="头像"
-                        className={`w-full h-full object-contain rounded-lg transition-all duration-300 group-hover:scale-105 ${item === copperedUrl ? "border-2 border-primary" : "border"}`}
+                        className={`w-full h-full object-contain rounded-lg transition-all duration-300 group-hover:scale-105 ${item.avatarUrl === copperedUrl ? "border-2 border-primary" : "border"}`}
                       />
-                      {/* 删除按钮  */}
                       <button
-                        className="absolute -top-2 -right-2 w-5 h-5 md:w-7 md:h-7 bg-gray-700 md:bg-gray-500/50 cursor-pointer text-white rounded-full flex items-center justify-center md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:bg-gray-800 z-2"
+                        type="button"
+                        className="absolute top-1 right-1 btn btn-error btn-xs"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteAvatar(index);
                         }}
-                        type="button"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
-                          <path
-                            fill="currentColor"
-                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-                          />
-                        </svg>
+                        ✕
                       </button>
-                      {/* 添加悬浮遮罩 */}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 rounded-lg"></div>
                     </div>
                   </li>
                 ))}
@@ -335,7 +361,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
                       });
                     }}
                   >
-                    <button className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group">
+                    <button type="button" className="w-full h-full flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary hover:bg-base-200 transition-all cursor-pointer relative group">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         className="w-full h-full text-gray-400 transition-transform duration-300 group-hover:scale-105"
@@ -400,82 +426,74 @@ export default function NPCEdit({ role }: NPCEditProps) {
 
       </PopWindow>
       {/* 基础信息卡片 */}
-      <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
+      <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <div className="flex items-center gap-8">
+          <div className="flex items-start gap-8">
             {/* 头像 */}
             <div onClick={() => setChangeAvatarConfirmOpen(true)}><RoleAvatar avatarId={localRole.avatarId || (localRole.avatarIds && localRole.avatarIds.length > 0 ? localRole.avatarIds[0] : 0)} width={36} isRounded={false} stopPopWindow={true} /></div>
             {/* 右侧内容 */}
             <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
-              {isEditing
-                ? (
-                    <>
-                      <p>角色名：</p>
-                      <input
-                        type="text"
-                        value={name || ""}
-                        onChange={e => setName(e.target.value)}
-                        placeholder="角色名"
-                        className="input input-bordered w-full text-lg font-bold"
-                      />
-                      <p>简介：</p>
-                      <textarea
-                        value={localRole.description || ""}
-                        onChange={(e) => {
-                          setLocalRole(prev => ({ ...prev, description: e.target.value }));
-                          setCharCount(e.target.value.length);
-                        }}
-                        placeholder="角色描述"
-                        className="textarea textarea-bordered w-full h-24 resize-none"
-                      />
-                      <div className="text-right mt-1">
-                        <span
-                          className={`text-sm font-bold ${charCount > MAX_DESCRIPTION_LENGTH
-                            ? "text-error"
-                            : "text-base-content/70"
-                          }`}
-                        >
-                          {charCount}
-                          /
-                          {MAX_DESCRIPTION_LENGTH}
-                          {charCount > MAX_DESCRIPTION_LENGTH && (
-                            <span className="ml-2">(已超出描述字数上限)</span>
-                          )}
-                        </span>
-                      </div>
-                      <p>模型名：</p>
-                      <input
-                        type="text"
-                        value={localRole.modelName || ""}
-                        onChange={e => setLocalRole(prev => ({ ...prev, modelName: e.target.value }))}
-                        placeholder="模型名"
-                        className="input input-bordered w-full"
-                      />
-                      <p>类型（0=NPC, 1=预设卡）：</p>
-                      <input
-                        type="number"
-                        value={localRole.type ?? ""}
-                        onChange={e => setLocalRole(prev => ({ ...prev, type: Number(e.target.value) }))}
-                        placeholder="类型"
-                        className="input input-bordered w-full"
-                      />
-                    </>
-                  )
-                : (
-                    <>
-                      <h2 className="card-title text-2xl">{role.name || "未命名角色"}</h2>
-                      <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden">
-                        {localRole.description || "暂无描述"}
-                      </p>
-                      <p className="text-base-content/70 whitespace-pre-wrap break-words max-w-full overflow-hidden">
-                        采用模型：
-                        {localRole.modelName || "暂无"}
-                        <br />
-                        类型：
-                        {localRole.type === 0 ? "NPC" : localRole.type === 1 ? "预设卡" : "未知"}
-                      </p>
-                    </>
-                  )}
+              <>
+                <p>角色名：</p>
+                <input
+                  type="text"
+                  value={name || ""}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    scheduleSave();
+                  }}
+                  placeholder="角色名"
+                  className="input input-bordered w-full text-lg font-bold"
+                />
+                <p>简介：</p>
+                <textarea
+                  value={localRole.description || ""}
+                  onChange={(e) => {
+                    setLocalRole(prev => ({ ...prev, description: e.target.value }));
+                    setCharCount(e.target.value.length);
+                    scheduleSave();
+                  }}
+                  placeholder="角色描述"
+                  className="textarea textarea-bordered w-full h-24 resize-none"
+                />
+                <div className="text-right mt-1">
+                  <span
+                    className={`text-sm font-bold ${charCount > MAX_DESCRIPTION_LENGTH
+                      ? "text-error"
+                      : "text-base-content/70"
+                    }`}
+                  >
+                    {charCount}
+                    /
+                    {MAX_DESCRIPTION_LENGTH}
+                    {charCount > MAX_DESCRIPTION_LENGTH && (
+                      <span className="ml-2">(已超出描述字数上限)</span>
+                    )}
+                  </span>
+                </div>
+                <p>模型名：</p>
+                <input
+                  type="text"
+                  value={localRole.modelName || ""}
+                  onChange={(e) => {
+                    setLocalRole(prev => ({ ...prev, modelName: e.target.value }));
+                    scheduleSave();
+                  }}
+                  placeholder="模型名"
+                  className="input input-bordered w-full"
+                />
+                <p>类型（0=NPC, 1=预设卡）：</p>
+                <input
+                  type="number"
+                  value={localRole.type ?? ""}
+                  onChange={(e) => {
+                    setLocalRole(prev => ({ ...prev, type: Number(e.target.value) }));
+                    scheduleSave();
+                  }}
+                  placeholder="类型"
+                  className="input input-bordered w-full"
+                />
+              </>
             </div>
           </div>
           {/* 六大属性展示区 */}
@@ -507,55 +525,6 @@ export default function NPCEdit({ role }: NPCEditProps) {
               </div>
             </div>
           </div>
-          {/* 操作按钮 */}
-          <div className="card-actions justify-end">
-            {isEditing
-              ? (
-                  <>
-                    <button
-                      type="submit"
-                      onClick={handleSave}
-                      className={`btn btn-primary ${isTransitioning ? "scale-95" : ""}`}
-                      disabled={isTransitioning}
-                    >
-                      {isTransitioning
-                        ? (
-                            <span className="loading loading-spinner loading-xs"></span>
-                          )
-                        : (
-                            <span className="flex items-center gap-1">
-                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                              </svg>
-                              保存
-                            </span>
-                          )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCancel}
-                      className="btn btn-secondary ml-2"
-                    >
-                      取消
-                    </button>
-                  </>
-                )
-              : (
-                  <button
-                    type="button"
-                    onClick={handleEdit}
-                    className="btn btn-accent"
-                  >
-                    <span className="flex items-center gap-1">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                        <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                        <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                      </svg>
-                      编辑
-                    </span>
-                  </button>
-                )}
-          </div>
           {/* 属性表格区域，UI参考NumericalEditor */}
           <div className="mt-6">
             <h3 className="font-bold mb-2 w-full border-b-2">角色属性</h3>
@@ -572,162 +541,135 @@ export default function NPCEdit({ role }: NPCEditProps) {
                   <tr>
                     <td className="text-center font-bold">力量</td>
                     <td className="text-center">
-                      {isEditing
-                        ? (
-                            <input
-                              type="number"
-                              className="input input-bordered input-sm w-20 text-center"
-                              value={ability.str ?? ""}
-                              onChange={e => setAbility((prev: any) => ({ ...prev, str: Number(e.target.value) }))}
-                            />
-                          )
-                        : (
-                            <span className="font-bold text-lg">{ability.str ?? "-"}</span>
-                          )}
+                      <input
+                        type="number"
+                        className="input input-bordered input-sm w-20 text-center"
+                        value={ability.str ?? ""}
+                        onChange={(e) => {
+                          setAbility((prev: any) => ({ ...prev, str: Number(e.target.value) }));
+                          scheduleSave();
+                        }}
+                      />
                     </td>
                     <td className="text-center text-xs text-gray-500">STR</td>
                   </tr>
                   <tr>
                     <td className="text-center font-bold">敏捷</td>
                     <td className="text-center">
-                      {isEditing
-                        ? (
-                            <input
-                              type="number"
-                              className="input input-bordered input-sm w-20 text-center"
-                              value={ability.dex ?? ""}
-                              onChange={e => setAbility((prev: any) => ({ ...prev, dex: Number(e.target.value) }))}
-                            />
-                          )
-                        : (
-                            <span className="font-bold text-lg">{ability.dex ?? "-"}</span>
-                          )}
+                      <input
+                        type="number"
+                        className="input input-bordered input-sm w-20 text-center"
+                        value={ability.dex ?? ""}
+                        onChange={(e) => {
+                          setAbility((prev: any) => ({ ...prev, dex: Number(e.target.value) }));
+                          scheduleSave();
+                        }}
+                      />
                     </td>
                     <td className="text-center text-xs text-gray-500">DEX</td>
                   </tr>
                   <tr>
                     <td className="text-center font-bold">意志</td>
                     <td className="text-center">
-                      {isEditing
-                        ? (
-                            <input
-                              type="number"
-                              className="input input-bordered input-sm w-20 text-center"
-                              value={ability.pow ?? ""}
-                              onChange={e => setAbility((prev: any) => ({ ...prev, pow: Number(e.target.value) }))}
-                            />
-                          )
-                        : (
-                            <span className="font-bold text-lg">{ability.pow ?? "-"}</span>
-                          )}
+                      <input
+                        type="number"
+                        className="input input-bordered input-sm w-20 text-center"
+                        value={ability.pow ?? ""}
+                        onChange={(e) => {
+                          setAbility((prev: any) => ({ ...prev, pow: Number(e.target.value) }));
+                          scheduleSave();
+                        }}
+                      />
                     </td>
                     <td className="text-center text-xs text-gray-500">POW</td>
                   </tr>
                   <tr>
                     <td className="text-center font-bold">体质</td>
                     <td className="text-center">
-                      {isEditing
-                        ? (
-                            <input
-                              type="number"
-                              className="input input-bordered input-sm w-20 text-center"
-                              value={ability.con ?? ""}
-                              onChange={e => setAbility((prev: any) => ({ ...prev, con: Number(e.target.value) }))}
-                            />
-                          )
-                        : (
-                            <span className="font-bold text-lg">{ability.con ?? "-"}</span>
-                          )}
+                      <input
+                        type="number"
+                        className="input input-bordered input-sm w-20 text-center"
+                        value={ability.con ?? ""}
+                        onChange={(e) => {
+                          setAbility((prev: any) => ({ ...prev, con: Number(e.target.value) }));
+                          scheduleSave();
+                        }}
+                      />
                     </td>
                     <td className="text-center text-xs text-gray-500">CON</td>
                   </tr>
                   <tr>
                     <td className="text-center font-bold">外貌</td>
                     <td className="text-center">
-                      {isEditing
-                        ? (
-                            <input
-                              type="number"
-                              className="input input-bordered input-sm w-20 text-center"
-                              value={ability.app ?? ""}
-                              onChange={e => setAbility((prev: any) => ({ ...prev, app: Number(e.target.value) }))}
-                            />
-                          )
-                        : (
-                            <span className="font-bold text-lg">{ability.app ?? "-"}</span>
-                          )}
+                      <input
+                        type="number"
+                        className="input input-bordered input-sm w-20 text-center"
+                        value={ability.app ?? ""}
+                        onChange={(e) => {
+                          setAbility((prev: any) => ({ ...prev, app: Number(e.target.value) }));
+                          scheduleSave();
+                        }}
+                      />
                     </td>
                     <td className="text-center text-xs text-gray-500">APP</td>
                   </tr>
                   <tr>
                     <td className="text-center font-bold">教育</td>
                     <td className="text-center">
-                      {isEditing
-                        ? (
-                            <input
-                              type="number"
-                              className="input input-bordered input-sm w-20 text-center"
-                              value={ability.edu ?? ""}
-                              onChange={e => setAbility((prev: any) => ({ ...prev, edu: Number(e.target.value) }))}
-                            />
-                          )
-                        : (
-                            <span className="font-bold text-lg">{ability.edu ?? localRole.ability?.edu ?? "-"}</span>
-                          )}
+                      <input
+                        type="number"
+                        className="input input-bordered input-sm w-20 text-center"
+                        value={ability.edu ?? ""}
+                        onChange={(e) => {
+                          setAbility((prev: any) => ({ ...prev, edu: Number(e.target.value) }));
+                          scheduleSave();
+                        }}
+                      />
                     </td>
                     <td className="text-center text-xs text-gray-500">EDU</td>
                   </tr>
                   <tr>
                     <td className="text-center font-bold">体型</td>
                     <td className="text-center">
-                      {isEditing
-                        ? (
-                            <input
-                              type="number"
-                              className="input input-bordered input-sm w-20 text-center"
-                              value={ability.siz ?? ""}
-                              onChange={e => setAbility((prev: any) => ({ ...prev, siz: Number(e.target.value) }))}
-                            />
-                          )
-                        : (
-                            <span className="font-bold text-lg">{ability.siz ?? "-"}</span>
-                          )}
+                      <input
+                        type="number"
+                        className="input input-bordered input-sm w-20 text-center"
+                        value={ability.siz ?? ""}
+                        onChange={(e) => {
+                          setAbility((prev: any) => ({ ...prev, siz: Number(e.target.value) }));
+                          scheduleSave();
+                        }}
+                      />
                     </td>
                     <td className="text-center text-xs text-gray-500">SIZ</td>
                   </tr>
                   <tr>
                     <td className="text-center font-bold">智力</td>
                     <td className="text-center">
-                      {isEditing
-                        ? (
-                            <input
-                              type="number"
-                              className="input input-bordered input-sm w-20 text-center"
-                              value={ability.int ?? ""}
-                              onChange={e => setAbility((prev: any) => ({ ...prev, int: Number(e.target.value) }))}
-                            />
-                          )
-                        : (
-                            <span className="font-bold text-lg">{ability.int ?? "-"}</span>
-                          )}
+                      <input
+                        type="number"
+                        className="input input-bordered input-sm w-20 text-center"
+                        value={ability.int ?? ""}
+                        onChange={(e) => {
+                          setAbility((prev: any) => ({ ...prev, int: Number(e.target.value) }));
+                          scheduleSave();
+                        }}
+                      />
                     </td>
                     <td className="text-center text-xs text-gray-500">INT</td>
                   </tr>
                   <tr>
                     <td className="text-center font-bold">幸运</td>
                     <td className="text-center">
-                      {isEditing
-                        ? (
-                            <input
-                              type="number"
-                              className="input input-bordered input-sm w-20 text-center"
-                              value={ability.luck ?? ""}
-                              onChange={e => setAbility((prev: any) => ({ ...prev, luck: Number(e.target.value) }))}
-                            />
-                          )
-                        : (
-                            <span className="font-bold text-lg">{ability.luck ?? "-"}</span>
-                          )}
+                      <input
+                        type="number"
+                        className="input input-bordered input-sm w-20 text-center"
+                        value={ability.luck ?? ""}
+                        onChange={(e) => {
+                          setAbility((prev: any) => ({ ...prev, luck: Number(e.target.value) }));
+                          scheduleSave();
+                        }}
+                      />
                     </td>
                     <td className="text-center text-xs text-gray-500">LUCK</td>
                   </tr>
@@ -758,33 +700,32 @@ export default function NPCEdit({ role }: NPCEditProps) {
                     <div key={key} className="card bg-base-100 shadow-sm p-3">
                       <div className="flex justify-between items-center">
                         <div className="font-medium text-sm">{key}</div>
-                        {isEditing
-                          ? (
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="number"
-                                  value={value as number}
-                                  onChange={e => setAbility((prev: any) => ({
-                                    ...prev,
-                                    [key]: Number(e.target.value),
-                                  }))}
-                                  className="input input-bordered input-sm w-20"
-                                />
-                                <button
-                                  onClick={() => {
-                                    const newAbility = { ...ability };
-                                    delete newAbility[key];
-                                    setAbility(newAbility);
-                                  }}
-                                  className="btn btn-error btn-circle btn-xs"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            )
-                          : (
-                              <div className="font-bold text-lg">{value as number}</div>
-                            )}
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={value as number}
+                            onChange={(e) => {
+                              setAbility((prev: any) => ({
+                                ...prev,
+                                [key]: Number(e.target.value),
+                              }));
+                              scheduleSave();
+                            }}
+                            className="input input-bordered input-sm w-20"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newAbility = { ...ability } as any;
+                              delete newAbility[key];
+                              setAbility(newAbility);
+                              scheduleSave();
+                            }}
+                            className="btn btn-error btn-circle btn-xs"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -829,7 +770,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
               </div>
 
               <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
-                {Object.entries(ruleAbility?.data?.abilityDefault?.["320"] || {})
+                {Object.entries(ruleAbility?.data?.skillDefault || {})
                   .filter(([key]) =>
                     key.toLowerCase().includes(abilitySearchQuery.toLowerCase())
                     || abilitySearchQuery === "",
@@ -869,7 +810,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
 
               {/* 当搜索结果为空时显示提示 */}
               {abilitySearchQuery
-                && Object.keys(ruleAbility?.data?.abilityDefault?.["320"] || {})
+                && Object.keys(ruleAbility?.data?.skillDefault || {})
                   .filter(([key]) =>
                     key.toLowerCase().includes(abilitySearchQuery.toLowerCase()),
                   )
@@ -900,6 +841,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
 
               <div className="flex justify-end gap-2">
                 <button
+                  type="button"
                   onClick={() => {
                     setShowAbilityPopup(false);
                     setAbilitySearchQuery("");
@@ -909,6 +851,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
                   取消
                 </button>
                 <button
+                  type="button"
                   onClick={handleAddAbilities}
                   className="btn btn-primary"
                 >

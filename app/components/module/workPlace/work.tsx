@@ -89,6 +89,33 @@ export default function Work() {
   return (
     <ModuleProvider>
       <div className="min-h-[calc(100vh-4rem)] bg-base-100">
+        <button
+          type="button"
+          className="cursor-pointer fixed z-50 flex items-center justify-center px-3 py-2 border-2 bg-base-200 font-bold text-base overflow-hidden group transition-all duration-300 hover:border-white
+        left-1/2 -translate-x-1/2 bottom-4 w-[90vw] max-w-xs rounded-full shadow-lg
+        md:bg-transparent md:px-4 md:py-4 md:border-4 md:text-xl md:left-auto md:right-16 md:top-30 md:bottom-auto md:w-auto md:max-w-none md:rounded-none md:shadow-none md:translate-x-0"
+          onClick={() => navigate("/module/create")}
+        >
+          {/* 从左往右的黑色背景遮罩 */}
+          <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
+
+          {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
+          <span className="relative z-10  group-hover:text-white transition-colors duration-300">创建模组</span>
+          <svg
+            className="w-8 h-8 relative z-10  group-hover:text-white transition-colors duration-300"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </button>
         <div className="mx-auto max-w-7xl px-4 py-8">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-2xl font-extrabold">我的模组</h2>

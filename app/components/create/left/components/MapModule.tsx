@@ -1,85 +1,80 @@
 import type { StageEntityResponse } from "api";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
-import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
+import { ModuleItemEnum, ModuleListEnum } from "@/components/module/workPlace/context/types";
 import { useAddEntityMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
+import { useEffect } from "react";
 
-// 地图列表项组件
-function MapListItem({
-  map,
-  onClick,
-  isSelected,
-}: {
-  map: StageEntityResponse | null;
-  onClick: () => void;
-  isSelected: boolean;
-}) {
-  if (!map) {
-    return (
-      <div
-        className="group w-full h-16 p-2 flex items-center justify-between cursor-pointer bg-gradient-to-r from-primary to-secondary hover:from-blue-500 hover:to-blue-600 rounded-lg my-2 shadow-md transition-all duration-200"
-        onClick={onClick}
-      >
-        <div className="flex items-center gap-2">
-          <div className="flex flex-col">
-            <p className="self-baseline font-bold text-primary-content">+ 添加地图</p>
-            <p className="text-xs text-primary-content/80 self-baseline mt-0.5">创建模组专属地图</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={`group w-full h-16 p-2 flex items-center justify-between bg-gradient-to-r hover:from-blue-500 hover:to-blue-600 rounded-lg my-2 shadow-md transition-all duration-200 cursor-pointer ${isSelected ? "from-blue-500 to-blue-600" : "from-primary to-secondary"}`}
-      onClick={onClick}
-    >
-      <div className="flex items-center gap-2">
-        <div className="flex flex-col">
-          <p className="self-baseline font-bold text-primary-content">{map.name}</p>
-        </div>
-      </div>
-      <div className="badge badge-outline text-primary-content border-primary-content">地图</div>
-    </div>
-  );
-}
-
-// 地图模块组件
+// 重构后的地图模块：挂载即打开地图标签，并将左侧切换到 ModuleItems（剧情列表）
 export default function MapModule({ stageId }: { stageId: number }) {
-  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
+  const { pushModuleTabItem, setCurrentSelectedTabId, moduleTabItems, setActiveList, activeList } = useModuleContext();
   const { data } = useQueryEntitiesQuery(stageId);
   const { mutate: addMap } = useAddEntityMutation(5);
 
-  // 查找地图实体
-  const mapEntity = data?.data?.find(i => i.entityType === 5) || null;
+  useEffect(() => {
+    if (!data?.data) {
+      return;
+    }
+    const mapEntity = data.data.find(i => i.entityType === 5) as StageEntityResponse | undefined;
 
-  const handleClick = (map: StageEntityResponse) => {
-    pushModuleTabItem({
-      id: map.id!.toString(),
-      label: map.name!,
-      content: map,
-      type: ModuleItemEnum.MAP,
-    });
-    setCurrentSelectedTabId(map.id!.toString());
-  };
+    const openTab = (m: StageEntityResponse) => {
+      const tabId = m.id!.toString();
+      const exists = moduleTabItems.some(t => t.id === tabId);
+      if (!exists) {
+        pushModuleTabItem({ id: tabId, label: m.name!, content: m, type: ModuleItemEnum.MAP });
+      }
+      setCurrentSelectedTabId(tabId);
+      // 打开后将左侧切换到 ModuleItems（显示剧情列表）
+      // 为了避免事件在 ModuleItems 挂载前发出被丢失，这里先用 sessionStorage 做一次性兜底
+      try {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem("moduleitems.initialTab", "3");
+        }
+      }
+      catch {
+        // ignore
+      }
+      setActiveList(ModuleListEnum.STAGE);
+      // 通知 ModuleItems 切换到剧情列表（SceneList），不修改上下文，使用全局事件桥接
+      try {
+        // 立即发一次
+        window.dispatchEvent(new CustomEvent("switch-moduleitems-tab", { detail: { tab: 3 } }));
+        // 再在微任务阶段再发一次，最大化捕获刚挂载完成的监听器
+        Promise.resolve().then(() => {
+          try {
+            window.dispatchEvent(new CustomEvent("switch-moduleitems-tab", { detail: { tab: 3 } }));
+          }
+          catch {
+            // ignore
+          }
+        });
+      }
+      catch {
+        // ignore
+      }
+    };
 
-  const handleAddMap = () => {
-    addMap({
-      stageId,
-      name: `${stageId}模组地图`,
-      entityInfo: {
-        sceneMap: { 新场景1: ["新场景2"], 新场景2: [] },
-      },
-    });
-  };
+    if (mapEntity) {
+      openTab(mapEntity);
+    }
+    else {
+      // 若无地图则创建后打开
+      addMap({
+        stageId,
+        name: `${stageId}模组地图`,
+        entityInfo: { sceneMap: { 新场景1: ["新场景2"], 新场景2: [] } },
+      }, {
+        onSuccess: (resp: any) => {
+          const created = resp?.data as StageEntityResponse | undefined;
+          if (created) {
+            openTab(created);
+          }
+        },
+      });
+    }
+    // 仅在数据变更时尝试一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, activeList]);
 
-  return (
-    <div className="py-2">
-      <MapListItem
-        map={mapEntity as StageEntityResponse}
-        onClick={mapEntity ? () => handleClick(mapEntity) : handleAddMap}
-        isSelected={currentSelectedTabId === mapEntity?.id?.toString()}
-      />
-    </div>
-  );
+  // 不再渲染列表，直接返回空（或可渲染一个轻量提示）
+  return null;
 }

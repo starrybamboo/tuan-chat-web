@@ -1,5 +1,5 @@
 import LeftContent from "@/components/create/left";
-import Sidebar from "@/components/create/sidebar/sidebar";
+import Topbar from "@/components/create/sidebar/sidebar";
 import { useEffect } from "react";
 import { useParams } from "react-router";
 import { ModuleProvider, useModuleContext } from "./context/_moduleContext";
@@ -29,22 +29,17 @@ export default function MainWork() {
   return (
     <ModuleProvider>
       <StageInitializer />
-      <div className="h-[calc(100vh-4rem)] flex bg-base-200 overflow-hidden">
-        <div className="flex-grow flex flex-col min-h-0">
-          {/* 顶部工具栏已根据需求移除 */}
-          <div className="flex flex-1 min-h-0">
-            <div className="flex">
-              <Sidebar />
-            </div>
-            <div className="bg-base-300 basis-1/5 flex flex-col overflow-hidden">
-              <LeftContent />
-            </div>
-            <div className="basis-3/5 flex flex-col overflow-hidden">
-              <EditModule />
-            </div>
-            <div className="bg-cyan-700 basis-1/5 flex flex-col overflow-hidden">
-              AI 面板
-            </div>
+      <div className="h-[calc(100vh-4rem)] flex flex-col bg-base-200 overflow-hidden">
+        <Topbar />
+        <div className="flex flex-1 min-h-0">
+          <div className="bg-base-300 basis-1/5 flex flex-col overflow-hidden">
+            <LeftContent />
+          </div>
+          <div className="basis-3/5 flex flex-col overflow-hidden">
+            <EditModule />
+          </div>
+          <div className="bg-cyan-700 basis-1/5 flex flex-col overflow-hidden">
+            AI 面板
           </div>
         </div>
       </div>
