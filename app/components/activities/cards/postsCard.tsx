@@ -278,8 +278,8 @@ export const PostsCard: React.FC<PostsCardProps> = ({
               className="w-9 h-6 cursor-pointer"
             />
           </div>
-          <div className="flex items-center space-x-1 text-sm hover:text-success cursor-pointer hover:bg-blue-500/10 transition-colors px-2 py-1 rounded-full">
-            <ShareIconButton searchKey={`feedShowSharePop${postId}`} />
+          <div className="flex items-center space-x-1 text-sm cursor-pointer hover:bg-blue-500/10 transition-colors px-2 py-1 rounded-full">
+            <ShareIconButton searchKey={`feedShowSharePop${postId}`} className="cursor-pointer w-9 h-6" />
           </div>
         </div>
         {isCommentMenuOpen && (
