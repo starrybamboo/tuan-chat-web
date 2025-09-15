@@ -1,4 +1,4 @@
-import type { RenderProcess, RenderProps } from "@/components/chat/window/renderWindow";
+import type { RenderInfo, RenderProcess, RenderProps } from "@/components/chat/window/renderWindow";
 
 import { SceneEditor } from "@/webGAL/sceneEditor";
 
@@ -12,32 +12,45 @@ import { tuanchat } from "../../api/instance";
 
 export class ChatRenderer {
   private readonly spaceId: number;
-  private roomMap: Record<string, Array<number>> = {};
+  private readonly roomMap: Record<string, Array<number>> = {};
   private sceneEditor: SceneEditor;
+  private readonly renderInfo: RenderInfo;
+  private readonly totalMessageNumber: number;
+  private renderedMessageNumber = 0;
   private uploadedSpritesFileNameMap = new Map<number, string>(); // avatarId -> spriteFileName
   private roleAvatarsMap = new Map<number, RoleAvatar>(); // 渲染时候获取的avatar信息
   private roleMap: Map<number, UserRole> = new Map();
   private renderProps: RenderProps;
-  private rooms: Room[] = [];
+  private readonly rooms: Room[] = [];
   private renderedRoomNumber = 0;
   private readonly onRenderProcessChange: (process: RenderProcess) => void; // 渲染进度的回调函数
 
-  constructor(spaceId: number, renderProp: RenderProps, onRenderProcessChange: (process: RenderProcess) => void) {
+  constructor(
+    spaceId: number,
+    renderProp: RenderProps,
+    renderInfo: RenderInfo,
+    onRenderProcessChange: (process: RenderProcess) => void,
+  ) {
     this.spaceId = spaceId;
     this.renderProps = renderProp;
     this.onRenderProcessChange = onRenderProcessChange;
     this.sceneEditor = new SceneEditor(this.spaceId);
+    this.renderInfo = renderInfo;
+
+    this.rooms = this.renderInfo.rooms;
+    const spaceInfo = this.renderInfo.space;
+    this.roomMap = spaceInfo.roomMap || {};
+
+    let totalMessageNumber = 0;
+    for (const messages of Object.values(renderInfo.chatHistoryMap)) {
+      totalMessageNumber += messages.length;
+    }
+    this.totalMessageNumber = totalMessageNumber;
   }
 
   public async initializeRenderer(): Promise<void> {
     await this.sceneEditor.initRender();
     this.onRenderProcessChange({ message: "开始渲染" });
-
-    this.rooms = (await tuanchat.roomController.getUserRooms(this.spaceId)).data ?? [];
-
-    const spaceInfo = await tuanchat.spaceController.getSpaceInfo(this.spaceId);
-    const roomMap = spaceInfo?.data?.roomMap;
-    this.roomMap = roomMap || {};
 
     const renderedRooms: Room[] = []; // 成功渲染的房间
     for (let i = 0; i < this.rooms.length; i++) {
@@ -62,6 +75,13 @@ export class ChatRenderer {
       // .filter(room => this.roomMap[room.roomId!] === undefined || this.roomMap[room.roomId!].length === 0),
     );
     await this.sceneEditor.addLineToRenderer(branchSentence, "start");
+  }
+
+  private updateRenderProcess() {
+    this.onRenderProcessChange({
+      percent: this.renderedMessageNumber * 100 / this.totalMessageNumber,
+      subMessage: `已渲染消息数 (${this.renderedMessageNumber}/${this.totalMessageNumber})`,
+    });
   }
 
   /**
@@ -197,8 +217,7 @@ export class ChatRenderer {
    * 一个聊天记录一个聊天记录地渲染，并在这个过程中自动检测不存在的语音或者立绘等并进行上传
    */
   private async renderMessages(room: Room): Promise<boolean> {
-    const messagesResponse = await tuanchat.chatController.getAllMessage(room.roomId!);
-    const messages = messagesResponse.data ?? [];
+    const messages = this.renderInfo.chatHistoryMap[room.roomId!] ?? [];
 
     if (messages.length === 0)
       return false;
@@ -220,10 +239,8 @@ export class ChatRenderer {
       for (let i = 0; i < sortedMessages.length; i++) {
         const messageResponse = sortedMessages[i];
         const message = messageResponse.message;
-        this.onRenderProcessChange({
-          percent: ((this.renderedRoomNumber + (i + 1) / messages.length) / this.rooms.length) * 100,
-          subMessage: `已渲染消息数 (${i}/${messages.length})`,
-        });
+        this.renderedMessageNumber++;
+        this.updateRenderProcess();
 
         // 使用正则表达式过滤
         if (skipRegex && skipRegex.test(message.content))

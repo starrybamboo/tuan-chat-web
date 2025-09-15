@@ -1,18 +1,33 @@
+import type { ChatMessageResponse, Room, Space, UserRole } from "../../../../api";
+import { useChatHistory } from "@/components/chat/indexedDB/useChatHistory";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import launchWebGal from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { ChatRenderer } from "@/webGAL/chatRenderer";
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
-import { useGetRoomRolesQueries, useGetUserRoomsQuery } from "../../../../api/hooks/chatQueryHooks";
+import { useGetSpaceInfoQuery, useGetUserRoomsQuery } from "../../../../api/hooks/chatQueryHooks";
+import { useGetRolesQueries } from "../../../../api/queryHooks";
 
+/**
+ * 渲染参数
+ */
 export interface RenderProps {
   spritePosition: "left" | "middle" | "right";
   useVocal: boolean; // 是否使用语音合成功能
   skipRegex?: string; // 跳过语句的正则表达式
   referenceAudio?: File; // 参考音频文件
   roleAudios?: { [roleId: string]: File }; // 角色音频文件映射
+}
+/**
+ * 渲染时候所必要的一些信息
+ */
+export interface RenderInfo {
+  space: Space;
+  rooms: Room[];
+  roles: UserRole[];
+  chatHistoryMap: Record<number, ChatMessageResponse[]>; // roomId to chatHistory
 }
 
 /**
@@ -40,21 +55,42 @@ const regexOptions = [
 
 export default function RenderWindow() {
   const spaceId = use(SpaceContext).spaceId ?? -1;
-  const rooms = useGetUserRoomsQuery(spaceId).data?.data ?? [];
-  const roles = useGetRoomRolesQueries(rooms.map(r => r.roomId!))
-    .map(q => q.data?.data ?? [])
-    .flat();
 
-  // 对roles根据roleId进行去重
-  const uniqueRoles = roles.reduce((acc, role) => {
-    if (!acc.find(r => r.roleId === role.roleId)) {
-      acc.push(role);
-    }
-    return acc;
-  }, [] as typeof roles);
+  const spaceInfo = useGetSpaceInfoQuery(spaceId).data?.data;
+
+  const chatHistory = useChatHistory(null);
+  const [chatHistoryMap, setChatHistoryMap] = useState<Record<number, ChatMessageResponse[]>>({});
+  const getUserRoomsQuery = useGetUserRoomsQuery(spaceId);
+  const rooms = useMemo(() => getUserRoomsQuery.data?.data ?? [], [getUserRoomsQuery.data?.data]);
+
+  useEffect(() => {
+    const getAllMessages = async () => {
+      const map: Record<number, ChatMessageResponse[]> = {};
+      for (const room of rooms) {
+        map[room.roomId!] = await chatHistory.getMessagesByRoomId(room.roomId!);
+      }
+      setChatHistoryMap(map);
+    };
+    getAllMessages();
+  }, [chatHistory, rooms]);
+  const roleIds = useMemo(() => {
+    const roleIds = new Set<number>();
+    Object.values(chatHistoryMap)
+      .flat()
+      .map(m => m.message.roleId)
+      .forEach(roleId => roleIds.add(roleId));
+    return Array.from(roleIds);
+  }, [chatHistoryMap]);
+
+  // const roles = useGetRoomRolesQueries(rooms.map(r => r.roomId!))
+  //   .map(q => q.data?.data ?? [])
+  //   .flat();
+  const roles = useGetRolesQueries(roleIds)
+    .map(q => q.data?.data)
+    .filter((role): role is UserRole => !!role);
 
   // 按voiceUrl是否为空排序，空的优先
-  const sortedRoles = uniqueRoles.sort((a, b) => {
+  const sortedRoles = roles.sort((a, b) => {
     const aHasVoice = a.voiceUrl && a.voiceUrl.trim() !== "";
     const bHasVoice = b.voiceUrl && b.voiceUrl.trim() !== "";
     if (!aHasVoice && bHasVoice)
@@ -91,14 +127,27 @@ export default function RenderWindow() {
     setRenderProcess({});
     launchWebGal();
     await pollPort(3001).catch(() => toast.error("WebGAL 启动失败"));
+
+    const renderInfo: RenderInfo = {
+      space: spaceInfo!,
+      rooms,
+      roles,
+      chatHistoryMap,
+    };
+
     try {
-      const renderer = new ChatRenderer(spaceId, renderProps, (process) => {
-        setRenderProcess(currentProcess => ({ // <-- Use the functional update form
-          percent: Math.max(process.percent ?? 0, currentProcess.percent ?? 0),
-          message: process.message ?? currentProcess.message,
-          subMessage: process.subMessage ?? currentProcess.subMessage,
-        }));
-      });
+      const renderer = new ChatRenderer(
+        spaceId,
+        renderProps,
+        renderInfo,
+        (process) => {
+          setRenderProcess(currentProcess => ({ // <-- Use the functional update form
+            percent: Math.max(process.percent ?? 0, currentProcess.percent ?? 0),
+            message: process.message ?? currentProcess.message,
+            subMessage: process.subMessage ?? currentProcess.subMessage,
+          }));
+        },
+      );
       await renderer.initializeRenderer();
     }
     catch (error) {
