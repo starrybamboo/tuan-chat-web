@@ -6,8 +6,10 @@ export type ModuleContextType = {
   moduleTabItems: ModuleTabItem[];
   currentSelectedTabId: TabId | null;
   stageId: TabId | null;
+  moduleId: TabId | null;
   activeList: ModuleListEnum;
   setStageId: (id: TabId) => void;
+  setModuleId: (id: TabId) => void;
   setCurrentSelectedTabId: (itemId: TabId) => void;
   pushModuleTabItem: (item: ModuleTabItem) => void;
   removeModuleTabItem: (id: TabId) => void;
@@ -20,10 +22,23 @@ export type ModuleContextType = {
  * 基础的 ModuleTabItem, 每个 item 都代表了一个编辑区内打开的 tab
  * 可以按照 type 来区分是哪个类别的 tab
  */
-type BaseModuleTabItem<T> = {
+export type ModuleInfo = {
+  ruleId: number;
+  moduleName: string;
+  description: string;
+  instruction: string;
+  authorName: string;
+  minTime: number;
+  minPeople: number;
+  maxTime: number;
+  maxPeople: number;
+  image: string;
+};
+
+type BaseModuleTabItem<T, C = StageEntityResponse> = {
   id: string | number; // 唯一标识符
   label: string;
-  content: StageEntityResponse;
+  content: C;
   type: T;
 };
 export type RoleModuleItem = BaseModuleTabItem<ModuleItemEnum.ROLE>;
@@ -33,7 +48,8 @@ export type StageModuleItem = BaseModuleTabItem<ModuleItemEnum.STAGE>;
 export type CommitModuleItem = BaseModuleTabItem<ModuleItemEnum.COMMIT>;
 export type LocationModuleItem = BaseModuleTabItem<ModuleItemEnum.LOCATION>;
 export type MapModuleItem = BaseModuleTabItem<ModuleItemEnum.MAP>;
-export type ModuleTabItem = RoleModuleItem | ItemModuleItem | SceneModuleItem | StageModuleItem | CommitModuleItem | LocationModuleItem | MapModuleItem;
+export type ModuleModuleItem = BaseModuleTabItem<ModuleItemEnum.MODULE, ModuleInfo>;
+export type ModuleTabItem = RoleModuleItem | ItemModuleItem | SceneModuleItem | StageModuleItem | CommitModuleItem | LocationModuleItem | MapModuleItem | ModuleModuleItem;
 
 export enum ModuleItemEnum {
   ROLE = "role",
@@ -43,6 +59,7 @@ export enum ModuleItemEnum {
   COMMIT = "commit",
   LOCATION = "location",
   MAP = "map",
+  MODULE = "module",
 }
 
 export enum ModuleListEnum {
@@ -53,4 +70,5 @@ export enum ModuleListEnum {
   MAP = "map",
   BACK = "back",
   COMMIT = "commit",
+  MODULE = "module",
 }

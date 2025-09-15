@@ -1,13 +1,15 @@
 /* eslint-disable react-dom/no-missing-button-type */
+import type { Module } from "api";
 import { PopWindow } from "@/components/common/popWindow";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
-import { ModuleListEnum } from "@/components/module/workPlace/context/types";
+import { ModuleItemEnum, ModuleListEnum } from "@/components/module/workPlace/context/types";
 import { ArrowBackThickFill, ChevronSmallTripleUp, StageIcon } from "@/icons";
-import { useCommitMutation } from "api/hooks/moduleAndStageQueryHooks";
+import { useCommitMutation, useModuleListByUserQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
-// 简易 Map 图标，占位用（可替换为项目内任意图标）
+// 简易 Map 图标，占位用
 function MapPlaceholderIcon(props: { className?: string }) {
   return (
     <svg
@@ -22,14 +24,27 @@ function MapPlaceholderIcon(props: { className?: string }) {
 }
 
 export default function Topbar() {
-  const { activeList, setActiveList } = useModuleContext();
+  const { activeList, setActiveList, moduleId, pushModuleTabItem, setCurrentSelectedTabId } = useModuleContext();
   const navigate = useNavigate();
-
+  // 查询所有模组并过滤
+  const userId = useGlobalContext().userId ?? -1;
+  const moduleItem = useModuleListByUserQuery({ userId }).data?.data?.list?.find(m => m.moduleId === moduleId);
   // 提交模组所用
   const { mutate: commit } = useCommitMutation();
   const { stageId } = useModuleContext();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
+
+  const currentModule: Module | null = useMemo(() => {
+    try {
+      const snap = localStorage.getItem("currentModule");
+      if (snap) {
+        return JSON.parse(snap) as Module;
+      }
+    }
+    catch {}
+    return (moduleItem as Module | undefined) ?? null;
+  }, [moduleItem]);
   const handleSubmit = () => {
     if (message.trim() === "") {
       commit({
@@ -51,7 +66,8 @@ export default function Topbar() {
     () => [
       { id: ModuleListEnum.BACK, icon: ArrowBackThickFill, label: "返回", tooltip: "返回上一级" },
       { id: ModuleListEnum.STAGE, icon: StageIcon, label: "暂存区", tooltip: "暂存区管理" },
-      { id: ModuleListEnum.MAP, icon: MapPlaceholderIcon, label: "地图", tooltip: "剧情/地点地图" },
+      { id: ModuleListEnum.MAP, icon: MapPlaceholderIcon, label: "流程图", tooltip: "剧情/地点 流程图" },
+      { id: ModuleListEnum.MODULE, icon: StageIcon, label: "模组", tooltip: "模组信息与管理" },
       { id: ModuleListEnum.COMMIT, icon: ChevronSmallTripleUp, label: "保存草稿", tooltip: "保存所有您做的改动到当前模组" },
     ],
     [],
@@ -79,6 +95,30 @@ export default function Topbar() {
                 if (item.id === ModuleListEnum.COMMIT) {
                   setIsOpen(true);
                   return;
+                }
+                if (item.id === ModuleListEnum.MODULE) {
+                  // 推入一个新的 模组 Tab，并切换到它
+                  const id = "当前模组"; // 写死 id
+                  const normalized = {
+                    ruleId: currentModule?.ruleId ?? 1,
+                    moduleName: currentModule?.moduleName ?? "当前模组",
+                    description: currentModule?.description ?? "",
+                    instruction: (currentModule as any)?.instruction ?? "",
+                    authorName: currentModule?.authorName ?? "",
+                    minTime: (currentModule as any)?.minTime ?? 0,
+                    minPeople: (currentModule as any)?.minPeople ?? 0,
+                    maxTime: (currentModule as any)?.maxTime ?? 0,
+                    maxPeople: (currentModule as any)?.maxPeople ?? 0,
+                    image: currentModule?.image ?? "",
+                  };
+                  pushModuleTabItem({
+                    id,
+                    label: "当前模组",
+                    type: ModuleItemEnum.MODULE,
+                    // 以简单对象作为内容，供 ModuleEdit 使用
+                    content: normalized as any,
+                  });
+                  setCurrentSelectedTabId(id);
                 }
                 setActiveList(item.id);
               }}
