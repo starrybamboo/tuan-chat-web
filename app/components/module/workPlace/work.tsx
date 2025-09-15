@@ -108,9 +108,16 @@ export default function Work() {
                   { moduleId, state: 1 } as any,
                   {
                     onSuccess: () => {
+                      toast.success("发布成功");
+
                       onClose();
                       setDeclared(false);
                       refetch();
+                    },
+                    onError: (error: any) => {
+                      const message = (error?.response?.data?.message as string | undefined) || (error?.message as string | undefined) || "发布失败，请稍后重试";
+                      toast.error(message);
+                      // 失败时保留发布模式与弹窗，便于用户重试
                     },
                   },
                 );
