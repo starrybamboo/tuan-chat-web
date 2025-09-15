@@ -1,10 +1,11 @@
 import type { ChatMessageResponse, Room, Space, UserRole } from "../../../../api";
 import { useChatHistory } from "@/components/chat/indexedDB/useChatHistory";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import RoleAvatarComponent from "@/components/common/roleAvatar";
 import launchWebGal from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { ChatRenderer } from "@/webGAL/chatRenderer";
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
 import { useGetSpaceInfoQuery, useGetUserRoomsQuery } from "../../../../api/hooks/chatQueryHooks";
@@ -17,7 +18,6 @@ export interface RenderProps {
   spritePosition: "left" | "middle" | "right";
   useVocal: boolean; // 是否使用语音合成功能
   skipRegex?: string; // 跳过语句的正则表达式
-  roleAudios?: { [roleId: string]: File }; // 角色音频文件映射
 }
 /**
  * 渲染时候所必要的一些信息
@@ -27,6 +27,7 @@ export interface RenderInfo {
   rooms: Room[];
   roles: UserRole[];
   chatHistoryMap: Record<number, ChatMessageResponse[]>; // roomId to chatHistory
+  roleAudios?: { [roleId: string]: File }; // 角色音频文件映射
 }
 
 /**
@@ -103,10 +104,11 @@ export default function RenderWindow() {
     spritePosition: "left",
     useVocal: false,
     skipRegex: "", // 初始化 skipRegex
-    roleAudios: {}, // 初始化角色音频映射
   });
+  const [roleAudios, setRoleAudios] = useState<{ [roleId: string]: File }>({});
   const [isRendering, setIsRendering] = useState(false);
   const [renderProcess, setRenderProcess] = useState<RenderProcess>({});
+  const fileInputRefs = useRef<{ [roleId: string]: HTMLInputElement | null }>({});
 
   // 从localStorage初始化数据
   useEffect(() => {
@@ -227,7 +229,7 @@ export default function RenderWindow() {
             <div className="space-y-3 max-h-80 overflow-y-auto">
               {sortedRoles.map((role) => {
                 const hasVoiceUrl = role.voiceUrl && role.voiceUrl.trim() !== "";
-                const hasUploadedAudio = renderProps.roleAudios?.[role.roleId];
+                const hasUploadedAudio = roleAudios?.[role.roleId];
 
                 return (
                   <div
@@ -240,12 +242,13 @@ export default function RenderWindow() {
                   >
                     <div className="flex items-center justify-between mb-2 w-full">
                       <div className="flex items-center gap-2 w-full">
-                        <span className="font-medium text-base-content max-w-[40%] truncate">{role.roleName || "未知角色"}</span>
+                        <RoleAvatarComponent avatarId={role.avatarId!} width={8} isRounded={true} stopPopWindow></RoleAvatarComponent>
+                        <span className="font-medium text-base-content max-w-[35%] truncate">{role.roleName || "未知角色"}</span>
                         {!hasVoiceUrl && !hasUploadedAudio && (
                           <div className="badge badge-warning badge-sm inline">缺少音频</div>
                         )}
                         {hasVoiceUrl && (
-                          <div className="badge badge-success badge-sm inline">有原始音频</div>
+                          <div className="badge badge-success badge-sm inline">有默认音频</div>
                         )}
                         {hasUploadedAudio && (
                           <div className="badge badge-info badge-sm inline">已上传</div>
@@ -258,13 +261,15 @@ export default function RenderWindow() {
                         type="file"
                         accept="audio/*"
                         className="file-input file-input-bordered file-input-sm flex-1"
+                        ref={(el) => {
+                          fileInputRefs.current[role.roleId] = el;
+                        }}
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            updateRenderProps((draft) => {
-                              if (!draft.roleAudios)
-                                draft.roleAudios = {};
-                              draft.roleAudios[role.roleId] = file;
+                            setRoleAudios((prev) => {
+                              prev[role.roleId] = file;
+                              return prev;
                             });
                             toast.success(`已为角色 ${role.roleName || "未知角色"} 上传音频: ${file.name}`);
                           }
@@ -275,11 +280,15 @@ export default function RenderWindow() {
                           type="button"
                           className="btn btn-outline btn-sm"
                           onClick={() => {
-                            updateRenderProps((draft) => {
-                              if (draft.roleAudios) {
-                                delete draft.roleAudios[role.roleId];
-                              }
+                            setRoleAudios((prev) => {
+                              delete prev[role.roleId];
+                              return prev;
                             });
+                            // 重置文件输入框的值
+                            const fileInput = fileInputRefs.current[role.roleId];
+                            if (fileInput) {
+                              fileInput.value = "";
+                            }
                             toast.success(`已清除角色 ${role.roleName || "未知角色"} 的音频`);
                           }}
                         >
@@ -298,7 +307,7 @@ export default function RenderWindow() {
 
                     {!hasVoiceUrl && !hasUploadedAudio && (
                       <div className="text-xs text-warning mt-1">
-                        警告: 此角色没有原始参考音频，建议上传一个音频文件。
+                        警告: 此角色没有默认参考音频，建议上传一个音频文件。
                       </div>
                     )}
                   </div>
