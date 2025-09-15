@@ -22,7 +22,6 @@ export class ChatRenderer {
   private roleMap: Map<number, UserRole> = new Map();
   private renderProps: RenderProps;
   private readonly rooms: Room[] = [];
-  private renderedRoomNumber = 0;
   private readonly onRenderProcessChange: (process: RenderProcess) => void; // 渲染进度的回调函数
 
   constructor(
@@ -66,7 +65,6 @@ export class ChatRenderer {
           renderedRooms.push(room);
           await this.sceneEditor.addLineToRenderer("changeScene:start.txt", this.getSceneName(room));
         }
-        this.renderedRoomNumber = i + 1;
       }
       catch (e) { console.error(e); }
     }
