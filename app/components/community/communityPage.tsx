@@ -59,7 +59,7 @@ export default function CommunityPage() {
         />
 
         {/* 社区描述和发帖按钮 */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 max-w-2xl mx-auto w-full lg:max-w-3xl">
           <div className="flex-1">
             {getCommunityInfoQuery.isLoading
               ? (

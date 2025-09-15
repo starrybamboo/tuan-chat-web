@@ -530,6 +530,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   setIsItemsWindowOpen={setIsItemsWindowOpen}
                   disableSendMessage={disableSendMessage}
                   handleMessageSubmit={handleMessageSubmit}
+                  autoComplete={autoComplete}
                 />
                 <div className="flex gap-2 items-stretch">
                   <AvatarSwitch

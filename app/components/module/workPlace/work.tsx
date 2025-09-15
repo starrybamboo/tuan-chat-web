@@ -109,6 +109,7 @@ function WorkInner() {
                   {
                     onSuccess: () => {
                       toast.success("发布成功");
+
                       onClose();
                       setDeclared(false);
                       refetch();

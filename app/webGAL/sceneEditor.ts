@@ -1,15 +1,11 @@
 import type { InferRequest } from "@/tts/apis";
 
-import { createTTSApi } from "@/tts/apis";
+import { ttsApi } from "@/tts/apis";
 import { checkGameExist, terreApis } from "@/webGAL/index";
 
 import type { ChatMessageResponse, RoleAvatar } from "../../api";
 
 import { getAsyncMsg, uploadFile } from "./fileOperator";
-
-// 创建 TTS API 实例，从环境变量获取 URL
-const TTS_API_URL = import.meta.env.VITE_TTS_API_URL || "http://localhost:9000";
-export const ttsApi = createTTSApi(TTS_API_URL);
 
 type Game = {
   name: string;

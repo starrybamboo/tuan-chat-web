@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { RoleResponse } from './RoleResponse';
+import type { UserRole } from './UserRole';
 /**
  * 基础翻页返回
  */
-export type PageBaseRespRoleResponse = {
+export type PageBaseRespUserRole = {
     /**
      * 当前页数
      */
@@ -26,6 +26,6 @@ export type PageBaseRespRoleResponse = {
     /**
      * 数据列表
      */
-    list?: Array<RoleResponse>;
+    list?: Array<UserRole>;
 };
 

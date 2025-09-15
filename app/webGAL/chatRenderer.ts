@@ -2,7 +2,7 @@ import type { RenderProcess, RenderProps } from "@/components/chat/window/render
 
 import { SceneEditor } from "@/webGAL/sceneEditor";
 
-import type { Message, RoleAvatar, RoleResponse, Room } from "../../api";
+import type { Message, RoleAvatar, Room } from "../../api";
 
 import { tuanchat } from "../../api/instance";
 
@@ -16,7 +16,7 @@ export class ChatRenderer {
   private sceneEditor: SceneEditor;
   private uploadedSpritesFileNameMap = new Map<number, string>(); // avatarId -> spriteFileName
   private roleAvatarsMap = new Map<number, RoleAvatar>(); // 渲染时候获取的avatar信息
-  private roleMap: Map<number, RoleResponse> = new Map();
+  private roleMap: Map<number, UserRole> = new Map();
   private renderProps: RenderProps;
   private rooms: Room[] = [];
   private renderedRoomNumber = 0;
@@ -91,9 +91,9 @@ export class ChatRenderer {
     return avatar || null;
   }
 
-  private async fetchRole(roleId: number): Promise<RoleResponse | null> {
+  private async fetchRole(roleId: number): Promise<UserRole | null> {
     // 获取角色信息
-    let role: RoleResponse | undefined = this.roleMap.get(roleId);
+    let role: UserRole | undefined = this.roleMap.get(roleId);
     if (!role) {
       role = (await tuanchat.roleController.getRole(roleId)).data;
       if (role) {
@@ -262,6 +262,7 @@ export class ChatRenderer {
           if (role && message.content && message.content !== "") {
             // 每80个字符分割一次
             const contentSegments = this.splitContent(processedContent);
+            const roleAudios = this.renderProps.roleAudios;
             // 为每个分割后的段落创建对话
             for (const segment of contentSegments) {
               // 生成语音
@@ -274,7 +275,10 @@ export class ChatRenderer {
                 && !message.content.startsWith("。")
                 && !message.content.startsWith("%")) {
                 // 将聊天内容替换为 segment
-                vocalFileName = await this.sceneEditor.uploadVocal({ ...messageResponse, message: { ...messageResponse.message, content: segment } }, this.renderProps.referenceAudio); ;
+                vocalFileName = await this.sceneEditor.uploadVocal({
+                  ...messageResponse,
+                  message: { ...messageResponse.message, content: segment },
+                }, roleAudios ? roleAudios[message.roleId] : undefined); ;
               }
               else {
                 vocalFileName = undefined;
