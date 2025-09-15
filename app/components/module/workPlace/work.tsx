@@ -1,8 +1,11 @@
 // Work.tsx - 重构为卡片网格首页（参考 ModuleHome）
 import type { StageResponse } from "api";
 import Pagination from "@/components/common/pagination";
+import toastWindow from "@/components/common/toastWindow";
+import { useUpdateModuleMutation } from "api/hooks/moduleAndStageQueryHooks";
 import { useStagingQuery } from "api/hooks/moduleQueryHooks";
 import { useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import { ModuleProvider } from "./context/_moduleContext";
 
@@ -64,7 +67,9 @@ function Card({ item, onClick }: { item: StageResponse; onClick: () => void }) {
 export default function Work() {
   const navigate = useNavigate();
   const { data, isLoading, isError, refetch } = useStagingQuery();
+  const { mutate: updateModule } = useUpdateModuleMutation();
   const [currentPage, setCurrentPage] = useState(1);
+  const [declared, setDeclared] = useState(false);
   const itemsPerPage = 12;
 
   const items = useMemo<StageResponse[]>(() => {
@@ -77,13 +82,50 @@ export default function Work() {
     return items.slice(start, start + itemsPerPage);
   }, [items, currentPage]);
 
-  const handleOpen = (stageId?: number) => {
-    if (!stageId) {
+  const handleOpen = (item?: StageResponse) => {
+    if (!item || !item.stageId) {
       return;
     }
-    // 跳转到 MainWork 所在的 create 路由（/create/:stageId）
-    // MainWork 会从路由参数设置上下文并展示编辑器布局
-    navigate(`/create/${stageId}`);
+
+    // 发布模式：点击卡片弹出确认发布
+    if (declared) {
+      const moduleId = (item as any).moduleId ?? item.stageId; // 兜底取 stageId
+      toastWindow(onClose => (
+        <div className="p-4 max-w-sm">
+          <h3 className="text-lg font-bold mb-2">确认发布</h3>
+          <p className="mb-4 text-sm text-base-content/70">
+            是否发布该模组：
+            <span className="font-semibold">{item.moduleName || "未命名模组"}</span>
+            ？
+          </p>
+          <div className="flex justify-end gap-2">
+            <button type="button" className="btn btn-ghost" onClick={onClose}>取消</button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                updateModule(
+                  { moduleId, state: 1 } as any,
+                  {
+                    onSuccess: () => {
+                      onClose();
+                      setDeclared(false);
+                      refetch();
+                    },
+                  },
+                );
+              }}
+            >
+              确认发布
+            </button>
+          </div>
+        </div>
+      ));
+      return;
+    }
+
+    // 普通模式：进入编辑
+    navigate(`/create/${item.stageId}`);
   };
 
   return (
@@ -92,8 +134,8 @@ export default function Work() {
         <button
           type="button"
           className="cursor-pointer fixed z-50 flex items-center justify-center px-3 py-2 border-2 bg-base-200 font-bold text-base overflow-hidden group transition-all duration-300 hover:border-white
-        left-1/2 -translate-x-1/2 bottom-4 w-[90vw] max-w-xs rounded-full shadow-lg
-        md:bg-transparent md:px-4 md:py-4 md:border-4 md:text-xl md:left-auto md:right-16 md:top-30 md:bottom-auto md:w-auto md:max-w-none md:rounded-none md:shadow-none md:translate-x-0"
+        left-1/2 -translate-x-1/2 bottom-[85px] w-[90vw] max-w-xs rounded-full shadow-lg
+        md:bg-transparent md:px-4 md:py-4 md:border-4 md:text-xl md:left-auto md:right-16 md:top-[197px] md:bottom-auto md:w-auto md:max-w-none md:rounded-none md:shadow-none md:translate-x-0"
           onClick={() => navigate("/module/create")}
         >
           {/* 从左往右的黑色背景遮罩 */}
@@ -101,6 +143,42 @@ export default function Work() {
 
           {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
           <span className="relative z-10  group-hover:text-white transition-colors duration-300">创建模组</span>
+          <svg
+            className="w-8 h-8 relative z-10  group-hover:text-white transition-colors duration-300"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </button>
+
+        <button
+          type="button"
+          className="cursor-pointer fixed z-50 flex items-center justify-center px-3 py-2 border-2 bg-base-200 font-bold text-base overflow-hidden group transition-all duration-300 hover:border-white
+        left-1/2 -translate-x-1/2 bottom-4 w-[90vw] max-w-xs rounded-full shadow-lg
+        md:bg-transparent md:px-4 md:py-4 md:border-4 md:text-xl md:left-auto md:right-16 md:top-30 md:bottom-auto md:w-auto md:max-w-none md:rounded-none md:shadow-none md:translate-x-0"
+          onClick={() => {
+            if (declared) {
+              setDeclared(false);
+            }
+            else {
+              setDeclared(true);
+              toast("已进入发布模式，点击模组卡片可发布模组", { icon: "📢" });
+            }
+          }}
+        >
+          {/* 从左往右的黑色背景遮罩 */}
+          <div className="absolute inset-0 bg-info transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-in-out"></div>
+
+          {/* 按钮内容 - 使用relative和z-10确保在遮罩之上 */}
+          <span className="relative z-10  group-hover:text-white transition-colors duration-300">{declared ? "取消" : "发布模组"}</span>
           <svg
             className="w-8 h-8 relative z-10  group-hover:text-white transition-colors duration-300"
             fill="none"
@@ -144,7 +222,7 @@ export default function Work() {
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {currentItems.map(item => (
-                  <Card key={item.stageId} item={item} onClick={() => handleOpen(item.stageId)} />
+                  <Card key={item.stageId} item={item} onClick={() => handleOpen(item)} />
                 ))}
               </div>
               <div className="mt-8">
