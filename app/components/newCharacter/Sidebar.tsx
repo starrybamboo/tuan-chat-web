@@ -1,4 +1,4 @@
-import type { RoleResponse } from "api";
+import type { UserRole } from "api";
 import type { Role } from "./types";
 import { tuanchat } from "@/../api/instance";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
@@ -65,7 +65,7 @@ export function Sidebar({
   };
 
   const loadRoles = async () => {
-    const convertRole = (role: RoleResponse) => ({
+    const convertRole = (role: UserRole) => ({
       id: role.roleId || 0,
       name: role.roleName || "",
       description: role.description || "无描述",
@@ -73,6 +73,7 @@ export function Sidebar({
       avatarId: role.avatarId || 0,
       modelName: role.modelName || "",
       speakerName: role.speakerName || "",
+      voiceUrl: role.voiceUrl || undefined, // 添加 voiceUrl 字段
     });
 
     // 有query数据时

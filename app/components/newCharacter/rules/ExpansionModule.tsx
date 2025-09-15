@@ -305,7 +305,7 @@ export default function ExpansionModule({
 
                 <Section title="基础属性配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
                   {isBasicUsingTemplate && (
-                    <div className="alert alert-info mb-4">
+                    <div className="alert bg-info/20 mb-4">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                       </svg>
@@ -330,7 +330,7 @@ export default function ExpansionModule({
                           <h4 className="text-lg font-semibold text-success">已自定义的能力</h4>
                           <div className="badge badge-success badge-sm">{Object.keys(modifiedAbilities).length}</div>
                         </div>
-                        <div className="alert alert-success">
+                        <div className="alert bg-success/40">
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                           </svg>
@@ -359,7 +359,7 @@ export default function ExpansionModule({
                         </div>
                         <div className="collapse-content">
                           <div className="pt-4 space-y-4">
-                            <div className="alert alert-info">
+                            <div className="alert bg-info/40">
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                               </svg>
@@ -398,7 +398,7 @@ export default function ExpansionModule({
                           <h4 className="text-lg font-semibold text-success">已自定义的技能</h4>
                           <div className="badge badge-success badge-sm">{Object.keys(modifiedSkills).length}</div>
                         </div>
-                        <div className="alert alert-success">
+                        <div className="alert bg-success/40">
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                           </svg>
@@ -427,7 +427,7 @@ export default function ExpansionModule({
                         </div>
                         <div className="collapse-content">
                           <div className="pt-4 space-y-4">
-                            <div className="alert alert-info">
+                            <div className="alert bg-info/40">
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                               </svg>

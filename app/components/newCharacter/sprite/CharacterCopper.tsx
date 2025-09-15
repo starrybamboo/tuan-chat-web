@@ -456,7 +456,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                           <div className="text-center text-lg font-bold">
                             编辑当前头像标题：&nbsp;
                             <select
-                              className="bg-white"
+                              className="bg-transparent"
                               value={avatarTitle}
                               onChange={handleAvatarChange}
                             >
