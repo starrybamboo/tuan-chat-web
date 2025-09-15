@@ -66,7 +66,7 @@ export default function Topbar() {
     () => [
       { id: ModuleListEnum.BACK, icon: ArrowBackThickFill, label: "返回", tooltip: "返回上一级" },
       { id: ModuleListEnum.STAGE, icon: StageIcon, label: "暂存区", tooltip: "暂存区管理" },
-      { id: ModuleListEnum.MAP, icon: MapPlaceholderIcon, label: "地图", tooltip: "剧情/地点地图" },
+      { id: ModuleListEnum.MAP, icon: MapPlaceholderIcon, label: "流程图", tooltip: "剧情/地点 流程图" },
       { id: ModuleListEnum.MODULE, icon: StageIcon, label: "模组", tooltip: "模组信息与管理" },
       { id: ModuleListEnum.COMMIT, icon: ChevronSmallTripleUp, label: "保存草稿", tooltip: "保存所有您做的改动到当前模组" },
     ],
