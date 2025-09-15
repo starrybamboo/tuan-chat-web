@@ -59,6 +59,9 @@ export default function RoomRoleList() {
           角色列表-
           <span className="text-sm">{roomRoles.length}</span>
         </p>
+      </div>
+
+      <div className="flex flex-row gap-2">
         {(curMember?.memberType === 1 || curMember?.memberType === 2) && (
           <button
             type="button"
@@ -68,15 +71,6 @@ export default function RoomRoleList() {
             添加角色
           </button>
         )}
-      </div>
-      <RoleList roles={roomRoles} className={listWidth} />
-
-      {/* 模组角色列表 */}
-      <div className="flex flex-row justify-center items-center gap-2 min-w-60">
-        <p className="text-center">
-          NPC列表-
-          <span className="text-sm">{moduleRoles.length}</span>
-        </p>
         {curMember?.memberType === 1 && (
           <button
             type="button"
@@ -87,6 +81,8 @@ export default function RoomRoleList() {
           </button>
         )}
       </div>
+
+      <RoleList roles={roomRoles} className={listWidth} />
       <RoleList roles={moduleRoles} className={listWidth}></RoleList>
 
       {/* 弹窗 */}
