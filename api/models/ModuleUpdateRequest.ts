@@ -43,5 +43,9 @@ export type ModuleUpdateRequest = {
      * 模组封面
      */
     image?: string;
+    /**
+     * 模组状态，0未发布，1已发布
+     */
+    state?: number;
 };
 

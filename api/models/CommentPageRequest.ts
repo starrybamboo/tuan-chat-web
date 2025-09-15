@@ -21,7 +21,7 @@ export type CommentPageRequest = {
     /**
      * 评论目标类型
      */
-    targetType: number;
+    targetType: string;
     /**
      * 子评论数量限制
      */
