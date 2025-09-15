@@ -201,18 +201,6 @@ export const PostsCard: React.FC<PostsCardProps> = ({
           </div>
         </div>
 
-        {/* Feed 专用：消息内容容器 */}
-        {isFeed && data?.message && (
-          <div className="mb-4">
-            <SlidableChatPreview
-              messageResponse={data.message}
-              maxHeight="160px"
-              showAvatars={true}
-              beFull={true}
-            />
-          </div>
-        )}
-
         {/* 可点击区域：内容 */}
         <div className="mb-4">
           <div
@@ -246,7 +234,17 @@ export const PostsCard: React.FC<PostsCardProps> = ({
                   )
                 : null}
           </div>
-
+          {/* Feed 专用：消息内容容器 */}
+          {isFeed && data?.message && (
+            <div className="mt-4">
+              <SlidableChatPreview
+                messageResponse={data.message}
+                maxHeight="160px"
+                showAvatars={true}
+                beFull={true}
+              />
+            </div>
+          )}
           {/* 图片预览（非 Feed） */}
           {!isFeed && images.length > 0 && (
             <div className="mt-4 pl-16">
@@ -280,8 +278,8 @@ export const PostsCard: React.FC<PostsCardProps> = ({
               className="w-9 h-6 cursor-pointer"
             />
           </div>
-          <div className="flex items-center space-x-1 text-sm hover:text-success cursor-pointer hover:bg-blue-500/10 transition-colors px-2 py-1 rounded-full">
-            <ShareIconButton searchKey={`feedShowSharePop${postId}`} />
+          <div className="flex items-center space-x-1 text-sm cursor-pointer hover:bg-blue-500/10 transition-colors px-2 py-1 rounded-full">
+            <ShareIconButton searchKey={`feedShowSharePop${postId}`} className="cursor-pointer w-9 h-6" />
           </div>
         </div>
         {isCommentMenuOpen && (
