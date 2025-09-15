@@ -32,7 +32,7 @@ export default function CommentPanel({ targetInfo, className }: { targetInfo: Li
           renderedComments
         }
         {/* 评论输入框 */}
-        <CommentInputBox></CommentInputBox>
+        <CommentInputBox />
       </div>
     </CommentContext>
   );
