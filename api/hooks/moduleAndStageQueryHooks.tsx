@@ -22,6 +22,7 @@ export function useUpdateModuleMutation() {
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['moduleList'] });
             queryClient.invalidateQueries({ queryKey: ['moduleDetail', variables.moduleId] });
+            queryClient.invalidateQueries({queryKey: ['staging'] });
         }
     });
 }

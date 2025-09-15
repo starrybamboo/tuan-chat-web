@@ -7,7 +7,8 @@ const ModuleContext = createContext<ModuleContextType | null>(null);
 export function ModuleProvider({ children }: { children: React.ReactNode }) {
   const [moduleTabItems, updateModuleTabItems] = useImmer<ModuleTabItem[]>([]); // 模组的tab列表
   const [currentSelectedTabId, _setCurrentSelectedTabId] = useState<TabId | null>(null); // 当前选中的tab的id
-  const [stageId, _setStageId] = useState<TabId | null>(null); // 当前选中的模组的id
+  const [stageId, _setStageId] = useState<TabId | null>(null); // 当前选中的模组暂存区的id
+  const [moduleId, _setModuleId] = useState<TabId | null>(null); // 当前模组的模组id
   const [activeList, _setActiveList] = useState<ModuleListEnum>(ModuleListEnum.STAGE); // 当前选中的列表, 默认暂存区
 
   // 保持回调的引用稳定，避免依赖 setXxx 触发下游 useEffect 重复执行
@@ -16,6 +17,15 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
       if (prev === id)
         return prev;
       // 仅在切换到新 stageId 时，清空 tab 列表
+      updateModuleTabItems([]);
+      return id;
+    });
+  }, [updateModuleTabItems]);
+
+  const setModuleIdCb = useCallback((id: TabId | null) => {
+    _setModuleId((prev) => {
+      if (prev === id)
+        return prev;
       updateModuleTabItems([]);
       return id;
     });
@@ -76,27 +86,17 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
     moduleTabItems,
     currentSelectedTabId,
     stageId,
+    moduleId,
     activeList,
     setStageId: setStageIdCb,
+    setModuleId: setModuleIdCb,
     setCurrentSelectedTabId: setCurrentSelectedTabIdCb,
     pushModuleTabItem: pushModuleTabItemCb,
     removeModuleTabItem: removeModuleTabItemCb,
     updateModuleTabLabel: updateModuleTabLabelCb,
     updateModuleTabContentName: updateModuleTabContentNameCb,
     setActiveList: setActiveListCb,
-  }), [
-    moduleTabItems,
-    currentSelectedTabId,
-    stageId,
-    activeList,
-    setStageIdCb,
-    setCurrentSelectedTabIdCb,
-    pushModuleTabItemCb,
-    removeModuleTabItemCb,
-    updateModuleTabLabelCb,
-    updateModuleTabContentNameCb,
-    setActiveListCb,
-  ]);
+  }), [moduleTabItems, currentSelectedTabId, stageId, moduleId, activeList, setStageIdCb, setModuleIdCb, setCurrentSelectedTabIdCb, pushModuleTabItemCb, removeModuleTabItemCb, updateModuleTabLabelCb, updateModuleTabContentNameCb, setActiveListCb]);
 
   return (
     <ModuleContext
