@@ -18,7 +18,7 @@ export type ModuleCreateRequest = {
      * 模组的描述
      */
     description?: string;
-    instruction?: string;
+    readMe?: string;
     /**
      * 模组作者名字
      */

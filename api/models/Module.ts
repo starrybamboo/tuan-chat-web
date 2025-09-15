@@ -33,7 +33,7 @@ export type Module = {
     /**
      * md内容
      */
-    instruction?: string;
+    readMe?: string;
     /**
      * 模组可能需要花费的时间，以小时为单位
      */
