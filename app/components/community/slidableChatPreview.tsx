@@ -40,8 +40,8 @@ export default function SlidableChatPreview({
     if (beFull)
       return null;
     return previewMessages.map(item => (
-      <div key={`${item.message.messageId}`} className="text-xs text-base-content/70 truncate">
-        <PreviewMessage message={item.message} className="block" />
+      <div key={`${item.message.messageId}`} className="text-xs text-base-content/70 truncate leading-relaxed">
+        <PreviewMessage message={item.message} className="block truncate" />
       </div>
     ));
   }, [previewMessages, beFull]);
@@ -92,12 +92,12 @@ export default function SlidableChatPreview({
           )
         : (
             // 预览模式：只显示前3条消息的简化版本
-            <div className="bg-base-200 rounded-box p-3 max-w-md">
+            <div className="bg-base-200 rounded-box p-3 w-full min-w-48">
               <div className="flex items-center pb-2 mb-2 border-b border-base-300/50">
-                <div className="text-sm font-semibold text-base-content">
+                <div className="text-sm font-semibold text-base-content truncate">
                   切片记录
                 </div>
-                <div className="ml-auto text-xs text-base-content/50">
+                <div className="ml-auto text-xs text-base-content/50 flex-shrink-0">
                   {messageList.length}
                   {" "}
                   条
@@ -106,7 +106,7 @@ export default function SlidableChatPreview({
               <div className="space-y-1">
                 {renderedPreviewMessages}
                 {messageList.length > 3 && (
-                  <div className="text-xs text-base-content/50">
+                  <div className="text-xs text-base-content/60 font-medium mt-2 px-1">
                     ...还有
                     {" "}
                     {messageList.length - 3}
