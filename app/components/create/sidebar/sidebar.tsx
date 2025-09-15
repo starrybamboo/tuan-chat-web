@@ -52,7 +52,7 @@ export default function Topbar() {
       { id: ModuleListEnum.BACK, icon: ArrowBackThickFill, label: "返回", tooltip: "返回上一级" },
       { id: ModuleListEnum.STAGE, icon: StageIcon, label: "暂存区", tooltip: "暂存区管理" },
       { id: ModuleListEnum.MAP, icon: MapPlaceholderIcon, label: "地图", tooltip: "剧情/地点地图" },
-      { id: ModuleListEnum.COMMIT, icon: ChevronSmallTripleUp, label: "提交", tooltip: "提交到模组区" },
+      { id: ModuleListEnum.COMMIT, icon: ChevronSmallTripleUp, label: "保存草稿", tooltip: "保存所有您做的改动到当前模组" },
     ],
     [],
   );

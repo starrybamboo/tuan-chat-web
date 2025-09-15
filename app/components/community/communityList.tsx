@@ -81,7 +81,8 @@ export default function CommunityList({
   }
 
   return (
-    <div className="rounded-2xl shadow-sm border border-base-200 p-3 lg:p-4">
+    // <div className="space-y-8 max-w-2xl mx-auto w-full lg:max-w-3xl">
+    <div className="rounded-2xl shadow-sm border border-base-200 p-3 lg:p-4 space-y-8 max-w-2xl mx-auto w-full lg:max-w-3xl">
       {communityList.length > 0
         ? (
             <div className="relative">

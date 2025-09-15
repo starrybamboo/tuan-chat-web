@@ -4,7 +4,7 @@ import CommentInputBox from "@/components/common/comment/commentInputBox";
 import LikeIconButton from "@/components/common/likeIconButton";
 import ShareIconButton from "@/components/common/share/shareIconButton";
 import { CommentOutline } from "@/icons";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 interface PostActionBarProps {
   /** 用于点赞的目标信息 */
@@ -45,6 +45,8 @@ export default function PostActionBar({
   // 生成placeholder文本 TODO: 实现逻辑
   // const placeholder = replyTo ? `回复@${replyTo.userName}` : "说点什么...";
 
+  const [openCommentInput, setOpenCommentInput] = useState(false);
+
   // 处理评论提交完成
   const handleCommentSubmitted = () => {
     if (onSetReplyTo) {
@@ -58,14 +60,18 @@ export default function PostActionBar({
         {/* 评论输入框和操作按钮 */}
         <div className="px-4 py-3 md:px-6 md:py-4">
           {/* 评论输入框 */}
-          <div className="mb-3">
-            <CommentInputBox
-              className="mb-0"
-              onSubmitFinish={handleCommentSubmitted}
-              rootCommentId={replyTo?.commentId || 0}
-              parentCommentId={replyTo?.commentId || 0}
-            />
-          </div>
+          {
+            openCommentInput && (
+              <div className="mb-3">
+                <CommentInputBox
+                  className="mb-0"
+                  onSubmitFinish={handleCommentSubmitted}
+                  rootCommentId={replyTo?.commentId || 0}
+                  parentCommentId={replyTo?.commentId || 0}
+                />
+              </div>
+            )
+          }
 
           {/* 操作按钮栏 */}
           <div className="flex items-center justify-between">
@@ -82,7 +88,10 @@ export default function PostActionBar({
               </div>
 
               {/* 评论数量显示 */}
-              <div className="flex items-center space-x-1 text-base-content">
+              <div
+                className="flex items-center space-x-1 text-base-content"
+                onClick={() => setOpenCommentInput(!openCommentInput)}
+              >
                 <CommentOutline className="w-5 h-5" />
                 <span className="text-sm font-medium">{commentCount ?? 0}</span>
               </div>

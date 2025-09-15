@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useModuleContext } from "../context/_moduleContext";
 import AddEntityToScene from "./addEntityToScene";
 import CreateEntityList from "./createEntityList";
@@ -86,7 +86,7 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
 
   // 本地状态
   const [localScene, setLocalScene] = useState({ ...entityInfo });
-  const [name, setName] = useState(scene.name);
+  // 名称改为列表侧重命名，这里不再编辑
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [editEntityType, setEditEntityType] = useState<"item" | "role" | "location">("role");
@@ -188,7 +188,6 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
 
   useEffect(() => {
     setLocalScene({ ...entityInfo });
-    setName(scene.name);
   }, [scene, entityInfo]);
 
   useEffect(() => {
@@ -258,55 +257,61 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
   }, [localScene]);
   const handleSave = () => {
     setIsTransitioning(true);
-    let changed = false;
-    const oldName = scene.name;
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
-      if (name !== scene.name) {
-        removeModuleTabItem(scene.id!.toString());
-        changed = true;
-      }
-      updateScene({ id: scene.id!, entityType: 3, entityInfo: localSceneRef.current, name });
-      if (changed && mapData) {
-        const oldMap = { ...mapData.entityInfo?.sceneMap } as Record<string, any>;
-        const newMap: Record<string, any> = {};
-        Object.entries(oldMap).forEach(([key, value]) => {
-          if (key === oldName) {
-            newMap[name as string] = value;
-          }
-          else {
-            newMap[key] = value;
-          }
-          // 处理值的替换（只处理数组类型的值）
-          if (Array.isArray(value)) {
-            // 创建数组副本以避免修改只读数组
-            const newArray = [...value] as Array<string>;
-            newArray.forEach((item, index) => {
-              if (item === oldName) {
-                newArray[index] = name as string;
-              }
-            });
-            // 将修改后的数组赋值回newMap
-            if (key === oldName) {
-              newMap[name as string] = newArray;
+      const oldName = scene.name;
+      const changed = false; // 不在编辑器内修改名称
+      // 先更新场景自身，成功后再同步地图引用及关闭标签
+      updateScene(
+        { id: scene.id!, entityType: 3, entityInfo: localSceneRef.current, name: scene.name },
+        {
+          onSuccess: () => {
+            if (changed && mapData) {
+              const oldMap = { ...mapData.entityInfo?.sceneMap } as Record<string, any>;
+              const newMap: Record<string, any> = {};
+              Object.entries(oldMap).forEach(([key, value]) => {
+                if (key === oldName) {
+                  newMap[scene.name as string] = value;
+                }
+                else {
+                  newMap[key] = value;
+                }
+                // 处理值的替换（只处理数组类型的值）
+                if (Array.isArray(value)) {
+                  // 创建数组副本以避免修改只读数组
+                  const newArray = [...value] as Array<string>;
+                  newArray.forEach((item, index) => {
+                    if (item === oldName) {
+                      newArray[index] = scene.name as string;
+                    }
+                  });
+                  // 将修改后的数组赋值回newMap
+                  if (key === oldName) {
+                    newMap[scene.name as string] = newArray;
+                  }
+                  else {
+                    newMap[key] = newArray;
+                  }
+                }
+              });
+              updateScene({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
             }
-            else {
-              newMap[key] = newArray;
+            if (changed) {
+              removeModuleTabItem(scene.id!.toString());
             }
-          }
-        });
-        updateScene({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
-      }
+          },
+        },
+      );
     }, 300);
   };
 
   // 对外注册保存函数（保持稳定引用，避免 effect 依赖 handleSave）
   const saveRef = useRef<() => void>(() => {});
-  useEffect(() => {
+  useLayoutEffect(() => {
     saveRef.current = handleSave;
   });
-  useEffect(() => {
+  useLayoutEffect(() => {
     onRegisterSave?.(() => saveRef.current());
   }, [onRegisterSave]);
 
@@ -319,18 +324,8 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
             {/* 右侧内容 */}
             <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               <>
-                <div>
-                  <label className="label">
-                    <span className="label-text font-bold mb-1">场景名称</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={name || ""}
-                    onChange={e => setName(e.target.value)}
-                    placeholder="请输入场景名称"
-                    className="input input-bordered w-full"
-                  />
-                </div>
+                {/* 场景名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
+                <div className="text-lg font-bold break-words">{scene.name}</div>
                 <div>
                   <label className="label">
                     <span className="label-text font-bold mb-1">场景描述（玩家可见）</span>
