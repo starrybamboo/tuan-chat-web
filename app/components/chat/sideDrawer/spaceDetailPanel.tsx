@@ -110,7 +110,6 @@ export default function SpaceDetailPanel() {
               )
             }
           </div>
-          {/* TODO: 适配新的角色列表 */}
           {spaceRoles.map((role) => {
             const roleInfo = role.entityInfo as { avatarId?: number; roleName?: string } | undefined;
             return (
