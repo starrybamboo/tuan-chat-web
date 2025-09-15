@@ -3,6 +3,7 @@ import type { LikeRecordRequest } from "../../../../api";
 import CommentComponent from "@/components/common/comment/commentComponent";
 import { CommentContext } from "@/components/common/comment/commentContext";
 import CommentInputBox from "@/components/common/comment/commentInputBox";
+import UserAvatarComponent from "@/components/common/userAvatar";
 import { useMemo } from "react";
 import { useGetCommentPageInfiniteQuery } from "../../../../api/hooks/commentQueryHooks";
 
@@ -28,11 +29,24 @@ export default function CommentPanel({ targetInfo, className }: { targetInfo: Li
   return (
     <CommentContext value={commentContext}>
       <div className={className}>
-        {
-          renderedComments
-        }
-        {/* 评论输入框 */}
-        <CommentInputBox></CommentInputBox>
+        {renderedComments}
+
+        {/* 评论输入框区域 */}
+        <div className="mt-3 flex gap-3 items-start duration-200">
+          <div className="flex-shrink-0 ">
+            <UserAvatarComponent
+              userId={10013}
+              width={10}
+              isRounded={true}
+              withName={false}
+              stopPopWindow={true}
+              clickEnterProfilePage={false}
+            />
+          </div>
+          <div className="flex-1">
+            <CommentInputBox />
+          </div>
+        </div>
       </div>
     </CommentContext>
   );

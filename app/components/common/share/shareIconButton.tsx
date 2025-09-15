@@ -53,7 +53,7 @@ export default function ShareIconButton({
     <div>
       <button
         type="button"
-        className={`w-12 h-8 flex items-center justify-center join-item btn btn-sm btn-ghost ${className ?? ""}`}
+        className={`flex items-center justify-center join-item btn-sm btn-ghost ${className ?? ""}`}
         onClick={openShareWindow}
         aria-expanded={showShare}
         aria-controls={`share-pop-${searchKey}`}
