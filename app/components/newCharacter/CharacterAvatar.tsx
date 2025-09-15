@@ -259,7 +259,7 @@ export default function CharacterAvatar({
                   {/* 标题截断优化 */}
                   <p className="text-center w-full truncate max-w-full px-1 text-sm mt-1">
                     <select
-                      className="bg-white"
+                      className="bg-base-200"
                       value={avatarTitles.current[index] || "冷静"}
                       onChange={(e) => {
                         updateAvatarTitle({ avatarTitle: e.target.value, avatarId: item.avatarId!, roleId: role.id! });

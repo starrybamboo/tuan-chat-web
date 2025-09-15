@@ -30,5 +30,9 @@ export type RoleUpdateRequest = {
      * tts时使用的角色名
      */
     speakerName?: string;
+    /**
+     * tts时使用的音色
+     */
+    voiceUrl?: string;
 };
 
