@@ -4,6 +4,7 @@ import type { Role } from "./types";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
+import AudioPlayer from "./AudioPlayer";
 import AudioUploadModal from "./AudioUploadModal";
 import CharacterAvatar from "./CharacterAvatar";
 import ExpansionModule from "./rules/ExpansionModule";
@@ -98,6 +99,8 @@ export default function CharacterDetail({
     updateRole(updatedRole, {
       onSuccess: () => {
         console.warn("音频文件上传并保存成功:", audioUrl);
+        console.warn("更新后的角色数据:", updatedRole);
+        console.warn("更新后的本地数据", localRole);
       },
       onError: (error) => {
         console.error("保存音频URL失败:", error);
@@ -296,7 +299,7 @@ export default function CharacterDetail({
         <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
           {/* 立绘与简介卡片 */}
           <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl md:border-2 md:border-base-content/10">
-            <div className="card-body p-4">
+            <div className="card-body p-4 max-h-168">
               {/* 移动端显示的头部区域 */}
               <div className="md:hidden mb-4 pl-4 pr-4">
                 <div className="flex items-center justify-between gap-3 mb-3">
@@ -360,7 +363,10 @@ export default function CharacterDetail({
                   onAvatarUpload={handleAvatarUpload}
                 />
               </div>
-              <div className="divider mt-4 mb-0" />
+              <div className="divider text-xs text-base-content/60">
+                角色ID号：
+                {localRole.id}
+              </div>
               {/* 基础信息与编辑（已移至左侧） */}
               <div>
                 {isEditing
@@ -400,23 +406,9 @@ export default function CharacterDetail({
                   : (
                       <>
                         <p className="font-bold text-center text-xl mb-4">{localRole.name}</p>
-                        <p className="text-base md:text-lg whitespace-pre-wrap break-words max-w-full overflow-hidden md:min-h-22 text-center">
+                        <p className="text-base break-words max-w-full text-center line-clamp-6 overflow-hidden text-ellipsis">
                           {localRole.description || "暂无描述"}
                         </p>
-                        <div className="text-xs text-center mt-24">
-                          <p>
-                            角色ID号：
-                            {localRole.id}
-                          </p>
-                          {/* <p>
-                            采用模型：
-                            {localRole.modelName || "暂无描述"}
-                          </p>
-                          <p>
-                            语音来源：
-                            {localRole.speakerName || "暂无描述"}
-                          </p> */}
-                        </div>
                       </>
                     )}
                 {/* 顶部已提供编辑/保存按钮 */}
@@ -459,12 +451,12 @@ export default function CharacterDetail({
               <div className="divider p-4 my-0" />
 
               {/* 音频上传卡片 */}
-              <div
-                className="card bg-base-100 rounded-2xl cursor-pointer transition-all duration-200 mb-4"
-                onClick={handleOpenAudioModal}
-              >
-                <div className="card-body p-4 hover:bg-base-300">
-                  <div className="flex items-center justify-between">
+              <div className="card bg-base-100 rounded-2xl transition-all duration-200 mb-4">
+                <div className="card-body p-4">
+                  <div
+                    className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-lg p-2 -m-2"
+                    onClick={handleOpenAudioModal}
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center">
                         <svg className="w-4 h-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -474,7 +466,7 @@ export default function CharacterDetail({
                       <div>
                         <h3 className="font-semibold text-sm">上传音频</h3>
                         <p className="text-secondary font-medium text-sm">
-                          用于AI生成角色音色
+                          {localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色"}
                         </p>
                       </div>
                     </div>
@@ -485,6 +477,22 @@ export default function CharacterDetail({
                       </svg>
                     </div>
                   </div>
+
+                  {/* 音频播放器 */}
+                  <AudioPlayer
+                    role={localRole}
+                    onRoleUpdate={(updatedRole) => {
+                      setLocalRole(updatedRole);
+                      // 调用后端API更新
+                      updateRole(updatedRole);
+                    }}
+                    onDelete={() => {
+                      const updatedRole = { ...localRole, voiceUrl: undefined };
+                      setLocalRole(updatedRole);
+                      // 调用后端API更新
+                      updateRole(updatedRole);
+                    }}
+                  />
                 </div>
               </div>
 
