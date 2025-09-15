@@ -323,16 +323,82 @@ export default function EditModule() {
     = useModuleContext();
   // 保存函数注册表
   const saveHandlersRef = useRef<Record<string, () => void>>({});
+  // 当前选中标签对应的保存函数（避免每次都查表，且可在注册/切换时及时同步）
+  const currentSaveHandlerRef = useRef<null | (() => void)>(null);
   const registerSaveForTab = (tabId: string, fn: () => void) => {
     saveHandlersRef.current[tabId] = fn;
+    // 若正好是当前选中的标签，则同时更新当前保存引用
+    if (tabId === currentSelectedTabId) {
+      currentSaveHandlerRef.current = fn;
+    }
   };
+
+  // 统一获取当前有效的保存函数：优先使用 current 引用，其次从映射表兜底
+  const getEffectiveSaveHandler = () => {
+    return (
+      currentSaveHandlerRef.current
+      ?? (currentSelectedTabId ? saveHandlersRef.current[currentSelectedTabId] : undefined)
+    );
+  };
+
+  // 在名字变更等短暂重渲染期间，尝试延迟一两个节拍再保存，避免错过注册时机
+  const invokeSaveWithTinyRetry = () => {
+    const tryOnce = () => {
+      const h = getEffectiveSaveHandler();
+      if (h) {
+        try {
+          h();
+        }
+        catch (e) {
+          console.error("保存失败:", e);
+        }
+        return true;
+      }
+      return false;
+    };
+
+    if (tryOnce()) {
+      return;
+    }
+    // 多次重试：下一帧 + 渐进延迟以覆盖重建/注册空窗
+    const delays = [0, 50, 100, 200, 350, 500];
+    let cancelled = false;
+    // 下一帧启动序列
+    requestAnimationFrame(() => {
+      if (cancelled || tryOnce()) {
+        return;
+      }
+      delays.forEach((d) => {
+        setTimeout(() => {
+          if (!cancelled) {
+            tryOnce();
+          }
+        }, d);
+      });
+    });
+    // 返回一个可选的取消函数以备未来扩展
+    return () => {
+      cancelled = true;
+    };
+  };
+
+  // 当选中的标签变化时，同步当前保存函数引用
+  useEffect(() => {
+    if (currentSelectedTabId) {
+      currentSaveHandlerRef.current = saveHandlersRef.current[currentSelectedTabId] ?? null;
+    }
+    else {
+      currentSaveHandlerRef.current = null;
+    }
+  }, [currentSelectedTabId]);
 
   // 包装 tab 切换：先保存当前，再切换
   const handleTabClick = (nextId: string, _entiryType: "role" | "scene" | "map" | "location" | "item") => {
     // 再尝试保存当前标签
-    if (currentSelectedTabId && saveHandlersRef.current[currentSelectedTabId]) {
+    const save = getEffectiveSaveHandler();
+    if (save) {
       try {
-        saveHandlersRef.current[currentSelectedTabId]!();
+        save();
       }
       catch (e) {
         // 忽略保存异常，继续切换
@@ -340,6 +406,14 @@ export default function EditModule() {
       }
     }
     setCurrentSelectedTabId(nextId);
+  };
+  // 关闭标签时，同时清理保存映射，避免脏引用
+  const handleCloseTab = (id: string) => {
+    delete saveHandlersRef.current[id];
+    if (currentSelectedTabId === id) {
+      currentSaveHandlerRef.current = null;
+    }
+    removeModuleTabItem(id);
   };
   const roleModuleItems = moduleTabItems.filter(item =>
     item.type === ModuleItemEnum.ROLE,
@@ -392,7 +466,7 @@ export default function EditModule() {
             roleModuleItem={item}
             isSelected={item.id === currentSelectedTabId}
             onTabClick={handleTabClick}
-            onCloseClick={removeModuleTabItem}
+            onCloseClick={handleCloseTab}
             registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
           />
         ))}
@@ -404,7 +478,7 @@ export default function EditModule() {
               item={item.content}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={handleTabClick}
-              onCloseClick={removeModuleTabItem}
+              onCloseClick={handleCloseTab}
               registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
             />
           ))
@@ -417,7 +491,7 @@ export default function EditModule() {
               location={item.content}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={handleTabClick}
-              onCloseClick={removeModuleTabItem}
+              onCloseClick={handleCloseTab}
               registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
             />
           ))
@@ -430,7 +504,7 @@ export default function EditModule() {
               scene={item.content}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={handleTabClick}
-              onCloseClick={removeModuleTabItem}
+              onCloseClick={handleCloseTab}
               registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
             />
           ))
@@ -443,7 +517,7 @@ export default function EditModule() {
               map={item.content}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={handleTabClick}
-              onCloseClick={removeModuleTabItem}
+              onCloseClick={handleCloseTab}
               registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
             />
           ))
@@ -467,9 +541,8 @@ export default function EditModule() {
         <button
           type="button"
           onClick={() => {
-            if (currentSelectedTabId && saveHandlersRef.current[currentSelectedTabId]) {
-              saveHandlersRef.current[currentSelectedTabId]!();
-            }
+            // 使用微小重试机制，处理名字变更导致的短暂未注册窗口
+            invokeSaveWithTinyRetry();
           }}
           className="btn btn-primary"
           disabled={!currentSelectedTabId || currentType === "map"}
