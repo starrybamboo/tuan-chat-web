@@ -97,7 +97,7 @@ export class UploadUtils {
    * @param file 文件对象
    * @returns 返回一个 Promise，解析为文件的 MD5 哈希字符串
    */
-  private calculateFileHash(file: File): Promise<string> {
+  public calculateFileHash(file: File): Promise<string> {
     return new Promise((resolve) => {
       const reader = new FileReader();
 

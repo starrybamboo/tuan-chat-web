@@ -2,7 +2,7 @@ import type { RenderInfo, RenderProcess, RenderProps } from "@/components/chat/w
 
 import { SceneEditor } from "@/webGAL/sceneEditor";
 
-import type { Message, RoleAvatar, Room } from "../../api";
+import type { Message, RoleAvatar, Room, UserRole } from "../../api";
 
 import { tuanchat } from "../../api/instance";
 
@@ -19,6 +19,7 @@ export class ChatRenderer {
   private renderedMessageNumber = 0;
   private uploadedSpritesFileNameMap = new Map<number, string>(); // avatarId -> spriteFileName
   private roleAvatarsMap = new Map<number, RoleAvatar>(); // 渲染时候获取的avatar信息
+  private voiceFileMap = new Map<number, File>(); // roleId -> File;
   private roleMap: Map<number, UserRole> = new Map();
   private renderProps: RenderProps;
   private readonly rooms: Room[] = [];
@@ -37,6 +38,7 @@ export class ChatRenderer {
     this.renderInfo = renderInfo;
 
     this.rooms = this.renderInfo.rooms;
+    this.roleMap = new Map(renderInfo.roles.map(role => [role.roleId, role]));
     const spaceInfo = this.renderInfo.space;
     this.roomMap = spaceInfo.roomMap || {};
 
@@ -49,6 +51,42 @@ export class ChatRenderer {
 
   public async initializeRenderer(): Promise<void> {
     await this.sceneEditor.initRender();
+    this.onRenderProcessChange({ message: "获取参考音频中" });
+    const voiceMap = new Map<number, File>();
+
+    // 先从 roleAudios 获取音频文件
+    if (this.renderInfo.roleAudios) {
+      for (const [roleId, refVocal] of Object.entries(this.renderInfo.roleAudios)) {
+        voiceMap.set(Number(roleId), refVocal);
+      }
+    }
+
+    // 如果 roleAudios 中没有，则尝试从 role.voiceUrl 获取
+    for (const [roleId, role] of this.roleMap) {
+      if (!voiceMap.has(roleId)) { // 排除系统角色和骰娘
+        try {
+          if (role.voiceUrl) {
+            // 从 voiceUrl 获取文件
+            const response = await fetch(role.voiceUrl);
+            if (response.ok) {
+              const blob = await response.blob();
+              const file = new File(
+                [blob],
+                role.voiceUrl.split("/").pop() ?? `${roleId}_ref_vocal.wav`,
+                { type: blob.type || "audio/wav" },
+              );
+              voiceMap.set(roleId, file);
+            }
+          }
+        }
+        catch (error) {
+          console.warn(`Failed to fetch voice for role ${roleId}:`, error);
+        }
+      }
+    }
+
+    this.voiceFileMap = voiceMap;
+
     this.onRenderProcessChange({ message: "开始渲染" });
 
     const renderedRooms: Room[] = []; // 成功渲染的房间
@@ -109,6 +147,11 @@ export class ChatRenderer {
     return avatar || null;
   }
 
+  /**
+   * 保底获取角色信息，避免角色信息丢失
+   * @param roleId
+   * @private
+   */
   private async fetchRole(roleId: number): Promise<UserRole | null> {
     // 获取角色信息
     let role: UserRole | undefined = this.roleMap.get(roleId);
@@ -277,7 +320,7 @@ export class ChatRenderer {
           if (role && message.content && message.content !== "") {
             // 每80个字符分割一次
             const contentSegments = this.splitContent(processedContent);
-            const roleAudios = this.renderProps.roleAudios;
+            const roleAudios = this.renderInfo.roleAudios;
             // 为每个分割后的段落创建对话
             for (const segment of contentSegments) {
               // 生成语音
