@@ -9,7 +9,7 @@ import { useQueryEntitiesQuery, useUpdateEntityMutation, useUploadModuleRoleAvat
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
 import { useDeleteRoleAvatarMutation } from "api/queryHooks";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useModuleContext } from "../context/_moduleContext";
 
 interface NPCEditProps {
@@ -76,25 +76,34 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
       const updatedRole = { ...localRoleRef.current, ability: abilityRef.current };
       setIsTransitioning(false);
       const oldName = role.name;
-      if (nameRef.current !== oldName) {
-        removeModuleTabItem(role.id!.toString());
-        // 同步更新scene
-        const newScenes = sceneEntities?.map((scene) => {
-          const newRoles = scene.entityInfo?.roles.map((role: string | undefined) => role === oldName ? nameRef.current : role);
-          return { ...scene, entityInfo: { ...scene.entityInfo, roles: newRoles } };
-        });
-        newScenes?.forEach(scene => updateRole({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
-      }
-      updateRole({ id: role.id!, entityType: 2, entityInfo: updatedRole, name: nameRef.current });
+      const changed = nameRef.current !== oldName;
+      // 先更新角色自身，成功后再同步引用与关闭标签，避免因移除标签导致保存函数不可用
+      updateRole(
+        { id: role.id!, entityType: 2, entityInfo: updatedRole, name: nameRef.current },
+        {
+          onSuccess: () => {
+            if (changed) {
+              // 同步更新 scene 中的角色名
+              const newScenes = sceneEntities?.map((scene) => {
+                const newRoles = scene.entityInfo?.roles.map((r: string | undefined) => r === oldName ? nameRef.current : r);
+                return { ...scene, entityInfo: { ...scene.entityInfo, roles: newRoles } };
+              });
+              newScenes?.forEach(scene => updateRole({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
+              // 最后移除标签
+              removeModuleTabItem(role.id!.toString());
+            }
+          },
+        },
+      );
     }, 300);
   };
 
   // 对外注册保存函数（保持稳定引用，避免依赖 handleSave）
   const saveRef = useRef<() => void>(() => {});
-  useEffect(() => {
+  useLayoutEffect(() => {
     saveRef.current = handleSave;
   });
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (onRegisterSave) {
       onRegisterSave(() => saveRef.current());
     }

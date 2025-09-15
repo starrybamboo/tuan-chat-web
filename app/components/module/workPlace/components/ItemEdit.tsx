@@ -2,7 +2,7 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useModuleContext } from "../context/_moduleContext";
 import Veditor from "./veditor";
 
@@ -47,25 +47,34 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
       setIsTransitioning(false);
       setIsEditing(false);
       const oldName = item.name;
-      if (name !== oldName) {
-        removeModuleTabItem(item.id!.toString());
-        // 同步更新scene
-        const newScenes = sceneEntities?.map((scene) => {
-          const newItems = scene.entityInfo?.items.map((item: string | undefined) => item === oldName ? name : item);
-          return { ...scene, entityInfo: { ...scene.entityInfo, items: newItems } };
-        });
-        newScenes?.forEach(scene => updateItem({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
-      }
-      updateItem({ id: item.id!, entityType: 1, entityInfo: localItemRef.current, name });
+      const changed = name !== oldName;
+      // 先更新物品自身，成功后再同步引用与关闭标签
+      updateItem(
+        { id: item.id!, entityType: 1, entityInfo: localItemRef.current, name },
+        {
+          onSuccess: () => {
+            if (changed) {
+              // 同步更新 scene 中引用的物品名
+              const newScenes = sceneEntities?.map((scene) => {
+                const newItems = scene.entityInfo?.items.map((it: string | undefined) => it === oldName ? name : it);
+                return { ...scene, entityInfo: { ...scene.entityInfo, items: newItems } };
+              });
+              newScenes?.forEach(scene => updateItem({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
+              // 最后移除标签
+              removeModuleTabItem(item.id!.toString());
+            }
+          },
+        },
+      );
     }, 300);
   };
 
   // 对外注册保存函数（保持稳定引用，避免 effect 依赖 handleSave）
   const saveRef = useRef<() => void>(() => {});
-  useEffect(() => {
+  useLayoutEffect(() => {
     saveRef.current = handleSave;
   });
-  useEffect(() => {
+  useLayoutEffect(() => {
     onRegisterSave?.(() => saveRef.current());
   }, [onRegisterSave]);
 

@@ -3,7 +3,7 @@ import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useModuleContext } from "../context/_moduleContext";
 import Veditor from "./veditor";
 
@@ -47,25 +47,34 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
       setIsTransitioning(false);
       setIsEditing(false);
       const oldName = location.name;
-      if (name !== location.name) {
-        removeModuleTabItem(location.id!.toString());
-        // 同步更新scene
-        const newScenes = sceneEntities?.map((scene) => {
-          const newLocations = scene.entityInfo?.locations.map((location: string | undefined) => location === oldName ? name : location);
-          return { ...scene, entityInfo: { ...scene.entityInfo, locations: newLocations } };
-        });
-        newScenes?.forEach(scene => updateLocation({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
-      }
-      updateLocation({ id: location.id!, entityInfo: localLocationRef.current, name, entityType: 4 });
+      const changed = name !== oldName;
+      // 先更新地点自身，成功后再同步引用与关闭标签
+      updateLocation(
+        { id: location.id!, entityInfo: localLocationRef.current, name, entityType: 4 },
+        {
+          onSuccess: () => {
+            if (changed) {
+              // 同步更新 scene 中引用的地点名
+              const newScenes = sceneEntities?.map((scene) => {
+                const newLocations = scene.entityInfo?.locations.map((loc: string | undefined) => (loc === oldName ? name : loc));
+                return { ...scene, entityInfo: { ...scene.entityInfo, locations: newLocations } };
+              });
+              newScenes?.forEach(scene => updateLocation({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
+              // 最后移除标签
+              removeModuleTabItem(location.id!.toString());
+            }
+          },
+        },
+      );
     }, 300);
   };
 
   // 对外注册保存函数（保持稳定引用，避免 effect 依赖 handleSave）
   const saveRef = useRef<() => void>(() => {});
-  useEffect(() => {
+  useLayoutEffect(() => {
     saveRef.current = handleSave;
   });
-  useEffect(() => {
+  useLayoutEffect(() => {
     onRegisterSave?.(() => saveRef.current());
   }, [onRegisterSave]);
 
