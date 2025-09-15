@@ -2,8 +2,7 @@ import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import PostActionBar from "@/components/community/postActionBar";
 import PostCommentPanel from "@/components/community/postCommentPanel";
-import { useMemo, useState } from "react";
-import { useGetCommentPageInfiniteQuery } from "../../../api/hooks/commentQueryHooks";
+import { useState } from "react";
 import { useGetPostDetailQuery } from "../../../api/hooks/communityQueryHooks";
 import { useUserFollowMutation, useUserIsFollowedQuery, useUserUnfollowMutation } from "../../../api/hooks/userFollowQueryHooks";
 import SlidableChatPreview from "./slidableChatPreview";
@@ -30,12 +29,6 @@ export default function CommunityPostDetail({
   const isFollowedQuery = useUserIsFollowedQuery(authorId);
   const followMutation = useUserFollowMutation();
   const unfollowMutation = useUserUnfollowMutation();
-
-  // 获取评论数量
-  const commentQuery = useGetCommentPageInfiniteQuery({ targetType: "2", targetId: postId });
-  const commentCount = useMemo(() => {
-    return commentQuery.data?.pages.flatMap(p => p.data ?? []).length ?? 0;
-  }, [commentQuery.data?.pages]);
 
   const isFollowed = isFollowedQuery.data?.data ?? false;
   const isFollowLoading = followMutation.isPending || unfollowMutation.isPending;
@@ -144,7 +137,7 @@ export default function CommunityPostDetail({
           <PostActionBar
             likeTargetInfo={{ targetType: "2", targetId: postId }}
             _commentTargetInfo={{ targetType: "2", targetId: postId }}
-            commentCount={commentCount}
+            commentCount={post?.stats?.commentCount ?? 0}
             shareSearchKey={`post-${postId}-share`}
             shareTitle={post?.post?.title}
             replyTo={replyTo}
@@ -166,7 +159,7 @@ export default function CommunityPostDetail({
         <PostActionBar
           likeTargetInfo={{ targetType: "2", targetId: postId }}
           _commentTargetInfo={{ targetType: "2", targetId: postId }}
-          commentCount={commentCount}
+          commentCount={post?.stats?.commentCount ?? 0}
           shareSearchKey={`post-${postId}-share`}
           shareTitle={post?.post?.title}
           replyTo={replyTo}
