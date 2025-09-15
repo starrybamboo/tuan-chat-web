@@ -201,18 +201,6 @@ export const PostsCard: React.FC<PostsCardProps> = ({
           </div>
         </div>
 
-        {/* Feed 专用：消息内容容器 */}
-        {isFeed && data?.message && (
-          <div className="mb-4">
-            <SlidableChatPreview
-              messageResponse={data.message}
-              maxHeight="160px"
-              showAvatars={true}
-              beFull={true}
-            />
-          </div>
-        )}
-
         {/* 可点击区域：内容 */}
         <div className="mb-4">
           <div
@@ -246,7 +234,17 @@ export const PostsCard: React.FC<PostsCardProps> = ({
                   )
                 : null}
           </div>
-
+          {/* Feed 专用：消息内容容器 */}
+          {isFeed && data?.message && (
+            <div className="mt-4">
+              <SlidableChatPreview
+                messageResponse={data.message}
+                maxHeight="160px"
+                showAvatars={true}
+                beFull={true}
+              />
+            </div>
+          )}
           {/* 图片预览（非 Feed） */}
           {!isFeed && images.length > 0 && (
             <div className="mt-4 pl-16">
