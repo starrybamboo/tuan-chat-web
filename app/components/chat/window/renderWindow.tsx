@@ -1,6 +1,7 @@
 import type { ChatMessageResponse, Room, Space, UserRole } from "../../../../api";
 import { useChatHistory } from "@/components/chat/indexedDB/useChatHistory";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import AudioPlayer from "@/components/common/AudioPlayer";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import launchWebGal from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
@@ -236,7 +237,7 @@ export default function RenderWindow() {
             <div className="text-xs text-base-content/50 mb-2">
               用于语音合成的音色参考。未上传参考音频的角色对话将无法进行语音合成。
             </div>
-            <div className="space-y-3 max-h-80 overflow-y-auto">
+            <div className="space-y-3 max-h-90 overflow-y-auto">
               {sortedRoles.map((role) => {
                 const hasVoiceUrl = role.voiceUrl && role.voiceUrl.trim() !== "";
                 const hasUploadedAudio = roleAudios?.[role.roleId];
@@ -329,10 +330,20 @@ export default function RenderWindow() {
                     )}
                     {
                       hasVoiceUrl && !hasUploadedAudio && (
-                        <div className="text-xs text-base-content/70 mt-1">
-                          可以由此覆盖默认音频
+                        <div className="text-xs text-base-content/70 py-1">
+                          可以由上方覆盖默认音频
                         </div>
                       )
+                    }
+                    {
+                      (() => {
+                        if (hasUploadedAudio) {
+                          return <AudioPlayer audioFile={roleAudios[role.roleId!]} size="sm" height={20}></AudioPlayer>;
+                        }
+                        else if (hasVoiceUrl) {
+                          return <AudioPlayer audioUrl={role.voiceUrl} size="sm" height={20} />;
+                        }
+                      })()
                     }
                   </div>
                 );
