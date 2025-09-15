@@ -1,4 +1,4 @@
-import type { RoomMember, SpaceMember } from "../../../../api";
+import type { SpaceMember } from "../../../../api";
 import { RoomContext } from "@/components/chat/roomContext";
 import { MemberTypeTag } from "@/components/chat/smallComponents/memberTypeTag";
 import UserAvatarComponent from "@/components/common/userAvatar";
@@ -25,7 +25,7 @@ function ActionButtons({
   onRevokePlayer,
   onTransfer,
 }: {
-  member: RoomMember | SpaceMember;
+  member: SpaceMember;
   spaceId: number;
   isManager: boolean;
   curUserId: number;
@@ -190,7 +190,7 @@ function ActionButtons({
   );
 }
 
-export default function MemberLists({ members, className }: { members: (RoomMember | SpaceMember)[]; className?: string }) {
+export default function MemberLists({ members, className }: { members: (SpaceMember)[]; className?: string }) {
   // 获取上下文与全局信息
   const { spaceId: urlSpaceId } = useParams();
   const spaceId = Number(urlSpaceId);
@@ -211,7 +211,7 @@ export default function MemberLists({ members, className }: { members: (RoomMemb
   const revokePlayerMutation = useRevokePlayerMutation();
   const transferLeader = useTransferLeader();
 
-  const buildHandlers = useCallback((member: RoomMember | SpaceMember) => {
+  const buildHandlers = useCallback((member: SpaceMember) => {
     const onRemove = () => {
       if (roomId > 0) {
         mutateRoomMember.mutate({ roomId, userIdList: [member.userId ?? 0] });

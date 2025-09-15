@@ -155,7 +155,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       {useChatBubbleStyle
         ? (
             <div
-              className="flex w-full items-start gap-1 py-1 group"
+              className="flex w-full items-start gap-1 py-2 group"
               key={message.messageId}
             >
               {/* Avatar */}

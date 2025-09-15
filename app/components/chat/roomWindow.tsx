@@ -3,7 +3,7 @@ import type { ChatInputAreaHandle } from "@/components/chat/chatInputArea";
 
 import type { RoomContextType } from "@/components/chat/roomContext";
 import type { VirtuosoHandle } from "react-virtuoso";
-import type { ChatMessageRequest, ChatMessageResponse, Message, RoomMember, UserRole } from "../../../api";
+import type { ChatMessageRequest, ChatMessageResponse, Message, SpaceMember, UserRole } from "../../../api";
 import type { ChatStatusEvent } from "../../../api/wsModels";
 import AtMentionController from "@/components/atMentionController";
 import AvatarSwitch from "@/components/chat/avatarSwitch";
@@ -156,9 +156,20 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(roomId);
-  const members: RoomMember[] = useMemo(() => {
-    return membersQuery.data?.data ?? [];
-  }, [membersQuery.data?.data]);
+  const spaceMembers = useMemo(() => {
+    return spaceContext.spaceMembers ?? [];
+  }, [spaceContext.spaceMembers]);
+  const members: SpaceMember[] = useMemo(() => {
+    const members = membersQuery.data?.data ?? [];
+    return members.map((member) => {
+      const spaceMember = spaceMembers.find(m => m.userId === member.userId);
+      return {
+        ...member,
+        ...spaceMember,
+      };
+    });
+  }, [membersQuery.data?.data, spaceMembers]);
+
   // 全局登录用户对应的member
   const curMember = useMemo(() => {
     return members.find(member => member.userId === userId);
