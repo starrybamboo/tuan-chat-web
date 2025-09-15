@@ -62,7 +62,7 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
                 <img
                   src={roleAvatar?.avatarUrl}
                   alt={alt}
-                  className="hover:scale-110 transition-transform w-full h-full object-cover"
+                  className={`${!stopPopWindow && "hover:scale-110"} transition-transform w-full h-full object-cover`}
                   onClick={() => { !stopPopWindow && setIsOpen(true); }}
                 />
               )}

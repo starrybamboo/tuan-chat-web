@@ -256,6 +256,12 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
   return (
     <div
       className="w-full overflow-auto resize-none p-2 focus:outline-none div-textarea chatInputTextarea"
+      style={{
+        wordBreak: "break-all",
+        wordWrap: "break-word",
+        whiteSpace: "pre-wrap",
+        overflowWrap: "break-word",
+      }}
       ref={internalTextareaRef}
       onInput={handleInputInternal} // 使用内部的 input 处理器
       onKeyDown={props.onKeyDown} // 转发给父组件

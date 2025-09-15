@@ -71,6 +71,20 @@ export function useGetRoleQuery(roleId: number) {
 }
 
 /**
+ * 根据id批量获取角色
+ */
+export function useGetRolesQueries(roleIds: number[]) {
+  return useQueries({
+    queries: roleIds.map((roleId) => ({
+      queryKey: ["getRole", roleId],
+      queryFn: () => tuanchat.roleController.getRole(roleId),
+      staleTime: 600000, // 10分钟缓存
+      enabled: roleId > 0
+    }))
+  });
+}
+
+/**
  * 更新角色信息（带本地角色状态）
  * @param onSave 保存成功的回调函数，接收本地角色状态
  */
