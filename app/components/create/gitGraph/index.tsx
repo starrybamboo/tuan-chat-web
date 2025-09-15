@@ -164,3 +164,4 @@ function GitGraph() {
 }
 
 export default GitGraph;
+export { GitGraph };
