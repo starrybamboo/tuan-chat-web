@@ -1,0 +1,79 @@
+// 类型导入 (parent-type)
+import type { ChatStatusType } from "../../../api/wsModels";
+import UserIdToName from "@/components/chat/smallComponents/userIdToName";
+// 外部库
+import React, { useMemo } from "react";
+
+interface ChatStatusBarProps {
+  roomId: number;
+  userId: number | undefined | null;
+  webSocketUtils: any;
+  excludeSelf?: boolean;
+}
+
+/**
+ * ChatStatusBar
+ * 展示当前房间内其他成员的输入/等待/暂离状态。
+ * - 优先级: input > wait > leave (idle 不显示)
+ * - 同一状态多个用户合并展示: `3 人正在输入...`
+ * - Hover / Tooltip: 展示所有用户名 (用换行分隔)
+ */
+export default function ChatStatusBar({ roomId, userId, webSocketUtils, excludeSelf = true }: ChatStatusBarProps) {
+  const grouped = useMemo(() => {
+    const statusPriority: ChatStatusType[] = ["input", "wait", "leave"]; // idle 不展示
+    const raw = (webSocketUtils.chatStatus?.[roomId] ?? []) as { userId: number; status: ChatStatusType }[];
+    const others = excludeSelf && userId != null ? raw.filter(s => s.userId !== userId) : raw;
+    return statusPriority
+      .map(st => ({
+        type: st,
+        users: others.filter(o => o.status === st).map(o => o.userId),
+      }))
+      .filter(g => g.users.length > 0);
+  }, [excludeSelf, roomId, userId, webSocketUtils.chatStatus]);
+
+  if (grouped.length === 0)
+    return null;
+
+  const renderLabel = (t: ChatStatusType) => {
+    switch (t) {
+      case "input": return "正在输入";
+      case "wait": return "等待中";
+      case "leave": return "暂离";
+      default: return t;
+    }
+  };
+
+  // 当前 RoomMember 类型不含 userName，暂以 #uid 占位；后续可通过 members 扩展或单独的用户缓存获取
+  const resolveUserNameNode = (uid: number) => <UserIdToName userId={uid} className="inline" />;
+
+  return (
+    <div className="mb-1 -mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-base-content/80">
+      {grouped.map((g) => {
+        const namesNodes = g.users.map(resolveUserNameNode);
+        const tooltipLines = g.users.map(u => `#${u}`).join("\n");
+        const isSingle = g.users.length === 1;
+        return (
+          <div
+            key={g.type}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-base-200 border border-base-300"
+          >
+            <span className={g.type === "input" ? "text-info" : g.type === "leave" ? "text-warning" : "text-base-content/70"}>
+              <span className="tooltip tooltip-top whitespace-pre-line" data-tip={tooltipLines}>
+                {isSingle
+                  ? (
+                      <>
+                        {namesNodes[0]}
+                        {" "}
+                        {renderLabel(g.type)}
+                        ...
+                      </>
+                    )
+                  : `${g.users.length} 人${renderLabel(g.type)}...`}
+              </span>
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

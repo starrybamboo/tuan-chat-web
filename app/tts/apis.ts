@@ -474,5 +474,5 @@ export function createTTSApi(baseURL: string = "http://localhost:9000") {
 }
 
 // 创建 TTS API 实例，从环境变量获取 URL
-const TTS_API_URL = import.meta.env.VITE_TTS_API_URL || "http://localhost:9000";
+const TTS_API_URL = import.meta.env.VITE_TTS_URL || "http://localhost:9000";
 export const ttsApi = createTTSApi(TTS_API_URL);

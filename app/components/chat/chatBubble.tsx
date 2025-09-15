@@ -155,7 +155,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       {useChatBubbleStyle
         ? (
             <div
-              className="flex w-full items-start gap-1 py-1 group"
+              className="flex w-full items-start gap-1 py-2 group"
               key={message.messageId}
             >
               {/* Avatar */}
@@ -235,7 +235,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
             {/* 表情选择窗口 */}
             <PopWindow isOpen={isExpressionChooserOpen} onClose={() => setIsExpressionChooserOpen(false)}>
               <div className="flex flex-col">
-                <div>选择新的表情差分</div>
+                {/* <div>选择新的表情差分</div> */}
                 <ExpressionChooser
                   roleId={message.roleId}
                   handleExpressionChange={handleExpressionChange}

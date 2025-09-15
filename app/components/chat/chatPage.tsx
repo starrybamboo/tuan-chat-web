@@ -168,8 +168,9 @@ export default function ChatPage() {
       setActiveRoomId,
       toggleLeftDrawer: () => { setIsOpenLeftDrawer(!isOpenLeftDrawer); },
       ruleId: spaces.find(space => space.spaceId === activeSpaceId)?.ruleId,
+      spaceMembers: spaceMembersQuery.data?.data ?? [],
     };
-  }, [activeSpaceId, globalContext.userId, isOpenLeftDrawer, setIsOpenLeftDrawer, spaceMembersQuery.data?.data, spaces]);
+  }, [activeSpaceId, globalContext.userId, isOpenLeftDrawer, setActiveRoomId, setActiveSpaceId, spaceMembersQuery.data?.data, spaces]);
 
   const getSpaceUnreadMessagesNumber = (spaceId: number) => {
     let result = 0;

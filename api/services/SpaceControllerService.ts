@@ -83,7 +83,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 创建空间
+     * 创建空间，邀请的所有成员都为pl
      * @param requestBody
      * @returns ApiResultSpace OK
      * @throws ApiError
