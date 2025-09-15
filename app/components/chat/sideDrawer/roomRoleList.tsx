@@ -2,12 +2,10 @@ import { RoomContext } from "@/components/chat/roomContext";
 import RoleList from "@/components/chat/smallComponents/roleLists";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import { PopWindow } from "@/components/common/popWindow";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { getScreenSize } from "@/utils/getScreenSize";
 import React, { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import {
-  useAddModuleRoleMutation,
   useAddRoomRoleMutation,
   useGetRoomModuleRoleQuery,
   useGetRoomRoleQuery,
@@ -28,7 +26,6 @@ export default function RoomRoleList() {
   const [isModuleRoleHandleOpen, setIsModuleRoleHandleOpen] = useState<boolean>(false);
 
   const addRoleMutation = useAddRoomRoleMutation();
-  const addModuleRoleMutation = useAddModuleRoleMutation();
 
   const handleAddRole = async (roleId: number) => {
     addRoleMutation.mutate(
@@ -42,8 +39,8 @@ export default function RoomRoleList() {
   };
 
   const handleAddModuleRole = async (roleId: number) => {
-    addModuleRoleMutation.mutate(
-      { roomId, ids: [roleId] },
+    addRoleMutation.mutate(
+      { roomId, roleIdList: [roleId] },
       {
         onSettled: () => {
           toast("添加NPC成功");
@@ -90,23 +87,7 @@ export default function RoomRoleList() {
           </button>
         )}
       </div>
-      {moduleRoles.map(role => (
-        <div
-          key={role.id}
-          className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center "
-        >
-          {/* role列表 */}
-          <RoleAvatarComponent
-            avatarId={role.entityInfo?.avatarIds}
-            width={10}
-            isRounded={true}
-            withTitle={false}
-          />
-          <div className="flex flex-col items-center gap-2">
-            <span>{role.name}</span>
-          </div>
-        </div>
-      ))}
+      <RoleList roles={moduleRoles} className={listWidth}></RoleList>
 
       {/* 弹窗 */}
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>

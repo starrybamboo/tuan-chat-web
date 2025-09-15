@@ -78,8 +78,8 @@ export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
         if (res.success && res.data) {
           return {
             abilityId : res.data.abilityId || 0 ,
-            roleId: res.data.roleId || 0,
-            ruleId: res.data.ruleId || 0,
+            roleId: roleId,
+            ruleId: ruleId,
             actTemplate: res.data.act || {}, // 表演字段
             basicDefault: res.data.basic || {}, // 基础属性
             abilityDefault: res.data.ability || {}, // 能力数据
