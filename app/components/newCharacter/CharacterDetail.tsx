@@ -363,31 +363,32 @@ export default function CharacterDetail({
                   onAvatarUpload={handleAvatarUpload}
                 />
               </div>
-              <div className="divider text-xs text-base-content/60">
-                角色ID号：
-                {localRole.id}
-              </div>
+              {!isEditing && (
+                <div className="divider font-bold text-center text-xl">
+                  {localRole.name}
+                </div>
+              )}
+              {isEditing && <div className="divider my-0" />}
               {/* 基础信息与编辑（已移至左侧） */}
               <div>
                 {isEditing
                   ? (
                       <div>
-                        <p className="text-lg">角色名：</p>
-                        <input
-                          type="text"
-                          value={localRole.name}
-                          onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="角色名称"
-                          className="input input-bordered w-full text-lg font-bold mt-2"
-                        />
-                        <p className="text-lg mt-2">描述：</p>
+                        <label className="input rounded-md w-full">
+                          <input
+                            type="text"
+                            value={localRole.name}
+                            onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="角色名称"
+                          />
+                        </label>
                         <textarea
                           value={localRole.description}
                           onChange={(e) => {
                             setLocalRole(prev => ({ ...prev, description: e.target.value }));
                           }}
                           placeholder="角色描述"
-                          className="textarea textarea-bordered w-full h-24 resize-none mt-2"
+                          className="textarea textarea-sm w-full h-24 resize-none mt-4 rounded-md"
                         />
                         <div className="text-right mt-1">
                           <span className={`text-sm font-bold ${charCount > MAX_DESCRIPTION_LENGTH ? "text-error" : "text-base-content/70"
@@ -405,7 +406,6 @@ export default function CharacterDetail({
                     )
                   : (
                       <>
-                        <p className="font-bold text-center text-xl mb-4">{localRole.name}</p>
                         <p className="text-base break-words max-w-full text-center line-clamp-6 overflow-hidden text-ellipsis">
                           {localRole.description || "暂无描述"}
                         </p>
@@ -417,8 +417,14 @@ export default function CharacterDetail({
 
             </div>
 
+            <p className="text-center text-xs text-base-content/60">
+              角色ID号：
+              {localRole.id}
+            </p>
+            <div className="divider p-4 my-0" />
+
             <div>
-              <div className="divider p-4 my-0" />
+
               <div
                 className="card bg-base-100 rounded-2xl cursor-pointer transition-all duration-200"
                 onClick={handleOpenRuleModal}
