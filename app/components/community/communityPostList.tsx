@@ -53,7 +53,7 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-2xl mx-auto w-full lg:max-w-3xl">
       {/* Loading State */}
       {pageCommunityPostsQuery.isLoading && (
         <div className="flex flex-col items-center justify-center py-16">
