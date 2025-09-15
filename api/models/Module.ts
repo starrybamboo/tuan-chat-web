@@ -58,6 +58,7 @@ export type Module = {
      * 从哪个模组fork来
      */
     parent?: string;
+    state?: number;
     /**
      * 创建时间
      */

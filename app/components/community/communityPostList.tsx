@@ -53,7 +53,7 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-2xl mx-auto w-full lg:max-w-3xl">
       {/* Loading State */}
       {pageCommunityPostsQuery.isLoading && (
         <div className="flex flex-col items-center justify-center py-16">
@@ -139,28 +139,28 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
                   {/* 检查是否有转发消息或封面图片 */}
                   {(post?.postListItem?.message?.message || post?.postListItem?.coverImage) && (
                     <div className="flex gap-2 lg:gap-4 overflow-hidden items-start">
-                      {/* 转发消息组件 */}
-                      {post?.postListItem?.message?.message && (
-                        <div className={`${post?.postListItem?.coverImage ? "flex-1 min-w-0 lg:flex-none lg:max-w-md" : "w-full"} overflow-hidden`}>
-                          <div className={`rounded-lg overflow-hidden bg-base-200 ${post?.postListItem?.coverImage ? "h-32 lg:h-40" : "h-auto"}`}>
-                            <SlidableChatPreview
-                              messageResponse={post?.postListItem?.message}
-                              maxHeight="160px"
-                              showAvatars={true}
-                              beFull={false}
+                      {/* 封面图片组件 */}
+                      {post?.postListItem?.coverImage && (
+                        <div className="w-1/2 overflow-hidden">
+                          <div className="rounded-lg overflow-hidden bg-base-200 h-36 lg:h-40">
+                            <img
+                              src={post.postListItem.coverImage}
+                              alt="帖子封面"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           </div>
                         </div>
                       )}
 
-                      {/* 封面图片组件 */}
-                      {post?.postListItem?.coverImage && (
-                        <div className={`${post?.postListItem?.message?.message ? "flex-shrink-0 w-32 lg:w-fit" : "w-full"} overflow-hidden`}>
-                          <div className={`rounded-lg overflow-hidden bg-base-200 ${post?.postListItem?.message?.message ? "w-32 h-32 lg:w-fit lg:h-40" : "w-full h-32"}`}>
-                            <img
-                              src={post.postListItem.coverImage}
-                              alt="帖子封面"
-                              className={`h-full object-cover group-hover:scale-105 transition-transform duration-300 ${post?.postListItem?.message?.message ? "w-32 lg:w-auto" : "w-full"}`}
+                      {/* 转发消息组件 */}
+                      {post?.postListItem?.message?.message && (
+                        <div className="w-1/2 overflow-hidden">
+                          <div className="rounded-lg overflow-hidden bg-base-200 h-36 lg:h-40">
+                            <SlidableChatPreview
+                              messageResponse={post?.postListItem?.message}
+                              maxHeight="160px"
+                              showAvatars={true}
+                              beFull={false}
                             />
                           </div>
                         </div>

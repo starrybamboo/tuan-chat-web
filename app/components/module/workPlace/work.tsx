@@ -109,6 +109,7 @@ export default function Work() {
                   {
                     onSuccess: () => {
                       toast.success("发布成功");
+
                       onClose();
                       setDeclared(false);
                       refetch();
