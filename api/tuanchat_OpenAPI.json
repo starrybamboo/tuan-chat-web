@@ -981,7 +981,7 @@
         "tags": [
           "space-member-controller"
         ],
-        "summary": "撤销用户玩家的身份",
+        "summary": "将pl设置为观战，同时退出所有房间",
         "operationId": "revokePlayer",
         "requestBody": {
           "content": {
@@ -1052,7 +1052,7 @@
         "tags": [
           "space-member-controller"
         ],
-        "summary": "把裁判转让给其他成员",
+        "summary": "转让裁判，自己变成观战，同时退出所有房间",
         "operationId": "transferLeader",
         "requestBody": {
           "content": {
@@ -1263,7 +1263,7 @@
         "tags": [
           "space-controller"
         ],
-        "summary": "创建空间",
+        "summary": "创建空间，邀请的所有成员都为pl",
         "operationId": "createSpace",
         "requestBody": {
           "content": {
@@ -6244,12 +6244,83 @@
         }
       }
     },
+    "/capi/space/member/invited/{code}": {
+      "post": {
+        "tags": [
+          "space-member-controller"
+        ],
+        "summary": "通过邀请链接加入房间",
+        "operationId": "invited",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/space/member/": {
       "post": {
         "tags": [
           "space-member-controller"
         ],
-        "summary": "新增空间成员",
+        "summary": "在空间内新增观战成员",
         "operationId": "addMember",
         "requestBody": {
           "content": {
@@ -6880,83 +6951,12 @@
         }
       }
     },
-    "/capi/room/member/invited/{code}": {
-      "post": {
-        "tags": [
-          "room-member-controller"
-        ],
-        "summary": "通过邀请链接加入房间",
-        "operationId": "invited",
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/capi/room/member/": {
       "post": {
         "tags": [
           "room-member-controller"
         ],
-        "summary": "新增房间成员",
+        "summary": "新增房间pl成员，如果将观战成员拉入房间，会自动成为pl",
         "operationId": "addMember_1",
         "requestBody": {
           "content": {
@@ -13539,6 +13539,87 @@
         }
       }
     },
+    "/capi/space/member/inviteCode": {
+      "get": {
+        "tags": [
+          "space-member-controller"
+        ],
+        "summary": "生成邀请码，过期时间以天为单位，为空则不过期",
+        "operationId": "inviteCode",
+        "parameters": [
+          {
+            "name": "spaceId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "duration",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/space/list": {
       "get": {
         "tags": [
@@ -13985,87 +14066,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultListRoomMember"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/room/member/inviteCode": {
-      "get": {
-        "tags": [
-          "room-member-controller"
-        ],
-        "summary": "生成邀请码，过期时间以天为单位，为空则不过期",
-        "operationId": "inviteCode",
-        "parameters": [
-          {
-            "name": "roomId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "duration",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultString"
                 }
               }
             }
@@ -17111,7 +17111,7 @@
             "type": "string",
             "description": "模组作者名字"
           },
-          "instruction": {
+          "readMe": {
             "type": "string"
           },
           "minTime": {
@@ -19922,7 +19922,7 @@
             "type": "string",
             "description": "模组的描述"
           },
-          "instruction": {
+          "readMe": {
             "type": "string"
           },
           "authorName": {
@@ -20135,7 +20135,7 @@
             "type": "string",
             "description": "作者"
           },
-          "instruction": {
+          "readMe": {
             "type": "string",
             "description": "md内容"
           },
@@ -22908,11 +22908,6 @@
             "type": "integer",
             "description": "用户id",
             "format": "int64"
-          },
-          "memberType": {
-            "type": "integer",
-            "description": "成员类型（冗余） 1裁判 2玩家 3观战",
-            "format": "int32"
           },
           "createTime": {
             "type": "string",

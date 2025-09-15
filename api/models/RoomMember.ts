@@ -14,10 +14,6 @@ export type RoomMember = {
      * 用户id
      */
     userId?: number;
-    /**
-     * 成员类型（冗余） 1裁判 2玩家 3观战
-     */
-    memberType?: number;
     createTime?: string;
     updateTime?: string;
 };
