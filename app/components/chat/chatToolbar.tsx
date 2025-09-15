@@ -12,7 +12,6 @@ import {
   SwordSwing,
 } from "@/icons";
 import React, { use } from "react";
-import { toast } from "react-hot-toast";
 import { SpaceContext } from "./spaceContext";
 
 interface ChatToolbarProps {
@@ -30,6 +29,8 @@ interface ChatToolbarProps {
   // 消息发送
   disableSendMessage: boolean;
   handleMessageSubmit: () => void;
+
+  autoComplete: () => void;
 }
 
 export function ChatToolbar({
@@ -40,6 +41,7 @@ export function ChatToolbar({
   setIsItemsWindowOpen,
   disableSendMessage,
   handleMessageSubmit,
+  autoComplete,
 }: ChatToolbarProps) {
   const spaceContext = use(SpaceContext);
 
@@ -86,7 +88,13 @@ export function ChatToolbar({
         <div className="tooltip" data-tip="AI帮写">
           <SparklesOutline
             className="size-7 cursor-pointer jump_icon"
-            onClick={() => toast("功能开发中...")}
+            onMouseDown={(e) => {
+              e.preventDefault(); // 防止失去焦点
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              autoComplete();
+            }}
           >
           </SparklesOutline>
         </div>

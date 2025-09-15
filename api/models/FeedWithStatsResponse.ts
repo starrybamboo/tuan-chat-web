@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 转发消息Feed详情响应（包含统计信息）
+ * Feed详情响应（包含统计信息）
  */
 export type FeedWithStatsResponse = {
     /**

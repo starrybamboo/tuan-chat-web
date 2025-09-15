@@ -516,6 +516,21 @@ export function useGetRoomRoleQuery(roomId: number) {
         staleTime: 10000,
     });
 }
+/**
+ * 批量获取群组角色列表
+ * @param roomIds 群组ID数组
+ */
+export function useGetRoomRolesQueries(roomIds: number[]) {
+    return useQueries({
+        queries: roomIds.map(roomId => ({
+            queryKey: ['roomRole', roomId],
+            queryFn: () => tuanchat.roomRoleController.roomRole(roomId),
+            staleTime: 10000,
+            enabled: roomId > 0 // 确保roomId有效时才启用查询
+        }))
+    });
+}
+
 
 /**
  * 获取群组模组角色列表

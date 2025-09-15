@@ -2,10 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResultListRoleResponse } from '../models/ApiResultListRoleResponse';
+import type { ApiResultListUserRole } from '../models/ApiResultListUserRole';
 import type { ApiResultLong } from '../models/ApiResultLong';
-import type { ApiResultPageBaseRespRoleResponse } from '../models/ApiResultPageBaseRespRoleResponse';
-import type { ApiResultRoleResponse } from '../models/ApiResultRoleResponse';
+import type { ApiResultPageBaseRespUserRole } from '../models/ApiResultPageBaseRespUserRole';
+import type { ApiResultUserRole } from '../models/ApiResultUserRole';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { RoleCreateRequest } from '../models/RoleCreateRequest';
 import type { RolePageQueryRequest } from '../models/RolePageQueryRequest';
@@ -17,12 +17,12 @@ export class RoleControllerService {
     /**
      * 根据id获取角色
      * @param roleId
-     * @returns ApiResultRoleResponse OK
+     * @returns ApiResultUserRole OK
      * @throws ApiError
      */
     public getRole(
         roleId: number,
-    ): CancelablePromise<ApiResultRoleResponse> {
+    ): CancelablePromise<ApiResultUserRole> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/role',
@@ -107,12 +107,12 @@ export class RoleControllerService {
     /**
      * 分页获取角色,支持姓名模糊查询
      * @param requestBody
-     * @returns ApiResultPageBaseRespRoleResponse OK
+     * @returns ApiResultPageBaseRespUserRole OK
      * @throws ApiError
      */
     public getRolesByPage(
         requestBody: RolePageQueryRequest,
-    ): CancelablePromise<ApiResultPageBaseRespRoleResponse> {
+    ): CancelablePromise<ApiResultPageBaseRespUserRole> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/role/page',
@@ -129,12 +129,12 @@ export class RoleControllerService {
     /**
      * 获取用户的所有角色
      * @param userId
-     * @returns ApiResultListRoleResponse OK
+     * @returns ApiResultListUserRole OK
      * @throws ApiError
      */
     public getUserRoles(
         userId: number,
-    ): CancelablePromise<ApiResultListRoleResponse> {
+    ): CancelablePromise<ApiResultListUserRole> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/role/user',
