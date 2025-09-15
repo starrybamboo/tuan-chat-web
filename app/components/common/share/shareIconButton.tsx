@@ -5,12 +5,14 @@ import CopyLinkButton from "./copyLinkButton";
 import SavePictureButton from "./savePictureButton";
 
 interface ShareIconButtonProps {
+  targetRef: React.RefObject<HTMLElement>;
   searchKey: string;
   className?: string;
   title?: string;
 }
 
 export default function ShareIconButton({
+  targetRef,
   searchKey,
   className,
   title,
@@ -31,7 +33,7 @@ export default function ShareIconButton({
         <div className="overflow-y-auto space-y-4 h-[40vh] w-[30vw] flex flex-col items-center justify-center p-4">
           <h2 className="text-xl font-bold">分享方式</h2>
           <div className="flex gap-4 mt-4">
-            <SavePictureButton />
+            <SavePictureButton targetRef={targetRef} />
             <CopyLinkButton title={title} />
           </div>
         </div>
