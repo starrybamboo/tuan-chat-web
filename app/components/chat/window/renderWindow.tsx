@@ -28,7 +28,7 @@ export interface RenderInfo {
   rooms: Room[];
   roles: UserRole[];
   chatHistoryMap: Record<number, ChatMessageResponse[]>; // roomId to chatHistory
-  roleAudios?: { [roleId: number]: File }; // 角色音频文件映射
+  roleAudios: { [roleId: number]: File }; // 角色音频文件映射
 }
 
 /**
@@ -123,7 +123,14 @@ export default function RenderWindow() {
   async function handleRender() {
     // 保存数据到localStorage
     localStorage.setItem("renderProps", JSON.stringify(renderProps));
+
     setIsRendering(true);
+    if (renderProps.useVocal) {
+      await pollPort(Number(
+        (import.meta.env.VITE_TTS_URL as string).split(":").pop(),
+      ), 500, 100).catch(() => { toast.error("TTS 服务器未启动,未进行语音合成"); });
+    }
+
     setRenderProcess({});
     launchWebGal();
     await pollPort(3001).catch(() => toast.error("WebGAL 启动失败"));
@@ -133,6 +140,7 @@ export default function RenderWindow() {
       rooms,
       roles,
       chatHistoryMap,
+      roleAudios,
     };
 
     try {
@@ -226,7 +234,7 @@ export default function RenderWindow() {
               <span className="label-text text-base-content font-medium">角色参考音频</span>
             </label>
             <div className="text-xs text-base-content/50 mb-2">
-              用于语音合成时的音色参考。未上传参考音频的角色的对话将不会进行语音合成。
+              用于语音合成的音色参考。未上传参考音频的角色对话将无法进行语音合成。
             </div>
             <div className="space-y-3 max-h-80 overflow-y-auto">
               {sortedRoles.map((role) => {
