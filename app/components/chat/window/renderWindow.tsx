@@ -158,6 +158,41 @@ export default function RenderWindow() {
   return (
     <div className="w-full max-w-md mx-auto space-y-4">
       <h2 className="text-xl font-bold text-base-content">渲染设置</h2>
+      {/* 跳过语句的正则表达式输入 */}
+      <div className="form-control space-y-2">
+        <label className="label p-0">
+          <span className="label-text text-base-content font-medium">忽略语句规则 (正则表达式)</span>
+        </label>
+        <div className="flex gap-2 w-full">
+          <input
+            type="text"
+            placeholder="输入正则表达式或选择预设"
+            className="input input-bordered flex-1"
+            value={renderProps.skipRegex || ""}
+            onChange={e => updateRenderProps((draft) => {
+              draft.skipRegex = e.target.value;
+            })}
+          />
+          <div className="dropdown dropdown-end">
+            <div tabIndex={0} role="button" className="btn">预设</div>
+            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-84">
+              {regexOptions.map(option => (
+                <li key={option.label}>
+                  <a onClick={() => updateRenderProps((draft) => {
+                    draft.skipRegex = option.value;
+                  })}
+                  >
+                    <div className="flex flex-col items-start">
+                      <strong>{option.label}</strong>
+                      <span className="text-xs text-base-content/70">{option.description}</span>
+                    </div>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
 
       {/* 语音合成开关 */}
       <div className="form-control">
@@ -187,7 +222,7 @@ export default function RenderWindow() {
               <span className="label-text text-base-content font-medium">角色参考音频</span>
             </label>
             <div className="text-xs text-base-content/50 mb-2">
-              为每个角色上传参考音频，用于语音合成时的音色参考。
+              用于语音合成时的音色参考。未上传参考音频的角色的对话将不会进行语音合成。
             </div>
             <div className="space-y-3 max-h-80 overflow-y-auto">
               {sortedRoles.map((role) => {
@@ -278,42 +313,6 @@ export default function RenderWindow() {
           </div>
         </>
       )}
-
-      {/* 跳过语句的正则表达式输入 */}
-      <div className="form-control space-y-2">
-        <label className="label p-0">
-          <span className="label-text text-base-content font-medium">忽略语句规则 (正则表达式)</span>
-        </label>
-        <div className="flex gap-2 w-full">
-          <input
-            type="text"
-            placeholder="输入正则表达式或选择预设"
-            className="input input-bordered flex-1"
-            value={renderProps.skipRegex || ""}
-            onChange={e => updateRenderProps((draft) => {
-              draft.skipRegex = e.target.value;
-            })}
-          />
-          <div className="dropdown dropdown-end">
-            <div tabIndex={0} role="button" className="btn">预设</div>
-            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-64">
-              {regexOptions.map(option => (
-                <li key={option.label}>
-                  <a onClick={() => updateRenderProps((draft) => {
-                    draft.skipRegex = option.value;
-                  })}
-                  >
-                    <div className="flex flex-col items-start">
-                      <strong>{option.label}</strong>
-                      <span className="text-xs text-base-content/70">{option.description}</span>
-                    </div>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
 
       {/* 渲染按钮 */}
       <button
