@@ -60,7 +60,6 @@ export class ChatRenderer {
         voiceMap.set(Number(roleId), refVocal);
       }
     }
-
     // 如果 roleAudios 中没有，则尝试从 role.voiceUrl 获取
     for (const [roleId, role] of this.roleMap) {
       if (!voiceMap.has(roleId)) { // 排除系统角色和骰娘
@@ -320,7 +319,6 @@ export class ChatRenderer {
           if (role && message.content && message.content !== "") {
             // 每80个字符分割一次
             const contentSegments = this.splitContent(processedContent);
-            const roleAudios = this.renderInfo.roleAudios;
             // 为每个分割后的段落创建对话
             for (const segment of contentSegments) {
               // 生成语音
@@ -336,7 +334,7 @@ export class ChatRenderer {
                 vocalFileName = await this.sceneEditor.uploadVocal({
                   ...messageResponse,
                   message: { ...messageResponse.message, content: segment },
-                }, roleAudios ? roleAudios[message.roleId] : undefined); ;
+                }, this.voiceFileMap.get(message.roleId));
               }
               else {
                 vocalFileName = undefined;
