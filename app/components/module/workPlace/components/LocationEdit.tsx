@@ -3,7 +3,7 @@ import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useModuleContext } from "../context/_moduleContext";
 import Veditor from "./veditor";
 
@@ -20,7 +20,7 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
 
   // 本地状态
   const [localLocation, setLocalLocation] = useState({ ...entityInfo });
-  const [name, setName] = useState(location.name);
+  // 名称改为列表侧重命名，这里不再编辑
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
@@ -29,7 +29,6 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
 
   useEffect(() => {
     setLocalLocation({ ...entityInfo });
-    setName(location.name);
   }, [location, entityInfo]);
 
   // 接入接口
@@ -47,25 +46,34 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
       setIsTransitioning(false);
       setIsEditing(false);
       const oldName = location.name;
-      if (name !== location.name) {
-        removeModuleTabItem(location.id!.toString());
-        // 同步更新scene
-        const newScenes = sceneEntities?.map((scene) => {
-          const newLocations = scene.entityInfo?.locations.map((location: string | undefined) => location === oldName ? name : location);
-          return { ...scene, entityInfo: { ...scene.entityInfo, locations: newLocations } };
-        });
-        newScenes?.forEach(scene => updateLocation({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
-      }
-      updateLocation({ id: location.id!, entityInfo: localLocationRef.current, name, entityType: 4 });
+      const changed = false; // 不在编辑器内修改名称
+      // 先更新地点自身，成功后再同步引用与关闭标签
+      updateLocation(
+        { id: location.id!, entityInfo: localLocationRef.current, name: location.name, entityType: 4 },
+        {
+          onSuccess: () => {
+            if (changed) {
+              // 同步更新 scene 中引用的地点名
+              const newScenes = sceneEntities?.map((scene) => {
+                const newLocations = scene.entityInfo?.locations.map((loc: string | undefined) => (loc === oldName ? location.name : loc));
+                return { ...scene, entityInfo: { ...scene.entityInfo, locations: newLocations } };
+              });
+              newScenes?.forEach(scene => updateLocation({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
+              // 最后移除标签
+              removeModuleTabItem(location.id!.toString());
+            }
+          },
+        },
+      );
     }, 300);
   };
 
   // 对外注册保存函数（保持稳定引用，避免 effect 依赖 handleSave）
   const saveRef = useRef<() => void>(() => {});
-  useEffect(() => {
+  useLayoutEffect(() => {
     saveRef.current = handleSave;
   });
-  useEffect(() => {
+  useLayoutEffect(() => {
     onRegisterSave?.(() => saveRef.current());
   }, [onRegisterSave]);
 
@@ -112,14 +120,8 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
             {/* 右侧内容 */}
             <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               <>
-                <p>场景名称：</p>
-                <input
-                  type="text"
-                  value={name || ""}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="场景名称"
-                  className="input input-bordered w-full text-lg font-bold"
-                />
+                {/* 地点名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
+                <div className="text-lg font-bold break-words">{location.name}</div>
                 <p>场景描述：</p>
                 <Veditor
                   id={VeditorIdForDescription}

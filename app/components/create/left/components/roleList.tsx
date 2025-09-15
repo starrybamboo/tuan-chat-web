@@ -3,24 +3,49 @@ import RoleAvatar from "@/components/common/roleAvatar";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // 角色表单项
 function RoleListItem(
-  { role, name, isSelected, onClick, onDelete, deleteMode }: {
+  { role, name, isSelected, onClick, onDelete, onRename, deleteMode }: {
     role: StageEntityResponse;
     name: string;
     isSelected: boolean;
     onClick?: () => void;
     onDelete?: () => void;
+    onRename?: (nextName: string) => void;
     deleteMode?: boolean;
   },
 ) {
   const [confirming, setConfirming] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [draftName, setDraftName] = useState(name);
+  const [showMenu, setShowMenu] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (isRenaming && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isRenaming]);
+
+  const commitRename = () => {
+    const next = draftName.trim();
+    setIsRenaming(false);
+    setShowMenu(false);
+    if (next && next !== name) {
+      onRename?.(next);
+    }
+  };
   return (
     <div
-      className={`group w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""}`}
+      className={`group relative w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""}`}
       onClick={onClick}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setShowMenu(true);
+      }}
     >
       {/* 左侧内容 */}
       <div className="flex items-center gap-2 min-w-0">
@@ -32,10 +57,54 @@ function RoleListItem(
         <RoleAvatar avatarId={role.entityInfo!.avatarId || (role.entityInfo!.avatarIds && role.entityInfo!.avatarIds.length > 0 ? role.entityInfo!.avatarIds[0] : 0)} width={10} isRounded={true} stopPopWindow={true} />
 
         <div className="flex flex-col min-w-0">
-          <p className="text-sm font-medium truncate">{name}</p>
+          {isRenaming
+            ? (
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={draftName}
+                  onChange={e => setDraftName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      commitRename();
+                    }
+                    if (e.key === "Escape") {
+                      setIsRenaming(false);
+                      setShowMenu(false);
+                      setDraftName(name);
+                    }
+                  }}
+                  onBlur={commitRename}
+                  className="input input-bordered input-xs w-40"
+                />
+              )
+            : (
+                <p className="text-sm font-medium truncate">{name}</p>
+              )}
           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{role.entityInfo!.description}</p>
         </div>
       </div>
+
+      {/* 右键菜单 */}
+      {showMenu && (
+        <div
+          className="absolute right-2 top-2 z-20 bg-base-100 shadow rounded border"
+          onClick={e => e.stopPropagation()}
+          onMouseLeave={() => setShowMenu(false)}
+        >
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs w-full"
+            onClick={() => {
+              setDraftName(name);
+              setIsRenaming(true);
+              setShowMenu(false);
+            }}
+          >
+            编辑
+          </button>
+        </div>
+      )}
 
       {/* 右侧按钮（删除/确认） */}
       <div className="flex items-center gap-1">
@@ -121,7 +190,7 @@ function RoleListItem(
 }
 
 export default function RoleList({ stageId, searchQuery: controlledQuery, deleteMode }: { stageId: number; searchQuery?: string; deleteMode?: boolean; showCreateButton?: boolean }) {
-  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem } = useModuleContext();
+  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem, updateModuleTabLabel, updateModuleTabContentName } = useModuleContext();
   const handleClick = (role: StageEntityResponse) => {
     pushModuleTabItem({
       id: role.id!.toString(),
@@ -135,6 +204,7 @@ export default function RoleList({ stageId, searchQuery: controlledQuery, delete
   // 模组相关
   const { data, isSuccess: _isSuccess } = useQueryEntitiesQuery(stageId);
   const { mutate: updateScene } = useUpdateEntityMutation(stageId);
+  const { mutate: updateRole } = useUpdateEntityMutation(stageId);
 
   const list = data?.data!.filter(i => i.entityType === 2);
   const sceneList = data?.data!.filter(i => i.entityType === 3);
@@ -144,7 +214,8 @@ export default function RoleList({ stageId, searchQuery: controlledQuery, delete
   const effectiveQuery = (controlledQuery ?? searchQuery).toLowerCase();
 
   // 根据搜索查询过滤列表
-  const filteredList = list?.filter(i => i.name?.toLowerCase().includes(effectiveQuery));
+  const [renameMap, setRenameMap] = useState<Record<string, string>>({});
+  const filteredList = list?.filter(i => ((renameMap[i.id!.toString()] ?? i.name) || "")!.toLowerCase().includes(effectiveQuery));
   // 使用稳定顺序：按 id 升序，避免因后端返回顺序变化或名称变化导致列表抖动
   const sortedList = (filteredList || []).slice().sort((a, b) => (a.id || 0) - (b.id || 0));
 
@@ -183,8 +254,28 @@ export default function RoleList({ stageId, searchQuery: controlledQuery, delete
             <RoleListItem
               key={i!.id!.toString()}
               role={i!}
-              name={i!.name || "未命名"}
+              name={(renameMap[i!.id!.toString()] ?? i!.name) || "未命名"}
               deleteMode={deleteMode}
+              onRename={(nextName) => {
+                const oldName = i.name!;
+                setRenameMap(prev => ({ ...prev, [i.id!.toString()]: nextName }));
+                updateModuleTabLabel(i.id!.toString(), nextName);
+                updateModuleTabContentName(i.id!.toString(), nextName);
+                // 更新角色名称
+                updateRole(
+                  { id: i.id!, entityType: 2, entityInfo: i.entityInfo!, name: nextName },
+                  {
+                    onSuccess: () => {
+                      // 同步更新引用该角色的场景
+                      const newScenes = sceneList?.map((scene) => {
+                        const newRoles = scene.entityInfo!.roles.map((r: string | undefined) => (r === oldName ? nextName : r));
+                        return { id: scene.id, name: scene.name, entityType: scene.entityType, entityInfo: { ...scene.entityInfo, roles: newRoles } };
+                      });
+                      newScenes?.forEach(scene => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
+                    },
+                  },
+                );
+              }}
               onDelete={() => {
                 removeModuleTabItem(i.id!.toString());
                 deleteRole(

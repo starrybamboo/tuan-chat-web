@@ -11,6 +11,8 @@ export type ModuleContextType = {
   setCurrentSelectedTabId: (itemId: TabId) => void;
   pushModuleTabItem: (item: ModuleTabItem) => void;
   removeModuleTabItem: (id: TabId) => void;
+  updateModuleTabLabel: (id: TabId, label: string) => void;
+  updateModuleTabContentName: (id: TabId, name: string) => void;
   setActiveList: (list: ModuleListEnum) => void;
 };
 
