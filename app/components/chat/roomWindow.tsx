@@ -113,8 +113,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const roomRolesQuery = useGetRoomRoleQuery(roomId);
   const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
   const roomRolesThatUserOwn = useMemo(() => {
+    if (spaceContext.isSpaceOwner)
+      return roomRoles;
     return roomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
-  }, [roomRoles, userRoles]);
+  }, [roomRoles, spaceContext.isSpaceOwner, userRoles]);
 
   // 房间ID到角色ID的映射
   const [curRoleIdMap, setCurRoleIdMap] = useLocalStorage<Record<number, number>>(
