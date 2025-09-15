@@ -346,6 +346,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         toast.error("正在发送中，请稍等");
       return;
     }
+    if (inputText.length > 1024) {
+      toast.error("输入内容过长, 最长未1024个字符");
+      return;
+    }
     setIsSubmitting(true);
     try {
       for (let i = 0; i < imgFiles.length; i++) {
