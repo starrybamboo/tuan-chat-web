@@ -49,9 +49,28 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
     });
   }, [currentSelectedTabId, updateModuleTabItems]);
 
+  const updateModuleTabLabelCb = useCallback((id: TabId, label: string) => {
+    updateModuleTabItems((draft) => {
+      const found = draft.find(item => item.id === id);
+      if (found) {
+        found.label = label;
+      }
+    });
+  }, [updateModuleTabItems]);
+
   const setActiveListCb = useCallback((list: ModuleListEnum) => {
     _setActiveList(list);
   }, []);
+
+  const updateModuleTabContentNameCb = useCallback((id: TabId, name: string) => {
+    updateModuleTabItems((draft) => {
+      const found = draft.find(item => item.id === id);
+      if (found && found.content) {
+        // content 是 StageEntityResponse，保持 name 同步，避免编辑器里读到旧名字
+        (found.content as any).name = name;
+      }
+    });
+  }, [updateModuleTabItems]);
 
   const moduleContextValue: ModuleContextType = useMemo(() => ({
     moduleTabItems,
@@ -62,6 +81,8 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
     setCurrentSelectedTabId: setCurrentSelectedTabIdCb,
     pushModuleTabItem: pushModuleTabItemCb,
     removeModuleTabItem: removeModuleTabItemCb,
+    updateModuleTabLabel: updateModuleTabLabelCb,
+    updateModuleTabContentName: updateModuleTabContentNameCb,
     setActiveList: setActiveListCb,
   }), [
     moduleTabItems,
@@ -72,6 +93,8 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
     setCurrentSelectedTabIdCb,
     pushModuleTabItemCb,
     removeModuleTabItemCb,
+    updateModuleTabLabelCb,
+    updateModuleTabContentNameCb,
     setActiveListCb,
   ]);
 

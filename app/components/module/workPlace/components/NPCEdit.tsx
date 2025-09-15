@@ -24,13 +24,13 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
   const { mutate: deleteAvatar } = useDeleteRoleAvatarMutation();
   // entityInfo 结构见后端定义
   const entityInfo = role.entityInfo || {};
-  const { stageId, removeModuleTabItem } = useModuleContext();
+  const { stageId, removeModuleTabItem, updateModuleTabLabel } = useModuleContext();
 
   const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(entity => entity.entityType === 3);
   // 本地状态
   const [localRole, setLocalRole] = useState({ ...entityInfo });
   const [ability, setAbility] = useState(entityInfo.ability || {});
-  const [name, setName] = useState(role.name);
+  // 角色名改为仅在列表中重命名，编辑器内不再直接编辑
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [charCount, setCharCount] = useState(entityInfo.description?.length || 0);
 
@@ -59,7 +59,8 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
   // 引用最新状态，供防抖保存时使用
   const localRoleRef = useRef(localRole);
   const abilityRef = useRef(ability);
-  const nameRef = useRef(name);
+  // 名称不在此处编辑，保持与外部同步
+  const nameRef = useRef(role.name);
   useEffect(() => {
     localRoleRef.current = localRole;
   }, [localRole]);
@@ -67,8 +68,8 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
     abilityRef.current = ability;
   }, [ability]);
   useEffect(() => {
-    nameRef.current = name;
-  }, [name]);
+    nameRef.current = role.name;
+  }, [role.name]);
 
   const handleSave = () => {
     setIsTransitioning(true);
@@ -76,19 +77,21 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
       const updatedRole = { ...localRoleRef.current, ability: abilityRef.current };
       setIsTransitioning(false);
       const oldName = role.name;
-      const changed = nameRef.current !== oldName;
+      const changed = false; // 名称不在编辑器内修改
       // 先更新角色自身，成功后再同步引用与关闭标签，避免因移除标签导致保存函数不可用
       updateRole(
-        { id: role.id!, entityType: 2, entityInfo: updatedRole, name: nameRef.current },
+        { id: role.id!, entityType: 2, entityInfo: updatedRole, name: role.name },
         {
           onSuccess: () => {
             if (changed) {
               // 同步更新 scene 中的角色名
               const newScenes = sceneEntities?.map((scene) => {
-                const newRoles = scene.entityInfo?.roles.map((r: string | undefined) => r === oldName ? nameRef.current : r);
+                const newRoles = scene.entityInfo?.roles.map((r: string | undefined) => (r === oldName ? role.name : r));
                 return { ...scene, entityInfo: { ...scene.entityInfo, roles: newRoles } };
               });
               newScenes?.forEach(scene => updateRole({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
+              // 同步更新当前 Tab 的 label
+              updateModuleTabLabel(role.id!.toString(), role.name || "");
               // 最后移除标签
               removeModuleTabItem(role.id!.toString());
             }
@@ -141,7 +144,7 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
       updatedAbility[newAbilityName] = newAbilityValue;
     }
     setAbility(updatedAbility);
-    updateRole({ id: role.id!, entityType: 2, entityInfo: { ...localRole, ability: updatedAbility }, name });
+    updateRole({ id: role.id!, entityType: 2, entityInfo: { ...localRole, ability: updatedAbility }, name: role.name });
     setSelectedAbilities({});
     setNewAbilityName("");
     setNewAbilityValue(0);
@@ -443,17 +446,8 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
             {/* 右侧内容 */}
             <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               <>
-                <p>角色名：</p>
-                <input
-                  type="text"
-                  value={name || ""}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    scheduleSave();
-                  }}
-                  placeholder="角色名"
-                  className="input input-bordered w-full text-lg font-bold"
-                />
+                {/* 角色名改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
+                <div className="text-lg font-bold break-words">{role.name}</div>
                 <p>简介：</p>
                 <textarea
                   value={localRole.description || ""}

@@ -19,7 +19,7 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
 
   // 本地状态
   const [localItem, setLocalItem] = useState({ ...entityInfo });
-  const [name, setName] = useState(item.name);
+  // 名称改为列表侧重命名，这里不再编辑
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const vditorId = `item-tip-editor-${item.id}`;
@@ -30,7 +30,6 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
 
   useEffect(() => {
     setLocalItem({ ...entityInfo });
-    setName(item.name);
   }, [item, entityInfo]);
 
   // 接入接口
@@ -47,16 +46,16 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
       setIsTransitioning(false);
       setIsEditing(false);
       const oldName = item.name;
-      const changed = name !== oldName;
+      const changed = false; // 不在编辑器内修改名称
       // 先更新物品自身，成功后再同步引用与关闭标签
       updateItem(
-        { id: item.id!, entityType: 1, entityInfo: localItemRef.current, name },
+        { id: item.id!, entityType: 1, entityInfo: localItemRef.current, name: item.name },
         {
           onSuccess: () => {
             if (changed) {
               // 同步更新 scene 中引用的物品名
               const newScenes = sceneEntities?.map((scene) => {
-                const newItems = scene.entityInfo?.items.map((it: string | undefined) => it === oldName ? name : it);
+                const newItems = scene.entityInfo?.items.map((it: string | undefined) => (it === oldName ? item.name : it));
                 return { ...scene, entityInfo: { ...scene.entityInfo, items: newItems } };
               });
               newScenes?.forEach(scene => updateItem({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
@@ -119,18 +118,8 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
             {/* 右侧内容 */}
             <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
               <>
-                <div>
-                  <label className="label">
-                    <span className="label-text font-bold">物品名称</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={name || ""}
-                    onChange={e => setName(e.target.value)}
-                    placeholder="请输入物品名称"
-                    className="input input-bordered w-full"
-                  />
-                </div>
+                {/* 物品名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
+                <div className="text-lg font-bold break-words">{item.name}</div>
                 <div>
                   <label className="label">
                     <span className="label-text font-bold">物品描述（玩家可见）</span>
