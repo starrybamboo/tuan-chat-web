@@ -2,15 +2,17 @@ import { SpaceContext } from "@/components/chat/spaceContext";
 import launchWebGal from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { ChatRenderer } from "@/webGAL/chatRenderer";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
+import { useGetRoomRolesQueries, useGetUserRoomsQuery } from "../../../../api/hooks/chatQueryHooks";
 
 export interface RenderProps {
   spritePosition: "left" | "middle" | "right";
   useVocal: boolean; // 是否使用语音合成功能
   skipRegex?: string; // 跳过语句的正则表达式
   referenceAudio?: File; // 参考音频文件
+  roleAudios?: { [roleId: string]: File }; // 角色音频文件映射
 }
 
 /**
@@ -38,13 +40,41 @@ const regexOptions = [
 
 export default function RenderWindow() {
   const spaceId = use(SpaceContext).spaceId ?? -1;
+  const rooms = useGetUserRoomsQuery(spaceId).data?.data ?? [];
+  const roles = useGetRoomRolesQueries(rooms.map(r => r.roomId!))
+    .map(q => q.data?.data ?? [])
+    .flat();
+
+  // 对roles根据roleId进行去重
+  const uniqueRoles = roles.reduce((acc, role) => {
+    if (!acc.find(r => r.roleId === role.roleId)) {
+      acc.push(role);
+    }
+    return acc;
+  }, [] as typeof roles);
+
+  // 按voiceUrl是否为空排序，空的优先
+  const sortedRoles = uniqueRoles.sort((a, b) => {
+    const aHasVoice = a.voiceUrl && a.voiceUrl.trim() !== "";
+    const bHasVoice = b.voiceUrl && b.voiceUrl.trim() !== "";
+    if (!aHasVoice && bHasVoice)
+      return -1;
+    if (aHasVoice && !bHasVoice)
+      return 1;
+    return 0;
+  });
+
   const [renderProps, updateRenderProps] = useImmer<RenderProps>({
     spritePosition: "left",
     useVocal: false,
     skipRegex: "", // 初始化 skipRegex
+    roleAudios: {}, // 初始化角色音频映射
   });
   const [isRendering, setIsRendering] = useState(false);
   const [renderProcess, setRenderProcess] = useState<RenderProcess>({});
+
+  // 音频文件引用
+  const audioFileRef = useRef<HTMLInputElement>(null);
 
   // 从localStorage初始化数据
   useEffect(() => {
@@ -81,7 +111,7 @@ export default function RenderWindow() {
   }
 
   return (
-    <div className="card p-4 space-y-4 w-full md:w-[60vw] h-[40vh]">
+    <div className="w-full max-w-md mx-auto space-y-4">
       <h2 className="text-xl font-bold text-base-content">渲染设置</h2>
 
       {/* 语音合成开关 */}
@@ -103,6 +133,156 @@ export default function RenderWindow() {
           </div>
         </label>
       </div>
+
+      {renderProps.useVocal && (
+        <>
+          <div className="form-control space-y-2">
+            <label className="label p-0">
+              <span className="label-text text-base-content font-medium">参考音频 (可选)</span>
+            </label>
+            <div className="flex gap-2 w-full">
+              <input
+                ref={audioFileRef}
+                type="file"
+                accept="audio/*"
+                className="file-input file-input-bordered flex-1"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    updateRenderProps((draft) => {
+                      draft.referenceAudio = file;
+                    });
+                    toast.success(`已选择音频文件: ${file.name}`);
+                  }
+                }}
+              />
+              {renderProps.referenceAudio && (
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => {
+                    updateRenderProps((draft) => {
+                      draft.referenceAudio = undefined;
+                    });
+                    if (audioFileRef.current) {
+                      audioFileRef.current.value = "";
+                    }
+                    toast.success("已清除参考音频");
+                  }}
+                >
+                  清除
+                </button>
+              )}
+            </div>
+            {renderProps.referenceAudio && (
+              <div className="text-sm text-base-content/70">
+                已选择:
+                {" "}
+                {renderProps.referenceAudio.name}
+              </div>
+            )}
+            <div className="text-xs text-base-content/50">
+              上传参考音频文件，用于语音合成时的音色参考。支持 MP3、WAV 等格式。
+            </div>
+          </div>
+
+          {/* 角色音频管理 */}
+          <div className="form-control space-y-2">
+            <label className="label p-0">
+              <span className="label-text text-base-content font-medium">角色参考音频</span>
+            </label>
+            <div className="text-xs text-base-content/50 mb-2">
+              为每个角色上传参考音频，用于语音合成时的音色参考。
+            </div>
+            <div className="space-y-3 max-h-60 overflow-y-auto">
+              {sortedRoles.map((role) => {
+                const hasVoiceUrl = role.voiceUrl && role.voiceUrl.trim() !== "";
+                const hasUploadedAudio = renderProps.roleAudios?.[role.roleId];
+
+                return (
+                  <div
+                    key={role.roleId}
+                    className={`p-3 rounded-lg border ${
+                      !hasVoiceUrl && !hasUploadedAudio
+                        ? "border-warning bg-warning/10"
+                        : "border-base-300 bg-base-200"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-base-content">{role.roleName || "未知角色"}</span>
+                        {!hasVoiceUrl && !hasUploadedAudio && (
+                          <div className="badge badge-warning badge-sm">缺少音频</div>
+                        )}
+                        {hasVoiceUrl && (
+                          <div className="badge badge-success badge-sm">有原始音频</div>
+                        )}
+                        {hasUploadedAudio && (
+                          <div className="badge badge-info badge-sm">已上传</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        className="file-input file-input-bordered file-input-sm flex-1"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            updateRenderProps((draft) => {
+                              if (!draft.roleAudios)
+                                draft.roleAudios = {};
+                              draft.roleAudios[role.roleId] = file;
+                            });
+                            toast.success(`已为角色 ${role.roleName || "未知角色"} 上传音频: ${file.name}`);
+                          }
+                        }}
+                      />
+                      {hasUploadedAudio && (
+                        <button
+                          type="button"
+                          className="btn btn-outline btn-sm"
+                          onClick={() => {
+                            updateRenderProps((draft) => {
+                              if (draft.roleAudios) {
+                                delete draft.roleAudios[role.roleId];
+                              }
+                            });
+                            toast.success(`已清除角色 ${role.roleName || "未知角色"} 的音频`);
+                          }}
+                        >
+                          清除
+                        </button>
+                      )}
+                    </div>
+
+                    {hasUploadedAudio && (
+                      <div className="text-xs text-base-content/70 mt-1">
+                        已上传:
+                        {" "}
+                        {hasUploadedAudio.name}
+                      </div>
+                    )}
+
+                    {!hasVoiceUrl && !hasUploadedAudio && (
+                      <div className="text-xs text-warning mt-1">
+                        警告: 此角色没有原始参考音频，建议上传一个音频文件。
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {sortedRoles.length === 0 && (
+                <div className="text-center text-base-content/50 py-4">
+                  暂无角色数据
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* 跳过语句的正则表达式输入 */}
       <div className="form-control space-y-2">

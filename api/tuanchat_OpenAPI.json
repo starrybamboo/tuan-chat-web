@@ -1857,7 +1857,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultRoleResponse"
+                  "$ref": "#/components/schemas/ApiResultUserRole"
                 }
               }
             }
@@ -7185,7 +7185,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultPageBaseRespRoleResponse"
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespUserRole"
                 }
               }
             }
@@ -14209,7 +14209,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultListRoleResponse"
+                  "$ref": "#/components/schemas/ApiResultListUserRole"
                 }
               }
             }
@@ -15184,8 +15184,8 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string",
+              "format": "byte"
             }
           }
         ],
@@ -16952,6 +16952,9 @@
           "speakerName": {
             "type": "string",
             "description": "tts时使用的角色名"
+          },
+          "voiceUrl": {
+            "type": "string"
           }
         },
         "description": "更新角色请求体"
@@ -17138,6 +17141,11 @@
           "image": {
             "type": "string",
             "description": "模组封面"
+          },
+          "state": {
+            "type": "integer",
+            "description": "模组状态，0未发布，1已发布",
+            "format": "int32"
           }
         },
         "description": "模组更新请求"
@@ -19168,7 +19176,7 @@
         },
         "description": "查询用户信息翻页请求"
       },
-      "ApiResultPageBaseRespRoleResponse": {
+      "ApiResultPageBaseRespUserRole": {
         "required": [
           "success"
         ],
@@ -19188,12 +19196,12 @@
             "description": "错误消息"
           },
           "data": {
-            "$ref": "#/components/schemas/PageBaseRespRoleResponse"
+            "$ref": "#/components/schemas/PageBaseRespUserRole"
           }
         },
         "description": "基础返回体"
       },
-      "PageBaseRespRoleResponse": {
+      "PageBaseRespUserRole": {
         "type": "object",
         "properties": {
           "pageNo": {
@@ -19219,15 +19227,24 @@
             "type": "array",
             "description": "数据列表",
             "items": {
-              "$ref": "#/components/schemas/RoleResponse"
+              "$ref": "#/components/schemas/UserRole"
             }
           }
         },
         "description": "基础翻页返回"
       },
-      "RoleResponse": {
+      "UserRole": {
+        "required": [
+          "roleId",
+          "userId"
+        ],
         "type": "object",
         "properties": {
+          "userId": {
+            "type": "integer",
+            "description": "用户id",
+            "format": "int64"
+          },
           "roleId": {
             "type": "integer",
             "description": "角色id",
@@ -19246,6 +19263,11 @@
             "description": "角色头像",
             "format": "int64"
           },
+          "state": {
+            "type": "integer",
+            "description": "角色状态，0正常，1删除",
+            "format": "int32"
+          },
           "modelName": {
             "type": "string",
             "description": "tts时使用的模型"
@@ -19254,13 +19276,19 @@
             "type": "string",
             "description": "tts时使用的角色名"
           },
-          "userId": {
-            "type": "integer",
-            "description": "属于哪个用户，0代表是全局角色",
-            "format": "int64"
+          "voiceUrl": {
+            "type": "string"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
           }
         },
-        "description": "数据列表"
+        "description": "角色实体类"
       },
       "AbilitySetRequest": {
         "required": [
@@ -20139,6 +20167,10 @@
             "type": "string",
             "description": "从哪个模组fork来"
           },
+          "state": {
+            "type": "integer",
+            "format": "int32"
+          },
           "createTime": {
             "type": "string",
             "description": "创建时间",
@@ -20976,7 +21008,7 @@
             "description": "Feed统计信息"
           }
         },
-        "description": "转发消息Feed详情响应（包含统计信息）"
+        "description": "Feed详情响应（包含统计信息）"
       },
       "ApiResultMomentFeedTotalStatsResponse": {
         "required": [
@@ -21527,9 +21559,9 @@
             "format": "int64"
           },
           "targetType": {
-            "type": "integer",
+            "type": "string",
             "description": "评论目标类型",
-            "format": "int32"
+            "format": "byte"
           },
           "content": {
             "type": "string",
@@ -21566,9 +21598,9 @@
             "format": "int64"
           },
           "targetType": {
-            "type": "integer",
+            "type": "string",
             "description": "评论目标类型",
-            "format": "int32"
+            "format": "byte"
           },
           "childLimit": {
             "maximum": 20,
@@ -21693,9 +21725,9 @@
             }
           },
           "targetType": {
-            "type": "integer",
-            "description": "目标类型(1-feed, 2-post, 3-module等)",
-            "format": "int32"
+            "type": "string",
+            "description": "目标类型(2-post, 3-module等)",
+            "format": "byte"
           }
         },
         "description": "评论计数查询请求参数"
@@ -22835,60 +22867,6 @@
         },
         "description": "基础返回体"
       },
-      "UserRole": {
-        "required": [
-          "roleId",
-          "userId"
-        ],
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "integer",
-            "description": "用户id",
-            "format": "int64"
-          },
-          "roleId": {
-            "type": "integer",
-            "description": "角色id",
-            "format": "int64"
-          },
-          "roleName": {
-            "type": "string",
-            "description": "角色名字"
-          },
-          "description": {
-            "type": "string",
-            "description": "简介"
-          },
-          "avatarId": {
-            "type": "integer",
-            "description": "角色头像",
-            "format": "int64"
-          },
-          "state": {
-            "type": "integer",
-            "description": "角色状态，0正常，1删除",
-            "format": "int32"
-          },
-          "modelName": {
-            "type": "string",
-            "description": "tts时使用的模型"
-          },
-          "speakerName": {
-            "type": "string",
-            "description": "tts时使用的角色名"
-          },
-          "createTime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updateTime": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "description": "角色实体类"
-      },
       "ApiResultListRoomMember": {
         "required": [
           "success"
@@ -22976,7 +22954,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultRoleResponse": {
+      "ApiResultUserRole": {
         "required": [
           "success"
         ],
@@ -22996,36 +22974,7 @@
             "description": "错误消息"
           },
           "data": {
-            "$ref": "#/components/schemas/RoleResponse"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "ApiResultListRoleResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "type": "array",
-            "description": "返回对象",
-            "items": {
-              "$ref": "#/components/schemas/RoleResponse"
-            }
+            "$ref": "#/components/schemas/UserRole"
           }
         },
         "description": "基础返回体"
