@@ -28,7 +28,7 @@ export function PreviewMessage({ message, className }: {
       {
         isDeleted
           ? "[原消息已被删除]"
-          : `【${role?.roleName || "YOU_KNOW_WHO"}】: ${isTextMessage ? messageBody.content : "非文本消息"}`
+          : `【${role?.roleName || "未命名角色"}】: ${isTextMessage ? messageBody.content : "非文本消息"}`
       }
     </span>
   );
