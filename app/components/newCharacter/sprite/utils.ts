@@ -14,18 +14,18 @@ export function parseTransformFromAvatar(avatar: RoleAvatar | null): Transform {
   }
 
   // Parse transform parameters from string values, with fallbacks to defaults
-  const scale = avatar.spriteScale ? Number.parseFloat(avatar.spriteScale) : 1;
-  const positionX = avatar.spriteXPosition ? Number.parseFloat(avatar.spriteXPosition) : 0;
-  const positionY = avatar.spriteYPosition ? Number.parseFloat(avatar.spriteYPosition) : 0;
-  const alpha = avatar.spriteTransparency ? Number.parseFloat(avatar.spriteTransparency) : 1;
-  const rotation = avatar.spriteRotation ? Number.parseFloat(avatar.spriteRotation) : 0;
+  const scale = avatar.spriteScale ? avatar.spriteScale : 1;
+  const positionX = avatar.spriteXPosition ? avatar.spriteXPosition : 0;
+  const positionY = avatar.spriteYPosition ? avatar.spriteYPosition : 0;
+  const alpha = avatar.spriteTransparency ? avatar.spriteTransparency : 1;
+  const rotation = avatar.spriteRotation ? avatar.spriteRotation : 0;
 
   // Validate and clamp values to acceptable ranges
   return {
-    scale: Math.max(0, Math.min(2, Number.isNaN(scale) ? 1 : scale)),
-    positionX: Math.max(-300, Math.min(300, Number.isNaN(positionX) ? 0 : positionX)),
-    positionY: Math.max(-300, Math.min(300, Number.isNaN(positionY) ? 0 : positionY)),
-    alpha: Math.max(0, Math.min(1, Number.isNaN(alpha) ? 1 : alpha)),
-    rotation: Math.max(0, Math.min(360, Number.isNaN(rotation) ? 0 : rotation)),
+    scale,
+    positionX,
+    positionY,
+    alpha,
+    rotation,
   };
 };
