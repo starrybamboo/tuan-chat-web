@@ -22,7 +22,7 @@ export class ItemControllerService {
      * @returns ApiResultItemResponse OK
      * @throws ApiError
      */
-    public getById(
+    public getById1(
         id: number,
     ): CancelablePromise<ApiResultItemResponse> {
         return this.httpRequest.request({

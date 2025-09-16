@@ -1,7 +1,15 @@
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import React from "react";
 
-export default function RoleList({ roles, className }: { roles: UserRole[]; className?: string }) {
+export default function RoleList({
+  roles,
+  className,
+  isModuleRole = false,
+}: {
+  roles: UserRole[];
+  className?: string;
+  isModuleRole?: boolean;
+}) {
   return (
     <>
       {roles.map(role => (
@@ -16,6 +24,7 @@ export default function RoleList({ roles, className }: { roles: UserRole[]; clas
             width={10}
             isRounded={true}
             withTitle={false}
+            allowKickOut={!isModuleRole}
           />
           <div className="flex flex-col items-center gap-2">
             <span>{role.roleName}</span>

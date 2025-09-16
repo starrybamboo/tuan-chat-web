@@ -10,6 +10,7 @@ import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { tuanchat } from "api/instance";
 import { useDeleteRoleAvatarMutation } from "api/queryHooks";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { useModuleContext } from "../context/_moduleContext";
 
 interface NPCEditProps {
@@ -95,6 +96,7 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
               // 最后移除标签
               removeModuleTabItem(role.id!.toString());
             }
+            toast.success("保存成功");
           },
         },
       );
