@@ -10,6 +10,7 @@ import MoodRegulator from "../common/MoodRegulator";
 import { PopWindow } from "../common/popWindow";
 import { AvatarPreview } from "./sprite/AvatarPreview";
 import { CharacterCopper } from "./sprite/CharacterCopper";
+import { SpriteCropper } from "./sprite/SpriteCropper";
 
 interface CharacterAvatarProps {
   role: Role;
@@ -55,6 +56,10 @@ export default function CharacterAvatar({
   // 删除弹窗用
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useSearchParamsState<boolean>(`deleteAvatarPop`, false);
   const [avatarToDeleteIndex, setAvatarToDeleteIndex] = useState<number | null>(null);
+
+  // 裁剪弹窗用
+  const [isCropModalOpen, setIsCropModalOpen] = useSearchParamsState<boolean>(`cropAvatarPop`, false);
+
   // 标题的变化监控
   const avatarTitleRef = useRef<Record<string, string>>({});
   const moodControlRef = useRef<MoodRegulatorHandle | null>(null);
@@ -366,6 +371,13 @@ export default function CharacterAvatar({
         </div>
         <div className="absolute bottom-5 right-5 md:bottom-10 md:right-10 card-actions justify-end">
           <button
+            type="button"
+            onClick={() => setIsCropModalOpen(true)}
+            className="btn btn-secondary btn-md md:btn-lg mr-2"
+          >
+            裁剪头像
+          </button>
+          <button
             type="submit"
             onClick={() => {
               onchange(copperedUrl, avatarId, previewSrc || null);
@@ -378,6 +390,24 @@ export default function CharacterAvatar({
           </button>
         </div>
 
+      </PopWindow>
+
+      {/* 裁剪头像弹窗 */}
+      <PopWindow
+        isOpen={isCropModalOpen}
+        onClose={() => setIsCropModalOpen(false)}
+        fullScreen={typeof window !== "undefined" ? window.innerWidth < 768 : false}
+      >
+        <SpriteCropper
+          roleAvatars={roleAvatars}
+          characterName={role.name}
+          cropMode="avatar"
+          onCropComplete={(croppedImageUrl) => {
+            console.warn("头像裁剪完成:", croppedImageUrl);
+            setIsCropModalOpen(false);
+          }}
+          onClose={() => setIsCropModalOpen(false)}
+        />
       </PopWindow>
     </div>
   );

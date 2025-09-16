@@ -29,7 +29,7 @@ function centerAspectCrop(
     makeAspectCrop(
       {
         unit: "%",
-        width: 90,
+        width: 100,
       },
       aspect,
       mediaWidth,
@@ -137,19 +137,41 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
    */
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
-    const aspect = currentStep === 1 ? 2 / 3 : 1;
-    const newCrop = centerAspectCrop(width, height, aspect);
-    setCrop(newCrop);
-    // 在图片加载完成时设置completedCrop
-    const cropWidth = (width * newCrop.width) / 100;
-    const cropHeight = (height * newCrop.height) / 100;
-    setCompletedCrop({
-      unit: "px",
-      x: (width - cropWidth) / 2,
-      y: (height - cropHeight) / 2,
-      width: cropWidth,
-      height: cropHeight,
-    });
+
+    if (currentStep === 1) {
+      // 第一步：裁剪框占满整个立绘
+      const newCrop = {
+        unit: "%" as const,
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+      };
+      setCrop(newCrop);
+      setCompletedCrop({
+        unit: "px",
+        x: 0,
+        y: 0,
+        width,
+        height,
+      });
+    }
+    else {
+      // 第二步：使用1:1宽高比
+      const aspect = 1;
+      const newCrop = centerAspectCrop(width, height, aspect);
+      setCrop(newCrop);
+      // 在图片加载完成时设置completedCrop
+      const cropWidth = (width * newCrop.width) / 100;
+      const cropHeight = (height * newCrop.height) / 100;
+      setCompletedCrop({
+        unit: "px",
+        x: (width - cropWidth) / 2,
+        y: (height - cropHeight) / 2,
+        width: cropWidth,
+        height: cropHeight,
+      });
+    }
   }
 
   // 使用防抖效果更新预览画布
