@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 import { useParams } from "react-router";
 import {
   useSetRoleAbilityMutation,
-  useUpdateRoleAbilityMutation,
+  useUpdateRoleAbilityByRoleIdMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
 import { tuanchat } from "../../../../api/instance";
 import { useGetRoleQuery } from "../../../../api/queryHooks";
@@ -55,7 +55,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   const defaultDice = useRef(100);
 
   // 通过以下的mutation来对后端发送引起数据变动的请求
-  const updateAbilityMutation = useUpdateRoleAbilityMutation(); // 更改属性与能力字段
+  const updateAbilityMutation = useUpdateRoleAbilityByRoleIdMutation(); // 更改属性与能力字段
   const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
 
   const curRoleId = roomContext.curRoleId; // 当前选中的角色id
@@ -168,7 +168,8 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     for (const [_id, ability] of mentionedRoles) {
       if (ability) {
         updateAbilityMutation.mutate({
-          abilityId: ability.abilityId ?? -1,
+          roleId,
+          ruleId,
           act: {},
           ability: ability.ability,
         });

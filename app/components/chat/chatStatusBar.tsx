@@ -43,6 +43,7 @@ export default function ChatStatusBar({ roomId, userId, webSocketUtils, excludeS
     }
   };
 
+
   // 与 ChatToolbar 状态选择器颜色保持一致
   const colorMap: Record<ChatStatusType, string> = {
     input: "text-info",

@@ -1,8 +1,7 @@
-import type { RoleResponse } from "../../../../api";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
 import React from "react";
 
-export default function RoleList({ roles, className }: { roles: (RoleResponse | UserRole)[]; className?: string }) {
+export default function RoleList({ roles, className }: { roles: UserRole[]; className?: string }) {
   return (
     <>
       {roles.map(role => (
@@ -12,7 +11,8 @@ export default function RoleList({ roles, className }: { roles: (RoleResponse | 
         >
           {/* role列表 */}
           <RoleAvatarComponent
-            avatarId={role.avatarId ?? 0}
+            avatarId={role.avatarId ?? -1}
+            roleId={role.roleId}
             width={10}
             isRounded={true}
             withTitle={false}

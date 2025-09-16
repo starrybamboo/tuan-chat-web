@@ -26,14 +26,16 @@ const sizeMap = {
 /**
  * 用户头像组件
  * @param avatarId
+ * @param roleId 角色ID，如果使用stopPopWindow为false需要添加，模组角色的avatar
  * @param width 头像宽度尺寸
  * @param isRounded 是否显示为圆形头像（true的时候是rounded-full，false的时候是rounded）
  * @param withTitle 是否显示头像对应的标题（并非roleName）
  * @param stopPopWindow 是否禁用点击弹出角色详情窗口，默认为false
  * @param alt
  */
-export default function RoleAvatarComponent({ avatarId, width, isRounded, withTitle = false, stopPopWindow = false, alt = "avatar" }: {
+export default function RoleAvatarComponent({ avatarId, roleId, width, isRounded, withTitle = false, stopPopWindow = false, alt = "avatar" }: {
   avatarId: number;
+  roleId?: number;
   width: keyof typeof sizeMap; // 头像的宽度
   isRounded: boolean; // 是否是圆的
   withTitle?: boolean; // 是否在下方显示标题
@@ -42,10 +44,10 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
 }) {
   const avatarQuery = useGetRoleAvatarQuery(avatarId);
   const roleAvatar = avatarQuery.data?.data;
-  const roleId = roleAvatar?.roleId;
+  const roleIdTrue = roleId ?? roleAvatar?.roleId;
 
   // 控制角色详情的popWindow
-  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`rolePop${roleId}`, false);
+  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`rolePop${roleIdTrue}`, false);
 
   const roomContext = use(RoomContext);
   const roomId = roomContext?.roomId ?? -1;
@@ -53,7 +55,10 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
   return (
     <div className="flex flex-col items-center">
       <div className="avatar">
-        <div className={`${sizeMap[width]} rounded${isRounded && roleAvatar?.avatarUrl ? "-full" : ""} text-center flex content-center`}>
+        <div
+          className={`${sizeMap[width]} rounded${isRounded && roleAvatar?.avatarUrl ? "-full" : ""} text-center flex content-center`}
+          onClick={() => { !stopPopWindow && setIsOpen(true); }}
+        >
           {!roleAvatar?.avatarUrl
             ? (
                 <span className={`${sizeMap[width]} text-sm`}>{alt}</span>
@@ -63,7 +68,6 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
                   src={roleAvatar?.avatarUrl}
                   alt={alt}
                   className={`${!stopPopWindow && "hover:scale-110"} transition-transform w-full h-full object-cover`}
-                  onClick={() => { !stopPopWindow && setIsOpen(true); }}
                 />
               )}
         </div>
@@ -76,7 +80,7 @@ export default function RoleAvatarComponent({ avatarId, width, isRounded, withTi
           (isOpen && !stopPopWindow && roomId) && (
             <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)} fullScreen={getScreenSize() === "sm"}>
               <div className="justify-center w-full">
-                <RoleDetail roleId={roleAvatar?.roleId ?? -1}></RoleDetail>
+                <RoleDetail roleId={roleIdTrue ?? -1}></RoleDetail>
               </div>
             </PopWindow>
           )
