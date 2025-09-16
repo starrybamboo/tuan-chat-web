@@ -32,18 +32,18 @@ export default function RepliedMessage({ replyMessage, className }: {
         <XMarkICon className="size-4"></XMarkICon>
       </button>
       <span className="opacity-60 inline flex-shrink-0">回复</span>
-      {
-        isTextMessage
+      {isTextMessage
+        ? (
+            <span className="text-sm line-clamp-3 opacity-60 break-words">
+              {role?.roleName || "未命名角色"}
+              {": "}
+              {replyMessage.content}
+            </span>
+          )
+        : replyMessage.extra?.imageMessage?.url
           ? (
-              <span className="text-sm line-clamp-3 opacity-60 break-words">
-                {role?.roleName || "YOU_KNOW_WHO"}
-                {": "}
-                {replyMessage.content}
-              </span>
-            )
-          : (
               <span className="text-sm line-clamp-3 opacity-60 break-words flex flex-row items-center">
-                {role?.roleName || "YOU_KNOW_WHO"}
+                {role?.roleName || "未命名角色"}
                 {": "}
                 <img
                   src={replyMessage.extra?.imageMessage?.url}
@@ -54,7 +54,13 @@ export default function RepliedMessage({ replyMessage, className }: {
                 />
               </span>
             )
-      }
+          : (
+              <span className="text-sm line-clamp-3 opacity-60 break-words">
+                {role?.roleName || "未命名角色"}
+                {": "}
+                非文本内容
+              </span>
+            )}
     </div>
   );
 }
