@@ -9,7 +9,12 @@ export default [
     // index("../app/routes/chat.tsx"),
     index("routes/home.tsx"),
     route("feed/:feedId?", "routes/feed.tsx"),
-    route("role", "routes/role.tsx"),
+    layout("routes/role.tsx", [
+      // 当 URL 是 /role 时，渲染这个索引路由
+      index("routes/role/index.tsx"),
+      // 当 URL 是 /role/123 这种形式时，渲染这个动态路由
+      route(":roleId", "routes/role/roleId.tsx"),
+    ]),
     route("create/:editingStageId?", "routes/create.tsx"),
     route("activities", "routes/activities.tsx"),
     route("profile/:userId", "routes/profile.tsx"),

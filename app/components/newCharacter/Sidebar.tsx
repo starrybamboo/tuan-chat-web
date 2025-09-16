@@ -6,26 +6,28 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useDeleteRolesMutation, useGetInfiniteUserRolesQuery } from "api/queryHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
+import { Link, NavLink } from "react-router";
 import { PopWindow } from "../common/popWindow";
 import { useGlobalContext } from "../globalContextProvider";
 import { RoleListItem } from "./RoleListItem";
 
+// ... SidebarProps 接口不再需要 setSelectedRoleId 和 onEnterCreateEntry
 interface SidebarProps {
   roles: Role[]; // 角色数据数组，使用 Virtuos
   setRoles: React.Dispatch<React.SetStateAction<Role[]>>;
   selectedRoleId: number | null;
-  setSelectedRoleId: (id: number | null) => void;
-  setIsEditing: (value: boolean) => void;
-  onEnterCreateEntry?: () => void; // 进入创建入口（显示 CreateEntry）
+  // setSelectedRoleId: (id: number | null) => void;
+  // setIsEditing: (value: boolean) => void;
+  // onEnterCreateEntry?: () => void; // 进入创建入口（显示 CreateEntry）
 }
 
 export function Sidebar({
   roles,
   setRoles,
   selectedRoleId,
-  setSelectedRoleId,
-  setIsEditing,
-  onEnterCreateEntry,
+  // setSelectedRoleId,
+  // setIsEditing,
+  // onEnterCreateEntry,
 }: SidebarProps) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   // 已不再直接在 Sidebar 内创建角色
@@ -183,11 +185,17 @@ export function Sidebar({
   // };
 
   // 进入创建入口：清空当前选中角色并通知上层展示 CreateEntry
-  const handleCreate = () => {
-    setSelectedRoleId(null);
-    setIsEditing(false);
-    onEnterCreateEntry?.();
-    // 关闭抽屉（移动端）
+  // const handleCreate = () => {
+  //   setSelectedRoleId(null);
+  //   setIsEditing(false);
+  //   onEnterCreateEntry?.();
+  //   // 关闭抽屉（移动端）
+  //   const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement | null;
+  //   if (drawerCheckbox)
+  //     drawerCheckbox.checked = false;
+  // };
+
+  const closeDrawerOnMobile = () => {
     const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement | null;
     if (drawerCheckbox)
       drawerCheckbox.checked = false;
@@ -243,7 +251,7 @@ export function Sidebar({
       const roleId = deleteCharacterId;
       if (roleId) {
         setRoles(roles.filter(c => c.id !== roleId));
-        setSelectedRoleId(null);
+        // setSelectedRoleId(null);
         deleteRole([roleId]);
       }
     }
@@ -251,7 +259,7 @@ export function Sidebar({
       // 批量删除逻辑
       const roleIds = Array.from(selectedRoles);
       setRoles(roles.filter(c => !selectedRoles.has(c.id)));
-      setSelectedRoleId(null);
+      // setSelectedRoleId(null);
       deleteRole(roleIds);
       setSelectedRoles(new Set());
       setIsSelectionMode(false);
@@ -354,7 +362,7 @@ export function Sidebar({
                       <polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
                   </button>
-                  <button type="button" className="btn btn-square btn-soft" onClick={handleCreate} title="进入创建入口">
+                  <Link to="/role" className="btn btn-square btn-soft" title="进入创建入口">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-4 w-4"
@@ -368,7 +376,7 @@ export function Sidebar({
                       <line x1="12" y1="3" x2="12" y2="21" />
                       <line x1="3" y1="12" x2="21" y2="12" />
                     </svg>
-                  </button>
+                  </Link>
                 </>
               )}
         </div>
@@ -387,9 +395,10 @@ export function Sidebar({
               }
             }}
           >
-            <div
+            <Link
+              to="/role"
               className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
-              onClick={handleCreate}
+              onClick={closeDrawerOnMobile} // 仅用于关闭移动端抽屉
               title="进入创建入口"
             >
               <div className="avatar shrink-0">
@@ -413,32 +422,35 @@ export function Sidebar({
                 <h3 className="font-medium truncate">创建角色</h3>
                 <p className="text-xs text-base-content/70 mt-1 truncate">进入创建入口</p>
               </div>
-            </div>
+            </Link>
             {filteredRoles.map(role => (
-              <RoleListItem
+              <NavLink
                 key={role.id}
-                role={role}
-                isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
-                onSelect={() => {
+                to={`/role/${role.id}`}
+                // NavLink 让我们能根据路由是否激活来动态设置 className
+                className={({ isActive }) => `block rounded-lg ${isActive && !isSelectionMode ? "bg-primary text-primary-content" : ""}`}
+                onClick={(e) => {
+                  // 如果是批量选择模式，阻止导航
                   if (isSelectionMode) {
+                    e.preventDefault();
                     toggleRoleSelection(role.id);
                   }
                   else {
-                    if (selectedRoleId !== role.id) {
-                      setSelectedRoleId(role.id);
-                    }
-                    else {
-                      setSelectedRoleId(null);
-                    }
-                    setIsEditing(false);
-                    const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
-                    if (drawerCheckbox)
-                      drawerCheckbox.checked = false;
+                    closeDrawerOnMobile();
                   }
                 }}
-                onDelete={() => handleDelete(role.id)}
-                isSelectionMode={isSelectionMode}
-              />
+              >
+                <RoleListItem
+                  role={role}
+                  // isSelected 现在由 NavLink 的 isActive 状态或批量选择状态决定
+                  isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
+                  // --- REMOVED --- onSelect prop
+                  onDelete={() => handleDelete(role.id)}
+                  isSelectionMode={isSelectionMode}
+                  // 如果 isSelectionMode，需要一种方式来触发 toggleRoleSelection
+                  // 我们在 NavLink 的 onClick 中处理了这个逻辑
+                />
+              </NavLink>
             ))}
             {isLoadingMore && (
               <div className="flex justify-center items-center py-4">

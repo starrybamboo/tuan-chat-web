@@ -1,19 +1,22 @@
 import type { Role } from "./types";
 
+// 1. 从 Props 接口中移除 onSelect
 interface RoleListItemProps {
   role: Role;
   isSelected: boolean;
-  onSelect: () => void;
   onDelete: () => void;
-  isSelectionMode?: boolean; // 新增属性
+  isSelectionMode?: boolean;
 }
 
-export function RoleListItem({ role, isSelected, onSelect, onDelete, isSelectionMode }: RoleListItemProps) {
+// 2. 从函数参数中移除 onSelect
+export function RoleListItem({ role, isSelected, onDelete, isSelectionMode }: RoleListItemProps) {
   return (
+    // 3. 从根 div 中移除 onClick 事件
     <div
-      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group ${isSelected ? "bg-base-100" : "hover:bg-base-100"
+      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group ${
+        // 样式逻辑保持不变，因为它对批量选择模式仍然有效
+        isSelected ? "bg-base-100" : "hover:bg-base-100"
       }`}
-      onClick={onSelect}
     >
       <div className="avatar shrink-0">
         <div className="w-12 h-12 md:w-14 md:h-14 rounded-full">
@@ -34,6 +37,8 @@ export function RoleListItem({ role, isSelected, onSelect, onDelete, isSelection
             : role.description || "暂无描述"}
         </p>
       </div>
+
+      {/* 批量选择模式和删除按钮的逻辑完全保持不变 */}
       {isSelectionMode
         ? (
             <div className={`flex items-center justify-center w-4 h-4 rounded-full border-2 transition-all duration-200 ${isSelected ? "bg-info border-info" : "border-base-content/30 hover:border-primary"}`}>
@@ -58,7 +63,7 @@ export function RoleListItem({ role, isSelected, onSelect, onDelete, isSelection
               type="button"
               className="btn btn-ghost btn-xs text-error hover:bg-error/10 md:opacity-0 md:group-hover:opacity-100 opacity-70 rounded-full p-1"
               onClick={(e) => {
-                e.stopPropagation();
+                e.stopPropagation(); // 这一行至关重要，防止点击删除时触发导航
                 onDelete();
               }}
             >
