@@ -46,9 +46,10 @@ export default function CharacterAvatar({
     return window.matchMedia("(min-width: 768px)").matches;
   });
 
-  // 使用传入的状态作为内部 UI 状态
-  const copperedUrl = selectedAvatarUrl || "/favicon.ico";
-  const previewSrc = selectedSpriteUrl || "";
+  // 使用传入的状态作为内部 UI 状态（优先通过 selectedAvatarId 在列表中查找，避免因 URL 变化造成回退）
+  const selectedAvatar = roleAvatars?.find(a => a.avatarId === selectedAvatarId) || null;
+  const displayAvatarUrl = selectedAvatar?.avatarUrl || selectedAvatarUrl || "/favicon.ico";
+  const displaySpriteUrl = selectedAvatar?.spriteUrl || selectedSpriteUrl || "";
   const avatarId = selectedAvatarId;
 
   // 弹窗的打开和关闭
@@ -247,7 +248,7 @@ export default function CharacterAvatar({
             </div>
             <AvatarPreview
               mode="image"
-              currentAvatarUrl={showSprite ? (previewSrc || "/favicon.ico") : (copperedUrl || "/favicon.ico")}
+              currentAvatarUrl={showSprite ? (displaySpriteUrl || "/favicon.ico") : (displayAvatarUrl || "/favicon.ico")}
               characterName={role.name}
               className=""
               imageClassName="md:max-h-[65vh] md:min-h-[35vh]"
@@ -256,6 +257,7 @@ export default function CharacterAvatar({
             <MoodRegulator
               controlRef={moodControlRef}
               onChange={handleMoodChange}
+              fallbackDefaultLabels={false}
             />
           </div>
 
@@ -265,7 +267,7 @@ export default function CharacterAvatar({
             <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center bg-base-200 p-2">
               {roleAvatars.map((item, index) => (
                 <li
-                  key={`${role.id}-${item.avatarUrl}`}
+                  key={item.avatarId ?? `${role.id}-${index}`}
                   className="relative w-full max-w-[128px] flex flex-col items-center rounded-lg transition-colors"
                   onClick={() => handleAvatarClick(item.avatarUrl as string, index, item.avatarTitle as Record<string, string>)}
                 >
@@ -274,7 +276,7 @@ export default function CharacterAvatar({
                     <img
                       src={item.avatarUrl}
                       alt="头像"
-                      className={`w-full h-full object-contain rounded-lg transition-all duration-300 group-hover:scale-105 ${item.avatarUrl === copperedUrl ? "border-2 border-primary" : "border"}`}
+                      className={`w-full h-full object-contain rounded-lg transition-all duration-300 group-hover:scale-105 ${item.avatarId === selectedAvatarId ? "border-2 border-primary" : "border"}`}
                     />
                     {/* 删除按钮 - 只有多个头像时才显示 */}
                     {roleAvatars.length > 1 && (
@@ -342,7 +344,7 @@ export default function CharacterAvatar({
 
             <AvatarPreview
               mode="full"
-              currentAvatarUrl={copperedUrl || "/favicon.ico"}
+              currentAvatarUrl={displayAvatarUrl || "/favicon.ico"}
               characterName={role.name}
               chatMessages={["你好！这是我的新头像", "看起来怎么样？"]}
               className="space-y-2"
@@ -380,8 +382,8 @@ export default function CharacterAvatar({
           <button
             type="submit"
             onClick={() => {
-              onchange(copperedUrl, avatarId, previewSrc || null);
-              onSpritePreviewChange?.(previewSrc || null);
+              onchange(displayAvatarUrl, avatarId, displaySpriteUrl || null);
+              onSpritePreviewChange?.(displaySpriteUrl || null);
               setChangeAvatarConfirmOpen(false);
             }}
             className="btn btn-primary btn-md md:btn-lg"
