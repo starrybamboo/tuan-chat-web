@@ -5,7 +5,7 @@ import { useUpdateAvatarTitleMutation, useUploadAvatarMutation } from "@/../api/
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MoodRegulator from "../common/MoodRegulator";
 import { PopWindow } from "../common/popWindow";
 import { AvatarPreview } from "./sprite/AvatarPreview";
@@ -51,6 +51,17 @@ export default function CharacterAvatar({
   const displayAvatarUrl = selectedAvatar?.avatarUrl || selectedAvatarUrl || "/favicon.ico";
   const displaySpriteUrl = selectedAvatar?.spriteUrl || selectedSpriteUrl || "";
   const avatarId = selectedAvatarId;
+
+  // 情绪调节器兜底标签（当当前头像没有定义 avatarTitle 时使用）
+  const DEFAULT_MOOD_LABELS = useMemo(
+    () => ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"],
+    [],
+  );
+  // 根据当前选中头像的情绪键生成 labels，若为空则回退到默认 8 项
+  const moodLabels = useMemo(() => {
+    const keys = Object.keys((selectedAvatar?.avatarTitle as Record<string, string>) || {});
+    return keys.length > 0 ? keys : DEFAULT_MOOD_LABELS;
+  }, [selectedAvatar, DEFAULT_MOOD_LABELS]);
 
   // 弹窗的打开和关闭
   const [changeAvatarConfirmOpen, setChangeAvatarConfirmOpen] = useSearchParamsState<boolean>(`changeAvatarPop`, false);
@@ -257,7 +268,11 @@ export default function CharacterAvatar({
             <MoodRegulator
               controlRef={moodControlRef}
               onChange={handleMoodChange}
-              fallbackDefaultLabels={false}
+              // 显式传入 labels，避免在没有值时不渲染控件
+              labels={moodLabels}
+              // 仅用于初始显示，不参与受控更新；后续都通过 ref.setValue 同步
+              defaultValue={(selectedAvatar?.avatarTitle as Record<string, string>) || undefined}
+              fallbackDefaultLabels={true}
             />
           </div>
 
