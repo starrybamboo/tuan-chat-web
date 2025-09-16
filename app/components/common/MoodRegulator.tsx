@@ -20,6 +20,8 @@ export interface MoodRegulatorProps {
   lockMs?: number;
   // 可选：命令式控制句柄，避免通过 props 传值造成父组件重渲染
   controlRef?: React.Ref<MoodRegulatorHandle>;
+  // 当没有 value/defaultValue/labels 时，是否回退到默认 8 项；默认 true
+  fallbackDefaultLabels?: boolean;
 }
 
 export interface MoodRegulatorHandle {
@@ -73,7 +75,7 @@ function toApiMap(numMap: MoodNumberMap, labels: string[]): MoodMap {
   return out;
 }
 
-function MoodRegulator({ value, defaultValue, onChange, disabled, className, step = 0.01, labels, debounceMs = 400, lockMs = 300, controlRef }: MoodRegulatorProps) {
+function MoodRegulator({ value, defaultValue, onChange, disabled, className, step = 0.01, labels, debounceMs = 400, lockMs = 300, controlRef, fallbackDefaultLabels = true }: MoodRegulatorProps) {
   // 计算初始情绪键集合
   const initialLabels = useMemo(() => {
     if (labels && labels.length > 0) {
@@ -81,8 +83,11 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
     }
     const source = value ?? defaultValue;
     const keys = source ? Object.keys(source) : [];
-    return keys.length > 0 ? keys : DEFAULT_LABELS;
-  }, [labels, value, defaultValue]);
+    if (keys.length > 0) {
+      return keys;
+    }
+    return fallbackDefaultLabels ? DEFAULT_LABELS : [];
+  }, [labels, value, defaultValue, fallbackDefaultLabels]);
 
   // 允许在运行期通过 ref.setValue 动态变更 keys
   const [labelKeys, setLabelKeys] = useState<string[]>(initialLabels);
@@ -95,6 +100,8 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
   // 防抖定时器与挂起的最新值
   const debounceTimerRef = useRef<number | null>(null);
   const pendingRef = useRef<MoodNumberMap>(initialNumbers);
+  // 通过命令式 setValue 写入时，屏蔽下一次由 props 触发的同步覆盖
+  const manualSetRef = useRef<boolean>(false);
 
   // 当 prop 驱动的键集合或受控值变化时，与之对齐（未处于编辑）
   useEffect(() => {
@@ -112,6 +119,11 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
   }, [labels]);
 
   useEffect(() => {
+    if (manualSetRef.current) {
+      // 跳过一次由 setValue 后的 props 同步，避免覆盖手动写入的值
+      manualSetRef.current = false;
+      return;
+    }
     if (value == null) {
       setInner(initialNumbers);
     }
@@ -172,6 +184,7 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
       const normalized = normalizeToNumber(next ?? null, keys.length > 0 ? keys : labelKeys);
       setInner(normalized);
       pendingRef.current = normalized;
+      manualSetRef.current = true;
     },
     getValue: () => toApiMap(effective, labelKeys),
   }), [effective, labelKeys]);

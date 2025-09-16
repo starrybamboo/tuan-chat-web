@@ -517,9 +517,32 @@ export function useUpdateAvatarTitleMutation() {
         throw error;
       }
     },
-    onSuccess: (_ , variables) => {
-      queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", variables.roleId] });
+    // 乐观更新，避免整表刷新导致 UI 抖动/选中项重置
+    onMutate: async (variables) => {
+      const { roleId, avatarId, avatarTitle } = variables as { roleId: number; avatarId: number; avatarTitle: Record<string, string> };
+      const key = ["getRoleAvatars", roleId];
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData(key);
+      queryClient.setQueryData(key, (oldData: any) => {
+        if (!oldData) return oldData;
+        // 兼容两种返回结构：直接数组 或 { data: [] }
+        if (Array.isArray(oldData)) {
+          return oldData.map((a: any) => (a?.avatarId === avatarId ? { ...a, avatarTitle } : a));
+        }
+        const arr = Array.isArray(oldData?.data) ? oldData.data : null;
+        if (!arr) return oldData;
+        const nextArr = arr.map((a: any) => (a?.avatarId === avatarId ? { ...a, avatarTitle } : a));
+        return { ...oldData, data: nextArr };
+      });
+      return { previous, key };
     },
+    onError: (_err, _vars, context) => {
+      if (context?.key) {
+        queryClient.setQueryData(context.key as any, context.previous);
+      }
+    },
+    // 保持当前缓存，不立刻触发 refetch，避免选中项重置
+    onSuccess: () => {},
   })
 }
 
