@@ -26,6 +26,7 @@ interface TransformControlProps {
 }
 
 const REFERENCE_HEIGHT = 1440;
+const REFERENCE_WIDTH = 2560;
 
 /**
  * Transform控制组件
@@ -85,8 +86,8 @@ export function TransformControl({ transform, setTransform, disabled = false }: 
         <label className="text-xs w-16 flex-shrink-0">X位置:</label>
         <input
           type="range"
-          min="-1200" // (修改) 允许移动到屏幕外
-          max="1200" // (修改)
+          min={-REFERENCE_WIDTH}
+          max={REFERENCE_WIDTH}
           step="5"
           value={transform.positionX}
           onChange={e => setTransform(prev => ({ ...prev, positionX: Number.parseInt(e.target.value) }))}
@@ -101,8 +102,8 @@ export function TransformControl({ transform, setTransform, disabled = false }: 
         <label className="text-xs w-16 flex-shrink-0">Y位置:</label>
         <input
           type="range"
-          min="-800" // (修改)
-          max="800" // (修改)
+          min={-REFERENCE_HEIGHT}
+          max={REFERENCE_HEIGHT}
           step="5"
           value={transform.positionY}
           onChange={e => setTransform(prev => ({ ...prev, positionY: Number.parseInt(e.target.value) }))}
