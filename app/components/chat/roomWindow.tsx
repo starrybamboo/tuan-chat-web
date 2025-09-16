@@ -105,13 +105,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   // 引用的聊天记录id
   const [replyMessage, setReplyMessage] = useState<Message | undefined>(undefined);
 
-  // 切换房间时清空引用消息（使用微任务异步规避直接 set 触发的 lint 规则）
+  // 切换房间时清空引用消息
   useEffect(() => {
-    if (replyMessage) {
-      const id = setTimeout(() => setReplyMessage(undefined), 0);
-      return () => clearTimeout(id);
-    }
-  }, [roomId, replyMessage]);
+    setReplyMessage(undefined);
+  }, [roomId]);
 
   // 获取用户的所有角色
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
