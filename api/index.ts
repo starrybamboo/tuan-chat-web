@@ -63,6 +63,7 @@ export type { ApiResultMapStringInteger } from './models/ApiResultMapStringInteg
 export type { ApiResultMessage } from './models/ApiResultMessage';
 export type { ApiResultMessageDirectResponse } from './models/ApiResultMessageDirectResponse';
 export type { ApiResultMessageSessionResponse } from './models/ApiResultMessageSessionResponse';
+export type { ApiResultModule } from './models/ApiResultModule';
 export type { ApiResultModuleInfo } from './models/ApiResultModuleInfo';
 export type { ApiResultModuleMap } from './models/ApiResultModuleMap';
 export type { ApiResultMomentFeedTotalStatsResponse } from './models/ApiResultMomentFeedTotalStatsResponse';
