@@ -7,53 +7,25 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import { useQuery, useMutation, QueryClient, useQueryClient, useQueries, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useQueries, useInfiniteQuery } from '@tanstack/react-query';
 import { tuanchat } from './instance';
 
-import type { ChatMessagePageRequest } from './models/ChatMessagePageRequest';
-import type { ChatMessageRequest } from './models/ChatMessageRequest';
-import type { RoomAddRequest } from './models/RoomAddRequest';
 
 // import type { RoleAbilityTable } from './models/RoleAbilityTable';
 import type { RoleAvatar } from './models/RoleAvatar';
 import type { RoleAvatarCreateRequest } from './models/RoleAvatarCreateRequest';
-import type { RoleUpdateRequest } from './models/RoleUpdateRequest';
 import type { UserLoginRequest } from './models/UserLoginRequest';
 import type { UserRegisterRequest } from './models/UserRegisterRequest';
 import type { RolePageQueryRequest } from './models/RolePageQueryRequest'
-import type { UserRole } from './models/UserRole';
-import type { AbilitySetRequest } from "./models/AbilitySetRequest";
-import type { AbilityUpdateRequest } from "./models/AbilityUpdateRequest";
-import type { UseQueryResult } from "@tanstack/react-query";
 import type { Transform } from '../app/components/newCharacter/sprite/TransformControl';
 
 import {
-  type AbilityFieldUpdateRequest,
-  type ApiResultListRoleResponse,
   type ApiResultRoleAbility,
   type ApiResultRoleAvatar,
-  type ApiResultUserInfoResponse,
-  type Message,
-  type RoleResponse,
-  type SpaceOwnerTransferRequest,
-  type Space,
-  type SpaceAddRequest,
-  type SpaceMemberAddRequest,
-  type SpaceMemberDeleteRequest,
   type UserInfoResponse,
-  type RoomUpdateRequest,
-  type PlayerGrantRequest,
-  type PlayerRevokeRequest,
-  type RoomRoleAddRequest,
-  type RoomRoleDeleteRequest,
-  type RoomMemberAddRequest,
-  type RoomMemberDeleteRequest,
-  type SpaceUpdateRequest,
-  type LikeRecordRequest,
-  LikeRecordControllerService, type CommentPageRequest, type CommentAddRequest,
+  
   type RoleCreateRequest
 } from "api";
-import { use } from 'react';
 import type { Role } from '@/components/newCharacter/types';
 
 // ==================== 角色管理 ====================
@@ -457,9 +429,9 @@ export function useUpdateAvatarTransformMutation() {
 
 export function useUploadAvatarMutation() {
   const queryClient = useQueryClient();
-  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; spriteUrl: string; roleId: number; transform?: Transform; avatarTitle?: string }>({
+  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; spriteUrl: string; roleId: number; transform?: Transform; }>({
     mutationKey: ["uploadAvatar"],
-    mutationFn: async ({ avatarUrl, spriteUrl, roleId, transform, avatarTitle }) => {
+    mutationFn: async ({ avatarUrl, spriteUrl, roleId, transform }) => {
       if (!avatarUrl || !roleId || !spriteUrl) {
         console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;
@@ -498,7 +470,6 @@ export function useUploadAvatarMutation() {
             avatarId,
             avatarUrl,
             spriteUrl,
-            avatarTitle,
             spriteXPosition: t.positionX,
             spriteYPosition: t.positionY,
             spriteScale: t.scale,
@@ -533,7 +504,7 @@ export function useUpdateAvatarTitleMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["updateAvatarTitle"],
-    mutationFn: async ({ avatarId, avatarTitle, roleId }: { avatarId: number; avatarTitle: string; roleId: number }) => {
+    mutationFn: async ({ avatarId, avatarTitle, roleId }: { avatarId: number; avatarTitle: Record<string,string>; roleId: number }) => {
       if (!avatarId || !avatarTitle) {
         console.error("参数错误：avatarId 或 title 为空");
         return undefined;
