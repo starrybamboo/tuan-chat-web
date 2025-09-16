@@ -614,7 +614,7 @@ export default function EditModule() {
         }
       </div>
       {/* 全局固定保存按钮：当当前实体为 map 或没有选中标签时隐藏 */}
-      <div className={`fixed top-20 left-20 md:top-14 md:left-123 ${currentType === null || currentType === "map" ? "hidden" : "block"}`}>
+      <div className={`fixed top-20 left-20 md:top-14 md:left-133 ${currentType === null || currentType === "map" ? "hidden" : "block"}`}>
         <button
           type="button"
           onClick={() => {
@@ -628,7 +628,7 @@ export default function EditModule() {
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
               <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
-            保存
+            保存当前页面改动
           </span>
         </button>
       </div>

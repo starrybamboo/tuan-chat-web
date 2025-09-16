@@ -63,6 +63,7 @@ export type { ApiResultMapStringInteger } from './models/ApiResultMapStringInteg
 export type { ApiResultMessage } from './models/ApiResultMessage';
 export type { ApiResultMessageDirectResponse } from './models/ApiResultMessageDirectResponse';
 export type { ApiResultMessageSessionResponse } from './models/ApiResultMessageSessionResponse';
+export type { ApiResultModule } from './models/ApiResultModule';
 export type { ApiResultModuleInfo } from './models/ApiResultModuleInfo';
 export type { ApiResultModuleMap } from './models/ApiResultModuleMap';
 export type { ApiResultMomentFeedTotalStatsResponse } from './models/ApiResultMomentFeedTotalStatsResponse';
@@ -171,7 +172,6 @@ export type { ModuleInfo } from './models/ModuleInfo';
 export type { ModuleMap } from './models/ModuleMap';
 export type { ModulePageByUserRequest } from './models/ModulePageByUserRequest';
 export type { ModulePageRequest } from './models/ModulePageRequest';
-export type { ModuleRoleAddRequest } from './models/ModuleRoleAddRequest';
 export type { ModuleUpdateRequest } from './models/ModuleUpdateRequest';
 export type { MomentFeedRequest } from './models/MomentFeedRequest';
 export type { MomentFeedTotalStatsResponse } from './models/MomentFeedTotalStatsResponse';

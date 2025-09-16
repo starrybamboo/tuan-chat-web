@@ -5,6 +5,7 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
 import { useEffect, useRef, useState } from "react";
+import MoodRegulator from "../common/MoodRegulator";
 import { PopWindow } from "../common/popWindow";
 import { AvatarPreview } from "./sprite/AvatarPreview";
 import { CharacterCopper } from "./sprite/CharacterCopper";
@@ -216,6 +217,7 @@ export default function CharacterAvatar({
               className=""
               imageClassName="md:max-h-[65vh] md:min-h-[35vh]"
             />
+            <MoodRegulator></MoodRegulator>
           </div>
 
           <div className="w-full md:w-1/2 p-2 order-2 md:order-2">

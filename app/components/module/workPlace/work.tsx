@@ -139,7 +139,8 @@ function WorkInner() {
         ruleId: (item as any)?.ruleId ?? 1,
         moduleName: item.moduleName ?? "当前模组",
         description: item.description ?? "",
-        instruction: (item as any)?.instruction ?? "",
+        // 统一为 readMe，兼容后端/历史字段：readMe | readMd | instruction
+        readMe: (item as any)?.readMe ?? (item as any)?.readMd ?? (item as any)?.instruction ?? "",
         authorName: item.authorName ?? "",
         minTime: (item as any)?.minTime ?? 0,
         minPeople: (item as any)?.minPeople ?? 0,
