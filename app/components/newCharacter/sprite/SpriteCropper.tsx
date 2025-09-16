@@ -110,6 +110,9 @@ export function SpriteCropper({
     rotation: 0,
   }));
 
+  // 当前头像URL状态 - 用于头像模式下的实时预览
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState("");
+
   // 使用displayTransform作为实际的transform
   const transform = displayTransform;
 
@@ -269,6 +272,16 @@ export function SpriteCropper({
         1,
         0,
       );
+
+      // 在头像模式下，初始化头像URL状态
+      if (isAvatarMode) {
+        // 延迟一小段时间确保canvas已经更新
+        setTimeout(() => {
+          if (previewCanvasRef.current) {
+            setCurrentAvatarUrl(previewCanvasRef.current.toDataURL());
+          }
+        }, 50);
+      }
     }
 
     // 从当前头像数据中解析并设置Transform（仅立绘模式需要）
@@ -394,10 +407,21 @@ export function SpriteCropper({
           1,
           0,
         );
+
+        // 在头像模式下，更新头像URL状态以实现实时预览
+        if (isAvatarMode) {
+          // 延迟一小段时间确保canvas已经更新
+          const timeoutId = setTimeout(() => {
+            if (previewCanvasRef.current) {
+              setCurrentAvatarUrl(previewCanvasRef.current.toDataURL());
+            }
+          }, 50);
+          return () => clearTimeout(timeoutId);
+        }
       }
     },
     100,
-    [completedCrop],
+    [completedCrop, isAvatarMode],
   );
 
   /**
@@ -821,8 +845,9 @@ export function SpriteCropper({
                 ? (
                     <AvatarPreview
                       previewCanvasRef={previewCanvasRef}
-                      currentAvatarUrl={previewCanvasRef.current?.toDataURL() || ""}
+                      currentAvatarUrl={currentAvatarUrl}
                       characterName={characterName}
+                      hideTitle={true}
                     />
                   )
                 : (
