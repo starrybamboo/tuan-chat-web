@@ -41,6 +41,8 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
       const index = draft.findIndex(i => i.id === moduleTabItem.id);
       if (index === -1)
         draft.push(moduleTabItem);
+      else
+        draft[index] = moduleTabItem;
     });
   }, [updateModuleTabItems]);
 
