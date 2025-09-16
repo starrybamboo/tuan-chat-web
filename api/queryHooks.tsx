@@ -84,6 +84,7 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
       queryClient.invalidateQueries({ queryKey: ['getRole', variables.roleId] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
       queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', variables.roleId] });
+      queryClient.invalidateQueries({ queryKey: ["roomRole"] });
     },
     onError: (error: any) => {
       console.error("Mutation failed:", error);
@@ -162,6 +163,7 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
       queryClient.invalidateQueries({ queryKey: ['getRole'] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
+      queryClient.invalidateQueries({ queryKey: ["roomRole"] });
     },
     onError: (error) => {
       console.error("删除角色失败:", error);
