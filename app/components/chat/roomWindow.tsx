@@ -644,7 +644,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         />
       </PopWindow>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleAddWindowOpen(false)}>
-        <AddRoleWindow handleAddRole={handleAddRole} addModuleRole={false}></AddRoleWindow>
+        <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
       </PopWindow>
       <PopWindow
         isOpen={selectedItemId > 0}

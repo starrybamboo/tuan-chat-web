@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ApiResultModule } from '../models/ApiResultModule';
 import type { ApiResultPageBaseRespModule } from '../models/ApiResultPageBaseRespModule';
 import type { ApiResultStageResponse } from '../models/ApiResultStageResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
@@ -97,6 +98,30 @@ export class ModuleControllerService {
             url: '/capi/module/page',
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 获取一个跑团的剧本详情
+     * 根据id获取一个跑团的剧本详情
+     * @param id ID
+     * @returns ApiResultModule OK
+     * @throws ApiError
+     */
+    public getById(
+        id: number,
+    ): CancelablePromise<ApiResultModule> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/module/{id}',
+            path: {
+                'id': id,
+            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

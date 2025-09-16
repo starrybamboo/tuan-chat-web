@@ -2619,7 +2619,7 @@
         ],
         "summary": "获取物品详情",
         "description": "根据id获取物品详情",
-        "operationId": "getById",
+        "operationId": "getById_1",
         "parameters": [
           {
             "name": "id",
@@ -14522,6 +14522,80 @@
         }
       }
     },
+    "/capi/module/{id}": {
+      "get": {
+        "tags": [
+          "moduleController"
+        ],
+        "summary": "获取一个跑团的剧本详情",
+        "description": "根据id获取一个跑团的剧本详情",
+        "operationId": "getById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultModule"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/module/commit": {
       "get": {
         "tags": [
@@ -17539,7 +17613,11 @@
             "format": "int64"
           },
           "avatarTitle": {
-            "type": "string",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "头像的标题"
+            },
             "description": "头像的标题"
           },
           "avatarUrl": {
@@ -22896,6 +22974,31 @@
             "type": "number",
             "description": "返回对象",
             "format": "double"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ApiResultModule": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Module"
           }
         },
         "description": "基础返回体"

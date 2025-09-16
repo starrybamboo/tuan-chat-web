@@ -52,39 +52,40 @@ export class ChatRenderer {
   public async initializeRenderer(): Promise<void> {
     await this.sceneEditor.initRender();
     this.onRenderProcessChange({ message: "获取参考音频中" });
-    const voiceMap = new Map<number, File>();
 
-    // 先从 roleAudios 获取音频文件
-    if (this.renderInfo.roleAudios) {
-      for (const [roleId, refVocal] of Object.entries(this.renderInfo.roleAudios)) {
-        voiceMap.set(Number(roleId), refVocal);
+    if (this.renderProps.useVocal) {
+      const voiceMap = new Map<number, File>();
+      // 先从 roleAudios 获取音频文件
+      if (this.renderInfo.roleAudios) {
+        for (const [roleId, refVocal] of Object.entries(this.renderInfo.roleAudios)) {
+          voiceMap.set(Number(roleId), refVocal);
+        }
       }
-    }
-    // 如果 roleAudios 中没有，则尝试从 role.voiceUrl 获取
-    for (const [roleId, role] of this.roleMap) {
-      if (!voiceMap.has(roleId)) { // 排除系统角色和骰娘
-        try {
-          if (role.voiceUrl) {
-            // 从 voiceUrl 获取文件
-            const response = await fetch(role.voiceUrl);
-            if (response.ok) {
-              const blob = await response.blob();
-              const file = new File(
-                [blob],
-                role.voiceUrl.split("/").pop() ?? `${roleId}_ref_vocal.wav`,
-                { type: blob.type || "audio/wav" },
-              );
-              voiceMap.set(roleId, file);
+      // 如果 roleAudios 中没有，则尝试从 role.voiceUrl 获取
+      for (const [roleId, role] of this.roleMap) {
+        if (!voiceMap.has(roleId)) { // 排除系统角色和骰娘
+          try {
+            if (role.voiceUrl) {
+              // 从 voiceUrl 获取文件
+              const response = await fetch(role.voiceUrl);
+              if (response.ok) {
+                const blob = await response.blob();
+                const file = new File(
+                  [blob],
+                  role.voiceUrl.split("/").pop() ?? `${roleId}_ref_vocal.wav`,
+                  { type: blob.type || "audio/wav" },
+                );
+                voiceMap.set(roleId, file);
+              }
             }
           }
-        }
-        catch (error) {
-          console.warn(`Failed to fetch voice for role ${roleId}:`, error);
+          catch (error) {
+            console.warn(`Failed to fetch voice for role ${roleId}:`, error);
+          }
         }
       }
+      this.voiceFileMap = voiceMap;
     }
-
-    this.voiceFileMap = voiceMap;
 
     this.onRenderProcessChange({ message: "开始渲染" });
 
@@ -324,7 +325,8 @@ export class ChatRenderer {
               // 生成语音
               let vocalFileName: string | undefined;
               // 不是系统角色，且不是空行，且不是指令，则生成语音
-              if (message.roleId !== 0
+              if (this.renderProps.useVocal
+                && message.roleId !== 0
                 && message.roleId !== 2 // 骰娘的id
                 && segment !== ""
                 && !message.content.startsWith(".")
