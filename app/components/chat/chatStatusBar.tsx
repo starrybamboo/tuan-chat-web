@@ -57,9 +57,9 @@ export default function ChatStatusBar({ roomId, userId, webSocketUtils, excludeS
   return (
     <div className="mb-1 -mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-base-content/80">
       {grouped.map((g) => {
-        const namesNodes = g.users.map(resolveUserNameNode);
+        const nameNodes = g.users.map(resolveUserNameNode);
         const tooltipLines = g.users.map(u => `#${u}`).join("\n");
-        const isSingle = g.users.length === 1;
+        const isSingle = nameNodes.length === 1;
         return (
           <div
             key={g.type}
@@ -70,13 +70,26 @@ export default function ChatStatusBar({ roomId, userId, webSocketUtils, excludeS
                 {isSingle
                   ? (
                       <>
-                        {namesNodes[0]}
+                        {nameNodes[0]}
                         {" "}
                         {renderLabel(g.type)}
                         ...
                       </>
                     )
-                  : `${g.users.length} 人${renderLabel(g.type)}...`}
+                  : (
+                      <>
+                        {nameNodes.map((n, idx) => (
+                          <React.Fragment key={g.users[idx]}>
+                            {n}
+                            {idx < nameNodes.length - 1 && <span className="opacity-60 mx-0.5">、</span>}
+                          </React.Fragment>
+                        ))}
+                        <span className="ml-1">
+                          {renderLabel(g.type)}
+                          ...
+                        </span>
+                      </>
+                    )}
               </span>
             </span>
           </div>
