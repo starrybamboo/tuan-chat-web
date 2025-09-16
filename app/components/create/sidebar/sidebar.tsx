@@ -4,7 +4,7 @@ import { useModuleContext } from "@/components/module/workPlace/context/_moduleC
 import { ModuleItemEnum, ModuleListEnum } from "@/components/module/workPlace/context/types";
 import { ArrowBackThickFill, ChevronSmallTripleUp, StageIcon } from "@/icons";
 import { useCommitMutation, useModuleIdQuery } from "api/hooks/moduleAndStageQueryHooks";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
 // 简易 Map 图标，占位用
@@ -51,6 +51,19 @@ export default function Topbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
 
+  // 同步“当前模组”标签的内容：当接口数据 moduleItem 变化时，刷新 Tab 的 content，避免编辑保存后因旧 content 回退
+  useEffect(() => {
+    if (!moduleItem) {
+      return;
+    }
+    const id = "当前模组";
+    pushModuleTabItem({
+      id,
+      label: "当前模组",
+      type: ModuleItemEnum.MODULE,
+      content: moduleItem,
+    });
+  }, [moduleItem, pushModuleTabItem]);
   // const currentModule: Module | null = useMemo(() => {
   //   // 优先使用详情接口（包含更全字段，如 ruleId），无则回退列表项
   //   const detail = moduleInfo as any | undefined;
