@@ -171,7 +171,6 @@ export type { ModuleInfo } from './models/ModuleInfo';
 export type { ModuleMap } from './models/ModuleMap';
 export type { ModulePageByUserRequest } from './models/ModulePageByUserRequest';
 export type { ModulePageRequest } from './models/ModulePageRequest';
-export type { ModuleRoleAddRequest } from './models/ModuleRoleAddRequest';
 export type { ModuleUpdateRequest } from './models/ModuleUpdateRequest';
 export type { MomentFeedRequest } from './models/MomentFeedRequest';
 export type { MomentFeedTotalStatsResponse } from './models/MomentFeedTotalStatsResponse';

@@ -21,12 +21,10 @@ import type { SpaceRoleAddRequest } from "../models/SpaceRoleAddRequest";
 import type { RoomExtraRequest } from "../models/RoomExtraRequest";
 import type { RoomExtraSetRequest } from "../models/RoomExtraSetRequest";
 import type { FightRoomAddRequest } from "../models/FightRoomAddRequest";
-import type { Initiative } from "@/components/chat/sideDrawer/initiativeList";
 import type { SpaceArchiveRequest } from "api/models/SpaceArchiveRequest";
 import type { LeaderTransferRequest } from "api/models/LeaderTransferRequest";
 import type {HistoryMessageRequest} from "../models/HistoryMessageRequest";
 import type {MessageBySyncIdRequest} from "../models/MessageBySyncIdRequest";
-import type { ModuleRoleAddRequest } from "api/models/ModuleRoleAddRequest";
 
 /**
  * 创建空间
@@ -440,20 +438,6 @@ export function useAddRoomRoleMutation() {
         mutationKey: ['addRole1'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['roomRole', variables.roomId] });
-        }
-    });
-}
-
-/**
- * 添加模组角色
- */
-export function useAddModuleRoleMutation() {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (req: ModuleRoleAddRequest) => tuanchat.roomRoleController.addModuleRole(req),
-        mutationKey: ['addModuleRole'],
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['roomModuleRole', variables.roomId] });
         }
     });
 }

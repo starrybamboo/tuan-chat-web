@@ -43,7 +43,13 @@ export default function PostCommentPanel({
   return (
     <CommentContext value={commentContext}>
       <div className={className}>
-        {renderedComments}
+        {comments.length === 0
+          ? (
+              <div className="text-gray-400 text-center py-8">暂无评论</div>
+            )
+          : (
+              renderedComments
+            )}
       </div>
     </CommentContext>
   );

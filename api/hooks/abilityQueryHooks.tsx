@@ -3,6 +3,8 @@ import type {AbilityUpdateRequest} from "../models/AbilityUpdateRequest";
 import {tuanchat} from "../instance";
 import type {AbilityFieldUpdateRequest} from "../models/AbilityFieldUpdateRequest";
 import type {AbilitySetRequest} from "../models/AbilitySetRequest";
+import type {AbilityFieldUpdateRequest2} from "../models/AbilityFieldUpdateRequest2";
+import type {AbilityUpdateRequest2} from "../models/AbilityUpdateRequest2";
 
 /**
  * 获取角色所有的ability
@@ -55,12 +57,34 @@ export function useUpdateRoleAbilityMutation() {
         }
     })
 }
+export function useUpdateRoleAbilityByRoleIdMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (req: AbilityUpdateRequest2) => tuanchat.abilityController.updateRoleAbility1(req),
+        mutationKey: ["updateRoleAbilityByRoleId"],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
+            queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
+        }
+    })
+}
 
 export function useUpdateKeyFieldMutation() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn:  (req: AbilityFieldUpdateRequest) => tuanchat.abilityController.updateRoleAbilityField(req),
         mutationKey: ["updateRoleAbilityField"],
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
+            queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
+        }
+    })
+}
+export function useUpdateKeyFieldByRoleIdMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn:  (req: AbilityFieldUpdateRequest2) => tuanchat.abilityController.updateRoleAbilityField1(req),
+        mutationKey: ["updateRoleAbilityByRoleId"],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ["listRoleAbility"] });
             queryClient.invalidateQueries({ queryKey: ["roleAbilityByRule"] });
@@ -78,8 +102,8 @@ export function useAbilityByRuleAndRole(roleId:number,ruleId: number){
         if (res.success && res.data) {
           return {
             abilityId : res.data.abilityId || 0 ,
-            roleId: res.data.roleId || 0,
-            ruleId: res.data.ruleId || 0,
+            roleId: roleId,
+            ruleId: ruleId,
             actTemplate: res.data.act || {}, // 表演字段
             basicDefault: res.data.basic || {}, // 基础属性
             abilityDefault: res.data.ability || {}, // 能力数据

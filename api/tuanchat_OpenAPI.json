@@ -6671,152 +6671,12 @@
         }
       }
     },
-    "/capi/room/role/npc": {
-      "post": {
-        "tags": [
-          "room-role-controller"
-        ],
-        "summary": "添加房间的模组角色",
-        "operationId": "addModuleRole",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModuleRoleAddRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "room-role-controller"
-        ],
-        "summary": "删除房间模组角色",
-        "operationId": "deleteModuleRole",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModuleRoleAddRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/capi/room/role/": {
       "post": {
         "tags": [
           "room-role-controller"
         ],
-        "summary": "增加房间的玩家角色",
+        "summary": "增加房间的角色",
         "operationId": "addRole",
         "requestBody": {
           "content": {
@@ -6885,7 +6745,7 @@
         "tags": [
           "room-role-controller"
         ],
-        "summary": "删除房间的玩家角色",
+        "summary": "删除房间的角色",
         "operationId": "deleteRole",
         "requestBody": {
           "content": {
@@ -13921,7 +13781,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
+                  "$ref": "#/components/schemas/ApiResultListUserRole"
                 }
               }
             }
@@ -19033,26 +18893,6 @@
         },
         "description": "返回对象"
       },
-      "ModuleRoleAddRequest": {
-        "required": [
-          "ids",
-          "roomId"
-        ],
-        "type": "object",
-        "properties": {
-          "roomId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "ids": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        }
-      },
       "RoomRoleAddRequest": {
         "required": [
           "roleIdList",
@@ -19073,6 +18913,11 @@
               "description": "角色id列表",
               "format": "int64"
             }
+          },
+          "type": {
+            "type": "integer",
+            "description": "角色类型，0玩家角色，1NPC",
+            "format": "int32"
           }
         }
       },
