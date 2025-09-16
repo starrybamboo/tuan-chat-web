@@ -29,12 +29,10 @@ import type { Transform } from '../app/components/newCharacter/sprite/TransformC
 
 import {
   type AbilityFieldUpdateRequest,
-  type ApiResultListRoleResponse,
   type ApiResultRoleAbility,
   type ApiResultRoleAvatar,
   type ApiResultUserInfoResponse,
   type Message,
-  type RoleResponse,
   type SpaceOwnerTransferRequest,
   type Space,
   type SpaceAddRequest,
@@ -400,6 +398,66 @@ export function useApplyCropMutation() {
     },
     onError: (error) => {
       console.error("Crop application mutation failed:", error.message || error);
+    },
+  });
+}
+
+/**
+ * 应用头像裁剪的hook - 专门用于更新头像而非立绘
+ */
+export function useApplyCropAvatarMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["applyCropAvatar"],
+    mutationFn: async ({ roleId, avatarId, croppedImageBlob, currentAvatar }: { 
+      roleId: number; 
+      avatarId: number; 
+      croppedImageBlob: Blob;
+      currentAvatar: RoleAvatar;
+    }) => {
+      if (!roleId || !avatarId || !croppedImageBlob || !currentAvatar) {
+        console.error("参数错误：缺少必要参数");
+        return undefined;
+      }
+
+      try {
+        // 首先上传裁剪后的头像图片
+        // 将Blob转换为File对象
+        const croppedFile = new File([croppedImageBlob], `cropped_avatar_${avatarId}_${Date.now()}.png`, {
+          type: 'image/png'
+        });
+        
+        // 使用UploadUtils上传图片，场景2表示头像
+        const { UploadUtils } = await import('../app/utils/UploadUtils');
+        const uploadUtils = new UploadUtils();
+        const newAvatarUrl = await uploadUtils.uploadImg(croppedFile, 2, 0.9, 2560);
+
+        console.log("头像图片上传成功，新URL:", newAvatarUrl);
+        
+        // 使用新的avatarUrl更新头像记录，保持原有的spriteUrl和Transform参数
+        const updateRes = await tuanchat.avatarController.updateRoleAvatar({
+          roleId: roleId,
+          avatarId,
+          avatarUrl: newAvatarUrl, // 使用新的avatarUrl
+        });
+
+        if (!updateRes.success) {
+          console.error("头像记录更新失败", updateRes);
+          return undefined;
+        }
+
+        console.log("头像裁剪应用成功，头像记录已更新");
+        await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
+        console.log("缓存已刷新，roleId:", roleId);
+        return updateRes;
+      }
+      catch (error) {
+        console.error("头像裁剪应用请求失败", error);
+        throw error;
+      }
+    },
+    onError: (error) => {
+      console.error("Crop avatar application mutation failed:", error.message || error);
     },
   });
 }

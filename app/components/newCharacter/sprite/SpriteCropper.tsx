@@ -3,9 +3,10 @@ import type { Crop, PixelCrop } from "react-image-crop";
 import type { Transform } from "./TransformControl";
 import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
 import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
-import { useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/queryHooks";
+import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/queryHooks";
 import { useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
+import { AvatarPreview } from "./AvatarPreview";
 import { RenderPreview } from "./RenderPreview";
 import { TransformControl } from "./TransformControl";
 import { parseTransformFromAvatar } from "./utils";
@@ -27,12 +28,15 @@ interface SpriteCropperProps {
   onCropComplete?: (croppedImageUrl: string) => void;
   // 关闭组件回调
   onClose?: () => void;
+  // 裁剪模式：'sprite' | 'avatar'，默认为 'sprite'
+  cropMode?: "sprite" | "avatar";
 }
 
 /**
  * 立绘裁剪组件
  * 用于裁剪现有立绘，支持预览和变换控制
  * 支持单体裁剪和批量裁剪模式
+ * 支持立绘模式和头像模式（从立绘中裁剪头像）
  */
 export function SpriteCropper({
   spriteUrl,
@@ -40,16 +44,20 @@ export function SpriteCropper({
   initialSpriteIndex = 0,
   characterName,
   onCropComplete,
+  cropMode = "sprite",
 }: SpriteCropperProps) {
   // 确定工作模式
   const isBatchMode = roleAvatars.length > 0;
-  const spritesAvatars = roleAvatars.filter(avatar => avatar.spriteUrl);
+  const isAvatarMode = cropMode === "avatar";
+
+  // 根据裁剪模式过滤头像列表
+  const filteredAvatars = roleAvatars.filter(avatar => avatar.spriteUrl);
 
   // 批量模式下的当前立绘索引，使用传入的初始索引
   const [currentSpriteIndex, setCurrentSpriteIndex] = useState(() => {
     // 确保初始索引在有效范围内
-    if (isBatchMode && spritesAvatars.length > 0) {
-      return Math.max(0, Math.min(initialSpriteIndex, spritesAvatars.length - 1));
+    if (isBatchMode && filteredAvatars.length > 0) {
+      return Math.max(0, Math.min(initialSpriteIndex, filteredAvatars.length - 1));
     }
     return 0;
   });
@@ -60,16 +68,16 @@ export function SpriteCropper({
 
   // 获取当前立绘URL
   const getCurrentSpriteUrl = () => {
-    if (isBatchMode && spritesAvatars.length > 0) {
-      return spritesAvatars[currentSpriteIndex]?.spriteUrl || "";
+    if (isBatchMode && filteredAvatars.length > 0) {
+      return filteredAvatars[currentSpriteIndex]?.spriteUrl || "";
     }
     return spriteUrl || "";
   };
 
   // 获取当前立绘的avatarId
   const getCurrentAvatarId = () => {
-    if (isBatchMode && spritesAvatars.length > 0) {
-      return spritesAvatars[currentSpriteIndex]?.avatarId || 0;
+    if (isBatchMode && filteredAvatars.length > 0) {
+      return filteredAvatars[currentSpriteIndex]?.avatarId || 0;
     }
     return 0;
   };
@@ -90,8 +98,9 @@ export function SpriteCropper({
   // Transform更新mutation hook
   const updateTransformMutation = useUpdateAvatarTransformMutation();
 
-  // 裁剪应用mutation hook
+  // 裁剪应用mutation hook - 根据模式选择合适的hook
   const applyCropMutation = useApplyCropMutation();
+  const applyCropAvatarMutation = useApplyCropAvatarMutation();
 
   const [displayTransform, setDisplayTransform] = useState<Transform>(() => ({
     scale: 1,
@@ -113,8 +122,8 @@ export function SpriteCropper({
       return;
     }
 
-    if (isBatchMode && spritesAvatars.length === 0) {
-      console.error("批量模式下没有可用的立绘");
+    if (isBatchMode && filteredAvatars.length === 0) {
+      console.error("批量模式下没有可用的头像");
       return;
     }
 
@@ -122,7 +131,7 @@ export function SpriteCropper({
       setIsProcessing(true);
 
       const currentAvatar = isBatchMode
-        ? spritesAvatars[currentSpriteIndex]
+        ? filteredAvatars[currentSpriteIndex]
         : roleAvatars.find(avatar => avatar.avatarId === currentAvatarId);
 
       if (!currentAvatar) {
@@ -156,8 +165,8 @@ export function SpriteCropper({
    * 处理批量应用位移
    */
   async function handleBatchApplyTransform() {
-    if (!isBatchMode || spritesAvatars.length === 0) {
-      console.error("批量模式下没有可用的立绘");
+    if (!isBatchMode || filteredAvatars.length === 0) {
+      console.error("批量模式下没有可用的头像");
       return;
     }
 
@@ -165,12 +174,12 @@ export function SpriteCropper({
       setIsProcessing(true);
 
       console.warn("开始批量应用Transform", {
-        avatarCount: spritesAvatars.length,
+        avatarCount: filteredAvatars.length,
         transform,
       });
 
-      // 批量应用当前transform到所有立绘
-      for (const avatar of spritesAvatars) {
+      // 批量应用当前transform到所有头像
+      for (const avatar of filteredAvatars) {
         await updateTransformMutation.mutateAsync({
           roleId: avatar.roleId!,
           avatarId: avatar.avatarId!,
@@ -193,27 +202,65 @@ export function SpriteCropper({
    */
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
-    // 立绘裁剪初始覆盖整个原图
-    const newCrop = {
-      unit: "%" as const,
-      x: 0,
-      y: 0,
-      width: 100,
-      height: 100,
-    };
-    setCrop(newCrop);
 
-    // 在图片加载完成时设置completedCrop
-    const initialCompletedCrop: PixelCrop = {
-      unit: "px",
-      x: 0,
-      y: 0,
-      width,
-      height,
-    };
-    setCompletedCrop(initialCompletedCrop);
-    // 3. 立即将完整的原始图像绘制到右侧的预览Canvas上
-    //    因为此时 `completedCrop` 状态可能还没更新，所以我们直接使用刚创建的 `initialCompletedCrop`
+    // 根据裁剪模式设置不同的初始裁剪区域
+    if (isAvatarMode) {
+      // 头像模式：使用1:1宽高比
+      const size = Math.min(width, height);
+      const x = (width - size) / 2;
+      const y = (height - size) / 2;
+      const newCrop = {
+        unit: "%" as const,
+        x: (x / width) * 100,
+        y: (y / height) * 100,
+        width: (size / width) * 100,
+        height: (size / height) * 100,
+      };
+      setCrop(newCrop);
+      setCompletedCrop({
+        unit: "px",
+        x,
+        y,
+        width: size,
+        height: size,
+      });
+    }
+    else {
+      // 立绘模式：覆盖整个原图
+      const newCrop = {
+        unit: "%" as const,
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+      };
+      setCrop(newCrop);
+      setCompletedCrop({
+        unit: "px",
+        x: 0,
+        y: 0,
+        width,
+        height,
+      });
+    }
+
+    // 在图片加载完成时设置completedCrop后立即绘制到预览Canvas
+    const initialCompletedCrop: PixelCrop = isAvatarMode
+      ? {
+          unit: "px",
+          x: (width - Math.min(width, height)) / 2,
+          y: (height - Math.min(width, height)) / 2,
+          width: Math.min(width, height),
+          height: Math.min(width, height),
+        }
+      : {
+          unit: "px",
+          x: 0,
+          y: 0,
+          width,
+          height,
+        };
+
     if (imgRef.current && previewCanvasRef.current) {
       canvasPreview(
         imgRef.current,
@@ -224,11 +271,13 @@ export function SpriteCropper({
       );
     }
 
-    // 4. 在同一时间点，从当前立绘数据中解析并设置Transform
-    const currentSprite = spritesAvatars[currentSpriteIndex];
-    if (currentSprite) {
-      const newTransform = parseTransformFromAvatar(currentSprite);
-      setDisplayTransform(newTransform);
+    // 从当前头像数据中解析并设置Transform（仅立绘模式需要）
+    if (!isAvatarMode) {
+      const currentSprite = filteredAvatars[currentSpriteIndex];
+      if (currentSprite) {
+        const newTransform = parseTransformFromAvatar(currentSprite);
+        setDisplayTransform(newTransform);
+      }
     }
   }
 
@@ -437,28 +486,40 @@ export function SpriteCropper({
       const croppedBlob = await canvasToBlob(canvas);
 
       if (isBatchMode) {
-        // 批量模式：上传并更新当前立绘
-        const currentAvatar = spritesAvatars[currentSpriteIndex];
+        // 批量模式：上传并更新当前头像/立绘
+        const currentAvatar = filteredAvatars[currentSpriteIndex];
         if (!currentAvatar) {
-          throw new Error("当前立绘数据不存在");
+          throw new Error("当前头像数据不存在");
         }
 
-        console.warn("批量模式：应用裁剪到当前立绘", {
+        console.warn(`批量模式：应用裁剪到当前${isAvatarMode ? "头像(从立绘)" : "立绘"}`, {
           avatarId: currentAvatar.avatarId,
           currentSpriteIndex,
+          isAvatarMode,
         });
 
         if (!currentAvatar.avatarId || !currentAvatar.roleId) {
-          throw new Error("当前立绘数据缺少必要字段");
+          throw new Error("当前头像数据缺少必要字段");
         }
 
-        await applyCropMutation.mutateAsync({
-          roleId: currentAvatar.roleId,
-          avatarId: currentAvatar.avatarId,
-          croppedImageBlob: croppedBlob,
-          transform, // 同时应用当前的transform设置
-          currentAvatar,
-        });
+        // 根据模式选择合适的mutation
+        if (isAvatarMode) {
+          await applyCropAvatarMutation.mutateAsync({
+            roleId: currentAvatar.roleId,
+            avatarId: currentAvatar.avatarId,
+            croppedImageBlob: croppedBlob,
+            currentAvatar,
+          });
+        }
+        else {
+          await applyCropMutation.mutateAsync({
+            roleId: currentAvatar.roleId,
+            avatarId: currentAvatar.avatarId,
+            croppedImageBlob: croppedBlob,
+            transform, // 立绘模式同时应用当前的transform设置
+            currentAvatar,
+          });
+        }
 
         // 保存结果用于UI显示
         const dataUrl = await getCroppedImageDataUrl();
@@ -476,13 +537,13 @@ export function SpriteCropper({
 
         setBatchResults(updatedResults);
 
-        // 自动切换到下一个立绘（如果有的话）
-        if (currentSpriteIndex < spritesAvatars.length - 1) {
+        // 自动切换到下一个头像/立绘（如果有的话）
+        if (currentSpriteIndex < filteredAvatars.length - 1) {
           setCurrentSpriteIndex(currentSpriteIndex + 1);
         }
       }
       else {
-        // 单体模式：上传并更新立绘
+        // 单体模式：上传并更新头像/立绘
         if (!currentAvatarId) {
           throw new Error("单体模式下缺少avatarId");
         }
@@ -496,13 +557,24 @@ export function SpriteCropper({
           throw new Error("当前头像数据缺少roleId");
         }
 
-        await applyCropMutation.mutateAsync({
-          roleId: currentAvatar.roleId,
-          avatarId: currentAvatarId,
-          croppedImageBlob: croppedBlob,
-          transform, // 同时应用当前的transform设置
-          currentAvatar,
-        });
+        // 根据模式选择合适的mutation
+        if (isAvatarMode) {
+          await applyCropAvatarMutation.mutateAsync({
+            roleId: currentAvatar.roleId,
+            avatarId: currentAvatarId,
+            croppedImageBlob: croppedBlob,
+            currentAvatar,
+          });
+        }
+        else {
+          await applyCropMutation.mutateAsync({
+            roleId: currentAvatar.roleId,
+            avatarId: currentAvatarId,
+            croppedImageBlob: croppedBlob,
+            transform, // 立绘模式同时应用当前的transform设置
+            currentAvatar,
+          });
+        }
 
         // 获取dataUrl用于回调
         const dataUrl = await getCroppedImageDataUrl();
@@ -518,7 +590,7 @@ export function SpriteCropper({
   }
 
   /**
-   * 应用相同裁剪参数到所有立绘
+   * 应用相同裁剪参数到所有头像/立绘
    */
   async function handleBatchCropAll() {
     if (!isBatchMode || !completedCrop)
@@ -528,18 +600,20 @@ export function SpriteCropper({
       setIsProcessing(true);
       const results: { avatarId: number; croppedImageUrl: string }[] = [];
 
-      console.warn("开始批量裁剪所有立绘", {
-        avatarCount: spritesAvatars.length,
-        transform,
+      console.warn(`开始批量裁剪所有${isAvatarMode ? "头像(从立绘)" : "立绘"}`, {
+        avatarCount: filteredAvatars.length,
+        transform: isAvatarMode ? undefined : transform,
       });
 
-      // 为每个立绘应用相同的裁剪参数并上传
-      for (let i = 0; i < spritesAvatars.length; i++) {
-        const avatar = spritesAvatars[i];
-        if (!avatar.spriteUrl || !avatar.avatarId)
+      // 为每个头像/立绘应用相同的裁剪参数并上传
+      for (let i = 0; i < filteredAvatars.length; i++) {
+        const avatar = filteredAvatars[i];
+        // 头像模式下从立绘裁剪头像，立绘模式下处理立绘
+        const imageUrl = avatar.spriteUrl;
+        if (!imageUrl || !avatar.avatarId)
           continue;
 
-        console.warn(`处理立绘 ${i + 1}/${spritesAvatars.length}:`, avatar.avatarId);
+        console.warn(`处理${isAvatarMode ? "头像" : "立绘"} ${i + 1}/${filteredAvatars.length}:`, avatar.avatarId);
 
         // 创建临时图片元素
         const tempImg = new Image();
@@ -547,8 +621,8 @@ export function SpriteCropper({
 
         await new Promise<void>((resolve, reject) => {
           tempImg.onload = () => resolve();
-          tempImg.onerror = () => reject(new Error(`Failed to load image: ${avatar.spriteUrl}`));
-          tempImg.src = avatar.spriteUrl!;
+          tempImg.onerror = () => reject(new Error(`Failed to load image: ${imageUrl}`));
+          tempImg.src = imageUrl!;
         });
 
         // 使用通用函数获取裁剪结果的dataUrl（用于UI显示）
@@ -560,18 +634,28 @@ export function SpriteCropper({
 
         // 检查必要字段
         if (!avatar.roleId) {
-          console.error(`立绘 ${i + 1} 缺少roleId，跳过处理`);
+          console.error(`${isAvatarMode ? "头像" : "立绘"} ${i + 1} 缺少roleId，跳过处理`);
           continue;
         }
 
-        // 上传裁剪后的图片并更新头像记录
-        await applyCropMutation.mutateAsync({
-          roleId: avatar.roleId,
-          avatarId: avatar.avatarId,
-          croppedImageBlob: croppedBlob,
-          transform, // 同时应用当前的transform设置
-          currentAvatar: avatar,
-        });
+        // 根据模式上传裁剪后的图片并更新头像记录
+        if (isAvatarMode) {
+          await applyCropAvatarMutation.mutateAsync({
+            roleId: avatar.roleId,
+            avatarId: avatar.avatarId,
+            croppedImageBlob: croppedBlob,
+            currentAvatar: avatar,
+          });
+        }
+        else {
+          await applyCropMutation.mutateAsync({
+            roleId: avatar.roleId,
+            avatarId: avatar.avatarId,
+            croppedImageBlob: croppedBlob,
+            transform, // 立绘模式同时应用当前的transform设置
+            currentAvatar: avatar,
+          });
+        }
 
         results.push({ avatarId: avatar.avatarId, croppedImageUrl: dataUrl });
       }
@@ -589,7 +673,7 @@ export function SpriteCropper({
   }
 
   /**
-   * 批量下载：将当前裁剪参数应用到所有立绘并下载
+   * 批量下载：将当前裁剪参数应用到所有头像/立绘并下载
    */
   async function handleBatchDownload() {
     if (!isBatchMode || !completedCrop)
@@ -598,10 +682,12 @@ export function SpriteCropper({
     try {
       setIsProcessing(true);
 
-      // 为每个立绘应用相同的裁剪参数并下载
-      for (let i = 0; i < spritesAvatars.length; i++) {
-        const avatar = spritesAvatars[i];
-        if (!avatar.spriteUrl || !avatar.avatarId)
+      // 为每个头像/立绘应用相同的裁剪参数并下载
+      for (let i = 0; i < filteredAvatars.length; i++) {
+        const avatar = filteredAvatars[i];
+        // 头像模式下从立绘裁剪头像，立绘模式下处理立绘
+        const imageUrl = avatar.spriteUrl;
+        if (!imageUrl || !avatar.avatarId)
           continue;
 
         // 创建临时图片元素
@@ -610,17 +696,17 @@ export function SpriteCropper({
 
         await new Promise<void>((resolve, reject) => {
           tempImg.onload = () => resolve();
-          tempImg.onerror = () => reject(new Error(`Failed to load image: ${avatar.spriteUrl}`));
-          tempImg.src = avatar.spriteUrl!;
+          tempImg.onerror = () => reject(new Error(`Failed to load image: ${imageUrl}`));
+          tempImg.src = imageUrl!;
         });
 
         // 使用通用函数获取裁剪结果
         const dataUrl = await getCroppedImageFromImg(tempImg);
 
-        // 下载当前立绘
+        // 下载当前头像/立绘
         const a = document.createElement("a");
         a.href = dataUrl;
-        a.download = `${characterName}-sprite-${i + 1}-cropped.png`;
+        a.download = `${characterName}-${isAvatarMode ? "avatar" : "sprite"}-${i + 1}-cropped.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -639,12 +725,13 @@ export function SpriteCropper({
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* 批量模式下的立绘选择器 - 移动到分隔线上方 */}
-      {isBatchMode && spritesAvatars.length > 1 && (
+      {/* 批量模式下的头像/立绘选择器 - 移动到分隔线上方 */}
+      {isBatchMode && filteredAvatars.length > 1 && (
         <div className="flex w-full justify-between">
           <div className="flex items-center mb-4 gap-4">
             <h1 className="text-xl md:text-2xl font-bold">
               {operationMode === "single" ? "单体模式" : "批量模式"}
+              {isAvatarMode ? " - 从立绘裁剪头像" : " - 立绘裁剪"}
             </h1>
             <div className="border-l-2 border-primary h-6 mx-2"></div>
             {/* 模式切换控件 */}
@@ -670,7 +757,7 @@ export function SpriteCropper({
               container.scrollLeft += e.deltaY * 0.3;
             }}
           >
-            {spritesAvatars.map((avatar, index) => (
+            {filteredAvatars.map((avatar, index) => (
               <button
                 key={avatar.avatarId}
                 type="button"
@@ -682,7 +769,7 @@ export function SpriteCropper({
               >
                 <img
                   src={avatar.avatarUrl || "/favicon.ico"}
-                  alt={`立绘 ${index + 1}`}
+                  alt={`${isAvatarMode ? "头像" : "立绘"} ${index + 1}`}
                   className="w-full h-full object-cover"
                 />
               </button>
@@ -703,7 +790,8 @@ export function SpriteCropper({
                 crop={crop}
                 onChange={(_, percentCrop) => setCrop(percentCrop)}
                 onComplete={c => setCompletedCrop(c)}
-                // 立绘裁剪不限制宽高比
+                // 头像模式限制1:1宽高比，立绘模式不限制
+                aspect={isAvatarMode ? 1 : undefined}
                 minHeight={10}
               >
                 <img
@@ -725,20 +813,34 @@ export function SpriteCropper({
         {/* 右侧：裁剪预览和控制 */}
         {completedCrop && (
           <div className="w-full lg:w-2/3 p-2 gap-4 flex flex-col items-center">
-            <h2 className="text-xl font-bold">渲染预览</h2>
+            <h2 className="text-xl font-bold">
+              {isAvatarMode ? "头像预览" : "渲染预览"}
+            </h2>
             <div className="w-full h-full bg-info/30 rounded-lg p-4 gap-4 flex flex-col relative">
-              <RenderPreview
-                previewCanvasRef={previewCanvasRef}
-                transform={transform}
-                characterName={characterName}
-                dialogContent="这是一段示例对话内容。"
-              />
+              {isAvatarMode
+                ? (
+                    <AvatarPreview
+                      previewCanvasRef={previewCanvasRef}
+                      currentAvatarUrl={previewCanvasRef.current?.toDataURL() || ""}
+                      characterName={characterName}
+                    />
+                  )
+                : (
+                    <>
+                      <RenderPreview
+                        previewCanvasRef={previewCanvasRef}
+                        transform={transform}
+                        characterName={characterName}
+                        dialogContent="这是一段示例对话内容。"
+                      />
 
-              <TransformControl
-                transform={transform}
-                setTransform={setDisplayTransform}
-                previewCanvasRef={previewCanvasRef}
-              />
+                      <TransformControl
+                        transform={transform}
+                        setTransform={setDisplayTransform}
+                        previewCanvasRef={previewCanvasRef}
+                      />
+                    </>
+                  )}
 
               {/* 操作按钮区 */}
               <div className="flex-1 flex items-center justify-center">
@@ -750,9 +852,9 @@ export function SpriteCropper({
                             className="btn btn-accent"
                             onClick={handleApplyCrop}
                             type="button"
-                            disabled={!completedCrop || isProcessing || applyCropMutation.isPending}
+                            disabled={!completedCrop || isProcessing || (isAvatarMode ? applyCropAvatarMutation.isPending : applyCropMutation.isPending)}
                           >
-                            {(isProcessing || applyCropMutation.isPending)
+                            {(isProcessing || (isAvatarMode ? applyCropAvatarMutation.isPending : applyCropMutation.isPending))
                               ? (
                                   <span className="loading loading-spinner loading-xs"></span>
                                 )
@@ -760,20 +862,22 @@ export function SpriteCropper({
                                   "应用裁剪"
                                 )}
                           </button>
-                          <button
-                            className="btn btn-info"
-                            onClick={handleApplyTransform}
-                            type="button"
-                            disabled={isProcessing}
-                          >
-                            {isProcessing && updateTransformMutation.isPending
-                              ? (
-                                  <span className="loading loading-spinner loading-xs"></span>
-                                )
-                              : (
-                                  "应用位移"
-                                )}
-                          </button>
+                          {!isAvatarMode && (
+                            <button
+                              className="btn btn-info"
+                              onClick={handleApplyTransform}
+                              type="button"
+                              disabled={isProcessing}
+                            >
+                              {isProcessing && updateTransformMutation.isPending
+                                ? (
+                                    <span className="loading loading-spinner loading-xs"></span>
+                                  )
+                                : (
+                                    "应用位移"
+                                  )}
+                            </button>
+                          )}
                           <button
                             className="btn btn-outline"
                             onClick={handleDownload}
@@ -790,9 +894,9 @@ export function SpriteCropper({
                             className="btn btn-accent"
                             onClick={handleBatchCropAll}
                             type="button"
-                            disabled={!completedCrop || isProcessing || applyCropMutation.isPending}
+                            disabled={!completedCrop || isProcessing || (isAvatarMode ? applyCropAvatarMutation.isPending : applyCropMutation.isPending)}
                           >
-                            {(isProcessing || applyCropMutation.isPending)
+                            {(isProcessing || (isAvatarMode ? applyCropAvatarMutation.isPending : applyCropMutation.isPending))
                               ? (
                                   <span className="loading loading-spinner loading-xs"></span>
                                 )
@@ -800,20 +904,22 @@ export function SpriteCropper({
                                   "一键裁剪"
                                 )}
                           </button>
-                          <button
-                            className="btn btn-info"
-                            onClick={handleBatchApplyTransform}
-                            type="button"
-                            disabled={isProcessing}
-                          >
-                            {isProcessing && updateTransformMutation.isPending
-                              ? (
-                                  <span className="loading loading-spinner loading-xs"></span>
-                                )
-                              : (
-                                  "一键位移"
-                                )}
-                          </button>
+                          {!isAvatarMode && (
+                            <button
+                              className="btn btn-info"
+                              onClick={handleBatchApplyTransform}
+                              type="button"
+                              disabled={isProcessing}
+                            >
+                              {isProcessing && updateTransformMutation.isPending
+                                ? (
+                                    <span className="loading loading-spinner loading-xs"></span>
+                                  )
+                                : (
+                                    "一键位移"
+                                  )}
+                            </button>
+                          )}
                           <button
                             className="btn btn-outline btn-info"
                             onClick={handleBatchDownload}
