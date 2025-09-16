@@ -80,7 +80,6 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
   const imgRef = useRef<HTMLImageElement>(null);
   const [crop, setCrop] = useState<Crop>(); // 存储图片裁剪比例
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
-  const [avatarTitle, setAvatarTitle] = useState("愤怒");
 
   // 存储当前选择的图片文件
   const imgFile = useRef<File>(null);
@@ -101,11 +100,6 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
 
   // 移除未使用的状态
   // const [firstStepImage, FirstStepImage] = useState<File | null>(null);
-
-  // 处理头像标题选择变化（类型安全）
-  function handleAvatarChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    setAvatarTitle(e.target.value);
-  }
 
   /**
    * 重置所有状态到初始值
@@ -258,7 +252,7 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
         }
         if (mutate !== undefined) {
           console.warn("CharacterCopper: 传递Transform数据", transform);
-          mutate({ avatarUrl: copperedDownloadUrl, spriteUrl: downloadUrl, transform, avatarTitle });
+          mutate({ avatarUrl: copperedDownloadUrl, spriteUrl: downloadUrl, transform });
         }
         // 延迟关闭弹窗和重置状态，避免抖动
         setTimeout(() => {
@@ -453,22 +447,6 @@ export function CharacterCopper({ setDownloadUrl, setCopperedDownloadUrl, childr
                             setTransform={setTransform}
                             previewCanvasRef={previewCanvasRef}
                           />
-                          <div className="text-center text-lg font-bold">
-                            编辑当前头像标题：&nbsp;
-                            <select
-                              className="bg-transparent"
-                              value={avatarTitle}
-                              onChange={handleAvatarChange}
-                            >
-                              <option value="愤怒">愤怒</option>
-                              <option value="开心">开心</option>
-                              <option value="难过">难过</option>
-                              <option value="惊讶">惊讶</option>
-                              <option value="害怕">害怕</option>
-                              <option value="冷静">冷静</option>
-                              <option value="绝望">绝望</option>
-                            </select>
-                          </div>
                         </div>
                       </>
                     )

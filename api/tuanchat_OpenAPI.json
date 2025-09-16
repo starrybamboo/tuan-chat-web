@@ -17613,7 +17613,11 @@
             "format": "int64"
           },
           "avatarTitle": {
-            "type": "string",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "头像的标题"
+            },
             "description": "头像的标题"
           },
           "avatarUrl": {
