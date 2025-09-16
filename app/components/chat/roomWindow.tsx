@@ -531,7 +531,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                 />
                 {/* 底部工具栏 */}
                 {/* 状态显示条 */}
-                <ChatStatusBar roomId={roomId} userId={userId} webSocketUtils={webSocketUtils} />
+                <ChatStatusBar roomId={roomId} userId={userId} webSocketUtils={webSocketUtils} excludeSelf={false} />
                 <ChatToolbar
                   sideDrawerState={sideDrawerState}
                   setSideDrawerState={setSideDrawerState}
