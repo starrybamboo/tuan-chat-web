@@ -148,7 +148,7 @@ export default function SpaceDetailPanel() {
         }
       </div>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
-        <AddRoleWindow handleAddRole={handleAddRole} addModuleRole={false}></AddRoleWindow>
+        <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
       </PopWindow>
       <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
         <AddMemberWindow handleAddMember={handleAddMember}></AddMemberWindow>

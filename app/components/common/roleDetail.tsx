@@ -10,8 +10,12 @@ import { useGetRoleAvatarQuery, useGetRoleQuery, useGetUserRolesQuery } from "..
 /**
  * 角色的详情界面
  * @param roleId
+ * @param allowKickOut 是否允许被踢出，模组角色是不可以的
  */
-export function RoleDetail({ roleId }: { roleId: number }) {
+export function RoleDetail({ roleId, allowKickOut = true }: {
+  roleId: number;
+  allowKickOut?: boolean;
+}) {
   const roleQuery = useGetRoleQuery(roleId);
 
   const role = roleQuery.data?.data;
@@ -125,12 +129,18 @@ export function RoleDetail({ roleId }: { roleId: number }) {
 
         {/* 只在房间中显示的按钮组 */}
         {
-          // 用户是群主或者当前角色是用户所有才能踢出角色
-          ((isManager() || userRole.data?.data?.find(role => role.roleId === roleId)) && roomId) && (
-            <button type="button" className="btn btn-error" onClick={handleRemoveRole}>
-              踢出角色
-            </button>
-          )
+          allowKickOut
+            ? ((isManager() || userRole.data?.data?.find(role => role.roleId === roleId)) && roomId && allowKickOut) && (
+                <button type="button" className="btn btn-error" onClick={handleRemoveRole}>
+                  踢出角色
+                </button>
+              )
+            : (
+                <button type="button" className="btn" disabled onClick={handleRemoveRole}>
+                  模组角色不能被踢出
+                </button>
+              )
+
         }
       </div>
       <ExpansionModule roleId={roleId} ruleId={ruleId ?? undefined}></ExpansionModule>

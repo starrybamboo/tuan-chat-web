@@ -1,5 +1,6 @@
 import { RoomContext } from "@/components/chat/roomContext";
 import RoleList from "@/components/chat/smallComponents/roleLists";
+import { AddModuleRoleWindow } from "@/components/chat/window/addModuleRoleWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import { PopWindow } from "@/components/common/popWindow";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -57,11 +58,10 @@ export default function RoomRoleList() {
       <div className="flex flex-row justify-center items-center gap-2 min-w-60">
         <p className="text-center">
           角色列表-
-          <span className="text-sm">{roomRoles.length}</span>
+          <span className="text-sm">{roomRoles.length + moduleRoles.length}</span>
         </p>
       </div>
-
-      <div className="flex flex-row gap-2">
+      <div className="flex flex-row gap-4">
         {(curMember?.memberType === 1 || curMember?.memberType === 2) && (
           <button
             type="button"
@@ -81,16 +81,15 @@ export default function RoomRoleList() {
           </button>
         )}
       </div>
-
       <RoleList roles={roomRoles} className={listWidth} />
-      <RoleList roles={moduleRoles} className={listWidth}></RoleList>
+      <RoleList roles={moduleRoles} className={listWidth} isModuleRole={true} />
 
       {/* 弹窗 */}
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
-        <AddRoleWindow handleAddRole={handleAddRole} addModuleRole={false} />
+        <AddRoleWindow handleAddRole={handleAddRole} />
       </PopWindow>
       <PopWindow isOpen={isModuleRoleHandleOpen} onClose={() => setIsModuleRoleHandleOpen(false)}>
-        <AddRoleWindow handleAddRole={handleAddModuleRole} addModuleRole={true} />
+        <AddModuleRoleWindow handleAddRole={handleAddModuleRole} />
       </PopWindow>
     </div>
   );
