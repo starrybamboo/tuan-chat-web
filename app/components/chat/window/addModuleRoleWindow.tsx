@@ -1,42 +1,47 @@
 import { RoomContext } from "@/components/chat/roomContext";
+import { SpaceContext } from "@/components/chat/spaceContext";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { useGlobalContext } from "@/components/globalContextProvider";
-import { AddRingLight } from "@/icons";
+import { transformStageEntityToUserRole } from "@/utils/transformStageEntityToUserRole";
 import React, { use, useMemo } from "react";
-import { useNavigate } from "react-router";
-import { useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
-import { useGetUserRolesQuery } from "../../../../api/queryHooks";
+import { useGetRoomModuleRoleQuery } from "../../../../api/hooks/chatQueryHooks";
+import { useGetSpaceModuleRoleQuery } from "../../../../api/hooks/spaceModuleHooks";
 
-export function AddRoleWindow({
+export function AddModuleRoleWindow({
   handleAddRole,
 }: {
   handleAddRole: (roleId: number) => void;
 }) {
+  const spaceContext = use(SpaceContext);
+  const spaceId = spaceContext.spaceId ?? -1;
   const roomContext = use(RoomContext);
-  const roomId = roomContext.roomId;
+  const roomId = roomContext.roomId ?? -1;
 
-  const roomRolesQuery = useGetRoomRoleQuery(roomId ?? -1);
-  const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
-
-  const userId = useGlobalContext().userId;
-  const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
-  const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
-
-  const navigate = useNavigate();
+  const spaceModuleRolesQuery = useGetSpaceModuleRoleQuery(spaceId);
+  const roomModuleRolesQuery = useGetRoomModuleRoleQuery(roomId);
+  const spaceModuleRoles = useMemo(
+    () => spaceModuleRolesQuery.data?.data ?? [],
+    [spaceModuleRolesQuery.data?.data],
+  );
+  const roomModuleRoles = useMemo(
+    () => roomModuleRolesQuery.data?.data ?? [],
+    [roomModuleRolesQuery.data?.data],
+  );
 
   const availableRoles = useMemo(() => {
-    return userRoles.filter(role => !roomRoles.some(r => r.roleId === role.roleId));
-  }, [roomRoles, userRoles]);
+    return spaceModuleRoles
+      .map(role => (transformStageEntityToUserRole(role)))
+      .filter(role => !roomModuleRoles.some(r => r.roleId === role.roleId));
+  }, [roomModuleRoles, spaceModuleRoles]);
 
   return (
     <div className="justify-center w-full">
       <p className="text-lg font-bold text-center w-full mb-4">
-        导入我的角色
+        导入模组角色
       </p>
       <div className="bg-base-100 rounded-box p-6">
         {
           availableRoles.length === 0 && (
-            <div className="text-center font-bold py-5">你已经没有角色可以导入了哦</div>
+            <div className="text-center font-bold py-5">无模组角色可导入</div>
           )
         }
         <div className="flex flex-wrap gap-3 justify-center">
@@ -57,15 +62,6 @@ export function AddRoleWindow({
               </div>
             </div>
           ))}
-          <div
-            className="card shadow hover:shadow-lg transition-shadow cursor-pointer"
-            onClick={() => navigate("/role")}
-          >
-            <div className="flex flex-col items-center p-3">
-              <AddRingLight className="size-24 jump_icon" />
-              <p className="text-center block">创建角色</p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

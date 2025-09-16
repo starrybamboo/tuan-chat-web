@@ -32,8 +32,18 @@ const sizeMap = {
  * @param withTitle 是否显示头像对应的标题（并非roleName）
  * @param stopPopWindow 是否禁用点击弹出角色详情窗口，默认为false
  * @param alt
+ * @param allowKickOut 是否允许被踢出，模组角色是不可以的
  */
-export default function RoleAvatarComponent({ avatarId, roleId, width, isRounded, withTitle = false, stopPopWindow = false, alt = "avatar" }: {
+export default function RoleAvatarComponent({
+  avatarId,
+  roleId,
+  width,
+  isRounded,
+  withTitle = false,
+  stopPopWindow = false,
+  alt = "avatar",
+  allowKickOut = true,
+}: {
   avatarId: number;
   roleId?: number;
   width: keyof typeof sizeMap; // 头像的宽度
@@ -41,6 +51,7 @@ export default function RoleAvatarComponent({ avatarId, roleId, width, isRounded
   withTitle?: boolean; // 是否在下方显示标题
   stopPopWindow?: boolean; // 点击后是否会产生roleDetail弹窗
   alt?: string;
+  allowKickOut?: boolean;
 }) {
   const avatarQuery = useGetRoleAvatarQuery(avatarId);
   const roleAvatar = avatarQuery.data?.data;
@@ -80,7 +91,7 @@ export default function RoleAvatarComponent({ avatarId, roleId, width, isRounded
           (isOpen && !stopPopWindow && roomId) && (
             <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)} fullScreen={getScreenSize() === "sm"}>
               <div className="justify-center w-full">
-                <RoleDetail roleId={roleIdTrue ?? -1}></RoleDetail>
+                <RoleDetail roleId={roleIdTrue ?? -1} allowKickOut={allowKickOut}></RoleDetail>
               </div>
             </PopWindow>
           )
