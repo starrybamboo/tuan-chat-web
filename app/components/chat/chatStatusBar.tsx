@@ -37,10 +37,18 @@ export default function ChatStatusBar({ roomId, userId, webSocketUtils, excludeS
   const renderLabel = (t: ChatStatusType) => {
     switch (t) {
       case "input": return "正在输入";
-      case "wait": return "等待中";
+      case "wait": return "等待他人扮演"; // 更新文案
       case "leave": return "暂离";
       default: return t;
     }
+  };
+
+  // 与 ChatToolbar 状态选择器颜色保持一致
+  const colorMap: Record<ChatStatusType, string> = {
+    input: "text-info",
+    wait: "text-warning",
+    leave: "text-error",
+    idle: "opacity-70", // 这里不会展示 idle，仅为类型完整
   };
 
   // 当前 RoomMember 类型不含 userName，暂以 #uid 占位；后续可通过 members 扩展或单独的用户缓存获取
@@ -57,7 +65,7 @@ export default function ChatStatusBar({ roomId, userId, webSocketUtils, excludeS
             key={g.type}
             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-base-200 border border-base-300"
           >
-            <span className={g.type === "input" ? "text-info" : g.type === "leave" ? "text-warning" : "text-base-content/70"}>
+            <span className={colorMap[g.type] || "text-base-content/70"}>
               <span className="tooltip tooltip-top whitespace-pre-line" data-tip={tooltipLines}>
                 {isSingle
                   ? (

@@ -91,6 +91,7 @@ interface UserRole { // eslint-disable-line ts/consistent-type-definitions
   speakerName?: string;
   createTime?: string;
   updateTime?: string;
+  voiceUrl?: string;
 }
 
 interface CommandInfo { // eslint-disable-line ts/consistent-type-definitions

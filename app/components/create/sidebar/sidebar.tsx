@@ -64,7 +64,6 @@ export default function Topbar() {
       content: moduleItem,
     });
   }, [moduleItem, pushModuleTabItem]);
-
   // const currentModule: Module | null = useMemo(() => {
   //   // 优先使用详情接口（包含更全字段，如 ruleId），无则回退列表项
   //   const detail = moduleInfo as any | undefined;

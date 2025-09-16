@@ -110,7 +110,6 @@ export default function SpaceDetailPanel() {
               )
             }
           </div>
-          {/* TODO: 适配新的角色列表 */}
           {spaceRoles.map((role) => {
             const roleInfo = role.entityInfo as { avatarId?: number; roleName?: string } | undefined;
             return (
@@ -149,7 +148,7 @@ export default function SpaceDetailPanel() {
         }
       </div>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
-        <AddRoleWindow handleAddRole={handleAddRole} addModuleRole={false}></AddRoleWindow>
+        <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
       </PopWindow>
       <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
         <AddMemberWindow handleAddMember={handleAddMember}></AddMemberWindow>
