@@ -6,10 +6,9 @@ import ForwardMessage from "@/components/chat/smallComponents/forwardMessage";
 import { PreviewMessage } from "@/components/chat/smallComponents/previewMessage";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import BetterImg from "@/components/common/betterImg";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { EditableField } from "@/components/common/editableField";
-import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { formatTimeSmartly } from "@/utils/dataUtil";
 import { useGetRoleQuery } from "api/queryHooks";
@@ -26,8 +25,6 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId);
 
   const role = useRoleRequest.data?.data;
-  const [isExpressionChooserOpen, setIsExpressionChooserOpen] = useSearchParamsState<boolean>(`exprPop${message.messageId}`, false);
-  const [isRoleChooserOpen, setIsRoleChooserOpen] = useSearchParamsState<boolean>(`roleChoosePop${message.messageId}`, false);
 
   const updateMessageMutation = useUpdateMessageMutation();
 
@@ -42,9 +39,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       ...message,
       avatarId,
     };
-    updateMessageMutation.mutate(newMessage, {
-      onSettled: () => setIsExpressionChooserOpen(false),
-    });
+    updateMessageMutation.mutate(newMessage);
   }
 
   function handleRoleChange(new_roleId: number) {
@@ -53,18 +48,36 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       roleId: new_roleId,
       avatarId: roomContext.roomRolesThatUserOwn.find(role => role.roleId === new_roleId)?.avatarId ?? -1,
     };
-    updateMessageMutation.mutate(newMessage, {
-      onSettled: () => setIsRoleChooserOpen(false),
-    });
+    updateMessageMutation.mutate(newMessage);
   }
 
   const canEdit = userId === message.userId || spaceContext.isSpaceOwner;
 
   function handleAvatarClick() {
     if (canEdit) {
-      setIsExpressionChooserOpen(true);
+      // 打开表情选择器的 toast 窗口
+      toastWindow(
+        onClose => (
+          <RoomContext value={roomContext}>
+            <div className="flex flex-col">
+              <ExpressionChooser
+                roleId={message.roleId}
+                handleExpressionChange={(avatarId) => {
+                  handleExpressionChange(avatarId);
+                  onClose();
+                }}
+                handleRoleChange={(roleId) => {
+                  handleRoleChange(roleId);
+                  onClose();
+                }}
+              />
+            </div>
+          </RoomContext>
+        ),
+      );
     }
   }
+
   function handleContentUpdate(content: string) {
     if (message.content !== content) {
       updateMessageMutation.mutate({
@@ -73,6 +86,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       });
     }
   }
+
   const imgMsg = message.extra?.imageMessage;
   const scrollToGivenMessage = roomContext.scrollToGivenMessage;
 
@@ -126,7 +140,23 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
   // @角色
   function handleRoleNameClick() {
     if (canEdit) {
-      setIsRoleChooserOpen(true);
+      // 打开角色选择器的 toast 窗口
+      toastWindow(
+        onClose => (
+          <RoomContext value={roomContext}>
+            <div className="flex flex-col items-center gap-4">
+              <div>选择新的角色</div>
+              <RoleChooser
+                handleRoleChange={(role) => {
+                  handleRoleChange(role.roleId);
+                  onClose();
+                }}
+                className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
+              />
+            </div>
+          </RoomContext>
+        ),
+      );
     }
     else {
       const roleName = role?.roleName?.trim() || "Undefined";
@@ -228,36 +258,6 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               </div>
             </div>
           )}
-      {
-        canEdit
-        && (
-          <>
-            {/* 表情选择窗口 */}
-            <PopWindow isOpen={isExpressionChooserOpen} onClose={() => setIsExpressionChooserOpen(false)}>
-              <div className="flex flex-col">
-                {/* <div>选择新的表情差分</div> */}
-                <ExpressionChooser
-                  roleId={message.roleId}
-                  handleExpressionChange={handleExpressionChange}
-                  handleRoleChange={handleRoleChange}
-                >
-                </ExpressionChooser>
-              </div>
-            </PopWindow>
-            {/* role选择窗口 */}
-            <PopWindow isOpen={isRoleChooserOpen} onClose={() => setIsRoleChooserOpen(false)}>
-              <div className="flex flex-col items-center gap-4">
-                <div>选择新的角色</div>
-                <RoleChooser
-                  handleRoleChange={role => handleRoleChange(role.roleId)}
-                  className=" menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
-                >
-                </RoleChooser>
-              </div>
-            </PopWindow>
-          </>
-        )
-      }
     </div>
   );
 }

@@ -1,7 +1,7 @@
 // Work.tsx - 重构为卡片网格首页（参考 ModuleHome）
 import type { StageResponse } from "api";
 import Pagination from "@/components/common/pagination";
-import toastWindow from "@/components/common/toastWindow";
+import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useUpdateModuleMutation } from "api/hooks/moduleAndStageQueryHooks";
 import { useStagingQuery } from "api/hooks/moduleQueryHooks";
 import { useMemo, useState } from "react";

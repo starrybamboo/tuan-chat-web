@@ -58,8 +58,17 @@ export class UploadUtils {
    */
   async uploadImg(file: File, scene: 1 | 2 | 3 | 4 = 1, quality = 0.7, maxSize = 2560): Promise<string> {
     let new_file = file;
+
+    // 对于图片文件进行处理
     if (file.type.startsWith("image/")) {
-      new_file = await compressImage(file, quality, maxSize);
+      // GIF文件单独处理，只检查尺寸不做压缩
+      if (file.type === "image/gif") {
+        new_file = await this.handleGifFile(file, maxSize);
+      }
+      else {
+        // 其他图片格式进行压缩
+        new_file = await compressImage(file, quality, maxSize);
+      }
     }
 
     // 1. 计算文件内容的 SHA-256 哈希值
@@ -89,6 +98,43 @@ export class UploadUtils {
       throw new Error("获取下载地址失败");
     }
     return ossData.data.downloadUrl;
+  }
+
+  /**
+   * 处理GIF文件，检查尺寸但保持原格式
+   * @param file GIF文件
+   * @param maxSize 最大尺寸限制
+   * @returns 处理后的文件（可能重命名）
+   */
+  private async handleGifFile(file: File, maxSize: number): Promise<File> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        img.src = e.target?.result as string;
+      };
+
+      img.onload = () => {
+        // 检查GIF尺寸是否超过限制
+        if (img.width > maxSize || img.height > maxSize) {
+          console.warn(
+            `GIF尺寸 ${img.width}x${img.height} 超过限制 ${maxSize}px，但为保持动画效果将保持原格式`,
+          );
+        }
+
+        // 重命名文件（添加时间戳，去除空格）
+        const newName = file.name.replace(/(\.[^.]+)?$/, `_${Date.now()}.gif`).split(" ").join("");
+        const renamedFile = new File([file], newName, {
+          type: "image/gif",
+        });
+        resolve(renamedFile);
+      };
+
+      reader.onerror = reject;
+      img.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
   /**
