@@ -47,7 +47,7 @@ export const toastManager = new ToastWindowManager();
  * @returns - 一个对象，包含 update 和 close 方法。
  */
 export default function toastWindow(
-  children: ((onClose: () => void) => React.ReactNode) | React.ReactNode,
+  children: ((close: () => void) => React.ReactNode) | React.ReactNode,
   options: ToastWindowOptions = {},
 ): { update: (newChildren: React.ReactNode) => void; close: () => void } {
   const id = Math.random().toString(36).substr(2, 9);
