@@ -8,7 +8,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
   isActive: boolean;
 }) {
   return (
-    <div className="group relative w-10">
+    <div className="group relative w-10 py-1">
       <div
         className={`rounded ${isActive ? "bg-info-content/40 " : ""} w-10 relative`}
         key={space.spaceId}
@@ -34,7 +34,7 @@ export default function SpaceButton({ space, unreadMessageNumber, onclick, isAct
                   </span>
                 )
               : null}
-            <div className="avatar mask mask-squircle">
+            <div className="avatar mask mask-squircle size-10">
               <img
                 src={space.avatar}
                 alt={space.name}

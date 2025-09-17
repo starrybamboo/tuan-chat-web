@@ -189,15 +189,15 @@ export default function ChatPage() {
         <OpenAbleDrawer isOpen={screenSize === "sm" ? isOpenLeftDrawer : true} className="h-full z-10 w-full bg-base-100">
           <div className="h-full flex flex-row w-full md:w-max">
             {/* 空间列表 */}
-            <div className="flex flex-col p-2 gap-2 bg-base-300/40 h-full overflow-y-auto overflow-x-hidden">
+            <div className="flex flex-col py-2 bg-base-300/40 h-full overflow-y-auto">
               {/* 私信入口 */}
-              <div className="rounded w-10 relative">
+              <div className="rounded w-10 relative mx-2">
                 <div
                   className={`absolute -left-[6px] z-10 top-1/2 -translate-y-1/2 h-8 w-1 rounded-full bg-info transition-transform duration-300 ${isPrivateChatMode ? "scale-y-100" : "scale-y-0"
                   }`}
                 />
                 <button
-                  className="tooltip tooltip-right w-10 btn btn-square"
+                  className="tooltip tooltip-bottom w-10 btn btn-square"
                   data-tip="私信"
                   type="button"
                   onClick={() => {
@@ -213,23 +213,29 @@ export default function ChatPage() {
               </div>
 
               {/* 分隔线 */}
-              <div className="w-8 h-px bg-base-300 mx-1"></div>
+              <div className="w-8 h-px bg-base-300 mx-3"></div>
 
-              {/* 全部空间列表 */}
-              {spaces.map(space => (
-                <SpaceButton
-                  space={space}
-                  unreadMessageNumber={getSpaceUnreadMessagesNumber(space.spaceId ?? -1)}
-                  onclick={() => setActiveSpaceId(space.spaceId ?? -1)}
-                  isActive={activeSpaceId === space.spaceId}
-                  key={space.spaceId}
-                >
-                </SpaceButton>
-              ))}
+              <div className="overflow-y-auto overflow-x-hidden flex flex-col py-2 px-2">
+                {/* 全部空间列表 */}
+                {spaces.map(space => (
+                  <SpaceButton
+                    space={space}
+                    unreadMessageNumber={getSpaceUnreadMessagesNumber(space.spaceId ?? -1)}
+                    onclick={() => {
+                      if (activeSpaceId !== space.spaceId) {
+                        setActiveSpaceId(space.spaceId ?? -1);
+                      }
+                    }}
+                    isActive={activeSpaceId === space.spaceId}
+                    key={space.spaceId}
+                  >
+                  </SpaceButton>
+                ))}
+              </div>
               <button
-                className="tooltip tooltip-right btn btn-square btn-dash btn-info w-10 photo"
+                className="tooltip tooltip-top btn btn-square btn-dash btn-info w-10 mx-2"
                 type="button"
-                data-tip="创建空间"
+                data-tip="创建"
                 onClick={() => {
                   setIsSpaceHandleOpen(true);
                 }}
