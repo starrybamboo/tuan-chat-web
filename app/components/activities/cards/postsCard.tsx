@@ -286,6 +286,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
           <div className="mt-6 p-6 bg-base-200 rounded-lg">
             <CommentPanel
               targetInfo={{ targetId: postId ?? -1, targetType }}
+              loginUserId={loginUserId || -1}
             />
           </div>
         )}

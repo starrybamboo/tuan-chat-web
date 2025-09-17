@@ -1,4 +1,3 @@
-// CommentInputBox.tsx - 增强版本，支持多行、字数统计
 import { CommentContext } from "@/components/common/comment/commentContext";
 import { use, useEffect, useRef, useState } from "react";
 import { useAddCommentMutation } from "../../../../api/hooks/commentQueryHooks";
@@ -56,7 +55,7 @@ export default function CommentInputBox({ className, onSubmitFinish, rootComment
   };
 
   return (
-    <div className={`bg-base-200 rounded-lg p-3 ${className} transition-all duration-200 ${isFocused ? "ring-2 ring-primary ring-opacity-50" : ""}`}>
+    <div className={`bg-base-200 rounded-lg p-3 ${className} transition-all duration-200 ring-1 ${isFocused ? "ring-1 ring-primary ring-opacity-50" : ""}`}>
       <div className="relative">
         <textarea
           ref={textareaRef}
