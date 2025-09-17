@@ -220,7 +220,11 @@ export default function ChatPage() {
                 <SpaceButton
                   space={space}
                   unreadMessageNumber={getSpaceUnreadMessagesNumber(space.spaceId ?? -1)}
-                  onclick={() => setActiveSpaceId(space.spaceId ?? -1)}
+                  onclick={() => {
+                    if (activeSpaceId !== space.spaceId) {
+                      setActiveSpaceId(space.spaceId ?? -1);
+                    }
+                  }}
                   isActive={activeSpaceId === space.spaceId}
                   key={space.spaceId}
                 >

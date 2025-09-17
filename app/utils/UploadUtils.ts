@@ -59,6 +59,7 @@ export class UploadUtils {
   async uploadImg(file: File, scene: 1 | 2 | 3 | 4 = 1, quality = 0.7, maxSize = 2560): Promise<string> {
     let new_file = file;
 
+    console.log(file.type);
     // 对于图片文件进行处理
     if (file.type.startsWith("image/")) {
       // GIF文件单独处理，只检查尺寸不做压缩
@@ -122,13 +123,7 @@ export class UploadUtils {
             `GIF尺寸 ${img.width}x${img.height} 超过限制 ${maxSize}px，但为保持动画效果将保持原格式`,
           );
         }
-
-        // 重命名文件（添加时间戳，去除空格）
-        const newName = file.name.replace(/(\.[^.]+)?$/, `_${Date.now()}.gif`).split(" ").join("");
-        const renamedFile = new File([file], newName, {
-          type: "image/gif",
-        });
-        resolve(renamedFile);
+        resolve(file);
       };
 
       reader.onerror = reject;
