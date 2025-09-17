@@ -70,6 +70,16 @@ export function useAddSpaceMemberMutation() {
 }
 
 /**
+ * 生成空间邀请码
+ */
+export function useSpaceInviteCode(spaceId: number, duration?: number) {
+    return useQuery({
+        queryKey: ['inviteCode'],
+        queryFn: () => tuanchat.spaceMemberController.inviteCode(spaceId, duration)
+    })
+}
+
+/**
  * 删除空间成员
  */
 export function useDeleteSpaceMemberMutation() {

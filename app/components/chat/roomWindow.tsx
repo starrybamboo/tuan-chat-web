@@ -27,7 +27,6 @@ import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import ItemWindow from "@/components/chat/window/itemWindow";
 import RenderWindow from "@/components/chat/window/renderWindow";
-import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
@@ -37,7 +36,6 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   BaselineArrowBackIosNew,
-  Setting,
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -147,7 +145,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     }));
   }, [curRoleId, setCurAvatarIdMap]);
 
-  const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
   // 渲染对话
   const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
 
@@ -495,11 +492,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           </div>
           <div className="flex gap-2 items-center">
             <SearchBar className={getScreenSize() === "sm" ? "" : "w-64"} />
-            <Setting
-              className="size-7 cursor-pointer hover:text-info"
-              onClick={() => setIsSettingWindowOpen(true)}
-            >
-            </Setting>
           </div>
         </div>
         <div className="h-px bg-base-300"></div>
@@ -632,13 +624,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
       </div>
       <PopWindow isOpen={isItemsWindowOpen} onClose={() => setIsItemsWindowOpen(false)}>
         <ItemWindow setSelectedItemId={setSelectedItemId}></ItemWindow>
-      </PopWindow>
-      <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
-        <RoomSettingWindow
-          onClose={() => setIsSettingWindowOpen(false)}
-          onShowMembers={() => setSideDrawerState("user")}
-          onRenderDialog={() => setIsRenderWindowOpen(true)}
-        />
       </PopWindow>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleAddWindowOpen(false)}>
         <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
