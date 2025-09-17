@@ -79,12 +79,12 @@ export default function SpaceDetailPanel() {
                   type="button"
                   onClick={() => setIsMemberHandleOpen(true)}
                 >
-                  添加成员
+                  邀请观战
                 </button>
               )
             }
           </div>
-          <MemberLists members={spaceMembers}></MemberLists>
+          <MemberLists members={spaceMembers} isSpace={true}></MemberLists>
         </div>
         {/* 角色列表 */}
         <label className="tab">
