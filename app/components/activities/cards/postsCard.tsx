@@ -283,7 +283,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
             />
           </div>
           <div className="flex items-center space-x-1 text-sm hover:text-success cursor-pointer hover:bg-blue-500/10 transition-colors px-2 py-1 rounded-full">
-            <ShareIconButton targetRef={postRef as React.RefObject<HTMLDivElement>} searchKey={`feedShowSharePop${postId}`} />
+            <ShareIconButton targetRef={postRef as React.RefObject<HTMLDivElement>} qrLink={window.location.href} searchKey={`feedShowSharePop${postId}`} />
           </div>
         </div>
         {isCommentMenuOpen && (
