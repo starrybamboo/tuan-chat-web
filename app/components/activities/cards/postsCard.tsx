@@ -1,3 +1,4 @@
+import { parseEventType } from "@/components/activities/cards/eventTypes";
 import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
 import CollectionIconButton from "@/components/common/collection/collectionIconButton";
@@ -18,8 +19,8 @@ interface PostsCardProps {
   stats?: any;
   loginUserId?: number;
   onDislike?: () => void;
-  // 组件类型标识
-  type?: "default" | "feed";
+  displayType?: "default" | "feed"; // 组件类型标识，表示你是想以 Feed 还是 default 形式展示
+  contentTypeNumber?: number;
 }
 
 /**
@@ -30,16 +31,18 @@ export const PostsCard: React.FC<PostsCardProps> = ({
   stats,
   loginUserId,
   onDislike,
-  type = "default",
+  displayType = "default",
+  contentTypeNumber,
 }) => {
   const navigate = useNavigate();
-  const isFeed = type === "feed";
+  const isFeed = displayType === "feed";
 
   // 统一的数据提取
   const userId = data?.userId ?? -1;
   const postId = isFeed ? data?.communityPostId : data?.feedId;
   const targetType = isFeed ? "2" : "4";
   const resourceType = isFeed ? "2" : "4";
+  const contentType = parseEventType(contentTypeNumber || 0);
 
   // 状态管理
   const [showMenu, setShowMenu] = useState(false);
@@ -153,7 +156,10 @@ export const PostsCard: React.FC<PostsCardProps> = ({
               : (
                   <>
                     <h3 className="card-title text-xl whitespace-nowrap">{userDisplayData.name}</h3>
-                    {publishTime && <p className="flex-1 text-xs text-base-content/60">{publishTime}</p>}
+                    <div className="flex items-center gap-2 text-xs text-base-content/80">
+                      {publishTime && <p>{publishTime}</p>}
+                      {contentTypeNumber !== 12 && <p>{contentType}</p>}
+                    </div>
                   </>
                 )}
           </div>
@@ -232,7 +238,13 @@ export const PostsCard: React.FC<PostsCardProps> = ({
                       {description}
                     </p>
                   )
-                : null}
+                : (
+                    <div className="test-base-200">
+                      发布了一篇
+                      {contentTypeNumber}
+                      哦
+                    </div>
+                  )}
           </div>
           {/* Feed 专用：消息内容容器 */}
           {isFeed && data?.message && (

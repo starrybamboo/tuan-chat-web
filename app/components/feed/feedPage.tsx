@@ -108,7 +108,7 @@ export default function FeedPage() {
                       data={feed.response}
                       stats={feed.stats}
                       onDislike={() => handleDislike(feed.stats!.postId)}
-                      type="feed"
+                      displayType="feed"
                       loginUserId={loginUserId || -1}
                     />
                   )

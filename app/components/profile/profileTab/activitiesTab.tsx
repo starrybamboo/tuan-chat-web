@@ -246,7 +246,8 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                                   data={dynamic.response}
                                   stats={dynamic.stats}
                                   loginUserId={userId}
-                                  type="default"
+                                  displayType="default"
+                                  contentTypeNumber={dynamic?.type || 0}
                                 />
                               </div>
                             );

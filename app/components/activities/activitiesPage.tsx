@@ -156,6 +156,7 @@ function ActivitiesPage() {
 
               {activities.map((item, idx) => {
                 const feedId = item?.response?.feedId;
+                const contentType = item?.type || 3;
                 const key = `feed-${feedId ?? idx}`;
 
                 // 将 sentinelRef 挂载在倒数第 RENDER_MIN 个 item（或长度 <= RENDER_MIN 时挂在第 0 个）
@@ -166,7 +167,8 @@ function ActivitiesPage() {
                         data={item.response}
                         stats={item.stats}
                         loginUserId={loginUserId}
-                        type="default"
+                        displayType="default"
+                        contentTypeNumber={contentType}
                       />
                     </div>
                   );
@@ -178,7 +180,7 @@ function ActivitiesPage() {
                     data={item.response}
                     stats={item.stats}
                     loginUserId={loginUserId}
-                    type="default"
+                    displayType="default"
                   />
                 );
               })}
