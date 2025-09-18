@@ -12,7 +12,7 @@ export function RoleListItem({ role, isSelected, onSelect, onDelete, isSelection
   return (
     <div
       className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer group ${isSelected ? "bg-base-100" : "hover:bg-base-100"
-      }`}
+      } w-full truncate`}
       onClick={onSelect}
     >
       <div className="avatar shrink-0">
