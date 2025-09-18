@@ -2,11 +2,12 @@ import MemberLists from "@/components/chat/smallComponents/memberLists";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
+import RenderWindow from "@/components/chat/window/renderWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { GirlIcon, MemberIcon, Setting } from "@/icons";
+import { GirlIcon, MemberIcon, Setting, WebgalIcon } from "@/icons";
 import React, { use } from "react";
 import toast from "react-hot-toast";
 import {
@@ -146,6 +147,18 @@ export default function SpaceDetailPanel() {
             </>
           )
         }
+        {/* 渲染对话 */}
+        <label className="tab">
+          <input
+            type="radio"
+            name="space_detail_tabs"
+          />
+          <WebgalIcon className="size-4 mr-1" />
+          渲染
+        </label>
+        <div className="tab-content p-4 overflow-y-auto">
+          <RenderWindow></RenderWindow>
+        </div>
       </div>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
         <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
