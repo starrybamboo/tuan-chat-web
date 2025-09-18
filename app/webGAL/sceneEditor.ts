@@ -186,7 +186,7 @@ export class SceneEditor {
   ): Promise<{ success: boolean; fileName?: string; audioBase64?: string; error?: string }> {
     const text = message.message.content;
     const {
-      emotionMode = 0, // 默认与音色参考音频相同
+      emotionMode = 2, // 默认与音色参考音频相同
       emotionWeight = 0.8,
       emotionText,
       emotionVector,
