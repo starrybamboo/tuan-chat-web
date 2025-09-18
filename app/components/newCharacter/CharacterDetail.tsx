@@ -4,6 +4,8 @@ import type { Role } from "./types";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
+import AudioPlayer from "./AudioPlayer";
+import AudioUploadModal from "./AudioUploadModal";
 import CharacterAvatar from "./CharacterAvatar";
 import ExpansionModule from "./rules/ExpansionModule";
 import RulesSection from "./rules/RulesSection";
@@ -57,9 +59,13 @@ export default function CharacterDetail({
   const [isRuleLoading, setIsRuleLoading] = useState(false);
   const [isExpansionLoading, setIsExpansionLoading] = useState(true); // <--- 新增这一行, 默认为 true
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false); // 规则选择弹窗状态
+  const [isAudioModalOpen, setIsAudioModalOpen] = useState(false); // 音频上传弹窗状态
 
   // 获取当前规则详情
   const { data: currentRuleData } = useRuleDetailQuery(selectedRuleId);
+  // 接口部分
+  // 发送post数据部分,保存角色数据
+  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
 
   // 处理规则变更
   const handleRuleChange = (newRuleId: number) => {
@@ -73,6 +79,33 @@ export default function CharacterDetail({
   // 打开规则选择弹窗
   const handleOpenRuleModal = () => {
     setIsRuleModalOpen(true);
+  };
+
+  // 打开音频上传弹窗
+  const handleOpenAudioModal = () => {
+    setIsAudioModalOpen(true);
+  };
+
+  // 处理音频上传成功
+  const handleAudioUploadSuccess = (audioUrl: string) => {
+    // 更新本地角色状态，添加音频URL
+    const updatedRole = {
+      ...localRole,
+      voiceUrl: audioUrl,
+    };
+    setLocalRole(updatedRole);
+
+    // 使用updateRole保存到后端
+    updateRole(updatedRole, {
+      onSuccess: () => {
+        console.warn("音频文件上传并保存成功:", audioUrl);
+        console.warn("更新后的角色数据:", updatedRole);
+        console.warn("更新后的本地数据", localRole);
+      },
+      onError: (error) => {
+        console.error("保存音频URL失败:", error);
+      },
+    });
   };
 
   // 当切换到不同角色时，更新本地状态
@@ -124,9 +157,6 @@ export default function CharacterDetail({
     }
   }, [isSuccess, roleAvatarsResponse, localRole.avatarId]);
 
-  // 接口部分
-  // 发送post数据部分,保存角色数据
-  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
   // 干净的文本
   const cleanText = (text: string) => {
     if (!text)
@@ -269,7 +299,7 @@ export default function CharacterDetail({
         <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
           {/* 立绘与简介卡片 */}
           <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl md:border-2 md:border-base-content/10">
-            <div className="card-body p-4">
+            <div className="card-body p-4 max-h-168">
               {/* 移动端显示的头部区域 */}
               <div className="md:hidden mb-4 pl-4 pr-4">
                 <div className="flex items-center justify-between gap-3 mb-3">
@@ -333,28 +363,32 @@ export default function CharacterDetail({
                   onAvatarUpload={handleAvatarUpload}
                 />
               </div>
-              <div className="divider mt-4 mb-0" />
+              {!isEditing && (
+                <div className="divider font-bold text-center text-xl">
+                  {localRole.name}
+                </div>
+              )}
+              {isEditing && <div className="divider my-0" />}
               {/* 基础信息与编辑（已移至左侧） */}
               <div>
                 {isEditing
                   ? (
                       <div>
-                        <p className="text-lg">角色名：</p>
-                        <input
-                          type="text"
-                          value={localRole.name}
-                          onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="角色名称"
-                          className="input input-bordered w-full text-lg font-bold mt-2"
-                        />
-                        <p className="text-lg mt-2">描述：</p>
+                        <label className="input rounded-md w-full">
+                          <input
+                            type="text"
+                            value={localRole.name}
+                            onChange={e => setLocalRole(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="角色名称"
+                          />
+                        </label>
                         <textarea
                           value={localRole.description}
                           onChange={(e) => {
                             setLocalRole(prev => ({ ...prev, description: e.target.value }));
                           }}
                           placeholder="角色描述"
-                          className="textarea textarea-bordered w-full h-24 resize-none mt-2"
+                          className="textarea textarea-sm w-full h-24 resize-none mt-4 rounded-md"
                         />
                         <div className="text-right mt-1">
                           <span className={`text-sm font-bold ${charCount > MAX_DESCRIPTION_LENGTH ? "text-error" : "text-base-content/70"
@@ -372,24 +406,9 @@ export default function CharacterDetail({
                     )
                   : (
                       <>
-                        <p className="font-bold text-center text-xl mb-4">{localRole.name}</p>
-                        <p className="text-base md:text-lg whitespace-pre-wrap break-words max-w-full overflow-hidden md:min-h-22 text-center">
+                        <p className="text-base break-words max-w-full text-center line-clamp-6 overflow-hidden text-ellipsis">
                           {localRole.description || "暂无描述"}
                         </p>
-                        <div className="text-xs text-center mt-24">
-                          <p>
-                            角色ID号：
-                            {localRole.id}
-                          </p>
-                          <p>
-                            采用模型：
-                            {localRole.modelName || "暂无描述"}
-                          </p>
-                          <p>
-                            语音来源：
-                            {localRole.speakerName || "暂无描述"}
-                          </p>
-                        </div>
                       </>
                     )}
                 {/* 顶部已提供编辑/保存按钮 */}
@@ -398,13 +417,19 @@ export default function CharacterDetail({
 
             </div>
 
+            <p className="text-center text-xs text-base-content/60">
+              角色ID号：
+              {localRole.id}
+            </p>
+            <div className="divider p-4 my-0" />
+
             <div>
-              <div className="divider p-4 my-0" />
+
               <div
-                className="card bg-base-100 rounded-2xl cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200"
+                className="card bg-base-100 rounded-2xl cursor-pointer transition-all duration-200"
                 onClick={handleOpenRuleModal}
               >
-                <div className="card-body p-4">
+                <div className="card-body p-4 hover:bg-base-300">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -429,6 +454,54 @@ export default function CharacterDetail({
                   </div>
                 </div>
               </div>
+              <div className="divider p-4 my-0" />
+
+              {/* 音频上传卡片 */}
+              <div className="card bg-base-100 rounded-2xl transition-all duration-200 mb-4">
+                <div className="card-body p-4">
+                  <div
+                    className="flex items-center justify-between cursor-pointer hover:bg-base-300 rounded-lg p-2 -m-2"
+                    onClick={handleOpenAudioModal}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm">上传音频</h3>
+                        <p className="text-secondary font-medium text-sm">
+                          {localRole.voiceUrl ? "已上传音频" : "用于AI生成角色音色"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-base-content/50">
+                      <span className="text-xs">上传</span>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* 音频播放器 */}
+                  <AudioPlayer
+                    role={localRole}
+                    onRoleUpdate={(updatedRole) => {
+                      setLocalRole(updatedRole);
+                      // 调用后端API更新
+                      updateRole(updatedRole);
+                    }}
+                    onDelete={() => {
+                      const updatedRole = { ...localRole, voiceUrl: undefined };
+                      setLocalRole(updatedRole);
+                      // 调用后端API更新
+                      updateRole(updatedRole);
+                    }}
+                  />
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -545,6 +618,13 @@ export default function CharacterDetail({
           </div>
         </div>
       )}
+
+      {/* 音频上传弹窗 */}
+      <AudioUploadModal
+        isOpen={isAudioModalOpen}
+        onClose={() => setIsAudioModalOpen(false)}
+        onSuccess={handleAudioUploadSuccess}
+      />
     </div>
   );
 }

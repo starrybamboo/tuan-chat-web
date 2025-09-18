@@ -1,13 +1,12 @@
 import { RoomContext } from "@/components/chat/roomContext";
 import RoleList from "@/components/chat/smallComponents/roleLists";
+import { AddModuleRoleWindow } from "@/components/chat/window/addModuleRoleWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
 import { PopWindow } from "@/components/common/popWindow";
-import RoleAvatarComponent from "@/components/common/roleAvatar";
 import { getScreenSize } from "@/utils/getScreenSize";
 import React, { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import {
-  useAddModuleRoleMutation,
   useAddRoomRoleMutation,
   useGetRoomModuleRoleQuery,
   useGetRoomRoleQuery,
@@ -28,7 +27,6 @@ export default function RoomRoleList() {
   const [isModuleRoleHandleOpen, setIsModuleRoleHandleOpen] = useState<boolean>(false);
 
   const addRoleMutation = useAddRoomRoleMutation();
-  const addModuleRoleMutation = useAddModuleRoleMutation();
 
   const handleAddRole = async (roleId: number) => {
     addRoleMutation.mutate(
@@ -42,8 +40,8 @@ export default function RoomRoleList() {
   };
 
   const handleAddModuleRole = async (roleId: number) => {
-    addModuleRoleMutation.mutate(
-      { roomId, ids: [roleId] },
+    addRoleMutation.mutate(
+      { roomId, roleIdList: [roleId] },
       {
         onSettled: () => {
           toast("添加NPC成功");
@@ -60,8 +58,10 @@ export default function RoomRoleList() {
       <div className="flex flex-row justify-center items-center gap-2 min-w-60">
         <p className="text-center">
           角色列表-
-          <span className="text-sm">{roomRoles.length}</span>
+          <span className="text-sm">{roomRoles.length + moduleRoles.length}</span>
         </p>
+      </div>
+      <div className="flex flex-row gap-4">
         {(curMember?.memberType === 1 || curMember?.memberType === 2) && (
           <button
             type="button"
@@ -71,15 +71,6 @@ export default function RoomRoleList() {
             添加角色
           </button>
         )}
-      </div>
-      <RoleList roles={roomRoles} className={listWidth} />
-
-      {/* 模组角色列表 */}
-      <div className="flex flex-row justify-center items-center gap-2 min-w-60">
-        <p className="text-center">
-          NPC列表-
-          <span className="text-sm">{moduleRoles.length}</span>
-        </p>
         {curMember?.memberType === 1 && (
           <button
             type="button"
@@ -90,30 +81,15 @@ export default function RoomRoleList() {
           </button>
         )}
       </div>
-      {moduleRoles.map(role => (
-        <div
-          key={role.id}
-          className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg w-60 items-center "
-        >
-          {/* role列表 */}
-          <RoleAvatarComponent
-            avatarId={role.entityInfo?.avatarIds}
-            width={10}
-            isRounded={true}
-            withTitle={false}
-          />
-          <div className="flex flex-col items-center gap-2">
-            <span>{role.name}</span>
-          </div>
-        </div>
-      ))}
+      <RoleList roles={roomRoles} className={listWidth} />
+      <RoleList roles={moduleRoles} className={listWidth} isModuleRole={true} />
 
       {/* 弹窗 */}
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
-        <AddRoleWindow handleAddRole={handleAddRole} addModuleRole={false} />
+        <AddRoleWindow handleAddRole={handleAddRole} />
       </PopWindow>
       <PopWindow isOpen={isModuleRoleHandleOpen} onClose={() => setIsModuleRoleHandleOpen(false)}>
-        <AddRoleWindow handleAddRole={handleAddModuleRole} addModuleRole={true} />
+        <AddModuleRoleWindow handleAddRole={handleAddModuleRole} />
       </PopWindow>
     </div>
   );

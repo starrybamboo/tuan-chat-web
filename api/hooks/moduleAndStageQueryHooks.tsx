@@ -17,11 +17,13 @@ import type {ModulePageByUserRequest} from "../models/ModulePageByUserRequest";
 export function useUpdateModuleMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: ModuleUpdateRequest) => tuanchat.moduleController.updateModule(req),
+        mutationFn:  (req: ModuleUpdateRequest) => tuanchat.moduleController.updateModule(req),
         mutationKey: ['updateModule'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['moduleList'] });
             queryClient.invalidateQueries({ queryKey: ['moduleDetail', variables.moduleId] });
+            queryClient.invalidateQueries({ queryKey: ['moduleId', variables.moduleId] });
+            queryClient.invalidateQueries({ queryKey: ['staging'] });
         }
     });
 }
@@ -59,6 +61,14 @@ export function useModuleListByUserQuery(requestBody: ModulePageByUserRequest) {
     return useQuery({
         queryKey: ['moduleListByUser', requestBody],
         queryFn: () => tuanchat.moduleController.pageByUserId(requestBody),
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
+export function useModuleIdQuery(moduleId: number) {
+    return useQuery({
+        queryKey: ['moduleId', moduleId],
+        queryFn: () => tuanchat.moduleController.getById(moduleId),
         staleTime: 300000 // 5分钟缓存
     });
 }

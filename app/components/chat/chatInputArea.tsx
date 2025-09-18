@@ -1,4 +1,5 @@
 import type { UserRole } from "../../../api";
+import { getEditorRange } from "@/utils/getSelectionCoords";
 import React, { useImperativeHandle, useRef } from "react";
 
 // --- 外部接口 ---
@@ -128,15 +129,12 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
       moveCursorToEnd?: boolean;
     },
   ): boolean => {
-    const { replaceSelection = false, moveCursorToEnd = false } = options || {};
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0)
+    const { moveCursorToEnd = false } = options || {};
+    const selectionInfo = getEditorRange();
+    const selection = selectionInfo?.selection;
+    const range = selectionInfo?.range;
+    if (!selection || !range || selection.rangeCount === 0)
       return false;
-
-    const range = selection.getRangeAt(0);
-    if (replaceSelection) {
-      range.deleteContents();
-    }
 
     const insertedNode = typeof node === "string" ? document.createTextNode(node) : node;
     range.insertNode(insertedNode);
@@ -258,6 +256,12 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
   return (
     <div
       className="w-full overflow-auto resize-none p-2 focus:outline-none div-textarea chatInputTextarea"
+      style={{
+        wordBreak: "break-all",
+        wordWrap: "break-word",
+        whiteSpace: "pre-wrap",
+        overflowWrap: "break-word",
+      }}
       ref={internalTextareaRef}
       onInput={handleInputInternal} // 使用内部的 input 处理器
       onKeyDown={props.onKeyDown} // 转发给父组件

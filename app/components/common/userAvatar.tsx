@@ -32,7 +32,8 @@ const sizeMap = {
  *  - width: 头像宽度尺寸 key
  *  - isRounded: 是否圆形
  *  - withName: 是否显示用户名
- *  - stopPopWindow: 是否禁止悬浮弹窗
+ *  - stopPopWindow: 是否禁止悬浮弹窗（只控制弹窗显示）
+ *  - clickEnterProfilePage: 点击头像是否跳转个人主页（只控制点击行为）
  *  - uniqueKey: 弹窗唯一标识
  */
 export default function UserAvatarComponent({
@@ -97,6 +98,7 @@ export default function UserAvatarComponent({
   };
   const doClose = () => setIsOpen(false);
 
+  // 悬浮逻辑：只受 stopPopWindow 控制
   const handleMouseEnter = () => {
     if (stopPopWindow)
       return; // 不显示弹窗
@@ -119,14 +121,16 @@ export default function UserAvatarComponent({
     closeTimerRef.current = window.setTimeout(doClose, CLOSE_DELAY);
   };
 
-  // 仍保留点击跳转个人主页（仅 stopPopWindow 情况）
+  // 点击跳转逻辑：只受 clickEnterProfilePage 控制
   const handleClick = useCallback((e: React.MouseEvent) => {
-    if (!stopPopWindow)
-      return; // 只有 stopPopWindow=true 时响应点击
+    if (!clickEnterProfilePage)
+      return; // 不响应点击跳转
     e.stopPropagation();
     window.location.href = `/profile/${userId}`;
-  }, [stopPopWindow, userId]);
-  const containerClass = `relative inline-flex ${withName ? "flex-row items-center gap-2" : "flex-col items-center"} group cursor-pointer`;
+  }, [clickEnterProfilePage, userId]);
+
+  // 根据 clickEnterProfilePage 决定是否添加点击样式
+  const containerClass = `relative inline-flex ${withName ? "flex-row items-center gap-2" : "flex-col items-center"} group ${clickEnterProfilePage ? "cursor-pointer" : ""}`;
 
   // 计算定位：优先右侧，不够则左侧
   const recompute = useCallback(() => {
@@ -232,38 +236,21 @@ export default function UserAvatarComponent({
     >
       <div className="avatar">
         <div className={`${sizeMap[width]} rounded${isRounded ? "-full" : ""}`}>
-          {clickEnterProfilePage
-            ? (
-                <a
-                  href={`/profile/${userId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xl font-semibold hover:underline cursor-pointer truncate max-w-xs"
-                >
-                  <img
-                    src={userQuery.isPending || userQuery.error || !userQuery.data?.data?.avatar ? undefined : userQuery.data?.data?.avatar}
-                    alt="Avatar"
-                    className="hover:scale-110 transition-transform"
-                  />
-                </a>
-              )
-            : (
-                <img
-                  src={userQuery.isPending || userQuery.error || !userQuery.data?.data?.avatar ? undefined : userQuery.data?.data?.avatar}
-                  alt="Avatar"
-                  className="hover:scale-110 transition-transform"
-                />
-              )}
+          <img
+            src={userQuery.isPending || userQuery.error || !userQuery.data?.data?.avatar ? undefined : userQuery.data?.data?.avatar}
+            alt="Avatar"
+            className={`transition-transform ${clickEnterProfilePage ? "hover:scale-110" : ""}`}
+          />
         </div>
       </div>
       {withName && (
         <div
-          className={`text-sm whitespace-nowrap min-w-0 ${(userQuery.data?.data?.username ?? "").length > 8 ? "truncate max-w-[10em]" : ""}`}
+          className={`text-sm whitespace-nowrap min-w-0 ${(userQuery.data?.data?.username ?? "").length > 8 ? "truncate max-w-[10em]" : ""} ${clickEnterProfilePage ? "hover:underline" : ""}`}
         >
           {userQuery.data?.data?.username}
         </div>
       )}
-      {/* Portal 卡片 */}
+      {/* Portal 卡片：只受 stopPopWindow 控制 */}
       {portalRef.current && hasMountedDetail && isOpen && !stopPopWindow && pos && createPortal(
         <div
           style={{

@@ -38,6 +38,7 @@ export type UserRole = {
      * tts时使用的角色名
      */
     speakerName?: string;
+    voiceUrl?: string;
     createTime?: string;
     updateTime?: string;
 };

@@ -118,6 +118,7 @@ function ModuleForm() {
               render={({ field: { onChange } }) => (
                 <RuleSelect
                   className="w-full h-full"
+                  editable
                   onRuleSelect={(id) => {
                     setValue(ModuleFormKeys.RULE_ID, id);
                     onChange(id);
@@ -125,6 +126,7 @@ function ModuleForm() {
                 />
               )}
             />
+            <div className="mt-2 text-error text-sm">规则选定后无法进行改变</div>
           </div>
         </div>
         {/* 右侧模组表单 */}

@@ -14,7 +14,7 @@ export type RoleAvatar = {
     /**
      * 头像的标题
      */
-    avatarTitle?: string;
+    avatarTitle?: Record<string, string>;
     /**
      * 头像的url
      */

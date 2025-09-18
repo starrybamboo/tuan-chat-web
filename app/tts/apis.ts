@@ -473,5 +473,6 @@ export function createTTSApi(baseURL: string = "http://localhost:9000") {
   return new TTSApi(httpClient);
 }
 
-// 导出默认实例
-export const ttsApi = createTTSApi();
+// 创建 TTS API 实例，从环境变量获取 URL
+const TTS_API_URL = import.meta.env.VITE_TTS_URL || "http://localhost:9000";
+export const ttsApi = createTTSApi(TTS_API_URL);

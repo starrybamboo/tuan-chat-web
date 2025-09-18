@@ -33,7 +33,7 @@ export type Module = {
     /**
      * md内容
      */
-    instruction?: string;
+    readMe?: string;
     /**
      * 模组可能需要花费的时间，以小时为单位
      */
@@ -58,6 +58,7 @@ export type Module = {
      * 从哪个模组fork来
      */
     parent?: string;
+    state?: number;
     /**
      * 创建时间
      */

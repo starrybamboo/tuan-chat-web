@@ -22,7 +22,7 @@ export type ModuleUpdateRequest = {
      * 模组作者名字
      */
     authorName?: string;
-    instruction?: string;
+    readMe?: string;
     /**
      * 模组可能需要花费的时间，以小时为单位
      */
@@ -43,5 +43,9 @@ export type ModuleUpdateRequest = {
      * 模组封面
      */
     image?: string;
+    /**
+     * 模组状态，0未发布，1已发布
+     */
+    state?: number;
 };
 

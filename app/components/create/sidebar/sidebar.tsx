@@ -1,13 +1,13 @@
 /* eslint-disable react-dom/no-missing-button-type */
 import { PopWindow } from "@/components/common/popWindow";
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
-import { ModuleListEnum } from "@/components/module/workPlace/context/types";
+import { ModuleItemEnum, ModuleListEnum } from "@/components/module/workPlace/context/types";
 import { ArrowBackThickFill, ChevronSmallTripleUp, StageIcon } from "@/icons";
-import { useCommitMutation } from "api/hooks/moduleAndStageQueryHooks";
-import { useMemo, useState } from "react";
+import { useCommitMutation, useModuleIdQuery } from "api/hooks/moduleAndStageQueryHooks";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 
-// 简易 Map 图标，占位用（可替换为项目内任意图标）
+// 简易 Map 图标，占位用
 function MapPlaceholderIcon(props: { className?: string }) {
   return (
     <svg
@@ -22,14 +22,60 @@ function MapPlaceholderIcon(props: { className?: string }) {
 }
 
 export default function Topbar() {
-  const { activeList, setActiveList } = useModuleContext();
+  const { activeList, setActiveList, moduleId, pushModuleTabItem, setCurrentSelectedTabId } = useModuleContext();
   const navigate = useNavigate();
+  // 兼容 moduleId 尚未就绪或类型不一致（string/number）的场景，优先使用上下文，其次从 localStorage 读取
+  const effectiveModuleId = useMemo(() => {
+    let mid: unknown = moduleId;
+    if (mid == null) {
+      try {
+        const snapId = localStorage.getItem("currentModuleId");
+        if (snapId) {
+          mid = Number(snapId);
+        }
+      }
+      catch {}
+    }
+    if (typeof mid === "string") {
+      return Number(mid);
+    }
+    if (typeof mid === "number") {
+      return mid;
+    }
+    return undefined;
+  }, [moduleId]);
 
-  // 提交模组所用
+  const moduleItem = useModuleIdQuery(effectiveModuleId as number)?.data?.data;
   const { mutate: commit } = useCommitMutation();
   const { stageId } = useModuleContext();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
+
+  // 同步“当前模组”标签的内容：当接口数据 moduleItem 变化时，刷新 Tab 的 content，避免编辑保存后因旧 content 回退
+  useEffect(() => {
+    if (!moduleItem) {
+      return;
+    }
+    const id = "当前模组";
+    pushModuleTabItem({
+      id,
+      label: "当前模组",
+      type: ModuleItemEnum.MODULE,
+      content: moduleItem,
+    });
+  }, [moduleItem, pushModuleTabItem]);
+  // const currentModule: Module | null = useMemo(() => {
+  //   // 优先使用详情接口（包含更全字段，如 ruleId），无则回退列表项
+  //   const detail = moduleInfo as any | undefined;
+  //   const listItem = moduleItem as any | undefined;
+  //   if (detail) {
+  //     return { ...detail, readMe: detail.readMe ?? "" } as Module;
+  //   }
+  //   if (listItem) {
+  //     return { ...listItem, readMe: listItem.readMe ?? "" } as Module;
+  //   }
+  //   return null;
+  // }, [moduleInfo, moduleItem]);
   const handleSubmit = () => {
     if (message.trim() === "") {
       commit({
@@ -51,8 +97,9 @@ export default function Topbar() {
     () => [
       { id: ModuleListEnum.BACK, icon: ArrowBackThickFill, label: "返回", tooltip: "返回上一级" },
       { id: ModuleListEnum.STAGE, icon: StageIcon, label: "暂存区", tooltip: "暂存区管理" },
-      { id: ModuleListEnum.MAP, icon: MapPlaceholderIcon, label: "地图", tooltip: "剧情/地点地图" },
-      { id: ModuleListEnum.COMMIT, icon: ChevronSmallTripleUp, label: "提交", tooltip: "提交到模组区" },
+      { id: ModuleListEnum.MAP, icon: MapPlaceholderIcon, label: "流程图", tooltip: "剧情/地点 流程图" },
+      { id: ModuleListEnum.MODULE, icon: StageIcon, label: "模组", tooltip: "模组信息与管理" },
+      { id: ModuleListEnum.COMMIT, icon: ChevronSmallTripleUp, label: "保存当前版本", tooltip: "保存所有您做的改动到当前模组" },
     ],
     [],
   );
@@ -79,6 +126,18 @@ export default function Topbar() {
                 if (item.id === ModuleListEnum.COMMIT) {
                   setIsOpen(true);
                   return;
+                }
+                if (item.id === ModuleListEnum.MODULE) {
+                  // 推入一个新的 模组 Tab，并切换到它
+                  const id = "当前模组"; // 写死 id
+                  pushModuleTabItem({
+                    id,
+                    label: "当前模组",
+                    type: ModuleItemEnum.MODULE,
+                    // 以简单对象作为内容，供 ModuleEdit 使用
+                    content: moduleItem!,
+                  });
+                  setCurrentSelectedTabId(id);
                 }
                 setActiveList(item.id);
               }}

@@ -8,4 +8,5 @@ export type Role = {
   avatarId: number;
   modelName: string;
   speakerName: string;
+  voiceUrl?: string;
 };

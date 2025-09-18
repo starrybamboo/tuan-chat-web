@@ -1,8 +1,10 @@
 import type { Route } from "./+types/root";
-import { GlobalContextProvider } from "@/components/globalContextProvider";
+import { ToastWindowRenderer } from "@/components/common/toastWindow/toastWindowRenderer";
 
+import { GlobalContextProvider } from "@/components/globalContextProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import React from "react";
 import { Toaster } from "react-hot-toast";
 import {
   isRouteErrorResponse,
@@ -70,6 +72,8 @@ export default function App() {
         {/* 挂载sideDrawer的地方 */}
         <div id="side-drawer"></div>
         <Toaster />
+        {/* ToastWindow渲染器，可以访问Router上下文 */}
+        <ToastWindowRenderer />
       </GlobalContextProvider>
     </QueryClientProvider>
   );

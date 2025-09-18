@@ -3,7 +3,7 @@ import type { UseChatHistoryReturn } from "@/components/chat/indexedDB/useChatHi
 import type React from "react";
 import type {
   Message,
-  RoomMember,
+  SpaceMember,
   UserRole,
 } from "../../../api";
 
@@ -14,10 +14,10 @@ export interface RoomContextType {
   roomId?: number;
 
   /** 房间成员列表 */
-  roomMembers: RoomMember[];
+  roomMembers: SpaceMember[];
 
   /** 当前登录用户对应的成员信息 */
-  curMember?: RoomMember;
+  curMember?: SpaceMember;
 
   /** 当前用户在该房间拥有的角色列表 */
   roomRolesThatUserOwn: UserRole[];

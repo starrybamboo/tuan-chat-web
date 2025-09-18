@@ -1,13 +1,16 @@
 import type { RoleAvatar } from "api";
+import type { MoodRegulatorHandle } from "../common/MoodRegulator";
 import type { Role } from "./types";
 import { useUpdateAvatarTitleMutation, useUploadAvatarMutation } from "@/../api/queryHooks";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { tuanchat } from "api/instance";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import MoodRegulator from "../common/MoodRegulator";
 import { PopWindow } from "../common/popWindow";
 import { AvatarPreview } from "./sprite/AvatarPreview";
 import { CharacterCopper } from "./sprite/CharacterCopper";
+import { SpriteCropper } from "./sprite/SpriteCropper";
 
 interface CharacterAvatarProps {
   role: Role;
@@ -43,17 +46,39 @@ export default function CharacterAvatar({
     return window.matchMedia("(min-width: 768px)").matches;
   });
 
-  // 使用传入的状态作为内部 UI 状态
-  const copperedUrl = selectedAvatarUrl || "/favicon.ico";
-  const previewSrc = selectedSpriteUrl || "";
+  // 使用传入的状态作为内部 UI 状态（优先通过 selectedAvatarId 在列表中查找，避免因 URL 变化造成回退）
+  const selectedAvatar = roleAvatars?.find(a => a.avatarId === selectedAvatarId) || null;
+  const displayAvatarUrl = selectedAvatar?.avatarUrl || selectedAvatarUrl || "/favicon.ico";
+  const displaySpriteUrl = selectedAvatar?.spriteUrl || selectedSpriteUrl || "";
   const avatarId = selectedAvatarId;
+
+  // 情绪调节器兜底标签（当当前头像没有定义 avatarTitle 时使用）
+  const DEFAULT_MOOD_LABELS = useMemo(
+    () => ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"],
+    [],
+  );
+  // 根据当前选中头像的情绪键生成 labels，若为空则回退到默认 8 项
+  const moodLabels = useMemo(() => {
+    const keys = Object.keys((selectedAvatar?.avatarTitle as Record<string, string>) || {});
+    return keys.length > 0 ? keys : DEFAULT_MOOD_LABELS;
+  }, [selectedAvatar, DEFAULT_MOOD_LABELS]);
 
   // 弹窗的打开和关闭
   const [changeAvatarConfirmOpen, setChangeAvatarConfirmOpen] = useSearchParamsState<boolean>(`changeAvatarPop`, false);
   // 删除弹窗用
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useSearchParamsState<boolean>(`deleteAvatarPop`, false);
   const [avatarToDeleteIndex, setAvatarToDeleteIndex] = useState<number | null>(null);
-  const avatarTitles = useRef<string[]>([]);
+
+  // 裁剪弹窗用
+  const [isCropModalOpen, setIsCropModalOpen] = useSearchParamsState<boolean>(`cropAvatarPop`, false);
+
+  // 标题的变化监控
+  const avatarTitleRef = useRef<Record<string, string>>({});
+  const moodControlRef = useRef<MoodRegulatorHandle | null>(null);
+
+  // 将 onChange 包装为稳定引用，避免作为 props 变化触发子组件重渲染
+  const moodChangeRef = useRef<(m: Record<string, string>) => void>(() => { });
+  const handleMoodChange = useCallback((m: Record<string, string>) => moodChangeRef.current(m), []);
 
   // 响应式切换显示模式
   useEffect(() => {
@@ -67,13 +92,16 @@ export default function CharacterAvatar({
     return () => mediaQuery.removeEventListener("change", handleResize);
   }, []);
 
-  useEffect(() => {
-    avatarTitles.current = roleAvatars.map(avatar => avatar.avatarTitle || "");
-  }, [roleAvatars]);
-
   // 使用新的 hook
   const { mutate } = useUploadAvatarMutation();
   const { mutate: updateAvatarTitle } = useUpdateAvatarTitleMutation();
+
+  // 将 onChange 包装为稳定引用，避免作为 props 变化触发子组件重渲染
+  useEffect(() => {
+    moodChangeRef.current = (moodMap: Record<string, string>) => {
+      updateAvatarTitle({ roleId: role.id!, avatarId: selectedAvatarId, avatarTitle: moodMap });
+    };
+  }, [updateAvatarTitle, role.id, selectedAvatarId]);
 
   // post删除头像请求
   const { mutate: deleteAvatar } = useMutation({
@@ -94,9 +122,12 @@ export default function CharacterAvatar({
   });
 
   // 点击头像处理
-  const handleAvatarClick = (avatarUrl: string, index: number) => {
+  const handleAvatarClick = (avatarUrl: string, index: number, avatarTitle: Record<string, string>) => {
     const targetAvatar = roleAvatars[index];
     const nextSprite = targetAvatar.spriteUrl || avatarUrl || null;
+    avatarTitleRef.current = avatarTitle || {};
+    // 通过 ref 直接同步到调节器，避免通过 props 传值导致重建
+    moodControlRef.current?.setValue(avatarTitleRef.current);
 
     // 直接通知父组件状态变化，不再维护本地状态
     onAvatarSelect(targetAvatar.avatarUrl || "", targetAvatar.avatarId || 0, nextSprite);
@@ -171,6 +202,23 @@ export default function CharacterAvatar({
   // 生成唯一文件名
   const uniqueFileName = generateUniqueFileName(role.id);
 
+  // 弹窗打开时，将当前选中头像的情绪值写入调节器
+  useEffect(() => {
+    if (changeAvatarConfirmOpen) {
+      moodControlRef.current?.setValue(avatarTitleRef.current || {});
+    }
+  }, [changeAvatarConfirmOpen]);
+
+  // 当外部选中头像变化时，查找对应头像并同步调节器（不触发渲染）
+  useEffect(() => {
+    const curr = roleAvatars.find(a => a.avatarId === selectedAvatarId);
+    if (curr) {
+      const t = (curr.avatarTitle as Record<string, string>) || {};
+      avatarTitleRef.current = t;
+      moodControlRef.current?.setValue(t);
+    }
+  }, [roleAvatars, selectedAvatarId]);
+
   return (
     <div className="w-2xs flex justify-center">
       <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] md:w-48" onClick={() => { setChangeAvatarConfirmOpen(true); }}>
@@ -211,10 +259,20 @@ export default function CharacterAvatar({
             </div>
             <AvatarPreview
               mode="image"
-              currentAvatarUrl={showSprite ? (previewSrc || "/favicon.ico") : (copperedUrl || "/favicon.ico")}
+              currentAvatarUrl={showSprite ? (displaySpriteUrl || "/favicon.ico") : (displayAvatarUrl || "/favicon.ico")}
               characterName={role.name}
               className=""
               imageClassName="md:max-h-[65vh] md:min-h-[35vh]"
+            />
+            <p className="text-center text-lg font-bold">调整该头像语音参数</p>
+            <MoodRegulator
+              controlRef={moodControlRef}
+              onChange={handleMoodChange}
+              // 显式传入 labels，避免在没有值时不渲染控件
+              labels={moodLabels}
+              // 仅用于初始显示，不参与受控更新；后续都通过 ref.setValue 同步
+              defaultValue={(selectedAvatar?.avatarTitle as Record<string, string>) || undefined}
+              fallbackDefaultLabels={true}
             />
           </div>
 
@@ -224,16 +282,16 @@ export default function CharacterAvatar({
             <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 gap-4 justify-items-center bg-base-200 p-2">
               {roleAvatars.map((item, index) => (
                 <li
-                  key={`${role.id}-${item.avatarUrl}`}
+                  key={item.avatarId ?? `${role.id}-${index}`}
                   className="relative w-full max-w-[128px] flex flex-col items-center rounded-lg transition-colors"
-                  onClick={() => handleAvatarClick(item.avatarUrl as string, index)}
+                  onClick={() => handleAvatarClick(item.avatarUrl as string, index, item.avatarTitle as Record<string, string>)}
                 >
                   {/* 头像卡片容器 */}
                   <div className="relative w-full aspect-square group cursor-pointer">
                     <img
                       src={item.avatarUrl}
                       alt="头像"
-                      className={`w-full h-full object-contain rounded-lg transition-all duration-300 group-hover:scale-105 ${item.avatarUrl === copperedUrl ? "border-2 border-primary" : "border"}`}
+                      className={`w-full h-full object-contain rounded-lg transition-all duration-300 group-hover:scale-105 ${item.avatarId === selectedAvatarId ? "border-2 border-primary" : "border"}`}
                     />
                     {/* 删除按钮 - 只有多个头像时才显示 */}
                     {roleAvatars.length > 1 && (
@@ -256,25 +314,6 @@ export default function CharacterAvatar({
                     {/* 添加悬浮遮罩 */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300 rounded-lg"></div>
                   </div>
-                  {/* 标题截断优化 */}
-                  <p className="text-center w-full truncate max-w-full px-1 text-sm mt-1">
-                    <select
-                      className="bg-white"
-                      value={avatarTitles.current[index] || "冷静"}
-                      onChange={(e) => {
-                        updateAvatarTitle({ avatarTitle: e.target.value, avatarId: item.avatarId!, roleId: role.id! });
-                        avatarTitles.current[index] = e.target.value;
-                      }}
-                    >
-                      <option value="愤怒">愤怒</option>
-                      <option value="开心">开心</option>
-                      <option value="难过">难过</option>
-                      <option value="惊讶">惊讶</option>
-                      <option value="害怕">害怕</option>
-                      <option value="冷静">冷静</option>
-                      <option value="绝望">绝望</option>
-                    </select>
-                  </p>
                 </li>
               ))}
               {/* 添加新头像 */}
@@ -320,7 +359,7 @@ export default function CharacterAvatar({
 
             <AvatarPreview
               mode="full"
-              currentAvatarUrl={copperedUrl || "/favicon.ico"}
+              currentAvatarUrl={displayAvatarUrl || "/favicon.ico"}
               characterName={role.name}
               chatMessages={["你好！这是我的新头像", "看起来怎么样？"]}
               className="space-y-2"
@@ -349,10 +388,17 @@ export default function CharacterAvatar({
         </div>
         <div className="absolute bottom-5 right-5 md:bottom-10 md:right-10 card-actions justify-end">
           <button
+            type="button"
+            onClick={() => setIsCropModalOpen(true)}
+            className="btn btn-secondary btn-md md:btn-lg mr-2"
+          >
+            裁剪头像
+          </button>
+          <button
             type="submit"
             onClick={() => {
-              onchange(copperedUrl, avatarId, previewSrc || null);
-              onSpritePreviewChange?.(previewSrc || null);
+              onchange(displayAvatarUrl, avatarId, displaySpriteUrl || null);
+              onSpritePreviewChange?.(displaySpriteUrl || null);
               setChangeAvatarConfirmOpen(false);
             }}
             className="btn btn-primary btn-md md:btn-lg"
@@ -361,6 +407,24 @@ export default function CharacterAvatar({
           </button>
         </div>
 
+      </PopWindow>
+
+      {/* 裁剪头像弹窗 */}
+      <PopWindow
+        isOpen={isCropModalOpen}
+        onClose={() => setIsCropModalOpen(false)}
+        fullScreen={typeof window !== "undefined" ? window.innerWidth < 768 : false}
+      >
+        <SpriteCropper
+          roleAvatars={roleAvatars}
+          characterName={role.name}
+          cropMode="avatar"
+          onCropComplete={(croppedImageUrl) => {
+            console.warn("头像裁剪完成:", croppedImageUrl);
+            setIsCropModalOpen(false);
+          }}
+          onClose={() => setIsCropModalOpen(false)}
+        />
       </PopWindow>
     </div>
   );

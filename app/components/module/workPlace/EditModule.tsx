@@ -1,10 +1,11 @@
 import type { StageEntityResponse } from "api";
 import type { SVGProps } from "react";
-import type { ItemModuleItem, MapModuleItem, ModuleTabItem, RoleModuleItem, SceneModuleItem } from "./context/types";
+import type { ItemModuleItem, MapModuleItem, ModuleModuleItem, ModuleTabItem, RoleModuleItem, SceneModuleItem } from "./context/types";
 import { useEffect, useRef } from "react";
 import ItemEdit from "./components/ItemEdit";
 import LocationEdit from "./components/LocationEdit";
 import MapEdit from "./components/MapEdit";
+import ModuleEdit from "./components/ModuleEdit";
 import NPCEdit from "./components/NPCEdit";
 import SceneEdit from "./components/SceneEdit";
 import { useModuleContext } from "./context/_moduleContext";
@@ -318,21 +319,144 @@ function MapModuleTabItem({
   );
 }
 
+function ModuleModuleTabItem({
+  moduleItem,
+  moduleInfo,
+  isSelected,
+  onTabClick,
+  onCloseClick,
+  registerSave,
+}: {
+  moduleItem: ModuleModuleItem;
+  moduleInfo: any; // 基本信息对象
+  isSelected: boolean;
+  onTabClick: (id: string, entiryType: "role" | "scene" | "map" | "location" | "item" | "module") => void;
+  onCloseClick: (id: string) => void;
+  registerSave: (fn: () => void) => void;
+}) {
+  const { id, label } = moduleItem;
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isSelected && inputRef.current) {
+      inputRef.current.checked = true;
+    }
+  }, [isSelected]);
+
+  return (
+    <>
+      <label className="tab flex-row-reverse pr-8! relative group before:hidden!">
+        <input
+          ref={inputRef}
+          type="radio"
+          name="WorkSpaceTab"
+          className="tab"
+          aria-label={label}
+          onClick={onTabClick.bind(null, id.toString(), "module")}
+        />
+        <div
+          className={`
+            absolute right-[10px] invisible
+            w-4 h-4 flex items-center justify-center
+            group-hover:visible ${isSelected ? "visible" : ""}
+            hover:bg-base-content/80 rounded-sm
+          `}
+          onClick={() => {
+            onCloseClick(id.toString());
+          }}
+        >
+          <BaselineClose />
+        </div>
+        {label}
+      </label>
+      <div className="tab-content bg-base-100 border-base-300 p-6">
+        <ModuleEdit data={moduleInfo} onRegisterSave={registerSave} />
+      </div>
+    </>
+  );
+}
+
 export default function EditModule() {
   const { moduleTabItems, currentSelectedTabId, setCurrentSelectedTabId, removeModuleTabItem }
     = useModuleContext();
   // 保存函数注册表
   const saveHandlersRef = useRef<Record<string, () => void>>({});
+  // 当前选中标签对应的保存函数（避免每次都查表，且可在注册/切换时及时同步）
+  const currentSaveHandlerRef = useRef<null | (() => void)>(null);
   const registerSaveForTab = (tabId: string, fn: () => void) => {
     saveHandlersRef.current[tabId] = fn;
+    // 若正好是当前选中的标签，则同时更新当前保存引用
+    if (tabId === currentSelectedTabId) {
+      currentSaveHandlerRef.current = fn;
+    }
   };
 
+  // 统一获取当前有效的保存函数：优先使用 current 引用，其次从映射表兜底
+  const getEffectiveSaveHandler = () => {
+    return (
+      currentSaveHandlerRef.current
+      ?? (currentSelectedTabId ? saveHandlersRef.current[currentSelectedTabId] : undefined)
+    );
+  };
+
+  // 在名字变更等短暂重渲染期间，尝试延迟一两个节拍再保存，避免错过注册时机
+  const invokeSaveWithTinyRetry = () => {
+    const tryOnce = () => {
+      const h = getEffectiveSaveHandler();
+      if (h) {
+        try {
+          h();
+        }
+        catch (e) {
+          console.error("保存失败:", e);
+        }
+        return true;
+      }
+      return false;
+    };
+
+    if (tryOnce()) {
+      return;
+    }
+    // 多次重试：下一帧 + 渐进延迟以覆盖重建/注册空窗
+    const delays = [0, 50, 100, 200, 350, 500];
+    let cancelled = false;
+    // 下一帧启动序列
+    requestAnimationFrame(() => {
+      if (cancelled || tryOnce()) {
+        return;
+      }
+      delays.forEach((d) => {
+        setTimeout(() => {
+          if (!cancelled) {
+            tryOnce();
+          }
+        }, d);
+      });
+    });
+    // 返回一个可选的取消函数以备未来扩展
+    return () => {
+      cancelled = true;
+    };
+  };
+
+  // 当选中的标签变化时，同步当前保存函数引用
+  useEffect(() => {
+    if (currentSelectedTabId) {
+      currentSaveHandlerRef.current = saveHandlersRef.current[currentSelectedTabId] ?? null;
+    }
+    else {
+      currentSaveHandlerRef.current = null;
+    }
+  }, [currentSelectedTabId]);
+
   // 包装 tab 切换：先保存当前，再切换
-  const handleTabClick = (nextId: string, _entiryType: "role" | "scene" | "map" | "location" | "item") => {
+  const handleTabClick = (nextId: string, _entiryType: "role" | "scene" | "map" | "location" | "item" | "module") => {
     // 再尝试保存当前标签
-    if (currentSelectedTabId && saveHandlersRef.current[currentSelectedTabId]) {
+    const save = getEffectiveSaveHandler();
+    if (save) {
       try {
-        saveHandlersRef.current[currentSelectedTabId]!();
+        save();
       }
       catch (e) {
         // 忽略保存异常，继续切换
@@ -340,6 +464,14 @@ export default function EditModule() {
       }
     }
     setCurrentSelectedTabId(nextId);
+  };
+  // 关闭标签时，同时清理保存映射，避免脏引用
+  const handleCloseTab = (id: string) => {
+    delete saveHandlersRef.current[id];
+    if (currentSelectedTabId === id) {
+      currentSaveHandlerRef.current = null;
+    }
+    removeModuleTabItem(id);
   };
   const roleModuleItems = moduleTabItems.filter(item =>
     item.type === ModuleItemEnum.ROLE,
@@ -356,9 +488,12 @@ export default function EditModule() {
   const mapModuleItems = moduleTabItems.filter(item =>
     item.type === ModuleItemEnum.MAP,
   );
+  const moduleItems = moduleTabItems.filter(item =>
+    item.type === ModuleItemEnum.MODULE,
+  );
 
   // 运行期推导当前实体类型（用于控制全局保存按钮显隐）
-  let currentType: "role" | "scene" | "map" | "location" | "item" | null = null;
+  let currentType: "role" | "scene" | "map" | "location" | "item" | "module" | null = null;
   const current = moduleTabItems.find(i => i.id === currentSelectedTabId);
   if (current) {
     switch (current.type) {
@@ -377,6 +512,9 @@ export default function EditModule() {
       case ModuleItemEnum.ITEM:
         currentType = "item";
         break;
+      case ModuleItemEnum.MODULE:
+        currentType = "module";
+        break;
       default:
         currentType = null;
     }
@@ -392,7 +530,7 @@ export default function EditModule() {
             roleModuleItem={item}
             isSelected={item.id === currentSelectedTabId}
             onTabClick={handleTabClick}
-            onCloseClick={removeModuleTabItem}
+            onCloseClick={handleCloseTab}
             registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
           />
         ))}
@@ -404,7 +542,7 @@ export default function EditModule() {
               item={item.content}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={handleTabClick}
-              onCloseClick={removeModuleTabItem}
+              onCloseClick={handleCloseTab}
               registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
             />
           ))
@@ -417,7 +555,7 @@ export default function EditModule() {
               location={item.content}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={handleTabClick}
-              onCloseClick={removeModuleTabItem}
+              onCloseClick={handleCloseTab}
               registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
             />
           ))
@@ -430,7 +568,7 @@ export default function EditModule() {
               scene={item.content}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={handleTabClick}
-              onCloseClick={removeModuleTabItem}
+              onCloseClick={handleCloseTab}
               registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
             />
           ))
@@ -443,7 +581,20 @@ export default function EditModule() {
               map={item.content}
               isSelected={item.id === currentSelectedTabId}
               onTabClick={handleTabClick}
-              onCloseClick={removeModuleTabItem}
+              onCloseClick={handleCloseTab}
+              registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
+            />
+          ))
+        }
+        {
+          moduleItems.map(item => (
+            <ModuleModuleTabItem
+              key={item.id}
+              moduleItem={item as ModuleModuleItem}
+              moduleInfo={item.content}
+              isSelected={item.id === currentSelectedTabId}
+              onTabClick={handleTabClick as any}
+              onCloseClick={handleCloseTab}
               registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
             />
           ))
@@ -463,13 +614,12 @@ export default function EditModule() {
         }
       </div>
       {/* 全局固定保存按钮：当当前实体为 map 或没有选中标签时隐藏 */}
-      <div className={`fixed top-20 left-20 md:top-14 md:left-100 ${currentType === null || currentType === "map" ? "hidden" : "block"}`}>
+      <div className={`fixed top-20 left-20 md:top-14 md:left-133 ${currentType === null || currentType === "map" ? "hidden" : "block"}`}>
         <button
           type="button"
           onClick={() => {
-            if (currentSelectedTabId && saveHandlersRef.current[currentSelectedTabId]) {
-              saveHandlersRef.current[currentSelectedTabId]!();
-            }
+            // 使用微小重试机制，处理名字变更导致的短暂未注册窗口
+            invokeSaveWithTinyRetry();
           }}
           className="btn btn-primary"
           disabled={!currentSelectedTabId || currentType === "map"}
@@ -478,7 +628,7 @@ export default function EditModule() {
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
               <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
-            保存
+            保存当前页面改动
           </span>
         </button>
       </div>
