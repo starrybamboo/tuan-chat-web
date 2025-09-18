@@ -164,7 +164,7 @@ function ActivitiesPage() {
                   return (
                     <div key={key} ref={(el) => { sentinelRef.current = el as HTMLElement; }}>
                       <PostsCard
-                        data={item.response}
+                        res={item.response}
                         stats={item.stats}
                         loginUserId={loginUserId}
                         displayType="default"
@@ -177,7 +177,7 @@ function ActivitiesPage() {
                 return (
                   <PostsCard
                     key={key}
-                    data={item.response}
+                    res={item.response}
                     stats={item.stats}
                     loginUserId={loginUserId}
                     displayType="default"

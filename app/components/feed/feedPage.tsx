@@ -105,7 +105,7 @@ export default function FeedPage() {
               {feed.stats?.postId
                 ? (
                     <PostsCard
-                      data={feed.response}
+                      res={feed.response}
                       stats={feed.stats}
                       onDislike={() => handleDislike(feed.stats!.postId)}
                       displayType="feed"

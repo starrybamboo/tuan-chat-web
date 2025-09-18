@@ -243,7 +243,7 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
                               >
                                 <PostsCard
                                   key={key}
-                                  data={dynamic.response}
+                                  res={dynamic.response}
                                   stats={dynamic.stats}
                                   loginUserId={userId}
                                   displayType="default"
