@@ -1,7 +1,10 @@
+import type { MoodRegulatorHandle } from "@/components/common/MoodRegulator";
 import type { RoleAvatar } from "api";
 import type { Transform } from "./TransformControl";
+import MoodRegulator from "@/components/common/MoodRegulator";
 import { PopWindow } from "@/components/common/popWindow";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useUpdateAvatarTitleMutation } from "api/queryHooks";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RenderPreview } from "./RenderPreview";
 import { SpriteCropper } from "./SpriteCropper";
 import { parseTransformFromAvatar } from "./utils";
@@ -61,8 +64,47 @@ export function SpriteRenderStudio({
   // 立绘列表面板收起/展开状态
   const [isSpritePanelOpen, setIsSpritePanelOpen] = useState(false);
 
+  // 情绪调节组件需要
+  const { mutate: updateAvatarTitle } = useUpdateAvatarTitleMutation();
+  // 将 onChange 包装为稳定引用，避免作为 props 变化触发子组件重渲染
+  const moodChangeRef = useRef<(m: Record<string, string>) => void>(() => { });
+  const handleMoodChange = useCallback((m: Record<string, string>) => moodChangeRef.current(m), []);
+
+  // 标题的变化监控
+  const avatarTitleRef = useRef<Record<string, string>>({});
+  const moodControlRef = useRef<MoodRegulatorHandle | null>(null);
+
+  // 情绪调节器兜底标签（当当前头像没有定义 avatarTitle 时使用）
+  const DEFAULT_MOOD_LABELS = useMemo(
+    () => ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"],
+    [],
+  );
+    // 根据当前选中头像的情绪键生成 labels，若为空则回退到默认 8 项
+  const moodLabels = useMemo(() => {
+    const keys = Object.keys((roleAvatars[currentSpriteIndex]?.avatarTitle as Record<string, string>) || {});
+    return keys.length > 0 ? keys : DEFAULT_MOOD_LABELS;
+  }, [roleAvatars, currentSpriteIndex, DEFAULT_MOOD_LABELS]);
+
+  // 将 onChange 包装为稳定引用，避免作为 props 变化触发子组件重渲染
+  useEffect(() => {
+    moodChangeRef.current = (moodMap: Record<string, string>) => {
+      updateAvatarTitle({ roleId: roleAvatars[currentSpriteIndex].roleId!, avatarId: roleAvatars[currentSpriteIndex].avatarId!, avatarTitle: moodMap });
+    };
+  }, [updateAvatarTitle, roleAvatars, currentSpriteIndex]);
+
+  // 当外部选中头像变化时，查找对应头像并同步调节器（不触发渲染）
+  useEffect(() => {
+    const curr = roleAvatars.find(a => a.avatarId === roleAvatars[currentSpriteIndex]?.avatarId);
+    if (curr) {
+      const t = (curr.avatarTitle as Record<string, string>) || {};
+      avatarTitleRef.current = t;
+      moodControlRef.current?.setValue(t);
+    }
+  }, [roleAvatars, currentSpriteIndex]);
+
   // 处理立绘索引同步 - 当initialAvatarId变化时重置手动偏移
   useEffect(() => {
+    moodControlRef.current?.setValue(avatarTitleRef.current || {});
     // 当initialAvatarId变化时，清除手动偏移，回到自动计算的索引
     if (initialAvatarId !== lastInitialAvatarId) {
       // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
@@ -94,6 +136,9 @@ export function SpriteRenderStudio({
         if (matchingSprite) {
           return matchingSprite;
         }
+        avatarTitleRef.current = roleAvatars[currentSpriteIndex].avatarTitle || {};
+        // 通过 ref 直接同步到调节器，避免通过 props 传值导致重建
+        moodControlRef.current?.setValue(avatarTitleRef.current);
         return sprite;
       }
       // 手动模式下直接返回
@@ -256,10 +301,11 @@ export function SpriteRenderStudio({
             {!isSpritePanelOpen && (
               <button
                 type="button"
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-base-100/90 border border-base-300 shadow-lg hover:bg-base-200 transition-all"
+                className="h-8 flex items-center justify-center rounded-full bg-base-100/90 border border-base-300 shadow-lg hover:bg-base-200 transition-all"
                 title="展开立绘列表"
                 onClick={() => setIsSpritePanelOpen(true)}
               >
+                展开立绘列表
                 <svg className="w-5 h-5 text-base-content/70" viewBox="0 0 24 24" fill="none">
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
                   <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -353,6 +399,16 @@ export function SpriteRenderStudio({
           transform={transform}
           characterName={characterName}
           dialogContent="这是一段示例对话内容。"
+        />
+        <p className="text-center text-lg font-bold">调整该头像语音参数</p>
+        <MoodRegulator
+          controlRef={moodControlRef}
+          onChange={handleMoodChange}
+          // 显式传入 labels，避免在没有值时不渲染控件
+          labels={moodLabels}
+          // 仅用于初始显示，不参与受控更新；后续都通过 ref.setValue 同步
+          defaultValue={(roleAvatars[currentSpriteIndex]?.avatarTitle as Record<string, string>) || undefined}
+          fallbackDefaultLabels={true}
         />
 
         {/* 调试信息 - 显示当前状态（移动端隐藏，桌面端显示） */}
