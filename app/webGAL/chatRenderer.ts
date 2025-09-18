@@ -175,12 +175,14 @@ export class ChatRenderer {
     const emotionOrder = ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"];
 
     // 最大允许总和
-    const MAX_SUM = 1.5;
+    const MAX_SUM = 0.5;
 
     // 按照标准顺序提取对应的数值并转换为number类型
     let emotionVector = emotionOrder.map((emotion) => {
       const value = avatarTitle[emotion];
-      const numValue = value ? Number.parseFloat(value) : 0.0;
+      const numValue = value
+        ? Number.parseFloat(value) * 0.5 // 乘以0.5, 拉高了会严重失真
+        : 0.0;
       // 确保单个值在合理范围内 (0.0 - 1.4)
       return Math.max(0.0, Math.min(1.4, numValue));
     });
@@ -196,19 +198,6 @@ export class ChatRenderer {
 
     // 处理浮点数精度问题，保留4位小数
     emotionVector = emotionVector.map(val => Math.round(val * 10000) / 10000);
-
-    // 如果由于浮点数精度问题导致总和仍然略超过1.5，进行微调
-    const finalSum = emotionVector.reduce((sum, val) => sum + val, 0);
-    if (finalSum > MAX_SUM) {
-      const adjustment = (finalSum - MAX_SUM) / emotionVector.filter(val => val > 0).length;
-      emotionVector = emotionVector.map((val) => {
-        if (val > 0) {
-          const adjustedVal = val - adjustment;
-          return Math.max(0, Math.round(adjustedVal * 10000) / 10000);
-        }
-        return val;
-      });
-    }
 
     return emotionVector;
   }
@@ -332,6 +321,8 @@ export class ChatRenderer {
         this.renderedMessageNumber++;
         this.updateRenderProcess();
 
+        if (message.status === 1)
+          continue;
         // 使用正则表达式过滤
         if (skipRegex && skipRegex.test(message.content))
           continue;

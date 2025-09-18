@@ -5,7 +5,7 @@ import { checkGameExist, terreApis } from "@/webGAL/index";
 
 import type { ChatMessageResponse, RoleAvatar } from "../../api";
 
-import { getAsyncMsg, uploadFile } from "./fileOperator";
+import { checkFileExist, getAsyncMsg, uploadFile } from "./fileOperator";
 
 type Game = {
   name: string;
@@ -324,7 +324,7 @@ export class SceneEditor {
     const text = message.message.content;
 
     // 使用hash作为文件名, 用于避免重复生成语音
-    const identifyString = `tts_${text}_${refVocal?.name || "default"}_${options.emotionMode || 0}_${refVocal?.name}`;
+    const identifyString = `tts_${text}_${refVocal?.name || "default"}_${JSON.stringify(options)}`;
     const hash = this.simpleHash(identifyString);
     const fileName = `${hash}.wav`;
 
@@ -332,9 +332,9 @@ export class SceneEditor {
       return;
 
     // 检查文件是否已存在
-    // if (await checkFileExist(`games/${this.game.name}/game/vocal/`, fileName)) {
-    //   return fileName;
-    // }
+    if (await checkFileExist(`games/${this.game.name}/game/vocal/`, fileName)) {
+      return fileName;
+    }
 
     try {
       // 生成语音

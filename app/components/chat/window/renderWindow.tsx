@@ -3,6 +3,7 @@ import { useChatHistory } from "@/components/chat/indexedDB/useChatHistory";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import AudioPlayer from "@/components/common/AudioPlayer";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import { isElectronEnv } from "@/utils/isElectronEnv";
 import launchWebGal from "@/utils/launchWebGal";
 import { pollPort } from "@/utils/pollPort";
 import { UploadUtils } from "@/utils/UploadUtils";
@@ -80,6 +81,7 @@ export default function RenderWindow() {
     const roleIds = new Set<number>();
     Object.values(chatHistoryMap)
       .flat()
+      .filter(m => m.message.status !== 1)
       .map(m => m.message.roleId)
       .forEach(roleId => roleIds.add(roleId));
     return Array.from(roleIds);
@@ -126,15 +128,27 @@ export default function RenderWindow() {
     localStorage.setItem("renderProps", JSON.stringify(renderProps));
 
     setIsRendering(true);
+    // 轮询检测TTS服务是否启动
     if (renderProps.useVocal) {
-      await pollPort(Number(
-        (import.meta.env.VITE_TTS_URL as string).split(":").pop(),
-      ), 500, 100).catch(() => { toast.error("TTS 服务器未启动,未进行语音合成"); });
+      await pollPort(
+        Number(
+          (import.meta.env.VITE_TTS_URL as string).split(":").pop(),
+        ),
+        500,
+        100,
+      ).catch(() => { toast.error("TTS 服务器未启动,未进行语音合成"); });
     }
 
     setRenderProcess({});
     launchWebGal();
-    await pollPort(3001).catch(() => toast.error("WebGAL 启动失败"));
+    // 轮询检测WebGAL服务是否启动
+    await pollPort(
+      Number(
+        (import.meta.env.VITE_TERRE_URL as string).split(":").pop(),
+      ),
+      isElectronEnv() ? 15000 : 500,
+      100,
+    ).catch(() => toast.error("WebGAL 启动失败"));
 
     const renderInfo: RenderInfo = {
       space: spaceInfo!,
