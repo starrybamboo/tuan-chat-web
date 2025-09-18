@@ -23,7 +23,6 @@ import {
   type ApiResultRoleAbility,
   type ApiResultRoleAvatar,
   type UserInfoResponse,
-  
   type RoleCreateRequest
 } from "api";
 import type { Role } from '@/components/newCharacter/types';
@@ -84,6 +83,7 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
       queryClient.invalidateQueries({ queryKey: ['getRole', variables.roleId] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
       queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', variables.roleId] });
+      queryClient.invalidateQueries({ queryKey: ["roomRole"] });
     },
     onError: (error: any) => {
       console.error("Mutation failed:", error);
@@ -162,6 +162,7 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
       queryClient.invalidateQueries({ queryKey: ['getRole'] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
+      queryClient.invalidateQueries({ queryKey: ["roomRole"] });
     },
     onError: (error) => {
       console.error("删除角色失败:", error);
@@ -376,6 +377,66 @@ export function useApplyCropMutation() {
   });
 }
 
+/**
+ * 应用头像裁剪的hook - 专门用于更新头像而非立绘
+ */
+export function useApplyCropAvatarMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["applyCropAvatar"],
+    mutationFn: async ({ roleId, avatarId, croppedImageBlob, currentAvatar }: { 
+      roleId: number; 
+      avatarId: number; 
+      croppedImageBlob: Blob;
+      currentAvatar: RoleAvatar;
+    }) => {
+      if (!roleId || !avatarId || !croppedImageBlob || !currentAvatar) {
+        console.error("参数错误：缺少必要参数");
+        return undefined;
+      }
+
+      try {
+        // 首先上传裁剪后的头像图片
+        // 将Blob转换为File对象
+        const croppedFile = new File([croppedImageBlob], `cropped_avatar_${avatarId}_${Date.now()}.png`, {
+          type: 'image/png'
+        });
+        
+        // 使用UploadUtils上传图片，场景2表示头像
+        const { UploadUtils } = await import('../app/utils/UploadUtils');
+        const uploadUtils = new UploadUtils();
+        const newAvatarUrl = await uploadUtils.uploadImg(croppedFile, 2, 0.9, 2560);
+
+        console.log("头像图片上传成功，新URL:", newAvatarUrl);
+        
+        // 使用新的avatarUrl更新头像记录，保持原有的spriteUrl和Transform参数
+        const updateRes = await tuanchat.avatarController.updateRoleAvatar({
+          roleId: roleId,
+          avatarId,
+          avatarUrl: newAvatarUrl, // 使用新的avatarUrl
+        });
+
+        if (!updateRes.success) {
+          console.error("头像记录更新失败", updateRes);
+          return undefined;
+        }
+
+        console.log("头像裁剪应用成功，头像记录已更新");
+        await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
+        console.log("缓存已刷新，roleId:", roleId);
+        return updateRes;
+      }
+      catch (error) {
+        console.error("头像裁剪应用请求失败", error);
+        throw error;
+      }
+    },
+    onError: (error) => {
+      console.error("Crop avatar application mutation failed:", error.message || error);
+    },
+  });
+}
+
 export function useUpdateAvatarTransformMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -517,9 +578,32 @@ export function useUpdateAvatarTitleMutation() {
         throw error;
       }
     },
-    onSuccess: (_ , variables) => {
-      queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", variables.roleId] });
+    // 乐观更新，避免整表刷新导致 UI 抖动/选中项重置
+    onMutate: async (variables) => {
+      const { roleId, avatarId, avatarTitle } = variables as { roleId: number; avatarId: number; avatarTitle: Record<string, string> };
+      const key = ["getRoleAvatars", roleId];
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData(key);
+      queryClient.setQueryData(key, (oldData: any) => {
+        if (!oldData) return oldData;
+        // 兼容两种返回结构：直接数组 或 { data: [] }
+        if (Array.isArray(oldData)) {
+          return oldData.map((a: any) => (a?.avatarId === avatarId ? { ...a, avatarTitle } : a));
+        }
+        const arr = Array.isArray(oldData?.data) ? oldData.data : null;
+        if (!arr) return oldData;
+        const nextArr = arr.map((a: any) => (a?.avatarId === avatarId ? { ...a, avatarTitle } : a));
+        return { ...oldData, data: nextArr };
+      });
+      return { previous, key };
     },
+    onError: (_err, _vars, context) => {
+      if (context?.key) {
+        queryClient.setQueryData(context.key as any, context.previous);
+      }
+    },
+    // 保持当前缓存，不立刻触发 refetch，避免选中项重置
+    onSuccess: () => {},
   })
 }
 

@@ -248,8 +248,8 @@ export default function CharacterDetail({
               ← 返回
             </button>
           )}
-          <div>
-            <h1 className="font-semibold text-2xl md:text-3xl my-2">
+          <div className="min-w-0 flex-1">
+            <h1 className="font-semibold text-2xl md:text-3xl my-2 truncate">
               {localRole.name || "未命名角色"}
             </h1>
             <p className="text-base-content/60">
@@ -299,11 +299,11 @@ export default function CharacterDetail({
         <div className="lg:col-span-1 self-start lg:sticky lg:top-4 space-y-6">
           {/* 立绘与简介卡片 */}
           <div className="card-sm md:card-xl bg-base-100 shadow-xs rounded-2xl md:border-2 md:border-base-content/10">
-            <div className="card-body p-4 max-h-168">
+            <div className="card-body p-4 max-h-168 min-w-0">
               {/* 移动端显示的头部区域 */}
               <div className="md:hidden mb-4 pl-4 pr-4">
                 <div className="flex items-center justify-between gap-3 mb-3">
-                  <div>
+                  <div className="w-full truncate">
                     <h1 className="font-semibold text-xl">
                       {localRole.name || "未命名角色"}
                     </h1>
@@ -364,8 +364,13 @@ export default function CharacterDetail({
                 />
               </div>
               {!isEditing && (
-                <div className="divider font-bold text-center text-xl">
-                  {localRole.name}
+                <div className="divider px-2">
+                  <span
+                    className="font-bold text-center text-xl block w-full overflow-hidden text-ellipsis whitespace-nowrap"
+                    title={localRole.name}
+                  >
+                    {localRole.name}
+                  </span>
                 </div>
               )}
               {isEditing && <div className="divider my-0" />}

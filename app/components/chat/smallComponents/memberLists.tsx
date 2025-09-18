@@ -190,7 +190,7 @@ function ActionButtons({
   );
 }
 
-export default function MemberLists({ members, className }: { members: (SpaceMember)[]; className?: string }) {
+export default function MemberLists({ members, className, isSpace }: { members: (SpaceMember)[]; className?: string; isSpace: boolean }) {
   // 获取上下文与全局信息
   const { spaceId: urlSpaceId } = useParams();
   const spaceId = Number(urlSpaceId);
@@ -213,10 +213,10 @@ export default function MemberLists({ members, className }: { members: (SpaceMem
 
   const buildHandlers = useCallback((member: SpaceMember) => {
     const onRemove = () => {
-      if (roomId > 0) {
+      if (!isSpace) {
         mutateRoomMember.mutate({ roomId, userIdList: [member.userId ?? 0] });
       }
-      else if (spaceId > 0) {
+      else if (isSpace) {
         mutateSpaceMember.mutate({ spaceId, userIdList: [member.userId ?? 0] });
       }
     };
@@ -237,7 +237,7 @@ export default function MemberLists({ members, className }: { members: (SpaceMem
                 <UserAvatarComponent userId={member.userId ?? 0} width={10} isRounded={true} withName={true} />
               </div>
               <div className="flex items-center gap-2">
-                <MemberTypeTag memberType={member.memberType} />
+                {isSpace && <MemberTypeTag memberType={member.memberType} />}
                 <ActionButtons
                   member={member}
                   spaceId={spaceId}

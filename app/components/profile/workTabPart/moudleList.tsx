@@ -155,7 +155,7 @@ export const UserModulesList: React.FC<UserModulesListProps> = ({
             minTime={module.minTime}
             maxTime={module.maxTime}
             onClick={() => {
-              if (!module.moduleId || module.moduleId === null) {
+              if (!module.moduleId) {
                 console.error("模组ID为空，无法跳转");
                 return;
               }

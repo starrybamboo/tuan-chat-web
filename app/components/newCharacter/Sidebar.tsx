@@ -266,7 +266,7 @@ export function Sidebar({
       <div className="menu p-4 w-72 lg:w-80 h-full bg-base-200 flex flex-col">
         {/* 搜索和创建区域 - 固定在顶部 */}
         <div className="flex gap-2 mb-4 sticky top-0 bg-base-200 z-50 py-2">
-          <label className="input">
+          <label className="input w-43 lg:w-50">
             <svg className="h-[1em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
               <g
                 strokeLinejoin="round"
@@ -375,7 +375,7 @@ export function Sidebar({
         {/* 创建角色 - 虚线占位项，始终位于列表顶部 */}
 
         {/* 角色列表 - 使用 InfiniteQuery */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden w-full">
 
           <div
             className="h-full overflow-y-auto"
