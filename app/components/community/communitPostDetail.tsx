@@ -48,7 +48,7 @@ export default function CommunityPostDetail({
 
   // 生成对帖子主要内容的引用，用于分享时截图
   const postRef = useRef<HTMLDivElement>(null);
-  
+
   // 加载状态处理
   if (postDetailQuery.isLoading) {
     return (
