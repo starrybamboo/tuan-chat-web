@@ -181,6 +181,7 @@ function ActivitiesPage() {
                     stats={item.stats}
                     loginUserId={loginUserId}
                     displayType="default"
+                    contentTypeNumber={contentType}
                   />
                 );
               })}

@@ -42,8 +42,27 @@ export const PostsCard: React.FC<PostsCardProps> = ({
   // 统一的数据提取
   const userId = res?.userId ?? -1;
   const postId = isFeed ? res?.communityPostId : res?.feedId;
-  const targetType = isFeed ? "2" : "4";
-  const resourceType = isFeed ? "2" : "4";
+
+  // 根据实际内容类型确定targetType和resourceType
+  const hasPostData = res?.postId || res?.communityPostId;
+  const hasModuleData = res?.moduleId;
+
+  let targetType: string;
+
+  if (hasPostData || isFeed) {
+    // 有帖子ID，是帖子类型
+    // 是Feed但没有特殊内容，使用Feed类型
+    targetType = "2";
+  }
+  else if (hasModuleData) {
+    // 有模组ID，是模组类型
+    targetType = "3";
+  }
+  else {
+    // 是activity但没有特殊内容，使用activity类型
+    targetType = "4";
+  }
+
   const contentType = parseEventType(contentTypeNumber || 0);
 
   // 状态管理
@@ -103,8 +122,6 @@ export const PostsCard: React.FC<PostsCardProps> = ({
     }
   }, [postId, isFeed, res?.communityId, navigate]);
 
-  // 注意：专门的跳转处理已经整合到renderSpecialContent中，无论activity还是feed都适用
-
   // Feed 专用不感兴趣处理
   const handleDislikeClick = () => {
     if (!isFeed || !onDislike)
@@ -129,8 +146,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
   // 判断内容类型并渲染相应的卡片 - 无论是activity还是feed都适用
   const renderSpecialContent = () => {
     // 帖子类型判断 - 优先检查数据字段，再检查contentType
-    const hasPostData = res?.postId && (res?.communityId || res?.communityPostId);
-    const isPostType = contentType === "发送了一篇帖子" || contentType.includes("帖子");
+    const isPostType = contentType === "发送了帖子" || contentType.includes("帖子");
 
     if (hasPostData || isPostType) {
       // 统一处理帖子ID和社区ID，兼容activity和feed的字段差异
@@ -154,7 +170,6 @@ export const PostsCard: React.FC<PostsCardProps> = ({
     }
 
     // 模组类型判断 - 优先检查数据字段，再检查contentType
-    const hasModuleData = res?.moduleId && (res?.name || res?.moduleName);
     const isModuleType = contentType.includes("模组") || contentType.includes("模块");
 
     if (hasModuleData || isModuleType) {
@@ -172,6 +187,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
             if (res?.moduleId) {
               navigate(`/module/detail/${res.moduleId}`, {
                 state: {
+                  // TODO
                   moduleData: {
                     moduleId: res.moduleId,
                     // ruleId: module.ruleId,
@@ -201,6 +217,21 @@ export const PostsCard: React.FC<PostsCardProps> = ({
     // 如果不是特殊内容类型，返回null，使用默认渲染逻辑
     return null;
   };
+
+  // 获取实际的ID用于点赞、评论等操作
+  const getActualId = () => {
+    if (hasPostData) {
+      return res?.postId || res?.communityPostId || postId;
+    }
+    else if (hasModuleData) {
+      return res?.moduleId;
+    }
+    else {
+      return postId;
+    }
+  };
+
+  const actualId = getActualId() ?? -1;
 
   return (
     <>
@@ -237,8 +268,8 @@ export const PostsCard: React.FC<PostsCardProps> = ({
                   <>
                     <h3 className="card-title text-xl whitespace-nowrap">{userDisplayData.name}</h3>
                     <div className="flex items-center gap-2 text-xs text-base-content/80">
-                      {publishTime && <p>{publishTime}</p>}
-                      {/* 如果发送的类型不是 动态 ，那么进行特殊说明 */}
+                      <p>{publishTime}</p>
+                      {/* 如果发送的类型不是 动态（contentTypeNumber !== 12） ，那么进行特殊说明 */}
                       {contentTypeNumber !== 12 && <p>{contentType}</p>}
                     </div>
                   </>
@@ -353,7 +384,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
         <div className="flex items-center space-x-4 sm:space-x-6 pt-3 border-t border-base-300">
           <div className="flex items-center space-x-1 text-sm transition-colors px-2 py-1 cursor-pointer hover:text-error hover:bg-error/10 rounded-full">
             <LikeIconButton
-              targetInfo={{ targetId: postId ?? -1, targetType }}
+              targetInfo={{ targetId: actualId, targetType }}
               className="w-9 h-6 cursor-pointer"
               direction="row"
             />
@@ -369,20 +400,20 @@ export const PostsCard: React.FC<PostsCardProps> = ({
 
           <div className="flex items-center space-x-1 text-sm hover:text-warning cursor-pointer hover:bg-warning/10 transition-colors px-2 py-1 rounded-full">
             <CollectionIconButton
-              targetInfo={{ resourceId: postId ?? -1, resourceType }}
+              targetInfo={{ resourceId: actualId, resourceType: targetType }}
               className="w-9 h-6 cursor-pointer"
             />
           </div>
 
           <div className="flex items-center space-x-1 text-sm cursor-pointer hover:bg-blue-500/10 transition-colors px-2 py-1 rounded-full">
-            <ShareIconButton searchKey={`feedShowSharePop${postId}`} className="cursor-pointer w-9 h-6" />
+            <ShareIconButton searchKey={`feedShowSharePop${actualId}`} className="cursor-pointer w-9 h-6" />
           </div>
         </div>
 
         {isCommentMenuOpen && (
           <div className="mt-6 p-6 bg-base-200 rounded-lg">
             <CommentPanel
-              targetInfo={{ targetId: postId ?? -1, targetType }}
+              targetInfo={{ targetId: actualId, targetType }}
               loginUserId={loginUserId || -1}
             />
           </div>

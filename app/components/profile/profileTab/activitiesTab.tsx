@@ -168,15 +168,6 @@ export const ActivitiesTab: React.FC<ActivitiesTabProps> = ({ userId }) => {
 
           {/* 右侧主要内容区域 */}
           <div className="lg:col-span-3">
-            {/* 页面标题 */}
-            <div className="mb-6">
-              <div className="flex flex-col gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold">我的动态</h1>
-                </div>
-              </div>
-            </div>
-
             {/* 动态内容区域 */}
             <div className="space-y-4">
               {momentFeedLoading && allMoments.length === 0
