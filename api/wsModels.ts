@@ -97,6 +97,7 @@ export interface ChatStatusEvent {
     roomId: number;  // 状态变更发生的房间ID
     userId: number;  // 状态变更的成员ID
     status: ChatStatusType ;
+    windowId?: string; // 可选的窗口标识符，用于区分多窗口环境下的状态更新
 }
 
 
