@@ -28,7 +28,7 @@ export default function SavePictureButton({ targetRef, qrLink, className }: Save
         QRImg.src = QRCodeDataUrl;
 
         // 绘图
-      
+
         CardImg.onload = () => {
           canvas.width = CardImg.width;
           canvas.height = CardImg.height;
