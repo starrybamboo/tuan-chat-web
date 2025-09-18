@@ -142,10 +142,10 @@ export const PostsCard: React.FC<PostsCardProps> = ({
 
   const isContentLong = content.length > 200;
   const displayContent = isContentLong ? `${content.slice(0, 200)}...` : content;
-  
+
   // 渲染
   const postRef = useRef<HTMLDivElement>(null);
-  
+
   // 判断内容类型并渲染相应的卡片 - 无论是activity还是feed都适用
   const renderSpecialContent = () => {
     // 帖子类型判断 - 优先检查数据字段，再检查contentType
@@ -409,7 +409,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
           </div>
 
           <div className="flex items-center space-x-1 text-sm cursor-pointer hover:bg-blue-500/10 transition-colors px-2 py-1 rounded-full">
-            <ShareIconButton  targetRef={postRef as React.RefObject<HTMLDivElement>} qrLink={window.location.href} searchKey={`feedShowSharePop${actualId}`} className="cursor-pointer w-9 h-6" />
+            <ShareIconButton targetRef={postRef as React.RefObject<HTMLDivElement>} qrLink={window.location.href} searchKey={`feedShowSharePop${actualId}`} className="cursor-pointer w-9 h-6" />
           </div>
         </div>
 
