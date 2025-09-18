@@ -1,3 +1,4 @@
+import BetterImg from "@/components/common/betterImg";
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import PostActionBar from "@/components/community/postActionBar";
@@ -68,9 +69,8 @@ export default function CommunityPostDetail({
       {/* 封面图片 - 手机端占满屏幕宽度，桌面端与内容卡片宽度一致 */}
       {post?.post?.coverImage && (
         <div className="-mx-4 sm:-mx-6 mb-6 md:mx-auto md:mb-0 md:max-w-3xl">
-          <img
+          <BetterImg
             src={post.post.coverImage}
-            alt="封面"
             className="w-full max-h-80 object-cover md:rounded-lg"
           />
         </div>
