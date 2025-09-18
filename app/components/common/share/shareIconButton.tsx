@@ -1,4 +1,4 @@
-import toastWindow from "@/components/common/toastWindow";
+import toastWindow from "@/components/common/toastWindow/toastWindow";
 import React, { useRef } from "react";
 import useSearchParamsState from "../customHooks/useSearchParamState";
 import CopyLinkButton from "./copyLinkButton";

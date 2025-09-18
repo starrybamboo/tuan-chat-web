@@ -87,11 +87,50 @@ export default function ChatFrame(props: {
   // roomId ==> 上一次存储消息的时候的receivedMessages[roomId].length
   const lastLengthMapRef = useRef<Record<number, number>>({});
   useEffect(() => {
-    const lastLength = lastLengthMapRef.current[roomId] ?? 0;
-    if (lastLength < receivedMessages.length) {
-      chatHistory?.addOrUpdateMessages(receivedMessages.slice(lastLength));
-      lastLengthMapRef.current[roomId] = receivedMessages.length;
+    // 将wsUtils中缓存的消息存到indexDB中，这里需要轮询等待indexDB初始化完成。
+    // 如果在初始化之前就调用了这个函数，会出现初始消息无法加载的错误。
+    let isCancelled = false;
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    async function syncMessages() {
+      const checkLoading = async (): Promise<void> => {
+        if (isCancelled)
+          return;
+
+        if (chatHistory?.loading) {
+          await new Promise<void>((resolve) => {
+            timeoutId = setTimeout(() => {
+              if (!isCancelled) {
+                resolve();
+              }
+            }, 30);
+          });
+          // 递归检查，直到loading完成或被取消
+          await checkLoading();
+        }
+      };
+      await checkLoading();
+
+      // 如果已取消或chatHistory不存在，直接返回
+      if (isCancelled || !chatHistory)
+        return;
+      const lastLength = lastLengthMapRef.current[roomId] ?? 0;
+      if (lastLength < receivedMessages.length) {
+        await chatHistory.addOrUpdateMessages(receivedMessages.slice(lastLength));
+        lastLengthMapRef.current[roomId] = receivedMessages.length;
+      }
     }
+
+    syncMessages();
+
+    // 清理函数：取消异步操作和定时器
+    return () => {
+      isCancelled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    };
   }, [chatHistory, receivedMessages, roomId]);
 
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
