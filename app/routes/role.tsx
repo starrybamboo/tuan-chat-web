@@ -13,7 +13,6 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function RoleLayout() {
   const [roles, setRoles] = useState<Role[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
 
   // 使用 useParams hook 从 URL 中获取 roleId
   const { roleId } = useParams<{ roleId: string }>();
@@ -54,7 +53,7 @@ export default function RoleLayout() {
         <div className="md:p-6 max-w-7xl mx-auto min-h-0">
           {/* Outlet 是子路由的渲染位置 */}
           {/* 通过 context 将状态传递给子路由 */}
-          <Outlet context={{ roles, setRoles, isEditing, setIsEditing }} />
+          <Outlet context={{ roles, setRoles }} />
         </div>
       </div>
     </div>

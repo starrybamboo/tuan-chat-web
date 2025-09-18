@@ -12,7 +12,7 @@ import CreatePageHeader from "./components/CreatePageHeader";
 
 interface AICreateRoleProps {
   onBack?: () => void;
-  onComplete?: (characterData: CharacterData) => void;
+  onComplete?: (characterData: Role) => void;
   // 添加状态维护相关的props
   setRoles?: React.Dispatch<React.SetStateAction<Role[]>>;
   setSelectedRoleId?: (id: number | null) => void;
@@ -430,10 +430,7 @@ export default function AICreateRole({
       }
 
       // 8. 调用完成回调
-      onComplete?.({
-        ...characterData,
-        avatar: avatarRes.data.avatarUrl || "/favicon.ico",
-      });
+      onComplete?.(newRole);
     }
     catch (error) {
       console.error("保存角色失败:", error);

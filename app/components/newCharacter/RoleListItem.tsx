@@ -4,7 +4,7 @@ import type { Role } from "./types";
 interface RoleListItemProps {
   role: Role;
   isSelected: boolean;
-  onDelete: () => void;
+  onDelete: (e?: React.MouseEvent) => void;
   isSelectionMode?: boolean;
 }
 
@@ -64,7 +64,8 @@ export function RoleListItem({ role, isSelected, onDelete, isSelectionMode }: Ro
               className="btn btn-ghost btn-xs text-error hover:bg-error/10 md:opacity-0 md:group-hover:opacity-100 opacity-70 rounded-full p-1"
               onClick={(e) => {
                 e.stopPropagation(); // 这一行至关重要，防止点击删除时触发导航
-                onDelete();
+                e.preventDefault(); // 同时阻止默认行为
+                onDelete(e);
               }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">

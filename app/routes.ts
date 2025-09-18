@@ -1,6 +1,6 @@
 import type { RouteConfig } from "@react-router/dev/routes";
 
-import { index, layout, route } from "@react-router/dev/routes";
+import { index, layout, prefix, route } from "@react-router/dev/routes";
 
 export default [
   // index("routes/dashBoard.tsx"),
@@ -9,11 +9,12 @@ export default [
     // index("../app/routes/chat.tsx"),
     index("routes/home.tsx"),
     route("feed/:feedId?", "routes/feed.tsx"),
-    layout("routes/role.tsx", [
-      // 当 URL 是 /role 时，渲染这个索引路由
-      route("role", "routes/role/entry.tsx"),
-      // 当 URL 是 /role/123 这种形式时，渲染这个动态路由
-      route("role/:roleId?", "routes/role/roleId.tsx"),
+    ...prefix("role", [
+      // layout 提供了 element / <Outlet />，index 必须是它的子路由
+      layout("routes/role.tsx", [
+        index("routes/role/entry.tsx"), // -> /role
+        route(":roleId?", "routes/role/roleId.tsx"), // -> /role/:roleId?
+      ]),
     ]),
     route("create/:editingStageId?", "routes/create.tsx"),
     route("activities", "routes/activities.tsx"),

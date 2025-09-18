@@ -6,14 +6,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useDeleteRolesMutation, useGetInfiniteUserRolesQuery } from "api/queryHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
-import { Link, NavLink } from "react-router";
+import { Link, NavLink, useNavigate } from "react-router";
 import { PopWindow } from "../common/popWindow";
 import { useGlobalContext } from "../globalContextProvider";
 import { RoleListItem } from "./RoleListItem";
 
 // ... SidebarProps 接口不再需要 setSelectedRoleId 和 onEnterCreateEntry
 interface SidebarProps {
-  roles: Role[]; // 角色数据数组，使用 Virtuos
+  roles: Role[]; // 角色数据数组
   setRoles: React.Dispatch<React.SetStateAction<Role[]>>;
   selectedRoleId: number | null;
   // setSelectedRoleId: (id: number | null) => void;
@@ -244,29 +244,40 @@ export function Sidebar({
     setDeleteCharacterId(null);
   };
 
-  // 修改确认删除处理函数
+  const navigate = useNavigate();
+
+  // 删除确认处理函数
   const handleConfirmDelete = async () => {
     if (deleteCharacterId !== null) {
-      // 单个删除逻辑
+    // 单个删除逻辑
       const roleId = deleteCharacterId;
       if (roleId) {
+      // 更新状态
         setRoles(roles.filter(c => c.id !== roleId));
-        // setSelectedRoleId(null);
         deleteRole([roleId]);
       }
     }
     else if (selectedRoles.size > 0) {
-      // 批量删除逻辑
+    // 批量删除逻辑
       const roleIds = Array.from(selectedRoles);
+      // 更新状态
       setRoles(roles.filter(c => !selectedRoles.has(c.id)));
-      // setSelectedRoleId(null);
       deleteRole(roleIds);
       setSelectedRoles(new Set());
       setIsSelectionMode(false);
     }
+
+    // 关闭弹窗
     setDeleteConfirmOpen(false);
     setDeleteCharacterId(null);
   };
+
+  useEffect(() => {
+    if (selectedRoleId && !roles.find(c => c.id === selectedRoleId)) {
+    // 当前选中角色被删掉了，跳转
+      navigate("/role", { replace: true });
+    }
+  }, [roles, selectedRoleId, navigate]);
 
   return (
     <>
@@ -428,7 +439,7 @@ export function Sidebar({
                 key={role.id}
                 to={`/role/${role.id}`}
                 // NavLink 让我们能根据路由是否激活来动态设置 className
-                className={({ isActive }) => `block rounded-lg ${isActive && !isSelectionMode ? "bg-primary text-primary-content" : ""}`}
+                className={({ isActive }) => `block rounded-lg ${isActive && !isSelectionMode ? "bg-primary text-primary/80" : ""}`}
                 onClick={(e) => {
                   // 如果是批量选择模式，阻止导航
                   if (isSelectionMode) {
@@ -445,7 +456,10 @@ export function Sidebar({
                   // isSelected 现在由 NavLink 的 isActive 状态或批量选择状态决定
                   isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
                   // --- REMOVED --- onSelect prop
-                  onDelete={() => handleDelete(role.id)}
+                  onDelete={(_e) => {
+                    // 事件已经在 RoleListItem 内部被阻止了，这里只需要处理删除逻辑
+                    handleDelete(role.id);
+                  }}
                   isSelectionMode={isSelectionMode}
                   // 如果 isSelectionMode，需要一种方式来触发 toggleRoleSelection
                   // 我们在 NavLink 的 onClick 中处理了这个逻辑
