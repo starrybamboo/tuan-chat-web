@@ -7,13 +7,20 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import { useMemo } from "react";
 import { useGetCommentPageInfiniteQuery } from "../../../../api/hooks/commentQueryHooks";
 
+interface CommentPanelProps {
+  targetInfo: LikeRecordRequest;
+  className?: string;
+  loginUserId: number;
+}
+
 /**
  * 评论区组件
  * @param targetInfo 用于指明是哪个 feed，post 或者 module 的评论区
  * @param className
+ * @param loginUserId
  * @constructor
  */
-export default function CommentPanel({ targetInfo, className }: { targetInfo: LikeRecordRequest; className?: string }) {
+export default function CommentPanel({ targetInfo, className, loginUserId }: CommentPanelProps) {
   const getCommentPageInfiniteQuery = useGetCommentPageInfiniteQuery(targetInfo);
   const comments = useMemo(() => {
     return (getCommentPageInfiniteQuery.data?.pages.flatMap(p => p.data ?? []) ?? []);
@@ -35,7 +42,7 @@ export default function CommentPanel({ targetInfo, className }: { targetInfo: Li
         <div className="mt-3 flex gap-3 items-start duration-200">
           <div className="flex-shrink-0 ">
             <UserAvatarComponent
-              userId={10013}
+              userId={loginUserId}
               width={10}
               isRounded={true}
               withName={false}
