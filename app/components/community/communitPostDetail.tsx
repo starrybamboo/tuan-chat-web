@@ -2,7 +2,7 @@ import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import PostActionBar from "@/components/community/postActionBar";
 import PostCommentPanel from "@/components/community/postCommentPanel";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useGetPostDetailQuery } from "../../../api/hooks/communityQueryHooks";
 import { useUserFollowMutation, useUserIsFollowedQuery, useUserUnfollowMutation } from "../../../api/hooks/userFollowQueryHooks";
 import SlidableChatPreview from "./slidableChatPreview";
@@ -45,6 +45,9 @@ export default function CommunityPostDetail({
   // 回复状态管理
   const [replyTo, setReplyTo] = useState<{ userName: string; commentId: number } | null>(null);
 
+  // 生成对帖子主要内容的引用，用于分享时截图
+  const postRef = useRef<HTMLDivElement>(null);
+
   return (
     <div className="gap-4 pb-32 md:pb-4 md:mt-6 md:max-w-3xl md:mx-auto">
       {" "}
@@ -78,7 +81,7 @@ export default function CommunityPostDetail({
 
       {/* 主要内容区域：标题、正文等 */}
       <div className="md:bg-base-100 md:rounded-lg w-full md:card md:shadow-xl md:mt-6 md:max-w-3xl md:mx-auto">
-        <div className="px-0 md:px-6 py-0 md:py-6">
+        <div className="px-0 md:px-6 py-0 md:py-6" ref={postRef}>
           {/* 标题 */}
           <h2 className="text-2xl font-semibold text-left mb-6">
             {post?.post?.title || "无标题"}
@@ -140,6 +143,7 @@ export default function CommunityPostDetail({
             commentCount={post?.stats?.commentCount ?? 0}
             shareSearchKey={`post-${postId}-share`}
             shareTitle={post?.post?.title}
+            targetRef={postRef as React.RefObject<HTMLElement>}
             replyTo={replyTo}
             onSetReplyTo={setReplyTo}
           />
@@ -162,6 +166,7 @@ export default function CommunityPostDetail({
           commentCount={post?.stats?.commentCount ?? 0}
           shareSearchKey={`post-${postId}-share`}
           shareTitle={post?.post?.title}
+          targetRef={postRef as React.RefObject<HTMLElement>}
           replyTo={replyTo}
           onSetReplyTo={setReplyTo}
         />
