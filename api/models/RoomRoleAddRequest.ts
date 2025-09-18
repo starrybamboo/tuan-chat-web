@@ -11,5 +11,9 @@ export type RoomRoleAddRequest = {
      * 角色id列表
      */
     roleIdList: Array<number>;
+    /**
+     * 角色类型，0玩家角色，1NPC
+     */
+    type?: number;
 };
 

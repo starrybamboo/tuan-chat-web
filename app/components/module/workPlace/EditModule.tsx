@@ -1,10 +1,11 @@
 import type { StageEntityResponse } from "api";
 import type { SVGProps } from "react";
-import type { ItemModuleItem, MapModuleItem, ModuleTabItem, RoleModuleItem, SceneModuleItem } from "./context/types";
+import type { ItemModuleItem, MapModuleItem, ModuleModuleItem, ModuleTabItem, RoleModuleItem, SceneModuleItem } from "./context/types";
 import { useEffect, useRef } from "react";
 import ItemEdit from "./components/ItemEdit";
 import LocationEdit from "./components/LocationEdit";
 import MapEdit from "./components/MapEdit";
+import ModuleEdit from "./components/ModuleEdit";
 import NPCEdit from "./components/NPCEdit";
 import SceneEdit from "./components/SceneEdit";
 import { useModuleContext } from "./context/_moduleContext";
@@ -318,6 +319,63 @@ function MapModuleTabItem({
   );
 }
 
+function ModuleModuleTabItem({
+  moduleItem,
+  moduleInfo,
+  isSelected,
+  onTabClick,
+  onCloseClick,
+  registerSave,
+}: {
+  moduleItem: ModuleModuleItem;
+  moduleInfo: any; // 基本信息对象
+  isSelected: boolean;
+  onTabClick: (id: string, entiryType: "role" | "scene" | "map" | "location" | "item" | "module") => void;
+  onCloseClick: (id: string) => void;
+  registerSave: (fn: () => void) => void;
+}) {
+  const { id, label } = moduleItem;
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isSelected && inputRef.current) {
+      inputRef.current.checked = true;
+    }
+  }, [isSelected]);
+
+  return (
+    <>
+      <label className="tab flex-row-reverse pr-8! relative group before:hidden!">
+        <input
+          ref={inputRef}
+          type="radio"
+          name="WorkSpaceTab"
+          className="tab"
+          aria-label={label}
+          onClick={onTabClick.bind(null, id.toString(), "module")}
+        />
+        <div
+          className={`
+            absolute right-[10px] invisible
+            w-4 h-4 flex items-center justify-center
+            group-hover:visible ${isSelected ? "visible" : ""}
+            hover:bg-base-content/80 rounded-sm
+          `}
+          onClick={() => {
+            onCloseClick(id.toString());
+          }}
+        >
+          <BaselineClose />
+        </div>
+        {label}
+      </label>
+      <div className="tab-content bg-base-100 border-base-300 p-6">
+        <ModuleEdit data={moduleInfo} onRegisterSave={registerSave} />
+      </div>
+    </>
+  );
+}
+
 export default function EditModule() {
   const { moduleTabItems, currentSelectedTabId, setCurrentSelectedTabId, removeModuleTabItem }
     = useModuleContext();
@@ -393,7 +451,7 @@ export default function EditModule() {
   }, [currentSelectedTabId]);
 
   // 包装 tab 切换：先保存当前，再切换
-  const handleTabClick = (nextId: string, _entiryType: "role" | "scene" | "map" | "location" | "item") => {
+  const handleTabClick = (nextId: string, _entiryType: "role" | "scene" | "map" | "location" | "item" | "module") => {
     // 再尝试保存当前标签
     const save = getEffectiveSaveHandler();
     if (save) {
@@ -430,9 +488,12 @@ export default function EditModule() {
   const mapModuleItems = moduleTabItems.filter(item =>
     item.type === ModuleItemEnum.MAP,
   );
+  const moduleItems = moduleTabItems.filter(item =>
+    item.type === ModuleItemEnum.MODULE,
+  );
 
   // 运行期推导当前实体类型（用于控制全局保存按钮显隐）
-  let currentType: "role" | "scene" | "map" | "location" | "item" | null = null;
+  let currentType: "role" | "scene" | "map" | "location" | "item" | "module" | null = null;
   const current = moduleTabItems.find(i => i.id === currentSelectedTabId);
   if (current) {
     switch (current.type) {
@@ -450,6 +511,9 @@ export default function EditModule() {
         break;
       case ModuleItemEnum.ITEM:
         currentType = "item";
+        break;
+      case ModuleItemEnum.MODULE:
+        currentType = "module";
         break;
       default:
         currentType = null;
@@ -523,6 +587,19 @@ export default function EditModule() {
           ))
         }
         {
+          moduleItems.map(item => (
+            <ModuleModuleTabItem
+              key={item.id}
+              moduleItem={item as ModuleModuleItem}
+              moduleInfo={item.content}
+              isSelected={item.id === currentSelectedTabId}
+              onTabClick={handleTabClick as any}
+              onCloseClick={handleCloseTab}
+              registerSave={fn => registerSaveForTab(item.id.toString(), fn)}
+            />
+          ))
+        }
+        {
           moduleTabItems.length === 0 && (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center space-y-4">
@@ -537,7 +614,7 @@ export default function EditModule() {
         }
       </div>
       {/* 全局固定保存按钮：当当前实体为 map 或没有选中标签时隐藏 */}
-      <div className={`fixed top-20 left-20 md:top-14 md:left-100 ${currentType === null || currentType === "map" ? "hidden" : "block"}`}>
+      <div className={`fixed top-20 left-20 md:top-14 md:left-133 ${currentType === null || currentType === "map" ? "hidden" : "block"}`}>
         <button
           type="button"
           onClick={() => {
@@ -551,7 +628,7 @@ export default function EditModule() {
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
               <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
-            保存
+            保存当前页面改动
           </span>
         </button>
       </div>

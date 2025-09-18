@@ -58,8 +58,18 @@ export class UploadUtils {
    */
   async uploadImg(file: File, scene: 1 | 2 | 3 | 4 = 1, quality = 0.7, maxSize = 2560): Promise<string> {
     let new_file = file;
+
+    console.log(file.type);
+    // 对于图片文件进行处理
     if (file.type.startsWith("image/")) {
-      new_file = await compressImage(file, quality, maxSize);
+      // GIF文件单独处理，只检查尺寸不做压缩
+      if (file.type === "image/gif") {
+        new_file = await this.handleGifFile(file, maxSize);
+      }
+      else {
+        // 其他图片格式进行压缩
+        new_file = await compressImage(file, quality, maxSize);
+      }
     }
 
     // 1. 计算文件内容的 SHA-256 哈希值
@@ -92,12 +102,43 @@ export class UploadUtils {
   }
 
   /**
+   * 处理GIF文件，检查尺寸但保持原格式
+   * @param file GIF文件
+   * @param maxSize 最大尺寸限制
+   * @returns 处理后的文件（可能重命名）
+   */
+  private async handleGifFile(file: File, maxSize: number): Promise<File> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        img.src = e.target?.result as string;
+      };
+
+      img.onload = () => {
+        // 检查GIF尺寸是否超过限制
+        if (img.width > maxSize || img.height > maxSize) {
+          console.warn(
+            `GIF尺寸 ${img.width}x${img.height} 超过限制 ${maxSize}px，但为保持动画效果将保持原格式`,
+          );
+        }
+        resolve(file);
+      };
+
+      reader.onerror = reject;
+      img.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
    * 使用 ts-md5 计算文件的 MD5 哈希值。
    * 这个库是使用 TypeScript 编写的，所以不需要额外的类型定义文件。
    * @param file 文件对象
    * @returns 返回一个 Promise，解析为文件的 MD5 哈希字符串
    */
-  private calculateFileHash(file: File): Promise<string> {
+  public calculateFileHash(file: File): Promise<string> {
     return new Promise((resolve) => {
       const reader = new FileReader();
 

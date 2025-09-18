@@ -981,7 +981,7 @@
         "tags": [
           "space-member-controller"
         ],
-        "summary": "撤销用户玩家的身份",
+        "summary": "将pl设置为观战，同时退出所有房间",
         "operationId": "revokePlayer",
         "requestBody": {
           "content": {
@@ -1052,7 +1052,7 @@
         "tags": [
           "space-member-controller"
         ],
-        "summary": "把裁判转让给其他成员",
+        "summary": "转让裁判，自己变成观战，同时退出所有房间",
         "operationId": "transferLeader",
         "requestBody": {
           "content": {
@@ -1263,7 +1263,7 @@
         "tags": [
           "space-controller"
         ],
-        "summary": "创建空间",
+        "summary": "创建空间，邀请的所有成员都为pl",
         "operationId": "createSpace",
         "requestBody": {
           "content": {
@@ -2619,7 +2619,7 @@
         ],
         "summary": "获取物品详情",
         "description": "根据id获取物品详情",
-        "operationId": "getById",
+        "operationId": "getById_1",
         "parameters": [
           {
             "name": "id",
@@ -6244,12 +6244,83 @@
         }
       }
     },
+    "/capi/space/member/invited/{code}": {
+      "post": {
+        "tags": [
+          "space-member-controller"
+        ],
+        "summary": "通过邀请链接加入房间",
+        "operationId": "invited",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/space/member/": {
       "post": {
         "tags": [
           "space-member-controller"
         ],
-        "summary": "新增空间成员",
+        "summary": "在空间内新增观战成员",
         "operationId": "addMember",
         "requestBody": {
           "content": {
@@ -6600,152 +6671,12 @@
         }
       }
     },
-    "/capi/room/role/npc": {
-      "post": {
-        "tags": [
-          "room-role-controller"
-        ],
-        "summary": "添加房间的模组角色",
-        "operationId": "addModuleRole",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModuleRoleAddRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "room-role-controller"
-        ],
-        "summary": "删除房间模组角色",
-        "operationId": "deleteModuleRole",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModuleRoleAddRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/capi/room/role/": {
       "post": {
         "tags": [
           "room-role-controller"
         ],
-        "summary": "增加房间的玩家角色",
+        "summary": "增加房间的角色",
         "operationId": "addRole",
         "requestBody": {
           "content": {
@@ -6814,7 +6745,7 @@
         "tags": [
           "room-role-controller"
         ],
-        "summary": "删除房间的玩家角色",
+        "summary": "删除房间的角色",
         "operationId": "deleteRole",
         "requestBody": {
           "content": {
@@ -6880,83 +6811,12 @@
         }
       }
     },
-    "/capi/room/member/invited/{code}": {
-      "post": {
-        "tags": [
-          "room-member-controller"
-        ],
-        "summary": "通过邀请链接加入房间",
-        "operationId": "invited",
-        "parameters": [
-          {
-            "name": "code",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/capi/room/member/": {
       "post": {
         "tags": [
           "room-member-controller"
         ],
-        "summary": "新增房间成员",
+        "summary": "新增房间pl成员，如果将观战成员拉入房间，会自动成为pl",
         "operationId": "addMember_1",
         "requestBody": {
           "content": {
@@ -13539,6 +13399,87 @@
         }
       }
     },
+    "/capi/space/member/inviteCode": {
+      "get": {
+        "tags": [
+          "space-member-controller"
+        ],
+        "summary": "生成邀请码，过期时间以天为单位，为空则不过期",
+        "operationId": "inviteCode",
+        "parameters": [
+          {
+            "name": "spaceId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "duration",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/space/list": {
       "get": {
         "tags": [
@@ -13840,7 +13781,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultListStageEntityResponse"
+                  "$ref": "#/components/schemas/ApiResultListUserRole"
                 }
               }
             }
@@ -13985,87 +13926,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultListRoomMember"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/room/member/inviteCode": {
-      "get": {
-        "tags": [
-          "room-member-controller"
-        ],
-        "summary": "生成邀请码，过期时间以天为单位，为空则不过期",
-        "operationId": "inviteCode",
-        "parameters": [
-          {
-            "name": "roomId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "duration",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultString"
                 }
               }
             }
@@ -14615,6 +14475,80 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultDouble"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/module/{id}": {
+      "get": {
+        "tags": [
+          "moduleController"
+        ],
+        "summary": "获取一个跑团的剧本详情",
+        "description": "根据id获取一个跑团的剧本详情",
+        "operationId": "getById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultModule"
                 }
               }
             }
@@ -17111,7 +17045,7 @@
             "type": "string",
             "description": "模组作者名字"
           },
-          "instruction": {
+          "readMe": {
             "type": "string"
           },
           "minTime": {
@@ -17679,7 +17613,11 @@
             "format": "int64"
           },
           "avatarTitle": {
-            "type": "string",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "头像的标题"
+            },
             "description": "头像的标题"
           },
           "avatarUrl": {
@@ -19033,26 +18971,6 @@
         },
         "description": "返回对象"
       },
-      "ModuleRoleAddRequest": {
-        "required": [
-          "ids",
-          "roomId"
-        ],
-        "type": "object",
-        "properties": {
-          "roomId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "ids": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        }
-      },
       "RoomRoleAddRequest": {
         "required": [
           "roleIdList",
@@ -19073,6 +18991,11 @@
               "description": "角色id列表",
               "format": "int64"
             }
+          },
+          "type": {
+            "type": "integer",
+            "description": "角色类型，0玩家角色，1NPC",
+            "format": "int32"
           }
         }
       },
@@ -19922,7 +19845,7 @@
             "type": "string",
             "description": "模组的描述"
           },
-          "instruction": {
+          "readMe": {
             "type": "string"
           },
           "authorName": {
@@ -20135,7 +20058,7 @@
             "type": "string",
             "description": "作者"
           },
-          "instruction": {
+          "readMe": {
             "type": "string",
             "description": "md内容"
           },
@@ -22909,11 +22832,6 @@
             "description": "用户id",
             "format": "int64"
           },
-          "memberType": {
-            "type": "integer",
-            "description": "成员类型（冗余） 1裁判 2玩家 3观战",
-            "format": "int32"
-          },
           "createTime": {
             "type": "string",
             "format": "date-time"
@@ -23056,6 +22974,31 @@
             "type": "number",
             "description": "返回对象",
             "format": "double"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ApiResultModule": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Module"
           }
         },
         "description": "基础返回体"

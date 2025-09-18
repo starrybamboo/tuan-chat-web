@@ -1,3 +1,4 @@
+import type { SpaceMember } from "../../../api";
 import { createContext } from "react";
 
 export interface SpaceContextType {
@@ -14,6 +15,11 @@ export interface SpaceContextType {
    * 设置激活空间ID的回调函数
    */
   setActiveSpaceId: (id: number | null) => void;
+
+  /**
+   * 群角色
+   */
+  spaceMembers: SpaceMember[];
 
   /**
    * 设置激活房间ID的回调函数
@@ -33,4 +39,5 @@ export const SpaceContext = createContext<SpaceContextType>({
   setActiveRoomId: () => {},
   ruleId: undefined,
   toggleLeftDrawer: () => {},
+  spaceMembers: [],
 });

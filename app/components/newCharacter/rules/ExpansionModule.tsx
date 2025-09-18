@@ -299,7 +299,8 @@ export default function ExpansionModule({
                     fields={renderData.actTemplate}
                     onChange={handleActTemplateChange}
                     abilityData={renderData.actTemplate}
-                    abilityId={abilityQuery.data?.abilityId || 0}
+                    roleId={roleId}
+                    ruleId={selectedRuleId}
                   />
                 </Section>
 
@@ -315,7 +316,8 @@ export default function ExpansionModule({
                   <NumericalEditor
                     data={renderData.basicDefault}
                     onChange={handleBasicDefaultChange}
-                    abilityId={abilityQuery.data?.abilityId || 0}
+                    roleId={roleId}
+                    ruleId={selectedRuleId}
                     title="基础属性"
                     fieldType="basic"
                   />
@@ -339,7 +341,8 @@ export default function ExpansionModule({
                         <NumericalEditor
                           data={modifiedAbilities}
                           onChange={handleModifiedAbilityChange}
-                          abilityId={abilityQuery.data?.abilityId || 0}
+                          roleId={roleId}
+                          ruleId={selectedRuleId}
                           title="自定义能力"
                           fieldType="ability"
                         />
@@ -368,7 +371,8 @@ export default function ExpansionModule({
                             <NumericalEditor
                               data={templateAbilities}
                               onChange={handleTemplateAbilityChange}
-                              abilityId={abilityQuery.data?.abilityId || 0}
+                              roleId={roleId}
+                              ruleId={selectedRuleId}
                               title="模版能力"
                               fieldType="ability"
                             />
@@ -407,7 +411,8 @@ export default function ExpansionModule({
                         <NumericalEditor
                           data={modifiedSkills}
                           onChange={handleModifiedSkillChange}
-                          abilityId={abilityQuery.data?.abilityId || 0}
+                          roleId={roleId}
+                          ruleId={selectedRuleId}
                           title="自定义技能"
                           fieldType="skill"
                         />
@@ -436,7 +441,8 @@ export default function ExpansionModule({
                             <NumericalEditor
                               data={templateSkills}
                               onChange={handleTemplateSkillChange}
-                              abilityId={abilityQuery.data?.abilityId || 0}
+                              roleId={roleId}
+                              ruleId={selectedRuleId}
                               title="模版技能"
                               fieldType="skill"
                             />

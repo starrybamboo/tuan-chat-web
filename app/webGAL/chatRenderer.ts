@@ -1,8 +1,8 @@
-import type { RenderProcess, RenderProps } from "@/components/chat/window/renderWindow";
+import type { RenderInfo, RenderProcess, RenderProps } from "@/components/chat/window/renderWindow";
 
 import { SceneEditor } from "@/webGAL/sceneEditor";
 
-import type { Message, RoleAvatar, Room } from "../../api";
+import type { Message, RoleAvatar, Room, UserRole } from "../../api";
 
 import { tuanchat } from "../../api/instance";
 
@@ -12,32 +12,82 @@ import { tuanchat } from "../../api/instance";
 
 export class ChatRenderer {
   private readonly spaceId: number;
-  private roomMap: Record<string, Array<number>> = {};
+  private readonly roomMap: Record<string, Array<number>> = {};
   private sceneEditor: SceneEditor;
+  private readonly renderInfo: RenderInfo;
+  private readonly totalMessageNumber: number;
+  private renderedMessageNumber = 0;
   private uploadedSpritesFileNameMap = new Map<number, string>(); // avatarId -> spriteFileName
   private roleAvatarsMap = new Map<number, RoleAvatar>(); // 渲染时候获取的avatar信息
+  private voiceFileMap = new Map<number, File>(); // roleId -> File;
   private roleMap: Map<number, UserRole> = new Map();
   private renderProps: RenderProps;
-  private rooms: Room[] = [];
-  private renderedRoomNumber = 0;
+  private readonly rooms: Room[] = [];
   private readonly onRenderProcessChange: (process: RenderProcess) => void; // 渲染进度的回调函数
 
-  constructor(spaceId: number, renderProp: RenderProps, onRenderProcessChange: (process: RenderProcess) => void) {
+  constructor(
+    spaceId: number,
+    renderProp: RenderProps,
+    renderInfo: RenderInfo,
+    onRenderProcessChange: (process: RenderProcess) => void,
+  ) {
     this.spaceId = spaceId;
     this.renderProps = renderProp;
     this.onRenderProcessChange = onRenderProcessChange;
     this.sceneEditor = new SceneEditor(this.spaceId);
+    this.renderInfo = renderInfo;
+
+    this.rooms = this.renderInfo.rooms;
+    this.roleMap = new Map(renderInfo.roles.map(role => [role.roleId, role]));
+    const spaceInfo = this.renderInfo.space;
+    this.roomMap = spaceInfo.roomMap || {};
+
+    let totalMessageNumber = 0;
+    for (const messages of Object.values(renderInfo.chatHistoryMap)) {
+      totalMessageNumber += messages.length;
+    }
+    this.totalMessageNumber = totalMessageNumber;
   }
 
   public async initializeRenderer(): Promise<void> {
     await this.sceneEditor.initRender();
+    this.onRenderProcessChange({ message: "获取参考音频中" });
+
+    if (this.renderProps.useVocal) {
+      const voiceMap = new Map<number, File>();
+      // 先从 roleAudios 获取音频文件
+      if (this.renderInfo.roleAudios) {
+        for (const [roleId, refVocal] of Object.entries(this.renderInfo.roleAudios)) {
+          voiceMap.set(Number(roleId), refVocal);
+        }
+      }
+      // 如果 roleAudios 中没有，则尝试从 role.voiceUrl 获取
+      for (const [roleId, role] of this.roleMap) {
+        if (!voiceMap.has(roleId)) { // 排除系统角色和骰娘
+          try {
+            if (role.voiceUrl) {
+              // 从 voiceUrl 获取文件
+              const response = await fetch(role.voiceUrl);
+              if (response.ok) {
+                const blob = await response.blob();
+                const file = new File(
+                  [blob],
+                  role.voiceUrl.split("/").pop() ?? `${roleId}_ref_vocal.wav`,
+                  { type: blob.type || "audio/wav" },
+                );
+                voiceMap.set(roleId, file);
+              }
+            }
+          }
+          catch (error) {
+            console.warn(`Failed to fetch voice for role ${roleId}:`, error);
+          }
+        }
+      }
+      this.voiceFileMap = voiceMap;
+    }
+
     this.onRenderProcessChange({ message: "开始渲染" });
-
-    this.rooms = (await tuanchat.roomController.getUserRooms(this.spaceId)).data ?? [];
-
-    const spaceInfo = await tuanchat.spaceController.getSpaceInfo(this.spaceId);
-    const roomMap = spaceInfo?.data?.roomMap;
-    this.roomMap = roomMap || {};
 
     const renderedRooms: Room[] = []; // 成功渲染的房间
     for (let i = 0; i < this.rooms.length; i++) {
@@ -53,7 +103,6 @@ export class ChatRenderer {
           renderedRooms.push(room);
           await this.sceneEditor.addLineToRenderer("changeScene:start.txt", this.getSceneName(room));
         }
-        this.renderedRoomNumber = i + 1;
       }
       catch (e) { console.error(e); }
     }
@@ -62,6 +111,13 @@ export class ChatRenderer {
       // .filter(room => this.roomMap[room.roomId!] === undefined || this.roomMap[room.roomId!].length === 0),
     );
     await this.sceneEditor.addLineToRenderer(branchSentence, "start");
+  }
+
+  private updateRenderProcess() {
+    this.onRenderProcessChange({
+      percent: this.renderedMessageNumber * 100 / this.totalMessageNumber,
+      subMessage: `已渲染消息数 (${this.renderedMessageNumber}/${this.totalMessageNumber})`,
+    });
   }
 
   /**
@@ -91,6 +147,11 @@ export class ChatRenderer {
     return avatar || null;
   }
 
+  /**
+   * 保底获取角色信息，避免角色信息丢失
+   * @param roleId
+   * @private
+   */
   private async fetchRole(roleId: number): Promise<UserRole | null> {
     // 获取角色信息
     let role: UserRole | undefined = this.roleMap.get(roleId);
@@ -197,8 +258,7 @@ export class ChatRenderer {
    * 一个聊天记录一个聊天记录地渲染，并在这个过程中自动检测不存在的语音或者立绘等并进行上传
    */
   private async renderMessages(room: Room): Promise<boolean> {
-    const messagesResponse = await tuanchat.chatController.getAllMessage(room.roomId!);
-    const messages = messagesResponse.data ?? [];
+    const messages = this.renderInfo.chatHistoryMap[room.roomId!] ?? [];
 
     if (messages.length === 0)
       return false;
@@ -220,10 +280,8 @@ export class ChatRenderer {
       for (let i = 0; i < sortedMessages.length; i++) {
         const messageResponse = sortedMessages[i];
         const message = messageResponse.message;
-        this.onRenderProcessChange({
-          percent: ((this.renderedRoomNumber + (i + 1) / messages.length) / this.rooms.length) * 100,
-          subMessage: `已渲染消息数 (${i}/${messages.length})`,
-        });
+        this.renderedMessageNumber++;
+        this.updateRenderProcess();
 
         // 使用正则表达式过滤
         if (skipRegex && skipRegex.test(message.content))
@@ -262,13 +320,13 @@ export class ChatRenderer {
           if (role && message.content && message.content !== "") {
             // 每80个字符分割一次
             const contentSegments = this.splitContent(processedContent);
-            const roleAudios = this.renderProps.roleAudios;
             // 为每个分割后的段落创建对话
             for (const segment of contentSegments) {
               // 生成语音
               let vocalFileName: string | undefined;
               // 不是系统角色，且不是空行，且不是指令，则生成语音
-              if (message.roleId !== 0
+              if (this.renderProps.useVocal
+                && message.roleId !== 0
                 && message.roleId !== 2 // 骰娘的id
                 && segment !== ""
                 && !message.content.startsWith(".")
@@ -278,7 +336,7 @@ export class ChatRenderer {
                 vocalFileName = await this.sceneEditor.uploadVocal({
                   ...messageResponse,
                   message: { ...messageResponse.message, content: segment },
-                }, roleAudios ? roleAudios[message.roleId] : undefined); ;
+                }, this.voiceFileMap.get(message.roleId));
               }
               else {
                 vocalFileName = undefined;

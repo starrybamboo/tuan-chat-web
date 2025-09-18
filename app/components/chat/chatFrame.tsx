@@ -8,7 +8,6 @@ import type {
 import { ChatBubble } from "@/components/chat/chatBubble";
 import ChatFrameContextMenu from "@/components/chat/chatFrameContextMenu";
 import { RoomContext } from "@/components/chat/roomContext";
-import UserIdToName from "@/components/chat/smallComponents/userIdToName";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import ForwardWindow from "@/components/chat/window/forwardWindow";
 import { PopWindow } from "@/components/common/popWindow";
@@ -36,17 +35,17 @@ function Header() {
 
 /**
  * 聊天框（不带输入部分）
- * @param useChatBubbleStyle 是否使用气泡样式
- * @param setUseChatBubbleStyle 设置气泡样式的函数
- * @param virtuosoRef 虚拟列表的ref
- * @constructor
+ * @param props 组件参数
+ * @param props.useChatBubbleStyle 是否使用气泡样式
+ * @param props.setUseChatBubbleStyle 设置气泡样式的函数
+ * @param props.virtuosoRef 虚拟列表的 ref
  */
-export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, virtuosoRef }:
-{
+export default function ChatFrame(props: {
   useChatBubbleStyle: boolean;
   setUseChatBubbleStyle: (value: boolean | ((prev: boolean) => boolean)) => void;
   virtuosoRef: React.RefObject<VirtuosoHandle | null>;
 }) {
+  const { useChatBubbleStyle, setUseChatBubbleStyle, virtuosoRef } = props;
   const globalContext = useGlobalContext();
   const roomContext = use(RoomContext);
   const spaceContext = use(SpaceContext);
@@ -81,9 +80,6 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
    */
   const chatHistory = roomContext.chatHistory;
   const webSocketUtils = globalContext.websocketUtils;
-  // 当前房间成员的输入信息
-  const roomChatStatues = (webSocketUtils.chatStatus[roomId] ?? [])
-    .filter(status => status.status === "input" && status.userId !== globalContext.userId);
   const send = (message: ChatMessageRequest) => webSocketUtils.send({ type: 3, data: message });
 
   // 监听 WebSocket 接收到的消息
@@ -91,11 +87,50 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
   // roomId ==> 上一次存储消息的时候的receivedMessages[roomId].length
   const lastLengthMapRef = useRef<Record<number, number>>({});
   useEffect(() => {
-    const lastLength = lastLengthMapRef.current[roomId] ?? 0;
-    if (lastLength < receivedMessages.length) {
-      chatHistory?.addOrUpdateMessages(receivedMessages.slice(lastLength));
-      lastLengthMapRef.current[roomId] = receivedMessages.length;
+    // 将wsUtils中缓存的消息存到indexDB中，这里需要轮询等待indexDB初始化完成。
+    // 如果在初始化之前就调用了这个函数，会出现初始消息无法加载的错误。
+    let isCancelled = false;
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    async function syncMessages() {
+      const checkLoading = async (): Promise<void> => {
+        if (isCancelled)
+          return;
+
+        if (chatHistory?.loading) {
+          await new Promise<void>((resolve) => {
+            timeoutId = setTimeout(() => {
+              if (!isCancelled) {
+                resolve();
+              }
+            }, 30);
+          });
+          // 递归检查，直到loading完成或被取消
+          await checkLoading();
+        }
+      };
+      await checkLoading();
+
+      // 如果已取消或chatHistory不存在，直接返回
+      if (isCancelled || !chatHistory)
+        return;
+      const lastLength = lastLengthMapRef.current[roomId] ?? 0;
+      if (lastLength < receivedMessages.length) {
+        await chatHistory.addOrUpdateMessages(receivedMessages.slice(lastLength));
+        lastLengthMapRef.current[roomId] = receivedMessages.length;
+      }
     }
+
+    syncMessages();
+
+    // 清理函数：取消异步操作和定时器
+    return () => {
+      isCancelled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    };
   }, [chatHistory, receivedMessages, roomId]);
 
   const historyMessages: ChatMessageResponse[] = useMemo(() => {
@@ -107,12 +142,12 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
   // 虚拟列表的index到historyMessage中的index的转换
   const isAtBottomRef = useRef(true);
   const isAtTopRef = useRef(false);
-  const virtuosoIndexToMessageIndex = (virtuosoIndex: number) => {
+  const virtuosoIndexToMessageIndex = useCallback((virtuosoIndex: number) => {
     return historyMessages.length + virtuosoIndex - CHAT_VIRTUOSO_INDEX_SHIFTER;
-  };
-  const messageIndexToVirtuosoIndex = (messageIndex: number) => {
+  }, [historyMessages.length]);
+  const messageIndexToVirtuosoIndex = useCallback((messageIndex: number) => {
     return messageIndex - historyMessages.length + CHAT_VIRTUOSO_INDEX_SHIFTER;
-  };
+  }, [historyMessages.length]);
   /**
    * 新消息提醒
    */
@@ -127,10 +162,10 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
   /**
    * scroll相关
    */
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     virtuosoRef?.current?.scrollToIndex(messageIndexToVirtuosoIndex(historyMessages.length - 1));
     updateLastReadSyncId(roomId);
-  };
+  }, [historyMessages.length, messageIndexToVirtuosoIndex, roomId, updateLastReadSyncId, virtuosoRef]);
   useEffect(() => {
     let timer = null;
     if (chatHistory?.loading) {
@@ -142,7 +177,7 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
       if (timer)
         clearTimeout(timer);
     };
-  }, [chatHistory?.loading]);
+  }, [chatHistory?.loading, scrollToBottom]);
 
   /**
    * 背景图片随聊天记录而改变
@@ -159,9 +194,7 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
   const [currentBackgroundUrl, setCurrentBackgroundUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    // Convert the virtuoso index (which is shifted) to the actual array index.
     const currentMessageIndex = virtuosoIndexToMessageIndex(currentVirtuosoIndex);
-    // Find the last background image that appears at or before the current scroll position.
     let newBgUrl: string | null = null;
     for (const bg of imgNode) {
       if (bg.index <= currentMessageIndex) {
@@ -171,9 +204,9 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
         break;
       }
     }
-
     if (newBgUrl !== currentBackgroundUrl) {
-      setCurrentBackgroundUrl(newBgUrl);
+      const id = setTimeout(() => setCurrentBackgroundUrl(newBgUrl), 0);
+      return () => clearTimeout(id);
     }
   }, [currentVirtuosoIndex, imgNode, virtuosoIndexToMessageIndex, currentBackgroundUrl]);
 
@@ -198,7 +231,8 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
   const [displayedBgUrl, setDisplayedBgUrl] = useState(currentBackgroundUrl);
   useEffect(() => {
     if (currentBackgroundUrl) {
-      setDisplayedBgUrl(currentBackgroundUrl);
+      const id = setTimeout(() => setDisplayedBgUrl(currentBackgroundUrl), 0);
+      return () => clearTimeout(id);
     }
   }, [currentBackgroundUrl]);
 
@@ -591,7 +625,7 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
             <span>{`已选择${selectedMessageIds.size} 条消息`}</span>
             <div className="gap-x-4 flex">
               <button
-                className="btn btn-sm btn"
+                className="btn btn-sm"
                 onClick={() => updateSelectedMessageIds(new Set())}
                 type="button"
               >
@@ -619,21 +653,6 @@ export default function ChatFrame({ useChatBubbleStyle, setUseChatBubbleStyle, v
             </div>
           </div>
         )}
-        {
-          roomChatStatues.length > 0 && (
-            <div className="absolute top-0 bg-base-100 w-full p-2 shadow-sm z-3 text-center rounded flex-shrink-0">
-              {
-                roomChatStatues
-                  .map((status, index) => (
-                    <span key={status.userId}>
-                      <UserIdToName userId={status.userId} className="text-info"></UserIdToName>
-                      {index === roomChatStatues.length - 1 ? " 正在输入..." : ", "}
-                    </span>
-                  ))
-              }
-            </div>
-          )
-        }
         <div className="h-full flex-1">
           <Virtuoso
             data={historyMessages}

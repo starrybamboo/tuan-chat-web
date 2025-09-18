@@ -3,6 +3,7 @@ import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { useModuleContext } from "../context/_moduleContext";
 import Veditor from "./veditor";
 
@@ -62,6 +63,7 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
               // 最后移除标签
               removeModuleTabItem(item.id!.toString());
             }
+            toast.success("保存成功");
           },
         },
       );

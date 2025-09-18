@@ -6,7 +6,7 @@ import "./vditor-high-contrast-dark.css";
 
 interface vditorProps {
   id: string;
-  placeholder: string;
+  placeholder: string; // 仅用于首次挂载时的初始内容
   onchange: (value: string) => void;
 }
 
@@ -37,6 +37,13 @@ if (typeof window !== "undefined") {
 export default function Veditor({ id, placeholder, onchange }: vditorProps) {
   const vdRef = useRef<Vditor | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const onChangeRef = useRef(onchange);
+  const initialPlaceholderRef = useRef(placeholder);
+
+  // 始终保持最新的回调，但不触发实例的重建
+  useEffect(() => {
+    onChangeRef.current = onchange;
+  }, [onchange]);
 
   useEffect(() => {
     const container = containerRef.current; // 在 useEffect 内部保存 containerRef 的当前值
@@ -53,13 +60,14 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
         minHeight: 300,
         preview: {},
         after: () => {
-          if (placeholder && vdRef.current) {
-            vdRef.current.setValue(placeholder);
+          const initText = initialPlaceholderRef.current;
+          if (initText && vdRef.current) {
+            vdRef.current.setValue(initText);
           }
         },
         input: (value: string) => {
           if (vdRef.current) {
-            onchange(value);
+            onChangeRef.current?.(value);
           }
         },
         mode: "wysiwyg",
@@ -106,7 +114,8 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
         vdRef.current = null;
       }
     };
-  }, [placeholder, onchange]); // 移除 theme 依赖
+    // 仅在首次挂载时初始化，不因 placeholder/onchange 变更而销毁重建
+  }, []);
 
   return (
     <div id={id} ref={containerRef} className="vditor">

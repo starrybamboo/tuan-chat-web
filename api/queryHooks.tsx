@@ -7,53 +7,24 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import { useQuery, useMutation, QueryClient, useQueryClient, useQueries, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useQueries, useInfiniteQuery } from '@tanstack/react-query';
 import { tuanchat } from './instance';
 
-import type { ChatMessagePageRequest } from './models/ChatMessagePageRequest';
-import type { ChatMessageRequest } from './models/ChatMessageRequest';
-import type { RoomAddRequest } from './models/RoomAddRequest';
 
 // import type { RoleAbilityTable } from './models/RoleAbilityTable';
 import type { RoleAvatar } from './models/RoleAvatar';
 import type { RoleAvatarCreateRequest } from './models/RoleAvatarCreateRequest';
-import type { RoleUpdateRequest } from './models/RoleUpdateRequest';
 import type { UserLoginRequest } from './models/UserLoginRequest';
 import type { UserRegisterRequest } from './models/UserRegisterRequest';
 import type { RolePageQueryRequest } from './models/RolePageQueryRequest'
-import type { UserRole } from './models/UserRole';
-import type { AbilitySetRequest } from "./models/AbilitySetRequest";
-import type { AbilityUpdateRequest } from "./models/AbilityUpdateRequest";
-import type { UseQueryResult } from "@tanstack/react-query";
 import type { Transform } from '../app/components/newCharacter/sprite/TransformControl';
 
 import {
-  type AbilityFieldUpdateRequest,
-  type ApiResultListRoleResponse,
   type ApiResultRoleAbility,
   type ApiResultRoleAvatar,
-  type ApiResultUserInfoResponse,
-  type Message,
-  type RoleResponse,
-  type SpaceOwnerTransferRequest,
-  type Space,
-  type SpaceAddRequest,
-  type SpaceMemberAddRequest,
-  type SpaceMemberDeleteRequest,
   type UserInfoResponse,
-  type RoomUpdateRequest,
-  type PlayerGrantRequest,
-  type PlayerRevokeRequest,
-  type RoomRoleAddRequest,
-  type RoomRoleDeleteRequest,
-  type RoomMemberAddRequest,
-  type RoomMemberDeleteRequest,
-  type SpaceUpdateRequest,
-  type LikeRecordRequest,
-  LikeRecordControllerService, type CommentPageRequest, type CommentAddRequest,
   type RoleCreateRequest
 } from "api";
-import { use } from 'react';
 import type { Role } from '@/components/newCharacter/types';
 
 // ==================== 角色管理 ====================
@@ -67,6 +38,20 @@ export function useGetRoleQuery(roleId: number) {
     queryFn: () => tuanchat.roleController.getRole(roleId),
     staleTime: 600000, // 10分钟缓存
     enabled: roleId > 0
+  });
+}
+
+/**
+ * 根据id批量获取角色
+ */
+export function useGetRolesQueries(roleIds: number[]) {
+  return useQueries({
+    queries: roleIds.map((roleId) => ({
+      queryKey: ["getRole", roleId],
+      queryFn: () => tuanchat.roleController.getRole(roleId),
+      staleTime: 600000, // 10分钟缓存
+      enabled: roleId > 0
+    }))
   });
 }
 
@@ -98,6 +83,7 @@ export function useUpdateRoleWithLocalMutation(onSave: (localRole: Role) => void
       queryClient.invalidateQueries({ queryKey: ['getRole', variables.roleId] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
       queryClient.invalidateQueries({ queryKey: ['getRoleAvatars', variables.roleId] });
+      queryClient.invalidateQueries({ queryKey: ["roomRole"] });
     },
     onError: (error: any) => {
       console.error("Mutation failed:", error);
@@ -176,6 +162,7 @@ export function useDeleteRolesMutation(onSuccess?: () => void) {
       queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
       queryClient.invalidateQueries({ queryKey: ['getRole'] });
       queryClient.invalidateQueries({ queryKey: ['getUserRoles'] });
+      queryClient.invalidateQueries({ queryKey: ["roomRole"] });
     },
     onError: (error) => {
       console.error("删除角色失败:", error);
@@ -390,6 +377,66 @@ export function useApplyCropMutation() {
   });
 }
 
+/**
+ * 应用头像裁剪的hook - 专门用于更新头像而非立绘
+ */
+export function useApplyCropAvatarMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: ["applyCropAvatar"],
+    mutationFn: async ({ roleId, avatarId, croppedImageBlob, currentAvatar }: { 
+      roleId: number; 
+      avatarId: number; 
+      croppedImageBlob: Blob;
+      currentAvatar: RoleAvatar;
+    }) => {
+      if (!roleId || !avatarId || !croppedImageBlob || !currentAvatar) {
+        console.error("参数错误：缺少必要参数");
+        return undefined;
+      }
+
+      try {
+        // 首先上传裁剪后的头像图片
+        // 将Blob转换为File对象
+        const croppedFile = new File([croppedImageBlob], `cropped_avatar_${avatarId}_${Date.now()}.png`, {
+          type: 'image/png'
+        });
+        
+        // 使用UploadUtils上传图片，场景2表示头像
+        const { UploadUtils } = await import('../app/utils/UploadUtils');
+        const uploadUtils = new UploadUtils();
+        const newAvatarUrl = await uploadUtils.uploadImg(croppedFile, 2, 0.9, 2560);
+
+        console.log("头像图片上传成功，新URL:", newAvatarUrl);
+        
+        // 使用新的avatarUrl更新头像记录，保持原有的spriteUrl和Transform参数
+        const updateRes = await tuanchat.avatarController.updateRoleAvatar({
+          roleId: roleId,
+          avatarId,
+          avatarUrl: newAvatarUrl, // 使用新的avatarUrl
+        });
+
+        if (!updateRes.success) {
+          console.error("头像记录更新失败", updateRes);
+          return undefined;
+        }
+
+        console.log("头像裁剪应用成功，头像记录已更新");
+        await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
+        console.log("缓存已刷新，roleId:", roleId);
+        return updateRes;
+      }
+      catch (error) {
+        console.error("头像裁剪应用请求失败", error);
+        throw error;
+      }
+    },
+    onError: (error) => {
+      console.error("Crop avatar application mutation failed:", error.message || error);
+    },
+  });
+}
+
 export function useUpdateAvatarTransformMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -443,9 +490,9 @@ export function useUpdateAvatarTransformMutation() {
 
 export function useUploadAvatarMutation() {
   const queryClient = useQueryClient();
-  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; spriteUrl: string; roleId: number; transform?: Transform; avatarTitle?: string }>({
+  return useMutation<ApiResultRoleAvatar | undefined, Error, { avatarUrl: string; spriteUrl: string; roleId: number; transform?: Transform; }>({
     mutationKey: ["uploadAvatar"],
-    mutationFn: async ({ avatarUrl, spriteUrl, roleId, transform, avatarTitle }) => {
+    mutationFn: async ({ avatarUrl, spriteUrl, roleId, transform }) => {
       if (!avatarUrl || !roleId || !spriteUrl) {
         console.error("参数错误：avatarUrl 或 roleId 为空");
         return undefined;
@@ -484,7 +531,6 @@ export function useUploadAvatarMutation() {
             avatarId,
             avatarUrl,
             spriteUrl,
-            avatarTitle,
             spriteXPosition: t.positionX,
             spriteYPosition: t.positionY,
             spriteScale: t.scale,
@@ -519,7 +565,7 @@ export function useUpdateAvatarTitleMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["updateAvatarTitle"],
-    mutationFn: async ({ avatarId, avatarTitle, roleId }: { avatarId: number; avatarTitle: string; roleId: number }) => {
+    mutationFn: async ({ avatarId, avatarTitle, roleId }: { avatarId: number; avatarTitle: Record<string,string>; roleId: number }) => {
       if (!avatarId || !avatarTitle) {
         console.error("参数错误：avatarId 或 title 为空");
         return undefined;
@@ -532,9 +578,32 @@ export function useUpdateAvatarTitleMutation() {
         throw error;
       }
     },
-    onSuccess: (_ , variables) => {
-      queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", variables.roleId] });
+    // 乐观更新，避免整表刷新导致 UI 抖动/选中项重置
+    onMutate: async (variables) => {
+      const { roleId, avatarId, avatarTitle } = variables as { roleId: number; avatarId: number; avatarTitle: Record<string, string> };
+      const key = ["getRoleAvatars", roleId];
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData(key);
+      queryClient.setQueryData(key, (oldData: any) => {
+        if (!oldData) return oldData;
+        // 兼容两种返回结构：直接数组 或 { data: [] }
+        if (Array.isArray(oldData)) {
+          return oldData.map((a: any) => (a?.avatarId === avatarId ? { ...a, avatarTitle } : a));
+        }
+        const arr = Array.isArray(oldData?.data) ? oldData.data : null;
+        if (!arr) return oldData;
+        const nextArr = arr.map((a: any) => (a?.avatarId === avatarId ? { ...a, avatarTitle } : a));
+        return { ...oldData, data: nextArr };
+      });
+      return { previous, key };
     },
+    onError: (_err, _vars, context) => {
+      if (context?.key) {
+        queryClient.setQueryData(context.key as any, context.previous);
+      }
+    },
+    // 保持当前缓存，不立刻触发 refetch，避免选中项重置
+    onSuccess: () => {},
   })
 }
 

@@ -1,5 +1,6 @@
 /**
  * 将图片压缩成webp，会改变原来的文件名和后缀（加上时间戳，去除空格，改为webp）
+ * GIF文件将保持原格式以保留动画效果
  * @param file
  * @param quality
  * @param maxSize
@@ -9,6 +10,16 @@ export async function compressImage(file: File, quality = 0.7, maxSize = 2560): 
     if (!file.type.startsWith("image/")) {
       return resolve(file); // 非图片类型直接返回原文件
     }
+
+    // 如果是GIF文件，只重命名不压缩，保持动画效果
+    if (file.type === "image/gif") {
+      const newName = file.name.replace(/(\.[^.]+)?$/, `_${Date.now()}.gif`).split(" ").join("");
+      const renamedFile = new File([file], newName, {
+        type: "image/gif",
+      });
+      return resolve(renamedFile);
+    }
+
     const img = new Image();
     const reader = new FileReader();
 

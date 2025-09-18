@@ -7,8 +7,8 @@ import { DisplayChatBubble } from "../displayChatBubble";
 interface AvatarPreviewProps {
   // 预览Canvas引用
   previewCanvasRef?: React.RefObject<HTMLCanvasElement | null>;
-  // 当前头像URL
-  currentAvatarUrl: string;
+  // 当前头像URL（备用）
+  currentAvatarUrl?: string;
   // 角色名称
   characterName?: string;
   // 预览模式: 'full' - 完整预览(默认), 'image' - 仅图片预览, 'chat' - 仅聊天预览
@@ -23,6 +23,8 @@ interface AvatarPreviewProps {
   showBubbleStyle?: boolean;
   // 是否显示传统样式
   showTraditionalStyle?: boolean;
+  // 是否隐藏标题
+  hideTitle?: boolean;
 }
 
 /**
@@ -39,12 +41,29 @@ export function AvatarPreview({
   chatMessages = ["这是使用新头像的聊天消息！", "头像看起来怎么样？", "完成后就可以开始聊天了~"],
   showBubbleStyle = true,
   showTraditionalStyle = true,
+  hideTitle = false,
 }: AvatarPreviewProps) {
+  // 获取当前使用的头像URL
+  const getDisplayAvatarUrl = () => {
+    if (previewCanvasRef?.current) {
+      try {
+        return previewCanvasRef.current.toDataURL();
+      }
+      catch (error) {
+        console.warn("Failed to get canvas data URL:", error);
+        return currentAvatarUrl || "/favicon.ico";
+      }
+    }
+    return currentAvatarUrl || "/favicon.ico";
+  };
+
+  const displayAvatarUrl = getDisplayAvatarUrl();
+
   // 渲染图片预览
   const renderImagePreview = () => (
     <div className={`bg-gray-50 rounded border flex items-center justify-center overflow-hidden ${className}`}>
       <img
-        src={currentAvatarUrl || "/favicon.ico"}
+        src={displayAvatarUrl}
         alt="预览"
         className={`object-contain ${imageClassName}`}
       />
@@ -81,7 +100,7 @@ export function AvatarPreview({
   // 渲染完整预览
   const renderFullPreview = () => (
     <>
-      <h2 className="text-xl font-bold">头像预览</h2>
+      {!hideTitle && <h2 className="text-xl font-bold">头像预览</h2>}
       {/* 隐藏的 canvas 用于图像处理 */}
       {previewCanvasRef && (
         <canvas
@@ -98,7 +117,7 @@ export function AvatarPreview({
             <DisplayChatBubble
               key={`bubble-${message}`}
               roleName={characterName}
-              avatarUrl={currentAvatarUrl}
+              avatarUrl={displayAvatarUrl}
               content={message}
               useChatBubbleStyle={true}
             />
@@ -113,7 +132,7 @@ export function AvatarPreview({
             <DisplayChatBubble
               key={`traditional-${message}`}
               roleName={characterName}
-              avatarUrl={currentAvatarUrl}
+              avatarUrl={displayAvatarUrl}
               content={message}
               useChatBubbleStyle={false}
             />

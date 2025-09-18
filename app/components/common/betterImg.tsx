@@ -1,5 +1,5 @@
 import { ResizableImg } from "@/components/common/resizableImg";
-import toastWindow from "@/components/common/toastWindow";
+import toastWindow from "@/components/common/toastWindow/toastWindow";
 import React, { useRef } from "react";
 
 /**

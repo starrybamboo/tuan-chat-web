@@ -4,6 +4,7 @@ import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderW
 import { useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { useModuleContext } from "../context/_moduleContext";
 import Veditor from "./veditor";
 
@@ -62,6 +63,7 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
               // 最后移除标签
               removeModuleTabItem(location.id!.toString());
             }
+            toast.success("保存成功");
           },
         },
       );

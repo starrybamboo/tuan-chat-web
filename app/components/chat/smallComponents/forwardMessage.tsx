@@ -1,8 +1,8 @@
 import type { ChatMessageResponse } from "../../../../api";
 import { ChatBubble } from "@/components/chat/chatBubble";
 import { PreviewMessage } from "@/components/chat/smallComponents/previewMessage";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
-import { PopWindow } from "@/components/common/popWindow";
+import toastWindow from "@/components/common/toastWindow/toastWindow";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 
 /**
@@ -15,7 +15,7 @@ export default function ForwardMessage({ messageResponse }: { messageResponse: C
   const messageList = useMemo(() =>
     messageResponse.message.extra?.forwardMessage?.messageList ?? [], [messageResponse.message.extra?.forwardMessage?.messageList]);
   const previewMessages = useMemo(() => messageList.slice(0, 3), [messageList]);
-  const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`forwardMegDetailPop${messageResponse.message.messageId}`, false);
+  // const [isOpen, setIsOpen] = useSearchParamsState<boolean>(`forwardMegDetailPop${messageResponse.message.messageId}`, false);
 
   const renderedPreviewMessages = useMemo(() => {
     return previewMessages.map(item => (
@@ -25,18 +25,26 @@ export default function ForwardMessage({ messageResponse }: { messageResponse: C
     ));
   }, [previewMessages]);
 
-  const renderedMessages = useMemo(() => {
-    if (!isOpen) {
-      return <></>;
-    }
-    return messageList.map(item => (
-      <ChatBubble chatMessageResponse={item} key={item.message.messageId}></ChatBubble>
-    ));
-  }, [isOpen, messageList]);
+  const queryClient = useQueryClient();
 
   return (
     <div>
-      <div className="bg-base-200 rounded-box p-3 max-w-md" onClick={() => setIsOpen(true)}>
+      <div
+        className="bg-base-200 rounded-box p-3 max-w-md"
+        onClick={
+          () => toastWindow(
+            <QueryClientProvider client={queryClient}>
+              <div
+                className="w-[60vw] max-h-[80vh] overflow-auto"
+              >
+                {messageList.map(item => (
+                  <ChatBubble chatMessageResponse={item} key={item.message.messageId}></ChatBubble>
+                ))}
+              </div>
+            </QueryClientProvider>,
+          )
+        }
+      >
         <div className="flex items-center pb-2 mb-2 border-b border-base-300/50">
           <div className="text-sm font-semibold text-base-content">
             转发消息
@@ -60,11 +68,6 @@ export default function ForwardMessage({ messageResponse }: { messageResponse: C
           )}
         </div>
       </div>
-      <PopWindow isOpen={isOpen} onClose={() => setIsOpen(false)}>
-        <div className="w-[60vw] max-h-[80vh] overflow-auto">
-          {renderedMessages}
-        </div>
-      </PopWindow>
     </div>
   );
 }
