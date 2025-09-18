@@ -287,6 +287,7 @@ export const MomentDetailView: React.FC<MomentDetailViewProps> = ({
               <div className="mt-6 p-6 bg-base-200 rounded-lg">
                 <CommentPanel
                   targetInfo={{ targetId: feed?.feedId ?? -1, targetType: "4" }}
+                  loginUserId={loginUserId}
                 />
               </div>
             </div>

@@ -306,8 +306,14 @@ export function useWebSocket() {
           draft[roomId] = messagesToAdd;
         }
       });
-      // 更新发送用户的输入状态
-      handleChatStatusChange({roomId, userId:chatMessageResponse.message.userId, status:"idle"})
+      // 更新发送用户的输入状态（设置为空闲，避免重复状态更新）
+      const sendingUserId = chatMessageResponse.message.userId;
+      if (sendingUserId) {
+        // 使用延迟设置为空闲，避免与其他窗口的状态更新冲突
+        setTimeout(() => {
+          handleChatStatusChange({roomId, userId: sendingUserId, status:"idle"});
+        }, 500); // 延迟500ms再设置为空闲
+      }
     }
   };
   /**
