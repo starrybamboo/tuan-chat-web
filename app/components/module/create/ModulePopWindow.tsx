@@ -1,19 +1,14 @@
 import { PopWindow } from "@/components/common/popWindow";
-import { useCallback } from "react";
-import { useNavigate } from "react-router";
 
 export default function ModulePopWindow({
   modalOpen,
   setModalOpen,
+  goToWorkSpace,
 }: {
   modalOpen: boolean;
   setModalOpen: (open: boolean) => void;
+  goToWorkSpace: () => void;
 }) {
-  const navigate = useNavigate();
-  const goToWorkSpace = useCallback(() => {
-    navigate("/create");
-  }, [navigate]);
-
   return (
     <PopWindow
       isOpen={modalOpen}

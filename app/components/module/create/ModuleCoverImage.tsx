@@ -41,7 +41,7 @@ export default function ModuleCoverImage({
             wrapperClassName="w-full h-full"
             triggerClassName="w-full h-full"
           >
-            <div className="h-full w-full bg-base-300 rounded-lg border-2 border-dashed border-base-content/30 hover:border-primary hover:bg-base-200 transition-colors cursor-pointer flex flex-col items-center justify-center group">
+            <div className="h-96 w-full bg-base-300 rounded-lg border-2 border-dashed border-base-content/30 hover:border-primary hover:bg-base-200 transition-colors cursor-pointer flex flex-col items-center justify-center group">
               {moduleAvatarUrl
                 ? (
                     <div className="relative w-full h-full">
@@ -106,11 +106,11 @@ export default function ModuleCoverImage({
         )}
       />
       {errors.image && (
-        <div className="absolute -bottom-6 left-0 text-error text-xs">
+        <p className="absolute -bottom-8 left-0 text-error">
           {typeof errors.image.message === "string"
             ? errors.image.message
             : "请上传模组封面"}
-        </div>
+        </p>
       )}
     </div>
   );

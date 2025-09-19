@@ -10,7 +10,7 @@ export function meta(_args: Route.MetaArgs) {
 
 export default function ModuleCreate() {
   return (
-    <div className="bg-base-100">
+    <div className="bg-base-100 overflow-auto">
       {/* 这里添加创建模组的表单 */}
       <ModuleCreate2 />
     </div>
