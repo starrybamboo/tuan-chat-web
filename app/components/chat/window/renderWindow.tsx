@@ -90,7 +90,8 @@ export default function RenderWindow() {
   // const roles = useGetRoomRolesQueries(rooms.map(r => r.roomId!))
   //   .map(q => q.data?.data ?? [])
   //   .flat();
-  const roles = useGetRolesQueries(roleIds)
+  const getRolesQueries = useGetRolesQueries(roleIds);
+  const roles = getRolesQueries
     .map(q => q.data?.data)
     .filter((role): role is UserRole => !!role);
 
@@ -190,6 +191,15 @@ export default function RenderWindow() {
 
     const webgalUrl = `http://localhost:3001/#/game/%20preview_${spaceId}`;
     window.open(webgalUrl, "");
+  }
+
+  if (getRolesQueries.some(q => q.isLoading)) {
+    return (
+      <div className="flex justify-center items-center h-30">
+        <div className="items-center">加载中...</div>
+        <span className="loading loading-spinner loading-xl"></span>
+      </div>
+    );
   }
 
   return (
