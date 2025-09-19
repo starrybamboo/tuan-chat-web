@@ -20,10 +20,16 @@ export default function RoleCreationPage() {
   const [mode, setMode] = useState<"self" | "AI" | "excel" | "entry">("entry");
 
   // 当一个角色被创建并保存后，导航到它的详情页
-  const handleCreationComplete = (newRole: Role) => {
+  const handleCreationComplete = (newRole: Role, ruleId?: number) => {
     // 这里我们可以手动更新一下 roles 状态，以便 Sidebar 立即显示新角色
     setRoles(prevRoles => [newRole, ...prevRoles]);
-    navigate(`/role/${newRole.id}`);
+    // 如果提供了规则ID，则导航到具体规则页面，否则导航到角色详情页
+    if (ruleId) {
+      navigate(`/role/${newRole.id}?rule=${ruleId}`);
+    }
+    else {
+      navigate(`/role/${newRole.id}`);
+    }
   };
 
   // 根据 mode 返回不同的创建组件

@@ -12,7 +12,7 @@ import CreatePageHeader from "./components/CreatePageHeader";
 
 interface AICreateRoleProps {
   onBack?: () => void;
-  onComplete?: (characterData: Role) => void;
+  onComplete?: (characterData: Role, ruleId?: number) => void;
   // 添加状态维护相关的props
   setRoles?: React.Dispatch<React.SetStateAction<Role[]>>;
   setSelectedRoleId?: (id: number | null) => void;
@@ -61,7 +61,7 @@ export default function AICreateRole({
   const { mutate: generateAbilityByRule } = useGenerateAbilityByRuleMutation();
   const { mutate: setRoleAbility } = useSetRoleAbilityMutation();
   // 添加更新角色的hook，只有在onSave存在时才使用
-  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave || (() => {}));
+  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave || (() => { }));
 
   // 获取规则详情
   const selectedRuleId = characterData.ruleId || 0;
@@ -379,6 +379,7 @@ export default function AICreateRole({
       }
 
       // 2. 上传头像 (使用默认头像)
+
       const avatarRes = await uploadAvatar({
         avatarUrl: "/favicon.ico",
         spriteUrl: "/favicon.ico",
@@ -386,7 +387,7 @@ export default function AICreateRole({
       });
 
       if (!avatarRes?.data?.avatarId) {
-        throw new Error("头像上传失败");
+        throw new Error("头像上传失败 - 未返回有效的 avatarId");
       }
 
       // 3. 设置角色能力数据
@@ -430,10 +431,10 @@ export default function AICreateRole({
       }
 
       // 8. 调用完成回调
-      onComplete?.(newRole);
+      onComplete?.(newRole, characterData.ruleId);
     }
     catch (error) {
-      console.error("保存角色失败:", error);
+      console.error("❌ 保存角色失败:", error);
     }
     finally {
       setIsSaving(false);

@@ -4,6 +4,7 @@ import type { Role } from "./types";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import AudioPlayer from "./AudioPlayer";
 import AudioUploadModal from "./AudioUploadModal";
 import CharacterAvatar from "./CharacterAvatar";
@@ -54,10 +55,12 @@ export default function CharacterDetail({
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   // 已由SpriteRenderStudio内部管理transform相关状态
 
-  // 规则选择状态
-  const [selectedRuleId, setSelectedRuleId] = useState<number>(1);
+  // 规则选择状态 - 使用 searchParams 替代 state
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const selectedRuleId = Number(searchParams.get("rule")) || 1;
   const [isRuleLoading, setIsRuleLoading] = useState(false);
-  const [isExpansionLoading, setIsExpansionLoading] = useState(true); // <--- 新增这一行, 默认为 true
+
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false); // 规则选择弹窗状态
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false); // 音频上传弹窗状态
 
@@ -70,7 +73,10 @@ export default function CharacterDetail({
   // 处理规则变更
   const handleRuleChange = (newRuleId: number) => {
     setIsRuleLoading(true);
-    setSelectedRuleId(newRuleId);
+    // 更新 URL searchParams
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set("rule", newRuleId.toString());
+    navigate(`?${newSearchParams.toString()}`, { replace: true });
     setIsRuleModalOpen(false); // 关闭弹窗
     // 模拟加载延迟
     setTimeout(() => setIsRuleLoading(false), 300);
@@ -510,7 +516,7 @@ export default function CharacterDetail({
         <div className="lg:col-span-3 space-y-6">
 
           {/* 渲染结果预览 */}
-          {isExpansionLoading || isRuleLoading
+          {isRuleLoading
             ? (
                 <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
                   <div className="card-body">
@@ -585,7 +591,6 @@ export default function CharacterDetail({
                 <ExpansionModule
                   roleId={localRole.id}
                   ruleId={selectedRuleId}
-                  onLoadingChange={setIsExpansionLoading} // <--- 在这里传递回调
                 />
               )}
         </div>

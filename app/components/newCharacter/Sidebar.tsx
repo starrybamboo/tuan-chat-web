@@ -1,7 +1,6 @@
 import type { UserRole } from "api";
 import type { Role } from "./types";
 import { tuanchat } from "@/../api/instance";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDeleteRolesMutation, useGetInfiniteUserRolesQuery } from "api/queryHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
@@ -52,7 +51,7 @@ export function Sidebar({
   // const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
 
   // 删除弹窗状态
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useSearchParamsState<boolean>(`deleteRoleConfirmPop`, false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState<boolean>(false);
   const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
   const queryClient = useQueryClient();
   // 删除角色
@@ -103,6 +102,12 @@ export function Sidebar({
         }
 
         try {
+          // 如果角色没有avatarId，跳过头像加载
+          if (!role.avatarId) {
+            console.warn(`角色 ${role.id} 没有avatarId，跳过头像加载`);
+            return null;
+          }
+
           const res = await tuanchat.avatarController.getRoleAvatar(role.avatarId);
           if (res.success && res.data) {
             const avatarUrl = res.data.avatarUrl;
@@ -110,7 +115,7 @@ export function Sidebar({
             queryClient.setQueryData(["roleAvatar", role.id], avatarUrl);
             return { id: role.id, avatar: avatarUrl };
           }
-          console.warn(`角色 ${role.id} 的头像数据无效或为空`);
+          console.warn(`角色 ${role.id} 的头像数据无效或为空，avatarId: ${role.avatarId}`);
           return null;
         }
         catch (error) {
@@ -249,16 +254,16 @@ export function Sidebar({
   // 删除确认处理函数
   const handleConfirmDelete = async () => {
     if (deleteCharacterId !== null) {
-    // 单个删除逻辑
+      // 单个删除逻辑
       const roleId = deleteCharacterId;
       if (roleId) {
-      // 更新状态
+        // 更新状态
         setRoles(roles.filter(c => c.id !== roleId));
         deleteRole([roleId]);
       }
     }
     else if (selectedRoles.size > 0) {
-    // 批量删除逻辑
+      // 批量删除逻辑
       const roleIds = Array.from(selectedRoles);
       // 更新状态
       setRoles(roles.filter(c => !selectedRoles.has(c.id)));
@@ -274,7 +279,7 @@ export function Sidebar({
 
   useEffect(() => {
     if (selectedRoleId && !roles.find(c => c.id === selectedRoleId)) {
-    // 当前选中角色被删掉了，跳转
+      // 当前选中角色被删掉了，跳转
       navigate("/role", { replace: true });
     }
   }, [roles, selectedRoleId, navigate]);
@@ -461,8 +466,8 @@ export function Sidebar({
                     handleDelete(role.id);
                   }}
                   isSelectionMode={isSelectionMode}
-                  // 如果 isSelectionMode，需要一种方式来触发 toggleRoleSelection
-                  // 我们在 NavLink 的 onClick 中处理了这个逻辑
+                // 如果 isSelectionMode，需要一种方式来触发 toggleRoleSelection
+                // 我们在 NavLink 的 onClick 中处理了这个逻辑
                 />
               </NavLink>
             ))}
