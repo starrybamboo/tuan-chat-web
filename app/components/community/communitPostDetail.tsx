@@ -1,8 +1,9 @@
+import BetterImg from "@/components/common/betterImg";
 import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import PostActionBar from "@/components/community/postActionBar";
 import PostCommentPanel from "@/components/community/postCommentPanel";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useGetPostDetailQuery } from "../../../api/hooks/communityQueryHooks";
 import { useUserFollowMutation, useUserIsFollowedQuery, useUserUnfollowMutation } from "../../../api/hooks/userFollowQueryHooks";
 import SlidableChatPreview from "./slidableChatPreview";
@@ -45,6 +46,49 @@ export default function CommunityPostDetail({
   // 回复状态管理
   const [replyTo, setReplyTo] = useState<{ userName: string; commentId: number } | null>(null);
 
+  // 生成对帖子主要内容的引用，用于分享时截图
+  const postRef = useRef<HTMLDivElement>(null);
+
+  // 加载状态处理
+  if (postDetailQuery.isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 fade-in-out">
+        <span className="loading loading-spinner loading-lg mb-4"></span>
+        <p className="text-base-content/60 fade-in-out" style={{ animationDelay: "0.2s" }}>
+          正在加载帖子详情...
+        </p>
+      </div>
+    );
+  }
+
+  // 错误状态处理
+  if (postDetailQuery.isError || !post) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 fade-in-out">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-16 w-16 text-base-content/30 mb-4 animate-scale-in"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.232 18.5c-.77.833.192 2.5 1.732 2.5z"
+          />
+        </svg>
+        <h3 className="text-xl text-base-content/50 mb-2 fade-in-out" style={{ animationDelay: "0.3s" }}>
+          帖子不存在
+        </h3>
+        <p className="text-base-content/40 fade-in-out" style={{ animationDelay: "0.4s" }}>
+          该帖子可能已被删除或不存在
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="gap-4 pb-32 md:pb-4 md:mt-6 md:max-w-3xl md:mx-auto">
       {" "}
@@ -68,9 +112,8 @@ export default function CommunityPostDetail({
       {/* 封面图片 - 手机端占满屏幕宽度，桌面端与内容卡片宽度一致 */}
       {post?.post?.coverImage && (
         <div className="-mx-4 sm:-mx-6 mb-6 md:mx-auto md:mb-0 md:max-w-3xl">
-          <img
+          <BetterImg
             src={post.post.coverImage}
-            alt="封面"
             className="w-full max-h-80 object-cover md:rounded-lg"
           />
         </div>
@@ -78,7 +121,7 @@ export default function CommunityPostDetail({
 
       {/* 主要内容区域：标题、正文等 */}
       <div className="md:bg-base-100 md:rounded-lg w-full md:card md:shadow-xl md:mt-6 md:max-w-3xl md:mx-auto">
-        <div className="px-0 md:px-6 py-0 md:py-6">
+        <div className="px-0 md:px-6 py-0 md:py-6" ref={postRef}>
           {/* 标题 */}
           <h2 className="text-2xl font-semibold text-left mb-6">
             {post?.post?.title || "无标题"}
@@ -140,17 +183,20 @@ export default function CommunityPostDetail({
             commentCount={post?.stats?.commentCount ?? 0}
             shareSearchKey={`post-${postId}-share`}
             shareTitle={post?.post?.title}
+            targetRef={postRef as React.RefObject<HTMLElement>}
             replyTo={replyTo}
             onSetReplyTo={setReplyTo}
           />
         </div>
 
-        <PostCommentPanel
-          targetInfo={{ targetType: "2", targetId: postId }}
-          onReply={(userName, commentId) => {
-            setReplyTo({ userName, commentId });
-          }}
-        />
+        <div className="fade-in-out" style={{ animationDelay: "1.2s" }}>
+          <PostCommentPanel
+            targetInfo={{ targetType: "2", targetId: postId }}
+            onReply={(userName, commentId) => {
+              setReplyTo({ userName, commentId });
+            }}
+          />
+        </div>
         {/* <CommentPanel targetInfo={{ targetId: postId ?? -1, targetType: "2" }} /> */}
       </div>
 
@@ -162,6 +208,7 @@ export default function CommunityPostDetail({
           commentCount={post?.stats?.commentCount ?? 0}
           shareSearchKey={`post-${postId}-share`}
           shareTitle={post?.post?.title}
+          targetRef={postRef as React.RefObject<HTMLElement>}
           replyTo={replyTo}
           onSetReplyTo={setReplyTo}
         />
