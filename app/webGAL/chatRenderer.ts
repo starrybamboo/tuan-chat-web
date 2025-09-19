@@ -127,10 +127,11 @@ export class ChatRenderer {
    * @private
    */
   private getBranchSentence(rooms: Room[]): string {
-    if (rooms.length === 0)
+    const filteredRooms = rooms.filter(room => this.rooms.some(r => r.roomId === room.roomId));
+    if (filteredRooms.length === 0)
       return "choose:返回初始节点:start.txt";
     return `choose:${
-      rooms
+      filteredRooms
         .map(room => `${room.name?.split("\n").join("")}:${this.getSceneName(room)}.txt`)
         .join("|")
     }`;
