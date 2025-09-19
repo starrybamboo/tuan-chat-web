@@ -196,7 +196,7 @@ export default function RenderWindow() {
     <div className="w-full max-w-md mx-auto space-y-4">
       <h2 className="text-xl font-bold text-base-content">渲染设置</h2>
 
-      <div className="divider">忽略语句规则 (正则表达式)</div>
+      <div className="divider">消息过滤规则 (正则表达式)</div>
       {/* 跳过语句的正则表达式输入 */}
       <div className="form-control space-y-2">
         <div className="flex gap-2 w-full">
