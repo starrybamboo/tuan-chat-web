@@ -6,7 +6,7 @@ const beforeSetRules = [
   { id: 4, name: "DND5e", desc: "经典奇幻规则，适合冒险与探索" },
 ];
 
-export default function RuleSelector({ value, onChange }: { value: number; onChange: (id: number) => void }) {
+export default function RuleSelector({ value, onChange }: { value: number; onChange: any }) {
   const { data, isLoading, isSuccess } = useGetRulePageInfiniteQuery({
     pageNo: 1,
     pageSize: 20,
@@ -46,7 +46,9 @@ export default function RuleSelector({ value, onChange }: { value: number; onCha
             name="rule"
             value={rule.id}
             checked={value === rule.id}
-            onChange={() => onChange(rule.id)}
+            onChange={() => {
+              onChange("ruleId", rule.id);
+            }}
             className="hidden"
           />
           <div className="flex flex-col items-start">
