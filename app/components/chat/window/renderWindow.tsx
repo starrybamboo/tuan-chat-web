@@ -110,6 +110,7 @@ export default function RenderWindow() {
     useVocal: false,
     skipRegex: "", // 初始化 skipRegex
   });
+  const [excludedRoomIds, setExcludedRoomIds] = useState<Set<number>>(new Set());
   const [roleAudios, setRoleAudios] = useState<{ [roleId: number]: File }>({});
   const [isRendering, setIsRendering] = useState(false);
   const [renderProcess, setRenderProcess] = useState<RenderProcess>({});
@@ -121,11 +122,17 @@ export default function RenderWindow() {
     if (savedProps) {
       updateRenderProps(JSON.parse(savedProps));
     }
+
+    const savedExcludedRooms = localStorage.getItem("excludedRoomIds");
+    if (savedExcludedRooms) {
+      setExcludedRoomIds(new Set(JSON.parse(savedExcludedRooms)));
+    }
   }, [updateRenderProps]);
 
   async function handleRender() {
     // 保存数据到localStorage
     localStorage.setItem("renderProps", JSON.stringify(renderProps));
+    localStorage.setItem("excludedRoomIds", JSON.stringify(Array.from(excludedRoomIds)));
 
     setIsRendering(true);
     // 轮询检测TTS服务是否启动
@@ -150,9 +157,12 @@ export default function RenderWindow() {
       100,
     ).catch(() => toast.error("WebGAL 启动失败"));
 
+    // 过滤掉被排除的房间
+    const filteredRooms = rooms.filter(room => !excludedRoomIds.has(room.roomId!));
+
     const renderInfo: RenderInfo = {
       space: spaceInfo!,
-      rooms,
+      rooms: filteredRooms,
       roles,
       chatHistoryMap,
       roleAudios,
@@ -185,11 +195,10 @@ export default function RenderWindow() {
   return (
     <div className="w-full max-w-md mx-auto space-y-4">
       <h2 className="text-xl font-bold text-base-content">渲染设置</h2>
+
+      <div className="divider">忽略语句规则 (正则表达式)</div>
       {/* 跳过语句的正则表达式输入 */}
       <div className="form-control space-y-2">
-        <label className="label p-0">
-          <span className="label-text text-base-content font-medium">忽略语句规则 (正则表达式)</span>
-        </label>
         <div className="flex gap-2 w-full">
           <input
             type="text"
@@ -220,7 +229,57 @@ export default function RenderWindow() {
           </div>
         </div>
       </div>
-
+      <div className="divider">排除房间</div>
+      {/* 房间排除选择 */}
+      <div className="form-control space-y-2">
+        <div className="text-xs text-base-content/50 mb-2">
+          选择不参与渲染的房间。被排除的房间内容将不会出现在最终的渲染结果中。
+        </div>
+        <div className="space-y-2 max-h-35 overflow-y-auto">
+          {rooms.map(room => (
+            <div key={room.roomId} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="checkbox checkbox-sm"
+                checked={excludedRoomIds.has(room.roomId!)}
+                onChange={(e) => {
+                  const newExcludedRooms = new Set(excludedRoomIds);
+                  if (e.target.checked) {
+                    newExcludedRooms.add(room.roomId!);
+                  }
+                  else {
+                    newExcludedRooms.delete(room.roomId!);
+                  }
+                  setExcludedRoomIds(newExcludedRooms);
+                }}
+              />
+              <span className="text-sm text-base-content truncate flex-1">
+                {room.name}
+              </span>
+              <span className="text-xs text-base-content/50">
+                {chatHistoryMap[room.roomId!]?.length || 0}
+                {" "}
+                条消息
+              </span>
+            </div>
+          ))}
+          {rooms.length === 0 && (
+            <div className="text-center text-base-content/50 py-2">
+              暂无房间数据
+            </div>
+          )}
+        </div>
+        {excludedRoomIds.size > 0 && (
+          <div className="text-xs text-warning">
+            已排除
+            {" "}
+            {excludedRoomIds.size}
+            {" "}
+            个房间
+          </div>
+        )}
+      </div>
+      <div className="divider">语音合成</div>
       {/* 语音合成开关 */}
       <div className="form-control">
         <label className="label cursor-pointer justify-between p-0">
@@ -267,8 +326,18 @@ export default function RenderWindow() {
                   >
                     <div className="flex items-center justify-between mb-2 w-full">
                       <div className="flex items-center gap-2 w-full">
-                        <RoleAvatarComponent avatarId={role.avatarId!} width={8} isRounded={true} stopPopWindow></RoleAvatarComponent>
-                        <span className="font-medium text-base-content max-w-[35%] truncate">{role.roleName || "未知角色"}</span>
+                        <RoleAvatarComponent
+                          avatarId={role.avatarId!}
+                          width={8}
+                          isRounded={true}
+                          stopPopWindow
+                        >
+                        </RoleAvatarComponent>
+                        <span
+                          className="font-medium text-base-content max-w-[35%] truncate"
+                        >
+                          {role.roleName || "未知角色"}
+                        </span>
                         {
                           hasUploadedAudio
                             ? (
@@ -277,7 +346,9 @@ export default function RenderWindow() {
                                 </div>
                               )
                             : (
-                                <div className={`badge ${hasVoiceUrl ? "badge-success" : "badge-warning"} badge-sm inline`}>
+                                <div
+                                  className={`badge ${hasVoiceUrl ? "badge-success" : "badge-warning"} badge-sm inline`}
+                                >
                                   {hasVoiceUrl ? "有默认音频" : "缺少音频"}
                                 </div>
                               )
@@ -352,7 +423,14 @@ export default function RenderWindow() {
                     {
                       (() => {
                         if (hasUploadedAudio) {
-                          return <AudioPlayer audioFile={roleAudios[role.roleId!]} size="sm" height={20}></AudioPlayer>;
+                          return (
+                            <AudioPlayer
+                              audioFile={roleAudios[role.roleId!]}
+                              size="sm"
+                              height={20}
+                            >
+                            </AudioPlayer>
+                          );
                         }
                         else if (hasVoiceUrl) {
                           return <AudioPlayer audioUrl={role.voiceUrl} size="sm" height={20} />;
