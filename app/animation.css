@@ -65,3 +65,48 @@
 .animate-scale-in {
   animation: scale-in 0.5s ease-out forwards;
 }
+
+@keyframes community-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes community-exit {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+}
+
+.community-enter {
+  animation: community-enter 400ms ease-out forwards;
+}
+
+.community-exit {
+  animation: community-exit 300ms ease-in forwards;
+}
+
+@keyframes post-item-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.post-item-enter {
+  animation: post-item-enter 400ms ease-out forwards;
+}
