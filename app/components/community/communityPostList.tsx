@@ -3,8 +3,8 @@ import IllegalURLPage from "@/components/common/illegalURLPage";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { CommunityContext } from "@/components/community/communityContext";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
-import { AnimatePresence, motion } from "framer-motion";
-import React, { use, useEffect, useMemo } from "react";
+import { useDebounce } from "ahooks";
+import React, { use, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   usePageCommunityPostsInfiniteQuery,
@@ -23,17 +23,44 @@ interface CommunityPostListProps {
  */
 export default function CommunityPostList({ onPostClick }: CommunityPostListProps = {}) {
   const communityContext = use(CommunityContext);
-
   const communityId = communityContext.communityId ?? -1;
-
   const navigate = useNavigate();
+
+  // 用于管理切换动画的状态
+  const [displayedCommunityId, setDisplayedCommunityId] = useState(communityId);
+  const [isExiting, setIsExiting] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // 对社区ID进行防抖处理，防止快速切换社区时发送过多请求
+  const debouncedCommunityId = useDebounce(communityId, { wait: 300 });
+
+  // 监听社区ID变化，触发切换动画
+  useEffect(() => {
+    if (debouncedCommunityId === displayedCommunityId || Number.isNaN(debouncedCommunityId)) {
+      return;
+    }
+
+    // 触发退出动画
+    const exitTimer = setTimeout(() => setIsExiting(true), 0);
+
+    // 退出动画完成后切换到新社区
+    const switchTimer = setTimeout(() => {
+      setDisplayedCommunityId(debouncedCommunityId);
+      setIsExiting(false);
+    }, 300); // 与CSS exit动画时长一致
+
+    return () => {
+      clearTimeout(exitTimer);
+      clearTimeout(switchTimer);
+    };
+  }, [debouncedCommunityId, displayedCommunityId]);
 
   // 无限滚动相关
   const [postRef, postEntry] = useIntersectionObserver();
   const FETCH_ON_REMAIN = 2;
   // 获取帖子列表 - 使用无限查询
   const pageCommunityPostsQuery = usePageCommunityPostsInfiniteQuery({
-    communityId,
+    communityId: displayedCommunityId,
     pageSize: PAGE_SIZE,
   });
 
@@ -54,28 +81,26 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
   }
 
   return (
-    <motion.div
-      className="space-y-8 max-w-2xl mx-auto w-full lg:max-w-3xl"
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 30 }}
-      transition={{ duration: 0.4 }}
+    <div
+      ref={containerRef}
+      className={`space-y-8 max-w-2xl mx-auto w-full lg:max-w-3xl ${
+        isExiting ? "community-exit" : "community-enter"
+      }`}
     >
       {/* Loading State */}
       {pageCommunityPostsQuery.isLoading && (
-        <div className="flex flex-col items-center justify-center py-16 fade-in-out">
+        <div className="flex flex-col items-center justify-center py-16">
           <span className="loading loading-spinner loading-lg mb-4"></span>
-          <p className="text-base-content/60 fade-in-out" style={{ animationDelay: "0.2s" }}>正在加载帖子...</p>
+          <p className="text-base-content/60">正在加载帖子...</p>
         </div>
       )}
 
       {/* Posts List */}
       {posts.length === 0 && !pageCommunityPostsQuery.isLoading && (
-        <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-base-300 rounded-box fade-in-out">
+        <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-base-300 rounded-box post-fade-in">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-16 w-16 text-base-content/30 mb-4 animate-scale-in"
-            style={{ animationDelay: "0.2s" }}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -87,10 +112,10 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          <h3 className="text-xl text-base-content/50 mb-2 fade-in-out" style={{ animationDelay: "0.4s" }}>
+          <h3 className="text-xl text-base-content/50 mb-2">
             暂无帖子
           </h3>
-          <p className="text-base-content/40 fade-in-out" style={{ animationDelay: "0.5s" }}>
+          <p className="text-base-content/40">
             成为第一个在此社区发帖的人
           </p>
         </div>
@@ -98,21 +123,14 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
 
       {posts.length > 0 && (
         <div className="space-y-5">
-          <AnimatePresence>
-            {posts.map((post, index) => (
-              <motion.div
+          {posts.map((post, index) => {
+            const delayClass = index < 5 ? `delay-${(index + 1) * 100}` : "";
+            return (
+              <div
                 key={post?.postListItem?.communityPostId}
                 ref={index === posts.length - FETCH_ON_REMAIN ? postRef : null}
-                className="bg-base-100 rounded-2xl border border-base-200 shadow-sm p-6 transition-all duration-300 hover:shadow-lg hover:border cursor-pointer group fade-in-out"
-                style={{
-                  animationDelay: `${Math.min(index * 0.1, 1)}s`,
-                  animationFillMode: "both",
-                }}
-                initial={{ opacity: 0, scale: 0.98, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.98, y: 20 }}
-                transition={{ duration: 0.35 }}
-                whileHover={{ y: -2 }}
+                className={`bg-base-100 rounded-2xl border border-base-200 shadow-sm p-6 transition-all duration-300 hover:shadow-lg hover:border cursor-pointer group post-item-enter ${delayClass} hover:transform hover:-translate-y-1`}
+                style={{ opacity: 0 }} // 初始隐藏，动画会覆盖
               >
                 {/* 标题头部 */}
                 <div
@@ -261,23 +279,23 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
                     </span>
                   </div>
                 </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+              </div>
+            );
+          })}
 
           {/* Loading indicator for infinite scroll */}
           {pageCommunityPostsQuery.isFetchingNextPage && (
-            <div className="flex justify-center py-4 fade-in-out">
+            <div className="flex justify-center py-4 post-fade-in">
               <span className="loading loading-dots loading-lg text-primary"></span>
             </div>
           )}
 
           {/* End of posts indicator */}
           {!pageCommunityPostsQuery.hasNextPage && posts.length > 0 && (
-            <p className="text-center text-base-content/50 py-4 text-sm fade-in-out">你已经浏览完所有帖子啦！</p>
+            <p className="text-center text-base-content/50 py-4 text-sm post-fade-in">你已经浏览完所有帖子啦！</p>
           )}
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
