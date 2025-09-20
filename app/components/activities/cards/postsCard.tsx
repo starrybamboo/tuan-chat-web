@@ -134,7 +134,10 @@ export const PostsCard: React.FC<PostsCardProps> = ({
   };
 
   // 统一的内容处理
-  const images = Array.isArray(res?.imageUrls) ? res.imageUrls : [];
+  const images = [
+    ...(Array.isArray(res?.imageUrls) ? res.imageUrls : []),
+    ...(res?.coverImage ? [res.coverImage] : []),
+  ];
   const publishTime = res?.createTime ?? "";
   const content = res?.content ?? "";
   const title = res?.title ?? "";
@@ -272,8 +275,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
                     <h3 className="card-title text-xl whitespace-nowrap">{userDisplayData.name}</h3>
                     <div className="flex items-center gap-2 text-xs text-base-content/80">
                       <p>{publishTime}</p>
-                      {/* 如果发送的类型不是 动态（contentTypeNumber !== 12） ，那么进行特殊说明 */}
-                      {contentTypeNumber !== 12 && <p>{contentType}</p>}
+                      <p>{contentType}</p>
                     </div>
                   </>
                 )}
