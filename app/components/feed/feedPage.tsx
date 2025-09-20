@@ -1,6 +1,6 @@
 import type { FeedWithStats } from "@/types/feedTypes";
 import type { FeedPageRequest, PostListResponse, PostStatsResponse } from "api";
-import PostsCard from "@/components/activities/cards/postsCard";
+import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
@@ -102,14 +102,15 @@ export default function FeedPage() {
               ref={index === feeds.length - FETCH_ON_REMAIN ? feedRef : null}
               key={feed.stats?.postId}
             >
-              {feed.stats?.postId
+              {feed.stats
                 ? (
                     <PostsCard
-                      res={feed.response}
+                      res={feed?.response}
                       stats={feed.stats}
                       onDislike={() => handleDislike(feed.stats!.postId)}
                       displayType="feed"
                       loginUserId={loginUserId || -1}
+                      contentTypeNumber={feed?.type}
                     />
                   )
                 : (
