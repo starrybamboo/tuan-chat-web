@@ -1,7 +1,7 @@
 import type { Role } from "@/components/newCharacter/types";
-import CharacterDetail from "@/components/newCharacter/CharacterDetail"; // 确保路径正确
-import { useEffect, useState } from "react";
-import { Navigate, useOutletContext, useParams } from "react-router";
+import CharacterDetail from "@/components/newCharacter/CharacterDetail";
+// --- CHANGED --- 引入更多 react-router hooks
+import { Navigate, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router";
 
 // 定义从 Outlet Context 接收的数据类型
 interface RoleContext {
@@ -13,30 +13,28 @@ export default function RoleDetailPage() {
   const { roleId } = useParams<{ roleId: string }>();
   const { roles, setRoles } = useOutletContext<RoleContext>();
 
-  // 在组件内部定义 isEditing 状态
-  const [isEditing, setIsEditing] = useState(false);
+  // --- ADDED --- 路由和搜索参数的管理 hooks
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
-  // 使用 parseInt 并检查结果
+  // --- REMOVED --- isEditing 状态将移动到 CharacterDetail 内部
+  // const [isEditing, setIsEditing] = useState(false);
+
+  // --- REMOVED --- 这个 useEffect 是多余的，因为组件重新挂载会自动重置状态
+  // useEffect(() => { ... }, [numericRoleId]);
+
   const numericRoleId = roleId ? Number.parseInt(roleId, 10) : Number.NaN;
-
-  // 每次 roleId 变化时，重置编辑状态
-  useEffect(() => {
-    if (numericRoleId) {
-      setIsEditing(false);
-    }
-  }, [numericRoleId]);
-
-  // 如果没有 roleId 参数或ID无效，重定向到 /role
   if (!roleId || Number.isNaN(numericRoleId)) {
     return <Navigate to="/role" replace />;
   }
 
-  // 如果ID无效，或者找不到角色，都显示未找到
   const currentRole = roles.find(r => r.id === numericRoleId);
-
   if (!currentRole) {
     return <div>角色未找到或正在加载...</div>;
   }
+
+  // --- ADDED --- 从 URL search params 解析 ruleId，并提供默认值
+  const selectedRuleId = Number(searchParams.get("rule")) || 1;
 
   const handleSave = (updatedRole: Role) => {
     setRoles(prev =>
@@ -44,16 +42,26 @@ export default function RoleDetailPage() {
         role.id === updatedRole.id ? updatedRole : role,
       ),
     );
-    setIsEditing(false);
+    // isEditing 的状态现在由 CharacterDetail 自己管理
+  };
+
+  // --- ADDED --- 创建一个函数来处理 URL 的变更
+  const handleRuleChange = (newRuleId: number) => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set("rule", newRuleId.toString());
+    // 使用 replace: true 避免在浏览器历史中留下太多记录
+    navigate(`?${newSearchParams.toString()}`, { replace: true });
   };
 
   return (
     <CharacterDetail
       role={currentRole}
-      isEditing={isEditing}
-      onEdit={() => setIsEditing(true)}
+      // onSave 依然需要，用于更新全局状态
       onSave={handleSave}
-      // onBack 行为现在由浏览器的后退按钮或导航到 /role 实现
+      // --- ADDED --- 将解析出的 ruleId 和 URL 修改函数传递下去
+      selectedRuleId={selectedRuleId}
+      onRuleChange={handleRuleChange}
+      // --- REMOVED --- isEditing 和 onEdit 不再需要传递
     />
   );
 }

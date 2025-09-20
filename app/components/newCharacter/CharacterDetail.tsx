@@ -4,7 +4,7 @@ import type { Role } from "./types";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { Link } from "react-router";
 import AudioPlayer from "./AudioPlayer";
 import AudioUploadModal from "./AudioUploadModal";
 import CharacterAvatar from "./CharacterAvatar";
@@ -16,10 +16,9 @@ import { SpriteRenderStudio } from "./sprite/SpriteRenderStudio";
 
 interface CharacterDetailProps {
   role: Role;
-  isEditing: boolean;
-  onEdit: () => void;
   onSave: (updatedRole: Role) => void;
-  onBack?: () => void;
+  selectedRuleId: number;
+  onRuleChange: (newRuleId: number) => void;
 }
 
 /**
@@ -27,11 +26,16 @@ interface CharacterDetailProps {
  */
 export default function CharacterDetail({
   role,
-  isEditing,
-  onEdit,
   onSave,
-  onBack,
+  selectedRuleId,
+  onRuleChange,
 }: CharacterDetailProps) {
+  // --- MOVED --- isEditing 状态现在是组件的本地状态，非常清晰！
+  const [isEditing, setIsEditing] = useState(false);
+
+  // --- MOVED --- isRuleLoading 状态也应该在这里
+  const [isRuleLoading, setIsRuleLoading] = useState(false);
+
   // 初始化角色数据
   const [localRole, setLocalRole] = useState<Role>(role);
   // 编辑状态过渡
@@ -56,10 +60,8 @@ export default function CharacterDetail({
   // 已由SpriteRenderStudio内部管理transform相关状态
 
   // 规则选择状态 - 使用 searchParams 替代 state
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const selectedRuleId = Number(searchParams.get("rule")) || 1;
-  const [isRuleLoading, setIsRuleLoading] = useState(false);
+  // const [searchParams] = useSearchParams();
+  // const navigate = useNavigate();
 
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false); // 规则选择弹窗状态
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false); // 音频上传弹窗状态
@@ -71,14 +73,11 @@ export default function CharacterDetail({
   const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
 
   // 处理规则变更
+  // --- CHANGED --- handleRuleChange 现在只调用从 prop 传来的函数
   const handleRuleChange = (newRuleId: number) => {
     setIsRuleLoading(true);
-    // 更新 URL searchParams
-    const newSearchParams = new URLSearchParams(searchParams);
-    newSearchParams.set("rule", newRuleId.toString());
-    navigate(`?${newSearchParams.toString()}`, { replace: true });
-    setIsRuleModalOpen(false); // 关闭弹窗
-    // 模拟加载延迟
+    onRuleChange(newRuleId); // 调用父组件的函数来更新 URL
+    setIsRuleModalOpen(false);
     setTimeout(() => setIsRuleLoading(false), 300);
   };
 
@@ -114,54 +113,45 @@ export default function CharacterDetail({
     });
   };
 
-  // 当切换到不同角色时，更新本地状态
-  useEffect(() => {
-    if (role.id !== localRole.id) {
-      setLocalRole(role);
-      setSelectedAvatarId(role.avatarId);
-      setSelectedAvatarUrl(role.avatar || "/favicon.ico");
-
-      // 如果头像列表已经加载，立即同步头像信息
-      if (roleAvatars.length > 0 && role.avatarId !== 0) {
-        const currentAvatar = roleAvatars.find(ele => ele.avatarId === role.avatarId);
-        if (currentAvatar) {
-          setSelectedAvatarUrl(currentAvatar.avatarUrl || "/favicon.ico");
-          setSelectedSpriteUrl(currentAvatar.spriteUrl || null);
-        }
-      }
-      else {
-        setSelectedSpriteUrl("");
-      }
-    }
-  }, [role, localRole.id, roleAvatars]);
-
-  // 处理角色头像数据更新
+  // --- 副作用 ---
+  // 这个 useEffect 的职责是：当高清头像列表加载完成后，用它来同步更新所有相关的UI状态
   useEffect(() => {
     if (isSuccess && roleAvatarsResponse?.success && Array.isArray(roleAvatarsResponse.data)) {
       const avatarsData = roleAvatarsResponse.data;
       setRoleAvatars(avatarsData);
 
-      // 使用 localRole.avatarId 而不是 role.avatarId，确保与当前状态同步
-      if (localRole.avatarId !== 0) {
-        const currentAvatar = avatarsData.find(ele => ele.avatarId === localRole.avatarId);
-        const newAvatarUrl = currentAvatar?.avatarUrl || "/favicon.ico";
-        const newSpriteUrl = currentAvatar?.spriteUrl || null;
+      // 基于 props 传来的 `role.avatarId` 寻找当前头像
+      const currentAvatar = avatarsData.find(ele => ele.avatarId === role.avatarId);
+
+      if (currentAvatar) {
+      // 如果在高清列表中找到了当前头像
+        const newAvatarUrl = currentAvatar.avatarUrl || "/favicon.ico";
+        const newSpriteUrl = currentAvatar.spriteUrl || null;
 
         setSelectedAvatarUrl(newAvatarUrl);
         setSelectedSpriteUrl(newSpriteUrl);
 
-        // 同时更新 localRole 的 avatar 字段，确保显示正确的头像
+        // --- 关键修复！---
+        // 同时更新 localRole 的 avatar URL 和 avatarId。
+        // 这样，在下一次渲染时，传递给所有子组件的数据都是一致且正确的。
         setLocalRole(prev => ({
           ...prev,
           avatar: newAvatarUrl,
+          avatarId: role.avatarId, // 使用 role.avatarId 而不是 currentAvatar.avatarId
         }));
       }
       else {
+      // 如果高清列表中没有这个头像，则重置
         setSelectedAvatarUrl("/favicon.ico");
         setSelectedSpriteUrl("");
+        setLocalRole(prev => ({
+          ...prev,
+          avatar: "/favicon.ico",
+          avatarId: 0,
+        }));
       }
     }
-  }, [isSuccess, roleAvatarsResponse, localRole.avatarId]);
+  }, [isSuccess, roleAvatarsResponse, role.id, role.avatarId]); // 依赖项保持不变
 
   // 干净的文本
   const cleanText = (text: string) => {
@@ -174,6 +164,7 @@ export default function CharacterDetail({
       .replace(/\s+$/g, ""); // 移除末尾空格
   };
 
+  // --- CHANGED --- onSave 现在也负责重置本地的 isEditing 状态
   const handleSave = () => {
     setIsTransitioning(true);
     const cleanedRole = {
@@ -181,18 +172,15 @@ export default function CharacterDetail({
       name: cleanText(localRole.name),
       description: cleanText(localRole.description),
     };
-
     updateRole(cleanedRole, {
       onSuccess: () => {
-        // 添加一个意义不明的延迟，故意浪费用户时间（不是
         setTimeout(() => {
-          onSave(cleanedRole);
+          onSave(cleanedRole); // 通知父级更新全局状态
+          setIsEditing(false); // 重置本地编辑状态
           setIsTransitioning(false);
         }, 300);
       },
-      onError: () => {
-        setIsTransitioning(false);
-      },
+      onError: () => setIsTransitioning(false),
     });
   };
 
@@ -249,11 +237,9 @@ export default function CharacterDetail({
       {/* 桌面端显示的头部区域 */}
       <div className="hidden md:flex items-center justify-between gap-3">
         <div className="flex items-center gap-4">
-          {onBack && (
-            <button type="button" className="btn btn-lg btn-outline rounded-md btn-ghost mr-4" onClick={onBack}>
-              ← 返回
-            </button>
-          )}
+          <Link to="/role" type="button" className="btn btn-lg btn-outline rounded-md btn-ghost mr-4">
+            ← 返回
+          </Link>
           <div>
             <h1 className="font-semibold text-2xl md:text-3xl my-2">
               {localRole.name || "未命名角色"}
@@ -287,7 +273,7 @@ export default function CharacterDetail({
               </button>
             )
           : (
-              <button type="button" onClick={onEdit} className="btn btn-accent btn-sm md:btn-lg">
+              <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg">
                 <span className="flex items-center gap-1">
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                     <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
@@ -341,7 +327,7 @@ export default function CharacterDetail({
                         </button>
                       )
                     : (
-                        <button type="button" onClick={onEdit} className="btn btn-accent btn-sm">
+                        <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm">
                           <span className="flex items-center gap-1">
                             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                               <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
