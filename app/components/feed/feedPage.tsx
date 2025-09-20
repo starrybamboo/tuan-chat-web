@@ -1,6 +1,6 @@
 import type { FeedWithStats } from "@/types/feedTypes";
 import type { FeedPageRequest, PostListResponse, PostStatsResponse } from "api";
-import PostsCard from "@/components/activities/cards/postsCard";
+import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";

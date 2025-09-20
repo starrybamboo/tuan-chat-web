@@ -1,8 +1,8 @@
-import { parseEventType } from "@/components/activities/cards/eventTypes";
-import ModuleContentCard from "@/components/activities/cards/postsCardComponents/ModuleContentCard";
-import PostContentCard from "@/components/activities/cards/postsCardComponents/PostContentCard";
 import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
+import { parseEventType } from "@/components/common/acticityAndFeedPostsCard/eventTypes";
+import ModuleContentCard from "@/components/common/acticityAndFeedPostsCard/postsCardComponents/ModuleContentCard";
+import PostContentCard from "@/components/common/acticityAndFeedPostsCard/postsCardComponents/PostContentCard";
 import CollectionIconButton from "@/components/common/collection/collectionIconButton";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import DislikeIconButton from "@/components/common/dislikeIconButton";
@@ -254,75 +254,77 @@ export const PostsCard: React.FC<PostsCardProps> = ({
         )}
 
         {/* 头部 */}
-        <div className="flex flex-row items-center gap-2 mb-2">
-          {userInfoLoading
-            ? (
-                <div className="skeleton w-12 h-12 rounded-full flex-shrink-0"></div>
-              )
-            : (
-                <UserAvatarComponent userId={userId} width={12} isRounded={true} />
-              )}
-          <div className="flex flex-col justify-between min-w-0 flex-1">
+        {!isFeed && (
+          <div className="flex flex-row items-center gap-2 mb-2">
             {userInfoLoading
               ? (
-                  <>
-                    <div className="skeleton h-6 w-24 mb-2"></div>
-                    <div className="skeleton h-4 w-32"></div>
-                  </>
+                  <div className="skeleton w-12 h-12 rounded-full flex-shrink-0"></div>
                 )
               : (
-                  <>
-                    <h3 className="card-title text-xl whitespace-nowrap">{userDisplayData.name}</h3>
-                    <div className="flex items-center gap-2 text-xs text-base-content/80">
-                      <p>{publishTime}</p>
-                      <p>{contentType}</p>
-                    </div>
-                  </>
+                  <UserAvatarComponent userId={userId} width={12} isRounded={true} />
                 )}
-          </div>
+            <div className="flex flex-col justify-between min-w-0 flex-1">
+              {userInfoLoading
+                ? (
+                    <>
+                      <div className="skeleton h-6 w-24 mb-2"></div>
+                      <div className="skeleton h-4 w-32"></div>
+                    </>
+                  )
+                : (
+                    <>
+                      <h3 className="card-title text-xl whitespace-nowrap">{userDisplayData.name}</h3>
+                      <div className="flex items-center gap-2 text-xs text-base-content/80">
+                        <p>{publishTime}</p>
+                        <p>{contentType}</p>
+                      </div>
+                    </>
+                  )}
+            </div>
 
-          {/* 更多操作菜单 */}
-          <div className="relative ml-auto">
-            <button
-              className="text-base-content/40 hover:text-base-content/80 transition-colors p-2 rounded-2xl hover:bg-base-200"
-              onClick={() => setShowMenu(!showMenu)}
-              type="button"
-            >
-              ⋯
-            </button>
+            {/* 更多操作菜单 */}
+            <div className="relative ml-auto">
+              <button
+                className="text-base-content/40 hover:text-base-content/80 transition-colors p-2 rounded-2xl hover:bg-base-200"
+                onClick={() => setShowMenu(!showMenu)}
+                type="button"
+              >
+                ⋯
+              </button>
 
-            {showMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg py-1 z-20 min-w-[120px]">
-                {!isFeed && loginUserId === userId
-                  ? (
-                      <button
-                        onClick={handleDelete}
-                        className="w-full px-4 py-2 text-left text-sm text-error hover:bg-error/10 transition-colors"
-                        type="button"
-                      >
-                        删除
-                      </button>
-                    )
-                  : !isFeed
-                      ? (
-                          <button
-                            onClick={() => setShowMenu(false)}
-                            className="w-full px-4 py-2 text-left text-sm text-base-content/60 hover:bg-base-200 transition-colors"
-                            type="button"
-                          >
-                            举报
-                          </button>
-                        )
-                      : (
-                          <DislikeIconButton
-                            className="w-full justify-start px-3 py-2 hover:bg-base-200 transition-colors"
-                            onDislike={handleDislikeClick}
-                          />
-                        )}
-              </div>
-            )}
+              {showMenu && (
+                <div className="absolute right-0 top-full mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg py-1 z-20 min-w-[120px]">
+                  {!isFeed && loginUserId === userId
+                    ? (
+                        <button
+                          onClick={handleDelete}
+                          className="w-full px-4 py-2 text-left text-sm text-error hover:bg-error/10 transition-colors"
+                          type="button"
+                        >
+                          删除
+                        </button>
+                      )
+                    : !isFeed
+                        ? (
+                            <button
+                              onClick={() => setShowMenu(false)}
+                              className="w-full px-4 py-2 text-left text-sm text-base-content/60 hover:bg-base-200 transition-colors"
+                              type="button"
+                            >
+                              举报
+                            </button>
+                          )
+                        : (
+                            <DislikeIconButton
+                              className="w-full justify-start px-3 py-2 hover:bg-base-200 transition-colors"
+                              onDislike={handleDislikeClick}
+                            />
+                          )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 可点击区域：内容 */}
         <div className="mb-4">

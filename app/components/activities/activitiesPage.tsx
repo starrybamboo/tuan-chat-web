@@ -1,8 +1,8 @@
 import type { FeedPageRequest } from "../../../api";
 import ActivityNotice from "@/components/activities/cards/activituNoticeCard";
-import PostsCard from "@/components/activities/cards/postsCard";
 import PublishPostCard from "@/components/activities/cards/publishPostCard";
 import TrendingTopics from "@/components/activities/cards/trendingTopicsCard";
+import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useGetFollowingMomentFeedInfiniteQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
