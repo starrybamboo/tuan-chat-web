@@ -3,6 +3,7 @@ import IllegalURLPage from "@/components/common/illegalURLPage";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import { CommunityContext } from "@/components/community/communityContext";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
+import { useDebounce } from "ahooks";
 import React, { use, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import {
@@ -30,9 +31,12 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
   const [isExiting, setIsExiting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // 对社区ID进行防抖处理，防止快速切换社区时发送过多请求
+  const debouncedCommunityId = useDebounce(communityId, { wait: 300 });
+
   // 监听社区ID变化，触发切换动画
   useEffect(() => {
-    if (communityId === displayedCommunityId || Number.isNaN(communityId)) {
+    if (debouncedCommunityId === displayedCommunityId || Number.isNaN(debouncedCommunityId)) {
       return;
     }
 
@@ -41,7 +45,7 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
 
     // 退出动画完成后切换到新社区
     const switchTimer = setTimeout(() => {
-      setDisplayedCommunityId(communityId);
+      setDisplayedCommunityId(debouncedCommunityId);
       setIsExiting(false);
     }, 300); // 与CSS exit动画时长一致
 
@@ -49,7 +53,7 @@ export default function CommunityPostList({ onPostClick }: CommunityPostListProp
       clearTimeout(exitTimer);
       clearTimeout(switchTimer);
     };
-  }, [communityId, displayedCommunityId]);
+  }, [debouncedCommunityId, displayedCommunityId]);
 
   // 无限滚动相关
   const [postRef, postEntry] = useIntersectionObserver();
