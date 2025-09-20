@@ -6,7 +6,7 @@ import { useModuleContext } from "../context/_moduleContext";
 import AddEntityToScene from "./addEntityToScene";
 import CreateEntityList from "./createEntityList";
 import EntityDetailList from "./EntityDetailList"; // 引入 EntityDetailList 组件
-import Veditor from "./veditor";
+import Veditor from "./quillEditor";
 
 interface SceneEditProps {
   scene: StageEntityResponse;

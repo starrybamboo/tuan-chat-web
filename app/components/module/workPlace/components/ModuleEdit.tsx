@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import RuleSelect from "../../common/ruleSelect";
 import userContent from "../../detail/readmeDemo.md?raw";
 import { useModuleContext } from "../context/_moduleContext";
-import Veditor from "./veditor";
+import Veditor from "./quillEditor";
 
 interface ModuleEditProps {
   data: Module;

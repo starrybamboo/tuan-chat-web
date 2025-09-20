@@ -6,7 +6,7 @@ import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useModuleContext } from "../context/_moduleContext";
-import Veditor from "./veditor";
+import Veditor from "./quillEditor";
 
 interface LocationEditProps {
   location: StageEntityResponse;

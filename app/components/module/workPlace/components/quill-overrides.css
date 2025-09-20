@@ -1,0 +1,22 @@
+/* 让编辑区域填满外层容器的最小高度，并避免双边框 */
+.ql-wrapper {
+  min-height: inherit; /* 使内部容器可继承外层 min-height */
+}
+
+/* Quill 会在容器内创建 .ql-container 和 .ql-editor，这里同步继承高度 */
+.ql-wrapper .ql-container {
+  min-height: inherit;
+  border: none; /* 使用外层边框，避免双线 */
+  font-size: 14px;
+}
+
+.ql-wrapper .ql-editor {
+  min-height: inherit; /* 关键：编辑区随容器伸展 */
+  padding: 12px 14px;
+  line-height: 1.6;
+}
+
+/* 优化占位符颜色对比 */
+.ql-wrapper .ql-editor.ql-blank::before {
+  color: #9ca3af; /* tailwind gray-400 */
+}
