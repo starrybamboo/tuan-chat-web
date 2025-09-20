@@ -275,7 +275,7 @@ export { CollectionListItemControllerService } from './services/CollectionListIt
 export { CommentControllerService } from './services/CommentControllerService';
 export { CommitControllerService } from './services/CommitControllerService';
 export { CommunityService } from './services/CommunityService';
-export { CommunityPostService } from './services/CommunityPostService';
+export { CommunityPostControllerService } from './services/CommunityPostControllerService';
 export { CounterService } from './services/CounterService';
 export { DiceCommentControllerService } from './services/DiceCommentControllerService';
 export { EmojiControllerService } from './services/EmojiControllerService';
