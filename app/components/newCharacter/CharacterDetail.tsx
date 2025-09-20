@@ -113,45 +113,54 @@ export default function CharacterDetail({
     });
   };
 
-  // --- 副作用 ---
-  // 这个 useEffect 的职责是：当高清头像列表加载完成后，用它来同步更新所有相关的UI状态
+  // 当切换到不同角色时，更新本地状态
+  useEffect(() => {
+    if (role.id !== localRole.id) {
+      setLocalRole(role);
+      setSelectedAvatarId(role.avatarId);
+      setSelectedAvatarUrl(role.avatar || "/favicon.ico");
+
+      // 如果头像列表已经加载，立即同步头像信息
+      if (roleAvatars.length > 0 && role.avatarId !== 0) {
+        const currentAvatar = roleAvatars.find(ele => ele.avatarId === role.avatarId);
+        if (currentAvatar) {
+          setSelectedAvatarUrl(currentAvatar.avatarUrl || "/favicon.ico");
+          setSelectedSpriteUrl(currentAvatar.spriteUrl || null);
+        }
+      }
+      else {
+        setSelectedSpriteUrl("");
+      }
+    }
+  }, [role, localRole.id, roleAvatars]);
+
+  // 处理角色头像数据更新
   useEffect(() => {
     if (isSuccess && roleAvatarsResponse?.success && Array.isArray(roleAvatarsResponse.data)) {
       const avatarsData = roleAvatarsResponse.data;
       setRoleAvatars(avatarsData);
 
-      // 基于 props 传来的 `role.avatarId` 寻找当前头像
-      const currentAvatar = avatarsData.find(ele => ele.avatarId === role.avatarId);
-
-      if (currentAvatar) {
-      // 如果在高清列表中找到了当前头像
-        const newAvatarUrl = currentAvatar.avatarUrl || "/favicon.ico";
-        const newSpriteUrl = currentAvatar.spriteUrl || null;
+      // 使用 localRole.avatarId 而不是 role.avatarId，确保与当前状态同步
+      if (localRole.avatarId !== 0) {
+        const currentAvatar = avatarsData.find(ele => ele.avatarId === localRole.avatarId);
+        const newAvatarUrl = currentAvatar?.avatarUrl || "/favicon.ico";
+        const newSpriteUrl = currentAvatar?.spriteUrl || null;
 
         setSelectedAvatarUrl(newAvatarUrl);
         setSelectedSpriteUrl(newSpriteUrl);
 
-        // --- 关键修复！---
-        // 同时更新 localRole 的 avatar URL 和 avatarId。
-        // 这样，在下一次渲染时，传递给所有子组件的数据都是一致且正确的。
+        // 同时更新 localRole 的 avatar 字段，确保显示正确的头像
         setLocalRole(prev => ({
           ...prev,
           avatar: newAvatarUrl,
-          avatarId: role.avatarId, // 使用 role.avatarId 而不是 currentAvatar.avatarId
         }));
       }
       else {
-      // 如果高清列表中没有这个头像，则重置
         setSelectedAvatarUrl("/favicon.ico");
         setSelectedSpriteUrl("");
-        setLocalRole(prev => ({
-          ...prev,
-          avatar: "/favicon.ico",
-          avatarId: 0,
-        }));
       }
     }
-  }, [isSuccess, roleAvatarsResponse, role.id, role.avatarId]); // 依赖项保持不变
+  }, [isSuccess, roleAvatarsResponse, localRole.avatarId]);
 
   // 干净的文本
   const cleanText = (text: string) => {
