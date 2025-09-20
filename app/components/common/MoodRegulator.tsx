@@ -191,35 +191,16 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
 
   return (
     <div className={className}>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4  bg-base-100 p-4 rounded-md">
         {labelKeys.map((k) => {
           const v = effective[k] ?? 0;
           return (
-            <div key={k} className="card bg-base-200 shadow px-4 py-3">
-              <div className="flex items-center justify-between mb-2 gap-3">
-                <span className="font-medium">{k}</span>
-                <div className="flex items-center gap-2">
-                  <div className="badge badge-ghost hidden sm:flex">
-                    {v.toFixed(2)}
-                  </div>
-                  <input
-                    type="number"
-                    min={0}
-                    max={1}
-                    step={step}
-                    value={v}
-                    disabled={disabled}
-                    onChange={e => handleChange(k, Number(e.target.value))}
-                    onBlur={e => handleChange(k, Number(e.target.value))}
-                    className="input input-sm input-bordered w-20 text-left"
-                  />
-                </div>
-              </div>
+            <div key={k} className="px-4 py-2">
               <div className="flex items-center gap-3">
-                <span className="text-xs opacity-60 select-none">0</span>
+                <span className="font-medium w-8 inline-block text-center">{k}</span>
                 <input
                   type="range"
-                  className="range range-sm flex-1"
+                  className="range range-xs range-info flex-1"
                   min={0}
                   max={1}
                   step={step}
@@ -227,7 +208,18 @@ function MoodRegulator({ value, defaultValue, onChange, disabled, className, ste
                   disabled={disabled}
                   onChange={e => handleChange(k, Number(e.target.value))}
                 />
-                <span className="text-xs opacity-60">1.0</span>
+
+                <input
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={step}
+                  value={v}
+                  disabled={disabled}
+                  onChange={e => handleChange(k, Number(e.target.value))}
+                  onBlur={e => handleChange(k, Number(e.target.value))}
+                  className="input input-sm bg-transparent w-auto rounded-md text-left focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
               </div>
             </div>
           );

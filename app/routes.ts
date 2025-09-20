@@ -1,6 +1,6 @@
 import type { RouteConfig } from "@react-router/dev/routes";
 
-import { index, layout, route } from "@react-router/dev/routes";
+import { index, layout, prefix, route } from "@react-router/dev/routes";
 
 export default [
   // index("routes/dashBoard.tsx"),
@@ -9,7 +9,13 @@ export default [
     // index("../app/routes/chat.tsx"),
     index("routes/home.tsx"),
     route("feed/:feedId?", "routes/feed.tsx"),
-    route("role", "routes/role.tsx"),
+    ...prefix("role", [
+      // layout 提供了 element / <Outlet />，index 必须是它的子路由
+      layout("routes/role.tsx", [
+        index("routes/role/entry.tsx"), // -> /role
+        route(":roleId?", "routes/role/roleId.tsx"), // -> /role/:roleId?
+      ]),
+    ]),
     route("create/:editingStageId?", "routes/create.tsx"),
     route("activities", "routes/activities.tsx"),
     route("profile/:userId", "routes/profile.tsx"),

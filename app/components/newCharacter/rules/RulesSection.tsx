@@ -177,6 +177,20 @@ export default function RulesSection({
             <p className="text-xs text-base-content/60 line-clamp-2">{rule.ruleDescription}</p>
           </div>
         ))}
+        {/* 添加占位项以保持4个项目的固定高度 */}
+        {Array.from({ length: Math.max(0, 4 - rules.length) }, (_, index) => `compact-placeholder-${rules.length}-${index}`).map(placeholderId => (
+          <div
+            key={placeholderId}
+            className="p-3 rounded-lg bg-transparent border-2 border-dashed border-base-content/10 opacity-30"
+          >
+            <div className="flex items-center justify-center text-base-content/40">
+              <div className="text-center">
+                <h3 className="font-medium text-sm mb-1">...</h3>
+                <div className="text-xs">暂无更多</div>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
       {rules.length === 0 && (
         <div className="text-center py-6 text-base-content/60 text-sm">没有找到匹配的规则</div>
