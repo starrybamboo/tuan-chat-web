@@ -71,7 +71,7 @@ export default function AICreateRole({
   });
 
   // 常量
-  const NAME_MAX = 32;
+  const NAME_MAX = 10;
   const DESC_MAX = 140;
 
   // 检查是否可以保存
