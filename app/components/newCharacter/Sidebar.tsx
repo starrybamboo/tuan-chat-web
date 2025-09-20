@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useDeleteRolesMutation, useGetInfiniteUserRolesQuery } from "api/queryHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router";
+import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
 import { PopWindow } from "../common/popWindow";
 import { useGlobalContext } from "../globalContextProvider";
 import { RoleListItem } from "./RoleListItem";
@@ -250,6 +250,7 @@ export function Sidebar({
   };
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   // 删除确认处理函数
   const handleConfirmDelete = async () => {
@@ -439,38 +440,43 @@ export function Sidebar({
                 <p className="text-xs text-base-content/70 mt-1 truncate">进入创建入口</p>
               </div>
             </Link>
-            {filteredRoles.map(role => (
-              <NavLink
-                key={role.id}
-                to={`/role/${role.id}`}
-                // NavLink 让我们能根据路由是否激活来动态设置 className
-                className={({ isActive }) => `block rounded-lg ${isActive && !isSelectionMode ? "bg-primary text-primary/80" : ""}`}
-                onClick={(e) => {
-                  // 如果是批量选择模式，阻止导航
-                  if (isSelectionMode) {
-                    e.preventDefault();
-                    toggleRoleSelection(role.id);
-                  }
-                  else {
-                    closeDrawerOnMobile();
-                  }
-                }}
-              >
-                <RoleListItem
-                  role={role}
-                  // isSelected 现在由 NavLink 的 isActive 状态或批量选择状态决定
-                  isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
-                  // --- REMOVED --- onSelect prop
-                  onDelete={(_e) => {
-                    // 事件已经在 RoleListItem 内部被阻止了，这里只需要处理删除逻辑
-                    handleDelete(role.id);
+            {filteredRoles.map((role) => {
+              // 构建保留当前查询参数的 URL
+              const roleUrl = `/role/${role.id}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+
+              return (
+                <NavLink
+                  key={role.id}
+                  to={roleUrl}
+                  // NavLink 让我们能根据路由是否激活来动态设置 className
+                  className={({ isActive }) => `block rounded-lg ${isActive && !isSelectionMode ? "bg-primary text-primary/80" : ""}`}
+                  onClick={(e) => {
+                    // 如果是批量选择模式，阻止导航
+                    if (isSelectionMode) {
+                      e.preventDefault();
+                      toggleRoleSelection(role.id);
+                    }
+                    else {
+                      closeDrawerOnMobile();
+                    }
                   }}
-                  isSelectionMode={isSelectionMode}
-                // 如果 isSelectionMode，需要一种方式来触发 toggleRoleSelection
-                // 我们在 NavLink 的 onClick 中处理了这个逻辑
-                />
-              </NavLink>
-            ))}
+                >
+                  <RoleListItem
+                    role={role}
+                    // isSelected 现在由 NavLink 的 isActive 状态或批量选择状态决定
+                    isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
+                    // --- REMOVED --- onSelect prop
+                    onDelete={(_e) => {
+                      // 事件已经在 RoleListItem 内部被阻止了，这里只需要处理删除逻辑
+                      handleDelete(role.id);
+                    }}
+                    isSelectionMode={isSelectionMode}
+                  // 如果 isSelectionMode，需要一种方式来触发 toggleRoleSelection
+                  // 我们在 NavLink 的 onClick 中处理了这个逻辑
+                  />
+                </NavLink>
+              );
+            })}
             {isLoadingMore && (
               <div className="flex justify-center items-center py-4">
                 <span className="loading loading-spinner loading-md"></span>
