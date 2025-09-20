@@ -288,9 +288,9 @@ export function Sidebar({
   return (
     <>
 
-      <div className="menu p-4 w-72 lg:w-80 h-full bg-base-200 flex flex-col">
+      <div className="menu p-4 w-72 lg:w-80 h-full bg-base-300/40 flex flex-col">
         {/* 搜索和创建区域 - 固定在顶部 */}
-        <div className="flex gap-2 mb-4 sticky top-0 bg-base-200 z-50 py-2">
+        <div className="flex gap-2 mb-4 sticky top-0 bg-transparent z-50 py-2">
           <label className="input">
             <svg className="h-[1em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
               <g
@@ -361,7 +361,7 @@ export function Sidebar({
                 <>
                   <button
                     type="button"
-                    className="btn btn-square btn-soft"
+                    className="btn btn-square btn-soft bg-base-200"
                     onClick={toggleSelectionMode}
                     title="进入选择模式"
                   >
@@ -379,7 +379,7 @@ export function Sidebar({
                       <polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
                   </button>
-                  <Link to="/role" className="btn btn-square btn-soft" title="进入创建入口">
+                  <Link to="/role" className="btn btn-square btn-soft bg-base-200" title="进入创建入口">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-4 w-4"
