@@ -73,19 +73,29 @@ export function useGetInboxMessagePageQuery() {
  * 获取与某个联系人的收件箱消息
  */
 export function useGetInboxMessageWithUserQuery(userId: number, targetUserId: number) {
-  return useQuery({
+  const getInboxMessageWithUser = useQuery({
     queryKey: ["inboxMessageWithUser", userId, targetUserId],
     queryFn: async () => {
       const res = await tuanchat.messageDirectController.getInboxMessages("ANY_STRING");
-      return res.data?.filter((msg) => {
-        return (
-          msg.senderId === userId && msg.receiverId === targetUserId ||
-          msg.senderId === targetUserId && msg.receiverId === userId
-        );
-      }) || [];
+      return res.data;
     },
     staleTime: 300000
   });
+  const historyMessages = useMemo(() => {
+    return getInboxMessageWithUser.data?.filter((msg) => {
+      return (
+        msg.senderId === userId && msg.receiverId === targetUserId ||
+        msg.senderId === targetUserId && msg.receiverId === userId
+      );
+    }) || [];
+  }, [getInboxMessageWithUser.data, userId, targetUserId]);
+  const queryClient = useQueryClient();
+  const refetch = () => {
+    queryClient.invalidateQueries({ queryKey: ["inboxMessageWithUser", userId, targetUserId] });
+    getInboxMessageWithUser.refetch();
+  }
+
+  return { historyMessages, refetch };
 }
 
 /**
