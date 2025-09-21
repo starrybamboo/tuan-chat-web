@@ -67,6 +67,7 @@
     "detect-port": "^2.1.0",
     "electron-dl": "^4.0.0",
     "extract-zip": "^2.0.1",
+    "highlightjs": "^9.16.2",
     "isbot": "^5",
     "js-yaml": "^4.1.0",
     "jsonc-parser": "^3.3.1",
