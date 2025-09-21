@@ -141,8 +141,6 @@ export const PostsCard: React.FC<PostsCardProps> = ({
   const content = res?.content ?? "";
   const title = res?.title ?? "";
   const description = res?.description ?? "";
-  const isContentLong = content.length > 200;
-  const displayContent = isContentLong ? `${content.slice(0, 200)}...` : content;
 
   // 渲染
   const postRef = useRef<HTMLDivElement>(null);
@@ -326,10 +324,9 @@ export const PostsCard: React.FC<PostsCardProps> = ({
               {!isFeed
                 ? (
                     <div className="text-base-content whitespace-pre-wrap hover:text-primary transition-colors rounded-lg p-2 -m-2">
-                      {displayContent}
-                      {isContentLong && (
-                        <span className="text-primary text-sm ml-2 font-medium">查看全文</span>
-                      )}
+                      <div className="line-clamp-4 transition-all duration-200">
+                        {content}
+                      </div>
                     </div>
                   )
                 : (
