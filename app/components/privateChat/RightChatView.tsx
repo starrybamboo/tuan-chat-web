@@ -1,17 +1,18 @@
-import type { MessageDirectRecallRequest } from "api";
 import type { MessageDirectResponse } from "api/models/MessageDirectResponse";
 import type { UserFollowResponse } from "api/models/UserFollowResponse";
 import type { DirectMessageEvent } from "api/wsModels";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { ChevronRight, HomeIcon, Search, XMarkICon } from "@/icons";
-import { useGetFriendsUserInfoQuery, useGetMessageDirectPageQuery, useRecallMessageDirectMutation } from "api/hooks/MessageDirectQueryHooks";
+import { useGetFriendsUserInfoQuery, useGetMessageDirectPageQuery } from "api/hooks/MessageDirectQueryHooks";
 import { useGetUserFriendsQuery } from "api/hooks/userFollowQueryHooks";
 import { useGetUserInfoQuery } from "api/queryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { usePrivateMessageSender } from "../hooks/usePrivateMessageSender";
-import MessageBubble from "./MessageBubble";
-import MessageInput from "./MessageInput";
+import ContextMenu from "./components/ContextMenu";
+import MessageBubble from "./components/MessageBubble";
+import MessageInput from "./components/MessageInput";
+import { useContextMenu } from "./hooks/useContextMenu";
+import { usePrivateMessageSender } from "./hooks/usePrivateMessageSender";
 
 export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDrawer: (isOpen: boolean) => void }) {
   const globalContext = useGlobalContext();
@@ -158,29 +159,6 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
   // 如果有新消息且不在底部，显示滚动到底部按钮
 
   /**
-   * 右键菜单
-   */
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; messageId: number } | null>(null);
-  const recallMessageMutation = useRecallMessageDirectMutation();
-  function handleRevokeMessage(messageId: MessageDirectRecallRequest) {
-    recallMessageMutation.mutate(messageId, {
-      onSuccess: () => {
-        // 强制刷新并清除缓存
-        directMessageQuery.refetch();
-      },
-    });
-  }
-  function handleContextMenu(e: React.MouseEvent) {
-    const target = e.target as HTMLElement;
-    const messageElement = target.closest("[data-message-id]");
-    const messageId = Number(messageElement?.getAttribute("data-message-id"));
-    if (messageId) {
-      e.preventDefault();
-      setContextMenu({ x: e.clientX, y: e.clientY, messageId });
-    }
-  }
-
-  /**
    * 搜索用户
    */
   const [inputUserId, setInputUserId] = useState<number>(-1);
@@ -207,6 +185,8 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
       setSearching(false);
     }
   }
+
+  const { contextMenu, setContextMenu, handleContextMenu, handleRevokeMessage } = useContextMenu(directMessageQuery);
 
   return (
     <div
@@ -379,39 +359,13 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
         updateEmojiUrls={updateEmojiUrls}
       />
       {/* 右键菜单 */}
-      {contextMenu && (() => {
-        const message = allMessages.find(msg => msg.messageId === contextMenu.messageId);
-        return (
-          <div
-            className="fixed bg-base-100 shadow-lg rounded-md z-50"
-            style={{ top: contextMenu.y, left: contextMenu.x }}
-          >
-            <ul className="menu p-2 w-40">
-              {message?.senderId === userId && (
-                <li>
-                  <a onClick={(e) => {
-                    e.preventDefault();
-                    handleRevokeMessage({ messageId: contextMenu.messageId });
-                    setContextMenu(null);
-                  }}
-                  >
-                    撤回
-                  </a>
-                </li>
-              )}
-              <li>
-                <a onClick={(e) => {
-                  e.preventDefault();
-                  setContextMenu(null);
-                }}
-                >
-                  回复
-                </a>
-              </li>
-            </ul>
-          </div>
-        );
-      })()}
+      <ContextMenu
+        allMessages={allMessages}
+        userId={userId}
+        contextMenu={contextMenu}
+        setContextMenu={setContextMenu}
+        handleRevokeMessage={handleRevokeMessage}
+      />
     </div>
   );
 }
