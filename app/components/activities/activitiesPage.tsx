@@ -30,8 +30,15 @@ function ActivitiesPage() {
   } = useGetFollowingMomentFeedInfiniteQuery(feedRequest);
 
   const activities = useMemo(() => {
-    return feedData?.pages.flatMap(page => page?.data?.list || []) || [];
-  }, [feedData]);
+    const allActivities = feedData?.pages.flatMap(page => page?.data?.list || []) || [];
+
+    // 根据 activeTab 筛选内容
+    if (activeTab === "module") {
+      return allActivities.filter(item => item?.type === 5);
+    }
+
+    return allActivities;
+  }, [feedData, activeTab]);
 
   // sentinel ref：用于监听倒数第 RENDER_MIN 个动态何时进入视口
   const sentinelRef = useRef<HTMLElement | null>(null);
@@ -188,8 +195,19 @@ function ActivitiesPage() {
 
               {!isLoading && !isError && activities.length === 0 && (
                 <div className="text-center py-12">
-                  <p className="text-base-content/60">还没有动态</p>
-                  <p className="text-base-content/40 text-sm">关注一些用户来查看他们的动态吧</p>
+                  {activeTab === "all"
+                    ? (
+                        <>
+                          <p className="text-base-content/60">还没有动态</p>
+                          <p className="text-base-content/40 text-sm">关注一些用户来查看他们的动态吧</p>
+                        </>
+                      )
+                    : (
+                        <>
+                          <p className="text-base-content/60">还没有模组动态</p>
+                          <p className="text-base-content/40 text-sm">关注的用户还没有发布模组相关的动态</p>
+                        </>
+                      )}
                 </div>
               )}
 
