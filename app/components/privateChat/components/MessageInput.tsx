@@ -2,27 +2,15 @@ import type { Emoji as EmojiType } from "api/models/Emoji";
 import EmojiWindow from "@/components/chat/window/EmojiWindow";
 import BetterImg from "@/components/common/betterImg";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { EmojiIcon, Image2Fill } from "@/icons";
+import { usePrivateMessageSender } from "../hooks/usePrivateMessageSender";
 
-export default function MessageInput({
-  currentContactUserId,
-  setMessageInput,
-  messageInput,
-  handleSendMessage,
-  imgFiles,
-  updateImgFiles,
-  emojiUrls,
-  updateEmojiUrls,
-}: {
-  currentContactUserId: number | null;
-  setMessageInput: (value: string) => void;
-  messageInput: string;
-  handleSendMessage: () => void | Promise<void>;
-  imgFiles: File[]; // 预览的图片文件列表
-  updateImgFiles: (recipe: (draft: File[]) => void) => void; // 更新图片文件列表的函数
-  emojiUrls: string[]; // 表情图片 URL 列表
-  updateEmojiUrls: (recipe: (draft: string[]) => void) => void;
-}) {
+export default function MessageInput({ userId, currentContactUserId }: { userId: number; currentContactUserId: number | null }) {
+  const globalContext = useGlobalContext();
+  const webSocketUtils = globalContext.websocketUtils;
+  const { messageInput, setMessageInput, imgFiles, updateImgFiles, emojiUrls, updateEmojiUrls, handleSendMessage } = usePrivateMessageSender({ webSocketUtils, userId, currentContactUserId });
+
   /**
    * 文本消息发送
    */
