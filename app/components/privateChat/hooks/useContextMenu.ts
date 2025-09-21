@@ -4,7 +4,7 @@ import type { MessageDirectRecallRequest } from "api";
 
 import { useRecallMessageDirectMutation } from "api/hooks/MessageDirectQueryHooks";
 
-export function useContextMenu(directMessageQuery: any) {
+export function useContextMenu() {
   /**
    * 右键菜单
    */
@@ -14,7 +14,7 @@ export function useContextMenu(directMessageQuery: any) {
     recallMessageMutation.mutate(messageId, {
       onSuccess: () => {
         // 强制刷新并清除缓存
-        directMessageQuery.refetch();
+        // directMessageQuery.refetch();
       },
     });
   }
