@@ -1,6 +1,6 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
 import { roll } from "@/components/common/dicer/dice";
-import UNTIL from "@/components/common/dicer/until";
+import UNTIL from "@/components/common/dicer/utils";
 
 // 属性名中英文对照表
 const ABILITY_MAP: { [key: string]: string } = {
@@ -120,7 +120,7 @@ const cmdSt = new CommandExecutor(
         curAbility.ability = {};
       }
 
-      const currentValue = curAbility.ability[key] ?? 0; // 原有值（默认0）
+      const currentValue = Number.parseInt(curAbility.ability[key] ?? "0"); // 原有值（默认0）
       let newValue: number;
 
       if (operator === "+") {
@@ -142,7 +142,7 @@ const cmdSt = new CommandExecutor(
       };
 
       // 更新属性
-      curAbility.ability[key] = newValue;
+      curAbility.ability[key] = String(newValue);
     }
     // 生成包含变化过程的提示信息
     const changeEntries = Object.entries(abilityChanges)
