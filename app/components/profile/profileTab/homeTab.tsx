@@ -94,7 +94,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             userId={userId}
             loginUserId={loginUserId}
             isLoading={userQuery.isLoading}
-            isEditingProfile={profileEditing.isEditingProfile}
             size="lg"
             onAvatarUpdate={profileEditing.handleAvatarUpdate}
           />

@@ -59,7 +59,7 @@ function ProfilePage() {
             key={tab.id}
             to={tab.to}
             onClick={scrollToTop}
-            end={tab.id === "home"} // 只有主页使用 end 匹配
+            end={tab.id === "home"}
             className={({ isActive }) => `
               px-6 py-4 text-lg font-medium relative
               transition-all duration-300 ease-out cursor-pointer
