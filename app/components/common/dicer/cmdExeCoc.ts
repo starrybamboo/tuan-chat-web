@@ -1,6 +1,6 @@
 import { CommandExecutor, RuleNameSpace } from "@/components/common/dicer/cmd";
 import { parseDiceExpression, rollDice } from "@/components/common/dicer/dice";
-import UNTIL from "@/components/common/dicer/until";
+import UNTIL from "@/components/common/dicer/utils";
 
 // 属性名中英文对照表
 const ABILITY_MAP: { [key: string]: string } = {
@@ -82,14 +82,14 @@ const cmdRc = new CommandExecutor(
     if (ABILITY_MAP[name.toLowerCase()]) {
       name = ABILITY_MAP[name.toLowerCase()];
     }
-    if (!curAbility?.ability) {
+    if (!curAbility?.ability && !curAbility?.skill && !curAbility?.basic) {
       cpi.sendMsg(prop, `未设置角色能力？`);
       return false;
     }
 
-    let value = curAbility?.ability[name];
+    let value = Number.parseInt(UNTIL.getRoleAbilityValue(curAbility, name) || "");
 
-    if (value === undefined && attr === undefined) {
+    if ((value === undefined || Number.isNaN(value)) && attr === undefined) {
       cpi.sendMsg(prop, `错误：未找到技能或属性`);
       return false;
     }
@@ -213,7 +213,7 @@ const cmdSc = new CommandExecutor(
         cpi.sendMsg(prop, `未设置角色能力`);
         return false;
       }
-      currentSan = curAbility.ability["san值"] || curAbility.ability.san;
+      currentSan = Number.parseInt(curAbility.ability["san值"]) || Number.parseInt(curAbility.ability.san);
       if (currentSan === undefined) {
         cpi.sendMsg(prop, `未找到角色的san值`);
         return false;
@@ -268,8 +268,8 @@ const cmdSc = new CommandExecutor(
       return false;
     }
     // 更新角色卡中的san值
-    curAbility.ability["san值"] = newSan;
-    curAbility.ability.san = newSan;
+    curAbility.ability["san值"] = String(newSan);
+    curAbility.ability.san = String(newSan);
 
     await cpi.setRoleAbilityList(mentioned[0].roleId, curAbility);
 
