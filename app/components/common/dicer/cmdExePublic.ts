@@ -79,14 +79,13 @@ const cmdSt = new CommandExecutor(
       return false;
     }
 
-    // st show 实现，目前仍使用聊天文本返回结果
-    // TODO 添加弹出窗口响应`st show`的属性展示
     if (args[0]?.toLowerCase() === "show") {
-      if (!curAbility?.ability) {
+      if (!("ability" in curAbility || "basic" in curAbility || "skill" in curAbility)) {
         cpi.sendToast("当前角色没有属性信息，请先设置属性。");
         return false;
       }
 
+      // TODO: 展示全部属性的功能
       const showProps = args.slice(1).filter(arg => arg.trim() !== "");
       if (showProps.length === 0) {
         cpi.sendToast("请指定要展示的属性");
@@ -97,7 +96,7 @@ const cmdSt = new CommandExecutor(
       for (const prop of showProps) {
         const normalizedKey = prop.toLowerCase();
         const key = ABILITY_MAP[normalizedKey] || prop;
-        const value = curAbility.ability[key] ?? 0; // 修改这里，添加默认值0
+        const value = UNTIL.getRoleAbilityValue(curAbility, key) ?? 0; // 修改这里，添加默认值0
 
         result.push(`${key}: ${value}`);
       }
@@ -116,11 +115,7 @@ const cmdSt = new CommandExecutor(
       const normalizedKey = rawKey.toLowerCase();
       const key = ABILITY_MAP[normalizedKey] || rawKey;
 
-      if (!curAbility?.ability) {
-        curAbility.ability = {};
-      }
-
-      const currentValue = Number.parseInt(curAbility.ability[key] ?? "0"); // 原有值（默认0）
+      const currentValue = Number.parseInt(UNTIL.getRoleAbilityValue(curAbility, key) ?? "0"); // 原有值（默认0）
       let newValue: number;
 
       if (operator === "+") {
@@ -142,7 +137,7 @@ const cmdSt = new CommandExecutor(
       };
 
       // 更新属性
-      curAbility.ability[key] = String(newValue);
+      UNTIL.setRoleAbilityValue(curAbility, key, newValue.toString(), "skill", "auto");
     }
     // 生成包含变化过程的提示信息
     const changeEntries = Object.entries(abilityChanges)

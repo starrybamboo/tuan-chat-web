@@ -82,14 +82,14 @@ const cmdRc = new CommandExecutor(
     if (ABILITY_MAP[name.toLowerCase()]) {
       name = ABILITY_MAP[name.toLowerCase()];
     }
-    if (!curAbility?.ability) {
+    if (!curAbility?.ability && !curAbility?.skill && !curAbility?.basic) {
       cpi.sendMsg(prop, `未设置角色能力？`);
       return false;
     }
 
-    let value = Number.parseInt(curAbility?.ability[name]);
+    let value = Number.parseInt(UNTIL.getRoleAbilityValue(curAbility, name) || "");
 
-    if (value === undefined && attr === undefined) {
+    if ((value === undefined || Number.isNaN(value)) && attr === undefined) {
       cpi.sendMsg(prop, `错误：未找到技能或属性`);
       return false;
     }
