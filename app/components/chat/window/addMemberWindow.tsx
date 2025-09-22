@@ -95,15 +95,29 @@ export default function AddMemberWindow({ handleAddMember, showSpace = false }:
   }, [duration]);
 
   const copyToClipboard = async () => {
-    if (
-      typeof navigator !== "undefined"
-      && navigator.clipboard
-      && currentInviteLink
-      && currentInviteLink !== "生成中..."
-    ) {
+    if (currentInviteLink && currentInviteLink !== "生成中...") {
       try {
-        await navigator.clipboard.writeText(currentInviteLink);
-        setCopied(true);
+        if (typeof navigator !== "undefined" && navigator.clipboard) {
+          await navigator.clipboard.writeText(currentInviteLink);
+          setCopied(true);
+        }
+        else {
+          const tempInput = document.createElement("input");
+          document.body.appendChild(tempInput);
+          tempInput.value = currentInviteLink;
+          tempInput.select();
+          tempInput.setSelectionRange(0, 99999);
+
+          const successful = document.execCommand("copy");
+          if (successful) {
+            setCopied(true);
+          }
+          else {
+            throw new Error("复制失败");
+          }
+
+          document.body.removeChild(tempInput);
+        }
         setTimeout(() => setCopied(false), 2000);
       }
       catch (err) {
