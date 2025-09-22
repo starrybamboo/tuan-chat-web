@@ -1,3 +1,4 @@
+import ImportWithStCmd from "@/components/newCharacter/rules/ImportWithStCmd";
 import { useAbilityByRuleAndRole, useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
@@ -240,6 +241,10 @@ export default function ExpansionModule({
                   fieldType="skill"
                   customLabel="技能"
                 />
+
+                <Section title="使用st指令快速导入配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+                  <ImportWithStCmd roleId={roleId} ruleId={selectedRuleId}></ImportWithStCmd>
+                </Section>
               </>
             )
           )}
