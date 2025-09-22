@@ -9,6 +9,8 @@ import { usePrivateMessageSender } from "../hooks/usePrivateMessageSender";
 export default function MessageInput({ userId, currentContactUserId }: { userId: number; currentContactUserId: number | null }) {
   const globalContext = useGlobalContext();
   const webSocketUtils = globalContext.websocketUtils;
+
+  // 消息发送hook
   const { messageInput, setMessageInput, imgFiles, updateImgFiles, emojiUrls, updateEmojiUrls, handleSendMessage } = usePrivateMessageSender({ webSocketUtils, userId, currentContactUserId });
 
   /**

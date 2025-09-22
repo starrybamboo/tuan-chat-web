@@ -18,8 +18,6 @@ export default function RightChatView({ setIsOpenLeftDrawer }: { setIsOpenLeftDr
   const { historyMessages, refetch } = useGetInboxMessageWithUserQuery(userId, currentContactUserId || -1);
   const { currentContactUserInfo, allMessages } = usePrivateMessageReceiver(userId, currentContactUserId, historyMessages);
 
-  // 消息发送hook
-
   // 右键菜单hook（全局）
   const { contextMenu, setContextMenu, handleContextMenu, handleRevokeMessage } = useContextMenu({ refetch });
 
