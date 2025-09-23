@@ -1,13 +1,18 @@
 // RulesSection.tsx
 
 import type { Rule } from "api/models/Rule";
-import { useRuleListQuery, useRulePageQuery } from "api/hooks/ruleQueryHooks";
+import { useRulePageQuery } from "api/hooks/ruleQueryHooks";
 import { useEffect, useState } from "react";
 
 interface RulesSectionProps {
   currentRuleId: number;
   onRuleChange: (newRuleId: number) => void;
   large?: boolean; // 巨大模式：使用卡片宫格外观（类似 RuleSelectionStep）
+  // 外部状态管理（用于预取数据）
+  pageNum?: number;
+  onPageChange?: (pageNum: number) => void;
+  keyword?: string;
+  onKeywordChange?: (keyword: string) => void;
 }
 
 /**
@@ -19,12 +24,20 @@ export default function RulesSection({
   currentRuleId,
   onRuleChange,
   large = false,
+  // 外部状态管理
+  pageNum: externalPageNum,
+  onPageChange: externalOnPageChange,
+  keyword: externalKeyword,
+  onKeywordChange: externalOnKeywordChange,
 }: RulesSectionProps) {
-  // 分页和搜索状态
-  // 初始页：若传入的 currentRuleId 不在第一页，则通过一次全量(上限)列表定位所在页
-  const [pageNum, setPageNum] = useState(1);
-  // const [pageSize, setPageSize] = useState(4);
-  const [keyword, setKeyword] = useState("");
+  // 分页和搜索状态 - 优先使用外部状态，否则使用内部状态
+  const [internalPageNum, setInternalPageNum] = useState(1);
+  const [internalKeyword, setInternalKeyword] = useState("");
+
+  const pageNum = externalPageNum ?? internalPageNum;
+  const setPageNum = externalOnPageChange ?? setInternalPageNum;
+  const keyword = externalKeyword ?? internalKeyword;
+  const setKeyword = externalOnKeywordChange ?? setInternalKeyword;
 
   // 每页大小（分页展示固定 4）
   const pageSize = 4;
@@ -33,23 +46,6 @@ export default function RulesSection({
     pageSize,
     keyword,
   });
-
-  // 仅在需要定位初始页时获取完整列表（限制100条）
-  const { data: allRules = [] } = useRuleListQuery();
-
-  // 根据当前选中规则定位所在页（只在初始 mount 或 currentRuleId 变化时尝试）
-  useEffect(() => {
-    if (!currentRuleId || !allRules.length)
-      return;
-    // 找到选中规则索引
-    const idx = allRules.findIndex(r => r.ruleId === currentRuleId);
-    if (idx === -1)
-      return;
-    const targetPage = Math.floor(idx / pageSize) + 1;
-    // 只有当目标页与当前不同且当前仍是第一页（避免用户已翻页后被重置）时设置
-    // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-    setPageNum(p => (p === 1 ? targetPage : p));
-  }, [currentRuleId, allRules, pageSize]);
 
   // 当首次有数据且未选择规则时，默认选中第一个
   useEffect(() => {
@@ -93,7 +89,7 @@ export default function RulesSection({
         <div className="join">
           <button
             type="button"
-            onClick={() => setPageNum(p => Math.max(p - 1, 1))}
+            onClick={() => setPageNum(Math.max(pageNum - 1, 1))}
             disabled={pageNum === 1}
             className="join-item btn btn-ghost btn-sm disabled:opacity-50"
           >
@@ -104,7 +100,7 @@ export default function RulesSection({
           <div className="join-item btn btn-ghost btn-sm font-normal pointer-events-none text-xs">{pageNum}</div>
           <button
             type="button"
-            onClick={() => setPageNum(p => p + 1)}
+            onClick={() => setPageNum(pageNum + 1)}
             disabled={rules.length < pageSize}
             className="join-item btn btn-ghost btn-sm disabled:opacity-50"
           >

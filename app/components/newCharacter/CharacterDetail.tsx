@@ -1,7 +1,7 @@
 // import type { Transform } from "./sprite/TransformControl";
 import type { RoleAvatar } from "api";
 import type { Role } from "./types";
-import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
+import { useRuleDetailQuery, useRuleListQuery, useRulePageQuery } from "api/hooks/ruleQueryHooks";
 import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
@@ -65,9 +65,49 @@ export default function CharacterDetail({
 
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false); // 规则选择弹窗状态
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false); // 音频上传弹窗状态
+  const [isStImportModalOpen, setIsStImportModalOpen] = useState(false); // ST导入弹窗状态
 
   // 获取当前规则详情
   const { data: currentRuleData } = useRuleDetailQuery(selectedRuleId);
+
+  // 预取规则数据 - 为规则选择弹窗准备数据
+  const [prefetchPageNum, setPrefetchPageNum] = useState(1);
+  const [prefetchKeyword, setPrefetchKeyword] = useState("");
+  const prefetchPageSize = 4;
+
+  // 获取完整规则列表用于计算当前规则所在页数
+  const { data: allRules = [] } = useRuleListQuery();
+
+  // 使用 ref 来跟踪是否已经为当前规则初始化过页码
+  const initializedRuleIdRef = useRef<number | null>(null);
+
+  // 根据当前选中规则定位所在页（只在规则首次加载或切换规则时执行）
+  useEffect(() => {
+    if (!selectedRuleId || !allRules.length)
+      return;
+
+    // 如果已经为当前规则初始化过，就不再重复初始化
+    if (initializedRuleIdRef.current === selectedRuleId)
+      return;
+
+    // 找到选中规则索引
+    const ruleIndex = allRules.findIndex(rule => rule.ruleId === selectedRuleId);
+    if (ruleIndex === -1)
+      return;
+
+    const targetPage = Math.floor(ruleIndex / prefetchPageSize) + 1;
+    setPrefetchPageNum(targetPage);
+
+    // 标记当前规则已初始化
+    initializedRuleIdRef.current = selectedRuleId;
+  }, [selectedRuleId, allRules, prefetchPageSize, role]);
+  // 预取规则列表数据 - 默认预取第一页，用户体验优先
+  useRulePageQuery({
+    pageNo: prefetchPageNum,
+    pageSize: prefetchPageSize,
+    keyword: prefetchKeyword,
+  });
+
   // 接口部分
   // 发送post数据部分,保存角色数据
   const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
@@ -259,39 +299,50 @@ export default function CharacterDetail({
             </p>
           </div>
         </div>
-        {isEditing
-          ? (
-              <button
-                type="button"
-                onClick={handleSave}
-                className={`btn btn-primary btn-sm md:btn-lg ${isTransitioning ? "scale-95" : ""}`}
-                disabled={isTransitioning}
-              >
-                {isTransitioning
-                  ? (
-                      <span className="loading loading-spinner loading-xs"></span>
-                    )
-                  : (
-                      <span className="flex items-center gap-1">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                          <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                        </svg>
-                        保存
-                      </span>
-                    )}
-              </button>
-            )
-          : (
-              <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg">
-                <span className="flex items-center gap-1">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                    <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                    <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                  </svg>
-                  编辑
-                </span>
-              </button>
-            )}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsStImportModalOpen(true)}
+            className="btn bg-info/80 text-info-content btn-sm md:btn-lg"
+          >
+            <span className="flex items-center gap-1">
+              ST导入
+            </span>
+          </button>
+          {isEditing
+            ? (
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className={`btn btn-primary btn-sm md:btn-lg ${isTransitioning ? "scale-95" : ""}`}
+                  disabled={isTransitioning}
+                >
+                  {isTransitioning
+                    ? (
+                        <span className="loading loading-spinner loading-xs"></span>
+                      )
+                    : (
+                        <span className="flex items-center gap-1">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                            <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                          </svg>
+                          保存
+                        </span>
+                      )}
+                </button>
+              )
+            : (
+                <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg">
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                      <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                    </svg>
+                    编辑
+                  </span>
+                </button>
+              )}
+        </div>
       </div>
 
       <div className="max-md:hidden divider"></div>
@@ -313,39 +364,54 @@ export default function CharacterDetail({
                       {currentRuleData?.ruleName || "未选择规则"}
                     </p>
                   </div>
-                  {isEditing
-                    ? (
-                        <button
-                          type="button"
-                          onClick={handleSave}
-                          className={`btn btn-primary btn-sm ${isTransitioning ? "scale-95" : ""}`}
-                          disabled={isTransitioning}
-                        >
-                          {isTransitioning
-                            ? (
-                                <span className="loading loading-spinner loading-xs"></span>
-                              )
-                            : (
-                                <span className="flex items-center gap-1">
-                                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                    <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                                  </svg>
-                                  保存
-                                </span>
-                              )}
-                        </button>
-                      )
-                    : (
-                        <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm">
-                          <span className="flex items-center gap-1">
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                              <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                              <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                            </svg>
-                            编辑
-                          </span>
-                        </button>
-                      )}
+                  <div className="flex items-center gap-2">
+                    {isEditing
+                      ? (
+                          <button
+                            type="button"
+                            onClick={handleSave}
+                            className={`btn btn-primary btn-sm ${isTransitioning ? "scale-95" : ""}`}
+                            disabled={isTransitioning}
+                          >
+                            {isTransitioning
+                              ? (
+                                  <span className="loading loading-spinner loading-xs"></span>
+                                )
+                              : (
+                                  <span className="flex items-center gap-1">
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                    </svg>
+                                    保存
+                                  </span>
+                                )}
+                          </button>
+                        )
+                      : (
+                          <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm">
+                            <span className="flex items-center gap-1">
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                                <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                              </svg>
+                              编辑
+                            </span>
+                          </button>
+                        )}
+
+                    <button
+                      type="button"
+                      onClick={() => setIsStImportModalOpen(true)}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      <span className="flex items-center gap-1">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                          <path d="M12 4v16m8-8H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                        ST导入
+                      </span>
+                    </button>
+                  </div>
                 </div>
                 <div className="divider my-0" />
               </div>
@@ -586,6 +652,8 @@ export default function CharacterDetail({
                 <ExpansionModule
                   roleId={localRole.id}
                   ruleId={selectedRuleId}
+                  isStImportModalOpen={isStImportModalOpen}
+                  onStImportModalClose={() => setIsStImportModalOpen(false)}
                 />
               )}
         </div>
@@ -612,6 +680,10 @@ export default function CharacterDetail({
                 <RulesSection
                   currentRuleId={selectedRuleId}
                   onRuleChange={handleRuleChange}
+                  pageNum={prefetchPageNum}
+                  onPageChange={setPrefetchPageNum}
+                  keyword={prefetchKeyword}
+                  onKeywordChange={setPrefetchKeyword}
                 />
               </div>
             </div>
