@@ -1,8 +1,8 @@
-import { parseEventType } from "@/components/activities/cards/eventTypes";
-import ModuleContentCard from "@/components/activities/cards/postsCardComponents/ModuleContentCard";
-import PostContentCard from "@/components/activities/cards/postsCardComponents/PostContentCard";
 import ImagePreview from "@/components/activities/ImagePreview";
 import MomentDetailView from "@/components/activities/MomentDetailView";
+import { parseEventType } from "@/components/common/acticityAndFeedPostsCard/eventTypes";
+import ModuleContentCard from "@/components/common/acticityAndFeedPostsCard/postsCardComponents/ModuleContentCard";
+import PostContentCard from "@/components/common/acticityAndFeedPostsCard/postsCardComponents/PostContentCard";
 import CollectionIconButton from "@/components/common/collection/collectionIconButton";
 import CommentPanel from "@/components/common/comment/commentPanel";
 import DislikeIconButton from "@/components/common/dislikeIconButton";
@@ -11,7 +11,7 @@ import ShareIconButton from "@/components/common/share/shareIconButton";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import SlidableChatPreview from "@/components/community/slidableChatPreview";
 import { CommentOutline } from "@/icons";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useDeleteMomentFeedMutation } from "../../../../api/hooks/activitiesFeedQuerryHooks";
 import { useGetUserInfoQuery } from "../../../../api/queryHooks";
@@ -49,9 +49,8 @@ export const PostsCard: React.FC<PostsCardProps> = ({
 
   let targetType: string;
 
-  if (hasPostData || isFeed) {
+  if (hasPostData) {
     // 有帖子ID，是帖子类型
-    // 是Feed但没有特殊内容，使用Feed类型
     targetType = "2";
   }
   else if (hasModuleData) {
@@ -134,22 +133,23 @@ export const PostsCard: React.FC<PostsCardProps> = ({
   };
 
   // 统一的内容处理
-  const images = Array.isArray(res?.imageUrls) ? res.imageUrls : [];
+  const images = [
+    ...(Array.isArray(res?.imageUrls) ? res.imageUrls : []),
+    ...(res?.coverImage ? [res.coverImage] : []),
+  ];
   const publishTime = res?.createTime ?? "";
   const content = res?.content ?? "";
   const title = res?.title ?? "";
   const description = res?.description ?? "";
 
-  const isContentLong = content.length > 200;
-  const displayContent = isContentLong ? `${content.slice(0, 200)}...` : content;
+  // 渲染
+  const postRef = useRef<HTMLDivElement>(null);
 
-  // 判断内容类型并渲染相应的卡片 - 无论是activity还是feed都适用
   const renderSpecialContent = () => {
     // 帖子类型判断 - 优先检查数据字段，再检查contentType
     const isPostType = contentType === "发送了帖子" || contentType.includes("帖子");
 
     if (hasPostData || isPostType) {
-      // 统一处理帖子ID和社区ID，兼容activity和feed的字段差异
       const actualPostId = res?.postId || res?.communityPostId || postId;
       const actualCommunityId = res?.communityId;
 
@@ -169,12 +169,8 @@ export const PostsCard: React.FC<PostsCardProps> = ({
       );
     }
 
-    // 模组类型判断 - 优先检查数据字段，再检查contentType
-    const isModuleType = contentType.includes("模组") || contentType.includes("模块");
-
-    if (hasModuleData || isModuleType) {
-      // 兼容可能的字段名差异
-      const moduleName = res?.name || res?.moduleName || res?.title;
+    if (hasModuleData) {
+      const moduleName = res?.name;
       const moduleImg = res?.moduleImage;
 
       return (
@@ -213,21 +209,16 @@ export const PostsCard: React.FC<PostsCardProps> = ({
         />
       );
     }
-
-    // 如果不是特殊内容类型，返回null，使用默认渲染逻辑
     return null;
   };
 
   // 获取实际的ID用于点赞、评论等操作
   const getActualId = () => {
     if (hasPostData) {
-      return res?.postId || res?.communityPostId || postId;
+      return res?.postId || res?.communityPostId;
     }
     else if (hasModuleData) {
       return res?.moduleId;
-    }
-    else {
-      return postId;
     }
   };
 
@@ -236,9 +227,9 @@ export const PostsCard: React.FC<PostsCardProps> = ({
   return (
     <>
       <article
-        className={`bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6 mb-4 hover:shadow-md transition-all relative ${
-          isDeleting ? "opacity-50 pointer-events-none" : ""
-        } ${isRemoving ? "opacity-0 -translate-x-4" : "opacity-100 translate-x-0"}`}
+        ref={postRef}
+        className={`bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6 mb-4 hover:shadow-md transition-all relative 
+         ${isRemoving ? "opacity-0 -translate-x-4" : "opacity-100 translate-x-0"}`}
       >
         {isDeleting && (
           <div className="absolute inset-0 bg-base-100/80 rounded-xl flex items-center justify-center z-10">
@@ -247,78 +238,77 @@ export const PostsCard: React.FC<PostsCardProps> = ({
         )}
 
         {/* 头部 */}
-        <div className="flex flex-row items-center gap-2 mb-2">
-          {userInfoLoading
-            ? (
-                <div className="skeleton w-12 h-12 rounded-full flex-shrink-0"></div>
-              )
-            : (
-                <UserAvatarComponent userId={userId} width={12} isRounded={true} />
-              )}
-
-          <div className="flex flex-col justify-between min-w-0 flex-1">
+        {(!isFeed || (isFeed && contentTypeNumber !== 13)) && (
+          <div className="flex flex-row items-center gap-2 mb-2">
             {userInfoLoading
               ? (
-                  <>
-                    <div className="skeleton h-6 w-24 mb-2"></div>
-                    <div className="skeleton h-4 w-32"></div>
-                  </>
+                  <div className="skeleton w-12 h-12 rounded-full flex-shrink-0"></div>
                 )
               : (
-                  <>
-                    <h3 className="card-title text-xl whitespace-nowrap">{userDisplayData.name}</h3>
-                    <div className="flex items-center gap-2 text-xs text-base-content/80">
-                      <p>{publishTime}</p>
-                      {/* 如果发送的类型不是 动态（contentTypeNumber !== 12） ，那么进行特殊说明 */}
-                      {contentTypeNumber !== 12 && <p>{contentType}</p>}
-                    </div>
-                  </>
+                  <UserAvatarComponent userId={userId} width={12} isRounded={true} />
                 )}
+            <div className="flex flex-col justify-between min-w-0 flex-1">
+              {userInfoLoading
+                ? (
+                    <>
+                      <div className="skeleton h-6 w-24 mb-2"></div>
+                      <div className="skeleton h-4 w-32"></div>
+                    </>
+                  )
+                : (
+                    <>
+                      <h3 className="card-title text-xl whitespace-nowrap">{userDisplayData.name}</h3>
+                      <div className="flex items-center gap-2 text-xs text-base-content/80">
+                        <p>{publishTime}</p>
+                        <p>{contentType}</p>
+                      </div>
+                    </>
+                  )}
+            </div>
+
+            {/* 更多操作菜单 */}
+            <div className="relative ml-auto">
+              <button
+                className="text-base-content/40 hover:text-base-content/80 transition-colors p-2 rounded-2xl hover:bg-base-200"
+                onClick={() => setShowMenu(!showMenu)}
+                type="button"
+              >
+                ⋯
+              </button>
+
+              {showMenu && (
+                <div className="absolute right-0 top-full mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg py-1 z-20 min-w-[120px]">
+                  {!isFeed && loginUserId === userId
+                    ? (
+                        <button
+                          onClick={handleDelete}
+                          className="w-full px-4 py-2 text-left text-sm text-error hover:bg-error/10 transition-colors"
+                          type="button"
+                        >
+                          删除
+                        </button>
+                      )
+                    : !isFeed
+                        ? (
+                            <button
+                              onClick={() => setShowMenu(false)}
+                              className="w-full px-4 py-2 text-left text-sm text-base-content/60 hover:bg-base-200 transition-colors"
+                              type="button"
+                            >
+                              举报
+                            </button>
+                          )
+                        : (
+                            <DislikeIconButton
+                              className="w-full justify-start px-3 py-2 hover:bg-base-200 transition-colors"
+                              onDislike={handleDislikeClick}
+                            />
+                          )}
+                </div>
+              )}
+            </div>
           </div>
-
-          {/* 更多操作菜单 */}
-          <div className="relative ml-auto">
-            <button
-              className="text-base-content/40 hover:text-base-content/80 transition-colors p-2 rounded-2xl hover:bg-base-200"
-              onClick={() => setShowMenu(!showMenu)}
-              type="button"
-            >
-              ⋯
-            </button>
-
-            {showMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg py-1 z-20 min-w-[120px]">
-                {!isFeed && loginUserId === userId
-                  ? (
-                      <button
-                        onClick={handleDelete}
-                        className="w-full px-4 py-2 text-left text-sm text-error hover:bg-error/10 transition-colors"
-                        type="button"
-                      >
-                        删除
-                      </button>
-                    )
-                  : !isFeed
-                      ? (
-                          <button
-                            onClick={() => setShowMenu(false)}
-                            className="w-full px-4 py-2 text-left text-sm text-base-content/60 hover:bg-base-200 transition-colors"
-                            type="button"
-                          >
-                            举报
-                          </button>
-                        )
-                      : (
-                          <DislikeIconButton
-                            className="w-full justify-start px-3 py-2 hover:bg-base-200 transition-colors"
-                            onDislike={handleDislikeClick}
-                          />
-                        )}
-              </div>
-            )}
-          </div>
-        </div>
-
+        )}
         {/* 可点击区域：内容 */}
         <div className="mb-4">
           {/* 渲染特殊内容卡片 */}
@@ -329,39 +319,26 @@ export const PostsCard: React.FC<PostsCardProps> = ({
               tabIndex={0}
               role="button"
             >
-              {/* 标题（Feed 专用） */}
-              {isFeed && title && (
-                <h2 className="font-extrabold leading-snug text-base-content/90 text-base line-clamp-2 group-hover:underline">
-                  {title}
-                </h2>
-              )}
 
               {/* 内容或描述 */}
-              {!isFeed && content
+              {!isFeed
                 ? (
                     <div className="text-base-content whitespace-pre-wrap hover:text-primary transition-colors rounded-lg p-2 -m-2">
-                      {displayContent}
-                      {isContentLong && (
-                        <span className="text-primary text-sm ml-2 font-medium">查看全文</span>
-                      )}
+                      <div className="line-clamp-4 transition-all duration-200">
+                        {content}
+                      </div>
                     </div>
                   )
-                : isFeed && description
-                  ? (
-                      <p className="text-sm text-base-content/85 whitespace-pre-line leading-relaxed group-hover:text-primary transition-colors">
-                        {description}
-                      </p>
-                    )
-                  : (
-                      <div className="text-base-content/60 text-sm">
-                        发布了内容
-                      </div>
-                    )}
+                : (
+                    <p className="text-sm text-base-content/85 whitespace-pre-line leading-relaxed group-hover:text-primary transition-colors">
+                      {description}
+                    </p>
+                  )}
             </div>
           )}
 
           {/* Feed 专用：消息内容容器 */}
-          {isFeed && res?.message && (
+          {res?.message && (
             <div className="mt-4">
               <SlidableChatPreview
                 messageResponse={res.message}
@@ -406,7 +383,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
           </div>
 
           <div className="flex items-center space-x-1 text-sm cursor-pointer hover:bg-blue-500/10 transition-colors px-2 py-1 rounded-full">
-            <ShareIconButton searchKey={`feedShowSharePop${actualId}`} className="cursor-pointer w-9 h-6" />
+            <ShareIconButton targetRef={postRef as React.RefObject<HTMLDivElement>} qrLink={window.location.href} searchKey={`feedShowSharePop${actualId}`} className="cursor-pointer w-9 h-6" />
           </div>
         </div>
 

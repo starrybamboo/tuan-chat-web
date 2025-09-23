@@ -181,7 +181,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     if (sideDrawerState === "clue") {
       setSideDrawerState("none");
     }
-  }, [spaceId, sideDrawerState, setSideDrawerState]);
+  }, [spaceId]);
 
   /**
    * 获取历史消息

@@ -1,31 +1,32 @@
 import type { UserRole } from "api";
 import type { Role } from "./types";
 import { tuanchat } from "@/../api/instance";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDeleteRolesMutation, useGetInfiniteUserRolesQuery } from "api/queryHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
+import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
 import { PopWindow } from "../common/popWindow";
 import { useGlobalContext } from "../globalContextProvider";
 import { RoleListItem } from "./RoleListItem";
 
+// ... SidebarProps 接口不再需要 setSelectedRoleId 和 onEnterCreateEntry
 interface SidebarProps {
-  roles: Role[]; // 角色数据数组，使用 Virtuos
+  roles: Role[]; // 角色数据数组
   setRoles: React.Dispatch<React.SetStateAction<Role[]>>;
   selectedRoleId: number | null;
-  setSelectedRoleId: (id: number | null) => void;
-  setIsEditing: (value: boolean) => void;
-  onEnterCreateEntry?: () => void; // 进入创建入口（显示 CreateEntry）
+  // setSelectedRoleId: (id: number | null) => void;
+  // setIsEditing: (value: boolean) => void;
+  // onEnterCreateEntry?: () => void; // 进入创建入口（显示 CreateEntry）
 }
 
 export function Sidebar({
   roles,
   setRoles,
   selectedRoleId,
-  setSelectedRoleId,
-  setIsEditing,
-  onEnterCreateEntry,
+  // setSelectedRoleId,
+  // setIsEditing,
+  // onEnterCreateEntry,
 }: SidebarProps) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   // 已不再直接在 Sidebar 内创建角色
@@ -50,7 +51,7 @@ export function Sidebar({
   // const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
 
   // 删除弹窗状态
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useSearchParamsState<boolean>(`deleteRoleConfirmPop`, false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState<boolean>(false);
   const [deleteCharacterId, setDeleteCharacterId] = useState<number | null>(null);
   const queryClient = useQueryClient();
   // 删除角色
@@ -101,6 +102,12 @@ export function Sidebar({
         }
 
         try {
+          // 如果角色没有avatarId，跳过头像加载
+          if (!role.avatarId) {
+            console.warn(`角色 ${role.id} 没有avatarId，跳过头像加载`);
+            return null;
+          }
+
           const res = await tuanchat.avatarController.getRoleAvatar(role.avatarId);
           if (res.success && res.data) {
             const avatarUrl = res.data.avatarUrl;
@@ -108,7 +115,7 @@ export function Sidebar({
             queryClient.setQueryData(["roleAvatar", role.id], avatarUrl);
             return { id: role.id, avatar: avatarUrl };
           }
-          console.warn(`角色 ${role.id} 的头像数据无效或为空`);
+          console.warn(`角色 ${role.id} 的头像数据无效或为空，avatarId: ${role.avatarId}`);
           return null;
         }
         catch (error) {
@@ -183,11 +190,17 @@ export function Sidebar({
   // };
 
   // 进入创建入口：清空当前选中角色并通知上层展示 CreateEntry
-  const handleCreate = () => {
-    setSelectedRoleId(null);
-    setIsEditing(false);
-    onEnterCreateEntry?.();
-    // 关闭抽屉（移动端）
+  // const handleCreate = () => {
+  //   setSelectedRoleId(null);
+  //   setIsEditing(false);
+  //   onEnterCreateEntry?.();
+  //   // 关闭抽屉（移动端）
+  //   const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement | null;
+  //   if (drawerCheckbox)
+  //     drawerCheckbox.checked = false;
+  // };
+
+  const closeDrawerOnMobile = () => {
     const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement | null;
     if (drawerCheckbox)
       drawerCheckbox.checked = false;
@@ -236,37 +249,49 @@ export function Sidebar({
     setDeleteCharacterId(null);
   };
 
-  // 修改确认删除处理函数
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // 删除确认处理函数
   const handleConfirmDelete = async () => {
     if (deleteCharacterId !== null) {
       // 单个删除逻辑
       const roleId = deleteCharacterId;
       if (roleId) {
+        // 更新状态
         setRoles(roles.filter(c => c.id !== roleId));
-        setSelectedRoleId(null);
         deleteRole([roleId]);
       }
     }
     else if (selectedRoles.size > 0) {
       // 批量删除逻辑
       const roleIds = Array.from(selectedRoles);
+      // 更新状态
       setRoles(roles.filter(c => !selectedRoles.has(c.id)));
-      setSelectedRoleId(null);
       deleteRole(roleIds);
       setSelectedRoles(new Set());
       setIsSelectionMode(false);
     }
+
+    // 关闭弹窗
     setDeleteConfirmOpen(false);
     setDeleteCharacterId(null);
   };
 
+  useEffect(() => {
+    if (selectedRoleId && !roles.find(c => c.id === selectedRoleId)) {
+      // 当前选中角色被删掉了，跳转
+      navigate("/role", { replace: true });
+    }
+  }, [roles, selectedRoleId, navigate]);
+
   return (
     <>
 
-      <div className="menu p-4 w-72 lg:w-80 h-full bg-base-200 flex flex-col">
+      <div className="menu p-4 w-72 lg:w-80 h-full bg-base-300/40 flex flex-col">
         {/* 搜索和创建区域 - 固定在顶部 */}
-        <div className="flex gap-2 mb-4 sticky top-0 bg-base-200 z-50 py-2">
-          <label className="input w-43 lg:w-50">
+        <div className="flex gap-2 mb-4 sticky top-0 bg-transparent z-50 py-2">
+          <label className="input">
             <svg className="h-[1em]" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
               <g
                 strokeLinejoin="round"
@@ -336,7 +361,7 @@ export function Sidebar({
                 <>
                   <button
                     type="button"
-                    className="btn btn-square btn-soft"
+                    className="btn btn-square btn-soft bg-base-200"
                     onClick={toggleSelectionMode}
                     title="进入选择模式"
                   >
@@ -354,7 +379,7 @@ export function Sidebar({
                       <polyline points="22 4 12 14.01 9 11.01" />
                     </svg>
                   </button>
-                  <button type="button" className="btn btn-square btn-soft" onClick={handleCreate} title="进入创建入口">
+                  <Link to="/role" className="btn btn-square btn-soft bg-base-200" title="进入创建入口">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       className="h-4 w-4"
@@ -368,14 +393,14 @@ export function Sidebar({
                       <line x1="12" y1="3" x2="12" y2="21" />
                       <line x1="3" y1="12" x2="21" y2="12" />
                     </svg>
-                  </button>
+                  </Link>
                 </>
               )}
         </div>
         {/* 创建角色 - 虚线占位项，始终位于列表顶部 */}
 
         {/* 角色列表 - 使用 InfiniteQuery */}
-        <div className="flex-1 overflow-hidden w-full">
+        <div className="flex-1 overflow-hidden">
 
           <div
             className="h-full overflow-y-auto"
@@ -387,9 +412,10 @@ export function Sidebar({
               }
             }}
           >
-            <div
+            <Link
+              to="/role"
               className="flex items-center gap-3 p-3 rounded-lg cursor-pointer group hover:bg-base-100 transition-all duration-150"
-              onClick={handleCreate}
+              onClick={closeDrawerOnMobile} // 仅用于关闭移动端抽屉
               title="进入创建入口"
             >
               <div className="avatar shrink-0">
@@ -413,33 +439,44 @@ export function Sidebar({
                 <h3 className="font-medium truncate">创建角色</h3>
                 <p className="text-xs text-base-content/70 mt-1 truncate">进入创建入口</p>
               </div>
-            </div>
-            {filteredRoles.map(role => (
-              <RoleListItem
-                key={role.id}
-                role={role}
-                isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
-                onSelect={() => {
-                  if (isSelectionMode) {
-                    toggleRoleSelection(role.id);
-                  }
-                  else {
-                    if (selectedRoleId !== role.id) {
-                      setSelectedRoleId(role.id);
+            </Link>
+            {filteredRoles.map((role) => {
+              // 构建保留当前查询参数的 URL
+              const roleUrl = `/role/${role.id}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+
+              return (
+                <NavLink
+                  key={role.id}
+                  to={roleUrl}
+                  // NavLink 让我们能根据路由是否激活来动态设置 className
+                  className={({ isActive }) => `block rounded-lg ${isActive && !isSelectionMode ? "bg-primary text-primary/80" : ""}`}
+                  onClick={(e) => {
+                    // 如果是批量选择模式，阻止导航
+                    if (isSelectionMode) {
+                      e.preventDefault();
+                      toggleRoleSelection(role.id);
                     }
                     else {
-                      setSelectedRoleId(null);
+                      closeDrawerOnMobile();
                     }
-                    setIsEditing(false);
-                    const drawerCheckbox = document.getElementById("character-drawer") as HTMLInputElement;
-                    if (drawerCheckbox)
-                      drawerCheckbox.checked = false;
-                  }
-                }}
-                onDelete={() => handleDelete(role.id)}
-                isSelectionMode={isSelectionMode}
-              />
-            ))}
+                  }}
+                >
+                  <RoleListItem
+                    role={role}
+                    // isSelected 现在由 NavLink 的 isActive 状态或批量选择状态决定
+                    isSelected={isSelectionMode ? selectedRoles.has(role.id) : selectedRoleId === role.id}
+                    // --- REMOVED --- onSelect prop
+                    onDelete={(_e) => {
+                      // 事件已经在 RoleListItem 内部被阻止了，这里只需要处理删除逻辑
+                      handleDelete(role.id);
+                    }}
+                    isSelectionMode={isSelectionMode}
+                  // 如果 isSelectionMode，需要一种方式来触发 toggleRoleSelection
+                  // 我们在 NavLink 的 onClick 中处理了这个逻辑
+                  />
+                </NavLink>
+              );
+            })}
             {isLoadingMore && (
               <div className="flex justify-center items-center py-4">
                 <span className="loading loading-spinner loading-md"></span>

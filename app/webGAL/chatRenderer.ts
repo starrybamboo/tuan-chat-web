@@ -19,6 +19,7 @@ export class ChatRenderer {
   private renderedMessageNumber = 0;
   private uploadedSpritesFileNameMap = new Map<number, string>(); // avatarId -> spriteFileName
   private roleAvatarsMap = new Map<number, RoleAvatar>(); // 渲染时候获取的avatar信息
+  private avatarMap: Map<number, RoleAvatar> = new Map(); // avatarId -> avatar
   private voiceFileMap = new Map<number, File>(); // roleId -> File;
   private roleMap: Map<number, UserRole> = new Map();
   private renderProps: RenderProps;
@@ -126,10 +127,11 @@ export class ChatRenderer {
    * @private
    */
   private getBranchSentence(rooms: Room[]): string {
-    if (rooms.length === 0)
+    const filteredRooms = rooms.filter(room => this.rooms.some(r => r.roomId === room.roomId));
+    if (filteredRooms.length === 0)
       return "choose:返回初始节点:start.txt";
     return `choose:${
-      rooms
+      filteredRooms
         .map(room => `${room.name?.split("\n").join("")}:${this.getSceneName(room)}.txt`)
         .join("|")
     }`;
@@ -162,6 +164,43 @@ export class ChatRenderer {
       }
     }
     return role || null;
+  }
+
+  /**
+   * 将情感标题对象转换为八维情感向量数组
+   * @param avatarTitle 情感nVector标题对象，键为情感名称，值为字符串格式的数值
+   * @returns 按照API要求顺序排列的八维情感向量数组
+   */
+  private convertAvatarTitleToEmotionVector(avatarTitle: Record<string, string>): number[] {
+    // 定义情感向量的标准顺序（与API接口一致）
+    const emotionOrder = ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"];
+
+    // 最大允许总和
+    const MAX_SUM = 0.5;
+
+    // 按照标准顺序提取对应的数值并转换为number类型
+    let emotionVector = emotionOrder.map((emotion) => {
+      const value = avatarTitle[emotion];
+      const numValue = value
+        ? Number.parseFloat(value) * 0.5 // 乘以0.5, 拉高了会严重失真
+        : 0.0;
+      // 确保单个值在合理范围内 (0.0 - 1.4)
+      return Math.max(0.0, Math.min(1.4, numValue));
+    });
+
+    // 计算当前总和
+    const currentSum = emotionVector.reduce((sum, val) => sum + val, 0);
+
+    // 如果总和超过最大值，进行归一化
+    if (currentSum > MAX_SUM) {
+      const scaleFactor = MAX_SUM / currentSum;
+      emotionVector = emotionVector.map(val => val * scaleFactor);
+    }
+
+    // 处理浮点数精度问题，保留4位小数
+    emotionVector = emotionVector.map(val => Math.round(val * 10000) / 10000);
+
+    return emotionVector;
   }
 
   /**
@@ -283,6 +322,8 @@ export class ChatRenderer {
         this.renderedMessageNumber++;
         this.updateRenderProcess();
 
+        if (message.status === 1)
+          continue;
         // 使用正则表达式过滤
         if (skipRegex && skipRegex.test(message.content))
           continue;
@@ -310,6 +351,7 @@ export class ChatRenderer {
           }
 
           const role = await this.fetchRole(message.roleId);
+          const roleAvatar = await this.fetchAvatar(message.avatarId);
 
           // 以下处理是为了防止被webGal判断为新一段的对话
           const processedContent = message.content
@@ -333,10 +375,16 @@ export class ChatRenderer {
                 && !message.content.startsWith("。")
                 && !message.content.startsWith("%")) {
                 // 将聊天内容替换为 segment
-                vocalFileName = await this.sceneEditor.uploadVocal({
-                  ...messageResponse,
-                  message: { ...messageResponse.message, content: segment },
-                }, this.voiceFileMap.get(message.roleId));
+                vocalFileName = await this.sceneEditor.uploadVocal(
+                  {
+                    ...messageResponse,
+                    message: { ...messageResponse.message, content: segment },
+                  },
+                  this.voiceFileMap.get(message.roleId),
+                  {
+                    emotionVector: this.convertAvatarTitleToEmotionVector(roleAvatar?.avatarTitle ?? {}),
+                  },
+                );
               }
               else {
                 vocalFileName = undefined;

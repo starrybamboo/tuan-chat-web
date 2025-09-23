@@ -308,9 +308,9 @@ export function useApplyCropMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["applyCrop"],
-    mutationFn: async ({ roleId, avatarId, croppedImageBlob, transform, currentAvatar }: { 
-      roleId: number; 
-      avatarId: number; 
+    mutationFn: async ({ roleId, avatarId, croppedImageBlob, transform, currentAvatar }: {
+      roleId: number;
+      avatarId: number;
       croppedImageBlob: Blob;
       transform?: Transform;
       currentAvatar: RoleAvatar;
@@ -326,7 +326,7 @@ export function useApplyCropMutation() {
         const croppedFile = new File([croppedImageBlob], `cropped_sprite_${avatarId}_${Date.now()}.png`, {
           type: 'image/png'
         });
-        
+
         // 使用UploadUtils上传图片，场景3表示角色差分
         const { UploadUtils } = await import('../app/utils/UploadUtils');
         const uploadUtils = new UploadUtils();
@@ -342,7 +342,7 @@ export function useApplyCropMutation() {
           alpha: 1,
           rotation: 0
         };
-        
+
         // 使用新的spriteUrl和transform参数更新头像记录
         const updateRes = await tuanchat.avatarController.updateRoleAvatar({
           roleId: roleId,
@@ -384,9 +384,9 @@ export function useApplyCropAvatarMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["applyCropAvatar"],
-    mutationFn: async ({ roleId, avatarId, croppedImageBlob, currentAvatar }: { 
-      roleId: number; 
-      avatarId: number; 
+    mutationFn: async ({ roleId, avatarId, croppedImageBlob, currentAvatar }: {
+      roleId: number;
+      avatarId: number;
       croppedImageBlob: Blob;
       currentAvatar: RoleAvatar;
     }) => {
@@ -401,14 +401,14 @@ export function useApplyCropAvatarMutation() {
         const croppedFile = new File([croppedImageBlob], `cropped_avatar_${avatarId}_${Date.now()}.png`, {
           type: 'image/png'
         });
-        
+
         // 使用UploadUtils上传图片，场景2表示头像
         const { UploadUtils } = await import('../app/utils/UploadUtils');
         const uploadUtils = new UploadUtils();
         const newAvatarUrl = await uploadUtils.uploadImg(croppedFile, 2, 0.9, 2560);
 
         console.log("头像图片上传成功，新URL:", newAvatarUrl);
-        
+
         // 使用新的avatarUrl更新头像记录，保持原有的spriteUrl和Transform参数
         const updateRes = await tuanchat.avatarController.updateRoleAvatar({
           roleId: roleId,
@@ -542,7 +542,21 @@ export function useUploadAvatarMutation() {
             return undefined;
           }
           console.warn("头像上传成功，包含Transform参数");
+          
+          // 更新角色的avatarId字段
+          try {
+            await tuanchat.roleController.updateRole({
+              roleId: roleId,
+              avatarId: avatarId,
+            });
+            console.log("角色avatarId已更新:", { roleId, avatarId });
+          } catch (error) {
+            console.error("更新角色avatarId失败:", error);
+          }
+          
           await queryClient.invalidateQueries({ queryKey: ["getRoleAvatars", roleId] });
+          await queryClient.invalidateQueries({ queryKey: ["roleInfinite"] });
+          await queryClient.invalidateQueries({ queryKey: ["getUserRoles"] });
           console.log("缓存已刷新，roleId:", roleId);
           return uploadRes;
         } else {
@@ -565,7 +579,7 @@ export function useUpdateAvatarTitleMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ["updateAvatarTitle"],
-    mutationFn: async ({ avatarId, avatarTitle, roleId }: { avatarId: number; avatarTitle: Record<string,string>; roleId: number }) => {
+    mutationFn: async ({ avatarId, avatarTitle, roleId }: { avatarId: number; avatarTitle: Record<string, string>; roleId: number }) => {
       if (!avatarId || !avatarTitle) {
         console.error("参数错误：avatarId 或 title 为空");
         return undefined;
@@ -603,7 +617,7 @@ export function useUpdateAvatarTitleMutation() {
       }
     },
     // 保持当前缓存，不立刻触发 refetch，避免选中项重置
-    onSuccess: () => {},
+    onSuccess: () => { },
   })
 }
 

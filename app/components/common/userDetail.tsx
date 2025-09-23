@@ -84,6 +84,11 @@ export function UserDetail({ userId }: UserDetailProps) {
                   )}
               <UserStatusDot status={user?.activeStatus} />
             </div>
+            <span className="text-xs text-gray-400 block">
+              UID:
+              {" "}
+              {userId}
+            </span>
             <div className="mt-1 text-sm leading-snug">
               {userQuery.isLoading
                 ? (

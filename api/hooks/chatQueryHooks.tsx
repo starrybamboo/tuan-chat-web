@@ -72,10 +72,20 @@ export function useAddSpaceMemberMutation() {
 /**
  * 生成空间邀请码
  */
-export function useSpaceInviteCode(spaceId: number, duration?: number) {
+export function useSpaceInviteCodeQuery(spaceId: number, duration?: number) {
     return useQuery({
-        queryKey: ['inviteCode'],
+        queryKey: ['inviteCode', duration],
         queryFn: () => tuanchat.spaceMemberController.inviteCode(spaceId, duration)
+    })
+}
+
+/**
+ * 通过邀请链接加入空间
+ */
+export function useSpaceInvitedMutation(code: string) {
+    return useMutation({
+        mutationKey: ['spaceInvited', code],
+        mutationFn:() => tuanchat.spaceMemberController.invited(code)
     })
 }
 

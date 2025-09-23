@@ -1,4 +1,4 @@
-import PostsCard from "@/components/activities/cards/postsCard";
+import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
 import React, { useEffect, useRef } from "react";
 import {
   useGetMomentFeedStatsQuery,
