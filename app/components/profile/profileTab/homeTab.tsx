@@ -70,6 +70,10 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             )}
           </div>
 
+          <div className="mb-4 mt-4">
+            <TagManagement userId={userId} />
+          </div>
+
           {/* 小屏幕编辑面板 */}
           <ProfileEditPanel
             isVisible={userId === loginUserId && profileEditing.isEditingProfile}

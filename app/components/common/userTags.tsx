@@ -87,7 +87,7 @@ function TagManagement({ userId }: TagManagementProps) {
   const startAddingTag = () => {
     setIsAddingTag(true);
     setNewTagContent("");
-    setSelectedColor("blue"); // 重置为默认颜色
+    setSelectedColor("blue");
   };
 
   const cancelAddingTag = () => {
@@ -263,7 +263,6 @@ function TagManagement({ userId }: TagManagementProps) {
                   <PlusOutline className="w-4 h-4" />
                   <span>添加标签</span>
                 </button>
-
               )
         )}
       </div>
