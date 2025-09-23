@@ -36,6 +36,7 @@ export function useModuleForm() {
       description: "",
       image: "",
     },
+    mode: "onChange",
   });
 
   // 数据提交行为

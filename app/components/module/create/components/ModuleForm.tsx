@@ -10,7 +10,10 @@ export default function ModuleForm({ register, errors }: {
           className="rounded-md w-full h-10 px-3 py-2 border-2 border-gray-300 focus:outline-none focus:border-info"
           type="text"
           placeholder="请输入模组作者"
-          {...register("authorName", { required: "模组作者是必填项" })}
+          {...register("authorName", {
+            required: "模组作者是必填项",
+            maxLength: { value: 20, message: "作者名不能超过20个字符" },
+          })}
         />
         <p className="label text-error">{errors.authorName?.message}</p>
       </div>
@@ -21,7 +24,10 @@ export default function ModuleForm({ register, errors }: {
           className="rounded-md w-full h-10 px-3 py-2 border-2 border-gray-300 focus:outline-none focus:border-info"
           type="text"
           placeholder="请输入模组名称"
-          {...register("moduleName", { required: "模组名称是必填项" })}
+          {...register("moduleName", {
+            required: "模组名称是必填项",
+            maxLength: { value: 20, message: "模组名不能超过20个字符" },
+          })}
         />
         <p className="label text-error">{errors.moduleName?.message}</p>
       </div>
@@ -31,7 +37,10 @@ export default function ModuleForm({ register, errors }: {
         <textarea
           className="rounded-md w-full h-20 px-3 py-2 border-2 border-gray-300 focus:outline-none focus:border-info"
           placeholder="请输入对模组的简要描述"
-          {...register("description", { required: "模组描述是必填项" })}
+          {...register("description", {
+            required: "模组描述是必填项",
+            maxLength: { value: 50, message: "模组描述不能超过50个字符" },
+          })}
         />
         <p className="label text-error">{errors.description?.message}</p>
       </div>
