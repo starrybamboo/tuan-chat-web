@@ -78,63 +78,57 @@ export const UserReadMe: React.FC<UserReadMeProps> = ({
                 </div>
               )
             : (
-                <div
-                  className={
-                    isOwner
-                      ? "cursor-pointer hover:bg-base-200 p-2 rounded transition-colors relative"
-                      : ""
-                  }
-                  onClick={isOwner ? startEditingReadMe : undefined}
-                  title={isOwner ? "点击编辑 ReadMe" : undefined}
-                >
-                  <MarkDownViewer
-                    content={
-                      user?.readMe
-                      || (isOwner
-                        ? `## 👋 欢迎来到我的主页
-
-还没有写下个人 ReadMe？花几分钟介绍你自己，帮助关注者快速了解你。
-
-可以从这些开始（写完删除提示即可）：
-
-### 我是谁
-- 一句话自我介绍（角色/领域/兴趣）
-
-### 我在做什么
-- 当前项目 / 研究方向 / 学习路线
-
-### 我擅长
-- 技术栈/工具：\`React\` \`TypeScript\` \`Node.js\`（示例，可修改）
-
-### 我在寻找
-- 合作方向 / 招募 / 接受的反馈
-
-### 如何联系我
-- Email：your@email.com
-- 其它：Twitter / Telegram / 微信
-
-小贴士：支持 Markdown，使用列表、图片、代码块让内容更清晰。`
-                        : `该用户还没有撰写 ReadMe。`)
-                    }
-                  />
-                  {isOwner && (
-                    <div className="absolute top-2 right-2 opacity-50 hover:opacity-100 transition-opacity">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                <div className="relative">
+                  {/* 头部区域，包含标题和编辑按钮 */}
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">README</h2>
+                    {isOwner && (
+                      <button
+                        onClick={startEditingReadMe}
+                        className="btn btn-sm btn-outline btn-primary gap-1 hover:btn-primary"
+                        title="编辑个人简介"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                        />
-                      </svg>
-                    </div>
-                  )}
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                          />
+                        </svg>
+                        编辑
+                      </button>
+                    )}
+                  </div>
+
+                  {/* README内容区域 */}
+                  <div className="min-h-[120px]">
+                    <MarkDownViewer
+                      content={
+                        user?.readMe
+                        || (isOwner
+                          ? `## 👋 欢迎来到我的主页
+
+还没有写下个人 ReadMe？点击 **右上角「编辑」按钮** 开始介绍自己吧！
+
+可以包含：
+- 自我介绍和专业背景
+- 当前项目和研究方向  
+- 技术栈和擅长领域
+- 寻求的合作机会
+- 联系方式
+
+支持 **Markdown** 格式，让你的简介更加生动！`
+                          : `该用户还没有撰写个人简介。`)
+                      }
+                    />
+                  </div>
                 </div>
               )}
         </div>

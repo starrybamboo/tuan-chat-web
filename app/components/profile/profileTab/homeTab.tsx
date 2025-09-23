@@ -70,6 +70,10 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             )}
           </div>
 
+          <div className="mb-4 mt-4">
+            <TagManagement userId={userId} />
+          </div>
+
           {/* 小屏幕编辑面板 */}
           <ProfileEditPanel
             isVisible={userId === loginUserId && profileEditing.isEditingProfile}
@@ -94,7 +98,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
             userId={userId}
             loginUserId={loginUserId}
             isLoading={userQuery.isLoading}
-            isEditingProfile={profileEditing.isEditingProfile}
             size="lg"
             onAvatarUpdate={profileEditing.handleAvatarUpdate}
           />
@@ -130,7 +133,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
 
           {/* 用户标签 */}
           <div className="mb-4 mt-4">
-            <TagManagement userId={userId} />
+            <TagManagement userId={userId} canEdit={true} />
           </div>
 
           {/* GNS雷达图 */}
