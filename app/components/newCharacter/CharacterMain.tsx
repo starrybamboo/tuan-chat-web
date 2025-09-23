@@ -4,7 +4,6 @@ import CharacterDetail from "./CharacterDetail";
 import AICreateRole from "./RoleCreation/AICreateRole";
 import CreateEntry from "./RoleCreation/CreateEntry";
 import CreateRoleBySelf from "./RoleCreation/CreateRoleBySelf";
-import ExcelImportRole from "./RoleCreation/ExcelImportRole";
 import { Sidebar } from "./Sidebar";
 
 export default function CharacterMain() {
@@ -13,7 +12,7 @@ export default function CharacterMain() {
   // 状态管理
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [mode, setMode] = useState<"self" | "AI" | "excel" | "role">("role");
+  const [mode, setMode] = useState<"self" | "AI" | "st" | "role">("role");
   const [animationTrigger, setAnimationTrigger] = useState(0); // 动画触发器
   const currentRole = roles.find(r => r.id === selectedRoleId);
 
@@ -37,10 +36,6 @@ export default function CharacterMain() {
   const AICreate = () => {
     setMode("AI");
   };
-  const ExcelImport = () => {
-    setMode("excel");
-  };
-
   const createBySelf = () => {
     setMode("self");
   };
@@ -103,7 +98,6 @@ export default function CharacterMain() {
           {mode === "role" && !currentRole && (
             <CreateEntry
               AICreate={AICreate}
-              ExcelImport={ExcelImport}
               createBySelf={createBySelf}
               animationTrigger={animationTrigger}
             />
@@ -142,7 +136,6 @@ export default function CharacterMain() {
               onComplete={() => setMode("role")} // 完成后切换回角色模式
             />
           )}
-          {mode === "excel" && <ExcelImportRole onBack={() => setMode("role")} />}
         </div>
       </div>
     </div>
