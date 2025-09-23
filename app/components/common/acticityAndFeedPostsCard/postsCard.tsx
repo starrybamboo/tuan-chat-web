@@ -49,9 +49,8 @@ export const PostsCard: React.FC<PostsCardProps> = ({
 
   let targetType: string;
 
-  if (hasPostData || isFeed) {
+  if (hasPostData) {
     // 有帖子ID，是帖子类型
-    // 是Feed但没有特殊内容，使用Feed类型
     targetType = "2";
   }
   else if (hasModuleData) {
@@ -143,19 +142,14 @@ export const PostsCard: React.FC<PostsCardProps> = ({
   const title = res?.title ?? "";
   const description = res?.description ?? "";
 
-  const isContentLong = content.length > 200;
-  const displayContent = isContentLong ? `${content.slice(0, 200)}...` : content;
-
   // 渲染
   const postRef = useRef<HTMLDivElement>(null);
 
-  // 判断内容类型并渲染相应的卡片 - 无论是activity还是feed都适用
   const renderSpecialContent = () => {
     // 帖子类型判断 - 优先检查数据字段，再检查contentType
     const isPostType = contentType === "发送了帖子" || contentType.includes("帖子");
 
     if (hasPostData || isPostType) {
-      // 统一处理帖子ID和社区ID，兼容activity和feed的字段差异
       const actualPostId = res?.postId || res?.communityPostId || postId;
       const actualCommunityId = res?.communityId;
 
@@ -175,12 +169,8 @@ export const PostsCard: React.FC<PostsCardProps> = ({
       );
     }
 
-    // 模组类型判断 - 优先检查数据字段，再检查contentType
-    const isModuleType = contentType.includes("模组") || contentType.includes("模块");
-
-    if (hasModuleData || isModuleType) {
-      // 兼容可能的字段名差异
-      const moduleName = res?.name || res?.moduleName || res?.title;
+    if (hasModuleData) {
+      const moduleName = res?.name;
       const moduleImg = res?.moduleImage;
 
       return (
@@ -219,21 +209,16 @@ export const PostsCard: React.FC<PostsCardProps> = ({
         />
       );
     }
-
-    // 如果不是特殊内容类型，返回null，使用默认渲染逻辑
     return null;
   };
 
   // 获取实际的ID用于点赞、评论等操作
   const getActualId = () => {
     if (hasPostData) {
-      return res?.postId || res?.communityPostId || postId;
+      return res?.postId || res?.communityPostId;
     }
     else if (hasModuleData) {
       return res?.moduleId;
-    }
-    else {
-      return postId;
     }
   };
 
@@ -243,9 +228,8 @@ export const PostsCard: React.FC<PostsCardProps> = ({
     <>
       <article
         ref={postRef}
-        className={`bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6 mb-4 hover:shadow-md transition-all relative ${
-          isDeleting ? "opacity-50 pointer-events-none" : ""
-        } ${isRemoving ? "opacity-0 -translate-x-4" : "opacity-100 translate-x-0"}`}
+        className={`bg-base-100 rounded-xl shadow-sm border border-base-300 p-4 sm:p-6 mb-4 hover:shadow-md transition-all relative 
+         ${isRemoving ? "opacity-0 -translate-x-4" : "opacity-100 translate-x-0"}`}
       >
         {isDeleting && (
           <div className="absolute inset-0 bg-base-100/80 rounded-xl flex items-center justify-center z-10">
@@ -254,7 +238,7 @@ export const PostsCard: React.FC<PostsCardProps> = ({
         )}
 
         {/* 头部 */}
-        {!isFeed && (
+        {(!isFeed || (isFeed && contentTypeNumber !== 13)) && (
           <div className="flex flex-row items-center gap-2 mb-2">
             {userInfoLoading
               ? (
@@ -325,7 +309,6 @@ export const PostsCard: React.FC<PostsCardProps> = ({
             </div>
           </div>
         )}
-
         {/* 可点击区域：内容 */}
         <div className="mb-4">
           {/* 渲染特殊内容卡片 */}
@@ -336,39 +319,26 @@ export const PostsCard: React.FC<PostsCardProps> = ({
               tabIndex={0}
               role="button"
             >
-              {/* 标题（Feed 专用） */}
-              {isFeed && title && (
-                <h2 className="font-extrabold leading-snug text-base-content/90 text-base line-clamp-2 group-hover:underline">
-                  {title}
-                </h2>
-              )}
 
               {/* 内容或描述 */}
-              {!isFeed && content
+              {!isFeed
                 ? (
                     <div className="text-base-content whitespace-pre-wrap hover:text-primary transition-colors rounded-lg p-2 -m-2">
-                      {displayContent}
-                      {isContentLong && (
-                        <span className="text-primary text-sm ml-2 font-medium">查看全文</span>
-                      )}
+                      <div className="line-clamp-4 transition-all duration-200">
+                        {content}
+                      </div>
                     </div>
                   )
-                : isFeed && description
-                  ? (
-                      <p className="text-sm text-base-content/85 whitespace-pre-line leading-relaxed group-hover:text-primary transition-colors">
-                        {description}
-                      </p>
-                    )
-                  : (
-                      <div className="text-base-content/60 text-sm">
-                        发布了内容
-                      </div>
-                    )}
+                : (
+                    <p className="text-sm text-base-content/85 whitespace-pre-line leading-relaxed group-hover:text-primary transition-colors">
+                      {description}
+                    </p>
+                  )}
             </div>
           )}
 
           {/* Feed 专用：消息内容容器 */}
-          {isFeed && res?.message && (
+          {res?.message && (
             <div className="mt-4">
               <SlidableChatPreview
                 messageResponse={res.message}
