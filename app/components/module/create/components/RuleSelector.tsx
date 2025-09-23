@@ -31,16 +31,16 @@ export default function RuleSelector({ value, onChange }: { value: number; onCha
   }
 
   return (
-    <aside className="flex-1/3 mt-14 px-5">
-      <p className="text-xl font-bold mb-5">规则选择</p>
+    <aside className="flex-1/3 px-5">
+      <p className="text-xl font-bold mb-5 text-lime-600">1. 选择一个规则</p>
       <div className="grid grid-rows-1 md:grid-rows-3 gap-4">
         {rules.map(rule => (
           <label
             key={rule.id}
             className={`cursor-pointer border-2 rounded-xl p-2 transition-all duration-200 hover:scale-105
                           ${value === rule.id
-            ? "border-info bg-info/10 shadow-lg"
-            : "border-base-300 bg-base-100 hover:border-info/60"}
+            ? "border-lime-700 bg-lime-500/10 shadow-lg"
+            : "border-gray-300 dark:border-gray-500 bg-base-100 hover:border-lime-600"}
                       `}
           >
             <input
@@ -54,7 +54,7 @@ export default function RuleSelector({ value, onChange }: { value: number; onCha
               className="hidden"
             />
             <div className="flex flex-col items-start">
-              <span className="text-lg font-bold">{rule.name}</span>
+              <span className="text-lime-700">{rule.name}</span>
               <span className="text-sm text-base-content/70 mt-1">{rule.desc}</span>
             </div>
           </label>
