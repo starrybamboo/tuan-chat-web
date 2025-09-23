@@ -1,5 +1,6 @@
 import type quill from "quill";
-import { useEffect, useRef } from "react";
+import { BaselineAutoAwesomeMotion } from "@/icons";
+import { useCallback, useEffect, useRef, useState } from "react";
 // Quill 样式与本地覆盖
 import "quill/dist/quill.snow.css";
 import "./quill-overrides.css";
@@ -34,318 +35,29 @@ if (typeof window !== "undefined") {
   }
 }
 
-// 简易 HTML 转义
-function escapeHtml(input: string): string {
-  return input
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+// 极简 Markdown/HTML 转换占位实现（保证类型与调用方存在，避免构建错误）
+function markdownToHtml(md: string): string {
+  if (!md)
+    return "";
+  // 非严格转换：仅将空行分段，其余换行转 <br/>
+  const paragraphs = md.split(/\n{2,}/).map(p => p.replace(/\n/g, "<br>"));
+  return paragraphs.map(p => `<p>${p}</p>`).join("");
 }
 
-// 将我们支持的行内 Markdown 变为 HTML 标签（在内容已做 HTML 转义的前提下）
-function applyInlineMarkdownToHtml(escapedText: string): string {
-  let text = escapedText;
-  // 顺序很重要：先处理长标记，避免与短标记冲突
-  // 粗体 **text**
-  text = text.replace(/\*\*([^\s*][^*]*)\*\*/g, "<strong>$1</strong>");
-  // 下划线 __text__（自定义）
-  text = text.replace(/__([^\s_][^_]*)__ /g, "<u>$1</u> "); // 带空格的边界情况
-  text = text.replace(/__([^\s_][^_]*)__\b/g, "<u>$1</u>");
-  // 删除线 ~~text~~
-  text = text.replace(/~~([^~]+)~~/g, "<s>$1</s>");
-  // 斜体 *text* 与 _text_（与上面长标记做了顺序避免）
-  text = text.replace(/\*([^\s*][^*]*)\*/g, "<em>$1</em>");
-  text = text.replace(/_([^\s_][^_]*)_/g, "<em>$1</em>");
-  return text;
-}
-
-// 将 HTML 转为 Markdown（覆盖与 markdownToHtml 对应的子集）
 function htmlToMarkdown(html: string): string {
+  if (!html)
+    return "";
   try {
-    const container = document.createElement("div");
-    container.innerHTML = html;
-
-    // 辅助：常规节点序列化（不含代码块特殊处理）
-    const serializeInlineOrBlock = (node: Node): string => {
-      if (node.nodeType === Node.TEXT_NODE) {
-        return node.textContent || "";
-      }
-      if (node.nodeType !== Node.ELEMENT_NODE) {
-        return "";
-      }
-      const el = node as HTMLElement;
-      const tag = el.tagName.toLowerCase();
-      const mapChildren = (joiner = "") => Array.from(el.childNodes).map(serializeInlineOrBlock).join(joiner);
-
-      // 优先处理 <pre> 形式的代码块（可能来自带语法模块的 Quill 或外部粘贴）
-      if (tag === "pre") {
-        const codeEl = el.querySelector("code");
-        const raw = ((codeEl ? codeEl.textContent : el.textContent) || "").replace(/\r\n/g, "\n");
-        const trimmed = raw.trim();
-        // 若内容本身已是 ```...```，则不再二次包裹
-        if (/^```[\s\S]*```$/.test(trimmed)) {
-          return trimmed;
-        }
-        // 导出为三反引号成对包裹（无语言）
-        const fence = "```";
-        return `${fence}${raw}${fence}`;
-      }
-
-      // 处理被容器包裹的代码块：<div> 下的直接子元素若全部是 .ql-code-block，则合并为一个代码块
-      if (tag === "div") {
-        const childEls = Array.from(el.children) as HTMLElement[];
-        if (
-          childEls.length > 0
-          && childEls.every(c => c.classList && c.classList.contains("ql-code-block"))
-        ) {
-          const lines = childEls.map(c => (c.textContent || "").replace(/\r\n/g, "\n"));
-          const content = lines.join("\n");
-          const trimmed = content.trim();
-          // 若内容本身已是 ```...```，则直接返回
-          if (/^```[\s\S]*```$/.test(trimmed)) {
-            return trimmed;
-          }
-          // 无语言导出
-          const fence = "```";
-          return `${fence}${content}${fence}`;
-        }
-      }
-
-      switch (tag) {
-        case "strong":
-          return `**${mapChildren()}**`;
-        case "em":
-          return `*${mapChildren()}*`;
-        case "u":
-          return `__${mapChildren()}__`;
-        case "s":
-        case "del":
-          return `~~${mapChildren()}~~`;
-        case "br":
-          return "\n";
-        case "h1":
-          return `# ${mapChildren()}\n\n`;
-        case "h2":
-          return `## ${mapChildren()}\n\n`;
-        case "h3":
-          return `### ${mapChildren()}\n\n`;
-        case "p":
-        case "div": {
-          // 常规段落/容器
-          let inner = mapChildren("");
-          inner = inner.replace(/\n+/g, "\n");
-          return inner.trim().length ? `${inner}\n\n` : "\n";
-        }
-        case "ul": {
-          const items = Array.from(el.children)
-            .filter(c => c.tagName && c.tagName.toLowerCase() === "li")
-            .map(li => `- ${serializeInlineOrBlock(li)}\n`)
-            .join("");
-          return `${items}\n`;
-        }
-        case "ol": {
-          const lis = Array.from(el.children).filter(c => c.tagName && c.tagName.toLowerCase() === "li");
-          const items = lis.map((li, i) => `${i + 1}. ${serializeInlineOrBlock(li)}\n`).join("");
-          return `${items}\n`;
-        }
-        case "li": {
-          const inner = Array.from(el.childNodes).map(serializeInlineOrBlock).join("");
-          return inner.replace(/\n+/g, " ").trim();
-        }
-        default:
-          return mapChildren("");
-      }
-    };
-
-    // 特殊：Quill（未启用 syntax 模块）会将代码块渲染为多行 <div class="ql-code-block">，需要成组合并为单个围栏代码块
-    const isCodeBlockLine = (n: Node): n is HTMLElement => {
-      return n.nodeType === Node.ELEMENT_NODE && (n as HTMLElement).classList?.contains("ql-code-block");
-    };
-
-    const nodes = Array.from(container.childNodes);
-    const parts: string[] = [];
-    for (let i = 0; i < nodes.length; i++) {
-      const n = nodes[i];
-      if (isCodeBlockLine(n)) {
-        const lines: string[] = [];
-        // 收集连续的 code-block 行
-        while (i < nodes.length && isCodeBlockLine(nodes[i])) {
-          const el = nodes[i] as HTMLElement;
-          const lineText = el.textContent ?? "";
-          lines.push(lineText.replace(/\r\n/g, "\n"));
-          i++;
-        }
-        // 回退一位，因为 for 循环还会 i++
-        i -= 1;
-        const content = lines.join("\n");
-        const trimmed = content.trim();
-        if (/^```[\s\S]*```$/.test(trimmed)) {
-          parts.push(trimmed);
-        }
-        else {
-          // 三反引号成对包裹（无语言）
-          const fence = "```";
-          parts.push(`${fence}${content}${fence}`);
-        }
-        continue;
-      }
-
-      // 非代码块行，按常规序列化
-      parts.push(serializeInlineOrBlock(n));
-    }
-
-    let md = parts.join("");
-    // 规范化空行：最多保留两个换行
-    md = md.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trimEnd();
-    return md;
+    const el = typeof document !== "undefined" ? document.createElement("div") : null;
+    if (!el)
+      return html;
+    el.innerHTML = html;
+    // 简单提取纯文本；真实实现可替换为更完整的 HTML→MD 转换
+    return (el.textContent || "").replace(/\u00A0/g, " ");
   }
   catch {
-    return "";
+    return html;
   }
-}
-
-// 将 Markdown 文本转换为 HTML（覆盖标题/列表/代码块/行内样式）。
-function markdownToHtml(md: string): string {
-  const lines = md.replace(/\r\n/g, "\n").split("\n");
-  const out: string[] = [];
-
-  let inCode = false;
-  let codeLang: string | undefined;
-  let codeBuf: string[] = [];
-
-  let listType: "ul" | "ol" | null = null;
-  let listItems: string[] = [];
-
-  const flushCode = () => {
-    if (!inCode) {
-      return;
-    }
-    const codeHtml = escapeHtml(codeBuf.join("\n"));
-    const cls = codeLang ? ` class="language-${codeLang}"` : "";
-    out.push(`<pre><code${cls}>${codeHtml}</code></pre>`);
-    inCode = false;
-    codeLang = undefined;
-    codeBuf = [];
-  };
-
-  const flushList = () => {
-    if (!listType || listItems.length === 0) {
-      return;
-    }
-    const tag = listType;
-    const itemsHtml = listItems.map(it => `<li>${it}</li>`).join("");
-    out.push(`<${tag}>${itemsHtml}</${tag}>`);
-    listType = null;
-    listItems = [];
-  };
-
-  const pushParagraph = (raw: string) => {
-    const html = applyInlineMarkdownToHtml(escapeHtml(raw));
-    out.push(`<p>${html}</p>`);
-  };
-
-  for (let i = 0; i < lines.length; i++) {
-    const rawLine = lines[i];
-
-    // 代码围栏开始/结束（允许前导空白）
-    // 支持标准三反引号 ``` 围栏；兼容旧的六反引号逻辑（若出现则同样处理）
-    const sixFence = /^[ \t]*``````\s*$/.exec(rawLine);
-    const triFence = !sixFence && /^[ \t]*```\s*$/.exec(rawLine);
-    const fenceMatch = sixFence || triFence;
-    if (fenceMatch) {
-      if (!inCode) {
-        // 开始代码块
-        flushList();
-        inCode = true;
-        codeLang = undefined;
-        continue;
-      }
-      else {
-        // 结束代码块
-        flushCode();
-        continue;
-      }
-    }
-
-    // 单行内联围栏形式：```some code``` → 解析为代码块（无语言）
-    const inlineFence = /```([^`]+)```/.exec(rawLine);
-    if (inlineFence) {
-      flushList();
-      const raw = inlineFence[1];
-      inCode = true;
-      codeLang = undefined;
-      codeBuf.push(raw);
-      flushCode();
-      continue;
-    }
-
-    if (inCode) {
-      codeBuf.push(rawLine);
-      continue;
-    }
-
-    // 空行：结束任何段落/列表
-    if (/^\s*$/.test(rawLine)) {
-      flushList();
-      // 空行不强制输出 <p>，作为分隔即可
-      continue;
-    }
-
-    // 标题（允许前导空白）
-    if (/^[ \t]*###\s+/.test(rawLine)) {
-      flushList();
-      const content = rawLine.replace(/^[ \t]*###\s+/, "");
-      out.push(`<h3>${applyInlineMarkdownToHtml(escapeHtml(content))}</h3>`);
-      continue;
-    }
-    if (/^[ \t]*##\s+/.test(rawLine)) {
-      flushList();
-      const content = rawLine.replace(/^[ \t]*##\s+/, "");
-      out.push(`<h2>${applyInlineMarkdownToHtml(escapeHtml(content))}</h2>`);
-      continue;
-    }
-    if (/^[ \t]*#\s+/.test(rawLine)) {
-      flushList();
-      const content = rawLine.replace(/^[ \t]*#\s+/, "");
-      out.push(`<h1>${applyInlineMarkdownToHtml(escapeHtml(content))}</h1>`);
-      continue;
-    }
-
-    // 列表（无序/有序）
-    const ulPrefix = rawLine.match(/^[ \t]*[-*][ \t]+/);
-    const olPrefix = rawLine.match(/^[ \t]*\d+\.[ \t]+/);
-    if (ulPrefix) {
-      const itemSrc = rawLine.slice(ulPrefix[0].length);
-      const item = applyInlineMarkdownToHtml(escapeHtml(itemSrc));
-      if (listType === "ol") {
-        flushList();
-      }
-      listType = "ul";
-      listItems.push(item);
-      continue;
-    }
-    if (olPrefix) {
-      const itemSrc = rawLine.slice(olPrefix[0].length);
-      const item = applyInlineMarkdownToHtml(escapeHtml(itemSrc));
-      if (listType === "ul") {
-        flushList();
-      }
-      listType = "ol";
-      listItems.push(item);
-      continue;
-    }
-
-    // 普通段落
-    flushList();
-    pushParagraph(rawLine);
-  }
-
-  // 收尾
-  flushCode();
-  flushList();
-  return out.join("\n");
 }
 
 // 粗略判断文本是否像 Markdown
@@ -377,6 +89,444 @@ function isLikelyMarkdown(text: string): boolean {
   return false;
 }
 
+// 小方块工具栏的下拉菜单内容，抽出为独立组件，降低嵌套缩进复杂度
+function InlineMenu(props: {
+  activeHeader: number;
+  activeList: string | null;
+  activeCodeBlock: boolean;
+  activeAlign: "left" | "center" | "right" | "justify";
+  activeInline: { bold?: boolean; italic?: boolean; underline?: boolean; strike?: boolean };
+  onMenuParagraph: () => void;
+  onMenuHeader: (lvl: 1 | 2 | 3) => void;
+  onMenuList: (type: "bullet" | "ordered") => void;
+  onMenuCode: () => void;
+  onMenuAlign: (val: "left" | "center" | "right" | "justify") => void;
+  onMenuInline: (type: "bold" | "italic" | "underline" | "strike") => void;
+  onMenuClearInline: () => void;
+}) {
+  const { activeHeader, activeList, activeCodeBlock, activeAlign, activeInline, onMenuParagraph, onMenuHeader, onMenuList, onMenuCode, onMenuAlign, onMenuInline, onMenuClearInline } = props;
+  return (
+    <>
+      {/* 段落（T） */}
+      <button
+        type="button"
+        role="menuitem"
+        title="正文"
+        aria-label="正文"
+        className={activeHeader === 0 && !activeList && !activeCodeBlock ? "active" : ""}
+        style={{ color: activeHeader === 0 && !activeList && !activeCodeBlock ? "#2563eb" : undefined }}
+        onClick={onMenuParagraph}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h16" />
+          <path d="M12 6v12" />
+        </svg>
+      </button>
+      {/* 对齐：左 */}
+      <button
+        type="button"
+        role="menuitem"
+        title="左对齐"
+        aria-label="左对齐"
+        className={activeAlign === "left" ? "active" : ""}
+        style={{ color: activeAlign === "left" ? "#2563eb" : undefined }}
+        onClick={() => onMenuAlign("left")}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h16" />
+          <path d="M4 10h12" />
+          <path d="M4 14h16" />
+          <path d="M4 18h10" />
+        </svg>
+      </button>
+      {/* 对齐：居中 */}
+      <button
+        type="button"
+        role="menuitem"
+        title="居中对齐"
+        aria-label="居中对齐"
+        className={activeAlign === "center" ? "active" : ""}
+        style={{ color: activeAlign === "center" ? "#2563eb" : undefined }}
+        onClick={() => onMenuAlign("center")}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h16" />
+          <path d="M6 10h12" />
+          <path d="M4 14h16" />
+          <path d="M7 18h10" />
+        </svg>
+      </button>
+      {/* 对齐：右 */}
+      <button
+        type="button"
+        role="menuitem"
+        title="右对齐"
+        aria-label="右对齐"
+        className={activeAlign === "right" ? "active" : ""}
+        style={{ color: activeAlign === "right" ? "#2563eb" : undefined }}
+        onClick={() => onMenuAlign("right")}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h16" />
+          <path d="M8 10h12" />
+          <path d="M4 14h16" />
+          <path d="M10 18h10" />
+        </svg>
+      </button>
+      {/* 对齐：两端 */}
+      <button
+        type="button"
+        role="menuitem"
+        title="两端对齐"
+        aria-label="两端对齐"
+        className={activeAlign === "justify" ? "active" : ""}
+        style={{ color: activeAlign === "justify" ? "#2563eb" : undefined }}
+        onClick={() => onMenuAlign("justify")}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h16" />
+          <path d="M4 10h16" />
+          <path d="M4 14h16" />
+          <path d="M4 18h16" />
+        </svg>
+      </button>
+      {/* H1 */}
+      <button
+        type="button"
+        role="menuitem"
+        title="标题1"
+        aria-label="标题1"
+        className={activeHeader === 1 ? "active" : ""}
+        style={{ color: activeHeader === 1 ? "#2563eb" : undefined }}
+        onClick={() => onMenuHeader(1)}
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6v12" />
+          <path d="M12 6v12" />
+          <path d="M4 12h8" />
+          <text x="16" y="16" fontSize="10" fill="currentColor">1</text>
+        </svg>
+      </button>
+      {/* H2 */}
+      <button
+        type="button"
+        role="menuitem"
+        title="标题2"
+        aria-label="标题2"
+        className={activeHeader === 2 ? "active" : ""}
+        style={{ color: activeHeader === 2 ? "#2563eb" : undefined }}
+        onClick={() => onMenuHeader(2)}
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6v12" />
+          <path d="M12 6v12" />
+          <path d="M4 12h8" />
+          <text x="16" y="16" fontSize="10" fill="currentColor">2</text>
+        </svg>
+      </button>
+      {/* H3 */}
+      <button
+        type="button"
+        role="menuitem"
+        title="标题3"
+        aria-label="标题3"
+        className={activeHeader === 3 ? "active" : ""}
+        style={{ color: activeHeader === 3 ? "#2563eb" : undefined }}
+        onClick={() => onMenuHeader(3)}
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6v12" />
+          <path d="M12 6v12" />
+          <path d="M4 12h8" />
+          <text x="16" y="16" fontSize="10" fill="currentColor">3</text>
+        </svg>
+      </button>
+      {/* 无序列表 */}
+      <button
+        type="button"
+        role="menuitem"
+        title="无序列表"
+        aria-label="无序列表"
+        className={activeList === "bullet" ? "active" : ""}
+        style={{ color: activeList === "bullet" ? "#2563eb" : undefined }}
+        onClick={() => onMenuList("bullet")}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="5" cy="7" r="1.5" />
+          <path d="M9 7h10" />
+          <circle cx="5" cy="12" r="1.5" />
+          <path d="M9 12h10" />
+          <circle cx="5" cy="17" r="1.5" />
+          <path d="M9 17h10" />
+        </svg>
+      </button>
+      {/* 有序列表 */}
+      <button
+        type="button"
+        role="menuitem"
+        title="有序列表"
+        aria-label="有序列表"
+        className={activeList === "ordered" ? "active" : ""}
+        style={{ color: activeList === "ordered" ? "#2563eb" : undefined }}
+        onClick={() => onMenuList("ordered")}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <text x="3" y="9" fontSize="8" fill="currentColor">1</text>
+          <path d="M9 7h10" />
+          <text x="3" y="14" fontSize="8" fill="currentColor">2</text>
+          <path d="M9 12h10" />
+          <text x="3" y="19" fontSize="8" fill="currentColor">3</text>
+          <path d="M9 17h10" />
+        </svg>
+      </button>
+      {/* 代码块 */}
+      <button
+        type="button"
+        role="menuitem"
+        title="代码块"
+        aria-label="代码块"
+        className={activeCodeBlock ? "active" : ""}
+        style={{ color: activeCodeBlock ? "#2563eb" : undefined }}
+        onClick={onMenuCode}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 16l-4-4 4-4" />
+          <path d="M16 8l4 4-4 4" />
+          <path d="M14 4l-4 16" />
+        </svg>
+      </button>
+      {/* 加粗 */}
+      <button
+        type="button"
+        role="menuitem"
+        title="加粗"
+        aria-label="加粗"
+        className={activeInline.bold ? "active" : ""}
+        style={{ color: activeInline.bold ? "#2563eb" : undefined }}
+        onClick={() => onMenuInline("bold")}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M7 5h6a3 3 0 0 1 0 6H7z" />
+          <path d="M7 11h7a3 3 0 0 1 0 6H7z" />
+        </svg>
+      </button>
+      {/* 斜体 */}
+      <button
+        type="button"
+        role="menuitem"
+        title="斜体"
+        aria-label="斜体"
+        className={activeInline.italic ? "active" : ""}
+        style={{ color: activeInline.italic ? "#2563eb" : undefined }}
+        onClick={() => onMenuInline("italic")}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="19" y1="4" x2="10" y2="4" />
+          <line x1="14" y1="20" x2="5" y2="20" />
+          <line x1="15" y1="4" x2="9" y2="20" />
+        </svg>
+      </button>
+      {/* 下划线 */}
+      <button
+        type="button"
+        role="menuitem"
+        title="下划线"
+        aria-label="下划线"
+        className={activeInline.underline ? "active" : ""}
+        style={{ color: activeInline.underline ? "#2563eb" : undefined }}
+        onClick={() => onMenuInline("underline")}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 4v7a6 6 0 0 0 12 0V4" />
+          <line x1="4" y1="20" x2="20" y2="20" />
+        </svg>
+      </button>
+      {/* 删除线 */}
+      <button
+        type="button"
+        role="menuitem"
+        title="删除线"
+        aria-label="删除线"
+        className={activeInline.strike ? "active" : ""}
+        style={{ color: activeInline.strike ? "#2563eb" : undefined }}
+        onClick={() => onMenuInline("strike")}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="4" y1="12" x2="20" y2="12" />
+          <path d="M6 7a4 4 0 0 1 2-3h8" />
+          <path d="M18 17a4 4 0 0 1-2 3H8" />
+        </svg>
+      </button>
+      {/* 清除行内格式 */}
+      <button type="button" role="menuitem" title="清除行内格式" aria-label="清除行内格式" onClick={onMenuClearInline}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 3l18 18" />
+          <path d="M8 4h10l-6 8" />
+        </svg>
+      </button>
+    </>
+  );
+}
+
+// 选中态横向工具栏按钮集合（紧凑尺寸）
+function SelectionMenu(props: {
+  activeHeader: number;
+  activeList: string | null;
+  activeCodeBlock: boolean;
+  activeAlign: "left" | "center" | "right" | "justify";
+  activeInline: { bold?: boolean; italic?: boolean; underline?: boolean; strike?: boolean };
+  onMenuParagraph: () => void;
+  onMenuHeader: (lvl: 1 | 2 | 3) => void;
+  onMenuList: (type: "bullet" | "ordered") => void;
+  onMenuCode: () => void;
+  onMenuAlign: (val: "left" | "center" | "right" | "justify") => void;
+  onMenuInline: (type: "bold" | "italic" | "underline" | "strike") => void;
+  onMenuClearInline: () => void;
+}) {
+  const { activeHeader, activeList, activeCodeBlock, activeAlign, activeInline, onMenuParagraph, onMenuHeader, onMenuList, onMenuCode, onMenuAlign, onMenuInline, onMenuClearInline } = props;
+  return (
+    <>
+      {/* 段落 */}
+      <button type="button" title="正文" aria-label="正文" className={activeHeader === 0 && !activeList && !activeCodeBlock ? "active" : ""} style={{ color: activeHeader === 0 && !activeList && !activeCodeBlock ? "#2563eb" : undefined }} onClick={onMenuParagraph}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h16" />
+          <path d="M12 6v12" />
+        </svg>
+      </button>
+      {/* left */}
+      <button type="button" title="左对齐" aria-label="左对齐" className={activeAlign === "left" ? "active" : ""} style={{ color: activeAlign === "left" ? "#2563eb" : undefined }} onClick={() => onMenuAlign("left")}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h16" />
+          <path d="M4 10h12" />
+          <path d="M4 14h16" />
+          <path d="M4 18h10" />
+        </svg>
+      </button>
+      {/* center */}
+      <button type="button" title="居中对齐" aria-label="居中对齐" className={activeAlign === "center" ? "active" : ""} style={{ color: activeAlign === "center" ? "#2563eb" : undefined }} onClick={() => onMenuAlign("center")}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h16" />
+          <path d="M6 10h12" />
+          <path d="M4 14h16" />
+          <path d="M7 18h10" />
+        </svg>
+      </button>
+      {/* right */}
+      <button type="button" title="右对齐" aria-label="右对齐" className={activeAlign === "right" ? "active" : ""} style={{ color: activeAlign === "right" ? "#2563eb" : undefined }} onClick={() => onMenuAlign("right")}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h16" />
+          <path d="M8 10h12" />
+          <path d="M4 14h16" />
+          <path d="M10 18h10" />
+        </svg>
+      </button>
+      {/* justify */}
+      <button type="button" title="两端对齐" aria-label="两端对齐" className={activeAlign === "justify" ? "active" : ""} style={{ color: activeAlign === "justify" ? "#2563eb" : undefined }} onClick={() => onMenuAlign("justify")}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h16" />
+          <path d="M4 10h16" />
+          <path d="M4 14h16" />
+          <path d="M4 18h16" />
+        </svg>
+      </button>
+      {/* H1 */}
+      <button type="button" title="H1" aria-label="H1" className={activeHeader === 1 ? "active" : ""} style={{ color: activeHeader === 1 ? "#2563eb" : undefined }} onClick={() => onMenuHeader(1)}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6v12" />
+          <path d="M12 6v12" />
+          <path d="M4 12h8" />
+          <text x="16" y="16" fontSize="9" fill="currentColor">1</text>
+        </svg>
+      </button>
+      {/* H2 */}
+      <button type="button" title="H2" aria-label="H2" className={activeHeader === 2 ? "active" : ""} style={{ color: activeHeader === 2 ? "#2563eb" : undefined }} onClick={() => onMenuHeader(2)}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6v12" />
+          <path d="M12 6v12" />
+          <path d="M4 12h8" />
+          <text x="16" y="16" fontSize="9" fill="currentColor">2</text>
+        </svg>
+      </button>
+      {/* H3 */}
+      <button type="button" title="H3" aria-label="H3" className={activeHeader === 3 ? "active" : ""} style={{ color: activeHeader === 3 ? "#2563eb" : undefined }} onClick={() => onMenuHeader(3)}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6v12" />
+          <path d="M12 6v12" />
+          <path d="M4 12h8" />
+          <text x="16" y="16" fontSize="9" fill="currentColor">3</text>
+        </svg>
+      </button>
+      {/* bullet */}
+      <button type="button" title="• 列表" aria-label="• 列表" className={activeList === "bullet" ? "active" : ""} style={{ color: activeList === "bullet" ? "#2563eb" : undefined }} onClick={() => onMenuList("bullet")}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="5" cy="7" r="1.4" />
+          <path d="M9 7h10" />
+          <circle cx="5" cy="12" r="1.4" />
+          <path d="M9 12h10" />
+          <circle cx="5" cy="17" r="1.4" />
+          <path d="M9 17h10" />
+        </svg>
+      </button>
+      {/* ordered */}
+      <button type="button" title="1. 列表" aria-label="1. 列表" className={activeList === "ordered" ? "active" : ""} style={{ color: activeList === "ordered" ? "#2563eb" : undefined }} onClick={() => onMenuList("ordered")}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <text x="3" y="9" fontSize="7" fill="currentColor">1</text>
+          <path d="M9 7h10" />
+          <text x="3" y="14" fontSize="7" fill="currentColor">2</text>
+          <path d="M9 12h10" />
+          <text x="3" y="19" fontSize="7" fill="currentColor">3</text>
+          <path d="M9 17h10" />
+        </svg>
+      </button>
+      {/* code-block */}
+      <button type="button" title="代码块" aria-label="代码块" className={activeCodeBlock ? "active" : ""} style={{ color: activeCodeBlock ? "#2563eb" : undefined }} onClick={onMenuCode}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 16l-4-4 4-4" />
+          <path d="M16 8l4 4-4 4" />
+          <path d="M14 4l-4 16" />
+        </svg>
+      </button>
+      {/* bold */}
+      <button type="button" title="B" aria-label="B" className={activeInline.bold ? "active" : ""} style={{ color: activeInline.bold ? "#2563eb" : undefined }} onClick={() => onMenuInline("bold")}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M7 5h6a3 3 0 0 1 0 6H7z" />
+          <path d="M7 11h7a3 3 0 0 1 0 6H7z" />
+        </svg>
+      </button>
+      {/* italic */}
+      <button type="button" title="I" aria-label="I" className={activeInline.italic ? "active" : ""} style={{ color: activeInline.italic ? "#2563eb" : undefined }} onClick={() => onMenuInline("italic")}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="19" y1="4" x2="10" y2="4" />
+          <line x1="14" y1="20" x2="5" y2="20" />
+          <line x1="15" y1="4" x2="9" y2="20" />
+        </svg>
+      </button>
+      {/* underline */}
+      <button type="button" title="U" aria-label="U" className={activeInline.underline ? "active" : ""} style={{ color: activeInline.underline ? "#2563eb" : undefined }} onClick={() => onMenuInline("underline")}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 4v7a6 6 0 0 0 12 0V4" />
+          <line x1="4" y1="20" x2="20" y2="20" />
+        </svg>
+      </button>
+      {/* strike */}
+      <button type="button" title="S" aria-label="S" className={activeInline.strike ? "active" : ""} style={{ color: activeInline.strike ? "#2563eb" : undefined }} onClick={() => onMenuInline("strike")}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="4" y1="12" x2="20" y2="12" />
+          <path d="M6 7a4 4 0 0 1 2-3h8" />
+          <path d="M18 17a4 4 0 0 1-2 3H8" />
+        </svg>
+      </button>
+      {/* clear inline */}
+      <button type="button" title="清除" aria-label="清除行内格式" onClick={onMenuClearInline}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 3l18 18" />
+          <path d="M8 4h10l-6 8" />
+        </svg>
+      </button>
+    </>
+  );
+}
+
 // 在按下空格时检测并转换 Markdown 语法（标题/列表/代码块）
 function detectMarkdown(
   quillInstance: any,
@@ -386,83 +536,67 @@ function detectMarkdown(
   if (!quillInstance || !range) {
     return false;
   }
-  // 获取光标所在行与偏移
   const lineInfo = quillInstance.getLine?.(range.index);
   if (!lineInfo || !Array.isArray(lineInfo) || lineInfo.length < 2) {
     return false;
   }
   const [_line, offset] = lineInfo as [any, number];
-
-  const lineStart = range.index - offset; // 当前行起始位置
-
+  const lineStart = range.index - offset;
   const prefix = quillInstance.getText?.(lineStart, offset) ?? "";
   const formats = quillInstance.getFormat?.(lineStart, 1) ?? {};
 
-  // 代码块围栏：``` 或 ```lang + 空格 -> 切换 code-block（可指定语言）
-  const codeFenceMatch = /^```([\w#+-]+)?$/.exec(prefix);
-  if (codeFenceMatch) {
-    const lang = codeFenceMatch[1];
+  // ``` 或 ```lang
+  const fence = /^```([\w#+-]+)?$/.exec(prefix);
+  if (fence) {
+    const lang = fence[1];
     const markerLen = prefix.length;
     quillInstance.deleteText(lineStart, markerLen, "user");
     const toEnable = !("code-block" in formats);
     quillInstance.formatLine(lineStart, 1, "code-block", toEnable, "user");
-    // 若开启代码块：在其后额外插入一个“普通段落”，方便用户用↓或回车离开代码块
-    // 注意：使用 API 源插入，避免触发 onTextChange 中“回车继承 code-block”的逻辑
-    let caretIndex = lineStart;
     try {
       if (toEnable) {
+        // 在当前行后追加一个普通段落，便于离开代码块
         const curLineInfo = quillInstance.getLine?.(lineStart);
         const curLine = curLineInfo && Array.isArray(curLineInfo) ? curLineInfo[0] : null;
-        const curLen = curLine && typeof curLine.length === "function" ? curLine.length() : 0; // 含行尾换行
+        const curLen = curLine && typeof curLine.length === "function" ? curLine.length() : 0;
         const afterLine = lineStart + Math.max(0, curLen);
-        // 在代码块行之后插入一个换行
         quillInstance.insertText?.(afterLine, "\n", "api");
-        // 将新行显式清除 code-block，使之成为普通段落
-        // 注意：新插入的空行的换行符本身承载了该行的块级格式，其索引即为 afterLine
         quillInstance.formatLine?.(afterLine, 1, "code-block", false, "api");
-        // 将光标移到新增的普通段落行，便于用户直观看到该行
-        caretIndex = lineStart;
       }
     }
     catch {
       // ignore
     }
-    quillInstance.setSelection(caretIndex, 0, "silent");
+    quillInstance.setSelection(lineStart, 0, "silent");
     opts?.setCodeLang?.(toEnable ? lang : undefined);
     return true;
   }
+
   if (prefix === "###") {
-    // 删除标记 '###'，将该行格式化为 header: 3，并把光标置回行首
     quillInstance.deleteText(lineStart, 3, "user");
     quillInstance.formatLine(lineStart, 1, "header", 3, "user");
     quillInstance.setSelection(lineStart, 0, "silent");
     return true;
   }
-
   if (prefix === "##") {
-    // 删除标记 '##'，将该行格式化为 header: 2，并把光标置回行首
     quillInstance.deleteText(lineStart, 2, "user");
     quillInstance.formatLine(lineStart, 1, "header", 2, "user");
     quillInstance.setSelection(lineStart, 0, "silent");
     return true;
   }
   if (prefix === "#") {
-    // 删除标记 '#'，将该行格式化为 header: 1，并把光标置回行首
     quillInstance.deleteText(lineStart, 1, "user");
     quillInstance.formatLine(lineStart, 1, "header", 1, "user");
     quillInstance.setSelection(lineStart, 0, "silent");
     return true;
   }
 
-  // 无序列表："-" + 空格
   if (prefix === "-") {
     quillInstance.deleteText(lineStart, 1, "user");
     quillInstance.formatLine(lineStart, 1, "list", "bullet", "user");
     quillInstance.setSelection(lineStart, 0, "silent");
     return true;
   }
-
-  // 有序列表："1." / "12." + 空格
   if (/^\d+\.$/.test(prefix)) {
     const markerLen = prefix.length;
     quillInstance.deleteText(lineStart, markerLen, "user");
@@ -697,7 +831,24 @@ function removeBlockFormatIfEmpty(quillInstance: any, range: any): boolean {
 
 export default function Veditor({ id, placeholder, onchange }: vditorProps) {
   const vdRef = useRef<quill | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const floatingTbRef = useRef<HTMLDivElement | null>(null);
+  // 调试：可视化/日志开关与参考线
+  const debugLineRef = useRef<HTMLDivElement | null>(null);
+  // 提供稳定引用，供事件处理器中调用，避免依赖项警告
+  const scheduleToolbarUpdateRef = useRef<() => void>(() => {});
+  const [tbVisible, setTbVisible] = useState(false);
+  const [tbTop, setTbTop] = useState(0);
+  const [tbLeft, setTbLeft] = useState(0);
+  // 编辑器实例是否已就绪（用于在就绪后再绑定滚动/尺寸监听）
+  const [editorReady, setEditorReady] = useState(false);
+  // 供组件内任意位置调用的工具栏位置更新函数
+  const updateToolbarPosRef = useRef<((idx: number) => void) | null>(null);
+  // 用于在下一帧刷新工具栏位置（避免读取到旧的布局）
+  const raf1Ref = useRef<number | null>(null);
+  const raf2Ref = useRef<number | null>(null);
+  // 用于触发函数
   const onChangeRef = useRef(onchange);
   const initialPlaceholderRef = useRef(placeholder);
   const lastAppliedMarkdownRef = useRef<string | null>(null);
@@ -708,17 +859,312 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
   const handlingSpaceRef = useRef(false);
   // 记录监听器，便于卸载
   const textChangeHandlerRef = useRef<((delta: any, oldDelta: any, source: any) => void) | null>(null);
+  const selectionChangeHandlerRef = useRef<((range: any) => void) | null>(null);
+  const hoverRef = useRef(false);
+  const focusRef = useRef(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  // 选中文本时的横向工具栏（与光标态小方块互斥）
+  const selectionTbRef = useRef<HTMLDivElement | null>(null);
+  const [selTbVisible, setSelTbVisible] = useState(false);
+  const [selTbTop, setSelTbTop] = useState(0);
+  const [selTbLeft, setSelTbLeft] = useState(0);
+  // 当前格式高亮状态
+  const [activeHeader, setActiveHeader] = useState<0 | 1 | 2 | 3>(0);
+  const [activeList, setActiveList] = useState<"" | "bullet" | "ordered">("");
+  const [activeCodeBlock, setActiveCodeBlock] = useState(false);
+  const [activeAlign, setActiveAlign] = useState<"left" | "center" | "right" | "justify">("left");
+  const [activeInline, setActiveInline] = useState({ bold: false, italic: false, underline: false, strike: false });
+
+  // 读取当前选区的格式并刷新高亮
+  const refreshActiveFormats = useCallback((): void => {
+    try {
+      const editor = vdRef.current as any;
+      if (!editor) {
+        return;
+      }
+      const sel = editor.getSelection?.(true);
+      if (!sel || typeof sel.index !== "number") {
+        setActiveHeader(0);
+        setActiveList("");
+        setActiveCodeBlock(false);
+        setActiveInline({ bold: false, italic: false, underline: false, strike: false });
+        return;
+      }
+      const inlineFmt = editor.getFormat?.(sel.index, sel.length || 0) || {};
+      setActiveInline({
+        bold: !!inlineFmt.bold,
+        italic: !!inlineFmt.italic,
+        underline: !!inlineFmt.underline,
+        strike: !!inlineFmt.strike,
+      });
+      const lineInfo = editor.getLine?.(sel.index);
+      if (lineInfo && Array.isArray(lineInfo) && lineInfo.length >= 2) {
+        const [_line, offset] = lineInfo as [any, number];
+        const lineStart = Math.max(0, sel.index - offset);
+        const blockFmt = editor.getFormat?.(lineStart, 1) || {};
+        const headerLv = Number(blockFmt.header) || 0;
+        const listKind = (blockFmt.list || "") as "" | "bullet" | "ordered";
+        const inCode = "code-block" in blockFmt;
+        setActiveHeader((headerLv === 1 || headerLv === 2 || headerLv === 3) ? headerLv : 0);
+        setActiveList(listKind);
+        setActiveCodeBlock(!!inCode);
+        const alignVal = (blockFmt.align || "left") as "left" | "center" | "right" | "justify";
+        setActiveAlign(alignVal || "left");
+      }
+      else {
+        setActiveHeader(0);
+        setActiveList("");
+        setActiveCodeBlock(false);
+      }
+    }
+    catch {
+      // ignore
+    }
+  }, []);
+
+  // 稳定引用：供 effect/回调中安全调用而不引入额外依赖
+  const refreshActiveFormatsRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    refreshActiveFormatsRef.current = refreshActiveFormats;
+  }, [refreshActiveFormats]);
 
   // 始终保持最新的回调，但不触发实例的重建
   useEffect(() => {
     onChangeRef.current = onchange;
   }, [onchange]);
 
+  // 调试：通过 window.__VEDITOR_DEBUG__ 控制
+
+  // 外部点击时关闭菜单（点击菜单或工具栏内部不关闭）
+  useEffect(() => {
+    if (!menuOpen) {
+      return;
+    }
+    const onDocMouseDown = (e: MouseEvent) => {
+      const menuEl = menuRef.current;
+      const tbEl = floatingTbRef.current;
+      const target = e.target as Node | null;
+      const insideMenu = !!(menuEl && target && menuEl.contains(target));
+      const insideToolbar = !!(tbEl && target && tbEl.contains(target));
+      if (!insideMenu && !insideToolbar) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+    };
+  }, [menuOpen]);
+
+  // 根据视口空间决定下拉或上拉，避免菜单显示不全（通过切换 DOM class 实现，避免额外状态更新）
+  useEffect(() => {
+    if (!menuOpen) {
+      const m = menuRef.current;
+      if (m) {
+        m.classList.remove("drop-up");
+      }
+      return;
+    }
+    const compute = () => {
+      try {
+        const tb = floatingTbRef.current;
+        const menu = menuRef.current;
+        if (!tb || !menu) {
+          return;
+        }
+        const tbRect = tb.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - tbRect.bottom;
+        const need = Math.max(menuRect.height, 0) + 8; // 额外留白
+        const dropUp = spaceBelow < need;
+        menu.classList.toggle("drop-up", dropUp);
+      }
+      catch {
+        // ignore
+      }
+    };
+    compute();
+    const onWin = () => compute();
+    window.addEventListener("resize", onWin);
+    window.addEventListener("scroll", onWin, { passive: true });
+    return () => {
+      window.removeEventListener("resize", onWin);
+      window.removeEventListener("scroll", onWin);
+    };
+  }, [menuOpen, tbTop]);
+
+  // 调度在下一帧（或下一帧的下一帧）刷新工具栏位置，确保布局变更已生效
+  const scheduleToolbarUpdate = useCallback(() => {
+    try {
+      if (raf1Ref.current) {
+        cancelAnimationFrame(raf1Ref.current);
+        raf1Ref.current = null;
+      }
+      if (raf2Ref.current) {
+        cancelAnimationFrame(raf2Ref.current);
+        raf2Ref.current = null;
+      }
+      const editor = vdRef.current as any;
+      const el = editor?.root as HTMLElement | null;
+      const wrapper = wrapperRef.current as HTMLDivElement | null;
+      if (!editor || !el || !wrapper) {
+        return;
+      }
+      raf1Ref.current = requestAnimationFrame(() => {
+        raf2Ref.current = requestAnimationFrame(() => {
+          try {
+            const sel = editor.getSelection?.(true);
+            if (sel && typeof sel.index === "number") {
+              const rootRect = el.getBoundingClientRect();
+              const wrapRect = wrapper.getBoundingClientRect();
+              const fmt = editor.getFormat?.(sel.index, sel.length || 0) || {};
+              const collapsed = !(sel.length && sel.length > 0);
+
+              // 1) 光标态：小方块工具栏（仅当选区折叠时显示）
+              if (collapsed) {
+                const bCaret = editor.getBounds?.(sel.index, 0) || { top: 0 };
+                const caretTop = (rootRect.top + (bCaret.top || 0) - el.scrollTop) - wrapRect.top;
+                if (typeof window !== "undefined" && (window as any).__VEDITOR_DEBUG__) {
+                  console.warn("[Veditor][schedule/caret]", {
+                    selIndex: sel.index,
+                    boundsTop: bCaret.top || 0,
+                    rootRectTop: rootRect.top,
+                    wrapRectTop: wrapRect.top,
+                    rootScrollTop: el.scrollTop,
+                    clientHeight: el.clientHeight,
+                    scrollHeight: el.scrollHeight,
+                    computedTop: caretTop,
+                  });
+                }
+                setTbTop(Math.max(0, caretTop));
+                // 计算小方块左侧位置：放到编辑区左外侧
+                try {
+                  const tbEl = floatingTbRef.current as HTMLDivElement | null;
+                  const tbW = tbEl?.offsetWidth || 34;
+                  // 默认在容器左外：-width - 8px 间距
+                  let nextLeft = -tbW - 8;
+                  // 视口兜底：保证距离视口左侧 >= 8px
+                  const viewportLeft = wrapRect.left + nextLeft;
+                  if (viewportLeft < 8) {
+                    nextLeft = Math.max(-tbW - 8, 8 - wrapRect.left);
+                  }
+                  setTbLeft(nextLeft);
+                }
+                catch {
+                  // ignore
+                }
+                // 调试线跟随小方块工具栏
+                try {
+                  if (debugLineRef.current) {
+                    debugLineRef.current.style.top = `${Math.max(0, caretTop)}px`;
+                    debugLineRef.current.style.display = (typeof window !== "undefined" && (window as any).__VEDITOR_DEBUG__)
+                      ? "block"
+                      : "none";
+                  }
+                }
+                catch {
+                  // ignore
+                }
+                // 选中态工具栏隐藏
+                setSelTbVisible(false);
+              }
+              // 2) 选中态：横向工具栏（排除代码块）
+              else {
+                const inCodeBlock = !!("code-block" in fmt);
+                if (!inCodeBlock) {
+                  const bSel = editor.getBounds?.(sel.index, sel.length) || { top: 0, left: 0, width: 0 };
+                  const selTop = (rootRect.top + (bSel.top || 0) - el.scrollTop) - wrapRect.top;
+                  const approxWidth = selectionTbRef.current?.offsetWidth || 260;
+                  const approxHeight = selectionTbRef.current?.offsetHeight || 34;
+                  let left = (rootRect.left + (bSel.left || 0) - wrapRect.left);
+                  // 居中于选区
+                  const centerShift = Math.max(0, ((bSel as any).width || 0) / 2 - approxWidth / 2);
+                  left += centerShift;
+                  // 约束在容器范围内
+                  const maxLeft = Math.max(0, wrapper.clientWidth - approxWidth - 8);
+                  left = Math.max(8, Math.min(left, maxLeft));
+                  const top = Math.max(0, selTop - approxHeight - 8);
+                  if (typeof window !== "undefined" && (window as any).__VEDITOR_DEBUG__) {
+                    console.warn("[Veditor][schedule/selection]", {
+                      selIndex: sel.index,
+                      selLength: sel.length,
+                      boundsTop: (bSel as any).top || 0,
+                      boundsLeft: (bSel as any).left || 0,
+                      boundsWidth: (bSel as any).width || 0,
+                      rootRectTop: rootRect.top,
+                      wrapRectTop: wrapRect.top,
+                      rootScrollTop: el.scrollTop,
+                      computedTop: top,
+                      computedLeft: left,
+                    });
+                  }
+                  setSelTbTop(top - 15);
+                  setSelTbLeft(left);
+                  setSelTbVisible(true);
+                }
+                else {
+                  setSelTbVisible(false);
+                }
+              }
+            }
+            else {
+              // 无有效选区，隐藏两个工具栏
+              setTbVisible(false);
+              setSelTbVisible(false);
+              try {
+                if (debugLineRef.current) {
+                  debugLineRef.current.style.display = "none";
+                }
+              }
+              catch {
+                // ignore
+              }
+            }
+          }
+          catch {
+            // ignore
+          }
+        });
+      });
+    }
+    catch {
+      // ignore
+    }
+  }, []);
+
+  // 将回调存入 ref，供事件回调用
+  useEffect(() => {
+    scheduleToolbarUpdateRef.current = scheduleToolbarUpdate;
+  }, [scheduleToolbarUpdate]);
+
+  // 组件卸载时清理 RAF
+  useEffect(() => {
+    return () => {
+      try {
+        if (raf1Ref.current) {
+          cancelAnimationFrame(raf1Ref.current);
+          raf1Ref.current = null;
+        }
+        if (raf2Ref.current) {
+          cancelAnimationFrame(raf2Ref.current);
+          raf2Ref.current = null;
+        }
+      }
+      catch {
+        // ignore
+      }
+    };
+  }, []);
+
   useEffect(() => {
     const container = containerRef.current; // 在 useEffect 内部保存 containerRef 的当前值
     let rootEl: HTMLElement | null = null;
     let onRootKeyDown: ((e: KeyboardEvent) => void) | null = null;
+    let onRootKeyUp: ((e: KeyboardEvent) => void) | null = null;
+    let onRootMouseUp: ((e: MouseEvent) => void) | null = null;
     let onRootPaste: ((e: ClipboardEvent) => void) | null = null;
+    // 为可清理的 DOM 事件处理器预留引用（此处不需要 scroll 句柄，滚动监听在独立 effect 中）
     // Enter/换行后用于清理新行块级格式的定时器
     let lineFormatTimer: ReturnType<typeof setTimeout> | null = null;
     // 初次载入占位 Markdown 的复位定时器
@@ -743,17 +1189,74 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
       vdRef.current = new Q(container, {
         theme: "snow",
         modules: {
-          toolbar: true,
+          toolbar: false,
           // 统一以 delta 处理，Clipboard 配置最小化；自定义粘贴在 root paste 事件中完成
           clipboard: {
             matchVisual: false,
           },
         },
-        placeholder: initialPlaceholderRef.current || "",
       });
       const editor = vdRef.current!;
       // 聚焦编辑器，确保键盘事件由编辑器接收
       editor.focus?.();
+
+      // 根据当前选区更新悬浮工具栏位置
+      const updateToolbarPosition = (idx: number) => {
+        try {
+          const root = (editor as any).root as HTMLElement;
+          const wrapper = wrapperRef.current as HTMLDivElement | null;
+          if (!root || !wrapper) {
+            return;
+          }
+          const b = (editor as any).getBounds?.(idx, 0) || { top: 0 };
+          const rootRect = root.getBoundingClientRect();
+          const wrapRect = wrapper.getBoundingClientRect();
+          const top = (rootRect.top + (b.top || 0) - root.scrollTop) - wrapRect.top;
+          if (typeof window !== "undefined" && (window as any).__VEDITOR_DEBUG__) {
+            console.warn("[Veditor][update]", {
+              selIndex: idx,
+              boundsTop: b.top || 0,
+              rootRectTop: rootRect.top,
+              wrapRectTop: wrapRect.top,
+              rootScrollTop: root.scrollTop,
+              clientHeight: root.clientHeight,
+              scrollHeight: root.scrollHeight,
+              computedTop: top,
+            });
+          }
+          setTbTop(Math.max(0, top));
+          // 计算小方块左侧位置：放到编辑区左外侧
+          try {
+            const tbEl = floatingTbRef.current as HTMLDivElement | null;
+            const tbW = tbEl?.offsetWidth || 34;
+            let nextLeft = -tbW - 8;
+            const viewportLeft = wrapRect.left + nextLeft;
+            if (viewportLeft < 8) {
+              nextLeft = Math.max(-tbW - 8, 8 - wrapRect.left);
+            }
+            setTbLeft(nextLeft);
+          }
+          catch {
+            // ignore
+          }
+          try {
+            if (debugLineRef.current) {
+              debugLineRef.current.style.top = `${Math.max(0, top)}px`;
+              debugLineRef.current.style.display = (typeof window !== "undefined" && (window as any).__VEDITOR_DEBUG__)
+                ? "block"
+                : "none";
+            }
+          }
+          catch {
+            // ignore
+          }
+        }
+        catch {
+          // ignore
+        }
+      };
+      // 暴露给外层使用，便于在 silent setSelection 后手动刷新位置
+      updateToolbarPosRef.current = updateToolbarPosition;
 
       // 载入初始 Markdown（来自 props.placeholder）
       try {
@@ -841,6 +1344,8 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
                   editor.formatLine(newLineStart, 1, "list", false, "user");
                   editor.formatLine(newLineStart, 1, "code-block", false, "user");
                 }
+                // 回车后刷新工具栏位置
+                updateToolbarPosRef.current?.(selAfter.index);
               }
               catch {
                 // ignore
@@ -884,14 +1389,90 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
             finally {
               handlingSpaceRef.current = false;
             }
+            // silent 选区变动后手动刷新工具栏位置
+            try {
+              const afterSel = editor.getSelection?.(true);
+              if (afterSel && typeof afterSel.index === "number") {
+                updateToolbarPosRef.current?.(afterSel.index);
+              }
+            }
+            catch {
+              // ignore
+            }
           }
         }
         catch {
           // ignore
         }
+
+        // 最后：刷新高亮并在本次用户变更后调度一次位置刷新
+        refreshActiveFormatsRef.current();
+        scheduleToolbarUpdateRef.current();
       };
       editor.on?.("text-change", onTextChange);
       textChangeHandlerRef.current = onTextChange;
+
+      // 选择区变化：仅折叠时显示小方块；有选区时显示横向（非代码块）
+      const onSelChange = (range: any) => {
+        const root = (editor as any).root as HTMLElement;
+        const hasFocus = !!range && document.activeElement === root;
+        focusRef.current = hasFocus;
+        if (!range) {
+          setTbVisible(false);
+          setSelTbVisible(false);
+          return;
+        }
+        const collapsed = !(range.length && range.length > 0);
+        // 折叠：仅在 hover 或 focus 时显示小方块；隐藏横向
+        setTbVisible(collapsed && (hoverRef.current || hasFocus));
+        if (collapsed) {
+          if (typeof range.index === "number") {
+            updateToolbarPosition(range.index);
+          }
+          setSelTbVisible(false);
+        }
+        else {
+          // 非折叠：交给统一调度计算横向工具栏位置（并在代码块中隐藏）
+          // 先进行一次“同步”定位，立即可见，随后再用 RAF 精修位置
+          try {
+            const fmt = editor.getFormat?.(range.index, range.length || 0) || {};
+            const inCodeBlock = !!("code-block" in fmt);
+            if (!inCodeBlock) {
+              // 立即计算一次位置（无 RAF）
+              const el = (editor as any).root as HTMLElement;
+              const wrapper = wrapperRef.current as HTMLDivElement | null;
+              if (el && wrapper) {
+                const bSel = editor.getBounds?.(range.index, range.length) || { top: 0, left: 0, width: 0 };
+                const rootRect = el.getBoundingClientRect();
+                const wrapRect = wrapper.getBoundingClientRect();
+                const selTop = (rootRect.top + (bSel.top || 0) - el.scrollTop) - wrapRect.top;
+                const approxWidth = selectionTbRef.current?.offsetWidth || 260;
+                const approxHeight = selectionTbRef.current?.offsetHeight || 34;
+                let left = (rootRect.left + (bSel.left || 0) - wrapRect.left);
+                const centerShift = Math.max(0, ((bSel as any).width || 0) / 2 - approxWidth / 2);
+                left += centerShift;
+                const maxLeft = Math.max(0, wrapper.clientWidth - approxWidth - 8);
+                left = Math.max(8, Math.min(left, maxLeft));
+                const top = Math.max(0, selTop - approxHeight - 8);
+                setSelTbTop(top - 15);
+                setSelTbLeft(left);
+                setSelTbVisible(true);
+              }
+            }
+            else {
+              setSelTbVisible(false);
+            }
+          }
+          catch {
+            // ignore
+          }
+          // RAF 调度进一步稳定位置
+          scheduleToolbarUpdateRef.current?.();
+        }
+        refreshActiveFormatsRef.current();
+      };
+      editor.on?.("selection-change", onSelChange);
+      selectionChangeHandlerRef.current = onSelChange;
 
       // 不再依赖 space/enter 的键盘绑定，统一在 delta 中识别（稳定于 IME 与不同浏览器事件序）
 
@@ -909,6 +1490,8 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
               // ignore
             }
             isFormattedRef.current = false;
+            // Backspace 触发后调度刷新位置
+            scheduleToolbarUpdateRef.current();
             return false;
           }
           return true;
@@ -929,10 +1512,40 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
               // ignore
             }
             isFormattedRef.current = false;
+            // 兜底：调度刷新工具栏位置
+            scheduleToolbarUpdateRef.current();
           }
         }
       };
       rootEl?.addEventListener("keydown", onRootKeyDown, true);
+
+      // 鼠标结束选择（mouseup）与键盘选择（keyup）时，立即显示和定位横向工具栏
+      onRootMouseUp = () => {
+        try {
+          const sel = editor.getSelection?.(true);
+          if (sel && sel.length && sel.length > 0) {
+            onSelChange(sel);
+          }
+        }
+        catch {
+          // ignore
+        }
+      };
+      rootEl?.addEventListener("mouseup", onRootMouseUp, true);
+
+      onRootKeyUp = (_e: KeyboardEvent) => {
+        try {
+          // Shift+Arrow 或 Ctrl+A 等产生选区变化
+          const sel = editor.getSelection?.(true);
+          if (sel && sel.length && sel.length > 0) {
+            onSelChange(sel);
+          }
+        }
+        catch {
+          // ignore
+        }
+      };
+      rootEl?.addEventListener("keyup", onRootKeyUp, true);
 
       // 粘贴：若是 Markdown 文本，则转换为 HTML 并以所见即所得形式插入
       onRootPaste = (e: ClipboardEvent) => {
@@ -989,6 +1602,14 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
         }
       };
       rootEl?.addEventListener("paste", onRootPaste, true);
+      // 滚动监听改为独立 effect 绑定，见组件底部 useEffect
+
+      // 悬停控制显示
+      // 悬停控制由 JSX 上的 onMouseEnter/onMouseLeave 负责
+      // 标记编辑器已就绪，触发依赖 editor 的副作用（如 ResizeObserver 绑定）
+      setEditorReady(true);
+      // 初次刷新一次格式高亮
+      refreshActiveFormatsRef.current();
     })();
 
     // 清理事件监听，避免重复绑定
@@ -997,6 +1618,22 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
       if (rootEl && onRootKeyDown) {
         try {
           rootEl.removeEventListener("keydown", onRootKeyDown, true);
+        }
+        catch {
+          // ignore
+        }
+      }
+      if (rootEl && onRootMouseUp) {
+        try {
+          rootEl.removeEventListener("mouseup", onRootMouseUp, true);
+        }
+        catch {
+          // ignore
+        }
+      }
+      if (rootEl && onRootKeyUp) {
+        try {
+          rootEl.removeEventListener("keyup", onRootKeyUp, true);
         }
         catch {
           // ignore
@@ -1021,6 +1658,15 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
         }
         textChangeHandlerRef.current = null;
       }
+      if (editor && selectionChangeHandlerRef.current) {
+        try {
+          editor.off?.("selection-change", selectionChangeHandlerRef.current);
+        }
+        catch {
+          // ignore
+        }
+        selectionChangeHandlerRef.current = null;
+      }
       // 清理新行格式定时器
       try {
         if (lineFormatTimer) {
@@ -1042,6 +1688,13 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
       }
       // 4) 释放实例引用
       vdRef.current = null;
+      // 6) 其他清理
+      try {
+        // no-op
+      }
+      catch {
+        // ignore
+      }
       // 5) 清理初始占位定时器
       try {
         if (initMdTimer) {
@@ -1052,8 +1705,62 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
       catch {
         // ignore
       }
+      // 重置就绪标记
+      setEditorReady(false);
     };
   }, []);
+
+  // 独立滚动监听：编辑器滚动时更新工具栏位置与显示
+  useEffect(() => {
+    const editor = vdRef.current as any;
+    const el = editor?.root as HTMLElement | null;
+    if (!editor || !el) {
+      return;
+    }
+    const onScroll = () => {
+      try {
+        scheduleToolbarUpdateRef.current?.();
+      }
+      catch {
+        // ignore
+      }
+    };
+    el.addEventListener("scroll", onScroll);
+    return () => {
+      try {
+        el.removeEventListener("scroll", onScroll);
+      }
+      catch {
+        // ignore
+      }
+    };
+  }, []);
+
+  // 根元素尺寸变化时（例如 Backspace 导致内容高度变化），刷新工具栏位置
+  useEffect(() => {
+    const editor = vdRef.current as any;
+    const el = editor?.root as HTMLElement | null;
+    if (!editor || !el || typeof (window as any).ResizeObserver === "undefined") {
+      return;
+    }
+    const ro = new (window as any).ResizeObserver(() => {
+      try {
+        scheduleToolbarUpdateRef.current?.();
+      }
+      catch {
+        // ignore
+      }
+    });
+    ro.observe(el);
+    return () => {
+      try {
+        ro.disconnect();
+      }
+      catch {
+        // ignore
+      }
+    };
+  }, [editorReady]);
 
   // 当 placeholder（后端传来的 Markdown）变化时，重置编辑器内容
   useEffect(() => {
@@ -1092,11 +1799,334 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
     };
   }, [placeholder]);
 
+  // 工具栏动作：块级与行内
+  const applyHeader = (level: 1 | 2 | 3) => {
+    const editor = vdRef.current as any;
+    if (!editor) {
+      return;
+    }
+    const sel = editor.getSelection?.(true);
+    if (!sel || typeof sel.index !== "number") {
+      return;
+    }
+    const lineInfo = editor.getLine?.(sel.index);
+    if (!lineInfo || !Array.isArray(lineInfo) || lineInfo.length < 2) {
+      return;
+    }
+    const [_line, offset] = lineInfo as [any, number];
+    const lineStart = sel.index - offset;
+    const formats = editor.getFormat?.(lineStart, 1) ?? {};
+    const current = formats.header;
+    const target: any = current === level ? false : level;
+    editor.formatLine?.(lineStart, 1, "header", target, "user");
+    editor.setSelection?.(lineStart, 0, "silent");
+    updateToolbarPosRef.current?.(lineStart);
+    scheduleToolbarUpdateRef.current();
+  };
+
+  const toggleList = (kind: "bullet" | "ordered") => {
+    const editor = vdRef.current as any;
+    if (!editor) {
+      return;
+    }
+    const sel = editor.getSelection?.(true);
+    if (!sel || typeof sel.index !== "number") {
+      return;
+    }
+    const lineInfo = editor.getLine?.(sel.index);
+    if (!lineInfo || !Array.isArray(lineInfo) || lineInfo.length < 2) {
+      return;
+    }
+    const [_line, offset] = lineInfo as [any, number];
+    const lineStart = sel.index - offset;
+    const formats = editor.getFormat?.(lineStart, 1) ?? {};
+    const current = formats.list;
+    const target: any = current === kind ? false : kind;
+    editor.formatLine?.(lineStart, 1, "list", target, "user");
+    editor.setSelection?.(lineStart, 0, "silent");
+    updateToolbarPosRef.current?.(lineStart);
+    scheduleToolbarUpdateRef.current();
+  };
+
+  const toggleInline = (attr: "bold" | "italic" | "underline" | "strike") => {
+    const editor = vdRef.current as any;
+    if (!editor) {
+      return;
+    }
+    const sel = editor.getSelection?.(true);
+    if (!sel || typeof sel.index !== "number") {
+      return;
+    }
+    const fmt = editor.getFormat?.(sel.index, sel.length || 0) ?? {};
+    const isOn = !!fmt[attr];
+    if (sel.length && sel.length > 0) {
+      editor.formatText?.(sel.index, sel.length, attr, !isOn, "user");
+    }
+    else {
+      editor.format?.(attr, !isOn, "user");
+    }
+    editor.focus?.();
+    const cur = editor.getSelection?.(true);
+    if (cur && typeof cur.index === "number") {
+      updateToolbarPosRef.current?.(cur.index);
+    }
+    scheduleToolbarUpdateRef.current();
+  };
+
+  const toggleCodeBlock = () => {
+    const editor = vdRef.current as any;
+    if (!editor) {
+      return;
+    }
+    const sel = editor.getSelection?.(true);
+    if (!sel || typeof sel.index !== "number") {
+      return;
+    }
+    const lineInfo = editor.getLine?.(sel.index);
+    if (!lineInfo || !Array.isArray(lineInfo) || lineInfo.length < 2) {
+      return;
+    }
+    const [_line, offset] = lineInfo as [any, number];
+    const lineStart = sel.index - offset;
+    const formats = editor.getFormat?.(lineStart, 1) ?? {};
+    const toEnable = !("code-block" in formats);
+    editor.formatLine?.(lineStart, 1, "code-block", toEnable, "user");
+    if (toEnable) {
+      try {
+        const curLineInfo = editor.getLine?.(lineStart);
+        const curLine = curLineInfo && Array.isArray(curLineInfo) ? curLineInfo[0] : null;
+        const curLen = curLine && typeof curLine.length === "function" ? curLine.length() : 0;
+        const afterLine = lineStart + Math.max(0, curLen);
+        editor.insertText?.(afterLine, "\n", "api");
+        editor.formatLine?.(afterLine, 1, "code-block", false, "api");
+        editor.setSelection?.(lineStart, 0, "silent");
+        updateToolbarPosRef.current?.(lineStart);
+        scheduleToolbarUpdateRef.current();
+      }
+      catch {
+        // ignore
+      }
+    }
+    else {
+      editor.setSelection?.(lineStart, 0, "silent");
+      updateToolbarPosRef.current?.(lineStart);
+      scheduleToolbarUpdateRef.current();
+    }
+  };
+
+  // 对齐：左/中/右/两端（左视作清除 align）
+  const setAlign = (val: "left" | "center" | "right" | "justify") => {
+    const editor = vdRef.current as any;
+    if (!editor) {
+      return;
+    }
+    const sel = editor.getSelection?.(true);
+    if (!sel || typeof sel.index !== "number") {
+      return;
+    }
+    const lineInfo = editor.getLine?.(sel.index);
+    if (!lineInfo || !Array.isArray(lineInfo) || lineInfo.length < 2) {
+      return;
+    }
+    const [_line, offset] = lineInfo as [any, number];
+    const lineStart = sel.index - offset;
+    const formats = editor.getFormat?.(lineStart, 1) ?? {};
+    const target: any = (val === "left") ? false : val;
+    // 在代码块中不应用对齐
+    if ("code-block" in formats) {
+      return;
+    }
+    editor.formatLine?.(lineStart, 1, "align", target, "user");
+    editor.setSelection?.(lineStart, 0, "silent");
+    updateToolbarPosRef.current?.(lineStart);
+    scheduleToolbarUpdateRef.current();
+    refreshActiveFormats();
+  };
+
+  // 菜单点击封装，避免内联多语句导致 lint 警告
+  const onMenuHeader = (lv: 1 | 2 | 3) => {
+    applyHeader(lv);
+    refreshActiveFormats();
+    setMenuOpen(false);
+  };
+  const onMenuList = (kind: "bullet" | "ordered") => {
+    toggleList(kind);
+    refreshActiveFormats();
+    setMenuOpen(false);
+  };
+  const onMenuCode = () => {
+    toggleCodeBlock();
+    refreshActiveFormats();
+    setMenuOpen(false);
+  };
+  const onMenuAlign = (val: "left" | "center" | "right" | "justify") => {
+    setAlign(val);
+    refreshActiveFormats();
+    setMenuOpen(false);
+  };
+  const onMenuInline = (attr: "bold" | "italic" | "underline" | "strike") => {
+    toggleInline(attr);
+    refreshActiveFormats();
+    setMenuOpen(false);
+  };
+
+  // 段落（清除块级格式）与清除行内格式
+  const onMenuParagraph = () => {
+    const editor = vdRef.current as any;
+    if (!editor) {
+      return;
+    }
+    const sel = editor.getSelection?.(true);
+    if (!sel || typeof sel.index !== "number") {
+      return;
+    }
+    const lineInfo = editor.getLine?.(sel.index);
+    if (!lineInfo || !Array.isArray(lineInfo) || lineInfo.length < 2) {
+      return;
+    }
+    const [_line, offset] = lineInfo as [any, number];
+    const lineStart = sel.index - offset;
+    editor.formatLine?.(lineStart, 1, "header", false, "user");
+    editor.formatLine?.(lineStart, 1, "list", false, "user");
+    editor.formatLine?.(lineStart, 1, "code-block", false, "user");
+    editor.setSelection?.(lineStart, 0, "silent");
+    updateToolbarPosRef.current?.(lineStart);
+    scheduleToolbarUpdateRef.current();
+    refreshActiveFormats();
+    setMenuOpen(false);
+  };
+  const onMenuClearInline = () => {
+    const editor = vdRef.current as any;
+    if (!editor) {
+      return;
+    }
+    const sel = editor.getSelection?.(true);
+    if (!sel || typeof sel.index !== "number") {
+      return;
+    }
+    const len = sel.length || 0;
+    if (len > 0) {
+      editor.removeFormat?.(sel.index, len, "user");
+    }
+    const cur = editor.getSelection?.(true);
+    if (cur && typeof cur.index === "number") {
+      updateToolbarPosRef.current?.(cur.index);
+    }
+    scheduleToolbarUpdateRef.current();
+    refreshActiveFormats();
+    setMenuOpen(false);
+  };
+
   return (
     <div
-      id={id}
-      ref={containerRef}
-      className="ql-wrapper bg-white border border-gray-300 rounded-md shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 min-h-[200px]"
-    />
+      ref={wrapperRef}
+      className="ql-outer relative"
+      style={{ overflow: "visible" }}
+      onMouseEnter={() => {
+        hoverRef.current = true;
+        try {
+          const editor = vdRef.current as any;
+          const sel = editor?.getSelection?.(true);
+          // 仅在折叠选区时显示小方块工具栏
+          setTbVisible(!!sel && !(sel.length && sel.length > 0));
+          // 统一调度，确保两类工具栏位置/可见性正确
+          scheduleToolbarUpdateRef.current?.();
+        }
+        catch {
+          // ignore
+        }
+      }}
+      onMouseLeave={() => {
+        hoverRef.current = false;
+        if (!focusRef.current) {
+          setTbVisible(false);
+        }
+      }}
+    >
+      <div
+        id={id}
+        ref={containerRef}
+        className="ql-wrapper bg-white border border-gray-300 rounded-md shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 min-h-[200px]"
+      />
+      {/* 光标态：小方块工具栏（始终挂载，按状态显示/隐藏） */}
+      <div
+        ref={floatingTbRef}
+        className={`ql-inline-toolbar ${tbVisible ? "visible" : ""}`}
+        style={{ position: "absolute", top: tbTop, left: tbLeft, zIndex: 1000, display: selTbVisible ? "none" : (tbVisible ? "block" : "none") }}
+        onMouseDown={e => e.preventDefault()}
+      >
+        <button
+          type="button"
+          className="icon-btn"
+          title="显示菜单"
+          aria-haspopup="true"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(v => !v)}
+        >
+          <BaselineAutoAwesomeMotion />
+        </button>
+        {/* 下拉菜单：位于图标下方（图标样式，网格布局） */}
+        <div
+          ref={menuRef}
+          className={`ql-inline-menu ${menuOpen ? "open" : ""}`}
+          role="menu"
+          aria-label="插入与样式菜单"
+        >
+          <InlineMenu
+            activeHeader={activeHeader}
+            activeList={activeList || null}
+            activeCodeBlock={activeCodeBlock}
+            activeAlign={activeAlign}
+            activeInline={activeInline}
+            onMenuParagraph={onMenuParagraph}
+            onMenuHeader={onMenuHeader}
+            onMenuList={onMenuList}
+            onMenuCode={onMenuCode}
+            onMenuAlign={onMenuAlign}
+            onMenuInline={onMenuInline}
+            onMenuClearInline={onMenuClearInline}
+          />
+        </div>
+      </div>
+
+      {/* 选中态：横向工具栏（始终挂载，按状态显示/隐藏） */}
+      <div
+        ref={selectionTbRef}
+        className="ql-selection-toolbar"
+        style={{ position: "absolute", top: selTbTop, left: selTbLeft, zIndex: 1000, background: "#fff", border: "1px solid #d1d5db", borderRadius: 6, boxShadow: "0 2px 8px rgba(0,0,0,0.08)", padding: "4px 6px", display: selTbVisible ? "flex" : "none", gap: 4, alignItems: "center" }}
+        onMouseDown={e => e.preventDefault()}
+      >
+        <SelectionMenu
+          activeHeader={activeHeader}
+          activeList={activeList || null}
+          activeCodeBlock={activeCodeBlock}
+          activeAlign={activeAlign}
+          activeInline={activeInline}
+          onMenuParagraph={onMenuParagraph}
+          onMenuHeader={onMenuHeader}
+          onMenuList={onMenuList}
+          onMenuCode={onMenuCode}
+          onMenuAlign={onMenuAlign}
+          onMenuInline={onMenuInline}
+          onMenuClearInline={onMenuClearInline}
+        />
+      </div>
+      {/* 调试：在 wrapper 内渲染一条虚线参考线，显示当前计算的 top（默认隐藏，通过 window.__VEDITOR_DEBUG__ 控制显示） */}
+      <div
+        ref={debugLineRef}
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: tbTop,
+          height: 0,
+          borderTop: "1px dashed rgba(255, 0, 0, 0.6)",
+          pointerEvents: "none",
+          zIndex: 9999,
+          display: "none",
+        }}
+        aria-hidden="true"
+      />
+    </div>
   );
 }

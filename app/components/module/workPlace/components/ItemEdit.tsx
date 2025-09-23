@@ -101,7 +101,7 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
     <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
       {/* 物品信息卡片 */}
       <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
-        <div className="card-body">
+        <div className="card-body h-full">
           <div className="flex items-start gap-8">
             {/* 图片 */}
             <ImgUploaderWithCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleImageChange} fileName={uniqueFileName}>
@@ -118,7 +118,7 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
             </ImgUploaderWithCopper>
 
             {/* 右侧内容 */}
-            <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
+            <div className="flex-1 space-y-4 min-w-0 p-2">
               <>
                 {/* 物品名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
                 <div className="text-lg font-bold break-words">{item.name}</div>

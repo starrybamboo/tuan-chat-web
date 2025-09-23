@@ -322,7 +322,7 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
         <div className="card-body">
           <div className="flex items-center gap-8">
             {/* 右侧内容 */}
-            <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
+            <div className="flex-1 space-y-4 min-w-0 p-2">
               <>
                 {/* 场景名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
                 <div className="text-lg font-bold break-words">{scene.name}</div>
