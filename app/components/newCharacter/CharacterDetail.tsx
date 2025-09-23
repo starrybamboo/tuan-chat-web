@@ -303,7 +303,7 @@ export default function CharacterDetail({
           <button
             type="button"
             onClick={() => setIsStImportModalOpen(true)}
-            className="btn bg-info/80 text-info-content btn-sm md:btn-lg"
+            className="btn bg-info/70 text-info-content btn-sm md:btn-lg"
           >
             <span className="flex items-center gap-1">
               ST导入
