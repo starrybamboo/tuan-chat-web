@@ -107,7 +107,7 @@ export function UserDetail({ userId }: UserDetailProps) {
 
         {/* 用户标签 */}
         <div className="pt-1">
-          <TagManagement userId={userId} />
+          <TagManagement userId={userId} size="compact" canEdit={false} />
         </div>
 
         {/* 统计 + 操作区域 */}

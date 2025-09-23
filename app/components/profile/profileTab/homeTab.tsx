@@ -133,7 +133,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ userId }) => {
 
           {/* 用户标签 */}
           <div className="mb-4 mt-4">
-            <TagManagement userId={userId} />
+            <TagManagement userId={userId} canEdit={true} />
           </div>
 
           {/* GNS雷达图 */}

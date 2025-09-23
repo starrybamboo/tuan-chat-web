@@ -7,10 +7,11 @@ import { useAddTagMutation, useDeleteTagMutation, useGetTagsQuery } from "../../
 
 interface TagManagementProps {
   userId?: number;
-  size?: "default" | "compact"; // 展示的类型，compact会表现的更加紧凑一些
+  canEdit?: boolean; // 是否允许删除和增加？
+  size?: "default" | "compact";
 }
 
-function TagManagement({ userId }: TagManagementProps) {
+function TagManagement({ userId, canEdit = true }: TagManagementProps) {
   // 获取标签数据
   const { data: tagsData, isLoading } = useGetTagsQuery({
     tagType: 1,
@@ -82,6 +83,9 @@ function TagManagement({ userId }: TagManagementProps) {
   }, [tagsData]);
 
   const tags: Tag[] = localTags;
+
+  // 判断是否可编辑
+  const isEditable = canEdit !== false && userId === loginUserId;
 
   // 内联编辑功能
   const startAddingTag = () => {
@@ -162,7 +166,7 @@ function TagManagement({ userId }: TagManagementProps) {
               >
                 {tag.content}
               </span>
-              {userId === loginUserId && (
+              {isEditable && (
                 <button
                   type="button"
                   onClick={() => deleteTag(tag.tagId ?? -1)}
@@ -181,7 +185,7 @@ function TagManagement({ userId }: TagManagementProps) {
         )}
 
         {/* 内联添加标签 */}
-        {userId === loginUserId && (
+        {isEditable && (
           isAddingTag
             ? (
                 <div className="flex flex-col gap-2 p-3 bg-base-100 rounded-lg border border-base-300 shadow-sm">
