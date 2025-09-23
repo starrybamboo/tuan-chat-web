@@ -3,11 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
-import type { ApiResultCursorPageBaseResponseMessageDirectResponse } from '../models/ApiResultCursorPageBaseResponseMessageDirectResponse';
 import type { ApiResultListMessageDirectResponse } from '../models/ApiResultListMessageDirectResponse';
 import type { ApiResultMessageDirectResponse } from '../models/ApiResultMessageDirectResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
-import type { MessageDirectPageRequest } from '../models/MessageDirectPageRequest';
 import type { MessageDirectReadUpdateRequest } from '../models/MessageDirectReadUpdateRequest';
 import type { MessageDirectRecallRequest } from '../models/MessageDirectRecallRequest';
 import type { MessageDirectSendRequest } from '../models/MessageDirectSendRequest';
@@ -72,28 +70,6 @@ export class MessageDirectControllerService {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/message/direct/recall',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 分页查询会话消息
-     * @param requestBody
-     * @returns ApiResultCursorPageBaseResponseMessageDirectResponse OK
-     * @throws ApiError
-     */
-    public getMessagePage(
-        requestBody: MessageDirectPageRequest,
-    ): CancelablePromise<ApiResultCursorPageBaseResponseMessageDirectResponse> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/capi/message/direct/page',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

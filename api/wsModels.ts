@@ -108,3 +108,74 @@ export interface ChatStatusEvent {
 export interface TokenInvalidEvent {
     data: null; // data 字段为 null
 }
+
+/**
+ * ===============分布式计算相关消息 (Distributed Computing Messages)
+ */
+
+/**
+ * 志愿者注册请求。
+ * Corresponds to message type 10000.
+ */
+export interface VolunteerRegisterRequest {
+    volunteerName: string;        // 志愿者名称
+    capabilities: string[];       // 支持的任务类型列表，如["FIBONACCI", "PRIME_CHECK"]
+    maxConcurrentTasks: number;   // 最大并发任务数
+}
+
+/**
+ * 志愿者心跳请求。
+ * Corresponds to message type 10001.
+ */
+export interface VolunteerHeartbeatRequest {
+    status: "ACTIVE" | "BUSY" | "IDLE";  // 当前状态
+    currentTasks: number;                 // 当前正在执行的任务数
+    systemInfo: {
+        cpuUsage: number;                 // CPU使用率
+        memoryUsage: number;              // 内存使用量（MB）
+        availableSlots: number;           // 可用任务槽位数
+    };
+}
+
+/**
+ * 请求任务。
+ * Corresponds to message type 10002.
+ */
+export interface TaskRequestMessage {
+    capabilities: string[];               // 支持的任务类型列表
+    maxTasks: number;                    // 最多可接受的任务数量
+    priority?: number;                   // 优先级（可选，默认为1）
+}
+
+/**
+ * 提交任务结果。
+ * Corresponds to message type 10003.
+ */
+export interface TaskResultSubmission {
+    taskId: number;                      // 任务ID
+    resultData: string;                  // 计算结果（JSON格式）
+    executionDuration: number;           // 执行时长（毫秒）
+    status: "SUCCESS" | "FAILED";       // 结果状态
+    errorMessage?: string;               // 错误信息（失败时填写）
+}
+
+/**
+ * 服务器分配的任务。
+ * Corresponds to message type 10004.
+ */
+export interface TaskAssignmentEvent {
+    taskId: number;                      // 任务ID
+    taskType: string;                    // 任务类型
+    inputData: string;                   // 输入数据
+    taskName: string;                    // 任务名称
+    estimatedDuration?: number;          // 预估执行时间（可选）
+}
+
+/**
+ * 任务取消。
+ * Corresponds to message type 10005.
+ */
+export interface TaskCancellationRequest {
+    taskId: number;                      // 要取消的任务ID
+    reason: string;                      // 取消原因（如VOLUNTEER_DISCONNECT、TIMEOUT等）
+}

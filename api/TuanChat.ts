@@ -19,6 +19,8 @@ import { CommunityService } from './services/CommunityService';
 import { CommunityPostControllerService } from './services/CommunityPostControllerService';
 import { CounterService } from './services/CounterService';
 import { DiceCommentControllerService } from './services/DiceCommentControllerService';
+import { DistributedTaskService } from './services/DistributedTaskService';
+import { DistributedTaskSchedulerService } from './services/DistributedTaskSchedulerService';
 import { EmojiControllerService } from './services/EmojiControllerService';
 import { FeedControllerService } from './services/FeedControllerService';
 import { ImageGenerationControllerService } from './services/ImageGenerationControllerService';
@@ -47,6 +49,7 @@ import { TtsControllerService } from './services/TtsControllerService';
 import { UserControllerService } from './services/UserControllerService';
 import { UserFollowControllerService } from './services/UserFollowControllerService';
 import { UserPreferenceService } from './services/UserPreferenceService';
+import { VolunteerService } from './services/VolunteerService';
 import { WebsocketDocService } from './services/WebsocketDocService';
 type HttpRequestConstructor = new (config: OpenAPIConfig) => BaseHttpRequest;
 export class TuanChat {
@@ -64,6 +67,8 @@ export class TuanChat {
     public readonly communityPostController: CommunityPostControllerService;
     public readonly counter: CounterService;
     public readonly diceCommentController: DiceCommentControllerService;
+    public readonly distributedTask: DistributedTaskService;
+    public readonly distributedTaskScheduler: DistributedTaskSchedulerService;
     public readonly emojiController: EmojiControllerService;
     public readonly feedController: FeedControllerService;
     public readonly imageGenerationController: ImageGenerationControllerService;
@@ -92,11 +97,12 @@ export class TuanChat {
     public readonly userController: UserControllerService;
     public readonly userFollowController: UserFollowControllerService;
     public readonly userPreference: UserPreferenceService;
+    public readonly volunteer: VolunteerService;
     public readonly websocketDoc: WebsocketDocService;
     public readonly request: BaseHttpRequest;
     constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = FetchHttpRequest) {
         this.request = new HttpRequest({
-            BASE: config?.BASE ?? 'http://39.103.58.31:8081',
+            BASE: config?.BASE ?? 'http://localhost:8081',
             VERSION: config?.VERSION ?? '1.0',
             WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
             CREDENTIALS: config?.CREDENTIALS ?? 'include',
@@ -120,6 +126,8 @@ export class TuanChat {
         this.communityPostController = new CommunityPostControllerService(this.request);
         this.counter = new CounterService(this.request);
         this.diceCommentController = new DiceCommentControllerService(this.request);
+        this.distributedTask = new DistributedTaskService(this.request);
+        this.distributedTaskScheduler = new DistributedTaskSchedulerService(this.request);
         this.emojiController = new EmojiControllerService(this.request);
         this.feedController = new FeedControllerService(this.request);
         this.imageGenerationController = new ImageGenerationControllerService(this.request);
@@ -148,6 +156,7 @@ export class TuanChat {
         this.userController = new UserControllerService(this.request);
         this.userFollowController = new UserFollowControllerService(this.request);
         this.userPreference = new UserPreferenceService(this.request);
+        this.volunteer = new VolunteerService(this.request);
         this.websocketDoc = new WebsocketDocService(this.request);
     }
 }
