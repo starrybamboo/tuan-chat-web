@@ -9,7 +9,7 @@ import { useGetFriendsUserInfoQuery, useGetInboxMessagePageQuery, useUpdateReadP
 import { useGetUserFriendsQuery } from "api/hooks/userFollowQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import ChatItem from "./ChatItem";
+import ChatItem from "./components/ChatItem";
 
 interface MessageDirectType {
   messageId?: number;
