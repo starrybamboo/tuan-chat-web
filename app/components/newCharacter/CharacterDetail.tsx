@@ -4,6 +4,7 @@ import type { Role } from "./types";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router";
 import AudioPlayer from "./AudioPlayer";
 import AudioUploadModal from "./AudioUploadModal";
 import CharacterAvatar from "./CharacterAvatar";
@@ -15,10 +16,9 @@ import { SpriteRenderStudio } from "./sprite/SpriteRenderStudio";
 
 interface CharacterDetailProps {
   role: Role;
-  isEditing: boolean;
-  onEdit: () => void;
   onSave: (updatedRole: Role) => void;
-  onBack?: () => void;
+  selectedRuleId: number;
+  onRuleChange: (newRuleId: number) => void;
 }
 
 /**
@@ -26,11 +26,16 @@ interface CharacterDetailProps {
  */
 export default function CharacterDetail({
   role,
-  isEditing,
-  onEdit,
   onSave,
-  onBack,
+  selectedRuleId,
+  onRuleChange,
 }: CharacterDetailProps) {
+  // --- MOVED --- isEditing 状态现在是组件的本地状态，非常清晰！
+  const [isEditing, setIsEditing] = useState(false);
+
+  // --- MOVED --- isRuleLoading 状态也应该在这里
+  const [isRuleLoading, setIsRuleLoading] = useState(false);
+
   // 初始化角色数据
   const [localRole, setLocalRole] = useState<Role>(role);
   // 编辑状态过渡
@@ -54,10 +59,10 @@ export default function CharacterDetail({
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   // 已由SpriteRenderStudio内部管理transform相关状态
 
-  // 规则选择状态
-  const [selectedRuleId, setSelectedRuleId] = useState<number>(1);
-  const [isRuleLoading, setIsRuleLoading] = useState(false);
-  const [isExpansionLoading, setIsExpansionLoading] = useState(true); // <--- 新增这一行, 默认为 true
+  // 规则选择状态 - 使用 searchParams 替代 state
+  // const [searchParams] = useSearchParams();
+  // const navigate = useNavigate();
+
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false); // 规则选择弹窗状态
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false); // 音频上传弹窗状态
 
@@ -68,11 +73,11 @@ export default function CharacterDetail({
   const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
 
   // 处理规则变更
+  // --- CHANGED --- handleRuleChange 现在只调用从 prop 传来的函数
   const handleRuleChange = (newRuleId: number) => {
     setIsRuleLoading(true);
-    setSelectedRuleId(newRuleId);
-    setIsRuleModalOpen(false); // 关闭弹窗
-    // 模拟加载延迟
+    onRuleChange(newRuleId); // 调用父组件的函数来更新 URL
+    setIsRuleModalOpen(false);
     setTimeout(() => setIsRuleLoading(false), 300);
   };
 
@@ -168,6 +173,7 @@ export default function CharacterDetail({
       .replace(/\s+$/g, ""); // 移除末尾空格
   };
 
+  // --- CHANGED --- onSave 现在也负责重置本地的 isEditing 状态
   const handleSave = () => {
     setIsTransitioning(true);
     const cleanedRole = {
@@ -175,18 +181,15 @@ export default function CharacterDetail({
       name: cleanText(localRole.name),
       description: cleanText(localRole.description),
     };
-
     updateRole(cleanedRole, {
       onSuccess: () => {
-        // 添加一个意义不明的延迟，故意浪费用户时间（不是
         setTimeout(() => {
-          onSave(cleanedRole);
+          onSave(cleanedRole); // 通知父级更新全局状态
+          setIsEditing(false); // 重置本地编辑状态
           setIsTransitioning(false);
         }, 300);
       },
-      onError: () => {
-        setIsTransitioning(false);
-      },
+      onError: () => setIsTransitioning(false),
     });
   };
 
@@ -243,11 +246,9 @@ export default function CharacterDetail({
       {/* 桌面端显示的头部区域 */}
       <div className="hidden md:flex items-center justify-between gap-3">
         <div className="flex items-center gap-4">
-          {onBack && (
-            <button type="button" className="btn btn-lg btn-outline rounded-md btn-ghost mr-4" onClick={onBack}>
-              ← 返回
-            </button>
-          )}
+          <Link to="/role" type="button" className="btn btn-lg btn-outline rounded-md btn-ghost mr-4">
+            ← 返回
+          </Link>
           <div>
             <h1 className="font-semibold text-2xl md:text-3xl my-2">
               {localRole.name || "未命名角色"}
@@ -281,7 +282,7 @@ export default function CharacterDetail({
               </button>
             )
           : (
-              <button type="button" onClick={onEdit} className="btn btn-accent btn-sm md:btn-lg">
+              <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg">
                 <span className="flex items-center gap-1">
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                     <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
@@ -335,7 +336,7 @@ export default function CharacterDetail({
                         </button>
                       )
                     : (
-                        <button type="button" onClick={onEdit} className="btn btn-accent btn-sm">
+                        <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm">
                           <span className="flex items-center gap-1">
                             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                               <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
@@ -510,7 +511,7 @@ export default function CharacterDetail({
         <div className="lg:col-span-3 space-y-6">
 
           {/* 渲染结果预览 */}
-          {isExpansionLoading || isRuleLoading
+          {isRuleLoading
             ? (
                 <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
                   <div className="card-body">
@@ -585,7 +586,6 @@ export default function CharacterDetail({
                 <ExpansionModule
                   roleId={localRole.id}
                   ruleId={selectedRuleId}
-                  onLoadingChange={setIsExpansionLoading} // <--- 在这里传递回调
                 />
               )}
         </div>

@@ -1,8 +1,8 @@
 import type { FeedPageRequest } from "../../../api";
 import ActivityNotice from "@/components/activities/cards/activituNoticeCard";
-import PostsCard from "@/components/activities/cards/postsCard";
 import PublishPostCard from "@/components/activities/cards/publishPostCard";
 import TrendingTopics from "@/components/activities/cards/trendingTopicsCard";
+import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useGetFollowingMomentFeedInfiniteQuery } from "../../../api/hooks/activitiesFeedQuerryHooks";
@@ -30,8 +30,15 @@ function ActivitiesPage() {
   } = useGetFollowingMomentFeedInfiniteQuery(feedRequest);
 
   const activities = useMemo(() => {
-    return feedData?.pages.flatMap(page => page?.data?.list || []) || [];
-  }, [feedData]);
+    const allActivities = feedData?.pages.flatMap(page => page?.data?.list || []) || [];
+
+    // 根据 activeTab 筛选内容
+    if (activeTab === "module") {
+      return allActivities.filter(item => item?.type === 5);
+    }
+
+    return allActivities;
+  }, [feedData, activeTab]);
 
   // sentinel ref：用于监听倒数第 RENDER_MIN 个动态何时进入视口
   const sentinelRef = useRef<HTMLElement | null>(null);
@@ -156,6 +163,7 @@ function ActivitiesPage() {
 
               {activities.map((item, idx) => {
                 const feedId = item?.response?.feedId;
+                const contentType = item?.type || 3;
                 const key = `feed-${feedId ?? idx}`;
 
                 // 将 sentinelRef 挂载在倒数第 RENDER_MIN 个 item（或长度 <= RENDER_MIN 时挂在第 0 个）
@@ -163,10 +171,11 @@ function ActivitiesPage() {
                   return (
                     <div key={key} ref={(el) => { sentinelRef.current = el as HTMLElement; }}>
                       <PostsCard
-                        data={item.response}
+                        res={item.response}
                         stats={item.stats}
                         loginUserId={loginUserId}
-                        type="default"
+                        displayType="default"
+                        contentTypeNumber={contentType}
                       />
                     </div>
                   );
@@ -175,18 +184,30 @@ function ActivitiesPage() {
                 return (
                   <PostsCard
                     key={key}
-                    data={item.response}
+                    res={item.response}
                     stats={item.stats}
                     loginUserId={loginUserId}
-                    type="default"
+                    displayType="default"
+                    contentTypeNumber={contentType}
                   />
                 );
               })}
 
               {!isLoading && !isError && activities.length === 0 && (
                 <div className="text-center py-12">
-                  <p className="text-base-content/60">还没有动态</p>
-                  <p className="text-base-content/40 text-sm">关注一些用户来查看他们的动态吧</p>
+                  {activeTab === "all"
+                    ? (
+                        <>
+                          <p className="text-base-content/60">还没有动态</p>
+                          <p className="text-base-content/40 text-sm">关注一些用户来查看他们的动态吧</p>
+                        </>
+                      )
+                    : (
+                        <>
+                          <p className="text-base-content/60">还没有模组动态</p>
+                          <p className="text-base-content/40 text-sm">关注的用户还没有发布模组相关的动态</p>
+                        </>
+                      )}
                 </div>
               )}
 

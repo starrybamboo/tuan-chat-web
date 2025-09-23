@@ -18,7 +18,7 @@ interface CreateRoleBySelfProps {
   setRoles?: React.Dispatch<React.SetStateAction<Role[]>>;
   setSelectedRoleId?: (id: number | null) => void;
   onSave?: (updatedRole: Role) => void;
-  onComplete?: (role: Role) => void; // 创建完成回调（本组件新增）
+  onComplete?: (role: Role, ruleId?: number) => void; // 创建完成回调（本组件新增）
 }
 
 export default function CreateRoleBySelf({ onBack, setRoles, setSelectedRoleId, onSave, onComplete }: CreateRoleBySelfProps) {
@@ -36,7 +36,7 @@ export default function CreateRoleBySelf({ onBack, setRoles, setSelectedRoleId, 
   const { mutateAsync: createRole } = useCreateRoleMutation();
   const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
   const { mutate: setRoleAbility } = useSetRoleAbilityMutation();
-  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave || (() => {}));
+  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave || (() => { }));
   const [isSaving, setIsSaving] = useState(false);
 
   // 监听选择的规则详情，填充默认模板
@@ -261,7 +261,7 @@ export default function CreateRoleBySelf({ onBack, setRoles, setSelectedRoleId, 
       }
       // 触发 updateRole 用于其它依赖缓存更新
       updateRole(newRole);
-      onComplete?.(newRole);
+      onComplete?.(newRole, characterData.ruleId);
       // TODO: 加入 toast 成功提示 / 自动跳转返回
     }
     catch (error) {

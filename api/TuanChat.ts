@@ -16,7 +16,7 @@ import { CollectionListItemControllerService } from './services/CollectionListIt
 import { CommentControllerService } from './services/CommentControllerService';
 import { CommitControllerService } from './services/CommitControllerService';
 import { CommunityService } from './services/CommunityService';
-import { CommunityPostService } from './services/CommunityPostService';
+import { CommunityPostControllerService } from './services/CommunityPostControllerService';
 import { CounterService } from './services/CounterService';
 import { DiceCommentControllerService } from './services/DiceCommentControllerService';
 import { EmojiControllerService } from './services/EmojiControllerService';
@@ -61,7 +61,7 @@ export class TuanChat {
     public readonly commentController: CommentControllerService;
     public readonly commitController: CommitControllerService;
     public readonly community: CommunityService;
-    public readonly communityPost: CommunityPostService;
+    public readonly communityPostController: CommunityPostControllerService;
     public readonly counter: CounterService;
     public readonly diceCommentController: DiceCommentControllerService;
     public readonly emojiController: EmojiControllerService;
@@ -117,7 +117,7 @@ export class TuanChat {
         this.commentController = new CommentControllerService(this.request);
         this.commitController = new CommitControllerService(this.request);
         this.community = new CommunityService(this.request);
-        this.communityPost = new CommunityPostService(this.request);
+        this.communityPostController = new CommunityPostControllerService(this.request);
         this.counter = new CounterService(this.request);
         this.diceCommentController = new DiceCommentControllerService(this.request);
         this.emojiController = new EmojiControllerService(this.request);

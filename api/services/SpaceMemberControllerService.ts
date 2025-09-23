@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultListSpaceMember } from '../models/ApiResultListSpaceMember';
+import type { ApiResultLong } from '../models/ApiResultLong';
 import type { ApiResultString } from '../models/ApiResultString';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { LeaderTransferRequest } from '../models/LeaderTransferRequest';
@@ -59,7 +60,7 @@ export class SpaceMemberControllerService {
         });
     }
     /**
-     * 转让裁判，自己变成观战，同时退出所有房间
+     * 转让裁判，自己变成pl
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
@@ -81,14 +82,14 @@ export class SpaceMemberControllerService {
         });
     }
     /**
-     * 通过邀请链接加入房间
+     * 通过邀请链接加入房间，返回spaceId
      * @param code
-     * @returns ApiResultVoid OK
+     * @returns ApiResultLong OK
      * @throws ApiError
      */
     public invited(
         code: string,
-    ): CancelablePromise<ApiResultVoid> {
+    ): CancelablePromise<ApiResultLong> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/space/member/invited/{code}',

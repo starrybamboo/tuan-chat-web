@@ -35,10 +35,6 @@
       "description": "AI帮写相关接口"
     },
     {
-      "name": "CommunityPost",
-      "description": "社区帖子管理"
-    },
-    {
       "name": "AvatarController",
       "description": "头像相关接口"
     },
@@ -81,6 +77,10 @@
     {
       "name": "RoleGenerationController",
       "description": "角色能力生成相关的接口"
+    },
+    {
+      "name": "CommunityPostController",
+      "description": "社区帖子管理"
     },
     {
       "name": "RuleController",
@@ -1052,7 +1052,7 @@
         "tags": [
           "space-member-controller"
         ],
-        "summary": "转让裁判，自己变成观战，同时退出所有房间",
+        "summary": "转让裁判，自己变成pl",
         "operationId": "transferLeader",
         "requestBody": {
           "content": {
@@ -6249,7 +6249,7 @@
         "tags": [
           "space-member-controller"
         ],
-        "summary": "通过邀请链接加入房间",
+        "summary": "通过邀请链接加入房间，返回spaceId",
         "operationId": "invited",
         "parameters": [
           {
@@ -6267,7 +6267,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
+                  "$ref": "#/components/schemas/ApiResultLong"
                 }
               }
             }
@@ -9541,9 +9541,9 @@
     "/capi/community/post/publish": {
       "post": {
         "tags": [
-          "CommunityPost"
+          "CommunityPostController"
         ],
-        "summary": "Publish post",
+        "summary": "发布帖子",
         "description": "发布帖子",
         "operationId": "publishPost",
         "requestBody": {
@@ -9613,9 +9613,9 @@
     "/capi/community/post/posts": {
       "post": {
         "tags": [
-          "CommunityPost"
+          "CommunityPostController"
         ],
-        "summary": "List user posts",
+        "summary": "获取用户发布的帖子",
         "description": "获取用户发布的帖子",
         "operationId": "pageUserPosts",
         "requestBody": {
@@ -9685,9 +9685,9 @@
     "/capi/community/post/page": {
       "post": {
         "tags": [
-          "CommunityPost"
+          "CommunityPostController"
         ],
-        "summary": "Page community posts",
+        "summary": "分页获取社区帖子",
         "description": "分页获取社区帖子",
         "operationId": "pageCommunityPosts",
         "requestBody": {
@@ -14964,9 +14964,9 @@
     "/capi/community/post/detail": {
       "get": {
         "tags": [
-          "CommunityPost"
+          "CommunityPostController"
         ],
-        "summary": "Get post detail",
+        "summary": "获取帖子详情",
         "description": "获取帖子详情",
         "operationId": "getPostDetail",
         "parameters": [
@@ -16133,9 +16133,9 @@
     "/capi/community/post/delete": {
       "delete": {
         "tags": [
-          "CommunityPost"
+          "CommunityPostController"
         ],
-        "summary": "Delete post",
+        "summary": "删除帖子",
         "description": "删除帖子",
         "operationId": "deletePost",
         "parameters": [
@@ -16232,7 +16232,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResult": {
+      "ApiResultObject": {
         "required": [
           "success"
         ],
@@ -16258,7 +16258,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultObject": {
+      "ApiResult": {
         "required": [
           "success"
         ],

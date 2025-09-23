@@ -59,12 +59,12 @@ export class UploadUtils {
   async uploadImg(file: File, scene: 1 | 2 | 3 | 4 = 1, quality = 0.7, maxSize = 2560): Promise<string> {
     let new_file = file;
 
-    console.log(file.type);
+    const isGif = await this.isGifFile(file);
     // 对于图片文件进行处理
     if (file.type.startsWith("image/")) {
-      // GIF文件单独处理，只检查尺寸不做压缩
-      if (file.type === "image/gif") {
-        new_file = await this.handleGifFile(file, maxSize);
+      // 精确检测GIF文件，优先使用文件头检测
+      if (isGif) {
+        new_file = file;
       }
       else {
         // 其他图片格式进行压缩
@@ -79,7 +79,7 @@ export class UploadUtils {
     const fileSize = new_file.size;
 
     // 3. 安全地获取文件扩展名
-    const extension = new_file.name.split(".").pop() || "bin"; // 使用 'bin' 作为无扩展名时的备用
+    const extension = isGif ? "gif" : "webp";
 
     // 4. 构造新的唯一文件名：hash_size.extension
     const newFileName = `${hash}_${fileSize}.${extension}`;
@@ -102,33 +102,41 @@ export class UploadUtils {
   }
 
   /**
-   * 处理GIF文件，检查尺寸但保持原格式
-   * @param file GIF文件
-   * @param maxSize 最大尺寸限制
-   * @returns 处理后的文件（可能重命名）
+   * 精确检测文件是否为GIF格式
+   * 通过读取文件头的魔术字节来判断，比MIME类型检测更准确
+   * @param file 待检测的文件
+   * @returns Promise<boolean> 是否为GIF文件
    */
-  private async handleGifFile(file: File, maxSize: number): Promise<File> {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
+  private async isGifFile(file: File): Promise<boolean> {
+    return new Promise((resolve) => {
       const reader = new FileReader();
 
       reader.onload = (e) => {
-        img.src = e.target?.result as string;
-      };
-
-      img.onload = () => {
-        // 检查GIF尺寸是否超过限制
-        if (img.width > maxSize || img.height > maxSize) {
-          console.warn(
-            `GIF尺寸 ${img.width}x${img.height} 超过限制 ${maxSize}px，但为保持动画效果将保持原格式`,
-          );
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        if (!arrayBuffer || arrayBuffer.byteLength < 6) {
+          resolve(false);
+          return;
         }
-        resolve(file);
+
+        const uint8Array = new Uint8Array(arrayBuffer, 0, 6);
+
+        // GIF文件头魔术字节检测
+        // GIF87a: 47 49 46 38 37 61
+        // GIF89a: 47 49 46 38 39 61
+        const isGif87a = uint8Array[0] === 0x47 && uint8Array[1] === 0x49 && uint8Array[2] === 0x46
+          && uint8Array[3] === 0x38 && uint8Array[4] === 0x37 && uint8Array[5] === 0x61;
+
+        const isGif89a = uint8Array[0] === 0x47 && uint8Array[1] === 0x49 && uint8Array[2] === 0x46
+          && uint8Array[3] === 0x38 && uint8Array[4] === 0x39 && uint8Array[5] === 0x61;
+
+        resolve(isGif87a || isGif89a);
       };
 
-      reader.onerror = reject;
-      img.onerror = reject;
-      reader.readAsDataURL(file);
+      reader.onerror = () => resolve(false);
+
+      // 只读取前6个字节用于检测
+      const blob = file.slice(0, 6);
+      reader.readAsArrayBuffer(blob);
     });
   }
 

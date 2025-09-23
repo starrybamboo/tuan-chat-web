@@ -19,6 +19,8 @@ interface PostActionBarProps {
   shareSearchKey: string;
   /** 分享标题 */
   shareTitle?: string;
+  /** 分享目标的引用 */
+  targetRef: React.RefObject<HTMLElement>;
   className?: string;
   /** 回复状态 */
   replyTo?: { userName: string; commentId: number } | null;
@@ -33,6 +35,7 @@ export default function PostActionBar({
   commentCount,
   shareSearchKey,
   shareTitle,
+  targetRef,
   className,
   replyTo,
   onSetReplyTo,
@@ -111,6 +114,8 @@ export default function PostActionBar({
             {/* 右侧分享按钮 */}
             <div className="flex items-center">
               <ShareIconButton
+                targetRef={targetRef}
+                qrLink={window.location.href}
                 searchKey={shareSearchKey}
                 title={shareTitle}
                 className="p-0 min-h-0 h-auto border-none hover:bg-transparent"

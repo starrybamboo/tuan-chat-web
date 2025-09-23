@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 
+import { CURRENT_WINDOW_ID, handleWindowBlur, shouldSendStatusUpdate } from "@/utils/windowInstance";
+
 import type { ChatStatusEvent, ChatStatusType } from "../../../../api/wsModels";
 
 type UseChatInputStatusParams = {
@@ -51,6 +53,34 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastStatusSentRef = useRef<{ status: ChatStatusType; ts: number } | null>(null);
 
+  // 缓存 webSocketUtils 的方法，避免依赖整个对象
+  const updateChatStatusRef = useRef(webSocketUtils.updateChatStatus);
+  const sendRef = useRef(webSocketUtils.send);
+  const chatStatusRef = useRef(webSocketUtils.chatStatus);
+
+  // 更新引用
+  useEffect(() => {
+    updateChatStatusRef.current = webSocketUtils.updateChatStatus;
+    sendRef.current = webSocketUtils.send;
+    chatStatusRef.current = webSocketUtils.chatStatus;
+  });
+
+  // 辅助函数：发送状态更新（带冲突检测）
+  const sendStatusUpdate = useCallback((status: ChatStatusType) => {
+    if (!userId || roomId <= 0)
+      return;
+
+    // 使用冲突检测逻辑
+    if (!shouldSendStatusUpdate(roomId, userId, status, CURRENT_WINDOW_ID)) {
+      return;
+    }
+
+    const evt: ChatStatusEvent = { roomId, userId, status, windowId: CURRENT_WINDOW_ID };
+    updateChatStatusRef.current(evt);
+    sendRef.current({ type: 4, data: evt });
+    lastStatusSentRef.current = { status, ts: Date.now() };
+  }, [roomId, userId]);
+
   // 同步输入与活动时间
   useEffect(() => {
     inputValueRef.current = inputText;
@@ -67,7 +97,7 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
     // 即时输入状态：只要出现非空文本（或当前状态不是 input），且不在手动锁保护期，立即上报 input
     if (trimmed.length > 0 && userId && roomId > 0) {
       const now = Date.now();
-      const currentStatus = webSocketUtils.chatStatus[roomId]?.find(s => s.userId === userId)?.status ?? "idle";
+      const currentStatus = chatStatusRef.current[roomId]?.find(s => s.userId === userId)?.status ?? "idle";
       // 手动锁保护期内不自动覆盖
       if (manualStatusLockRef.current && (now - manualStatusLockRef.current.timestamp < lockDurationMs)) {
         return;
@@ -79,13 +109,10 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
 
       const recentSame = lastStatusSentRef.current && lastStatusSentRef.current.status === "input" && (now - lastStatusSentRef.current.ts < 400);
       if (currentStatus !== "input" && !recentSame) {
-        const evt: ChatStatusEvent = { roomId, userId, status: "input" };
-        webSocketUtils.updateChatStatus(evt);
-        webSocketUtils.send({ type: 4, data: evt });
-        lastStatusSentRef.current = { status: "input", ts: now };
+        sendStatusUpdate("input");
       }
     }
-  }, [inputText, roomId, userId, webSocketUtils, lockDurationMs]);
+  }, [inputText, roomId, userId, lockDurationMs, sendStatusUpdate]);
 
   // 快照轮询
   useEffect(() => {
@@ -98,7 +125,7 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
       if (roomId <= 0 || !userId)
         return;
       const now = Date.now();
-      const currentStatus = webSocketUtils.chatStatus[roomId]?.find(s => s.userId === userId)?.status ?? "idle";
+      const currentStatus = chatStatusRef.current[roomId]?.find(s => s.userId === userId)?.status ?? "idle";
       const trimmed = inputValueRef.current.trim();
       const inactiveFor = now - lastActivityRef.current;
 
@@ -110,56 +137,63 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
         manualStatusLockRef.current = null; // 释放过期锁
       }
 
-      // leave
+      // 特殊处理：wait 和 leave 状态只能由用户手动改变，不会被自动评估覆盖
+      if (currentStatus === "wait" || currentStatus === "leave") {
+        return;
+      }
+
+      // 只对 idle 和 input 状态进行自动状态评估
+
+      // 超过暂离阈值时间，自动切换到 leave
       if (inactiveFor >= leaveThresholdMs) {
-        if (currentStatus !== "leave") {
-          const evt: ChatStatusEvent = { roomId, userId, status: "leave" };
-          webSocketUtils.updateChatStatus(evt);
-          webSocketUtils.send({ type: 4, data: evt });
-        }
+        sendStatusUpdate("leave");
         return;
       }
 
-      // idle
-      if (inactiveFor >= idleThresholdMs) {
-        if (currentStatus !== "idle" && currentStatus !== "leave") {
-          const evt: ChatStatusEvent = { roomId, userId, status: "idle" };
-          webSocketUtils.updateChatStatus(evt);
-          webSocketUtils.send({ type: 4, data: evt });
-        }
+      // 超过空闲阈值时间，自动切换到 idle
+      if (inactiveFor >= idleThresholdMs && currentStatus !== "idle") {
+        sendStatusUpdate("idle");
         return;
       }
 
-      // active & has content => input
+      // 有内容且活跃时，自动切换到 input
       if (trimmed.length > 0 && currentStatus !== "input") {
-        const evt: ChatStatusEvent = { roomId, userId, status: "input" };
-        webSocketUtils.updateChatStatus(evt);
-        webSocketUtils.send({ type: 4, data: evt });
+        sendStatusUpdate("input");
       }
     }
+
+    // 窗口失焦事件处理
+    const handleBlur = () => {
+      if (userId && roomId > 0) {
+        handleWindowBlur(roomId, userId);
+      }
+    };
 
     // 立即执行一次
     evaluateStatus();
     intervalRef.current = setInterval(evaluateStatus, snapshotIntervalMs);
+
+    // 监听窗口失焦事件
+    window.addEventListener("blur", handleBlur);
+
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      window.removeEventListener("blur", handleBlur);
     };
-  }, [roomId, userId, webSocketUtils, snapshotIntervalMs, idleThresholdMs, leaveThresholdMs, lockDurationMs]);
+  }, [roomId, userId, snapshotIntervalMs, idleThresholdMs, leaveThresholdMs, lockDurationMs, sendStatusUpdate]);
 
   const handleManualStatusChange = useCallback((newStatus: ChatStatusType) => {
     if (!userId || roomId <= 0)
       return;
     manualStatusLockRef.current = { status: newStatus, timestamp: Date.now() };
-    const evt: ChatStatusEvent = { roomId, userId, status: newStatus };
-    webSocketUtils.updateChatStatus(evt);
-    webSocketUtils.send({ type: 4, data: evt });
+    sendStatusUpdate(newStatus);
     if (newStatus === "input") {
       lastActivityRef.current = Date.now();
     }
-  }, [roomId, userId, webSocketUtils]);
+  }, [roomId, userId, sendStatusUpdate]);
 
   const myStatus: ChatStatusType = webSocketUtils.chatStatus[roomId]?.find(s => s.userId === userId)?.status ?? "idle";
 

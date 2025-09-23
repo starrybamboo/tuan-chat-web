@@ -190,7 +190,7 @@ export default function NumericalEditor({
     } ${isEditing ? "ring-2 ring-primary" : ""}`}
     >
       <div className="flex justify-between items-center mb-4">
-        <h3 className="card-title text-lg flex items-center gap-2 ml-1">
+        <h3 className="card-title text-lg flex items-center gap-2">
           ⚡
           {title}
         </h3>
@@ -227,8 +227,8 @@ export default function NumericalEditor({
         </button>
       </div>
 
-      <div className="bg-base-200 p-4 rounded-lg">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="bg-base-200 rounded-lg">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {Object.entries(localData).map(([key, value]) => (
             <EditableField
               key={key}

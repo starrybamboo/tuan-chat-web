@@ -9,10 +9,10 @@ import type { PagePostRequest } from '../models/PagePostRequest';
 import type { PostCreateRequest } from '../models/PostCreateRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import type { BaseHttpRequest } from '../core/BaseHttpRequest';
-export class CommunityPostService {
+export class CommunityPostControllerService {
     constructor(public readonly httpRequest: BaseHttpRequest) {}
     /**
-     * Publish post
+     * 发布帖子
      * 发布帖子
      * @param requestBody
      * @returns ApiResultPostWithStatsResponse OK
@@ -35,7 +35,7 @@ export class CommunityPostService {
         });
     }
     /**
-     * List user posts
+     * 获取用户发布的帖子
      * 获取用户发布的帖子
      * @param requestBody
      * @returns ApiResultCursorPageBaseResponsePostListWithStatsResponse OK
@@ -58,7 +58,7 @@ export class CommunityPostService {
         });
     }
     /**
-     * Page community posts
+     * 分页获取社区帖子
      * 分页获取社区帖子
      * @param requestBody
      * @returns ApiResultCursorPageBaseResponsePostListWithStatsResponse OK
@@ -81,7 +81,7 @@ export class CommunityPostService {
         });
     }
     /**
-     * Get post detail
+     * 获取帖子详情
      * 获取帖子详情
      * @param postId
      * @returns ApiResultPostWithStatsResponse OK
@@ -105,7 +105,7 @@ export class CommunityPostService {
         });
     }
     /**
-     * Delete post
+     * 删除帖子
      * 删除帖子
      * @param postId
      * @returns ApiResultBoolean OK

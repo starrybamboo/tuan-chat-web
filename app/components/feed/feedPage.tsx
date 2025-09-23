@@ -1,6 +1,7 @@
 import type { FeedWithStats } from "@/types/feedTypes";
 import type { FeedPageRequest, PostListResponse, PostStatsResponse } from "api";
-import PostsCard from "@/components/activities/cards/postsCard";
+import PostsCard from "@/components/common/acticityAndFeedPostsCard/postsCard";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { tuanchat } from "api/instance";
@@ -8,10 +9,12 @@ import { useEffect, useMemo, useState } from "react";
 
 export default function FeedPage() {
   const PAGE_SIZE = 10;
+  const FETCH_ON_REMAIN = 2;
+
   const [feedRef, feedEntry] = useIntersectionObserver();
   // 顶部哨兵
   const [topSentinelRef] = useIntersectionObserver();
-  const FETCH_ON_REMAIN = 2;
+  const loginUserId = useGlobalContext().userId ?? -1;
 
   // 不感兴趣的feed
   const [hiddenFeeds, setHiddenFeeds] = useState<number[]>([]);
@@ -99,13 +102,15 @@ export default function FeedPage() {
               ref={index === feeds.length - FETCH_ON_REMAIN ? feedRef : null}
               key={feed.stats?.postId}
             >
-              {feed.stats?.postId
+              {feed.stats
                 ? (
                     <PostsCard
-                      data={feed.response}
+                      res={feed?.response}
                       stats={feed.stats}
                       onDislike={() => handleDislike(feed.stats!.postId)}
-                      type="feed"
+                      displayType="feed"
+                      loginUserId={loginUserId || -1}
+                      contentTypeNumber={feed?.type}
                     />
                   )
                 : (
