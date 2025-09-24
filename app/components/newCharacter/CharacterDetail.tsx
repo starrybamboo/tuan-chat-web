@@ -55,8 +55,6 @@ export default function CharacterDetail({
   // 描述的最大储存量
   const MAX_DESCRIPTION_LENGTH = 140;
 
-  // 立绘预览相关状态
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   // 已由SpriteRenderStudio内部管理transform相关状态
 
   // 规则选择状态 - 使用 searchParams 替代 state
@@ -582,7 +580,6 @@ export default function CharacterDetail({
                       characterName={localRole.name || "未命名角色"}
                       roleAvatars={roleAvatars}
                       initialAvatarId={localRole.avatarId}
-                      externalCanvasRef={previewCanvasRef}
                       className="w-full p-3 gap-4 flex mb-2"
                     />
                   </Section>
