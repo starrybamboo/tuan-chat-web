@@ -1,4 +1,5 @@
 import UserModulesList from "@/components/profile/workTabPart/moudleList";
+import UserPostsList from "@/components/profile/workTabPart/userPostsList";
 import UserRolesList from "@/components/profile/workTabPart/UserRolesList";
 import React, { useMemo, useState } from "react";
 // import { useListUserPostsQuery } from "../../../../api/hooks/communityQueryHooks";
@@ -50,13 +51,12 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
             isLoading={modulesLoading}
           />
         );
-      // case "posts":
-      //   return (
-      //     <UserPostsList
-      //       userId={userId}
-      //       isLoading={postsLoading}
-      //     />
-      //   );
+      case "posts":
+        return (
+          <UserPostsList
+            userId={userId}
+          />
+        );
       case "roles":
         return (
           <UserRolesList
@@ -88,19 +88,19 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
             </span>
           </>
         );
-      // case "posts":
-      //   return (
-      //     <>
-      //       <h2 className="text-2xl font-bold">发布的帖子</h2>
-      //       <span className="text-gray-500">
-      //         共
-      //         {" "}
-      //         {/*{userPostsQuery.data?.data?.length || 0}*/}
-      //         {" "}
-      //         个帖子
-      //       </span>
-      //     </>
-      //   );
+      case "posts":
+        return (
+          <>
+            <h2 className="text-2xl font-bold">发布的帖子</h2>
+            <span className="text-gray-500">
+              共
+              {" "}
+              {/* {userPostsQuery.data?.data?.length || 0} */}
+              {" "}
+              个帖子
+            </span>
+          </>
+        );
       case "roles":
         return (
           <>
@@ -138,7 +138,7 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
       <div className="md:hidden overflow-x-auto whitespace-nowrap p-4 border-b border-gray-200">
         <nav className="flex space-x-2">
           {renderTabButton("modules", "模组")}
-          {/* {renderTabButton("posts", "帖子")} */}
+          {renderTabButton("posts", "帖子")}
           {renderTabButton("roles", "角色")}
         </nav>
       </div>

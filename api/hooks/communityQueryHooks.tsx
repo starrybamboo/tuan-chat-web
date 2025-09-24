@@ -147,6 +147,27 @@ export function usePageUserPostsQuery(requestBody: PagePostRequest) {
 }
 
 /**
+ * 分页获取用户帖子 - 无限查询版本
+ */
+export function usePageUserPostsInfiniteQuery(requestBody: PagePostRequest) {
+    return useInfiniteQuery({
+        queryKey: ['pageUserPosts', requestBody],
+        queryFn: ({ pageParam }) => {
+            const params = { ...requestBody, cursor: pageParam };
+            return tuanchat.communityPostController.pageUserPosts(params);
+        },
+        initialPageParam: undefined as number | undefined,
+        getNextPageParam: (lastPage) => {
+            if (lastPage.data?.isLast) {
+                return undefined;
+            }
+            return lastPage.data?.cursor;
+        },
+        enabled: !!requestBody.userId && requestBody.userId > 0
+    });
+}
+
+/**
  * 获取帖子详情
  * @param postId 帖子ID
  */
