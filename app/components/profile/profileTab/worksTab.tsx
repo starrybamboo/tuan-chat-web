@@ -2,7 +2,6 @@ import UserModulesList from "@/components/profile/workTabPart/moudleList";
 import UserPostsList from "@/components/profile/workTabPart/userPostsList";
 import UserRolesList from "@/components/profile/workTabPart/UserRolesList";
 import React, { useMemo, useState } from "react";
-// import { useListUserPostsQuery } from "../../../../api/hooks/communityQueryHooks";
 import { useModuleListByUserQuery } from "../../../../api/hooks/moduleAndStageQueryHooks";
 import { useGetUserRolesPageQuery, useGetUserRolesQuery } from "../../../../api/queryHooks";
 
@@ -14,7 +13,7 @@ interface WorksTabProp {
 export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
   const [page, setPage] = useState(1);
   const [modulePage, setModulePage] = useState(1);
-  const [activeTab, setActiveTab] = useState<TabType>("modules");
+  const [activeTab, setActiveTab] = useState<TabType>("posts");
   const { isLoading } = useGetUserRolesQuery(userId);
 
   const { data: response } = useGetUserRolesPageQuery({
@@ -28,10 +27,6 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
     pageNo: modulePage,
     pageSize: 10,
   });
-
-  // 用户帖子查询 - 因为API不支持分页，所以直接获取全部
-  // const userPostsQuery = useListUserPostsQuery();
-  // const postsLoading = userPostsQuery.isLoading;
 
   const roleIds = useMemo((): number[] => {
     return (response?.data?.list || [])
@@ -88,19 +83,6 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
             </span>
           </>
         );
-      case "posts":
-        return (
-          <>
-            <h2 className="text-2xl font-bold">发布的帖子</h2>
-            <span className="text-gray-500">
-              共
-              {" "}
-              {/* {userPostsQuery.data?.data?.length || 0} */}
-              {" "}
-              个帖子
-            </span>
-          </>
-        );
       case "roles":
         return (
           <>
@@ -137,8 +119,8 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
       {/* 顶部导航 - 移动端 */}
       <div className="md:hidden overflow-x-auto whitespace-nowrap p-4 border-b border-gray-200">
         <nav className="flex space-x-2">
-          {renderTabButton("modules", "模组")}
           {renderTabButton("posts", "帖子")}
+          {renderTabButton("modules", "模组")}
           {renderTabButton("roles", "角色")}
         </nav>
       </div>
@@ -147,8 +129,8 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
         {/* 左侧导航 - PC端（垂直） */}
         <div className="hidden md:flex md:flex-col w-48 flex-shrink-0 p-4 border-r border-gray-200 pt-10">
           <nav className="space-y-2 flex flex-col">
-            {renderTabButton("modules", "模组")}
             {renderTabButton("posts", "帖子")}
+            {renderTabButton("modules", "模组")}
             {renderTabButton("roles", "角色")}
           </nav>
         </div>

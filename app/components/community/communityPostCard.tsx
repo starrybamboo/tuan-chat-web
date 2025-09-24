@@ -7,7 +7,7 @@ import SlidableChatPreview from "./slidableChatPreview";
 interface CommunityPostCardProps {
   post: PostListWithStatsResponse;
   index: number;
-  communityId: number;
+  communityId?: number;
   onPostClick?: (postId: number) => void;
 }
 

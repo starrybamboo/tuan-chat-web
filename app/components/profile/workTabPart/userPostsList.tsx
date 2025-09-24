@@ -2,6 +2,7 @@ import type { PostListWithStatsResponse } from "api";
 import type { PagePostRequest } from "api/models/PagePostRequest";
 import CommunityPostCard from "@/components/community/communityPostCard";
 import { useGlobalContext } from "@/components/globalContextProvider";
+import { ContentIcon } from "@/icons";
 import { useIntersectionObserver } from "@uidotdev/usehooks";
 import React, { useEffect, useMemo } from "react";
 import { Link } from "react-router";
@@ -22,10 +23,6 @@ export const UserPostsList: React.FC<UserPostsListProps> = ({
   onPostClick,
 }) => {
   const currentUserId = useGlobalContext().userId ?? -1;
-
-  // TODO: 获取当前路由中的社区ID，暂时写死为1（仅用于路由跳转）
-  const communityId = 1; // TODO: 从路由或context获取真实的communityId用于跳转
-
   // 无限滚动相关
   const [, postEntry] = useIntersectionObserver();
 
@@ -112,20 +109,7 @@ export const UserPostsList: React.FC<UserPostsListProps> = ({
             )
           : (
               <div className="flex flex-col items-center justify-center py-8">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-16 w-16 text-base-content/30 mb-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
+                <ContentIcon className="w-16 h-16 md:w-20 md:h-20 opacity-50 pb-4" />
                 <p className="text-base-content/50">这里还没有他的帖子...也许正在思考着什么...</p>
               </div>
             )}
@@ -142,7 +126,6 @@ export const UserPostsList: React.FC<UserPostsListProps> = ({
             key={post?.postListItem?.communityPostId}
             post={post}
             index={index}
-            communityId={communityId} // TODO: 使用真实的communityId用于跳转
             onPostClick={onPostClick}
           />
         ))}
