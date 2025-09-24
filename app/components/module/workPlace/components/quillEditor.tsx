@@ -2046,7 +2046,8 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
       <div
         id={id}
         ref={containerRef}
-        className="ql-wrapper bg-white border border-gray-300 rounded-md shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 min-h-[200px]"
+        className="ql-wrapper text-base-content bg-base-100
+        border border-gray-300 rounded-md shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 min-h-[200px]"
       />
       {/* 光标态：小方块工具栏（始终挂载，按状态显示/隐藏） */}
       <div
