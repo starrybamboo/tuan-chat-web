@@ -153,55 +153,35 @@ export default function CharacterDetail({
     });
   };
 
-  // 当切换到不同角色时，更新本地状态
+  // localRole 同步（只在 role.id 变化时更新）
   useEffect(() => {
     if (role.id !== localRole.id) {
       setLocalRole(role);
-      setSelectedAvatarId(role.avatarId);
-      setSelectedAvatarUrl(role.avatar || "/favicon.ico");
-
-      // 如果头像列表已经加载，立即同步头像信息
-      if (roleAvatars.length > 0 && role.avatarId !== 0) {
-        const currentAvatar = roleAvatars.find(ele => ele.avatarId === role.avatarId);
-        if (currentAvatar) {
-          setSelectedAvatarUrl(currentAvatar.avatarUrl || "/favicon.ico");
-          setSelectedSpriteUrl(currentAvatar.spriteUrl || null);
-        }
-      }
-      else {
-        setSelectedSpriteUrl("");
-      }
     }
-  }, [role, localRole.id, roleAvatars]);
+  }, [role.id, localRole.id]);
 
-  // 处理角色头像数据更新
   useEffect(() => {
+  // 更新 roleAvatars
     if (isSuccess && roleAvatarsResponse?.success && Array.isArray(roleAvatarsResponse.data)) {
-      const avatarsData = roleAvatarsResponse.data;
-      setRoleAvatars(avatarsData);
+      setRoleAvatars(roleAvatarsResponse.data);
+    }
 
-      // 使用 localRole.avatarId 而不是 role.avatarId，确保与当前状态同步
-      if (localRole.avatarId !== 0) {
-        const currentAvatar = avatarsData.find(ele => ele.avatarId === localRole.avatarId);
-        const newAvatarUrl = currentAvatar?.avatarUrl || "/favicon.ico";
-        const newSpriteUrl = currentAvatar?.spriteUrl || null;
+    // 根据 localRole.avatarId + roleAvatars 计算头像状态
+    if (localRole.avatarId && localRole.avatarId !== 0 && roleAvatars.length > 0) {
+      const currentAvatar = roleAvatars.find(ele => ele.avatarId === localRole.avatarId);
+      setSelectedAvatarUrl(currentAvatar?.avatarUrl || "/favicon.ico");
+      setSelectedSpriteUrl(currentAvatar?.spriteUrl || null);
 
-        setSelectedAvatarUrl(newAvatarUrl);
-        setSelectedSpriteUrl(newSpriteUrl);
-
-        // 同时更新 localRole 的 avatar 字段，确保显示正确的头像
-        setLocalRole(prev => ({
-          ...prev,
-          avatar: newAvatarUrl,
-        }));
-      }
-      else {
-        setSelectedAvatarUrl("/favicon.ico");
-        setSelectedSpriteUrl("");
+      // 确保 localRole.avatar 跟 url 对齐
+      if (currentAvatar?.avatarUrl && localRole.avatar !== currentAvatar.avatarUrl) {
+        setLocalRole(prev => ({ ...prev, avatar: currentAvatar.avatarUrl }));
       }
     }
-  }, [isSuccess, roleAvatarsResponse, localRole.avatarId]);
-
+    else {
+      setSelectedAvatarUrl(localRole.avatar || "/favicon.ico");
+      setSelectedSpriteUrl("");
+    }
+  }, [isSuccess, roleAvatarsResponse, roleAvatars, localRole.avatarId, localRole.avatar]);
   // 干净的文本
   const cleanText = (text: string) => {
     if (!text)
@@ -418,16 +398,16 @@ export default function CharacterDetail({
 
               <div className="flex justify-center mt-6 mb-2">
                 <CharacterAvatar
-                  role={localRole}
-                  roleAvatars={roleAvatars}
-                  selectedAvatarId={selectedAvatarId}
-                  selectedAvatarUrl={selectedAvatarUrl}
-                  selectedSpriteUrl={selectedSpriteUrl}
-                  onchange={handleAvatarChange}
-                  onSpritePreviewChange={url => setSelectedSpriteUrl(url)}
-                  onAvatarSelect={handleAvatarSelect}
-                  onAvatarDelete={handleAvatarDelete}
-                  onAvatarUpload={handleAvatarUpload}
+                  role={localRole} // 当前角色基本信息
+                  roleAvatars={roleAvatars} // 当前角色的头像列表
+                  selectedAvatarId={selectedAvatarId} // 选中的头像ID?只在handleAvatarDelete有用
+                  selectedAvatarUrl={selectedAvatarUrl}// 选中的头像URL,只用了在这里传参了
+                  selectedSpriteUrl={selectedSpriteUrl}// 选中的立绘URL,只用于在这里传参了
+                  onchange={handleAvatarChange}// 头像变化的回调
+                  onSpritePreviewChange={url => setSelectedSpriteUrl(url)} // 设置selectedSpriteUrl的函数，用于切换头像后同步立绘组件
+                  onAvatarSelect={handleAvatarSelect} // 头像选择的回调
+                  onAvatarDelete={handleAvatarDelete} // 头像删除的回调
+                  onAvatarUpload={handleAvatarUpload} // 头像上传的回调
                 />
               </div>
               {!isEditing && (
