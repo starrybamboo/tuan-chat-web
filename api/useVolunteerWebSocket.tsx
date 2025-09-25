@@ -1,15 +1,22 @@
 import { getLocalStorageValue } from "@/components/common/customHooks/useLocalStorage";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useImmer } from "use-immer";
 import { ttsApi } from "@/tts/apis";
 import type { InferRequest } from "@/tts/apis";
+import { UploadUtils } from "@/utils/UploadUtils";
 import type {
   VolunteerRegisterRequest,
   VolunteerHeartbeatRequest,
   TaskRequestMessage,
   TaskResultSubmission,
   TaskAssignmentEvent,
-  TaskCancellationRequest
+  TaskCancellationRequest,
+  VolunteerRegisteredEvent,
+  VolunteerHeartbeatAckEvent,
+  TaskAssignPushEvent,
+  TaskCancelPushEvent,
+  TaskProgressUpdateEvent,
+  TaskResultConfirmedEvent
 } from "./wsModels";
 
 interface WsMessage<T> {
@@ -32,6 +39,8 @@ export interface VolunteerTask {
   estimatedDuration?: number;
   startTime: Date;
   status: "ASSIGNED" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
+  progress?: number; // 0-100
+  stage?: string;    // 阶段描述
 }
 
 /**
@@ -74,6 +83,9 @@ export interface VolunteerWebSocketUtils {
     onTaskCancelled?: (taskId: number, reason: string) => void;
     onRegistrationSuccess?: () => void;
     onRegistrationFailure?: (error: string) => void;
+    onTaskCompleted?: (result: TaskResultSubmission) => void;
+    onTaskProgressUpdate?: (update: TaskProgressUpdateEvent) => void;
+    onTaskResultConfirmed?: (event: TaskResultConfirmedEvent) => void;
   }) => void;
   
   // 事件回调
@@ -81,6 +93,9 @@ export interface VolunteerWebSocketUtils {
   onTaskCancelled?: (taskId: number, reason: string) => void;
   onRegistrationSuccess?: () => void;
   onRegistrationFailure?: (error: string) => void;
+  onTaskCompleted?: (result: TaskResultSubmission) => void;
+  onTaskProgressUpdate?: (update: TaskProgressUpdateEvent) => void;
+  onTaskResultConfirmed?: (event: TaskResultConfirmedEvent) => void;
 }
 
 const WS_URL = import.meta.env.VITE_API_WS_URL;
@@ -90,6 +105,93 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
   const heartbeatTimer = useRef<NodeJS.Timeout | null>(null);
   const reconnectTimer = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
+  // 断线期间缓存待上报的任务结果（type=10003）
+  const pendingResultsRef = useRef<TaskResultSubmission[]>([]);
+  // 待服务器确认的任务结果（等待 20005），用于超时重试
+  const pendingConfirmRef = useRef<Map<number, { data: TaskResultSubmission; attempts: number; lastSent: number }>>(new Map());
+  const confirmTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const uploadUtils = useMemo(() => new UploadUtils(), []);
+
+  // 将 base64（可包含 data URI 头）转换为 File
+  const base64ToFile = useCallback((base64: string, filename: string, defaultType = "audio/wav"): File => {
+    let mime = defaultType;
+    let b64Data = base64;
+    if (base64.startsWith("data:")) {
+      const match = base64.match(/^data:(.*?);base64,(.*)$/);
+      if (match) {
+        mime = match[1] || defaultType;
+        b64Data = match[2] || "";
+      }
+    }
+    const byteString = atob(b64Data);
+    const len = byteString.length;
+    const u8arr = new Uint8Array(len);
+    for (let i = 0; i < len; i++) u8arr[i] = byteString.charCodeAt(i);
+
+    let ext = "wav";
+    if (mime.includes("mpeg")) ext = "mp3";
+    else if (mime.includes("ogg")) ext = "ogg";
+    else if (mime.includes("aac")) ext = "aac";
+    else if (mime.includes("m4a")) ext = "m4a";
+    else if (mime.includes("webm")) ext = "webm";
+    else if (mime.includes("wav")) ext = "wav";
+    const safeName = filename.endsWith(`.${ext}`) ? filename : `${filename}.${ext}`;
+    return new File([u8arr], safeName, { type: mime });
+  }, []);
+
+  // 去除推理响应中的大字段（如 audio_base64），减少上报体积
+  const sanitizeInferResponse = useCallback((resp: any) => {
+    if (!resp || typeof resp !== 'object') return resp;
+    const { data, ...rest } = resp as any;
+    if (data && typeof data === 'object') {
+      // 剥离 audio_base64，保留其余可能有用的元信息
+      const { audio_base64, ...restData } = data as any;
+      return { ...rest, data: restData };
+    }
+    return rest;
+  }, []);
+
+  // 将 Blob 转为 base64（不带 data:xxx;base64, 前缀，便于发给 TTS 服务端）
+  const blobToBase64 = useCallback((blob: Blob) => {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const res = reader.result as string;
+        // 形如 data:audio/wav;base64,xxxx
+        const pure = res?.includes(',') ? res.split(',')[1] : res;
+        resolve(pure || "");
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }, []);
+
+  // 若参数中包含 prompt_audio_url，则拉取该 URL 并转成 base64，填充到 prompt_audio_base64
+  const adaptInferParams = useCallback(async (raw: any): Promise<InferRequest> => {
+    const params: any = { ...(raw || {}) };
+    try {
+      if (params.prompt_audio_url && !params.prompt_audio_base64 && !params.prompt_audio_path) {
+        const url: string = params.prompt_audio_url;
+        try {
+          const resp = await fetch(url);
+          if (!resp.ok) throw new Error(`下载参考音频失败: ${resp.status}`);
+          const blob = await resp.blob();
+          const base64 = await blobToBase64(blob);
+          params.prompt_audio_base64 = base64; // 仅保留纯 base64 数据
+        } catch (e) {
+          console.error("下载 prompt_audio_url 失败，无法适配为 base64:", e);
+          // 降级：尝试把 URL 塞给 prompt_audio_path（某些后端会支持 http(s) 路径），否则仍然传原始参数
+          if (!params.prompt_audio_path) params.prompt_audio_path = url;
+        }
+        delete params.prompt_audio_url; // 避免把未知字段传给 /infer
+      }
+    } catch (e) {
+      console.warn("adaptInferParams 处理失败，使用原始参数继续:", e);
+    }
+    // 强制要求返回 base64，便于后续统一上传
+    params.return_audio_base64 = true;
+    return params as InferRequest;
+  }, [blobToBase64]);
   
   // 状态管理
   const [assignedTasks, updateAssignedTasks] = useImmer<VolunteerTask[]>([]);
@@ -103,6 +205,9 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
     onTaskCancelled?: (taskId: number, reason: string) => void;
     onRegistrationSuccess?: () => void;
     onRegistrationFailure?: (error: string) => void;
+    onTaskCompleted?: (result: TaskResultSubmission) => void;
+    onTaskProgressUpdate?: (update: TaskProgressUpdateEvent) => void;
+    onTaskResultConfirmed?: (event: TaskResultConfirmedEvent) => void;
   }>({});
 
   // 设置回调函数
@@ -111,6 +216,9 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
     onTaskCancelled?: (taskId: number, reason: string) => void;
     onRegistrationSuccess?: () => void;
     onRegistrationFailure?: (error: string) => void;
+    onTaskCompleted?: (result: TaskResultSubmission) => void;
+    onTaskProgressUpdate?: (update: TaskProgressUpdateEvent) => void;
+    onTaskResultConfirmed?: (event: TaskResultConfirmedEvent) => void;
   }) => {
     callbacksRef.current = newCallbacks;
   }, []);
@@ -146,13 +254,87 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
         数据: message.data,
         原始消息: messageStr
       });
+      // 若是提交结果，记录或刷新待确认条目
+      if (message.type === 10003) {
+        const r = message.data as TaskResultSubmission;
+        pendingConfirmRef.current.set(r.taskId, { data: r, attempts: 1, lastSent: Date.now() });
+      }
     } else {
-      console.warn(`[WebSocket发送失败] ${timestamp} - 连接未建立`, {
-        类型: messageTypeName,
-        消息类型: message.type,
-        数据: message.data
-      });
+      // 若未连接：缓存任务结果消息，其它类型仅记录
+      if (message.type === 10003) {
+        pendingResultsRef.current.push(message.data as TaskResultSubmission);
+        console.warn(`[排队待上报] ${timestamp} - 暂存任务结果，等待重连后重放`, {
+          任务ID: (message.data as TaskResultSubmission).taskId,
+          当前排队数: pendingResultsRef.current.length
+        });
+        // 也加入待确认映射，等待重连重放后开始计时
+        const r = message.data as TaskResultSubmission;
+        pendingConfirmRef.current.set(r.taskId, { data: r, attempts: 0, lastSent: 0 });
+      } else {
+        console.warn(`[WebSocket发送失败] ${timestamp} - 连接未建立`, {
+          类型: messageTypeName,
+          消息类型: message.type,
+          数据: message.data
+        });
+      }
     }
+  }, [isConnected]);
+
+  // 重放缓存的任务结果
+  const flushPendingResults = useCallback(() => {
+    if (!isConnected()) return;
+    if (!pendingResultsRef.current.length) return;
+    const toSend = [...pendingResultsRef.current];
+    pendingResultsRef.current = [];
+    const timestamp = new Date().toISOString();
+    console.warn(`[重放上报] ${timestamp} - 开始重放缓存的任务结果`, {
+      数量: toSend.length
+    });
+    for (const r of toSend) {
+      const message: WsMessage<TaskResultSubmission> = { type: 10003, data: r };
+      const messageStr = JSON.stringify(message);
+      wsRef.current?.send(messageStr);
+      console.warn(`[WebSocket发送] ${timestamp}`, {
+        类型: "提交任务结果(重放)",
+        消息类型: 10003,
+        数据: r,
+        原始消息: messageStr
+      });
+      // 刷新待确认条目
+      pendingConfirmRef.current.set(r.taskId, { data: r, attempts: 1, lastSent: Date.now() });
+    }
+  }, [isConnected]);
+
+  // 启动结果确认重试定时器
+  useEffect(() => {
+    if (confirmTimerRef.current) return;
+    confirmTimerRef.current = setInterval(() => {
+      if (!isConnected()) return;
+      const now = Date.now();
+      for (const [taskId, entry] of pendingConfirmRef.current.entries()) {
+        const timeoutMs = 10000; // 超过 10s 未确认则重发
+        if (entry.lastSent === 0 || now - entry.lastSent >= timeoutMs) {
+          if (entry.attempts >= 3) {
+            console.error(`[上报重试放弃] 任务 ${taskId} 超过最大重试次数`);
+            pendingConfirmRef.current.delete(taskId);
+            continue;
+          }
+          // 重发
+          const message: WsMessage<TaskResultSubmission> = { type: 10003, data: entry.data };
+          const messageStr = JSON.stringify(message);
+          wsRef.current?.send(messageStr);
+          entry.attempts += 1;
+          entry.lastSent = now;
+          console.warn(`[上报重试] 任务 ${taskId} 第 ${entry.attempts} 次重发`);
+        }
+      }
+    }, 5000);
+    return () => {
+      if (confirmTimerRef.current) {
+        clearInterval(confirmTimerRef.current);
+        confirmTimerRef.current = null;
+      }
+    };
   }, [isConnected]);
 
   const startHeartbeat = useCallback(() => {
@@ -205,7 +387,13 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
       const receiveMessageTypeMap: Record<number, string> = {
         10004: "任务分配",
         10005: "任务取消",
-        100: "Token失效"
+        100: "Token失效",
+        20000: "志愿者注册成功",
+        20001: "心跳ACK",
+        20002: "任务分配推送",
+        20003: "任务取消推送",
+        20004: "任务进度更新",
+        20005: "任务结果确认",
       };
       
       const messageTypeName = receiveMessageTypeMap[message.type] || `未知类型(${message.type})`;
@@ -219,6 +407,34 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
       });
       
       switch (message.type) {
+        case 20000: { // 志愿者注册成功
+          const ev = message.data as VolunteerRegisteredEvent;
+          if (ev?.success) {
+            setIsRegistered(true);
+            callbacksRef.current.onRegistrationSuccess?.();
+            // 注册成功后尝试重放待上报的任务结果
+            flushPendingResults();
+          } else {
+            setIsRegistered(false);
+            callbacksRef.current.onRegistrationFailure?.(ev?.message ?? "注册失败");
+          }
+          break;
+        }
+        case 20001: { // 心跳ACK
+          const ev = message.data as VolunteerHeartbeatAckEvent;
+          // 可以根据 nextHeartbeatSec 调整本地心跳间隔（当前保留默认间隔，仅日志记录）
+          break;
+        }
+        case 20002: { // 任务分配推送（同 10004）
+          const taskAssignment = message.data as TaskAssignPushEvent;
+          if (taskAssignment.taskType !== ONLY_TASK_TYPE) return;
+          callbacksRef.current.onTaskAssigned?.(taskAssignment);
+          // 复用 10004 的执行逻辑
+          // 直接将类型改为 10004 走后续相同分支
+          message.type = 10004;
+          // 继续交由 10004 分支处理执行
+          // 不 break; 故意落入后续 10004 逻辑
+        }
         case 10004: // 任务分配
           const taskAssignment = message.data as TaskAssignmentEvent;
           // 只处理文字转语音任务，其它任务直接忽略
@@ -230,7 +446,7 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
             });
             return;
           }
-          updateAssignedTasks(draft => {
+            updateAssignedTasks(draft => {
             draft.push({
               taskId: taskAssignment.taskId,
               taskType: ONLY_TASK_TYPE,
@@ -238,7 +454,8 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
               inputData: taskAssignment.inputData,
               estimatedDuration: taskAssignment.estimatedDuration,
               startTime: new Date(),
-              status: "ASSIGNED"
+                status: "ASSIGNED",
+                progress: 0,
             });
           });
           callbacksRef.current.onTaskAssigned?.(taskAssignment);
@@ -252,20 +469,37 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
               if (t) t.status = "RUNNING";
             });
             try {
-              // 解析 inputData 为 InferRequest
+              // 解析 inputData 为 InferRequest，并强制返回 base64 音频，便于结果随提交一并上传
               let params: InferRequest;
               try {
                 params = JSON.parse(taskAssignment.inputData) as InferRequest;
               } catch (e) {
                 throw new Error(`inputData 不是有效的JSON: ${String(e)}`);
               }
-
-              const resp = await ttsApi.infer(params);
+              // 适配 prompt_audio_url -> prompt_audio_base64，并强制返回 base64
+              const adapted = await adaptInferParams(params);
+              const resp = await ttsApi.infer(adapted);
               const end = performance.now();
 
               const success = resp && (resp as any).code === 0;
+              // 将生成的音频上传至后端（获取预签名URL后PUT上传），返回可访问的URL
+              let audioUrl: string | undefined;
+              try {
+                const audioBase64 = (resp as any)?.data?.audio_base64 as string | undefined;
+                if (audioBase64) {
+                  const file = base64ToFile(audioBase64, `tts_${taskAssignment.taskId}_${Date.now()}`);
+                  // 生成音频不应被截断，这里将最大时长放宽到 600 秒
+                  audioUrl = await uploadUtils.uploadAudio(file, 1, 600);
+                }
+              } catch (e) {
+                console.error("TTS 音频上传失败，仍将返回原始响应:", e);
+              }
+
+              // 精简原始响应，避免携带大体积的 base64 内容
+              const cleanResp = sanitizeInferResponse(resp);
               const resultPayload = {
-                rawResponse: resp,
+                ...cleanResp,
+                audio_url: audioUrl,
               };
 
               // 提交任务结果
@@ -290,7 +524,43 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
             }
           })();
           break;
-          
+        
+        case 20003: { // 任务取消推送
+          const cancellation = message.data as TaskCancelPushEvent;
+          updateAssignedTasks(draft => {
+            const taskIndex = draft.findIndex(task => task.taskId === cancellation.taskId);
+            if (taskIndex !== -1) {
+              draft[taskIndex].status = "CANCELLED";
+            }
+          });
+          callbacksRef.current.onTaskCancelled?.(cancellation.taskId, cancellation.reason);
+          break;
+        }
+        case 20004: { // 任务进度更新
+          const update = message.data as TaskProgressUpdateEvent;
+          updateAssignedTasks(draft => {
+            if (!update.taskId) return;
+            const t = draft.find(x => x.taskId === update.taskId);
+            if (t) {
+              if (typeof update.progress === 'number') {
+                t.progress = Math.max(0, Math.min(100, update.progress));
+              }
+              if (update.message) t.stage = update.message;
+            }
+          });
+          callbacksRef.current.onTaskProgressUpdate?.(update);
+          break;
+        }
+        case 20005: { // 任务结果确认
+          const ev = message.data as TaskResultConfirmedEvent;
+          // 可以在此确认本地任务状态或清理
+          callbacksRef.current.onTaskResultConfirmed?.(ev);
+          if (ev?.taskId) {
+            pendingConfirmRef.current.delete(ev.taskId);
+            console.warn(`[结果确认] 任务 ${ev.taskId} 已被服务器确认: ${ev.success ? 'success' : 'fail'} ${ev.message || ''}`);
+          }
+          break;
+        }
         case 10005: // 任务取消
           const cancellation = message.data as { taskId: number; reason: string };
           updateAssignedTasks(draft => {
@@ -327,7 +597,8 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
       return;
     }
 
-    if (wsRef.current?.readyState === WebSocket.CONNECTING) {
+    // 避免重复创建连接：如果正在连接或已连接，则直接返回
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.CONNECTING || wsRef.current.readyState === WebSocket.OPEN)) {
       return;
     }
 
@@ -341,7 +612,15 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
           连接时间: timestamp
         });
         reconnectAttempts.current = 0;
+
+        // 清理可能遗留的重连定时器，避免已连上时仍触发额外重连
+        if (reconnectTimer.current) {
+          clearTimeout(reconnectTimer.current);
+          reconnectTimer.current = null;
+        }
         startHeartbeat();
+        // 连接成功后尝试重放待上报的任务结果
+        flushPendingResults();
       };
       
       wsRef.current.onmessage = handleMessage;
@@ -509,6 +788,9 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
         draft[taskIndex].status = result.status === "SUCCESS" ? "COMPLETED" : "FAILED";
       }
     });
+
+    // 触发任务完成回调（供上层 UI 或业务监听）
+    callbacksRef.current.onTaskCompleted?.(result);
   }, [send, updateAssignedTasks]);
 
   const cancelTask = useCallback((cancellation: TaskCancellationRequest) => {
@@ -543,7 +825,9 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
     requestTasks,
     submitTaskResult,
     cancelTask,
-    // 本地直接创建并执行 TTS 任务
+  // 本地直接创建并执行 TTS 任务（测试专用）
+  // 说明：正式流程应通过 distributed_task 服务端创建任务 -> 由服务器通过 type=10004 分配 -> 客户端执行 -> type=10003 回传结果。
+  // 该方法仅用于本地/连通性测试，不会在服务器侧登记 distributed_task 记录。
     async createTtsTask(params) {
       // 生成本地临时 taskId（负数以避免与服务端冲突）
       const taskId = -Math.floor(Math.random() * 1_000_000) - 1;
@@ -569,14 +853,29 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
 
       const start = performance.now();
       try {
-        const resp = await ttsApi.infer(params);
+  // 适配 prompt_audio_url -> prompt_audio_base64，并强制返回 base64
+  const adapted = await adaptInferParams(params);
+  const resp = await ttsApi.infer(adapted);
         const end = performance.now();
         const success = (resp as any)?.code === 0;
 
+        // 将生成的音频上传至后端并回填 URL
+        let audioUrl: string | undefined;
+        try {
+          const audioBase64 = (resp as any)?.data?.audio_base64 as string | undefined;
+          if (audioBase64) {
+            const file = base64ToFile(audioBase64, `tts_local_${Date.now()}`);
+            audioUrl = await uploadUtils.uploadAudio(file, 1, 600);
+          }
+        } catch (e) {
+          console.error("TTS 本地音频上传失败，仍将返回原始响应:", e);
+        }
+
         // 提交结果（即便是本地任务，也复用统一提交流程，便于后续统计）
+        const cleanResp = sanitizeInferResponse(resp);
         submitTaskResult({
           taskId,
-          resultData: JSON.stringify({ rawResponse: resp }),
+          resultData: JSON.stringify({ ...cleanResp, audio_url: audioUrl }),
           executionDuration: Math.round(end - start),
           status: success ? "SUCCESS" : "FAILED",
           errorMessage: success ? undefined : (resp as any)?.msg || "infer 失败",
@@ -606,6 +905,7 @@ export function useVolunteerWebSocket(): VolunteerWebSocketUtils {
     onTaskAssigned: callbacksRef.current.onTaskAssigned,
     onTaskCancelled: callbacksRef.current.onTaskCancelled,
     onRegistrationSuccess: callbacksRef.current.onRegistrationSuccess,
-    onRegistrationFailure: callbacksRef.current.onRegistrationFailure
+    onRegistrationFailure: callbacksRef.current.onRegistrationFailure,
+    onTaskCompleted: callbacksRef.current.onTaskCompleted
   };
 }

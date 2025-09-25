@@ -5,7 +5,13 @@
  * @param timeout
  * @param interval
  */
-export function pollPort(port: number, timeout = 15000, interval = 500): Promise<void> {
+export function pollPort(
+  port: number,
+  timeout = 15000,
+  interval = 500,
+  host = "localhost",
+  protocol: "http" | "https" = "http",
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
     const check = () => {
@@ -15,7 +21,9 @@ export function pollPort(port: number, timeout = 15000, interval = 500): Promise
       }
       // 尝试 fetch。只要服务器开始监听，即便是 404 也会成功。
       // 只有在服务器未监听时才会进入 catch 块。
-      fetch(`http://localhost:${port}`)
+      const isIPv6 = host.includes(":") && !host.startsWith("[");
+      const safeHost = isIPv6 ? `[${host}]` : host;
+      fetch(`${protocol}://${safeHost}:${port}`, { mode: "no-cors" })
         .then(() => resolve()) // 连接成功，服务器已就绪
         .catch(() => setTimeout(check, interval)); // 连接失败，稍后重试
     };

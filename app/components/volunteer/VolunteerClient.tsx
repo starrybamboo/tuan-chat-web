@@ -1,11 +1,11 @@
 /* eslint-disable perfectionist/sort-imports */
-import type { InferRequest } from "@/tts/apis";
-import { pollPort } from "@/utils/pollPort";
 import type {
   TaskAssignmentEvent,
+  TaskResultSubmission,
   VolunteerRegisterRequest,
 } from "../../../api/wsModels";
 import { useVolunteerWebSocket } from "../../../api/useVolunteerWebSocket";
+import { tuanchat } from "../../../api/instance";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
@@ -99,18 +99,15 @@ export default function VolunteerClient() {
     availableSlots: 1,
   });
 
-  // 本地 TTS 任务创建相关状态
+  // TTS 任务创建相关状态（测试入口）
   const [ttsText, setTtsText] = useState("你好，这是一个测试。");
-  const [refAudioFile, setRefAudioFile] = useState<File | null>(null);
   const [creatingLocal, setCreatingLocal] = useState(false);
+  // 通过环境变量控制是否展示测试入口：默认展示，设置 VITE_ENABLE_LOCAL_TTS_TEST=false 可关闭
+  const enableLocalTtsTest = (import.meta as any).env?.VITE_ENABLE_LOCAL_TTS_TEST !== "false";
 
-  // 将文件转换为 base64（带 data URI 头）
-  const fileToBase64 = useCallback((file: File) => new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  }), []);
+  // 统一测试参考音频 URL（不再支持本地上传）
+  const TEST_TTS_REF_AUDIO_URL
+    = "http://39.103.58.31:9000/avatar/chat/024387165b143f30f5e484400b35079c_616814.wav";
 
   // 处理任务分配（TTS 任务由 Hook 自动本地执行，这里仅更新状态显示）
   const handleTaskAssigned = useCallback((task: TaskAssignmentEvent) => {
@@ -145,6 +142,36 @@ export default function VolunteerClient() {
       onTaskAssigned: handleTaskAssigned,
       onRegistrationSuccess: () => {
         setStatusMessage("志愿者注册成功，等待任务分配...");
+      },
+      onTaskCompleted: (result: TaskResultSubmission) => {
+        try {
+          const payload = JSON.parse(result.resultData || "{}");
+          const audioUrl: string | undefined = payload?.audio_url;
+          if (result.status === "SUCCESS") {
+            setStatusMessage(`任务完成（taskId=${result.taskId}）`);
+            if (audioUrl) {
+              toast.success(`任务完成并已上传音频，URL: ${audioUrl}`);
+            }
+            else {
+              toast.success(`任务完成（taskId=${result.taskId}）`);
+            }
+          }
+          else {
+            setStatusMessage(`任务失败（taskId=${result.taskId}）：${result.errorMessage ?? "未知错误"}`);
+            toast.error(`任务失败：${result.errorMessage ?? "未知错误"}`);
+          }
+        }
+        catch {
+          // 兜底处理
+          if (result.status === "SUCCESS") {
+            setStatusMessage(`任务完成（taskId=${result.taskId}）`);
+            toast.success(`任务完成（taskId=${result.taskId}）`);
+          }
+          else {
+            setStatusMessage(`任务失败（taskId=${result.taskId}）：${result.errorMessage ?? "未知错误"}`);
+            toast.error(`任务失败：${result.errorMessage ?? "未知错误"}`);
+          }
+        }
       },
     });
   }, [volunteerWs, handleTaskAssigned]); // 保留必要的依赖
@@ -214,7 +241,7 @@ export default function VolunteerClient() {
     });
   }, [volunteerWs]);
 
-  // 本地创建 TTS 任务
+  // 创建分布式 TTS 任务（通过任务创建接口，而非直连本地）
   const handleCreateLocalTts = useCallback(async () => {
     if (!ttsText || !ttsText.trim()) {
       toast.error("请输入要合成的文本");
@@ -224,55 +251,38 @@ export default function VolunteerClient() {
     try {
       setCreatingLocal(true);
 
-      // 检查 TTS 服务是否可用（解析环境变量中的完整 URL）
-      try {
-        const ttsUrlStr = import.meta.env.VITE_TTS_URL as string;
-        const ttsUrl = new URL(ttsUrlStr);
-        const ttsPort = Number(ttsUrl.port || (ttsUrl.protocol === "https:" ? 443 : 80));
-        const rawHost = ttsUrl.hostname || "localhost";
-        const ttsHost = rawHost === "0.0.0.0" ? "localhost" : rawHost;
-        await pollPort(ttsPort, 5000, 200, ttsHost, ttsUrl.protocol.replace(":", "") as "http" | "https");
-      }
-      catch {
-        toast.error("TTS 服务器未启动，无法进行本地推理");
-        setCreatingLocal(false);
-        return;
-      }
-
-      let promptAudioBase64: string | undefined;
-      if (refAudioFile) {
-        try {
-          promptAudioBase64 = await fileToBase64(refAudioFile);
-        }
-        catch {
-          toast.error("参考音频读取失败");
-          setCreatingLocal(false);
-          return;
-        }
-      }
-
-      const params: InferRequest = {
+      // 构造分布式任务创建请求
+      const inputPayload = {
         text: ttsText.trim(),
-        ...(promptAudioBase64 ? { prompt_audio_base64: promptAudioBase64 } : {}),
-        return_audio_base64: true,
+        // 使用固定参考音频 URL 进行测试
+        prompt_audio_url: TEST_TTS_REF_AUDIO_URL,
       };
+      const taskName = ttsText.trim().slice(0, 16) || "TTS-Task";
+      const resp = await tuanchat.distributedTask.createTask({
+        taskName,
+        taskType: "TEXT_TO_SPEECH",
+        inputData: JSON.stringify(inputPayload),
+      });
 
-      const { taskId, success, error } = await volunteerWs.createTtsTask(params);
-      if (success) {
-        toast.success(`本地 TTS 任务已创建（taskId=${taskId}）`);
+      if (resp.success && typeof resp.data === "number") {
+        toast.success(`已创建分布式 TTS 任务（taskId=${resp.data}）`);
+        // 若客户端已注册且允许接收任务，主动请求一下任务
+        if (acceptingTasks && autoRegistered) {
+          requestNewTasks();
+        }
       }
       else {
-        toast.error(`本地 TTS 执行失败：${error ?? "未知错误"}`);
+        toast.error(resp.errMsg || "创建任务失败");
       }
     }
     catch (err) {
       console.error(err);
-      toast.error("创建本地 TTS 任务异常");
+      toast.error("创建分布式 TTS 任务异常");
     }
     finally {
       setCreatingLocal(false);
     }
-  }, [ttsText, refAudioFile, volunteerWs, fileToBase64]);
+  }, [ttsText, acceptingTasks, autoRegistered, requestNewTasks]);
 
   return (
     <div className="p-6 space-y-6">
@@ -428,49 +438,46 @@ export default function VolunteerClient() {
 
           {/* 手动操作区已移除，改用上方“接收任务”开关控制 */}
 
-          {/* 本地创建 TTS 任务 */}
-          <div className="mt-6 p-4 rounded-lg border border-base-300 bg-base-200 space-y-3">
-            <h3 className="font-semibold text-lg">🗣️ 本地创建 TTS 任务</h3>
-            <div className="form-control">
-              <label className="label p-0 mb-1">
-                <span className="label-text text-sm text-base-content/70">文本</span>
-              </label>
-              <textarea
-                className="textarea textarea-bordered"
-                placeholder="请输入要合成的文本"
-                value={ttsText}
-                onChange={e => setTtsText(e.target.value)}
-                rows={3}
-              />
+          {/* 测试：创建分布式 TTS 任务（可通过 VITE_ENABLE_LOCAL_TTS_TEST 关闭） */}
+          {enableLocalTtsTest && (
+            <div className="mt-6 p-4 rounded-lg border border-base-300 bg-base-200 space-y-3">
+              <h3 className="font-semibold text-lg">🧪 测试：创建 TTS 任务（走分布式任务创建）</h3>
+              <p className="text-sm text-warning">该入口通过后端创建任务，随后由志愿者客户端领取并执行。参考音频固定为测试 URL。</p>
+              <div className="form-control">
+                <label className="label p-0 mb-1">
+                  <span className="label-text text-sm text-base-content/70">文本</span>
+                </label>
+                <textarea
+                  className="textarea textarea-bordered"
+                  placeholder="请输入要合成的文本"
+                  value={ttsText}
+                  onChange={e => setTtsText(e.target.value)}
+                  rows={3}
+                />
+              </div>
+              <div className="form-control">
+                <label className="label p-0 mb-1">
+                  <span className="label-text text-sm text-base-content/70">参考音频</span>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered"
+                  value={TEST_TTS_REF_AUDIO_URL}
+                  readOnly
+                />
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  className={`btn btn-primary ${creatingLocal ? "btn-disabled" : ""}`}
+                  onClick={handleCreateLocalTts}
+                  disabled={creatingLocal}
+                >
+                  {creatingLocal ? "创建中..." : "创建分布式 TTS 任务"}
+                </button>
+              </div>
             </div>
-            <div className="form-control">
-              <label className="label p-0 mb-1">
-                <span className="label-text text-sm text-base-content/70">参考音频（可选）</span>
-              </label>
-              <input
-                type="file"
-                accept="audio/*"
-                className="file-input file-input-bordered"
-                onChange={e => setRefAudioFile(e.target.files?.[0] ?? null)}
-              />
-              {refAudioFile && (
-                <div className="text-xs text-base-content/70 mt-1">
-                  已选择：
-                  {refAudioFile.name}
-                </div>
-              )}
-            </div>
-            <div className="flex justify-end">
-              <button
-                type="button"
-                className={`btn btn-primary ${creatingLocal ? "btn-disabled" : ""}`}
-                onClick={handleCreateLocalTts}
-                disabled={creatingLocal}
-              >
-                {creatingLocal ? "创建中..." : "本地创建 TTS 任务"}
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

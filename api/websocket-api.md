@@ -471,6 +471,62 @@
 ```
 **说明**: 收到此消息后需要重新登录获取新的token
 
+### 志愿者注册成功 ACK (type: 20000)
+```json
+{
+  "type": 20000,
+  "data": {
+    "volunteerId": "vol-abc",
+    "message": "registered",
+    "success": true
+  }
+}
+```
+说明: 表示志愿者注册已被服务器确认。
+
+### 心跳 ACK (type: 20001)
+```json
+{
+  "type": 20001,
+  "data": {
+    "success": true,
+    "message": "pong",
+    "nextHeartbeatSec": 30
+  }
+}
+```
+说明: 服务器对心跳的确认，可能返回当前任务统计等。
+
+### 任务分配推送 (type: 20002)
+等价于 type:10004，字段相同。
+
+### 任务取消推送 (type: 20003)
+```json
+{
+  "type": 20003,
+  "data": { "taskId": 1, "reason": "TIMEOUT" }
+}
+```
+说明: 服务器主动取消某任务。
+
+### 任务进度更新 (type: 20004)
+```json
+{
+  "type": 20004,
+  "data": { "taskId": 1, "progress": 50, "message": "PROCESSING" }
+}
+```
+说明: 服务器或协调层推送任务进度。
+
+### 任务结果确认 (type: 20005)
+```json
+{
+  "type": 20005,
+  "data": { "taskId": 1, "success": true, "message": "stored" }
+}
+```
+说明: 服务器确认已接收并持久化该任务的计算结果。
+
 ## 连接建立流程
 
 1. 客户端发起WebSocket连接到 `ws://localhost:8090?token=用户ID`

@@ -179,3 +179,62 @@ export interface TaskCancellationRequest {
     taskId: number;                      // 要取消的任务ID
     reason: string;                      // 取消原因（如VOLUNTEER_DISCONNECT、TIMEOUT等）
 }
+
+/**
+ * ===============分布式计算-服务端响应/推送 (200xx)
+ */
+
+/**
+ * 志愿者注册成功 ACK。
+ * Corresponds to message type 20000.
+ */
+export interface VolunteerRegisteredEvent {
+    volunteerId: string;   // 分配的志愿者ID
+    message: string;       // 注册结果消息
+    success: boolean;      // 是否成功
+}
+
+/**
+ * 心跳 ACK。
+ * Corresponds to message type 20001.
+ */
+export interface VolunteerHeartbeatAckEvent {
+    success: boolean;           // 是否成功
+    message: string;            // 提示，如 "pong"
+    nextHeartbeatSec?: number;  // 建议的下次心跳间隔（秒）
+}
+
+/**
+ * 任务分配推送（等价于 10004）。
+ * Corresponds to message type 20002.
+ */
+export type TaskAssignPushEvent = TaskAssignmentEvent;
+
+/**
+ * 任务取消推送（等价于 10005）。
+ * Corresponds to message type 20003.
+ */
+export interface TaskCancelPushEvent {
+    taskId: number;
+    reason: string;
+}
+
+/**
+ * 任务进度更新。
+ * Corresponds to message type 20004.
+ */
+export interface TaskProgressUpdateEvent {
+    taskId?: number;        // 任务ID，可为空（如仅提示排队）
+    progress?: number;      // 0-100，或为空代表未知/排队
+    message?: string;       // 文本说明
+}
+
+/**
+ * 任务结果确认。
+ * Corresponds to message type 20005.
+ */
+export interface TaskResultConfirmedEvent {
+    taskId: number;
+    success: boolean;   // 是否确认接收并持久化
+    message?: string;   // 服务器返回的说明
+}

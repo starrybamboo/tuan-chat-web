@@ -138,12 +138,16 @@ export default function RenderWindow() {
     setIsRendering(true);
     // 轮询检测TTS服务是否启动
     if (renderProps.useVocal) {
+      const ttsUrl = new URL(import.meta.env.VITE_TTS_URL as string);
+      const ttsPort = Number(ttsUrl.port || (ttsUrl.protocol === "https:" ? 443 : 80));
+      const rawTtsHost = ttsUrl.hostname || "localhost";
+      const ttsHost = rawTtsHost === "0.0.0.0" ? "localhost" : rawTtsHost;
       await pollPort(
-        Number(
-          (import.meta.env.VITE_TTS_URL as string).split(":").pop(),
-        ),
-        500,
-        100,
+        ttsPort,
+        5000,
+        200,
+        ttsHost,
+        ttsUrl.protocol.replace(":", "") as "http" | "https",
       ).catch(() => { toast.error("TTS 服务器未启动,未进行语音合成"); });
     }
 

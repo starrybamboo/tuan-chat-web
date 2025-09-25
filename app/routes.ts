@@ -28,6 +28,7 @@ export default [
     route("community/:communityId/:postId", "routes/communityPost.tsx"),
     route("settings", "routes/settings.tsx"),
     route("collection", "routes/collection.tsx"),
+    route("volunteer", "routes/volunteer.tsx"),
     route("invite/:code", "routes/invite.tsx"),
   ]),
 ] satisfies RouteConfig;

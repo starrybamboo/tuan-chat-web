@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { CursorPageBaseResponseMessageDirectResponse } from './CursorPageBaseResponseMessageDirectResponse';
+import type { DistributedTask } from './DistributedTask';
 /**
  * 基础返回体
  */
-export type ApiResultCursorPageBaseResponseMessageDirectResponse = {
+export type ApiResultDistributedTask = {
     /**
      * 成功标识true or false
      */
@@ -19,6 +19,6 @@ export type ApiResultCursorPageBaseResponseMessageDirectResponse = {
      * 错误消息
      */
     errMsg?: string;
-    data?: CursorPageBaseResponseMessageDirectResponse;
+    data?: DistributedTask;
 };
 
