@@ -36,9 +36,6 @@ export default function CharacterDetail({
   // --- MOVED --- isRuleLoading 状态也应该在这里
   const [isRuleLoading, setIsRuleLoading] = useState(false);
 
-  // 头像数据加载状态 - 初始化为 true，因为组件挂载时就开始请求数据
-  const [isAvatarLoading, setIsAvatarLoading] = useState(true);
-
   // 初始化角色数据
   const [localRole, setLocalRole] = useState<Role>(role);
   // 编辑状态过渡
@@ -166,11 +163,6 @@ export default function CharacterDetail({
       setLocalRole(role);
     }
   }, [role.id, localRole.id, role]);
-
-  // 同步 React Query 的 loading 状态
-  useEffect(() => {
-    setIsAvatarLoading(isQueryLoading);
-  }, [isQueryLoading]);
 
   useEffect(() => {
     // 更新 roleAvatars
@@ -409,7 +401,7 @@ export default function CharacterDetail({
               </div>
 
               <div className="flex justify-center mt-6 mb-2">
-                {isAvatarLoading
+                {isQueryLoading
                   ? (
                       <div className="flex flex-col items-center gap-3">
                         <div className="skeleton w-24 h-24 rounded-full"></div>
@@ -578,7 +570,7 @@ export default function CharacterDetail({
         <div className="lg:col-span-3 space-y-6">
 
           {/* 渲染结果预览 */}
-          {isRuleLoading || isAvatarLoading
+          {isRuleLoading || isQueryLoading
             ? (
                 <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
                   <div className="card-body">
