@@ -15,8 +15,8 @@ import useSearchParamsState from "@/components/common/customHooks/useSearchParam
 import { OpenAbleDrawer } from "@/components/common/openableDrawer";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
-import LeftChatList from "@/components/privateChat/components/Left​​ChatList​​";
-import RightChatView from "@/components/privateChat/components/RightChatView";
+import LeftChatList from "@/components/privateChat/Left​​ChatList​​";
+import RightChatView from "@/components/privateChat/RightChatView";
 import { AddIcon, Setting } from "@/icons";
 import {
   useGetSpaceMembersQuery,

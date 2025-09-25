@@ -4,7 +4,6 @@ import AICreateRole from "@/components/newCharacter/RoleCreation/AICreateRole";
 import CreateEntry from "@/components/newCharacter/RoleCreation/CreateEntry";
 
 import CreateRoleBySelf from "@/components/newCharacter/RoleCreation/CreateRoleBySelf";
-import ExcelImportRole from "@/components/newCharacter/RoleCreation/ExcelImportRole";
 import { useState } from "react";
 import { useNavigate, useOutletContext } from "react-router";
 
@@ -44,15 +43,11 @@ export default function RoleCreationPage() {
   if (mode === "AI") {
     return <AICreateRole onBack={() => setMode("entry")} onComplete={handleCreationComplete} />;
   }
-  if (mode === "excel") {
-    return <ExcelImportRole onBack={() => setMode("entry")} />;
-  }
 
   // 默认渲染创建入口
   return (
     <CreateEntry
       AICreate={() => setMode("AI")}
-      ExcelImport={() => setMode("excel")}
       createBySelf={() => setMode("self")}
     />
   );

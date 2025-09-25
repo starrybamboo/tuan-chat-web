@@ -170,8 +170,10 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
         updateAbilityMutation.mutate({
           roleId,
           ruleId,
-          act: {},
+          act: ability.act,
+          basic: ability.basic,
           ability: ability.ability,
+          skill: ability.skill,
         });
       }
       else {
@@ -179,7 +181,9 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           roleId,
           ruleId,
           act: {},
-          ability,
+          basic: {},
+          ability: {},
+          skill: {},
         });
       }
     }
