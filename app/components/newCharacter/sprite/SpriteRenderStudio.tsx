@@ -247,7 +247,7 @@ export function SpriteRenderStudio({
 
           const newTransform = parseTransformFromAvatar(currentSprite);
           setDisplayTransform(newTransform);
-          setIsImageLoading(false);
+          setTimeout(() => setIsImageLoading(false), 200);
         }
       };
 
