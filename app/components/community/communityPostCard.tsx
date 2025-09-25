@@ -12,7 +12,7 @@ interface CommunityPostCardProps {
 }
 
 /**
- * 社区帖子卡片组件
+ * 社区帖子卡片组件（预览小卡片）
  */
 export default function CommunityPostCard({
   post,

@@ -1,6 +1,6 @@
 import UserModulesList from "@/components/profile/workTabPart/moudleList";
-import UserPostsList from "@/components/profile/workTabPart/userPostsList";
-import UserRolesList from "@/components/profile/workTabPart/UserRolesList";
+import PostsList from "@/components/profile/workTabPart/postsList";
+import RolesList from "@/components/profile/workTabPart/rolesList";
 import React, { useMemo, useState } from "react";
 import { useModuleListByUserQuery } from "../../../../api/hooks/moduleAndStageQueryHooks";
 import { useGetUserRolesPageQuery, useGetUserRolesQuery } from "../../../../api/queryHooks";
@@ -48,13 +48,13 @@ export const WorksTab: React.FC<WorksTabProp> = ({ userId }) => {
         );
       case "posts":
         return (
-          <UserPostsList
+          <PostsList
             userId={userId}
           />
         );
       case "roles":
         return (
-          <UserRolesList
+          <RolesList
             userId={userId}
             roleIds={roleIds}
             totalRecords={response?.data?.totalRecords || 0}
