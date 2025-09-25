@@ -36,6 +36,9 @@ export default function CharacterDetail({
   // --- MOVED --- isRuleLoading 状态也应该在这里
   const [isRuleLoading, setIsRuleLoading] = useState(false);
 
+  // 头像数据加载状态 - 初始化为 true，因为组件挂载时就开始请求数据
+  const [isAvatarLoading, setIsAvatarLoading] = useState(true);
+
   // 初始化角色数据
   const [localRole, setLocalRole] = useState<Role>(role);
   // 编辑状态过渡
@@ -48,7 +51,7 @@ export default function CharacterDetail({
   const [selectedSpriteUrl, setSelectedSpriteUrl] = useState<string | null>("");
 
   // 获取角色所有头像
-  const { data: roleAvatarsResponse, isSuccess } = useGetRoleAvatarsQuery(role.id);
+  const { data: roleAvatarsResponse, isSuccess, isLoading: isQueryLoading } = useGetRoleAvatarsQuery(role.id);
 
   // 字数统计：由描述派生，避免在 useEffect 中 setState
   const charCount = useMemo(() => localRole.description?.length || 0, [localRole.description]);
@@ -88,16 +91,23 @@ export default function CharacterDetail({
     if (initializedRuleIdRef.current === selectedRuleId)
       return;
 
+    setIsRuleLoading(true);
+
     // 找到选中规则索引
     const ruleIndex = allRules.findIndex(rule => rule.ruleId === selectedRuleId);
-    if (ruleIndex === -1)
+    if (ruleIndex === -1) {
+      setIsRuleLoading(false);
       return;
+    }
 
     const targetPage = Math.floor(ruleIndex / prefetchPageSize) + 1;
     setPrefetchPageNum(targetPage);
 
     // 标记当前规则已初始化
     initializedRuleIdRef.current = selectedRuleId;
+
+    // 模拟加载延迟，给用户更好的反馈
+    setTimeout(() => setIsRuleLoading(false), 300);
   }, [selectedRuleId, allRules, prefetchPageSize, role]);
   // 预取规则列表数据 - 默认预取第一页，用户体验优先
   useRulePageQuery({
@@ -113,10 +123,9 @@ export default function CharacterDetail({
   // 处理规则变更
   // --- CHANGED --- handleRuleChange 现在只调用从 prop 传来的函数
   const handleRuleChange = (newRuleId: number) => {
-    setIsRuleLoading(true);
     onRuleChange(newRuleId); // 调用父组件的函数来更新 URL
     setIsRuleModalOpen(false);
-    setTimeout(() => setIsRuleLoading(false), 300);
+    // loading 状态由 useEffect 管理，这里不需要重复设置
   };
 
   // 打开规则选择弹窗
@@ -156,10 +165,15 @@ export default function CharacterDetail({
     if (role.id !== localRole.id) {
       setLocalRole(role);
     }
-  }, [role.id, localRole.id]);
+  }, [role.id, localRole.id, role]);
+
+  // 同步 React Query 的 loading 状态
+  useEffect(() => {
+    setIsAvatarLoading(isQueryLoading);
+  }, [isQueryLoading]);
 
   useEffect(() => {
-  // 更新 roleAvatars
+    // 更新 roleAvatars
     if (isSuccess && roleAvatarsResponse?.success && Array.isArray(roleAvatarsResponse.data)) {
       setRoleAvatars(roleAvatarsResponse.data);
     }
@@ -395,18 +409,27 @@ export default function CharacterDetail({
               </div>
 
               <div className="flex justify-center mt-6 mb-2">
-                <CharacterAvatar
-                  role={localRole} // 当前角色基本信息
-                  roleAvatars={roleAvatars} // 当前角色的头像列表
-                  selectedAvatarId={selectedAvatarId} // 选中的头像ID?只在handleAvatarDelete有用
-                  selectedAvatarUrl={selectedAvatarUrl}// 选中的头像URL,只用了在这里传参了
-                  selectedSpriteUrl={selectedSpriteUrl}// 选中的立绘URL,只用于在这里传参了
-                  onchange={handleAvatarChange}// 头像变化的回调
-                  onSpritePreviewChange={url => setSelectedSpriteUrl(url)} // 设置selectedSpriteUrl的函数，用于切换头像后同步立绘组件
-                  onAvatarSelect={handleAvatarSelect} // 头像选择的回调
-                  onAvatarDelete={handleAvatarDelete} // 头像删除的回调
-                  onAvatarUpload={handleAvatarUpload} // 头像上传的回调
-                />
+                {isAvatarLoading
+                  ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="skeleton w-24 h-24 rounded-full"></div>
+                        <div className="skeleton h-4 w-20"></div>
+                      </div>
+                    )
+                  : (
+                      <CharacterAvatar
+                        role={localRole} // 当前角色基本信息
+                        roleAvatars={roleAvatars} // 当前角色的头像列表
+                        selectedAvatarId={selectedAvatarId} // 选中的头像ID?只在handleAvatarDelete有用
+                        selectedAvatarUrl={selectedAvatarUrl}// 选中的头像URL,只用了在这里传参了
+                        selectedSpriteUrl={selectedSpriteUrl}// 选中的立绘URL,只用于在这里传参了
+                        onchange={handleAvatarChange}// 头像变化的回调
+                        onSpritePreviewChange={url => setSelectedSpriteUrl(url)} // 设置selectedSpriteUrl的函数，用于切换头像后同步立绘组件
+                        onAvatarSelect={handleAvatarSelect} // 头像选择的回调
+                        onAvatarDelete={handleAvatarDelete} // 头像删除的回调
+                        onAvatarUpload={handleAvatarUpload} // 头像上传的回调
+                      />
+                    )}
               </div>
               {!isEditing && (
                 <div className="divider font-bold text-center text-xl">
@@ -555,7 +578,7 @@ export default function CharacterDetail({
         <div className="lg:col-span-3 space-y-6">
 
           {/* 渲染结果预览 */}
-          {isRuleLoading
+          {isRuleLoading || isAvatarLoading
             ? (
                 <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
                   <div className="card-body">
