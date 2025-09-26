@@ -60,13 +60,13 @@ export default function RoleLayout() {
       </div>
 
       {/* 移动端悬浮按钮 */}
-      <div className="lg:hidden fixed top-14 left-4 z-50">
+      <div className="lg:hidden fixed top-14 left-1 z-50">
         <button
           type="button"
           onClick={() => setIsDrawerOpen(true)}
           className="btn btn-circle bg-base-200 hover:bg-base-300 shadow-sm border border-base-300/50 transition-all duration-200"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-columns2-icon lucide-columns-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-columns2-icon lucide-columns-2">
             <rect width="18" height="18" x="3" y="3" rx="2" />
             <path d="M12 3v18" />
           </svg>
