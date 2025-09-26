@@ -16,7 +16,7 @@ interface UserRolesListProps {
 /**
  * 在workTab使用的角色列表，卡片本身来源于userRoleCard
  */
-export const UserRolesList: React.FC<UserRolesListProps> = ({
+export const RolesList: React.FC<UserRolesListProps> = ({
   userId,
   roleIds,
   totalRecords,
@@ -115,4 +115,4 @@ export const UserRolesList: React.FC<UserRolesListProps> = ({
   );
 };
 
-export default UserRolesList;
+export default RolesList;

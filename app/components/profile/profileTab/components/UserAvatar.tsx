@@ -2,14 +2,13 @@ import type { UserInfoResponse } from "../../../../../api";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 
 import UserStatusDot from "@/components/common/userStatusBadge.jsx";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 interface UserAvatarProps {
   user: UserInfoResponse | undefined;
   userId: number;
   loginUserId: number;
   isLoading: boolean;
-  isEditingProfile?: boolean;
   size?: "sm" | "lg";
   onAvatarUpdate: (newAvatarUrl: string) => void;
 }
@@ -19,30 +18,15 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   userId,
   loginUserId,
   isLoading,
-  isEditingProfile: _isEditingProfile = false,
   size = "sm",
   onAvatarUpdate,
 }) => {
   const [imageError, setImageError] = useState(false);
-  const [imageLoading, setImageLoading] = useState(true);
-
-  // 重置图片错误状态当avatar URL改变时
-  useEffect(() => {
-    if (user?.avatar) {
-      setImageError(false);
-      setImageLoading(true);
-    }
-  }, [user?.avatar]);
+  const [imageLoading, setImageLoading] = useState(false);
 
   // 处理图片加载错误
   const handleImageError = () => {
     setImageError(true);
-    setImageLoading(false);
-  };
-
-  // 处理图片加载成功
-  const handleImageLoad = () => {
-    setImageError(false);
     setImageLoading(false);
   };
 
@@ -73,7 +57,8 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       </div>
     );
   };
-  if (isLoading) {
+
+  if (isLoading || !user) {
     return (
       <div className={size === "lg" ? "w-full aspect-square" : "w-16 h-16"}>
         <div className="skeleton w-full h-full rounded-full" />
@@ -82,13 +67,16 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   }
 
   const isOwner = userId === loginUserId;
-  const canEdit = isOwner; // 简化逻辑：只要是所有者就可以编辑头像
+  const canEdit = isOwner;
 
   // 渲染头像图片内容（不包含交互层）
   const renderAvatarImage = () => {
-    if (!imageError && user?.avatar) {
+    // 修改：优化渲染逻辑
+    const hasAvatar = user.avatar && !imageError;
+
+    if (hasAvatar) {
       return (
-        <>
+        <div className="relative w-full h-full">
           <img
             src={user.avatar}
             alt={user?.username}
@@ -98,9 +86,8 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
               size === "sm"
                 ? "w-16 h-16 rounded-full"
                 : "w-full h-full rounded-full"
-            } ${imageLoading ? "opacity-0" : "opacity-100"}`}
+            }`}
             onError={handleImageError}
-            onLoad={handleImageLoad}
           />
           {imageLoading && (
             <div className={`absolute inset-0 skeleton ${
@@ -110,7 +97,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
             }`}
             />
           )}
-        </>
+        </div>
       );
     }
     return getFallbackAvatar();

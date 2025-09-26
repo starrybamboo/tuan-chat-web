@@ -173,7 +173,6 @@ function ActivitiesPage() {
                       <PostsCard
                         res={item.response}
                         stats={item.stats}
-                        loginUserId={loginUserId}
                         displayType="default"
                         contentTypeNumber={contentType}
                       />
@@ -186,7 +185,6 @@ function ActivitiesPage() {
                     key={key}
                     res={item.response}
                     stats={item.stats}
-                    loginUserId={loginUserId}
                     displayType="default"
                     contentTypeNumber={contentType}
                   />

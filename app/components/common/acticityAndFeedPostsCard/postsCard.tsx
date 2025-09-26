@@ -10,6 +10,7 @@ import LikeIconButton from "@/components/common/likeIconButton";
 import ShareIconButton from "@/components/common/share/shareIconButton";
 import UserAvatarComponent from "@/components/common/userAvatar";
 import SlidableChatPreview from "@/components/community/slidableChatPreview";
+import { useGlobalContext } from "@/components/globalContextProvider";
 import { CommentOutline } from "@/icons";
 import React, { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router";
@@ -19,7 +20,6 @@ import { useGetUserInfoQuery } from "../../../../api/queryHooks";
 interface PostsCardProps {
   res?: any;
   stats?: any;
-  loginUserId?: number;
   onDislike?: () => void;
   displayType?: "default" | "feed";
   contentTypeNumber?: number;
@@ -31,13 +31,13 @@ interface PostsCardProps {
 export const PostsCard: React.FC<PostsCardProps> = ({
   res,
   stats,
-  loginUserId,
   onDislike,
   displayType = "default",
   contentTypeNumber,
 }) => {
   const navigate = useNavigate();
   const isFeed = displayType === "feed";
+  const loginUserId = useGlobalContext().userId ?? -1;
 
   // 统一的数据提取
   const userId = res?.userId ?? -1;

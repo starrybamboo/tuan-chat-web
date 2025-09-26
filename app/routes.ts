@@ -9,6 +9,7 @@ export default [
     // index("../app/routes/chat.tsx"),
     index("routes/home.tsx"),
     route("feed/:feedId?", "routes/feed.tsx"),
+
     ...prefix("role", [
       // layout 提供了 element / <Outlet />，index 必须是它的子路由
       layout("routes/role.tsx", [
@@ -18,7 +19,15 @@ export default [
     ]),
     route("create/:editingStageId?", "routes/create.tsx"),
     route("activities", "routes/activities.tsx"),
-    route("profile/:userId", "routes/profile.tsx"),
+
+    ...prefix("profile/:userId", [
+      layout("routes/profile/profile.tsx", [
+        index("routes/profile/homeTab.tsx"),
+        route("activities", "routes/profile/activitiesTab.tsx"),
+        route("works", "routes/profile/profileWorks.tsx"),
+      ]),
+    ]),
+
     route("module", "routes/module/index.tsx"),
     route("module/create", "routes/module/create.tsx"),
     route("module/detail/:id?", "routes/module/detail.tsx"),
