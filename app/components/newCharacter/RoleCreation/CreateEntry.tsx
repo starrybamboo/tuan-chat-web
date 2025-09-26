@@ -11,13 +11,13 @@ export default function CreateEntry({
   return (
     <div
       key={animationTrigger || 0} // 使用key来强制重新渲染，触发CSS动画
-      className="flex flex-col items-center justify-center h-full min-h-[calc(100vh-4rem)] p-6 animate-scale-in"
+      className="flex flex-col items-center justify-center h-full min-h-[calc(100vh-6rem)] p-6 animate-scale-in"
     >
       <div>
         <h1 className="text-3xl font-bold text-base-content mb-2">创建新角色</h1>
         <p className="text-sm text-base-content/70 mb-8">选择一种方式开始创建你的角色</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mx-auto max-w-3xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mx-auto max-w-lg">
           {/* AI卡 */}
           <div className="bg-base-100 rounded-xl p-6 shadow-sm border border-base-200 hover:shadow-lg transition-all duration-200 h-auto md:h-100 cursor-pointer transform hover:scale-105" onClick={AICreate}>
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
