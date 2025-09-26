@@ -532,10 +532,6 @@ export function SpriteRenderStudio({
                   roleAvatars={roleAvatars}
                   initialSpriteIndex={currentSpriteIndex}
                   characterName={characterName}
-                  onCropComplete={(croppedImageUrl) => {
-                    console.warn("裁剪完成:", croppedImageUrl);
-                    handleClosePopWindow();
-                  }}
                   onClose={handleClosePopWindow}
                 />
               )
