@@ -281,7 +281,7 @@ export function SpriteRenderStudio({
   return (
     <div className={`${className} flex-col`}>
       <div className="relative flex-1 min-h-0">
-        {/* 编辑按钮 - 定位到右上角，移动端自动缩小 */}
+        {/* 按钮 - 定位到右上角，移动端自动缩小 */}
         <button
           type="button"
           className="absolute top-2 left-2 sm:right-2 sm:left-auto btn btn-sm md:btn-md btn-accent w-10 md:w-36 z-30"
@@ -533,7 +533,7 @@ export function SpriteRenderStudio({
                   initialSpriteIndex={currentSpriteIndex}
                   characterName={characterName}
                   onCropComplete={(croppedImageUrl) => {
-                    console.warn("单体裁剪完成:", croppedImageUrl);
+                    console.warn("裁剪完成:", croppedImageUrl);
                     handleClosePopWindow();
                   }}
                   onClose={handleClosePopWindow}
