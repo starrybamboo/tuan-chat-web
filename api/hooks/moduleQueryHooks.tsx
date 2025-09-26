@@ -34,7 +34,7 @@ export function useUpdateItemMutation() {
 export function useAddItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: ItemAddRequest) => tuanchat.itemController.addItem1(req),
+        mutationFn: (req: ItemAddRequest) => tuanchat.itemController.addItem2(req),
         mutationKey: ['addItem'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['items'] });
@@ -73,7 +73,7 @@ export function useItemsQuery(requestBody: ItemPageRequest) {
 export function useItemDetailQuery(id: number) {
     return useQuery({
         queryKey: ['itemDetail', id],
-        queryFn: () => tuanchat.itemController.getById(id),
+        queryFn: () => tuanchat.itemController.getById1(id),
         staleTime: 300000, // 5分钟缓存
         enabled: !!id
     });
