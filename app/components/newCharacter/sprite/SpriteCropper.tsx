@@ -546,13 +546,14 @@ export function SpriteCropper({
 
       // --- 共同的回调逻辑 ---
       const dataUrl = await getCroppedImageDataUrl();
-      onCropComplete?.(dataUrl);
 
       // 3. 处理模式特定的后续操作 (处理第二个差异点)
       // ----------------------------------------------------
       if (isMutiAvatars && currentSpriteIndex < filteredAvatars.length - 1) {
         setCurrentSpriteIndex(currentSpriteIndex + 1);
       }
+
+      onCropComplete?.(dataUrl);
     }
     catch (error) {
       console.error("应用裁剪失败:", error);
