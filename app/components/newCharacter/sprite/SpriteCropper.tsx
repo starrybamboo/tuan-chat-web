@@ -565,7 +565,6 @@ export function SpriteCropper({
 
     try {
       setIsProcessing(true);
-      const results: { avatarId: number; croppedImageUrl: string }[] = [];
 
       console.warn(`开始批量裁剪所有${isAvatarMode ? "头像(从立绘)" : "立绘"}`, {
         avatarCount: filteredAvatars.length,
@@ -623,8 +622,6 @@ export function SpriteCropper({
             currentAvatar: avatar,
           });
         }
-
-        results.push({ avatarId: avatar.avatarId, croppedImageUrl: dataUrl });
       }
     }
     catch (error) {

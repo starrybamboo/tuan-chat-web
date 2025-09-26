@@ -389,9 +389,6 @@ export default function CharacterDetail({
                       className="btn btn-secondary btn-sm"
                     >
                       <span className="flex items-center gap-1">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                          <path d="M12 4v16m8-8H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                        </svg>
                         ST导入
                       </span>
                     </button>

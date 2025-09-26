@@ -288,7 +288,7 @@ export function Sidebar({
   return (
     <>
 
-      <div className="menu p-4 w-72 lg:w-80 h-full bg-base-300/40 flex flex-col">
+      <div className="menu p-4 w-72 lg:w-80 h-full bg-base-200 md:bg-base-300/40 flex flex-col">
         {/* 搜索和创建区域 - 固定在顶部 */}
         <div className="flex gap-2 mb-4 sticky top-0 bg-transparent z-50 py-2">
           <label className="input">
