@@ -4,8 +4,8 @@ import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderW
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import QuillEditor from "../../../common/quillEditor/quillEditor";
 import { useModuleContext } from "../context/_moduleContext";
-import Veditor from "./quillEditor";
 
 interface ItemEditProps {
   item: StageEntityResponse;
@@ -126,7 +126,7 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
                   <label className="label">
                     <span className="label-text font-bold">物品描述（玩家可见）</span>
                   </label>
-                  <Veditor
+                  <QuillEditor
                     id={VeditorIdForDescription}
                     placeholder={localItem.description || ""}
                     onchange={(value) => {
@@ -140,7 +140,7 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
                   <label className="label">
                     <span className="label-text font-bold">物品作用（仅KP可见）</span>
                   </label>
-                  <Veditor
+                  <QuillEditor
                     id={vditorId}
                     placeholder={localItem.tip || ""}
                     onchange={(value) => {

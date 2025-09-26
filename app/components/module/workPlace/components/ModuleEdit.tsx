@@ -5,10 +5,10 @@ import { useUpdateModuleMutation } from "api/hooks/moduleAndStageQueryHooks";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import toast from "react-hot-toast";
+import QuillEditor from "../../../common/quillEditor/quillEditor";
 import RuleSelect from "../../common/ruleSelect";
 import userContent from "../../detail/readmeDemo.md?raw";
 import { useModuleContext } from "../context/_moduleContext";
-import Veditor from "./quillEditor";
 
 interface ModuleEditProps {
   data: Module;
@@ -377,7 +377,7 @@ export default function ModuleEdit({ data, onChange, onRegisterSave }: ModuleEdi
           {/* README 占满整行 */}
           <div className="w-full">
             <label className="label"><span className="label-text font-bold">README</span></label>
-            <Veditor
+            <QuillEditor
               key={currentMid || "module-editor"}
               id={`module-instruction-${currentMid || "default"}`}
               placeholder={readmePlaceholder}

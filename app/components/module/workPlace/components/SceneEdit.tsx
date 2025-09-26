@@ -2,11 +2,11 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import QuillEditor from "../../../common/quillEditor/quillEditor";
 import { useModuleContext } from "../context/_moduleContext";
 import AddEntityToScene from "./addEntityToScene";
 import CreateEntityList from "./createEntityList";
 import EntityDetailList from "./EntityDetailList"; // 引入 EntityDetailList 组件
-import Veditor from "./quillEditor";
 
 interface SceneEditProps {
   scene: StageEntityResponse;
@@ -330,9 +330,9 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
                   <label className="label">
                     <span className="label-text font-bold mb-1">场景描述（玩家可见）</span>
                   </label>
-                  <Veditor
+                  <QuillEditor
                     id={VeditorIdForDescription}
-                    placeholder={localScene.description || "玩家能看到的描述"}
+                    placeholder={localScene.description}
                     onchange={(value) => {
                       setLocalScene(prev => ({ ...prev, description: value }));
                       saveTimer.current && clearTimeout(saveTimer.current);
@@ -342,7 +342,7 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
                 </div>
                 <div>
                   <label className="label">
-                    <span className="label-text font-bold mb-1">剧情详细</span>
+                    <span className="label-text font-bold mb-1">剧情详细（kp可见）</span>
                   </label>
                   {/* <textarea
                     value={localScene.tip || ""}
@@ -354,9 +354,9 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
                     className="textarea textarea-bordered w-full h-24 resize-none"
                   /> */}
 
-                  <Veditor
+                  <QuillEditor
                     id={VeditorId}
-                    placeholder={localScene.tip || "对KP的提醒（对于剧情的书写）"}
+                    placeholder={localScene.tip}
                     onchange={(value) => {
                       if (value !== entityInfo.tip) {
                         setLocalScene(prev => ({ ...prev, tip: value }));

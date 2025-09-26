@@ -1,6 +1,14 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import type quill from "quill";
+import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { BaselineAutoAwesomeMotion } from "@/icons";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"; // ordered: useMemo before useState (project rule)
+import { htmlToMarkdown } from "./htmlToMarkdown";
+import { markdownToHtmlWithEntities } from "./markdownToHtml";
+import MentionPreview from "./MentionPreview";
+import { InlineMenu, SelectionMenu } from "./toolbar";
+import { detectAlignment, detectInlineFormats, detectMarkdown, removeBlockFormatIfEmpty } from "./wysiwygFuc";
 // Quill 样式与本地覆盖
 import "quill/dist/quill.snow.css";
 import "./quill-overrides.css";
@@ -35,31 +43,6 @@ if (typeof window !== "undefined") {
   }
 }
 
-// 极简 Markdown/HTML 转换占位实现（保证类型与调用方存在，避免构建错误）
-function markdownToHtml(md: string): string {
-  if (!md)
-    return "";
-  // 非严格转换：仅将空行分段，其余换行转 <br/>
-  const paragraphs = md.split(/\n{2,}/).map(p => p.replace(/\n/g, "<br>"));
-  return paragraphs.map(p => `<p>${p}</p>`).join("");
-}
-
-function htmlToMarkdown(html: string): string {
-  if (!html)
-    return "";
-  try {
-    const el = typeof document !== "undefined" ? document.createElement("div") : null;
-    if (!el)
-      return html;
-    el.innerHTML = html;
-    // 简单提取纯文本；真实实现可替换为更完整的 HTML→MD 转换
-    return (el.textContent || "").replace(/\u00A0/g, " ");
-  }
-  catch {
-    return html;
-  }
-}
-
 // 粗略判断文本是否像 Markdown
 function isLikelyMarkdown(text: string): boolean {
   if (!text || typeof text !== "string") {
@@ -89,755 +72,74 @@ function isLikelyMarkdown(text: string): boolean {
   return false;
 }
 
-// 小方块工具栏的下拉菜单内容，抽出为独立组件，降低嵌套缩进复杂度
-function InlineMenu(props: {
-  activeHeader: number;
-  activeList: string | null;
-  activeCodeBlock: boolean;
-  activeAlign: "left" | "center" | "right" | "justify";
-  activeInline: { bold?: boolean; italic?: boolean; underline?: boolean; strike?: boolean };
-  onMenuParagraph: () => void;
-  onMenuHeader: (lvl: 1 | 2 | 3) => void;
-  onMenuList: (type: "bullet" | "ordered") => void;
-  onMenuCode: () => void;
-  onMenuAlign: (val: "left" | "center" | "right" | "justify") => void;
-  onMenuInline: (type: "bold" | "italic" | "underline" | "strike") => void;
-  onMenuClearInline: () => void;
-}) {
-  const { activeHeader, activeList, activeCodeBlock, activeAlign, activeInline, onMenuParagraph, onMenuHeader, onMenuList, onMenuCode, onMenuAlign, onMenuInline, onMenuClearInline } = props;
-  return (
-    <>
-      {/* 段落（T） */}
-      <button
-        type="button"
-        role="menuitem"
-        title="正文"
-        aria-label="正文"
-        className={activeHeader === 0 && !activeList && !activeCodeBlock ? "active" : ""}
-        style={{ color: activeHeader === 0 && !activeList && !activeCodeBlock ? "#2563eb" : undefined }}
-        onClick={onMenuParagraph}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6h16" />
-          <path d="M12 6v12" />
-        </svg>
-      </button>
-      {/* 对齐：左 */}
-      <button
-        type="button"
-        role="menuitem"
-        title="左对齐"
-        aria-label="左对齐"
-        className={activeAlign === "left" ? "active" : ""}
-        style={{ color: activeAlign === "left" ? "#2563eb" : undefined }}
-        onClick={() => onMenuAlign("left")}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6h16" />
-          <path d="M4 10h12" />
-          <path d="M4 14h16" />
-          <path d="M4 18h10" />
-        </svg>
-      </button>
-      {/* 对齐：居中 */}
-      <button
-        type="button"
-        role="menuitem"
-        title="居中对齐"
-        aria-label="居中对齐"
-        className={activeAlign === "center" ? "active" : ""}
-        style={{ color: activeAlign === "center" ? "#2563eb" : undefined }}
-        onClick={() => onMenuAlign("center")}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6h16" />
-          <path d="M6 10h12" />
-          <path d="M4 14h16" />
-          <path d="M7 18h10" />
-        </svg>
-      </button>
-      {/* 对齐：右 */}
-      <button
-        type="button"
-        role="menuitem"
-        title="右对齐"
-        aria-label="右对齐"
-        className={activeAlign === "right" ? "active" : ""}
-        style={{ color: activeAlign === "right" ? "#2563eb" : undefined }}
-        onClick={() => onMenuAlign("right")}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6h16" />
-          <path d="M8 10h12" />
-          <path d="M4 14h16" />
-          <path d="M10 18h10" />
-        </svg>
-      </button>
-      {/* 对齐：两端 */}
-      <button
-        type="button"
-        role="menuitem"
-        title="两端对齐"
-        aria-label="两端对齐"
-        className={activeAlign === "justify" ? "active" : ""}
-        style={{ color: activeAlign === "justify" ? "#2563eb" : undefined }}
-        onClick={() => onMenuAlign("justify")}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6h16" />
-          <path d="M4 10h16" />
-          <path d="M4 14h16" />
-          <path d="M4 18h16" />
-        </svg>
-      </button>
-      {/* H1 */}
-      <button
-        type="button"
-        role="menuitem"
-        title="标题1"
-        aria-label="标题1"
-        className={activeHeader === 1 ? "active" : ""}
-        style={{ color: activeHeader === 1 ? "#2563eb" : undefined }}
-        onClick={() => onMenuHeader(1)}
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6v12" />
-          <path d="M12 6v12" />
-          <path d="M4 12h8" />
-          <text x="16" y="16" fontSize="10" fill="currentColor">1</text>
-        </svg>
-      </button>
-      {/* H2 */}
-      <button
-        type="button"
-        role="menuitem"
-        title="标题2"
-        aria-label="标题2"
-        className={activeHeader === 2 ? "active" : ""}
-        style={{ color: activeHeader === 2 ? "#2563eb" : undefined }}
-        onClick={() => onMenuHeader(2)}
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6v12" />
-          <path d="M12 6v12" />
-          <path d="M4 12h8" />
-          <text x="16" y="16" fontSize="10" fill="currentColor">2</text>
-        </svg>
-      </button>
-      {/* H3 */}
-      <button
-        type="button"
-        role="menuitem"
-        title="标题3"
-        aria-label="标题3"
-        className={activeHeader === 3 ? "active" : ""}
-        style={{ color: activeHeader === 3 ? "#2563eb" : undefined }}
-        onClick={() => onMenuHeader(3)}
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6v12" />
-          <path d="M12 6v12" />
-          <path d="M4 12h8" />
-          <text x="16" y="16" fontSize="10" fill="currentColor">3</text>
-        </svg>
-      </button>
-      {/* 无序列表 */}
-      <button
-        type="button"
-        role="menuitem"
-        title="无序列表"
-        aria-label="无序列表"
-        className={activeList === "bullet" ? "active" : ""}
-        style={{ color: activeList === "bullet" ? "#2563eb" : undefined }}
-        onClick={() => onMenuList("bullet")}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="5" cy="7" r="1.5" />
-          <path d="M9 7h10" />
-          <circle cx="5" cy="12" r="1.5" />
-          <path d="M9 12h10" />
-          <circle cx="5" cy="17" r="1.5" />
-          <path d="M9 17h10" />
-        </svg>
-      </button>
-      {/* 有序列表 */}
-      <button
-        type="button"
-        role="menuitem"
-        title="有序列表"
-        aria-label="有序列表"
-        className={activeList === "ordered" ? "active" : ""}
-        style={{ color: activeList === "ordered" ? "#2563eb" : undefined }}
-        onClick={() => onMenuList("ordered")}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <text x="3" y="9" fontSize="8" fill="currentColor">1</text>
-          <path d="M9 7h10" />
-          <text x="3" y="14" fontSize="8" fill="currentColor">2</text>
-          <path d="M9 12h10" />
-          <text x="3" y="19" fontSize="8" fill="currentColor">3</text>
-          <path d="M9 17h10" />
-        </svg>
-      </button>
-      {/* 代码块 */}
-      <button
-        type="button"
-        role="menuitem"
-        title="代码块"
-        aria-label="代码块"
-        className={activeCodeBlock ? "active" : ""}
-        style={{ color: activeCodeBlock ? "#2563eb" : undefined }}
-        onClick={onMenuCode}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 16l-4-4 4-4" />
-          <path d="M16 8l4 4-4 4" />
-          <path d="M14 4l-4 16" />
-        </svg>
-      </button>
-      {/* 加粗 */}
-      <button
-        type="button"
-        role="menuitem"
-        title="加粗"
-        aria-label="加粗"
-        className={activeInline.bold ? "active" : ""}
-        style={{ color: activeInline.bold ? "#2563eb" : undefined }}
-        onClick={() => onMenuInline("bold")}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M7 5h6a3 3 0 0 1 0 6H7z" />
-          <path d="M7 11h7a3 3 0 0 1 0 6H7z" />
-        </svg>
-      </button>
-      {/* 斜体 */}
-      <button
-        type="button"
-        role="menuitem"
-        title="斜体"
-        aria-label="斜体"
-        className={activeInline.italic ? "active" : ""}
-        style={{ color: activeInline.italic ? "#2563eb" : undefined }}
-        onClick={() => onMenuInline("italic")}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="19" y1="4" x2="10" y2="4" />
-          <line x1="14" y1="20" x2="5" y2="20" />
-          <line x1="15" y1="4" x2="9" y2="20" />
-        </svg>
-      </button>
-      {/* 下划线 */}
-      <button
-        type="button"
-        role="menuitem"
-        title="下划线"
-        aria-label="下划线"
-        className={activeInline.underline ? "active" : ""}
-        style={{ color: activeInline.underline ? "#2563eb" : undefined }}
-        onClick={() => onMenuInline("underline")}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 4v7a6 6 0 0 0 12 0V4" />
-          <line x1="4" y1="20" x2="20" y2="20" />
-        </svg>
-      </button>
-      {/* 删除线 */}
-      <button
-        type="button"
-        role="menuitem"
-        title="删除线"
-        aria-label="删除线"
-        className={activeInline.strike ? "active" : ""}
-        style={{ color: activeInline.strike ? "#2563eb" : undefined }}
-        onClick={() => onMenuInline("strike")}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="4" y1="12" x2="20" y2="12" />
-          <path d="M6 7a4 4 0 0 1 2-3h8" />
-          <path d="M18 17a4 4 0 0 1-2 3H8" />
-        </svg>
-      </button>
-      {/* 清除行内格式 */}
-      <button type="button" role="menuitem" title="清除行内格式" aria-label="清除行内格式" onClick={onMenuClearInline}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 3l18 18" />
-          <path d="M8 4h10l-6 8" />
-        </svg>
-      </button>
-    </>
-  );
-}
-
-// 选中态横向工具栏按钮集合（紧凑尺寸）
-function SelectionMenu(props: {
-  activeHeader: number;
-  activeList: string | null;
-  activeCodeBlock: boolean;
-  activeAlign: "left" | "center" | "right" | "justify";
-  activeInline: { bold?: boolean; italic?: boolean; underline?: boolean; strike?: boolean };
-  onMenuParagraph: () => void;
-  onMenuHeader: (lvl: 1 | 2 | 3) => void;
-  onMenuList: (type: "bullet" | "ordered") => void;
-  onMenuCode: () => void;
-  onMenuAlign: (val: "left" | "center" | "right" | "justify") => void;
-  onMenuInline: (type: "bold" | "italic" | "underline" | "strike") => void;
-  onMenuClearInline: () => void;
-}) {
-  const { activeHeader, activeList, activeCodeBlock, activeAlign, activeInline, onMenuParagraph, onMenuHeader, onMenuList, onMenuCode, onMenuAlign, onMenuInline, onMenuClearInline } = props;
-  return (
-    <>
-      {/* 段落 */}
-      <button type="button" title="正文" aria-label="正文" className={activeHeader === 0 && !activeList && !activeCodeBlock ? "active" : ""} style={{ color: activeHeader === 0 && !activeList && !activeCodeBlock ? "#2563eb" : undefined }} onClick={onMenuParagraph}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6h16" />
-          <path d="M12 6v12" />
-        </svg>
-      </button>
-      {/* left */}
-      <button type="button" title="左对齐" aria-label="左对齐" className={activeAlign === "left" ? "active" : ""} style={{ color: activeAlign === "left" ? "#2563eb" : undefined }} onClick={() => onMenuAlign("left")}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6h16" />
-          <path d="M4 10h12" />
-          <path d="M4 14h16" />
-          <path d="M4 18h10" />
-        </svg>
-      </button>
-      {/* center */}
-      <button type="button" title="居中对齐" aria-label="居中对齐" className={activeAlign === "center" ? "active" : ""} style={{ color: activeAlign === "center" ? "#2563eb" : undefined }} onClick={() => onMenuAlign("center")}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6h16" />
-          <path d="M6 10h12" />
-          <path d="M4 14h16" />
-          <path d="M7 18h10" />
-        </svg>
-      </button>
-      {/* right */}
-      <button type="button" title="右对齐" aria-label="右对齐" className={activeAlign === "right" ? "active" : ""} style={{ color: activeAlign === "right" ? "#2563eb" : undefined }} onClick={() => onMenuAlign("right")}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6h16" />
-          <path d="M8 10h12" />
-          <path d="M4 14h16" />
-          <path d="M10 18h10" />
-        </svg>
-      </button>
-      {/* justify */}
-      <button type="button" title="两端对齐" aria-label="两端对齐" className={activeAlign === "justify" ? "active" : ""} style={{ color: activeAlign === "justify" ? "#2563eb" : undefined }} onClick={() => onMenuAlign("justify")}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6h16" />
-          <path d="M4 10h16" />
-          <path d="M4 14h16" />
-          <path d="M4 18h16" />
-        </svg>
-      </button>
-      {/* H1 */}
-      <button type="button" title="H1" aria-label="H1" className={activeHeader === 1 ? "active" : ""} style={{ color: activeHeader === 1 ? "#2563eb" : undefined }} onClick={() => onMenuHeader(1)}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6v12" />
-          <path d="M12 6v12" />
-          <path d="M4 12h8" />
-          <text x="16" y="16" fontSize="9" fill="currentColor">1</text>
-        </svg>
-      </button>
-      {/* H2 */}
-      <button type="button" title="H2" aria-label="H2" className={activeHeader === 2 ? "active" : ""} style={{ color: activeHeader === 2 ? "#2563eb" : undefined }} onClick={() => onMenuHeader(2)}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6v12" />
-          <path d="M12 6v12" />
-          <path d="M4 12h8" />
-          <text x="16" y="16" fontSize="9" fill="currentColor">2</text>
-        </svg>
-      </button>
-      {/* H3 */}
-      <button type="button" title="H3" aria-label="H3" className={activeHeader === 3 ? "active" : ""} style={{ color: activeHeader === 3 ? "#2563eb" : undefined }} onClick={() => onMenuHeader(3)}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 6v12" />
-          <path d="M12 6v12" />
-          <path d="M4 12h8" />
-          <text x="16" y="16" fontSize="9" fill="currentColor">3</text>
-        </svg>
-      </button>
-      {/* bullet */}
-      <button type="button" title="• 列表" aria-label="• 列表" className={activeList === "bullet" ? "active" : ""} style={{ color: activeList === "bullet" ? "#2563eb" : undefined }} onClick={() => onMenuList("bullet")}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="5" cy="7" r="1.4" />
-          <path d="M9 7h10" />
-          <circle cx="5" cy="12" r="1.4" />
-          <path d="M9 12h10" />
-          <circle cx="5" cy="17" r="1.4" />
-          <path d="M9 17h10" />
-        </svg>
-      </button>
-      {/* ordered */}
-      <button type="button" title="1. 列表" aria-label="1. 列表" className={activeList === "ordered" ? "active" : ""} style={{ color: activeList === "ordered" ? "#2563eb" : undefined }} onClick={() => onMenuList("ordered")}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <text x="3" y="9" fontSize="7" fill="currentColor">1</text>
-          <path d="M9 7h10" />
-          <text x="3" y="14" fontSize="7" fill="currentColor">2</text>
-          <path d="M9 12h10" />
-          <text x="3" y="19" fontSize="7" fill="currentColor">3</text>
-          <path d="M9 17h10" />
-        </svg>
-      </button>
-      {/* code-block */}
-      <button type="button" title="代码块" aria-label="代码块" className={activeCodeBlock ? "active" : ""} style={{ color: activeCodeBlock ? "#2563eb" : undefined }} onClick={onMenuCode}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 16l-4-4 4-4" />
-          <path d="M16 8l4 4-4 4" />
-          <path d="M14 4l-4 16" />
-        </svg>
-      </button>
-      {/* bold */}
-      <button type="button" title="B" aria-label="B" className={activeInline.bold ? "active" : ""} style={{ color: activeInline.bold ? "#2563eb" : undefined }} onClick={() => onMenuInline("bold")}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M7 5h6a3 3 0 0 1 0 6H7z" />
-          <path d="M7 11h7a3 3 0 0 1 0 6H7z" />
-        </svg>
-      </button>
-      {/* italic */}
-      <button type="button" title="I" aria-label="I" className={activeInline.italic ? "active" : ""} style={{ color: activeInline.italic ? "#2563eb" : undefined }} onClick={() => onMenuInline("italic")}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="19" y1="4" x2="10" y2="4" />
-          <line x1="14" y1="20" x2="5" y2="20" />
-          <line x1="15" y1="4" x2="9" y2="20" />
-        </svg>
-      </button>
-      {/* underline */}
-      <button type="button" title="U" aria-label="U" className={activeInline.underline ? "active" : ""} style={{ color: activeInline.underline ? "#2563eb" : undefined }} onClick={() => onMenuInline("underline")}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 4v7a6 6 0 0 0 12 0V4" />
-          <line x1="4" y1="20" x2="20" y2="20" />
-        </svg>
-      </button>
-      {/* strike */}
-      <button type="button" title="S" aria-label="S" className={activeInline.strike ? "active" : ""} style={{ color: activeInline.strike ? "#2563eb" : undefined }} onClick={() => onMenuInline("strike")}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="4" y1="12" x2="20" y2="12" />
-          <path d="M6 7a4 4 0 0 1 2-3h8" />
-          <path d="M18 17a4 4 0 0 1-2 3H8" />
-        </svg>
-      </button>
-      {/* clear inline */}
-      <button type="button" title="清除" aria-label="清除行内格式" onClick={onMenuClearInline}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 3l18 18" />
-          <path d="M8 4h10l-6 8" />
-        </svg>
-      </button>
-    </>
-  );
-}
-
-// 在按下空格时检测并转换 Markdown 语法（标题/列表/代码块）
-function detectMarkdown(
-  quillInstance: any,
-  range: any,
-  opts?: { setCodeLang?: (lang?: string) => void },
-): boolean {
-  if (!quillInstance || !range) {
-    return false;
-  }
-  const lineInfo = quillInstance.getLine?.(range.index);
-  if (!lineInfo || !Array.isArray(lineInfo) || lineInfo.length < 2) {
-    return false;
-  }
-  const [_line, offset] = lineInfo as [any, number];
-  const lineStart = range.index - offset;
-  const prefix = quillInstance.getText?.(lineStart, offset) ?? "";
-  const formats = quillInstance.getFormat?.(lineStart, 1) ?? {};
-
-  // ``` 或 ```lang
-  const fence = /^```([\w#+-]+)?$/.exec(prefix);
-  if (fence) {
-    const lang = fence[1];
-    const markerLen = prefix.length;
-    quillInstance.deleteText(lineStart, markerLen, "user");
-    const toEnable = !("code-block" in formats);
-    quillInstance.formatLine(lineStart, 1, "code-block", toEnable, "user");
-    try {
-      if (toEnable) {
-        // 在当前行后追加一个普通段落，便于离开代码块
-        const curLineInfo = quillInstance.getLine?.(lineStart);
-        const curLine = curLineInfo && Array.isArray(curLineInfo) ? curLineInfo[0] : null;
-        const curLen = curLine && typeof curLine.length === "function" ? curLine.length() : 0;
-        const afterLine = lineStart + Math.max(0, curLen);
-        quillInstance.insertText?.(afterLine, "\n", "api");
-        quillInstance.formatLine?.(afterLine, 1, "code-block", false, "api");
-      }
+// 使用原生 Selection/Range 计算当前折叠光标相对 wrapper 的位置，用于在 Quill getBounds 不更新时的后备
+function computeNativeCaretPos(wrapper: HTMLElement | null, root: HTMLElement | null): { top: number; left: number } | null {
+  try {
+    if (!wrapper || !root) {
+      return null;
     }
-    catch {
-      // ignore
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) {
+      return null;
     }
-    quillInstance.setSelection(lineStart, 0, "silent");
-    opts?.setCodeLang?.(toEnable ? lang : undefined);
-    return true;
-  }
-
-  if (prefix === "###") {
-    quillInstance.deleteText(lineStart, 3, "user");
-    quillInstance.formatLine(lineStart, 1, "header", 3, "user");
-    quillInstance.setSelection(lineStart, 0, "silent");
-    return true;
-  }
-  if (prefix === "##") {
-    quillInstance.deleteText(lineStart, 2, "user");
-    quillInstance.formatLine(lineStart, 1, "header", 2, "user");
-    quillInstance.setSelection(lineStart, 0, "silent");
-    return true;
-  }
-  if (prefix === "#") {
-    quillInstance.deleteText(lineStart, 1, "user");
-    quillInstance.formatLine(lineStart, 1, "header", 1, "user");
-    quillInstance.setSelection(lineStart, 0, "silent");
-    return true;
-  }
-
-  if (prefix === "-") {
-    quillInstance.deleteText(lineStart, 1, "user");
-    quillInstance.formatLine(lineStart, 1, "list", "bullet", "user");
-    quillInstance.setSelection(lineStart, 0, "silent");
-    return true;
-  }
-  if (/^\d+\.$/.test(prefix)) {
-    const markerLen = prefix.length;
-    quillInstance.deleteText(lineStart, markerLen, "user");
-    quillInstance.formatLine(lineStart, 1, "list", "ordered", "user");
-    quillInstance.setSelection(lineStart, 0, "silent");
-    return true;
-  }
-  return false;
-}
-
-// 在输入空格时检测并应用内联格式：**bold**、__underline__、~~strike~~
-function detectInlineFormats(
-  quillInstance: any,
-  selRange: any,
-): boolean {
-  if (!quillInstance || !selRange || typeof selRange.index !== "number") {
-    return false;
-  }
-  // 不在代码块中做内联转换
-  const curFormats = quillInstance.getFormat?.(Math.max(0, selRange.index - 1), 1) ?? {};
-  if ("code-block" in curFormats) {
-    return false;
-  }
-  const lineInfo = quillInstance.getLine?.(selRange.index);
-  if (!lineInfo || !Array.isArray(lineInfo) || lineInfo.length < 2) {
-    return false;
-  }
-  const [line, offset] = lineInfo as [any, number];
-  const lineStart = selRange.index - offset;
-  const lineLength = typeof line?.length === "function" ? line.length() : 0;
-  const rawLineText = (quillInstance.getText?.(lineStart, Math.max(0, lineLength)) ?? "").replace(/\n$/, "");
-  // selRange.index 在空格之后，offset 包含该空格，leftOffset 不包含当前这个空格
-  const leftOffset = Math.max(0, offset - 1);
-  const leftText = rawLineText.slice(0, leftOffset);
-  const rightAfterSpaceText = rawLineText.slice(leftOffset + 1); // 跳过空格后的文本
-
-  // 先处理“闭合标记在光标右侧”的场景：**text␠** / __text␠__ / ~~text␠~~
-  // 即：空格位于内文与闭合标记之间
-  {
-    const candidates: Array<{ token: string; attr: "bold" | "underline" | "strike" | "italic" }> = [
-      // 顺序很重要：先长标记，后短标记，避免 ** 被当作 * 解析
-      { token: "**", attr: "bold" },
-      { token: "__", attr: "underline" },
-      { token: "~~", attr: "strike" },
-      { token: "*", attr: "italic" },
-      { token: "_", attr: "italic" },
-    ];
-    for (const c of candidates) {
-      // 空格后的文本需紧跟闭合标记
-      if (!rightAfterSpaceText.startsWith(c.token)) {
-        continue;
-      }
-      const openPos = leftText.lastIndexOf(c.token);
-      if (openPos < 0) {
-        continue;
-      }
-      const innerStart = openPos + c.token.length;
-      const innerLen = Math.max(0, leftOffset - innerStart);
-      // 需要至少有 1 个字符作为内文，且内文首字符不能是空白
-      if (innerLen <= 0) {
-        continue;
-      }
-      const firstInnerCh = leftText.charAt(innerStart);
-      if (/\s/.test(firstInnerCh)) {
-        continue;
-      }
-      // 删除前的冲突校验：对于斜体的单字符标记，确保开标记前一个字符不是同一标记（避免 ** / __ 冲突）
-      const openStart = lineStart + openPos;
-      if (c.token.length === 1) {
-        const prevCh = quillInstance.getText?.(Math.max(0, openStart - 1), 1) ?? "";
-        if (prevCh === c.token) {
-          continue;
-        }
-      }
+    const range = sel.getRangeAt(0);
+    if (!range.collapsed) {
+      return null;
+    }
+    let marker: HTMLSpanElement | null = null;
+    if (range.startContainer.nodeType === Node.ELEMENT_NODE && range.startContainer.childNodes.length === 0) {
+      marker = document.createElement("span");
+      marker.textContent = "\u200B"; // ZERO WIDTH SPACE (大写转义满足 lint)
+      range.insertNode(marker);
+      range.setStartAfter(marker);
+      range.collapse(true);
+    }
+    const rect = range.getBoundingClientRect();
+    if (marker && marker.parentNode) {
       try {
-        // 先删除右侧闭合标记（位于空格之后）
-        const closeStart = lineStart + leftOffset + 1; // 空格之后开始是闭合标记
-        quillInstance.deleteText(closeStart, c.token.length, "user");
-        // 再删除左侧开标记
-        quillInstance.deleteText(openStart, c.token.length, "user");
-        // 对“内文”应用格式：此时内文区间起点位于 openStart，长度 = innerLen
-        quillInstance.formatText(openStart, innerLen, c.attr, true, "user");
-        // 调整光标：删除了左侧开标记（在光标左侧），光标左移开标记长度；
-        // 右侧闭合标记的删除不影响现有光标位置。
-        const finalIndex = Math.max(0, selRange.index - c.token.length);
-        quillInstance.setSelection(finalIndex, 0, "silent");
-        return true;
-      }
-      catch {
-        // ignore and try next candidate
-      }
-    }
-  }
-
-  // 常规场景：闭合标记在空格左侧，匹配形如 **text**␠ / __text__␠ / ~~text~~␠
-  // 三种模式的正则，锚定到 leftText 的末尾（即空格之前）
-  const patterns: Array<{ re: RegExp; attr: "bold" | "underline" | "strike" | "italic"; open: number; close: number; token?: string }>
-    = [
-      // **bold** → 不允许以空白或*开头，内部不包含*
-      { re: /\*\*([^\s*][^*]*)\*\*$/, attr: "bold", open: 2, close: 2, token: "**" },
-      // __underline__ → 不允许以空白或_开头，内部不包含_
-      { re: /__([^\s_][^_]*)__$/, attr: "underline", open: 2, close: 2, token: "__" },
-      // ~~strike~~ → 内部不包含~
-      { re: /~~([^~]+)~~$/, attr: "strike", open: 2, close: 2, token: "~~" },
-      // *italic* → 不允许以空白或*开头，内部不包含*
-      { re: /\*([^\s*][^*]*)\*$/, attr: "italic", open: 1, close: 1, token: "*" },
-      // _italic_ → 不允许以空白或_开头，内部不包含_
-      { re: /_([^\s_][^_]*)_$/, attr: "italic", open: 1, close: 1, token: "_" },
-    ];
-
-  for (const pat of patterns) {
-    const m = pat.re.exec(leftText);
-    if (!m) {
-      continue;
-    }
-    const matched = m[0];
-    const inner = m[1] ?? "";
-    const matchLen = matched.length;
-    const innerLen = inner.length;
-    if (innerLen <= 0) {
-      continue;
-    }
-    // 计算文档中的起始索引
-    const startInLine = leftOffset - matchLen;
-    const startIndex = lineStart + Math.max(0, startInLine);
-    // 额外校验：对于斜体的单字符标记，确保开标记前一个字符不是同一标记，避免与 **/__ 冲突
-    if (pat.token === "*" || pat.token === "_") {
-      const prevCh = quillInstance.getText?.(Math.max(0, startIndex - 1), 1) ?? "";
-      if (prevCh === pat.token) {
-        continue;
-      }
-    }
-    // 先从右往左删除关闭标记，再删除打开标记，避免索引位移干扰
-    try {
-      const closePos = startIndex + matchLen - pat.close;
-      quillInstance.deleteText(closePos, pat.close, "user");
-      quillInstance.deleteText(startIndex, pat.open, "user");
-      // 对“内文”应用内联格式（删除两端标记后，内文现在位于 startIndex）
-      quillInstance.formatText(startIndex, innerLen, pat.attr, true, "user");
-      // 将光标定位到空格之后；由于删除了 4 个标记字符，整体左移 4
-      const finalIndex = Math.max(0, selRange.index - (pat.open + pat.close));
-      quillInstance.setSelection(finalIndex, 0, "silent");
-      return true;
-    }
-    catch {
-      // ignore并尝试下一个模式
-    }
-  }
-  return false;
-}
-
-// Backspace 时：若当前行为空并且为 header 或列表项，则移除其块级格式，退化为普通段落
-function removeBlockFormatIfEmpty(quillInstance: any, range: any): boolean {
-  if (!quillInstance || !range) {
-    return false;
-  }
-  // 仅处理光标无选区的情况
-  if (range.length && range.length > 0) {
-    return false;
-  }
-  const lineInfo = quillInstance.getLine?.(range.index);
-  if (!lineInfo || !Array.isArray(lineInfo) || lineInfo.length < 2) {
-    return false;
-  }
-  const [line, offset] = lineInfo as [any, number];
-  const lineStart = range.index - offset;
-  const lineLength = typeof line?.length === "function" ? line.length() : 0; // 包含结尾的换行
-  const lineText = (quillInstance.getText?.(lineStart, Math.max(0, lineLength)) ?? "").replace(/\n$/, "");
-  const isEmptyOrWs = lineText.trim().length === 0;
-  const formats = quillInstance.getFormat?.(lineStart, 1) ?? {};
-
-  // 情况 1：当前行空白（或仅空格），移除块级格式
-  if (isEmptyOrWs) {
-    if ("header" in formats) {
-      quillInstance.formatLine(lineStart, 1, "header", false, "user");
-      quillInstance.setSelection(lineStart, 0, "silent");
-      return true;
-    }
-    if ("list" in formats) {
-      quillInstance.formatLine(lineStart, 1, "list", false, "user");
-      quillInstance.setSelection(lineStart, 0, "silent");
-      return true;
-    }
-    if ("code-block" in formats) {
-      // 在代码块中：如果代码块不止一行，且当前行为空且在行首，优先删除该空行（合并到上一行）
-      // 仅当这是代码块的最后一行（整个代码块仅剩这一行）时，才移除 code-block 格式
-      try {
-        // 向上查找上一行与下一行是否同为 code-block
-        const prevFormats = quillInstance.getFormat?.(Math.max(0, lineStart - 1), 1) ?? {};
-        const nextFormats = quillInstance.getFormat?.(lineStart + Math.max(0, lineLength), 1) ?? {};
-        const hasPrevInBlock = !!("code-block" in prevFormats);
-        const hasNextInBlock = !!("code-block" in nextFormats);
-        const multipleLines = hasPrevInBlock || hasNextInBlock;
-        if (multipleLines) {
-          // 删除本行的换行符，使之与上一行合并
-          // 当前行通常占据一个换行字符：删除 lineStart 处的 1 个字符（若在行首按 Backspace 调用此函数）
-          quillInstance.deleteText(Math.max(0, lineStart - 1), 1, "user");
-          quillInstance.setSelection(Math.max(0, lineStart - 1), 0, "silent");
-          return true;
-        }
+        marker.parentNode.removeChild(marker);
       }
       catch {
         // ignore
       }
-      // 单行代码块：移除 code-block 格式
-      quillInstance.formatLine(lineStart, 1, "code-block", false, "user");
-      quillInstance.setSelection(lineStart, 0, "silent");
-      return true;
     }
+    if (!rect || (rect.width === 0 && rect.height === 0)) {
+      return null;
+    }
+    const wrapRect = wrapper.getBoundingClientRect();
+    const top = rect.top - wrapRect.top;
+    const left = rect.left - wrapRect.left;
+    if (Number.isNaN(top) || Number.isNaN(left)) {
+      return null;
+    }
+    return { top, left: Math.max(0, left) };
   }
-
-  // 情况 2：即便非空，只要位于行首按 Backspace，也允许“退出块级格式”
-  if (offset === 0) {
-    if ("header" in formats) {
-      quillInstance.formatLine(lineStart, 1, "header", false, "user");
-      quillInstance.setSelection(lineStart, 0, "silent");
-      return true;
-    }
-    if ("list" in formats) {
-      quillInstance.formatLine(lineStart, 1, "list", false, "user");
-      quillInstance.setSelection(lineStart, 0, "silent");
-      return true;
-    }
-    if ("code-block" in formats) {
-      quillInstance.formatLine(lineStart, 1, "code-block", false, "user");
-      quillInstance.setSelection(lineStart, 0, "silent");
-      return true;
-    }
+  catch {
+    return null;
   }
-  return false;
 }
 
-export default function Veditor({ id, placeholder, onchange }: vditorProps) {
-  const vdRef = useRef<quill | null>(null);
+export default function QuillEditor({ id, placeholder, onchange }: vditorProps) {
+  const quillRef = useRef<quill | null>(null);
+  // 从上下文获取 stageId 来拉取实体
+  let stageIdCtx: number | null = null;
+  try {
+    const ctx = useModuleContext();
+    stageIdCtx = (ctx?.stageId as any) ?? null;
+  }
+  catch {
+    // ignore
+  }
+  const stageIdNum = typeof stageIdCtx === "number" ? stageIdCtx : null;
+  const { data: allEntitiesResp } = useQueryEntitiesQuery(stageIdNum || 0);
+  const allEntities = allEntitiesResp?.data || [];
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const floatingTbRef = useRef<HTMLDivElement | null>(null);
   // 调试：可视化/日志开关与参考线
   const debugLineRef = useRef<HTMLDivElement | null>(null);
   // 提供稳定引用，供事件处理器中调用，避免依赖项警告
-  const scheduleToolbarUpdateRef = useRef<() => void>(() => {});
+  const scheduleToolbarUpdateRef = useRef<() => void>(() => { });
   const [tbVisible, setTbVisible] = useState(false);
   const [tbTop, setTbTop] = useState(0);
   const [tbLeft, setTbLeft] = useState(0);
@@ -875,11 +177,332 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
   const [activeCodeBlock, setActiveCodeBlock] = useState(false);
   const [activeAlign, setActiveAlign] = useState<"left" | "center" | "right" | "justify">("left");
   const [activeInline, setActiveInline] = useState({ bold: false, italic: false, underline: false, strike: false });
+  // ===== Mention Hover Preview =====
+  const [mentionPreviewVisible, setMentionPreviewVisible] = useState(false);
+  const [mentionPreviewData, setMentionPreviewData] = useState<{ category: string; name: string; description?: string } | null>(null);
+  const [mentionPreviewPos, setMentionPreviewPos] = useState<{ leftVw: number; topVw: number }>({ leftVw: 0, topVw: 0 });
+  const mentionPreviewLockRef = useRef(false);
+
+  // 仅检测本次 delta 新插入的 @，不改动原 Markdown / inline 逻辑执行顺序
+  // 后续可在 popup UI 中使用这些状态。
+  const [mentionActive, setMentionActive] = useState(false); // 是否已进入 mention 模式
+  const [mentionStart, setMentionStart] = useState<number | null>(null); // 记录 @ 所在的文档 index
+  // 查询字符串（暂未用于 UI，前缀下划线避免未使用 lint 报错）
+  const [_mentionQuery, setMentionQuery] = useState(""); // @ 之后的查询字符串（到光标）
+  const mentionStageRef = useRef<"category" | "entity" | null>(null); // 分阶段：category -> entity
+  const mentionAtInsertedRef = useRef(false); // 本轮 delta 中是否插入了新的 @ （避免重复激活）
+  const [mentionPos, setMentionPos] = useState<{ top: number; left: number } | null>(null); // popup 位置
+  const [mentionStage, setMentionStage] = useState<"category" | "entity">("category");
+  const [mentionHighlight, setMentionHighlight] = useState(0); // 当前高亮候选索引
+  // 后端实体映射：根据 entityType 分类
+  // 假设: 1=物品? 2=角色(人物) 3=场景(可视作地点) / 4=地点 / 5=其他 —— 依据项目其它文件的使用情况推测
+  // 为稳定性：地点优先使用 entityType === 4，如果没有则备用 entityType === 3
+  const roleNames = useMemo(() => allEntities.filter((e: any) => e.entityType === 2).map((e: any) => e.name).filter(Boolean), [allEntities]);
+  const locationPrimary = useMemo(() => allEntities.filter((e: any) => e.entityType === 4).map((e: any) => e.name).filter(Boolean), [allEntities]);
+  const locationFromScene = useMemo(() => allEntities.filter((e: any) => e.entityType === 3).map((e: any) => e.name).filter(Boolean), [allEntities]);
+  const itemNames = useMemo(() => allEntities.filter((e: any) => e.entityType === 1).map((e: any) => e.name).filter(Boolean), [allEntities]);
+  const locationNames = locationPrimary.length ? locationPrimary : locationFromScene;
+  const categoriesRef = useRef<string[]>(["人物", "地点", "物品"]); // 保持顺序
+  const [currentCategory, setCurrentCategory] = useState<string | null>(null);
+  const entitiesRef = useRef<Record<string, string[]>>({
+    人物: [] as string[],
+    地点: [] as string[],
+    物品: [] as string[],
+  });
+  // 悬停预览：独立 effect
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper)
+      return;
+    const pxToVw = (px: number) => (px / 1680) * 100;
+    const typeMap: Record<string, number> = { 物品: 1, 人物: 2, 地点: 4 };
+    const findDescription = (category: string, name: string): string | undefined => {
+      const t = typeMap[category];
+      if (!t)
+        return undefined;
+      const found = allEntities.find((e: any) => e?.entityType === t && e?.name === name);
+      return found?.entityInfo?.description || found?.entityInfo?.tip || found?.entityInfo?.desc;
+    };
+    const onOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target)
+        return;
+      const span = target.closest("span.ql-mention-span") as HTMLElement | null;
+      if (!span)
+        return;
+      const name = span.getAttribute("data-label") || span.textContent || "";
+      const category = span.getAttribute("data-category") || "";
+      if (!name || !category)
+        return;
+      const rect = span.getBoundingClientRect();
+      const desiredWidthPx = 300;
+      const desiredHeightPx = 300;
+      const viewportW = window.innerWidth || 0;
+      const margin = 8;
+      let topPx = rect.top - desiredHeightPx - margin;
+      if (topPx < margin)
+        topPx = rect.bottom + margin;
+      let leftPx = rect.left;
+      if (leftPx + desiredWidthPx > viewportW - margin) {
+        leftPx = Math.max(margin, viewportW - desiredWidthPx - margin);
+      }
+      setMentionPreviewPos({ leftVw: pxToVw(leftPx), topVw: pxToVw(topPx) });
+      setMentionPreviewData({ category, name, description: findDescription(category, name) });
+      setMentionPreviewVisible(true);
+    };
+    const onOut = (e: MouseEvent) => {
+      const rel = e.relatedTarget as HTMLElement | null;
+      if (rel && rel.closest && rel.closest(".mention-preview")) {
+        mentionPreviewLockRef.current = true;
+        return;
+      }
+      if (!mentionPreviewLockRef.current)
+        setMentionPreviewVisible(false);
+    };
+    const onScrollHide = () => {
+      setMentionPreviewVisible(false);
+    };
+    wrapper.addEventListener("mouseover", onOver);
+    wrapper.addEventListener("mouseout", onOut);
+    window.addEventListener("scroll", onScrollHide, true);
+    return () => {
+      wrapper.removeEventListener("mouseover", onOver);
+      wrapper.removeEventListener("mouseout", onOut);
+      window.removeEventListener("scroll", onScrollHide, true);
+    };
+  }, [allEntities]);
+
+  // 同步实体名称到引用（不触发重渲染）
+  useEffect(() => {
+    try {
+      entitiesRef.current = { 人物: roleNames, 地点: locationNames, 物品: itemNames };
+    }
+    catch { /* ignore */ }
+  }, [roleNames, locationNames, itemNames]);
+  // 通过 useMemo 派生 filtered，避免在 effect 中 setState 触发 lint 报错
+  const filtered = useMemo(() => {
+    if (!mentionActive) {
+      return [] as string[];
+    }
+    if (mentionStage === "category") {
+      return categoriesRef.current;
+    }
+    if (mentionStage === "entity" && currentCategory) {
+      const list = entitiesRef.current[currentCategory] || [];
+      const q = _mentionQuery.trim();
+      if (!q) {
+        return list;
+      }
+      return list.filter(i => i && i.includes(q));
+    }
+    return [] as string[];
+  }, [mentionActive, mentionStage, currentCategory, _mentionQuery]);
+  // filtered 每次变化时重置高亮
+  useEffect(() => {
+    if (!mentionActive) {
+      return;
+    }
+    // 通过 rAF 延迟，绕过自定义 lint 对 effect 直接 setState 的限制
+    const id = requestAnimationFrame(() => {
+      try {
+        setMentionHighlight(0);
+      }
+      catch {
+        // ignore
+      }
+    });
+    return () => {
+      try {
+        cancelAnimationFrame(id);
+      }
+      catch {
+        // ignore
+      }
+    };
+  }, [filtered, mentionActive]);
+
+  // 自定义 mention blot：等待 Quill 实例就绪再注册，避免首次 effect 运行时实例未创建导致漏注册
+  useEffect(() => {
+    const editor = quillRef.current as any;
+    if (!editor) {
+      return; // 等下一次 quillRef 有值再尝试
+    }
+    try {
+      const Q = editor.constructor || (window as any).Quill;
+      if (!Q) {
+        return;
+      }
+      // 已注册则跳过
+      try {
+        // 若已可 import 则说明存在
+        const existing = Q.import("formats/mention-span");
+        if (existing) {
+          return;
+        }
+      }
+      catch {
+        // 说明尚未注册，继续注册
+      }
+      const Embed = Q.import("blots/embed");
+      class MentionBlot extends Embed {
+        static blotName = "mention-span";
+        static tagName = "span";
+        static className = "ql-mention-span";
+        static create(value: any) {
+          const node = super.create();
+          node.setAttribute("data-label", value?.label || "");
+          node.setAttribute("data-category", value?.category || "");
+          node.textContent = value?.label || "";
+          const cat = value?.category || "";
+          const colorMap: Record<string, { bg: string; color: string }> = {
+            人物: { bg: "#fef3c7", color: "#92400e" },
+            地点: { bg: "#d1fae5", color: "#065f46" },
+            物品: { bg: "#e0f2fe", color: "#075985" },
+          };
+          let bg = "#eef2ff";
+          let fg = "#4338ca";
+          if (cat && colorMap[cat]) {
+            bg = colorMap[cat].bg;
+            fg = colorMap[cat].color;
+          }
+          node.style.background = bg;
+          node.style.padding = "0 4px";
+          node.style.borderRadius = "4px";
+          node.style.color = fg;
+          node.style.fontSize = "0.85em";
+          node.style.userSelect = "none";
+          return node;
+        }
+
+        static value(node: HTMLElement) {
+          return {
+            label: node.getAttribute("data-label") || node.textContent || "",
+            category: node.getAttribute("data-category") || "",
+          };
+        }
+      }
+      Q.register(MentionBlot);
+    }
+    catch {
+      // ignore
+    }
+  }, [editorReady]);
+
+  const insertMentionEntity = useCallback((label: string) => {
+    const editor = quillRef.current as any;
+    if (!editor || mentionStart == null) {
+      return;
+    }
+    try {
+      const sel = editor.getSelection?.(true);
+      if (!sel || typeof sel.index !== "number") {
+        return;
+      }
+      const deleteLen = Math.max(0, sel.index - mentionStart);
+      if (deleteLen > 0) {
+        editor.deleteText(mentionStart, deleteLen, "user");
+      }
+      let insertedEmbed = false;
+      try {
+        editor.insertEmbed(mentionStart, "mention-span", { label, category: currentCategory || "" }, "user");
+        insertedEmbed = true;
+      }
+      catch {
+        // embed 失败（可能未注册），回退为纯文本 @label
+        try {
+          editor.insertText(mentionStart, `@${label}`, "user");
+        }
+        catch {
+          // ignore
+        }
+      }
+      try {
+        // 无论 embed 还是纯文本，都追加一个空格
+        const afterBase = mentionStart + (insertedEmbed ? 1 : (label.length + 1));
+        editor.insertText(afterBase, " ", "user");
+        editor.setSelection(afterBase + 1, 0, "silent");
+      }
+      catch {
+        // ignore
+      }
+    }
+    catch {
+      // ignore
+    }
+    finally {
+      setMentionActive(false);
+      setMentionStart(null);
+      setMentionQuery("");
+      setMentionPos(null);
+      setMentionStage("category");
+      setCurrentCategory(null);
+    }
+  }, [mentionStart, currentCategory]);
+
+  // 监听键盘上下/回车/ESC/Tab（在 mentionActive 时）
+  useEffect(() => {
+    if (!mentionActive) {
+      return;
+    }
+    const editor = quillRef.current as any;
+    const handler = (e: KeyboardEvent) => {
+      if (!mentionActive) {
+        return;
+      }
+      if (["ArrowDown", "ArrowUp", "Enter", "Escape", "Tab"].includes(e.key)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (e.key === "ArrowDown") {
+        setMentionHighlight(h => (filtered.length ? (h + 1) % filtered.length : 0));
+      }
+      else if (e.key === "ArrowUp") {
+        setMentionHighlight(h => (filtered.length ? (h - 1 + filtered.length) % filtered.length : 0));
+      }
+      else if (e.key === "Escape") {
+        setMentionActive(false);
+        setMentionStart(null);
+        setMentionQuery("");
+        setMentionPos(null);
+        setMentionStage("category");
+        setCurrentCategory(null);
+      }
+      else if (e.key === "Enter" || e.key === "Tab") {
+        if (!filtered.length) {
+          return;
+        }
+        const target = filtered[Math.min(mentionHighlight, filtered.length - 1)];
+        if (mentionStage === "category") {
+          setCurrentCategory(target);
+          setMentionStage("entity");
+          setMentionHighlight(0);
+        }
+        else {
+          insertMentionEntity(target);
+        }
+      }
+    };
+    // 监听编辑器 root
+    try {
+      editor?.root?.addEventListener("keydown", handler, true);
+    }
+    catch {
+      // ignore
+    }
+    return () => {
+      try {
+        editor?.root?.removeEventListener("keydown", handler, true);
+      }
+      catch {
+        // ignore
+      }
+    };
+  }, [mentionActive, filtered, mentionHighlight, mentionStage, insertMentionEntity]);
 
   // 读取当前选区的格式并刷新高亮
   const refreshActiveFormats = useCallback((): void => {
     try {
-      const editor = vdRef.current as any;
+      const editor = quillRef.current as any;
       if (!editor) {
         return;
       }
@@ -924,7 +547,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
   }, []);
 
   // 稳定引用：供 effect/回调中安全调用而不引入额外依赖
-  const refreshActiveFormatsRef = useRef<() => void>(() => {});
+  const refreshActiveFormatsRef = useRef<() => void>(() => { });
   useEffect(() => {
     refreshActiveFormatsRef.current = refreshActiveFormats;
   }, [refreshActiveFormats]);
@@ -1005,7 +628,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
         cancelAnimationFrame(raf2Ref.current);
         raf2Ref.current = null;
       }
-      const editor = vdRef.current as any;
+      const editor = quillRef.current as any;
       const el = editor?.root as HTMLElement | null;
       const wrapper = wrapperRef.current as HTMLDivElement | null;
       if (!editor || !el || !wrapper) {
@@ -1024,14 +647,44 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
               // 1) 光标态：小方块工具栏（仅当选区折叠时显示）
               if (collapsed) {
                 const bCaret = editor.getBounds?.(sel.index, 0) || { top: 0 };
-                const caretTop = (rootRect.top + (bCaret.top || 0) - el.scrollTop) - wrapRect.top;
+                // 处理连续退格导致内容高度骤减但 scrollTop 仍保留旧值的情况：
+                // 这种情况下 caretTop 会被高估（甚至变为负数被 clamp），造成小方块位置看似不动。
+                let effScrollTop = el.scrollTop;
+                try {
+                  const maxScrollTop = Math.max(0, el.scrollHeight - el.clientHeight);
+                  if (effScrollTop > maxScrollTop) {
+                    el.scrollTop = maxScrollTop;
+                    effScrollTop = maxScrollTop;
+                  }
+                  // 如果内容已不足一屏，强制归零，避免残留滚动偏移
+                  if (el.scrollHeight <= el.clientHeight && effScrollTop !== 0) {
+                    el.scrollTop = 0;
+                    effScrollTop = 0;
+                  }
+                }
+                catch {
+                  // ignore
+                }
+                let caretTop = (rootRect.top + (bCaret.top || 0) - effScrollTop) - wrapRect.top;
+                // fallback：如果 caretTop 与上次相同且 scroll 修正后仍未变化，尝试原生 selection
+                try {
+                  if ((caretTop < 0 || caretTop === tbTop) && wrapper && el) {
+                    const nativePos = computeNativeCaretPos(wrapper, el);
+                    if (nativePos && Math.abs(nativePos.top - caretTop) > 1) {
+                      caretTop = nativePos.top;
+                    }
+                  }
+                }
+                catch {
+                  // ignore
+                }
                 if (typeof window !== "undefined" && (window as any).__VEDITOR_DEBUG__) {
-                  console.warn("[Veditor][schedule/caret]", {
+                  console.warn("[QuillEditor][schedule/caret]", {
                     selIndex: sel.index,
                     boundsTop: bCaret.top || 0,
                     rootRectTop: rootRect.top,
                     wrapRectTop: wrapRect.top,
-                    rootScrollTop: el.scrollTop,
+                    rootScrollTop: effScrollTop,
                     clientHeight: el.clientHeight,
                     scrollHeight: el.scrollHeight,
                     computedTop: caretTop,
@@ -1086,7 +739,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
                   left = Math.max(8, Math.min(left, maxLeft));
                   const top = Math.max(0, selTop - approxHeight - 8);
                   if (typeof window !== "undefined" && (window as any).__VEDITOR_DEBUG__) {
-                    console.warn("[Veditor][schedule/selection]", {
+                    console.warn("[QuillEditor][schedule/selection]", {
                       selIndex: sel.index,
                       selLength: sel.length,
                       boundsTop: (bSel as any).top || 0,
@@ -1173,7 +826,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
       // 动态加载 vditor 以避免首屏阻塞，并利用上方的预加载
       const mod = await preloadVeditor();
       const Q = (mod?.default ?? mod) as any;
-      if (!Q || vdRef.current || !container) {
+      if (!Q || quillRef.current || !container) {
         return;
       }
       // 防御：若容器内已存在旧的 Quill DOM（例如严格模式下的首次装载后立即卸载再装载），先清空
@@ -1186,7 +839,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
         // ignore
       }
 
-      vdRef.current = new Q(container, {
+      quillRef.current = new Q(container, {
         theme: "snow",
         modules: {
           toolbar: false,
@@ -1196,7 +849,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
           },
         },
       });
-      const editor = vdRef.current!;
+      const editor = quillRef.current!;
       // 聚焦编辑器，确保键盘事件由编辑器接收
       editor.focus?.();
 
@@ -1213,7 +866,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
           const wrapRect = wrapper.getBoundingClientRect();
           const top = (rootRect.top + (b.top || 0) - root.scrollTop) - wrapRect.top;
           if (typeof window !== "undefined" && (window as any).__VEDITOR_DEBUG__) {
-            console.warn("[Veditor][update]", {
+            console.warn("[QuillEditor][update]", {
               selIndex: idx,
               boundsTop: b.top || 0,
               rootRectTop: rootRect.top,
@@ -1262,7 +915,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
       try {
         const md = initialPlaceholderRef.current || "";
         if (md && typeof md === "string") {
-          const html = markdownToHtml(md);
+          const html = markdownToHtmlWithEntities(md, entitiesRef.current);
           applyingExternalRef.current = true;
           lastAppliedMarkdownRef.current = md;
           // 清空现有内容并插入
@@ -1280,19 +933,38 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
       // 文本变更：
       // 1) 同步 HTML 到外部
       // 2) 兜底：若刚插入的是空格，则再跑一遍 detectMarkdown（处理 IME/绑定失效场景）
-      const onTextChange = (delta: any, _old: any, source: any) => {
-        // 1) 同步：将 HTML 转为 Markdown，仅在用户操作时回传，避免外部设置导致回环
-        if (!applyingExternalRef.current && source === "user") {
+      // 去抖：在一帧内多次 text-change 仅序列化一次，避免先输出未聚合的普通行、再输出带 ``` 的代码块 Markdown
+      let pendingSerialize = false;
+      const scheduleSerialize = () => {
+        if (pendingSerialize)
+          return;
+        pendingSerialize = true;
+        requestAnimationFrame(() => {
+          pendingSerialize = false;
           try {
             const html = (editor as any).root?.innerHTML ?? "";
             const md = htmlToMarkdown(html);
-            lastAppliedMarkdownRef.current = md;
-            onChangeRef.current?.(md);
+            if (md !== lastAppliedMarkdownRef.current) {
+              try {
+                console.warn("[md]", md);
+              }
+              catch {
+                // ignore
+              }
+              lastAppliedMarkdownRef.current = md;
+              onChangeRef.current?.(md);
+            }
           }
           catch {
             // ignore
           }
-        }
+        });
+      };
+
+      const onTextChange = (delta: any, _old: any, source: any) => {
+        // 1) 同步：将 HTML 转为 Markdown，仅在用户操作时回传，避免外部设置导致回环
+        if (!applyingExternalRef.current && source === "user")
+          scheduleSerialize();
 
         // 2) 基于 delta 的 Markdown 检测：仅在用户输入、非重入时处理
         if (handlingSpaceRef.current || source !== "user") {
@@ -1301,13 +973,165 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
         try {
           // 收集本次插入的文本（可能是单字符，也可能是批量，比如粘贴或 IME 上屏）
           let inserted = "";
+          // 记录 inserted 字符串中最后一个 @ 的相对位置（用于行首 fallback）
+          let lastAtRelative: number | null = null;
           if (delta && Array.isArray(delta.ops)) {
             for (const op of delta.ops) {
               if (op && typeof op.insert === "string") {
                 inserted += op.insert;
+                if (op.insert.includes("@")) {
+                  mentionAtInsertedRef.current = true;
+                  // 记录该 op 内每个 @ 的位置（保留最后一个）
+                  const idx = op.insert.lastIndexOf("@");
+                  if (idx >= 0) {
+                    // 现有 inserted 已包含本 op（含本 op 的文本），relative = inserted.length - (op.insert.length - idx)
+                    const relative = inserted.length - (op.insert.length - idx);
+                    lastAtRelative = relative;
+                  }
+                }
               }
             }
           }
+          // ---- Minimal @ detection (Plan B) ----
+          // 仅在本次 delta 新插入了 '@' 且当前未处于 mentionActive 时尝试激活
+          if (!mentionActive && mentionAtInsertedRef.current) {
+            try {
+              const selNow = editor.getSelection?.(true);
+              if (selNow && typeof selNow.index === "number" && lastAtRelative != null) {
+                // 全局 index = 光标位置 - (本次插入总长度 - 最后一个 @ 相对位置) - 1
+                const globalIdx = Math.max(0, selNow.index - (inserted.length - lastAtRelative) - 1);
+                let ch = "";
+                try {
+                  ch = editor.getText?.(globalIdx, 1) || "";
+                }
+                catch {
+                  // ignore
+                }
+                // 如果该位置不是 @，尝试向后再看一位（可能 IME 合并导致）
+                if (ch !== "@") {
+                  try {
+                    ch = editor.getText?.(globalIdx + 1, 1) || "";
+                  }
+                  catch {
+                    // ignore
+                  }
+                }
+                if (ch === "@") {
+                  try {
+                    const b = editor.getBounds?.(globalIdx, 0) || { top: 0, left: 0, height: 0 };
+                    const root = (editor as any).root as HTMLElement;
+                    const wrap = wrapperRef.current as HTMLDivElement | null;
+                    if (root && wrap) {
+                      const rootRect = root.getBoundingClientRect();
+                      const wrapRect = wrap.getBoundingClientRect();
+                      const top = (rootRect.top + (b.top || 0) - root.scrollTop) - wrapRect.top + (b.height || 16);
+                      const left = (rootRect.left + (b.left || 0) - wrapRect.left);
+                      setMentionPos({ top, left });
+                    }
+                  }
+                  catch { }
+                  setMentionActive(true);
+                  mentionStageRef.current = "category";
+                  setMentionStage("category");
+                  setMentionStart(globalIdx);
+                  setMentionQuery("");
+                  try {
+                    console.warn("[mention] activated", globalIdx, { inserted, lastAtRelative });
+                  }
+                  catch {
+                    // ignore
+                  }
+                }
+                else {
+                  try {
+                    console.warn("[mention-debug] could not locate @", { sel: selNow.index, inserted, lastAtRelative });
+                  }
+                  catch {
+                    // ignore
+                  }
+                }
+              }
+            }
+            catch { }
+            finally {
+              mentionAtInsertedRef.current = false;
+            }
+          }
+          else {
+            mentionAtInsertedRef.current = false; // 未使用也要复位
+          }
+          // 若已激活 mention，实时更新 query；若用户退格到 @ 之前或换行，则退出
+          if (mentionActive) {
+            try {
+              const selNow = editor.getSelection?.(true);
+              if (!selNow || typeof selNow.index !== "number") {
+                setMentionActive(false);
+                setMentionStart(null);
+                setMentionQuery("");
+                mentionStageRef.current = null;
+                setMentionPos(null);
+                try {
+                  console.warn("[mention] cancelled: lost selection");
+                }
+                catch { }
+              }
+              else if (mentionStart != null) {
+                if (selNow.index <= mentionStart) {
+                  // 光标回到了 @ 之前，结束
+                  setMentionActive(false);
+                  setMentionStart(null);
+                  setMentionQuery("");
+                  mentionStageRef.current = null;
+                  setMentionPos(null);
+                  try {
+                    console.warn("[mention] cancelled: caret moved before @");
+                  }
+                  catch {
+                    // ignore
+                  }
+                }
+                else {
+                  // 获取 @ 到当前光标之间的文本，不包含 @
+                  const slice = editor.getText?.(mentionStart, selNow.index - mentionStart) || "";
+                  // 若包含换行，说明跨行或换行结束
+                  if (/\n/.test(slice)) {
+                    setMentionActive(false);
+                    setMentionStart(null);
+                    setMentionQuery("");
+                    mentionStageRef.current = null;
+                    setMentionPos(null);
+                    try {
+                      console.warn("[mention] cancelled: newline");
+                    }
+                    catch {
+                      // ignore
+                    }
+                  }
+                  else {
+                    setMentionQuery(slice.slice(1)); // 去掉开头的 @
+                    // 更新位置（随 caret 移动）
+                    try {
+                      const b2 = editor.getBounds?.(selNow.index, 0) || { top: 0, left: 0, height: 0 };
+                      const root2 = (editor as any).root as HTMLElement;
+                      const wrap2 = wrapperRef.current as HTMLDivElement | null;
+                      if (root2 && wrap2) {
+                        const rootRect2 = root2.getBoundingClientRect();
+                        const wrapRect2 = wrap2.getBoundingClientRect();
+                        const top2 = (rootRect2.top + (b2.top || 0) - root2.scrollTop) - wrapRect2.top + (b2.height || 16);
+                        const left2 = (rootRect2.left + (b2.left || 0) - wrapRect2.left);
+                        setMentionPos({ top: top2, left: left2 });
+                      }
+                    }
+                    catch { /* ignore */ }
+                  }
+                }
+              }
+            }
+            catch {
+              // ignore
+            }
+          }
+          // ---- End minimal @ detection ----
           // 2.a 处理换行：确保新行是普通段落（清除 header/list/code-block）
           if (inserted.includes("\n")) {
             if (lineFormatTimer) {
@@ -1375,13 +1199,16 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
           const fakeRange = { index: sel.index - 1, length: 0 } as any;
           // 先尝试块级（行首前缀）
           const blockHandled = detectMarkdown(editor, fakeRange);
-          // 若不是块级，再尝试行内 **/__ /~~ 模式
-          const inlineHandled = !blockHandled && detectInlineFormats(editor, sel);
-          if (blockHandled || inlineHandled) {
+          // 再尝试对齐
+          const alignmentHandled = !blockHandled && detectAlignment(editor, fakeRange);
+          // 若不是块级或对齐，再尝试行内 **/__ /~~ 模式
+          const inlineHandled = !blockHandled && !alignmentHandled && detectInlineFormats(editor, sel);
+
+          if (blockHandled || inlineHandled || alignmentHandled) {
             handlingSpaceRef.current = true;
             try {
-              // 对块级触发：删除触发用的空格；对行内触发：保留空格（更符合连续输入）
-              if (blockHandled) {
+              // 对块级或对齐触发：删除触发用的空格；对行内触发：保留空格（更符合连续输入）
+              if (blockHandled || alignmentHandled) {
                 editor.deleteText(sel.index - 1, 1, "user");
               }
               isFormattedRef.current = true;
@@ -1445,7 +1272,22 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
                 const bSel = editor.getBounds?.(range.index, range.length) || { top: 0, left: 0, width: 0 };
                 const rootRect = el.getBoundingClientRect();
                 const wrapRect = wrapper.getBoundingClientRect();
-                const selTop = (rootRect.top + (bSel.top || 0) - el.scrollTop) - wrapRect.top;
+                let effScrollTop = el.scrollTop;
+                try {
+                  const maxScrollTop = Math.max(0, el.scrollHeight - el.clientHeight);
+                  if (effScrollTop > maxScrollTop) {
+                    el.scrollTop = maxScrollTop;
+                    effScrollTop = maxScrollTop;
+                  }
+                  if (el.scrollHeight <= el.clientHeight && effScrollTop !== 0) {
+                    el.scrollTop = 0;
+                    effScrollTop = 0;
+                  }
+                }
+                catch {
+                  // ignore
+                }
+                const selTop = (rootRect.top + (bSel.top || 0) - effScrollTop) - wrapRect.top;
                 const approxWidth = selectionTbRef.current?.offsetWidth || 260;
                 const approxHeight = selectionTbRef.current?.offsetHeight || 34;
                 let left = (rootRect.left + (bSel.left || 0) - wrapRect.left);
@@ -1535,11 +1377,23 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
 
       onRootKeyUp = (_e: KeyboardEvent) => {
         try {
-          // Shift+Arrow 或 Ctrl+A 等产生选区变化
           const sel = editor.getSelection?.(true);
-          if (sel && sel.length && sel.length > 0) {
-            onSelChange(sel);
+          if (!sel) {
+            return;
           }
+          if (sel.length && sel.length > 0) {
+            onSelChange(sel);
+            return;
+          }
+          // 折叠：直接使用原生定位刷新一次，保证连续退格后光标变化立即反映
+          const wrapper = wrapperRef.current;
+          const root = editor.root as HTMLElement;
+          const native = computeNativeCaretPos(wrapper, root);
+          if (native) {
+            setTbTop(Math.max(0, native.top));
+            // 左定位使用 scheduleToolbarUpdate 里的逻辑，这里只更新 top，随后调度一次完整刷新
+          }
+          scheduleToolbarUpdateRef.current?.();
         }
         catch {
           // ignore
@@ -1589,7 +1443,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
           }
 
           e.preventDefault();
-          const html = markdownToHtml(normalized);
+          const html = markdownToHtmlWithEntities(normalized, entitiesRef.current);
           const selection = editor.getSelection?.(true);
           const insertIndex = selection && typeof selection.index === "number"
             ? selection.index
@@ -1648,7 +1502,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
         }
       }
       // 2) 移除 Quill 事件
-      const editor = vdRef.current as any;
+      const editor = quillRef.current as any;
       if (editor && textChangeHandlerRef.current) {
         try {
           editor.off?.("text-change", textChangeHandlerRef.current);
@@ -1687,7 +1541,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
         }
       }
       // 4) 释放实例引用
-      vdRef.current = null;
+      quillRef.current = null;
       // 6) 其他清理
       try {
         // no-op
@@ -1712,7 +1566,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
 
   // 独立滚动监听：编辑器滚动时更新工具栏位置与显示
   useEffect(() => {
-    const editor = vdRef.current as any;
+    const editor = quillRef.current as any;
     const el = editor?.root as HTMLElement | null;
     if (!editor || !el) {
       return;
@@ -1738,7 +1592,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
 
   // 根元素尺寸变化时（例如 Backspace 导致内容高度变化），刷新工具栏位置
   useEffect(() => {
-    const editor = vdRef.current as any;
+    const editor = quillRef.current as any;
     const el = editor?.root as HTMLElement | null;
     if (!editor || !el || typeof (window as any).ResizeObserver === "undefined") {
       return;
@@ -1764,7 +1618,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
 
   // 当 placeholder（后端传来的 Markdown）变化时，重置编辑器内容
   useEffect(() => {
-    const editor = vdRef.current as any;
+    const editor = quillRef.current as any;
     if (!editor) {
       return;
     }
@@ -1774,7 +1628,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
     }
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     try {
-      const html = markdownToHtml(md);
+      const html = markdownToHtmlWithEntities(md, entitiesRef.current);
       applyingExternalRef.current = true;
       lastAppliedMarkdownRef.current = md;
       editor.setText?.("");
@@ -1801,7 +1655,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
 
   // 工具栏动作：块级与行内
   const applyHeader = (level: 1 | 2 | 3) => {
-    const editor = vdRef.current as any;
+    const editor = quillRef.current as any;
     if (!editor) {
       return;
     }
@@ -1825,7 +1679,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
   };
 
   const toggleList = (kind: "bullet" | "ordered") => {
-    const editor = vdRef.current as any;
+    const editor = quillRef.current as any;
     if (!editor) {
       return;
     }
@@ -1849,7 +1703,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
   };
 
   const toggleInline = (attr: "bold" | "italic" | "underline" | "strike") => {
-    const editor = vdRef.current as any;
+    const editor = quillRef.current as any;
     if (!editor) {
       return;
     }
@@ -1874,7 +1728,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
   };
 
   const toggleCodeBlock = () => {
-    const editor = vdRef.current as any;
+    const editor = quillRef.current as any;
     if (!editor) {
       return;
     }
@@ -1916,7 +1770,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
 
   // 对齐：左/中/右/两端（左视作清除 align）
   const setAlign = (val: "left" | "center" | "right" | "justify") => {
-    const editor = vdRef.current as any;
+    const editor = quillRef.current as any;
     if (!editor) {
       return;
     }
@@ -1972,7 +1826,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
 
   // 段落（清除块级格式）与清除行内格式
   const onMenuParagraph = () => {
-    const editor = vdRef.current as any;
+    const editor = quillRef.current as any;
     if (!editor) {
       return;
     }
@@ -1996,7 +1850,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
     setMenuOpen(false);
   };
   const onMenuClearInline = () => {
-    const editor = vdRef.current as any;
+    const editor = quillRef.current as any;
     if (!editor) {
       return;
     }
@@ -2025,7 +1879,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
       onMouseEnter={() => {
         hoverRef.current = true;
         try {
-          const editor = vdRef.current as any;
+          const editor = quillRef.current as any;
           const sel = editor?.getSelection?.(true);
           // 仅在折叠选区时显示小方块工具栏
           setTbVisible(!!sel && !(sel.length && sel.length > 0));
@@ -2047,7 +1901,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
         id={id}
         ref={containerRef}
         className="ql-wrapper text-base-content bg-base-100
-        border border-gray-300 rounded-md shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 min-h-[200px]"
+        border border-gray-300 rounded-md shadow-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500"
       />
       {/* 光标态：小方块工具栏（始终挂载，按状态显示/隐藏） */}
       <div
@@ -2128,6 +1982,170 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
         }}
         aria-hidden="true"
       />
+      {/* Minimal Mention Popup：使用 mentionPos 精确定位（无则回退 tbTop+28/left:8） */}
+      {mentionActive && (
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 1100,
+            top: mentionPos ? mentionPos.top : (tbTop + 28),
+            left: mentionPos ? mentionPos.left : 8,
+            background: "#ffffff",
+            border: "1px solid #e5e7eb",
+            borderRadius: 6,
+            padding: "4px 6px",
+            fontSize: 12,
+            color: "#374151",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+            minWidth: 140,
+          }}
+        >
+          {/* Header */}
+          <div style={{ fontWeight: 600, marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>
+            <span>引用</span>
+            {mentionStage === "entity" && currentCategory && (
+              <span
+                style={{
+                  padding: "0 4px",
+                  borderRadius: 4,
+                  fontSize: 11,
+                  background: currentCategory === "人物" ? "#fef3c7" : currentCategory === "地点" ? "#d1fae5" : currentCategory === "物品" ? "#e0f2fe" : "#f3f4f6",
+                  color: currentCategory === "人物" ? "#92400e" : currentCategory === "地点" ? "#065f46" : currentCategory === "物品" ? "#075985" : "#374151",
+                }}
+              >
+                {currentCategory}
+              </span>
+            )}
+          </div>
+          {/* Candidate list */}
+          <div style={{ maxHeight: 180, overflowY: "auto" }}>
+            {mentionStage === "category" && (
+              <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                {categoriesRef.current.map((cat, i) => {
+                  const onEnter = () => {
+                    try {
+                      setMentionHighlight(i);
+                    }
+                    catch {
+                      // ignore
+                    }
+                  };
+                  const onDown = (e: React.MouseEvent) => {
+                    e.preventDefault();
+                    try {
+                      setCurrentCategory(cat);
+                      setMentionStage("entity");
+                      setMentionHighlight(0);
+                    }
+                    catch {
+                      // ignore
+                    }
+                  };
+                  return (
+                    <li
+                      key={cat}
+                      onMouseEnter={onEnter}
+                      onMouseDown={onDown}
+                      style={{
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "4px 6px",
+                        borderRadius: 4,
+                        background: i === mentionHighlight ? (cat === "人物" ? "#fde68a" : cat === "地点" ? "#a7f3d0" : cat === "物品" ? "#bae6fd" : "#f3f4f6") : "transparent",
+                        color: i === mentionHighlight ? "#111827" : "#374151",
+                        fontWeight: i === mentionHighlight ? 600 : 400,
+                        fontSize: 12,
+                        transition: "background 80ms",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 3,
+                          background: cat === "人物" ? "#fbbf24" : cat === "地点" ? "#10b981" : cat === "物品" ? "#0ea5e9" : "#9ca3af",
+                          flex: "0 0 auto",
+                        }}
+                      />
+                      <span style={{ lineHeight: 1 }}>{cat}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {mentionStage === "entity" && (
+              <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                {filtered.length === 0 && (
+                  <li style={{ padding: "4px 6px", opacity: 0.6 }}>无匹配</li>
+                )}
+                {filtered.map((ent, i) => {
+                  const onEnter = () => {
+                    try {
+                      setMentionHighlight(i);
+                    }
+                    catch {
+                      // ignore
+                    }
+                  };
+                  const onDown = (e: React.MouseEvent) => {
+                    e.preventDefault();
+                    try {
+                      insertMentionEntity(ent);
+                    }
+                    catch {
+                      // ignore
+                    }
+                  };
+                  return (
+                    <li
+                      key={ent}
+                      onMouseEnter={onEnter}
+                      onMouseDown={onDown}
+                      style={{
+                        cursor: "pointer",
+                        padding: "4px 6px",
+                        borderRadius: 4,
+                        background: i === mentionHighlight ? (currentCategory === "人物" ? "#fde68a" : currentCategory === "地点" ? "#a7f3d0" : currentCategory === "物品" ? "#bae6fd" : "#f3f4f6") : "transparent",
+                        color: i === mentionHighlight ? "#111827" : "#374151",
+                        fontWeight: i === mentionHighlight ? 600 : 400,
+                        fontSize: 12,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        transition: "background 80ms",
+                      }}
+                    >
+                      <span style={{ flex: "1 1 auto" }}>{ent}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+          {/* Footer hint */}
+          <div style={{ marginTop: 4, fontSize: 10, opacity: 0.5, display: "flex", justifyContent: "space-between", gap: 8 }}>
+            <span>↑↓ 选择</span>
+            <span>{mentionStage === "category" ? "Enter 选分类" : "Enter 插入"}</span>
+            <span>Esc 取消</span>
+          </div>
+        </div>
+      )}
+      {mentionPreviewVisible && mentionPreviewData && (
+        <MentionPreview
+          category={mentionPreviewData.category}
+          name={mentionPreviewData.name}
+          description={mentionPreviewData.description}
+          left={mentionPreviewPos.leftVw}
+          top={mentionPreviewPos.topVw}
+          onMouseEnter={() => { mentionPreviewLockRef.current = true; }}
+          onMouseLeave={() => {
+            mentionPreviewLockRef.current = false;
+            setMentionPreviewVisible(false);
+          }}
+        />
+      )}
     </div>
   );
 }

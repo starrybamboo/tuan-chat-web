@@ -5,8 +5,8 @@ import { useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import QuillEditor from "../../../common/quillEditor/quillEditor";
 import { useModuleContext } from "../context/_moduleContext";
-import Veditor from "./quillEditor";
 
 interface LocationEditProps {
   location: StageEntityResponse;
@@ -125,7 +125,7 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
                 {/* 地点名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
                 <div className="text-lg font-bold break-words">{location.name}</div>
                 <p>场景描述：</p>
-                <Veditor
+                <QuillEditor
                   id={VeditorIdForDescription}
                   placeholder={localLocation.description || ""}
                   onchange={(value) => {
@@ -135,7 +135,7 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
                   }}
                 />
                 <p>地区支线：</p>
-                <Veditor
+                <QuillEditor
                   id={vditorId}
                   placeholder={localLocation.tip || ""}
                   onchange={(value) => {
