@@ -156,7 +156,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [roleDrawerWidth, setRoleDrawerWidth] = useLocalStorage("roleDrawerWidth", 300);
   const [initiativeDrawerWidth, setInitiativeDrawerWidth] = useLocalStorage("initiativeDrawerWidth", 300);
   const [clueDrawerWidth, setClueDrawerWidth] = useLocalStorage("clueDrawerWidth", 300);
-  const [mapDrawerWidth, setMapDrawerWidth] = useLocalStorage("mapDrawerWidth", 300);
+  const [mapDrawerWidth, setMapDrawerWidth] = useLocalStorage("mapDrawerWidth", 600);
 
   const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map" | "clue">("rightSideDrawer", "none");
 
@@ -643,7 +643,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             className="h-full overflow-auto z-20"
             initialWidth={mapDrawerWidth}
             onWidthChange={setMapDrawerWidth}
-            maxWidth={500}
+            maxWidth={window.innerWidth - 900}
           >
             <DNDMap></DNDMap>
           </OpenAbleDrawer>
