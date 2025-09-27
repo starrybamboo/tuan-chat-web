@@ -521,7 +521,7 @@ export default function EditModule() {
   }
 
   return (
-    <div className="h-screen p-4 overflow-y-scroll">
+    <div className="h-screen p-4 ">
       <div className="w-full h-full tabs tabs-lift">
         {roleModuleItems.map(item => (
           <RoleModuleTabItem

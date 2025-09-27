@@ -104,7 +104,7 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
   };
 
   // 对外注册保存函数（保持稳定引用，避免依赖 handleSave）
-  const saveRef = useRef<() => void>(() => {});
+  const saveRef = useRef<() => void>(() => { });
   useLayoutEffect(() => {
     saveRef.current = handleSave;
   });
@@ -199,7 +199,7 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
     setAvatarToDeleteIndex(index);
     setIsDeleteModalOpen(true);
   };
-    // 删除头像
+  // 删除头像
   const confirmDeleteAvatar = () => {
     if (avatarToDeleteIndex !== null && avatarToDeleteIndex >= 0 && avatarToDeleteIndex < roleAvatars.length) {
       setRoleAvatars(prevRoleAvatars =>
@@ -440,432 +440,454 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
 
       </PopWindow>
       {/* 基础信息卡片 */}
-      <div className="card bg-base-100 shadow-xl">
-        <div className="card-body">
-          <div className="flex items-start gap-8">
-            {/* 头像 */}
-            <div onClick={() => setChangeAvatarConfirmOpen(true)}><RoleAvatar avatarId={localRole.avatarId || (localRole.avatarIds && localRole.avatarIds.length > 0 ? localRole.avatarIds[0] : 0)} width={36} isRounded={false} stopPopWindow={true} /></div>
-            {/* 右侧内容 */}
-            <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
-              <>
-                {/* 角色名改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
-                <div className="text-lg font-bold break-words">{role.name}</div>
-                <p>简介：</p>
-                <textarea
-                  value={localRole.description || ""}
-                  onChange={(e) => {
-                    setLocalRole(prev => ({ ...prev, description: e.target.value }));
-                    setCharCount(e.target.value.length);
-                    scheduleSave();
-                  }}
-                  placeholder="角色描述"
-                  className="textarea textarea-bordered w-full h-24 resize-none"
+      <div className="bg-base-100">
+        {/* 头像和基本信息左右布局 */}
+        <div className="flex flex-col md:flex-row gap-6 mb-6">
+
+          {/* 头像 */}
+          <div className="flex flex-col justify-center items-center w-32">
+            <span className="text-lg font-bold break-words text-center mb-2">{role.name}</span>
+            <div className="avatar cursor-pointer group flex items-center justify-center " onClick={() => setChangeAvatarConfirmOpen(true)}>
+              <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
+                <RoleAvatar
+                  avatarId={localRole.avatarId || (localRole.avatarIds && localRole.avatarIds.length > 0 ? localRole.avatarIds[0] : 0)}
+                  width={32}
+                  isRounded={false}
+                  stopPopWindow={true}
                 />
-                <div className="text-right mt-1">
-                  <span
-                    className={`text-sm font-bold ${charCount > MAX_DESCRIPTION_LENGTH
-                      ? "text-error"
-                      : "text-base-content/70"
-                    }`}
-                  >
-                    {charCount}
-                    /
-                    {MAX_DESCRIPTION_LENGTH}
-                    {charCount > MAX_DESCRIPTION_LENGTH && (
-                      <span className="ml-2">(已超出描述字数上限)</span>
-                    )}
-                  </span>
-                </div>
-                <p>模型名：</p>
-                <input
-                  type="text"
-                  value={localRole.modelName || ""}
-                  onChange={(e) => {
-                    setLocalRole(prev => ({ ...prev, modelName: e.target.value }));
-                    scheduleSave();
-                  }}
-                  placeholder="模型名"
-                  className="input input-bordered w-full"
-                />
-                <p>类型（0=NPC, 1=预设卡）：</p>
-                <input
-                  type="number"
-                  value={localRole.type ?? ""}
-                  onChange={(e) => {
-                    setLocalRole(prev => ({ ...prev, type: Number(e.target.value) }));
-                    scheduleSave();
-                  }}
-                  placeholder="类型"
-                  className="input input-bordered w-full"
-                />
-              </>
-            </div>
-          </div>
-          {/* 六大属性展示区 */}
-          <div className="mb-4">
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-6">
-              <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
-                <span className="text-xs text-gray-500 mb-1">生命值</span>
-                <span className="font-bold text-lg">{hp}</span>
-              </div>
-              <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
-                <span className="text-xs text-gray-500 mb-1">理智值</span>
-                <span className="font-bold text-lg">{san}</span>
-              </div>
-              <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
-                <span className="text-xs text-gray-500 mb-1">移动速度</span>
-                <span className="font-bold text-lg">{mov}</span>
-              </div>
-              <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
-                <span className="text-xs text-gray-500 mb-1">魔法值</span>
-                <span className="font-bold text-lg">{mp}</span>
-              </div>
-              <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
-                <span className="text-xs text-gray-500 mb-1">伤害加值</span>
-                <span className="font-bold text-lg">{db}</span>
-              </div>
-              <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
-                <span className="text-xs text-gray-500 mb-1">体格</span>
-                <span className="font-bold text-lg">{build}</span>
               </div>
             </div>
           </div>
-          {/* 属性表格区域，UI参考NumericalEditor */}
-          <div className="mt-6">
-            <h3 className="font-bold mb-2 w-full border-b-2">角色属性</h3>
-            <div className="overflow-x-auto">
-              <table className="table bg-base-200 rounded-lg">
-                <thead>
-                  <tr className="bg-base-100">
-                    <th className="text-center">属性</th>
-                    <th className="text-center">数值</th>
-                    <th className="text-center">英文</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="text-center font-bold">力量</td>
-                    <td className="text-center">
-                      <input
-                        type="number"
-                        className="input input-bordered input-sm w-20 text-center"
-                        value={ability.str ?? ""}
-                        onChange={(e) => {
-                          setAbility((prev: any) => ({ ...prev, str: Number(e.target.value) }));
-                          scheduleSave();
-                        }}
-                      />
-                    </td>
-                    <td className="text-center text-xs text-gray-500">STR</td>
-                  </tr>
-                  <tr>
-                    <td className="text-center font-bold">敏捷</td>
-                    <td className="text-center">
-                      <input
-                        type="number"
-                        className="input input-bordered input-sm w-20 text-center"
-                        value={ability.dex ?? ""}
-                        onChange={(e) => {
-                          setAbility((prev: any) => ({ ...prev, dex: Number(e.target.value) }));
-                          scheduleSave();
-                        }}
-                      />
-                    </td>
-                    <td className="text-center text-xs text-gray-500">DEX</td>
-                  </tr>
-                  <tr>
-                    <td className="text-center font-bold">意志</td>
-                    <td className="text-center">
-                      <input
-                        type="number"
-                        className="input input-bordered input-sm w-20 text-center"
-                        value={ability.pow ?? ""}
-                        onChange={(e) => {
-                          setAbility((prev: any) => ({ ...prev, pow: Number(e.target.value) }));
-                          scheduleSave();
-                        }}
-                      />
-                    </td>
-                    <td className="text-center text-xs text-gray-500">POW</td>
-                  </tr>
-                  <tr>
-                    <td className="text-center font-bold">体质</td>
-                    <td className="text-center">
-                      <input
-                        type="number"
-                        className="input input-bordered input-sm w-20 text-center"
-                        value={ability.con ?? ""}
-                        onChange={(e) => {
-                          setAbility((prev: any) => ({ ...prev, con: Number(e.target.value) }));
-                          scheduleSave();
-                        }}
-                      />
-                    </td>
-                    <td className="text-center text-xs text-gray-500">CON</td>
-                  </tr>
-                  <tr>
-                    <td className="text-center font-bold">外貌</td>
-                    <td className="text-center">
-                      <input
-                        type="number"
-                        className="input input-bordered input-sm w-20 text-center"
-                        value={ability.app ?? ""}
-                        onChange={(e) => {
-                          setAbility((prev: any) => ({ ...prev, app: Number(e.target.value) }));
-                          scheduleSave();
-                        }}
-                      />
-                    </td>
-                    <td className="text-center text-xs text-gray-500">APP</td>
-                  </tr>
-                  <tr>
-                    <td className="text-center font-bold">教育</td>
-                    <td className="text-center">
-                      <input
-                        type="number"
-                        className="input input-bordered input-sm w-20 text-center"
-                        value={ability.edu ?? ""}
-                        onChange={(e) => {
-                          setAbility((prev: any) => ({ ...prev, edu: Number(e.target.value) }));
-                          scheduleSave();
-                        }}
-                      />
-                    </td>
-                    <td className="text-center text-xs text-gray-500">EDU</td>
-                  </tr>
-                  <tr>
-                    <td className="text-center font-bold">体型</td>
-                    <td className="text-center">
-                      <input
-                        type="number"
-                        className="input input-bordered input-sm w-20 text-center"
-                        value={ability.siz ?? ""}
-                        onChange={(e) => {
-                          setAbility((prev: any) => ({ ...prev, siz: Number(e.target.value) }));
-                          scheduleSave();
-                        }}
-                      />
-                    </td>
-                    <td className="text-center text-xs text-gray-500">SIZ</td>
-                  </tr>
-                  <tr>
-                    <td className="text-center font-bold">智力</td>
-                    <td className="text-center">
-                      <input
-                        type="number"
-                        className="input input-bordered input-sm w-20 text-center"
-                        value={ability.int ?? ""}
-                        onChange={(e) => {
-                          setAbility((prev: any) => ({ ...prev, int: Number(e.target.value) }));
-                          scheduleSave();
-                        }}
-                      />
-                    </td>
-                    <td className="text-center text-xs text-gray-500">INT</td>
-                  </tr>
-                  <tr>
-                    <td className="text-center font-bold">幸运</td>
-                    <td className="text-center">
-                      <input
-                        type="number"
-                        className="input input-bordered input-sm w-20 text-center"
-                        value={ability.luck ?? ""}
-                        onChange={(e) => {
-                          setAbility((prev: any) => ({ ...prev, luck: Number(e.target.value) }));
-                          scheduleSave();
-                        }}
-                      />
-                    </td>
-                    <td className="text-center text-xs text-gray-500">LUCK</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-6">
-              <div className="flex justify-between items-center mb-2 w-full border-b-2">
-                <h3 className="font-bold">自定义能力</h3>
-                <button
-                  type="button"
-                  onClick={() => setShowAbilityPopup(true)}
-                  className="btn btn-sm btn-accent"
+
+          {/* 角色信息 */}
+          <div className="flex-1">
+            {/* 角色名改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
+            <div className="flex flex-col justify-center h-full">
+              <div className="flex justify-between items-center">
+                <span className="text-lg">简介：</span>
+                <span
+                  className={`text-sm font-bold ${charCount > MAX_DESCRIPTION_LENGTH
+                    ? "text-error"
+                    : "text-base-content/70"
+                  }`}
                 >
-                  <span className="flex items-center gap-1">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 4v16m8-8H4" stroke="currentColor" strokeWidth="2" />
-                    </svg>
-                    创建能力
-                  </span>
-                </button>
+                  {charCount}
+                  /
+                  {MAX_DESCRIPTION_LENGTH}
+                  {charCount > MAX_DESCRIPTION_LENGTH && (
+                    <span className="ml-2">(已超出描述字数上限)</span>
+                  )}
+                </span>
               </div>
-              {/* 自定义能力展示区 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
-                {Object.entries(ability)
-                  .filter(([key]) => !isBaseAttribute(key))
-                  .map(([key, value]) => (
-                    <div key={key} className="card bg-base-100 shadow-sm p-3">
-                      <div className="flex justify-between items-center">
-                        <div className="font-medium text-sm">{key}</div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            value={value as number}
-                            onChange={(e) => {
-                              setAbility((prev: any) => ({
-                                ...prev,
-                                [key]: Number(e.target.value),
-                              }));
-                              scheduleSave();
-                            }}
-                            className="input input-bordered input-sm w-20"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newAbility = { ...ability } as any;
-                              delete newAbility[key];
-                              setAbility(newAbility);
-                              scheduleSave();
-                            }}
-                            className="btn btn-error btn-circle btn-xs"
-                          >
-                            ✕
-                          </button>
-                        </div>
+              <textarea
+                value={localRole.description || ""}
+                onChange={(e) => {
+                  setLocalRole(prev => ({ ...prev, description: e.target.value }));
+                  setCharCount(e.target.value.length);
+                  scheduleSave();
+                }}
+                placeholder="角色描述"
+                className="textarea textarea-bordered w-full h-24 resize-none flex-1"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* 其他表单字段 */}
+        <div className="space-y-4 mb-6">
+          <div>
+            <p>模型名：</p>
+            <input
+              type="text"
+              value={localRole.modelName || ""}
+              onChange={(e) => {
+                setLocalRole(prev => ({ ...prev, modelName: e.target.value }));
+                scheduleSave();
+              }}
+              placeholder="模型名"
+              className="input input-bordered w-full"
+            />
+          </div>
+
+          <div>
+            <p>类型（0=NPC, 1=预设卡）：</p>
+            <input
+              type="number"
+              value={localRole.type ?? ""}
+              onChange={(e) => {
+                setLocalRole(prev => ({ ...prev, type: Number(e.target.value) }));
+                scheduleSave();
+              }}
+              placeholder="类型"
+              className="input input-bordered w-full"
+            />
+          </div>
+        </div>
+        {/* 六大属性展示区 */}
+        <div className="mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-6">
+            <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+              <span className="text-xs text-gray-500 mb-1">生命值</span>
+              <span className="font-bold text-lg">{hp}</span>
+            </div>
+            <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+              <span className="text-xs text-gray-500 mb-1">理智值</span>
+              <span className="font-bold text-lg">{san}</span>
+            </div>
+            <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+              <span className="text-xs text-gray-500 mb-1">移动速度</span>
+              <span className="font-bold text-lg">{mov}</span>
+            </div>
+            <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+              <span className="text-xs text-gray-500 mb-1">魔法值</span>
+              <span className="font-bold text-lg">{mp}</span>
+            </div>
+            <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+              <span className="text-xs text-gray-500 mb-1">伤害加值</span>
+              <span className="font-bold text-lg">{db}</span>
+            </div>
+            <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+              <span className="text-xs text-gray-500 mb-1">体格</span>
+              <span className="font-bold text-lg">{build}</span>
+            </div>
+          </div>
+        </div>
+        {/* 属性表格区域，UI参考NumericalEditor */}
+        <div className="mt-6">
+          <h3 className="font-bold mb-2 w-full border-b-2">角色属性</h3>
+          <div className="overflow-x-auto">
+            <table className="table bg-base-200 rounded-lg">
+              <thead>
+                <tr className="bg-base-100">
+                  <th className="text-center">属性</th>
+                  <th className="text-center">数值</th>
+                  <th className="text-center">英文</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="text-center font-bold">力量</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.str ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, str: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">STR</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">敏捷</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.dex ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, dex: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">DEX</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">意志</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.pow ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, pow: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">POW</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">体质</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.con ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, con: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">CON</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">外貌</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.app ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, app: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">APP</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">教育</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.edu ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, edu: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">EDU</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">体型</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.siz ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, siz: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">SIZ</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">智力</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.int ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, int: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">INT</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">幸运</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.luck ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, luck: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">LUCK</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-6">
+            <div className="flex justify-between items-center mb-2 w-full border-b-2">
+              <h3 className="font-bold">自定义能力</h3>
+              <button
+                type="button"
+                onClick={() => setShowAbilityPopup(true)}
+                className="btn btn-sm btn-accent"
+              >
+                <span className="flex items-center gap-1">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 4v16m8-8H4" stroke="currentColor" strokeWidth="2" />
+                  </svg>
+                  创建能力
+                </span>
+              </button>
+            </div>
+            {/* 自定义能力展示区 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
+              {Object.entries(ability)
+                .filter(([key]) => !isBaseAttribute(key))
+                .map(([key, value]) => (
+                  <div key={key} className="card bg-base-100 shadow-sm p-3">
+                    <div className="flex justify-between items-center">
+                      <div className="font-medium text-sm">{key}</div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          value={value as number}
+                          onChange={(e) => {
+                            setAbility((prev: any) => ({
+                              ...prev,
+                              [key]: Number(e.target.value),
+                            }));
+                            scheduleSave();
+                          }}
+                          className="input input-bordered input-sm w-20"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newAbility = { ...ability } as any;
+                            delete newAbility[key];
+                            setAbility(newAbility);
+                            scheduleSave();
+                          }}
+                          className="btn btn-error btn-circle btn-xs"
+                        >
+                          ✕
+                        </button>
                       </div>
                     </div>
-                  ))}
-              </div>
+                  </div>
+                ))}
             </div>
-
           </div>
-          <PopWindow
-            isOpen={showAbilityPopup}
-            onClose={() => {
-              setShowAbilityPopup(false);
-              // 关闭弹窗时清除搜索查询
-              setAbilitySearchQuery("");
-            }}
-            fullScreen={false}
-          >
-            <div className="space-y-4">
-              <h3 className="font-bold text-lg">选择能力</h3>
 
-              {/* 添加搜索框 */}
-              <div className="flex gap-2">
-                <label className="input flex items-center gap-2 w-full">
-                  <svg
-                    className="h-[1em]"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.3-4.3" />
-                  </svg>
-                  <input
-                    type="text"
-                    className="grow"
-                    placeholder="搜索能力..."
-                    value={abilitySearchQuery}
-                    onChange={e => setAbilitySearchQuery(e.target.value)}
-                  />
-                </label>
-              </div>
+        </div>
+        <PopWindow
+          isOpen={showAbilityPopup}
+          onClose={() => {
+            setShowAbilityPopup(false);
+            // 关闭弹窗时清除搜索查询
+            setAbilitySearchQuery("");
+          }}
+          fullScreen={false}
+        >
+          <div className="space-y-4">
+            <h3 className="font-bold text-lg">选择能力</h3>
 
-              <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
-                {Object.entries(ruleAbility?.data?.skillDefault || {})
-                  .filter(([key]) =>
-                    key.toLowerCase().includes(abilitySearchQuery.toLowerCase())
-                    || abilitySearchQuery === "",
-                  )
-                  .map(([key, value]) => (
-                    <div key={key} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id={`ability-${key}`}
-                        checked={Object.prototype.hasOwnProperty.call(selectedAbilities, key)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            // 选中时添加能力
-                            setSelectedAbilities(prev => ({
-                              ...prev,
-                              [key]: Number(value),
-                            }));
-                          }
-                          else {
-                            // 取消选中时移除能力
-                            const { [key]: _, ...rest } = selectedAbilities;
-                            setSelectedAbilities(rest);
-                          }
-                        }}
-                        className="checkbox checkbox-sm"
-                      />
-                      <label htmlFor={`ability-${key}`} className="flex-1">
-                        {key}
-                        {" "}
-                        (
-                        {value}
-                        )
-                      </label>
-                    </div>
-                  ))}
-              </div>
-
-              {/* 当搜索结果为空时显示提示 */}
-              {abilitySearchQuery
-                && Object.keys(ruleAbility?.data?.skillDefault || {})
-                  .filter(([key]) =>
-                    key.toLowerCase().includes(abilitySearchQuery.toLowerCase()),
-                  )
-                  .length === 0 && (
-                <div className="text-center py-4 text-base-content/50">
-                  未找到匹配的能力
-                </div>
-              )}
-
-              <div className="divider">或创建新能力</div>
-
-              <div className="flex gap-2 items-center">
+            {/* 添加搜索框 */}
+            <div className="flex gap-2">
+              <label className="input flex items-center gap-2 w-full">
+                <svg
+                  className="h-[1em]"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
                 <input
                   type="text"
-                  value={newAbilityName}
-                  onChange={e => setNewAbilityName(e.target.value)}
-                  placeholder="能力名称"
-                  className="input input-bordered flex-1"
+                  className="grow"
+                  placeholder="搜索能力..."
+                  value={abilitySearchQuery}
+                  onChange={e => setAbilitySearchQuery(e.target.value)}
                 />
-                <input
-                  type="number"
-                  value={newAbilityValue}
-                  onChange={e => setNewAbilityValue(Number(e.target.value))}
-                  placeholder="数值"
-                  className="input input-bordered w-20"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAbilityPopup(false);
-                    setAbilitySearchQuery("");
-                  }}
-                  className="btn btn-secondary"
-                >
-                  取消
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddAbilities}
-                  className="btn btn-primary"
-                >
-                  确认添加
-                </button>
-              </div>
+              </label>
             </div>
-          </PopWindow>
-        </div>
+
+            <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
+              {Object.entries(ruleAbility?.data?.skillDefault || {})
+                .filter(([key]) =>
+                  key.toLowerCase().includes(abilitySearchQuery.toLowerCase())
+                  || abilitySearchQuery === "",
+                )
+                .map(([key, value]) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id={`ability-${key}`}
+                      checked={Object.prototype.hasOwnProperty.call(selectedAbilities, key)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          // 选中时添加能力
+                          setSelectedAbilities(prev => ({
+                            ...prev,
+                            [key]: Number(value),
+                          }));
+                        }
+                        else {
+                          // 取消选中时移除能力
+                          const { [key]: _, ...rest } = selectedAbilities;
+                          setSelectedAbilities(rest);
+                        }
+                      }}
+                      className="checkbox checkbox-sm"
+                    />
+                    <label htmlFor={`ability-${key}`} className="flex-1">
+                      {key}
+                      {" "}
+                      (
+                      {value}
+                      )
+                    </label>
+                  </div>
+                ))}
+            </div>
+
+            {/* 当搜索结果为空时显示提示 */}
+            {abilitySearchQuery
+              && Object.keys(ruleAbility?.data?.skillDefault || {})
+                .filter(([key]) =>
+                  key.toLowerCase().includes(abilitySearchQuery.toLowerCase()),
+                )
+                .length === 0 && (
+              <div className="text-center py-4 text-base-content/50">
+                未找到匹配的能力
+              </div>
+            )}
+
+            <div className="divider">或创建新能力</div>
+
+            <div className="flex gap-2 items-center">
+              <input
+                type="text"
+                value={newAbilityName}
+                onChange={e => setNewAbilityName(e.target.value)}
+                placeholder="能力名称"
+                className="input input-bordered flex-1"
+              />
+              <input
+                type="number"
+                value={newAbilityValue}
+                onChange={e => setNewAbilityValue(Number(e.target.value))}
+                placeholder="数值"
+                className="input input-bordered w-20"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAbilityPopup(false);
+                  setAbilitySearchQuery("");
+                }}
+                className="btn btn-secondary"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={handleAddAbilities}
+                className="btn btn-primary"
+              >
+                确认添加
+              </button>
+            </div>
+          </div>
+        </PopWindow>
       </div>
     </div>
   );

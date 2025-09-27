@@ -20,7 +20,7 @@ function LeftContent() {
 
       case ModuleListEnum.STAGE:
         return (
-          <div className="h-full bg-base-100">
+          <div className="w-80 h-full bg-base-100">
             {editingStageId
               ? <ModuleItems stageId={editingStageId as number} />
               : (
@@ -33,7 +33,7 @@ function LeftContent() {
 
       case ModuleListEnum.MAP:
         return (
-          <div className="h-full bg-base-100">
+          <div className="w-80 h-full bg-base-100">
             {editingStageId
               ? (
                   <MapModule stageId={editingStageId as number} />
@@ -50,11 +50,7 @@ function LeftContent() {
         return null; // 不渲染任何内容
 
       default:
-        return (
-          <div className="h-full bg-base-100 p-4">
-            <p className="text-gray-600">请选择上方功能：暂存区或地图</p>
-          </div>
-        );
+        return null;
     }
   };
 

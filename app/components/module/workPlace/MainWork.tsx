@@ -1,5 +1,5 @@
 import LeftContent from "@/components/create/left";
-import Topbar from "@/components/create/sidebar/sidebar";
+import SideTopbar from "@/components/create/left/SideTopbar";
 import { useEffect } from "react";
 import { useParams } from "react-router";
 import { ModuleProvider, useModuleContext } from "./context/_moduleContext";
@@ -29,18 +29,18 @@ export default function MainWork() {
   return (
     <ModuleProvider>
       <StageInitializer />
-      <div className="h-[calc(100vh-4rem)] flex flex-col bg-base-200 overflow-hidden">
-        <Topbar />
-        <div className="flex flex-1 min-h-0">
-          <div className="bg-base-300 basis-1/5 flex flex-col overflow-hidden">
+      <div className="h-[calc(100vh-4rem)] flex bg-base-200 ">
+        <SideTopbar />
+        <div className="flex flex-1 h-full">
+          <div className="bg-base-300 flex flex-col">
             <LeftContent />
           </div>
-          <div className="basis-3/5 flex flex-col overflow-hidden">
+          <div className="max-w-7xl mx-auto flex flex-col flex-1 overflow-y-scroll">
             <EditModule />
           </div>
-          <div className="bg-cyan-700 basis-1/5 flex flex-col overflow-hidden">
+          {/* <div className="bg-cyan-700 basis-1/5 flex flex-col overflow-hidden">
             AI 面板
-          </div>
+          </div> */}
         </div>
       </div>
     </ModuleProvider>

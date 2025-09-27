@@ -21,7 +21,7 @@ function MapPlaceholderIcon(props: { className?: string }) {
   );
 }
 
-export default function Topbar() {
+export default function SideTopbar() {
   const { activeList, setActiveList, moduleId, pushModuleTabItem, setCurrentSelectedTabId } = useModuleContext();
   const navigate = useNavigate();
   // 兼容 moduleId 尚未就绪或类型不一致（string/number）的场景，优先使用上下文，其次从 localStorage 读取
@@ -34,7 +34,7 @@ export default function Topbar() {
           mid = Number(snapId);
         }
       }
-      catch {}
+      catch { }
     }
     if (typeof mid === "string") {
       return Number(mid);
@@ -97,7 +97,7 @@ export default function Topbar() {
     () => [
       { id: ModuleListEnum.BACK, icon: ArrowBackThickFill, label: "返回", tooltip: "返回上一级" },
       { id: ModuleListEnum.STAGE, icon: StageIcon, label: "暂存区", tooltip: "暂存区管理" },
-      { id: ModuleListEnum.MAP, icon: MapPlaceholderIcon, label: "流程图", tooltip: "剧情/地点 流程图" },
+      { id: ModuleListEnum.MAP, icon: MapPlaceholderIcon, label: "剧情树", tooltip: "剧情/地点 流程图" },
       { id: ModuleListEnum.MODULE, icon: StageIcon, label: "模组", tooltip: "模组信息与管理" },
       { id: ModuleListEnum.COMMIT, icon: ChevronSmallTripleUp, label: "保存当前版本", tooltip: "保存所有您做的改动到当前模组" },
     ],
@@ -105,18 +105,16 @@ export default function Topbar() {
   );
 
   return (
-    <div className="w-full h-14 bg-base-100 border-b border-base-300 flex items-center px-2 gap-2">
+    <div className="h-full w-16 bg-base-100 border-r border-base-300 flex flex-col items-center py-4 gap-2">
       {items.map((item) => {
         const IconComponent = item.icon as React.ElementType<{ className?: string }>;
         const isActive = activeList === item.id;
-
         const className = [
-          "h-10 px-3 rounded-md inline-flex items-center gap-2 text-sm transition-colors",
+          "w-12 h-12 mb-2 rounded-lg flex flex-col items-center justify-center transition-colors",
           isActive ? "bg-primary text-primary-content" : "bg-base-200 hover:bg-base-300",
         ].join(" ");
-
         return (
-          <div key={item.id} className="tooltip tooltip-bottom" data-tip={item.tooltip}>
+          <div key={item.id} className="tooltip tooltip-right" data-tip={item.tooltip}>
             <button
               onClick={() => {
                 if (item.id === ModuleListEnum.BACK) {
@@ -128,13 +126,11 @@ export default function Topbar() {
                   return;
                 }
                 if (item.id === ModuleListEnum.MODULE) {
-                  // 推入一个新的 模组 Tab，并切换到它
-                  const id = "当前模组"; // 写死 id
+                  const id = "当前模组";
                   pushModuleTabItem({
                     id,
                     label: "当前模组",
                     type: ModuleItemEnum.MODULE,
-                    // 以简单对象作为内容，供 ModuleEdit 使用
                     content: moduleItem!,
                   });
                   setCurrentSelectedTabId(id);
@@ -143,8 +139,8 @@ export default function Topbar() {
               }}
               className={className}
             >
-              <IconComponent className="w-5 h-5" />
-              <span>{item.label}</span>
+              <IconComponent className="w-6 h-6 mb-1" />
+              <span className="text-xs">{item.label}</span>
             </button>
           </div>
         );
