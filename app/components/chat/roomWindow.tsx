@@ -151,6 +151,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [isItemsWindowOpen, setIsItemsWindowOpen] = useState<boolean>(false);
   const [selectedItemId, setSelectedItemId] = useState<number>(-1);
 
+  // 侧边栏宽度状态
+  const [userDrawerWidth, setUserDrawerWidth] = useLocalStorage("userDrawerWidth", 300);
+  const [roleDrawerWidth, setRoleDrawerWidth] = useLocalStorage("roleDrawerWidth", 300);
+  const [initiativeDrawerWidth, setInitiativeDrawerWidth] = useLocalStorage("initiativeDrawerWidth", 300);
+  const [clueDrawerWidth, setClueDrawerWidth] = useLocalStorage("clueDrawerWidth", 300);
+  const [mapDrawerWidth, setMapDrawerWidth] = useLocalStorage("mapDrawerWidth", 600);
+
   const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map" | "clue">("rightSideDrawer", "none");
 
   const [useChatBubbleStyle, setUseChatBubbleStyle] = useLocalStorage("useChatBubbleStyle", true);
@@ -499,7 +506,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           <div className="flex flex-col flex-1 h-full">
             {/* 聊天框 */}
             <div className="bg-base-100 flex-1 flex-shrink-0">
-              <ChatFrame useChatBubbleStyle={useChatBubbleStyle} setUseChatBubbleStyle={setUseChatBubbleStyle} key={roomId} virtuosoRef={virtuosoRef}></ChatFrame>
+              <ChatFrame
+                useChatBubbleStyle={useChatBubbleStyle}
+                setUseChatBubbleStyle={setUseChatBubbleStyle}
+                key={roomId}
+                virtuosoRef={virtuosoRef}
+              >
+              </ChatFrame>
             </div>
             <div className="h-px bg-base-300 flex-shrink-0"></div>
             {/* 输入区域 */}
@@ -600,24 +613,47 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               </div>
             </form>
           </div>
-          <OpenAbleDrawer isOpen={sideDrawerState === "user"} className="h-full bg-base-100 overflow-auto z-20 flex-shrink-0">
-            <div className="w-px bg-base-300"></div>
+          <div className="w-px bg-base-300 flex-shrink-0"></div>
+          <OpenAbleDrawer
+            isOpen={sideDrawerState === "user"}
+            className="h-full bg-base-100 overflow-auto z-20 flex-shrink-0"
+            initialWidth={userDrawerWidth}
+            onWidthChange={setUserDrawerWidth}
+          >
             <RoomUserList></RoomUserList>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "role"} className="h-full bg-base-100 overflow-auto z-20 flex-shrink-0">
-            <div className="w-px bg-base-300"></div>
+          <OpenAbleDrawer
+            isOpen={sideDrawerState === "role"}
+            className="h-full bg-base-100 overflow-auto z-20 flex-shrink-0"
+            initialWidth={roleDrawerWidth}
+            onWidthChange={setRoleDrawerWidth}
+          >
             <RoomRoleList></RoomRoleList>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "initiative"} className="max-h-full overflow-auto z-20">
-            <div className="w-px bg-base-300"></div>
+          <OpenAbleDrawer
+            isOpen={sideDrawerState === "initiative"}
+            className="max-h-full overflow-auto z-20"
+            initialWidth={initiativeDrawerWidth}
+            onWidthChange={setInitiativeDrawerWidth}
+          >
             <InitiativeList></InitiativeList>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "map"} className="h-full overflow-auto z-20" overWrite>
-            <div className="w-px bg-base-300"></div>
+          <OpenAbleDrawer
+            isOpen={sideDrawerState === "map"}
+            className="h-full overflow-auto z-20"
+            initialWidth={mapDrawerWidth}
+            onWidthChange={setMapDrawerWidth}
+            maxWidth={window.innerWidth - 700}
+          >
             <DNDMap></DNDMap>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "clue"} className="h-full bg-base-100 overflow-auto z-20">
-            <div className="w-px bg-base-300"></div>
+          <OpenAbleDrawer
+            isOpen={sideDrawerState === "clue"}
+            className="h-full bg-base-100 overflow-auto z-20"
+            initialWidth={clueDrawerWidth}
+            onWidthChange={setClueDrawerWidth}
+          >
+
             <ClueList></ClueList>
           </OpenAbleDrawer>
         </div>
