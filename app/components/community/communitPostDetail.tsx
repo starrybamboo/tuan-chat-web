@@ -4,6 +4,7 @@ import UserAvatarComponent from "@/components/common/userAvatar";
 import PostActionBar from "@/components/community/postActionBar";
 import PostCommentPanel from "@/components/community/postCommentPanel";
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import { useGetPostDetailQuery } from "../../../api/hooks/communityQueryHooks";
 import { useUserFollowMutation, useUserIsFollowedQuery, useUserUnfollowMutation } from "../../../api/hooks/userFollowQueryHooks";
 import SlidableChatPreview from "./slidableChatPreview";
@@ -22,6 +23,7 @@ export default function CommunityPostDetail({
   postId: number;
   onBack?: () => void;
 }) {
+  const navigate = useNavigate();
   const postDetailQuery = useGetPostDetailQuery(postId);
   const post = postDetailQuery.data?.data;
   const authorId = post?.post?.userId ?? -1;
@@ -48,6 +50,19 @@ export default function CommunityPostDetail({
 
   // 生成对帖子主要内容的引用，用于分享时截图
   const postRef = useRef<HTMLDivElement>(null);
+
+  // 处理删除帖子成功后的导航
+  const handleDeleteSuccess = () => {
+    const communityId = post?.post?.communityId;
+    if (communityId) {
+      // 跳转回对应的社区页面
+      navigate(`/community/${communityId}`);
+    }
+    else {
+      // 如果没有社区ID，跳转到社区列表页面
+      navigate("/community");
+    }
+  };
 
   // 加载状态处理
   if (postDetailQuery.isLoading) {
@@ -188,6 +203,7 @@ export default function CommunityPostDetail({
             targetRef={postRef as React.RefObject<HTMLElement>}
             replyTo={replyTo}
             onSetReplyTo={setReplyTo}
+            onDeleteSuccess={handleDeleteSuccess}
           />
         </div>
 
@@ -215,6 +231,7 @@ export default function CommunityPostDetail({
           targetRef={postRef as React.RefObject<HTMLElement>}
           replyTo={replyTo}
           onSetReplyTo={setReplyTo}
+          onDeleteSuccess={handleDeleteSuccess}
         />
       </div>
     </div>

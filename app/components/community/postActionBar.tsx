@@ -32,6 +32,8 @@ interface PostActionBarProps {
   replyTo?: { userName: string; commentId: number } | null;
   /** 设置回复状态的回调 */
   onSetReplyTo?: (replyTo: { userName: string; commentId: number } | null) => void;
+  /** 删除帖子成功的回调 */
+  onDeleteSuccess?: () => void;
 }
 
 export default function PostActionBar({
@@ -47,6 +49,7 @@ export default function PostActionBar({
   className,
   replyTo,
   onSetReplyTo,
+  onDeleteSuccess,
 }: PostActionBarProps) {
   // 获取当前用户ID
   const currentUserId = useGlobalContext().userId ?? -1;
@@ -86,6 +89,10 @@ export default function PostActionBar({
         onSuccess: () => {
           setShowMoreMenu(false);
           setShowDeleteConfirm(false);
+          // 调用删除成功回调
+          if (onDeleteSuccess) {
+            onDeleteSuccess();
+          }
           // 可以添加成功提示
         },
         onError: (error) => {
