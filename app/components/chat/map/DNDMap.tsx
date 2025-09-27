@@ -16,18 +16,26 @@ import { useGetRoleAvatarQuery } from "../../../../api/queryHooks";
  * @param scale 缩放比例，由于我们的这个图是可以缩放的，如果不考虑这个系数，拖拽的时候的拖拽图像会出现问题
  * @param className
  * @param size 大小，按px计
+ * @param onTouchDrop 触摸拖拽释放事件（移动端使用）
  * @constructor
  */
-function RoleStamp({ role, onDragStart, scale = 1, className, size }: {
+function RoleStamp({ role, onDragStart, scale = 1, className, size, onTouchDrop }: {
   role: UserRole;
   onDragStart: (e: React.DragEvent<HTMLDivElement>, role: UserRole) => void;
   scale?: number;
   className?: string;
   size?: number;
+  onTouchDrop?: (role: UserRole, x: number, y: number) => void;
 }) {
   const roleAvatar = useGetRoleAvatarQuery(role.avatarId ?? -1).data?.data;
   const containerRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLSpanElement>(null);
+
+  // 移动端拖拽状态
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const touchStartPos = useRef({ x: 0, y: 0 });
+  const dragThreshold = 10; // 拖拽阈值，避免误触
 
   // 使用 useLayoutEffect 将字体大小设置为容器高度的一定比例
   useLayoutEffect(() => {
@@ -51,6 +59,42 @@ function RoleStamp({ role, onDragStart, scale = 1, className, size }: {
       resizeObserver.disconnect();
     };
   }, []);
+
+  // 触摸事件处理
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0];
+    touchStartPos.current = { x: touch.clientX, y: touch.clientY };
+    setDragOffset({ x: 0, y: 0 });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length !== 1)
+      return;
+
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - touchStartPos.current.x;
+    const deltaY = touch.clientY - touchStartPos.current.y;
+
+    // 检查是否超过拖拽阈值
+    if (!isDragging && (Math.abs(deltaX) > dragThreshold || Math.abs(deltaY) > dragThreshold)) {
+      setIsDragging(true);
+      e.preventDefault(); // 防止页面滚动
+    }
+
+    if (isDragging) {
+      e.preventDefault();
+      setDragOffset({ x: deltaX, y: deltaY });
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (isDragging && onTouchDrop) {
+      const touch = e.changedTouches[0];
+      onTouchDrop(role, touch.clientX, touch.clientY);
+    }
+    setIsDragging(false);
+    setDragOffset({ x: 0, y: 0 });
+  };
 
   const handleInternalDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     e.stopPropagation();
@@ -79,10 +123,18 @@ function RoleStamp({ role, onDragStart, scale = 1, className, size }: {
     <div
       ref={containerRef}
       draggable
-      className={`relative aspect-square cursor-grab transition-opacity ${className}`}
-      style={sizeStyles}
+      className={`relative aspect-square cursor-grab transition-opacity ${isDragging ? "opacity-50 z-50" : ""} ${className}`}
+      style={{
+        ...sizeStyles,
+        transform: isDragging ? `translate(${dragOffset.x}px, ${dragOffset.y}px)` : undefined,
+        position: isDragging ? "fixed" : "relative",
+        pointerEvents: isDragging ? "none" : "auto",
+      }}
       onDragStart={handleInternalDragStart}
       onDragEnd={handleInternalDragEnd}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <div className="absolute bottom-full w-full flex justify-center items-center bg-base-100/50 rounded">
         <span ref={nameRef} className="max-w-full truncate rounded bg-opacity-70 select-none pointer-events-none">
@@ -159,27 +211,73 @@ export default function DNDMap() {
     }
   };
 
-  // --- 平移和缩放逻辑 ---
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  // 移动端触摸拖拽释放处理
+  const handleTouchDrop = (role: UserRole, x: number, y: number) => {
+    const mapContainer = mapContainerRef.current;
+    if (!mapContainer)
+      return;
+
+    const containerRect = mapContainer.getBoundingClientRect();
+    const relativeX = x - containerRect.left;
+    const relativeY = y - containerRect.top;
+
+    // 转换到缩放后的坐标系
+    const scaledX = (relativeX - transform.x) / transform.scale;
+    const scaledY = (relativeY - transform.y) / transform.scale;
+
+    // 检查是否在图片区域内
+    if (scaledX >= imageRenderInfo.left
+      && scaledX <= imageRenderInfo.left + imageRenderInfo.width
+      && scaledY >= imageRenderInfo.top
+      && scaledY <= imageRenderInfo.top + imageRenderInfo.height) {
+      // 计算网格位置
+      const gridX = scaledX - imageRenderInfo.left;
+      const gridY = scaledY - imageRenderInfo.top;
+      const col = Math.floor((gridX / imageRenderInfo.width) * gridSize.cols);
+      const row = Math.floor((gridY / imageRenderInfo.height) * gridSize.rows);
+
+      if (row >= 0 && row < gridSize.rows && col >= 0 && col < gridSize.cols) {
+        setStampPositions({ ...stampPositions, [role.roleId]: { row, col } });
+        return;
+      }
+    }
+
+    // 如果不在有效区域内，移除角色
+    const { [role.roleId]: _, ...rest } = stampPositions;
+    setStampPositions(rest);
+  };
+
+  // --- 平移和缩放逻辑（支持鼠标和触摸） ---
+  const getEventPosition = (e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent) => {
+    if ("touches" in e && e.touches.length > 0) {
+      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    return { x: (e as MouseEvent).clientX, y: (e as MouseEvent).clientY };
+  };
+
+  const handlePointerDown = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     if (target.closest("[draggable=\"true\"]")) {
       return;
     }
     e.preventDefault();
     isPanning.current = true;
-    lastPanPoint.current = { x: e.clientX, y: e.clientY };
+    const position = getEventPosition(e);
+    lastPanPoint.current = position;
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handlePointerMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     if (!isPanning.current)
       return;
-    const dx = e.clientX - lastPanPoint.current.x;
-    const dy = e.clientY - lastPanPoint.current.y;
+    e.preventDefault();
+    const position = getEventPosition(e);
+    const dx = position.x - lastPanPoint.current.x;
+    const dy = position.y - lastPanPoint.current.y;
     setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
-    lastPanPoint.current = { x: e.clientX, y: e.clientY };
+    lastPanPoint.current = position;
   };
 
-  const handleMouseUpOrLeave = () => {
+  const handlePointerUpOrLeave = () => {
     isPanning.current = false;
   };
 
@@ -244,19 +342,36 @@ export default function DNDMap() {
   useLayoutEffect(() => {
     // 图片加载完成时重新计算
     const image = imageRef.current;
+    const container = mapContainerRef.current;
+
     if (image) {
       image.addEventListener("load", calculateImagePosition);
     }
+
     // 窗口大小改变时重新计算
     window.addEventListener("resize", calculateImagePosition);
+
+    // 使用 ResizeObserver 监听容器大小变化
+    let resizeObserver: ResizeObserver | null = null;
+    if (container) {
+      resizeObserver = new ResizeObserver(() => {
+        calculateImagePosition();
+      });
+      resizeObserver.observe(container);
+    }
+
     // 初始计算一次
     calculateImagePosition();
+
     // 清理
     return () => {
       if (image) {
         image.removeEventListener("load", calculateImagePosition);
       }
       window.removeEventListener("resize", calculateImagePosition);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
     };
   }, [mapImg]); // 当图片源改变时，重新设置监听
 
@@ -296,11 +411,15 @@ export default function DNDMap() {
       <div
         ref={mapContainerRef}
         className="flex-grow h-full relative overflow-hidden cursor-move"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUpOrLeave}
-        onMouseLeave={handleMouseUpOrLeave}
+        onMouseDown={handlePointerDown}
+        onMouseMove={handlePointerMove}
+        onMouseUp={handlePointerUpOrLeave}
+        onMouseLeave={handlePointerUpOrLeave}
+        onTouchStart={handlePointerDown}
+        onTouchMove={handlePointerMove}
+        onTouchEnd={handlePointerUpOrLeave}
         onWheel={handleWheel}
+        style={{ touchAction: "none" }}
       >
         <div
           className="w-full h-full"
@@ -338,6 +457,7 @@ export default function DNDMap() {
                       <RoleStamp
                         role={roleInCell}
                         onDragStart={handleDragStart}
+                        onTouchDrop={handleTouchDrop}
                         scale={transform.scale}
                         size={stampSizeOnMap}
                       />
@@ -382,7 +502,11 @@ export default function DNDMap() {
             {roomRoles.filter(role => !stampPositions[role.roleId])
               .map(role => (
                 <div className="aspect-square flex items-center justify-center" key={role.roleId}>
-                  <RoleStamp role={role} onDragStart={handleDragStart} />
+                  <RoleStamp
+                    role={role}
+                    onDragStart={handleDragStart}
+                    onTouchDrop={handleTouchDrop}
+                  />
                 </div>
               ))}
           </div>
