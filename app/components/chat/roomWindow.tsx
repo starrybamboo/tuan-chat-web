@@ -643,7 +643,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             className="h-full overflow-auto z-20"
             initialWidth={mapDrawerWidth}
             onWidthChange={setMapDrawerWidth}
-            maxWidth={window.innerWidth - 900}
+            maxWidth={window.innerWidth - 700}
           >
             <DNDMap></DNDMap>
           </OpenAbleDrawer>
