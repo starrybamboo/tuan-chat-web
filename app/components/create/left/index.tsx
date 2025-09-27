@@ -1,10 +1,11 @@
 import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
 import { ModuleListEnum } from "@/components/module/workPlace/context/types";
 import MapModule from "./components/MapModule";
+import ModuleBasicInfo from "./components/ModuleBasicInfo";
 import ModuleItems from "./moduleItems";
 
 function LeftContent() {
-  const { stageId: editingStageId, activeList } = useModuleContext();
+  const { stageId: editingStageId, moduleId: editingModuleId, activeList } = useModuleContext();
   // 根据activeList渲染不同的内容
 
   const renderContent = () => {
@@ -50,7 +51,19 @@ function LeftContent() {
         return null; // 不渲染任何内容
 
       default:
-        return null;
+        return (
+          <div className="w-80 h-full bg-base-100">
+            {editingModuleId
+              ? (
+                  <ModuleBasicInfo moduleId={editingModuleId as number} />
+                )
+              : (
+                  <div className="p-4">
+                    <p className="text-gray-600">请先选择一个模组</p>
+                  </div>
+                )}
+          </div>
+        );
     }
   };
 

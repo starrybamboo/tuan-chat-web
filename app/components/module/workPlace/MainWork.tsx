@@ -1,5 +1,6 @@
 import LeftContent from "@/components/create/left";
 import SideTopbar from "@/components/create/left/SideTopbar";
+import { useStagingQuery } from "api/hooks/moduleQueryHooks";
 import { useEffect } from "react";
 import { useParams } from "react-router";
 import { ModuleProvider, useModuleContext } from "./context/_moduleContext";
@@ -11,7 +12,8 @@ import FunctionButtons from "./FunctionButtons";
 
 function StageInitializer() {
   const { editingStageId } = useParams();
-  const { setStageId, stageId } = useModuleContext();
+  const { setStageId, setModuleId, stageId, moduleId } = useModuleContext();
+  const { data: stagingData } = useStagingQuery();
 
   useEffect(() => {
     const id = Number.parseInt(editingStageId ?? "0", 10);
@@ -23,6 +25,19 @@ function StageInitializer() {
     }
   }, [editingStageId, stageId, setStageId]);
 
+  // 当 stageId 变化时，从 staging 数据中找到对应的 moduleId
+  useEffect(() => {
+    if (stageId && stagingData?.data) {
+      const stageInfo = stagingData.data.find(stage => stage.stageId === stageId);
+      if (stageInfo?.moduleId && stageInfo.moduleId !== moduleId) {
+        setModuleId(stageInfo.moduleId);
+        if (typeof window !== "undefined" && window.localStorage) {
+          localStorage.setItem("currentModuleId", stageInfo.moduleId.toString());
+        }
+      }
+    }
+  }, [stageId, stagingData, moduleId, setModuleId]);
+
   return null;
 }
 
@@ -33,14 +48,16 @@ export default function MainWork() {
       <div className="h-[calc(100vh-4rem)] flex bg-base-200 ">
         <SideTopbar />
         <div className="flex flex-1 h-full">
-          <div className="bg-base-200 flex flex-col">
-            <LeftContent />
+          <div className="bg-base-200 w-80 flex flex-col h-full">
+            <div className="flex-shrink-0">
+              <FunctionButtons />
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <LeftContent />
+            </div>
           </div>
-          <div className="bg-base-200 flex flex-col flex-1 overflow-y-scroll relative">
+          <div className="bg-base-200 flex flex-col flex-1 overflow-y-auto relative">
             <div className="max-w-7xl mx-auto w-full">
-              <div className="absolute top-0 right-2 z-10">
-                <FunctionButtons />
-              </div>
               <EditModule />
             </div>
           </div>

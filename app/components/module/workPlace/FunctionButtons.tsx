@@ -31,22 +31,22 @@ export default function FunctionButtons() {
 
   return (
     <>
-      <div className="bg-base-200 flex items-center p-2 gap-2">
-        <div className="tooltip tooltip-left" data-tip="返回上一级">
+      <div className="bg-base-200 flex items-center p-2 gap-2 w-full">
+        <div className="flex-1">
           <button
             type="button"
             onClick={() => navigate("/create", { replace: true })}
-            className="h-10 px-3 gap-2 rounded-lg flex items-center justify-center border hover:bg-base-300 transition-colors"
+            className="h-10 w-full px-3 gap-2 rounded-lg flex items-center justify-center border hover:bg-base-300 transition-colors"
           >
             <ArrowBackThickFill className="w-4 h-4" />
             返回
           </button>
         </div>
-        <div className="tooltip tooltip-left" data-tip="保存当前版本">
+        <div className="flex-1">
           <button
             type="button"
             onClick={() => setIsCommitOpen(true)}
-            className="h-10 px-3 gap-2 rounded-lg flex items-center justify-center bg-primary text-primary-content hover:bg-primary-focus transition-colors"
+            className="h-10 w-full px-3 gap-2 rounded-lg flex items-center justify-center bg-primary text-primary-content hover:bg-primary-focus transition-colors"
           >
             <ChevronSmallTripleUp className="w-4 h-4" />
             保存

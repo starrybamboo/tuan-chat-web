@@ -179,6 +179,15 @@ export function useModuleDetailQuery(moduleId: number) {
     };
 }
 
+export function useModuleDetailByIdQuery(moduleId: number) {
+    return useQuery({
+        queryKey: ['moduleDetail', moduleId],
+        queryFn: () => tuanchat.moduleController.getById(moduleId),
+        enabled: !!moduleId,
+        staleTime: 300000 // 5分钟缓存
+    });
+}
+
 /*====================stages=======================*/
 // 回退文件信息
 export function useStageRollbackMutation() {
