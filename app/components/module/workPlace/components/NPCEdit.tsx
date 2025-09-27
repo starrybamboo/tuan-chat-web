@@ -441,86 +441,68 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
       </PopWindow>
       {/* 基础信息卡片 */}
       <div className="bg-base-100">
-        {/* 头像和基本信息左右布局 */}
-        <div className="flex flex-col md:flex-row gap-6 mb-6">
-
+        {/* 头像与表单横向布局 */}
+        <div className="flex flex-row items-start gap-6 mb-6">
           {/* 头像 */}
-          <div className="flex flex-col justify-center items-center w-32">
-            <span className="text-lg font-bold break-words text-center mb-2">{role.name}</span>
-            <div className="avatar cursor-pointer group flex items-center justify-center " onClick={() => setChangeAvatarConfirmOpen(true)}>
+          <div className="flex flex-col justify-start items-start shrink-0">
+            <span className="text-lg font-bold break-words mb-2">{role.name}</span>
+            <div className="avatar cursor-pointer group flex items-start justify-start mb-2" onClick={() => setChangeAvatarConfirmOpen(true)}>
               <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
                 <RoleAvatar
                   avatarId={localRole.avatarId || (localRole.avatarIds && localRole.avatarIds.length > 0 ? localRole.avatarIds[0] : 0)}
-                  width={32}
+                  width={36}
                   isRounded={false}
                   stopPopWindow={true}
                 />
               </div>
             </div>
-          </div>
-
-          {/* 角色信息 */}
-          <div className="flex-1">
-            {/* 角色名改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
-            <div className="flex flex-col justify-center h-full">
-              <div className="flex justify-between items-center">
-                <span className="text-lg">简介：</span>
-                <span
-                  className={`text-sm font-bold ${charCount > MAX_DESCRIPTION_LENGTH
-                    ? "text-error"
-                    : "text-base-content/70"
-                  }`}
-                >
-                  {charCount}
-                  /
-                  {MAX_DESCRIPTION_LENGTH}
-                  {charCount > MAX_DESCRIPTION_LENGTH && (
-                    <span className="ml-2">(已超出描述字数上限)</span>
-                  )}
-                </span>
-              </div>
-              <textarea
-                value={localRole.description || ""}
+            <div className="flex flex-col gap-2 w-full max-w-xs">
+              <label className="font-medium text-base" htmlFor="roleType">类型：</label>
+              <select
+                id="roleType"
+                value={localRole.type ?? ""}
                 onChange={(e) => {
-                  setLocalRole(prev => ({ ...prev, description: e.target.value }));
-                  setCharCount(e.target.value.length);
+                  setLocalRole(prev => ({ ...prev, type: Number(e.target.value) }));
                   scheduleSave();
                 }}
-                placeholder="角色描述"
-                className="textarea textarea-bordered w-full h-24 resize-none flex-1"
-              />
+                className="select rounded-md"
+              >
+                <option value={0}>NPC</option>
+                <option value={1}>预设卡</option>
+              </select>
             </div>
           </div>
-        </div>
+          <div className="divider divider-horizontal" />
 
-        {/* 其他表单字段 */}
-        <div className="space-y-4 mb-6">
-          <div>
-            <p>模型名：</p>
-            <input
-              type="text"
-              value={localRole.modelName || ""}
+          {/* 简介和类型表单整体在头像右侧，垂直居中 */}
+          <div className="flex flex-col gap-4 w-2/3 justify-center h-full self-center">
+            <div className="flex items-center justify-between">
+              <label className="text-base" htmlFor="roleDescription">简介：</label>
+              <span
+                className={`text-base font-bold ${charCount > MAX_DESCRIPTION_LENGTH
+                  ? "text-error"
+                  : "text-base-content/70"
+                }`}
+              >
+                {charCount}
+                /
+                {MAX_DESCRIPTION_LENGTH}
+                {charCount > MAX_DESCRIPTION_LENGTH && (
+                  <span className="ml-2">(已超出描述字数上限)</span>
+                )}
+              </span>
+            </div>
+            <textarea
+              id="roleDescription"
+              value={localRole.description || ""}
               onChange={(e) => {
-                setLocalRole(prev => ({ ...prev, modelName: e.target.value }));
+                setLocalRole(prev => ({ ...prev, description: e.target.value }));
+                setCharCount(e.target.value.length);
                 scheduleSave();
               }}
-              placeholder="模型名"
-              className="input input-bordered w-full"
-            />
-          </div>
-
-          <div>
-            <p>类型（0=NPC, 1=预设卡）：</p>
-            <input
-              type="number"
-              value={localRole.type ?? ""}
-              onChange={(e) => {
-                setLocalRole(prev => ({ ...prev, type: Number(e.target.value) }));
-                scheduleSave();
-              }}
-              placeholder="类型"
-              className="input input-bordered w-full"
+              placeholder="角色描述"
+              className="textarea textarea-bordered rounded-md w-full min-h-32 resize-none flex-1"
             />
           </div>
         </div>
