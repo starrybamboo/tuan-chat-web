@@ -506,7 +506,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           <div className="flex flex-col flex-1 h-full">
             {/* 聊天框 */}
             <div className="bg-base-100 flex-1 flex-shrink-0">
-              <ChatFrame useChatBubbleStyle={useChatBubbleStyle} setUseChatBubbleStyle={setUseChatBubbleStyle} key={roomId} virtuosoRef={virtuosoRef}></ChatFrame>
+              <ChatFrame
+                useChatBubbleStyle={useChatBubbleStyle}
+                setUseChatBubbleStyle={setUseChatBubbleStyle}
+                key={roomId}
+                virtuosoRef={virtuosoRef}
+              >
+              </ChatFrame>
             </div>
             <div className="h-px bg-base-300 flex-shrink-0"></div>
             {/* 输入区域 */}
@@ -607,13 +613,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               </div>
             </form>
           </div>
+          <div className="w-px bg-base-300 flex-shrink-0"></div>
           <OpenAbleDrawer
             isOpen={sideDrawerState === "user"}
             className="h-full bg-base-100 overflow-auto z-20 flex-shrink-0"
             initialWidth={userDrawerWidth}
             onWidthChange={setUserDrawerWidth}
           >
-            <div className="w-px bg-base-300"></div>
             <RoomUserList></RoomUserList>
           </OpenAbleDrawer>
           <OpenAbleDrawer
@@ -622,7 +628,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             initialWidth={roleDrawerWidth}
             onWidthChange={setRoleDrawerWidth}
           >
-            <div className="w-px bg-base-300"></div>
             <RoomRoleList></RoomRoleList>
           </OpenAbleDrawer>
           <OpenAbleDrawer
@@ -631,7 +636,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             initialWidth={initiativeDrawerWidth}
             onWidthChange={setInitiativeDrawerWidth}
           >
-            <div className="w-px bg-base-300"></div>
             <InitiativeList></InitiativeList>
           </OpenAbleDrawer>
           <OpenAbleDrawer
@@ -641,7 +645,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             onWidthChange={setMapDrawerWidth}
             maxWidth={500}
           >
-            <div className="w-px bg-base-300"></div>
             <DNDMap></DNDMap>
           </OpenAbleDrawer>
           <OpenAbleDrawer
@@ -650,7 +653,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             initialWidth={clueDrawerWidth}
             onWidthChange={setClueDrawerWidth}
           >
-            <div className="w-px bg-base-300"></div>
+
             <ClueList></ClueList>
           </OpenAbleDrawer>
         </div>
