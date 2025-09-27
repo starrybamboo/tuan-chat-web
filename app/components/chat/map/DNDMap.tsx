@@ -4,6 +4,7 @@ import { RoomContext } from "@/components/chat/roomContext";
 import { confirmToast } from "@/components/common/comfirmToast";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
+import { getScreenSize } from "@/utils/getScreenSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { use, useLayoutEffect, useRef, useState } from "react"; // 引入 useLayoutEffect 用于DOM计算
 import { useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
@@ -156,6 +157,10 @@ export default function DNDMap() {
   const { data: roomRolesData } = useGetRoomRoleQuery(roomId ?? -1);
   const roomRoles = roomRolesData?.data ?? [];
   const uploadUtil = new UploadUtils();
+
+  // --- 响应式状态管理 ---
+  const isCompactMode = getScreenSize() === "sm";
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // --- 状态管理 ---
   const [mapImg, setMapImg] = useRoomExtra(roomId ?? -1, "dndMapImg", "");
@@ -406,11 +411,18 @@ export default function DNDMap() {
   const stampSizeOnMap = Math.min(cellWidth, cellHeight) * 0.8;
 
   return (
-    <div className="w-full h-full flex bg-base-200">
+    <div
+      ref={containerRef}
+      className={`w-full h-full bg-base-200 overflow-auto ${
+        isCompactMode ? "flex flex-col" : "flex"
+      }`}
+    >
       {/* 主地图区域 */}
       <div
         ref={mapContainerRef}
-        className="flex-grow h-full relative overflow-hidden cursor-move"
+        className={`relative overflow-hidden cursor-move ${
+          isCompactMode ? "flex-1 w-full" : "flex-grow h-full"
+        }`}
         onMouseDown={handlePointerDown}
         onMouseMove={handlePointerMove}
         onMouseUp={handlePointerUpOrLeave}
@@ -470,73 +482,97 @@ export default function DNDMap() {
         </div>
       </div>
 
-      {/* 右侧控制面板 */}
+      {/* 控制面板 */}
       <div
-        className="w-64 h-full bg-base-100 p-4 flex flex-col shadow-lg"
+        className={`p-4 flex flex-col shadow-lg bg-base-100 ${
+          isCompactMode ? "w-full" : "w-64 h-full"
+        }`}
         onDragOver={handleDragOver}
         onDrop={handleDropOnPanel}
       >
         <h2 className="text-lg font-bold mb-4">地图编辑器</h2>
-        <div className="form-control">
-          <label className="label"><span className="label-text">行数</span></label>
-          <input
-            type="number"
-            value={gridSize.rows}
-            onChange={e => setGridSize({ ...gridSize, rows: Number.parseInt(e.target.value) })}
-            className="input input-bordered w-full"
-          />
-        </div>
-        <div className="form-control pt-2">
-          <label className="label"><span className="label-text">列数</span></label>
-          <input
-            type="number"
-            value={gridSize.cols}
-            onChange={e => setGridSize({ ...gridSize, cols: Number.parseInt(e.target.value) })}
-            className="input input-bordered w-full"
-          />
-        </div>
-        <div className="divider"></div>
-        <h3 className="font-semibold pb-2">角色 (拖动到地图)</h3>
-        <div className="flex-grow overflow-y-auto">
-          <div className="grid grid-cols-3 gap-2 pt-4">
-            {roomRoles.filter(role => !stampPositions[role.roleId])
-              .map(role => (
-                <div className="aspect-square flex items-center justify-center" key={role.roleId}>
-                  <RoleStamp
-                    role={role}
-                    onDragStart={handleDragStart}
-                    onTouchDrop={handleTouchDrop}
-                  />
-                </div>
-              ))}
-          </div>
-        </div>
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">网格线颜色</span>
-          </label>
-          <div className="relative w-full h-10">
-            <div
-              className="w-full h-full rounded-lg border border-base-content/20"
-              style={{ backgroundColor: gridColor }}
-            >
+        <div className="flex flex-col flex-1">
+          {/* 网格设置区域 */}
+          <div className={`flex ${isCompactMode ? "flex-row gap-4 flex-shrink-0" : "flex-col"}`}>
+            <div className="form-control">
+              <label className="label"><span className="label-text">行数</span></label>
+              <input
+                type="number"
+                value={gridSize.rows}
+                onChange={e => setGridSize({ ...gridSize, rows: Number.parseInt(e.target.value) })}
+                className="input input-bordered w-full"
+              />
             </div>
-            <input
-              type="color"
-              value={gridColor}
-              onChange={e => setGridColor(e.target.value)}
-              className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
-            />
+            <div className={`form-control ${isCompactMode ? "" : "pt-2"}`}>
+              <label className="label"><span className="label-text">列数</span></label>
+              <input
+                type="number"
+                value={gridSize.cols}
+                onChange={e => setGridSize({ ...gridSize, cols: Number.parseInt(e.target.value) })}
+                className="input input-bordered w-full"
+              />
+            </div>
+          </div>
+
+          {/* 角色区域 */}
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className={`divider ${isCompactMode ? "divider-horizontal" : ""}`}></div>
+            <h3 className="font-semibold pb-2">角色 (拖动到地图)</h3>
+            <div className={`flex-grow overflow-y-auto ${
+              isCompactMode ? "min-w-0" : ""
+            }`}
+            >
+              <div className={`grid gap-2 pt-4 ${
+                isCompactMode ? "grid-cols-4 lg:grid-cols-6" : "grid-cols-3"
+              }`}
+              >
+                {roomRoles.filter(role => !stampPositions[role.roleId])
+                  .map(role => (
+                    <div className="aspect-square flex items-center justify-center" key={role.roleId}>
+                      <RoleStamp
+                        role={role}
+                        onDragStart={handleDragStart}
+                        onTouchDrop={handleTouchDrop}
+                      />
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 颜色和重置区域 */}
+          <div className={`flex-shrink-0 ${
+            isCompactMode ? "flex flex-col justify-end gap-2" : ""
+          }`}
+          >
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">网格线颜色</span>
+              </label>
+              <div className="relative w-full h-10">
+                <div
+                  className="w-full h-full rounded-lg border border-base-content/20"
+                  style={{ backgroundColor: gridColor }}
+                >
+                </div>
+                <input
+                  type="color"
+                  value={gridColor}
+                  onChange={e => setGridColor(e.target.value)}
+                  className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+                />
+              </div>
+            </div>
+            <div className="divider"></div>
+            <button
+              className="btn btn-error btn-sm"
+              type="button"
+              onClick={handleResetClick}
+            >
+              重置地图
+            </button>
           </div>
         </div>
-        <div className="divider"></div>
-        <button
-          className="btn btn-error btn-sm mt-4"
-          type="button"
-          onClick={handleResetClick}
-        >
-          重置地图
-        </button>
       </div>
     </div>
   );
