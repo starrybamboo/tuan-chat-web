@@ -20,7 +20,7 @@ import { useGetRoleAvatarQuery } from "../../../../api/queryHooks";
  * @param onTouchDrop 触摸拖拽释放事件（移动端使用）
  * @constructor
  */
-function RoleStamp({ role, onDragStart, scale = 1, className, size, onTouchDrop }: {
+function RoleStamp({ role, onDragStart, scale: _scale = 1, className, size, onTouchDrop }: {
   role: UserRole;
   onDragStart: (e: React.DragEvent<HTMLDivElement>, role: UserRole) => void;
   scale?: number;
@@ -101,15 +101,35 @@ function RoleStamp({ role, onDragStart, scale = 1, className, size, onTouchDrop 
     e.stopPropagation();
     const dragImage = e.currentTarget.cloneNode(true) as HTMLElement;
     const originalElement = e.currentTarget;
-    const width = originalElement.offsetWidth * scale;
-    const height = originalElement.offsetHeight * scale;
+
+    // 获取元素的实际尺寸
+    const rect = originalElement.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+
+    // 设置拖拽图像的样式
     dragImage.style.position = "absolute";
     dragImage.style.top = "-1000px"; // 移出屏幕外
+    dragImage.style.left = "-1000px";
     dragImage.style.width = `${width}px`;
     dragImage.style.height = `${height}px`;
+    dragImage.style.transform = "none"; // 重置变换
+    dragImage.style.pointerEvents = "none";
+
     document.body.appendChild(dragImage);
-    e.dataTransfer.setDragImage(dragImage, width / 2, height / 2);
+
+    // 计算鼠标在元素内的相对位置
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+
+    e.dataTransfer.setDragImage(dragImage, offsetX, offsetY);
     e.currentTarget.classList.add("opacity-50");
+
+    // 清理拖拽图像
+    setTimeout(() => {
+      document.body.removeChild(dragImage);
+    }, 0);
+
     onDragStart(e, role);
   };
 
@@ -260,37 +280,128 @@ export default function DNDMap() {
     return { x: (e as MouseEvent).clientX, y: (e as MouseEvent).clientY };
   };
 
+  // 双指触摸状态
+  const lastTouchDistance = useRef(0);
+  const lastTouchCenter = useRef({ x: 0, y: 0 });
+
+  // 计算两点间距离
+  const getTouchDistance = (touches: React.TouchList) => {
+    if (touches.length < 2)
+      return 0;
+    const touch1 = touches[0];
+    const touch2 = touches[1];
+    return Math.sqrt(
+      (touch2.clientX - touch1.clientX) ** 2
+      + (touch2.clientY - touch1.clientY) ** 2,
+    );
+  };
+
+  // 计算两点中心
+  const getTouchCenter = (touches: React.TouchList) => {
+    if (touches.length < 2)
+      return { x: 0, y: 0 };
+    const touch1 = touches[0];
+    const touch2 = touches[1];
+    return {
+      x: (touch1.clientX + touch2.clientX) / 2,
+      y: (touch1.clientY + touch2.clientY) / 2,
+    };
+  };
+
   const handlePointerDown = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     if (target.closest("[draggable=\"true\"]")) {
       return;
     }
-    e.preventDefault();
-    isPanning.current = true;
-    const position = getEventPosition(e);
-    lastPanPoint.current = position;
+
+    if ("touches" in e) {
+      if (e.touches.length === 2) {
+        // 双指缩放模式
+        e.preventDefault();
+        const distance = getTouchDistance(e.touches);
+        const center = getTouchCenter(e.touches);
+        lastTouchDistance.current = distance;
+        lastTouchCenter.current = center;
+        isPanning.current = false; // 禁用平移
+      }
+      else if (e.touches.length === 1) {
+        // 单指平移模式
+        isPanning.current = true;
+        const position = getEventPosition(e);
+        lastPanPoint.current = position;
+      }
+    }
+    else {
+      // 鼠标事件
+      e.preventDefault();
+      isPanning.current = true;
+      const position = getEventPosition(e);
+      lastPanPoint.current = position;
+    }
   };
 
   const handlePointerMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-    if (!isPanning.current)
-      return;
-    e.preventDefault();
-    const position = getEventPosition(e);
-    const dx = position.x - lastPanPoint.current.x;
-    const dy = position.y - lastPanPoint.current.y;
-    setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
-    lastPanPoint.current = position;
+    if ("touches" in e) {
+      if (e.touches.length === 2) {
+        // 双指缩放
+        e.preventDefault();
+        const distance = getTouchDistance(e.touches);
+        const center = getTouchCenter(e.touches);
+
+        if (lastTouchDistance.current > 0) {
+          const scaleChange = distance / lastTouchDistance.current;
+          // 提高缩放灵敏度，使用指数放大
+          const enhancedScaleChange = scaleChange ** 1.5;
+          const newScale = Math.min(Math.max(0.2, transform.scale * enhancedScaleChange), 5);
+
+          // 以双指中心为缩放原点
+          const container = mapContainerRef.current;
+          if (container) {
+            const rect = container.getBoundingClientRect();
+            const centerX = center.x - rect.left;
+            const centerY = center.y - rect.top;
+
+            const newX = transform.x + (centerX - transform.x) * (1 - newScale / transform.scale);
+            const newY = transform.y + (centerY - transform.y) * (1 - newScale / transform.scale);
+
+            setTransform({ scale: newScale, x: newX, y: newY });
+          }
+        }
+
+        lastTouchDistance.current = distance;
+        lastTouchCenter.current = center;
+      }
+      else if (e.touches.length === 1 && isPanning.current) {
+        // 单指平移
+        e.preventDefault();
+        const position = getEventPosition(e);
+        const dx = position.x - lastPanPoint.current.x;
+        const dy = position.y - lastPanPoint.current.y;
+        setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
+        lastPanPoint.current = position;
+      }
+    }
+    else if (isPanning.current) {
+      // 鼠标平移
+      const position = getEventPosition(e);
+      const dx = position.x - lastPanPoint.current.x;
+      const dy = position.y - lastPanPoint.current.y;
+      setTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
+      lastPanPoint.current = position;
+    }
   };
 
   const handlePointerUpOrLeave = () => {
     isPanning.current = false;
+    lastTouchDistance.current = 0;
   };
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     const container = mapContainerRef.current;
     if (!container)
       return;
-    const scaleAmount = -e.deltaY * 0.001;
+    // 提高鼠标滚轮缩放灵敏度
+    const scaleAmount = -e.deltaY * 0.002; // 从 0.001 提高到 0.002
     const newScale = Math.min(Math.max(0.2, transform.scale + scaleAmount), 5);
     const rect = container.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
@@ -410,6 +521,10 @@ export default function DNDMap() {
   const cellHeight = imageRenderInfo.height > 0 ? imageRenderInfo.height / gridSize.rows : 0;
   const stampSizeOnMap = Math.min(cellWidth, cellHeight) * 0.8;
 
+  // 移动端 RoleStamp 尺寸控制
+  const isMobile = typeof window !== "undefined" && "ontouchstart" in window;
+  const defaultRoleStampSize = isMobile ? 48 : 64; // 移动端使用小一些的尺寸
+
   return (
     <div
       ref={containerRef}
@@ -485,7 +600,7 @@ export default function DNDMap() {
       {/* 控制面板 */}
       <div
         className={`p-4 flex flex-col shadow-lg bg-base-100 ${
-          isCompactMode ? "w-full" : "w-64 h-full"
+          isCompactMode ? "w-full max-h-64 overflow-auto" : "w-64 h-full"
         }`}
         onDragOver={handleDragOver}
         onDrop={handleDropOnPanel}
@@ -522,10 +637,7 @@ export default function DNDMap() {
               isCompactMode ? "min-w-0" : ""
             }`}
             >
-              <div className={`grid gap-2 pt-4 ${
-                isCompactMode ? "grid-cols-4 lg:grid-cols-6" : "grid-cols-3"
-              }`}
-              >
+              <div className="flex gap-2 pt-4 flex-wrap">
                 {roomRoles.filter(role => !stampPositions[role.roleId])
                   .map(role => (
                     <div className="aspect-square flex items-center justify-center" key={role.roleId}>
@@ -533,6 +645,7 @@ export default function DNDMap() {
                         role={role}
                         onDragStart={handleDragStart}
                         onTouchDrop={handleTouchDrop}
+                        size={defaultRoleStampSize}
                       />
                     </div>
                   ))}
