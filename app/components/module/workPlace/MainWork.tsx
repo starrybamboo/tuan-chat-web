@@ -35,12 +35,12 @@ export default function MainWork() {
           <div className="bg-base-300 basis-1/5 flex flex-col overflow-hidden">
             <LeftContent />
           </div>
-          <div className="basis-3/5 flex flex-col overflow-hidden">
+          <div className="basis-4/5 flex flex-col overflow-hidden">
             <EditModule />
           </div>
-          <div className="bg-cyan-700 basis-1/5 flex flex-col overflow-hidden">
-            AI 面板
-          </div>
+          {/* <div className="bg-cyan-700 basis-1/5 flex flex-col overflow-hidden"> */}
+          {/*  AI 面板 */}
+          {/* </div> */}
         </div>
       </div>
     </ModuleProvider>

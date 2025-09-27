@@ -22,15 +22,55 @@ interface SceneNodeProps {
 
 function SceneNode({ data, selected }: SceneNodeProps) {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const handleNodeClick = () => {
     setIsPopupOpen(true);
   };
 
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    // 检查是否有我们关心的数据类型
+    if (e.dataTransfer.types.includes("application/reactflow")) {
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    // 只有当离开整个节点时才设置为false
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    // 拖拽处理在MapEdit组件中已经实现
+  };
+
   return (
-    <div className="border min-w-[120px] rounded-xs">
+    <div
+      className="border min-w-[120px] rounded-xs"
+      data-id={data.label}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       <div
-        className={`${selected ? "border-2 border-blue-500" : ""
+        className={`${selected ? "border-2 border-blue-500" : ""} ${
+          isDragOver ? "ring-2 ring-green-400 ring-opacity-75 bg-green-50" : ""
         }`}
         onClick={handleNodeClick}
       >
