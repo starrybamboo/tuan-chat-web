@@ -225,6 +225,7 @@ export default function ClueList() {
       <PopWindow
         isOpen={selectedItemId > 0}
         onClose={() => setSelectedItemId(-1)}
+        sidebarHidden={true}
       >
         {selectedItemId && (
           <DisplayOfItemDetail itemId={selectedItemId} />
@@ -234,6 +235,7 @@ export default function ClueList() {
       <PopWindow
         isOpen={selectedLocationId > 0}
         onClose={() => setSelectedLocationId(-1)}
+        sidebarHidden={true}
       >
         {selectedLocationId && (
           <DisplayOfLocationDetail locationId={selectedLocationId} />

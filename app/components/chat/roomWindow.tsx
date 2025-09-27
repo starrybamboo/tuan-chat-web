@@ -176,13 +176,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     return members.find(member => member.userId === userId);
   }, [members, userId]);
 
-  // 切换空间时关闭线索侧边栏
-  useEffect(() => {
-    if (sideDrawerState === "clue") {
-      setSideDrawerState("none");
-    }
-  }, [spaceId]);
-
   /**
    * 获取历史消息
    */

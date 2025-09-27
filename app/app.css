@@ -102,3 +102,13 @@ body {
   border-radius: 0.5rem;
   animation: highlight-fade-out 3s ease-out;
 }
+
+.hidden-scrollbar {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.bottom-blurred {
+  mask-image: linear-gradient(to bottom, black 90%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 90%, transparent 100%);
+}

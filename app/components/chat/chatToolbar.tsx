@@ -11,8 +11,6 @@ import {
   SparklesOutline,
   SwordSwing,
 } from "@/icons";
-import React, { use } from "react";
-import { SpaceContext } from "./spaceContext";
 
 interface ChatToolbarProps {
   // 侧边栏状态
@@ -48,8 +46,6 @@ export function ChatToolbar({
   currentChatStatus,
   onChangeChatStatus,
 }: ChatToolbarProps) {
-  const spaceContext = use(SpaceContext);
-
   return (
     <div className="flex pr-1 pl-2 justify-between ">
       <div className="flex gap-2">
@@ -164,15 +160,13 @@ export function ChatToolbar({
 
       {/* 右侧按钮组 */}
       <div className="flex gap-2">
-        {spaceContext.isSpaceOwner && (
-          <div
-            className="tooltip tooltip-bottom hover:text-info"
-            data-tip="查看线索"
-            onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}
-          >
-            <Detective className="size-7"></Detective>
-          </div>
-        )}
+        <div
+          className="tooltip tooltip-bottom hover:text-info"
+          data-tip="查看线索"
+          onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}
+        >
+          <Detective className="size-7"></Detective>
+        </div>
 
         <div
           className="tooltip"
