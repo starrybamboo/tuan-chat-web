@@ -6,7 +6,7 @@ import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage
 import { ImgUploader } from "@/components/common/uploader/imgUploader";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { UploadUtils } from "@/utils/UploadUtils";
-import React, { use, useLayoutEffect, useRef, useState } from "react"; // 引入 useLayoutEffect 用于DOM计算
+import React, { use, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react"; // 引入 useLayoutEffect 用于DOM计算
 import { useGetRoomRoleQuery } from "../../../../api/hooks/chatQueryHooks";
 import { useGetRoleAvatarQuery } from "../../../../api/queryHooks";
 
@@ -20,14 +20,15 @@ import { useGetRoleAvatarQuery } from "../../../../api/queryHooks";
  * @param onTouchDrop 触摸拖拽释放事件（移动端使用）
  * @constructor
  */
-function RoleStamp({ role, onDragStart, scale: _scale = 1, className, size, onTouchDrop }: {
+const RoleStamp = React.memo(({ role, onDragStart, scale: _scale = 1, className, size, onTouchDrop, mapTransform }: {
   role: UserRole;
   onDragStart: (e: React.DragEvent<HTMLDivElement>, role: UserRole) => void;
   scale?: number;
   className?: string;
   size?: number;
   onTouchDrop?: (role: UserRole, x: number, y: number) => void;
-}) {
+  mapTransform?: { scale: number; x: number; y: number };
+}) => {
   const roleAvatar = useGetRoleAvatarQuery(role.avatarId ?? -1).data?.data;
   const containerRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLSpanElement>(null);
@@ -64,8 +65,19 @@ function RoleStamp({ role, onDragStart, scale: _scale = 1, className, size, onTo
   // 触摸事件处理
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     const touch = e.touches[0];
+    // 获取容器的边界信息，用于后续的坐标转换
+    const containerRect = containerRef.current?.getBoundingClientRect();
+
     touchStartPos.current = { x: touch.clientX, y: touch.clientY };
     setDragOffset({ x: 0, y: 0 });
+
+    // 保存容器信息，用于触摸拖拽时的坐标转换
+    if (containerRect && mapTransform) {
+      touchStartPos.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+      };
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -73,8 +85,14 @@ function RoleStamp({ role, onDragStart, scale: _scale = 1, className, size, onTo
       return;
 
     const touch = e.touches[0];
-    const deltaX = touch.clientX - touchStartPos.current.x;
-    const deltaY = touch.clientY - touchStartPos.current.y;
+    let deltaX = touch.clientX - touchStartPos.current.x;
+    let deltaY = touch.clientY - touchStartPos.current.y;
+
+    // 如果在缩放的地图上，需要调整拖拽偏移以适应缩放
+    if (mapTransform && mapTransform.scale !== 1) {
+      deltaX = deltaX / mapTransform.scale;
+      deltaY = deltaY / mapTransform.scale;
+    }
 
     // 检查是否超过拖拽阈值
     if (!isDragging && (Math.abs(deltaX) > dragThreshold || Math.abs(deltaY) > dragThreshold)) {
@@ -91,7 +109,12 @@ function RoleStamp({ role, onDragStart, scale: _scale = 1, className, size, onTo
   const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
     if (isDragging && onTouchDrop) {
       const touch = e.changedTouches[0];
-      onTouchDrop(role, touch.clientX, touch.clientY);
+      const dropX = touch.clientX;
+      const dropY = touch.clientY;
+
+      // 如果在缩放的地图上，需要调整释放坐标
+      // 这里不需要调整，因为 onTouchDrop 会在目标组件中处理坐标转换
+      onTouchDrop(role, dropX, dropY);
     }
     setIsDragging(false);
     setDragOffset({ x: 0, y: 0 });
@@ -118,16 +141,29 @@ function RoleStamp({ role, onDragStart, scale: _scale = 1, className, size, onTo
 
     document.body.appendChild(dragImage);
 
-    // 计算鼠标在元素内的相对位置
+    // 计算鼠标在元素内的相对位置，考虑地图缩放
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
 
-    e.dataTransfer.setDragImage(dragImage, offsetX, offsetY);
+    // 根据当前地图缩放调整偏移，确保预览图像跟随鼠标
+    // 如果在地图上，需要考虑地图的缩放和位移
+    let adjustedOffsetX = offsetX;
+    let adjustedOffsetY = offsetY;
+
+    if (mapTransform) {
+      // 对于在地图上的角色，考虑地图的变换
+      adjustedOffsetX = offsetX / mapTransform.scale;
+      adjustedOffsetY = offsetY / mapTransform.scale;
+    }
+
+    e.dataTransfer.setDragImage(dragImage, adjustedOffsetX, adjustedOffsetY);
     e.currentTarget.classList.add("opacity-50");
 
     // 清理拖拽图像
     setTimeout(() => {
-      document.body.removeChild(dragImage);
+      if (document.body.contains(dragImage)) {
+        document.body.removeChild(dragImage);
+      }
     }, 0);
 
     onDragStart(e, role);
@@ -169,7 +205,7 @@ function RoleStamp({ role, onDragStart, scale: _scale = 1, className, size, onTo
       />
     </div>
   );
-}
+});
 
 export default function DNDMap() {
   const roomContext = use(RoomContext);
@@ -198,25 +234,60 @@ export default function DNDMap() {
   const imageRef = useRef<HTMLImageElement>(null);
   const [imageRenderInfo, setImageRenderInfo] = useState({ top: 0, left: 0, width: 0, height: 0 });
 
+  // 缓存计算结果
+  const rolesById = useMemo(() => {
+    return roomRoles.reduce((acc, role) => {
+      acc[role.roleId] = role;
+      return acc;
+    }, {} as Record<string, UserRole>);
+  }, [roomRoles]);
+
+  const cellToRoleMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    Object.entries(stampPositions).forEach(([roleId, pos]) => {
+      const key = `${pos.row}-${pos.col}`;
+      map[key] = roleId;
+    });
+    return map;
+  }, [stampPositions]);
+
+  // 图标尺寸计算
+  const stampSizeOnMap = useMemo(() => {
+    const cellWidth = imageRenderInfo.width > 0 ? imageRenderInfo.width / gridSize.cols : 0;
+    const cellHeight = imageRenderInfo.height > 0 ? imageRenderInfo.height / gridSize.rows : 0;
+    return Math.min(cellWidth, cellHeight) * 0.8;
+  }, [imageRenderInfo.width, imageRenderInfo.height, gridSize.cols, gridSize.rows]);
+
+  // 移动端 RoleStamp 尺寸控制
+  const defaultRoleStampSize = useMemo(() => {
+    const isMobile = typeof window !== "undefined" && "ontouchstart" in window;
+    return isMobile ? 48 : 64; // 移动端使用小一些的尺寸
+  }, []);
+
+  // 筛选未放置的角色
+  const unplacedRoles = useMemo(() => {
+    return roomRoles.filter(role => !stampPositions[role.roleId]);
+  }, [roomRoles, stampPositions]);
+
   // --- 事件处理 ---
-  async function handleUpdateMapImg(img: File) {
+  const handleUpdateMapImg = useCallback(async (img: File) => {
     const imgUrl = await uploadUtil.uploadImg(img);
     setMapImg(imgUrl);
     setTransform({ scale: 1, x: 0, y: 0 });
-  }
+  }, [uploadUtil, setMapImg]);
 
   // --- 拖拽逻辑 ---
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>, role: UserRole) => {
+  const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, role: UserRole) => {
     e.dataTransfer.setData("application/json", JSON.stringify(role));
     e.dataTransfer.effectAllowed = "move";
-  };
+  }, []);
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-  };
+  }, []);
 
-  const handleDropOnGrid = (e: React.DragEvent<HTMLDivElement>, row: number, col: number) => {
+  const handleDropOnGrid = useCallback((e: React.DragEvent<HTMLDivElement>, row: number, col: number) => {
     e.preventDefault();
     e.stopPropagation();
     const roleJSON = e.dataTransfer.getData("application/json");
@@ -224,9 +295,9 @@ export default function DNDMap() {
       const role: UserRole = JSON.parse(roleJSON);
       setStampPositions({ ...stampPositions, [role.roleId]: { row, col } });
     }
-  };
+  }, [stampPositions, setStampPositions]);
 
-  const handleDropOnPanel = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDropOnPanel = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const roleJSON = e.dataTransfer.getData("application/json");
     if (roleJSON) {
@@ -234,10 +305,10 @@ export default function DNDMap() {
       const { [role.roleId]: _, ...rest } = stampPositions;
       setStampPositions(rest);
     }
-  };
+  }, [stampPositions, setStampPositions]);
 
   // 移动端触摸拖拽释放处理
-  const handleTouchDrop = (role: UserRole, x: number, y: number) => {
+  const handleTouchDrop = useCallback((role: UserRole, x: number, y: number) => {
     const mapContainer = mapContainerRef.current;
     if (!mapContainer)
       return;
@@ -270,7 +341,7 @@ export default function DNDMap() {
     // 如果不在有效区域内，移除角色
     const { [role.roleId]: _, ...rest } = stampPositions;
     setStampPositions(rest);
-  };
+  }, [transform, imageRenderInfo, gridSize, stampPositions, setStampPositions]);
 
   // --- 平移和缩放逻辑（支持鼠标和触摸） ---
   const getEventPosition = (e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent) => {
@@ -316,19 +387,21 @@ export default function DNDMap() {
 
     if ("touches" in e) {
       if (e.touches.length === 2) {
-        // 双指缩放模式
+        // 双指缩放模式 - 立即禁用平移并初始化缩放状态
         e.preventDefault();
+        isPanning.current = false; // 立即禁用平移
         const distance = getTouchDistance(e.touches);
         const center = getTouchCenter(e.touches);
         lastTouchDistance.current = distance;
         lastTouchCenter.current = center;
-        isPanning.current = false; // 禁用平移
       }
       else if (e.touches.length === 1) {
-        // 单指平移模式
-        isPanning.current = true;
-        const position = getEventPosition(e);
-        lastPanPoint.current = position;
+        // 单指平移模式 - 仅在无缩放时启用
+        if (lastTouchDistance.current === 0) {
+          isPanning.current = true;
+          const position = getEventPosition(e);
+          lastPanPoint.current = position;
+        }
       }
     }
     else {
@@ -343,15 +416,18 @@ export default function DNDMap() {
   const handlePointerMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     if ("touches" in e) {
       if (e.touches.length === 2) {
-        // 双指缩放
+        // 双指缩放 - 高灵敏度处理
         e.preventDefault();
+        isPanning.current = false; // 确保禁用平移
+
         const distance = getTouchDistance(e.touches);
         const center = getTouchCenter(e.touches);
 
-        if (lastTouchDistance.current > 0) {
+        // 降低初始检测阈值，让缩放更容易触发
+        if (lastTouchDistance.current > 5) { // 从 > 0 降低到 > 5
           const scaleChange = distance / lastTouchDistance.current;
-          // 提高缩放灵敏度，使用指数放大
-          const enhancedScaleChange = scaleChange ** 1.5;
+          // 大幅提高缩放灵敏度，使用更强的指数放大
+          const enhancedScaleChange = scaleChange ** 2.5; // 从1.5提高到2.5
           const newScale = Math.min(Math.max(0.2, transform.scale * enhancedScaleChange), 5);
 
           // 以双指中心为缩放原点
@@ -371,8 +447,8 @@ export default function DNDMap() {
         lastTouchDistance.current = distance;
         lastTouchCenter.current = center;
       }
-      else if (e.touches.length === 1 && isPanning.current) {
-        // 单指平移
+      else if (e.touches.length === 1 && isPanning.current && lastTouchDistance.current === 0) {
+        // 单指平移 - 仅在非缩放状态下执行
         e.preventDefault();
         const position = getEventPosition(e);
         const dx = position.x - lastPanPoint.current.x;
@@ -393,7 +469,9 @@ export default function DNDMap() {
 
   const handlePointerUpOrLeave = () => {
     isPanning.current = false;
+    // 更快的缩放状态重置，为下次手势做准备
     lastTouchDistance.current = 0;
+    lastTouchCenter.current = { x: 0, y: 0 };
   };
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
@@ -505,26 +583,6 @@ export default function DNDMap() {
     );
   }
 
-  const rolesById = roomRoles.reduce((acc, role) => {
-    acc[role.roleId] = role;
-    return acc;
-  }, {} as Record<string, UserRole>);
-
-  const cellToRoleMap: Record<string, string> = {};
-  Object.entries(stampPositions).forEach(([roleId, pos]) => {
-    const key = `${pos.row}-${pos.col}`;
-    cellToRoleMap[key] = roleId;
-  });
-
-  // 图标尺寸
-  const cellWidth = imageRenderInfo.width > 0 ? imageRenderInfo.width / gridSize.cols : 0;
-  const cellHeight = imageRenderInfo.height > 0 ? imageRenderInfo.height / gridSize.rows : 0;
-  const stampSizeOnMap = Math.min(cellWidth, cellHeight) * 0.8;
-
-  // 移动端 RoleStamp 尺寸控制
-  const isMobile = typeof window !== "undefined" && "ontouchstart" in window;
-  const defaultRoleStampSize = isMobile ? 48 : 64; // 移动端使用小一些的尺寸
-
   return (
     <div
       ref={containerRef}
@@ -587,6 +645,7 @@ export default function DNDMap() {
                         onTouchDrop={handleTouchDrop}
                         scale={transform.scale}
                         size={stampSizeOnMap}
+                        mapTransform={transform}
                       />
                     )}
                   </div>
@@ -638,17 +697,16 @@ export default function DNDMap() {
             }`}
             >
               <div className="flex gap-2 pt-4 flex-wrap">
-                {roomRoles.filter(role => !stampPositions[role.roleId])
-                  .map(role => (
-                    <div className="aspect-square flex items-center justify-center" key={role.roleId}>
-                      <RoleStamp
-                        role={role}
-                        onDragStart={handleDragStart}
-                        onTouchDrop={handleTouchDrop}
-                        size={defaultRoleStampSize}
-                      />
-                    </div>
-                  ))}
+                {unplacedRoles.map(role => (
+                  <div className="aspect-square flex items-center justify-center" key={role.roleId}>
+                    <RoleStamp
+                      role={role}
+                      onDragStart={handleDragStart}
+                      onTouchDrop={handleTouchDrop}
+                      size={defaultRoleStampSize}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           </div>
