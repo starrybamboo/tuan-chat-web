@@ -100,61 +100,62 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
   return (
     <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
       {/* 物品信息卡片 */}
-      <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
-        <div className="card-body">
-          <div className="flex items-start gap-8">
-            {/* 图片 */}
-            <ImgUploaderWithCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleImageChange} fileName={uniqueFileName}>
-              <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
-                <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
-                  <img
-                    src={localItem.image || "./favicon.ico"}
-                    alt="Item Image"
-                    className="object-cover transform group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-              </div>
-            </ImgUploaderWithCopper>
+      <div className={` bg-base-100 ${isEditing ? "ring-2 ring-primary" : ""}`}>
+        <div className="flex items-start gap-8">
+          {/* 图片 */}
 
-            {/* 右侧内容 */}
-            <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
-              <>
-                {/* 物品名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
-                <div className="text-lg font-bold break-words">{item.name}</div>
-                <div>
-                  <label className="label">
-                    <span className="label-text font-bold">物品描述（玩家可见）</span>
-                  </label>
-                  <Veditor
-                    id={VeditorIdForDescription}
-                    placeholder={localItem.description || ""}
-                    onchange={(value) => {
-                      setLocalItem(prev => ({ ...prev, description: value }));
-                      saveTimer.current && clearTimeout(saveTimer.current);
-                      saveTimer.current = setTimeout(handleSave, 8000);
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="label">
-                    <span className="label-text font-bold">物品作用（仅KP可见）</span>
-                  </label>
-                  <Veditor
-                    id={vditorId}
-                    placeholder={localItem.tip || ""}
-                    onchange={(value) => {
-                      setLocalItem(prev => ({ ...prev, tip: value }));
-                      saveTimer.current && clearTimeout(saveTimer.current);
-                      saveTimer.current = setTimeout(handleSave, 8000);
-                    }}
-                  />
-                </div>
-              </>
-            </div>
+          {/* 右侧内容 */}
+          <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
+            <>
+              {/* 物品名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
+              <div className="text-lg w-48 font-bold break-words">{item.name}</div>
+              <div className="w-48">
+                <ImgUploaderWithCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleImageChange} fileName={uniqueFileName}>
+                  <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
+                    <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
+                      <img
+                        src={localItem.image || "./favicon.ico"}
+                        alt="Item Image"
+                        className="object-cover transform group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                  </div>
+                </ImgUploaderWithCopper>
+              </div>
+              s
+              <div>
+                <label className="label">
+                  <span className="label-text font-bold">物品描述（玩家可见）</span>
+                </label>
+                <Veditor
+                  id={VeditorIdForDescription}
+                  placeholder={localItem.description || ""}
+                  onchange={(value) => {
+                    setLocalItem(prev => ({ ...prev, description: value }));
+                    saveTimer.current && clearTimeout(saveTimer.current);
+                    saveTimer.current = setTimeout(handleSave, 8000);
+                  }}
+                />
+              </div>
+              <div>
+                <label className="label">
+                  <span className="label-text font-bold">物品作用（仅KP可见）</span>
+                </label>
+                <Veditor
+                  id={vditorId}
+                  placeholder={localItem.tip || ""}
+                  onchange={(value) => {
+                    setLocalItem(prev => ({ ...prev, tip: value }));
+                    saveTimer.current && clearTimeout(saveTimer.current);
+                    saveTimer.current = setTimeout(handleSave, 8000);
+                  }}
+                />
+              </div>
+            </>
           </div>
-          {/* 保存按钮已统一移至 EditModule 的全局固定按钮 */}
         </div>
+        {/* 保存按钮已统一移至 EditModule 的全局固定按钮 */}
       </div>
     </div>
   );

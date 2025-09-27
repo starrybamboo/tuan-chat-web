@@ -11,7 +11,7 @@ export default function CreateEntry({
   return (
     <div
       key={animationTrigger || 0} // 使用key来强制重新渲染，触发CSS动画
-      className="flex flex-col items-center justify-center h-full min-h-[calc(100vh-6rem)] p-6 animate-scale-in"
+      className="animate-scale-in flex flex-col items-center justify-center h-full min-h-[calc(100vh-6rem)] p-6"
     >
       <div>
         <h1 className="text-3xl font-bold text-base-content mb-2">创建新角色</h1>

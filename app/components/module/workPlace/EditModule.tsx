@@ -5,7 +5,7 @@ import { useEffect, useRef } from "react";
 import ItemEdit from "./components/ItemEdit";
 import LocationEdit from "./components/LocationEdit";
 import MapEdit from "./components/MapEdit";
-import ModuleEdit from "./components/ModuleEdit";
+import ModuleEdit from "./components/ModuleEditContent";
 import NPCEdit from "./components/NPCEdit";
 import SceneEdit from "./components/SceneEdit";
 import { useModuleContext } from "./context/_moduleContext";
@@ -193,7 +193,7 @@ function LocationModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content bg-base-100 border-base-300 p-6">
+      <div className="tab-content h-full bg-base-100 border-base-300 p-6">
         {/* 这里可替换为具体的 SceneEdit 组件 */}
         <LocationEdit location={location} onRegisterSave={registerSave} />
       </div>
@@ -251,7 +251,7 @@ function SceneModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content bg-base-100 border-base-300 p-6">
+      <div className="tab-content h-full bg-base-100 border-base-300 p-6">
         <SceneEdit
           scene={scene}
           id={id}
@@ -312,7 +312,7 @@ function MapModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content bg-base-100 border-base-300 p-6">
+      <div className="tab-content h-full bg-base-100 border-base-300 p-6">
         <MapEdit map={map} onRegisterSave={registerSave} />
       </div>
     </>
@@ -369,7 +369,7 @@ function ModuleModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content bg-base-100 border-base-300 p-6">
+      <div className="tab-content h-full bg-base-100 border-base-300 p-6">
         <ModuleEdit data={moduleInfo} onRegisterSave={registerSave} />
       </div>
     </>
@@ -521,7 +521,7 @@ export default function EditModule() {
   }
 
   return (
-    <div className="h-screen p-4 overflow-y-scroll">
+    <div className="h-screen p-4 ">
       <div className="w-full h-full tabs tabs-lift">
         {roleModuleItems.map(item => (
           <RoleModuleTabItem

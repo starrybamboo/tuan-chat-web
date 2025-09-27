@@ -102,53 +102,54 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
   return (
     <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
       {/* 场景信息卡片 */}
-      <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
-        <div className="card-body">
-          <div className="flex items-start gap-8">
-            {/* 头像 */}
-            <ImgUploaderWithCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleAvatarChange} fileName={uniqueFileName}>
-              <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
-                <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
-                  <img
-                    src={localLocation.image || "./favicon.ico"}
-                    alt="Location Image"
-                    className="object-cover transform group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-              </div>
-            </ImgUploaderWithCopper>
+      <div className={` bg-base-100  ${isEditing ? "ring-2 ring-primary" : ""}`}>
 
-            {/* 右侧内容 */}
-            <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
-              <>
-                {/* 地点名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
-                <div className="text-lg font-bold break-words">{location.name}</div>
-                <p>场景描述：</p>
-                <Veditor
-                  id={VeditorIdForDescription}
-                  placeholder={localLocation.description || ""}
-                  onchange={(value) => {
-                    setLocalLocation(prev => ({ ...prev, description: value }));
-                    saveTimer.current && clearTimeout(saveTimer.current);
-                    saveTimer.current = setTimeout(handleSave, 8000);
-                  }}
-                />
-                <p>地区支线：</p>
-                <Veditor
-                  id={vditorId}
-                  placeholder={localLocation.tip || ""}
-                  onchange={(value) => {
-                    setLocalLocation(prev => ({ ...prev, tip: value }));
-                    saveTimer.current && clearTimeout(saveTimer.current);
-                    saveTimer.current = setTimeout(handleSave, 8000);
-                  }}
-                />
-              </>
-            </div>
+        <div className="flex items-start gap-8">
+
+          {/* 右侧内容 */}
+          <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
+            <>
+              {/* 地点名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
+              <div className="text-lg font-bold break-words">{location.name}</div>
+              <div className="w-48">
+                {/* 头像 */}
+                <ImgUploaderWithCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleAvatarChange} fileName={uniqueFileName}>
+                  <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
+                    <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
+                      <img
+                        src={localLocation.image || "./favicon.ico"}
+                        alt="Location Image"
+                        className="object-cover transform group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                  </div>
+                </ImgUploaderWithCopper>
+              </div>
+              <p>场景描述：</p>
+              <Veditor
+                id={VeditorIdForDescription}
+                placeholder={localLocation.description || ""}
+                onchange={(value) => {
+                  setLocalLocation(prev => ({ ...prev, description: value }));
+                  saveTimer.current && clearTimeout(saveTimer.current);
+                  saveTimer.current = setTimeout(handleSave, 8000);
+                }}
+              />
+              <p>地区支线：</p>
+              <Veditor
+                id={vditorId}
+                placeholder={localLocation.tip || ""}
+                onchange={(value) => {
+                  setLocalLocation(prev => ({ ...prev, tip: value }));
+                  saveTimer.current && clearTimeout(saveTimer.current);
+                  saveTimer.current = setTimeout(handleSave, 8000);
+                }}
+              />
+            </>
           </div>
-          {/* 保存按钮已统一移至 EditModule 的全局固定按钮 */}
         </div>
+        {/* 保存按钮已统一移至 EditModule 的全局固定按钮 */}
       </div>
     </div>
   );
