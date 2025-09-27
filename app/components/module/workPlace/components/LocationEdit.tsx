@@ -105,25 +105,27 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
       <div className={` bg-base-100  ${isEditing ? "ring-2 ring-primary" : ""}`}>
 
         <div className="flex items-start gap-8">
-          {/* 头像 */}
-          <ImgUploaderWithCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleAvatarChange} fileName={uniqueFileName}>
-            <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
-              <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
-                <img
-                  src={localLocation.image || "./favicon.ico"}
-                  alt="Location Image"
-                  className="object-cover transform group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-            </div>
-          </ImgUploaderWithCopper>
 
           {/* 右侧内容 */}
           <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
             <>
               {/* 地点名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
               <div className="text-lg font-bold break-words">{location.name}</div>
+              <div className="w-48">
+                {/* 头像 */}
+                <ImgUploaderWithCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleAvatarChange} fileName={uniqueFileName}>
+                  <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
+                    <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
+                      <img
+                        src={localLocation.image || "./favicon.ico"}
+                        alt="Location Image"
+                        className="object-cover transform group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                  </div>
+                </ImgUploaderWithCopper>
+              </div>
               <p>场景描述：</p>
               <Veditor
                 id={VeditorIdForDescription}
