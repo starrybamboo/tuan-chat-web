@@ -1,7 +1,7 @@
 import type { RoomContextType } from "@/components/chat/roomContext";
 import type { RuleNameSpace } from "@/components/common/dicer/cmd";
 import type { ChatMessageRequest, RoleAbility, UserRole } from "../../../../api";
-import CmdExeCoc from "@/components/common/dicer/cmdExeCoc";
+import executorCoc from "@/components/common/dicer/cmdExeCoc";
 import executorDnd from "@/components/common/dicer/cmdExeDnd";
 import executorPublic from "@/components/common/dicer/cmdExePublic";
 import { useEffect, useRef } from "react";
@@ -15,7 +15,7 @@ import { tuanchat } from "../../../../api/instance";
 import { useGetRoleQuery } from "../../../../api/queryHooks";
 
 const RULES: Map<number, RuleNameSpace> = new Map();
-RULES.set(1, CmdExeCoc);
+RULES.set(1, executorCoc);
 RULES.set(2, executorDnd); // DnD规则
 
 export function isCommand(command: string) {
