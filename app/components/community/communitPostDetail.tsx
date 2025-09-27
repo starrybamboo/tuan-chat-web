@@ -178,6 +178,8 @@ export default function CommunityPostDetail({
         {/* 桌面端：评论操作栏放在评论列表上方 */}
         <div className="hidden md:block mb-4">
           <PostActionBar
+            postId={postId}
+            authorUserId={post?.post?.userId}
             likeTargetInfo={{ targetType: "2", targetId: postId }}
             _commentTargetInfo={{ targetType: "2", targetId: postId }}
             commentCount={post?.stats?.commentCount ?? 0}
@@ -203,6 +205,8 @@ export default function CommunityPostDetail({
       {/* 移动端：底部固定操作栏 */}
       <div className="md:hidden">
         <PostActionBar
+          postId={postId}
+          authorUserId={post?.post?.userId}
           likeTargetInfo={{ targetType: "2", targetId: postId }}
           _commentTargetInfo={{ targetType: "2", targetId: postId }}
           commentCount={post?.stats?.commentCount ?? 0}
