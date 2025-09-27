@@ -59,4 +59,5 @@ export enum ModuleListEnum {
   BACK = "back",
   COMMIT = "commit",
   MODULE = "module",
+  BASIC_INFO = "basic_info",
 }
