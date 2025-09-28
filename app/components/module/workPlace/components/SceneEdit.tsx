@@ -7,11 +7,11 @@ import { useModuleContext } from "../context/_moduleContext";
 import AddEntityToScene from "./addEntityToScene";
 import CreateEntityList from "./createEntityList";
 import EntityDetailList from "./EntityDetailList"; // 引入 EntityDetailList 组件
+import { invokeSaveWithTinyRetry } from "./invokeSaveWithTinyRetry";
 
 interface SceneEditProps {
   scene: StageEntityResponse;
   id: string | number; // 当前sceneEdit在moduleTabs中的id
-  onRegisterSave?: (fn: () => void) => void;
 }
 
 const types = {
@@ -80,10 +80,10 @@ function Folder({ moduleData, entityType, onClick, onDelete }:
   );
 }
 
-export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps) {
+export default function SceneEdit({ scene, id }: SceneEditProps) {
   const [selectedTab, setSelectedTab] = useState<"description" | "tip" | "assets">("description");
   const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
-  const { stageId, removeModuleTabItem } = useModuleContext();
+  const { stageId, beginSelectionLock, endSelectionLock, forceSetCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
 
   // 本地状态
   const [localScene, setLocalScene] = useState({ ...entityInfo });
@@ -264,6 +264,18 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
     localSceneRef.current = localScene;
   }, [localScene]);
   const handleSave = () => {
+    // 保存前开启一个短暂选中锁，防止保存期间异步刷新导致 tab 被切换
+    if (scene.id != null) {
+      beginSelectionLock("scene-save", 800);
+      // 强制保持当前 tab 选中
+      if (currentSelectedTabId !== scene.id.toString()) {
+        forceSetCurrentSelectedTabId(scene.id.toString());
+      }
+      else {
+        // 即便一致也再设一次，确保其它竞争 update 之后仍是该 id
+        forceSetCurrentSelectedTabId(scene.id.toString());
+      }
+    }
     setIsTransitioning(true);
     setTimeout(() => {
       setIsTransitioning(false);
@@ -305,9 +317,12 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
               });
               updateScene({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
             }
-            if (changed) {
-              removeModuleTabItem(scene.id!.toString());
-            }
+            // 成功后稍晚释放锁，确保任何 refetch 回调已落地
+            setTimeout(() => endSelectionLock(), 300);
+          },
+          onError: () => {
+            // 出错也及时释放锁，避免长时间阻塞切换
+            endSelectionLock();
           },
         },
       );
@@ -319,14 +334,12 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
   useLayoutEffect(() => {
     saveRef.current = handleSave;
   });
-  useLayoutEffect(() => {
-    onRegisterSave?.(() => saveRef.current());
-  }, [onRegisterSave]);
 
   return (
     <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
-      <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row items-end justify-between gap-3">
+        {/* 左侧标题区域 */}
+        <div className="flex items-center gap-4 self-start md:self-auto">
           <div>
             <h1 className="font-semibold text-2xl md:text-3xl my-2">{scene.name}</h1>
             <p className="text-base-content/60">
@@ -336,16 +349,43 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
             </p>
           </div>
         </div>
-        <div className="mt-2 md:mt-0">
-          <select
-            className="select select-lg select-bordered rounded-md"
-            value={selectedTab}
-            onChange={e => setSelectedTab(e.target.value as "description" | "tip" | "assets")}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className={`btn btn-md rounded-md ${selectedTab === "description" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => setSelectedTab("description")}
           >
-            <option value="description">场景描述</option>
-            <option value="tip">剧情详细</option>
-            <option value="assets">场景素材</option>
-          </select>
+            场景描述
+          </button>
+          <button
+            type="button"
+            className={`btn btn-md rounded-md ${selectedTab === "tip" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => setSelectedTab("tip")}
+          >
+            剧情详细
+          </button>
+          <button
+            type="button"
+            className={`btn btn-md rounded-md ${selectedTab === "assets" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => setSelectedTab("assets")}
+          >
+            场景素材
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              // 使用微小重试机制，处理名字变更导致的短暂未注册窗口
+              invokeSaveWithTinyRetry(handleSave);
+            }}
+            className="btn btn-accent rounded-md flex-shrink-0 self-start md:self-auto"
+          >
+            <span className="flex items-center gap-1 whitespace-nowrap">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              保存
+            </span>
+          </button>
         </div>
       </div>
       <div className="divider"></div>

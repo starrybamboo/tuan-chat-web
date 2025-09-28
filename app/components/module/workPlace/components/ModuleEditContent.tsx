@@ -291,15 +291,30 @@ export default function ModuleEdit({ data, onChange, onRegisterSave }: ModuleEdi
             </p>
           </div>
         </div>
-        <div className="mt-2 md:mt-0">
-          <select
-            className="select select-lg select-bordered rounded-md"
-            value={selectedTab}
-            onChange={e => setSelectedTab(e.target.value as "base" | "readme")}
+        {/* 右侧分组：下拉 + 按钮（与 SceneEdit 保持一致布局） */}
+        <div className="flex items-center gap-3 md:gap-4 mt-2 md:mt-0 ml-auto">
+          <div>
+            <select
+              className="select select-lg select-bordered rounded-md"
+              value={selectedTab}
+              onChange={e => setSelectedTab(e.target.value as "base" | "readme")}
+            >
+              <option value="base">模组基本信息</option>
+              <option value="readme">README</option>
+            </select>
+          </div>
+          <button
+            type="button"
+            onClick={handleSave}
+            className="btn btn-accent rounded-md flex-shrink-0 self-start md:self-auto"
           >
-            <option value="base">模组基本信息</option>
-            <option value="readme">README</option>
-          </select>
+            <span className="flex items-center gap-1 whitespace-nowrap">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              保存
+            </span>
+          </button>
         </div>
       </div>
       <div className="divider"></div>
