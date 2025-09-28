@@ -325,7 +325,7 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
 
   return (
     <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
-      <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+      <div className="flex flex-col md:flex-row items-end justify-between gap-3">
         <div className="flex items-center gap-4">
           <div>
             <h1 className="font-semibold text-2xl md:text-3xl my-2">{scene.name}</h1>
@@ -336,16 +336,28 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
             </p>
           </div>
         </div>
-        <div className="mt-2 md:mt-0">
-          <select
-            className="select select-lg select-bordered rounded-md"
-            value={selectedTab}
-            onChange={e => setSelectedTab(e.target.value as "description" | "tip" | "assets")}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className={`btn btn-md rounded-md ${selectedTab === "description" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => setSelectedTab("description")}
           >
-            <option value="description">场景描述</option>
-            <option value="tip">剧情详细</option>
-            <option value="assets">场景素材</option>
-          </select>
+            场景描述
+          </button>
+          <button
+            type="button"
+            className={`btn btn-md rounded-md ${selectedTab === "tip" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => setSelectedTab("tip")}
+          >
+            剧情详细
+          </button>
+          <button
+            type="button"
+            className={`btn btn-md rounded-md ${selectedTab === "assets" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => setSelectedTab("assets")}
+          >
+            场景素材
+          </button>
         </div>
       </div>
       <div className="divider"></div>
