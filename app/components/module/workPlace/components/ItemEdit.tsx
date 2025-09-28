@@ -13,7 +13,6 @@ interface ItemEditProps {
 }
 
 export default function ItemEdit({ item }: ItemEditProps) {
-  const [selectedTab, setSelectedTab] = useState<"image" | "description" | "tip">("image");
   const entityInfo = useMemo(() => item.entityInfo || {}, [item.entityInfo]);
   const { stageId, removeModuleTabItem } = useModuleContext();
 
@@ -22,7 +21,6 @@ export default function ItemEdit({ item }: ItemEditProps) {
   // 本地状态
   const [localItem, setLocalItem] = useState({ ...entityInfo });
   // 名称改为列表侧重命名，这里不再编辑
-  const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const vditorId = `item-tip-editor-${item.id}`;
   const VeditorIdForDescription = `item-description-editor-${item.id}`;
@@ -46,7 +44,6 @@ export default function ItemEdit({ item }: ItemEditProps) {
     setIsTransitioning(true);
     setTimeout(() => {
       setIsTransitioning(false);
-      setIsEditing(false);
       const oldName = item.name;
       const changed = false; // 不在编辑器内修改名称
       // 先更新物品自身，成功后再同步引用与关闭标签
@@ -101,35 +98,9 @@ export default function ItemEdit({ item }: ItemEditProps) {
         <div className="flex items-center gap-4 self-start md:self-auto">
           <div>
             <h1 className="font-semibold text-2xl md:text-3xl my-2">{item.name}</h1>
-            <p className="text-base-content/60">
-              {selectedTab === "image" && "物品图片"}
-              {selectedTab === "description" && "物品描述"}
-              {selectedTab === "tip" && "物品作用"}
-            </p>
           </div>
         </div>
         <div className="flex gap-2">
-          <button
-            type="button"
-            className={`btn btn-md rounded-md ${selectedTab === "image" ? "btn-primary" : "btn-outline"}`}
-            onClick={() => setSelectedTab("image")}
-          >
-            物品图片
-          </button>
-          <button
-            type="button"
-            className={`btn btn-md rounded-md ${selectedTab === "description" ? "btn-primary" : "btn-outline"}`}
-            onClick={() => setSelectedTab("description")}
-          >
-            物品描述
-          </button>
-          <button
-            type="button"
-            className={`btn btn-md rounded-md ${selectedTab === "tip" ? "btn-primary" : "btn-outline"}`}
-            onClick={() => setSelectedTab("tip")}
-          >
-            物品作用
-          </button>
           <button
             type="button"
             onClick={() => {
@@ -147,11 +118,10 @@ export default function ItemEdit({ item }: ItemEditProps) {
           </button>
         </div>
       </div>
-      <div className="divider"></div>
-      {/* 物品信息卡片 */}
-      <div className={`space-y-6 bg-base-100 ${isEditing ? "ring-2 ring-primary" : ""}`}>
-        {selectedTab === "image" && (
-          <div className="flex items-center justify-center py-8">
+      <div className="divider mb-0"></div>
+      <div className="space-y-6 bg-base-100 p-6 rounded-xl">
+        <div>
+          <div className="flex items-center justify-center py-4">
             <div className="w-48">
               <ImgUploaderWithCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleImageChange} fileName={uniqueFileName}>
                 <div className="avatar cursor-pointer group flex items-center justify-center w-full min-w-[120px] md:w-48">
@@ -167,34 +137,32 @@ export default function ItemEdit({ item }: ItemEditProps) {
               </ImgUploaderWithCopper>
             </div>
           </div>
-        )}
-        {selectedTab === "description" && (
-          <div>
-            <QuillEditor
-              id={VeditorIdForDescription}
-              placeholder={localItem.description || ""}
-              onchange={(value) => {
-                setLocalItem(prev => ({ ...prev, description: value }));
-                saveTimer.current && clearTimeout(saveTimer.current);
-                saveTimer.current = setTimeout(handleSave, 8000);
-              }}
-            />
-          </div>
-        )}
-        {selectedTab === "tip" && (
-          <div>
-            <QuillEditor
-              id={vditorId}
-              placeholder={localItem.tip || ""}
-              onchange={(value) => {
-                setLocalItem(prev => ({ ...prev, tip: value }));
-                saveTimer.current && clearTimeout(saveTimer.current);
-                saveTimer.current = setTimeout(handleSave, 8000);
-              }}
-            />
-          </div>
-        )}
-        {/* 头部已经提供保存按钮 */}
+        </div>
+        <div className="divider"></div>
+        <div>
+          <span className="text-base-content/60 mb-4">公开可见描述</span>
+          <QuillEditor
+            id={VeditorIdForDescription}
+            placeholder={localItem.description || ""}
+            onchange={(value) => {
+              setLocalItem(prev => ({ ...prev, description: value }));
+              saveTimer.current && clearTimeout(saveTimer.current);
+              saveTimer.current = setTimeout(handleSave, 8000);
+            }}
+          />
+        </div>
+        <div>
+          <span className="text-base-content/60 mb-2">仅kp可见描述</span>
+          <QuillEditor
+            id={vditorId}
+            placeholder={localItem.tip || ""}
+            onchange={(value) => {
+              setLocalItem(prev => ({ ...prev, tip: value }));
+              saveTimer.current && clearTimeout(saveTimer.current);
+              saveTimer.current = setTimeout(handleSave, 8000);
+            }}
+          />
+        </div>
       </div>
     </div>
   );
