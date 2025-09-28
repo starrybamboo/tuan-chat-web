@@ -87,12 +87,19 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
 
   // 本地状态
   const [localScene, setLocalScene] = useState({ ...entityInfo });
+  const initialRef = useRef(true);
   // 名称改为列表侧重命名，这里不再编辑
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [editEntityType, setEditEntityType] = useState<"item" | "role" | "location">("role");
   const VeditorId = `scene-tip-editor-${id}`;
   const VeditorIdForDescription = `scene-description-editor-${id}`;
+
+  useEffect(() => {
+    if (initialRef.current) {
+      initialRef.current = false;
+    }
+  }, []);
 
   // 自动保存定时器
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
@@ -349,7 +356,7 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
             <div className="flex-1 min-w-0 overflow-hidden p-2">
               <QuillEditor
                 id={VeditorIdForDescription}
-                placeholder={localScene.description || "玩家能看到的描述"}
+                placeholder={initialRef.current ? localScene.description : "玩家能看到的描述"}
                 onchange={(value) => {
                   setLocalScene(prev => ({ ...prev, description: value }));
                   saveTimer.current && clearTimeout(saveTimer.current);
