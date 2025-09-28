@@ -484,6 +484,234 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
                 />
               </div>
             </div>
+            <div className="flex flex-col gap-2 w-full max-w-xs">
+              <label className="font-medium text-base" htmlFor="roleType">类型：</label>
+              <select
+                id="roleType"
+                value={localRole.type ?? ""}
+                onChange={(e) => {
+                  setLocalRole(prev => ({ ...prev, type: Number(e.target.value) }));
+                  scheduleSave();
+                }}
+                className="select rounded-md"
+              >
+                <option value={0}>NPC</option>
+                <option value={1}>预设卡</option>
+              </select>
+            </div>
+          </div>
+          <div className="divider divider-horizontal" />
+
+          {/* 简介和类型表单整体在头像右侧，垂直居中 */}
+          <div className="flex flex-col gap-4 w-2/3 justify-center h-full self-center">
+            <div className="flex items-center justify-between">
+              <label className="text-base" htmlFor="roleDescription">简介：</label>
+              <span
+                className={`text-base font-bold ${charCount > MAX_DESCRIPTION_LENGTH
+                  ? "text-error"
+                  : "text-base-content/70"
+                }`}
+              >
+                {charCount}
+                /
+                {MAX_DESCRIPTION_LENGTH}
+                {charCount > MAX_DESCRIPTION_LENGTH && (
+                  <span className="ml-2">(已超出描述字数上限)</span>
+                )}
+              </span>
+            </div>
+            <textarea
+              id="roleDescription"
+              value={localRole.description || ""}
+              onChange={(e) => {
+                setLocalRole(prev => ({ ...prev, description: e.target.value }));
+                setCharCount(e.target.value.length);
+                scheduleSave();
+              }}
+              placeholder="角色描述"
+              className="textarea textarea-bordered rounded-md w-full min-h-32 resize-none flex-1"
+            />
+          </div>
+        </div>
+        {/* 六大属性展示区 */}
+        <div className="mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-6">
+            <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+              <span className="text-xs text-gray-500 mb-1">生命值</span>
+              <span className="font-bold text-lg">{hp}</span>
+            </div>
+            <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+              <span className="text-xs text-gray-500 mb-1">理智值</span>
+              <span className="font-bold text-lg">{san}</span>
+            </div>
+            <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+              <span className="text-xs text-gray-500 mb-1">移动速度</span>
+              <span className="font-bold text-lg">{mov}</span>
+            </div>
+            <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+              <span className="text-xs text-gray-500 mb-1">魔法值</span>
+              <span className="font-bold text-lg">{mp}</span>
+            </div>
+            <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+              <span className="text-xs text-gray-500 mb-1">伤害加值</span>
+              <span className="font-bold text-lg">{db}</span>
+            </div>
+            <div className="card bg-base-200 shadow-sm p-2 flex flex-col items-center">
+              <span className="text-xs text-gray-500 mb-1">体格</span>
+              <span className="font-bold text-lg">{build}</span>
+            </div>
+          </div>
+        </div>
+        {/* 属性表格区域，UI参考NumericalEditor */}
+        <div className="mt-6">
+          <h3 className="font-bold mb-2 w-full border-b-2">角色属性</h3>
+          <div className="overflow-x-auto">
+            <table className="table bg-base-200 rounded-lg">
+              <thead>
+                <tr className="bg-base-100">
+                  <th className="text-center">属性</th>
+                  <th className="text-center">数值</th>
+                  <th className="text-center">英文</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="text-center font-bold">力量</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.str ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, str: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">STR</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">敏捷</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.dex ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, dex: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">DEX</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">意志</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.pow ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, pow: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">POW</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">体质</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.con ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, con: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">CON</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">外貌</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.app ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, app: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">APP</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">教育</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.edu ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, edu: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">EDU</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">体型</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.siz ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, siz: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">SIZ</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">智力</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.int ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, int: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">INT</td>
+                </tr>
+                <tr>
+                  <td className="text-center font-bold">幸运</td>
+                  <td className="text-center">
+                    <input
+                      type="number"
+                      className="input input-bordered input-sm w-20 text-center"
+                      value={ability.luck ?? ""}
+                      onChange={(e) => {
+                        setAbility((prev: any) => ({ ...prev, luck: Number(e.target.value) }));
+                        scheduleSave();
+                      }}
+                    />
+                  </td>
+                  <td className="text-center text-xs text-gray-500">LUCK</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
           {/* 简介和类型表单整体在头像右侧，垂直居中 */}

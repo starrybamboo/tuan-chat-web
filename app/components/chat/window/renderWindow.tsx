@@ -68,6 +68,9 @@ export default function RenderWindow() {
   const rooms = useMemo(() => getUserRoomsQuery.data?.data ?? [], [getUserRoomsQuery.data?.data]);
 
   useEffect(() => {
+    if (!rooms || rooms.length === 0) {
+      return;
+    }
     const getAllMessages = async () => {
       const map: Record<number, ChatMessageResponse[]> = {};
       for (const room of rooms) {

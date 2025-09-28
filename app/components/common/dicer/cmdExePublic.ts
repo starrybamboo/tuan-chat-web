@@ -154,7 +154,6 @@ const cmdSt = new CommandExecutor(
 
     cpi.setRoleAbilityList(role.roleId, curAbility);
     cpi.sendMsg(_prop, `属性设置成功：${role?.roleName || "当前角色"}的属性已更新: ${updateDetails}`);
-    cpi.sendMsg(_prop, `debug: ${JSON.stringify(curAbility)}`);
     // cpi.sendToast( `属性设置成功：${role?.roleName || "当前角色"}的属性已更新: ${updateDetails}`);
     return true;
   },
