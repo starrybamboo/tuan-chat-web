@@ -56,12 +56,14 @@ export default function MainWork() {
               <LeftContent />
             </div>
           </div>
-          <div className="basis-3/5 flex flex-col overflow-hidden">
-            <EditModule />
+          <div className="bg-base-200 flex flex-col flex-1 overflow-y-auto relative">
+            <div className="w-full">
+              <EditModule />
+            </div>
           </div>
-          {/* <div className="bg-cyan-700 basis-1/5 flex flex-col overflow-hidden"> */}
-          {/*  AI 面板 */}
-          {/* </div> */}
+          {/* <div className="bg-cyan-700 basis-1/5 flex flex-col overflow-hidden">
+            AI 面板
+          </div> */}
         </div>
       </div>
     </ModuleProvider>
