@@ -193,7 +193,9 @@ function LocationModuleTabItem({
         </div>
         {label}
       </label>
+
       <div className="tab-content bg-base-100 border-base-300 p-8 w-full">
+
         {/* 这里可替换为具体的 SceneEdit 组件 */}
         <LocationEdit location={location} onRegisterSave={registerSave} />
       </div>
@@ -251,7 +253,9 @@ function SceneModuleTabItem({
         </div>
         {label}
       </label>
+
       <div className="tab-content bg-base-100 border-base-300 p-8 w-full">
+
         <SceneEdit
           scene={scene}
           id={id}
@@ -521,8 +525,10 @@ export default function EditModule() {
   }
 
   return (
+
     <div className="h-full p-4">
       <div className="w-full tabs tabs-lift">
+
         {roleModuleItems.map(item => (
           <RoleModuleTabItem
             key={item.id}

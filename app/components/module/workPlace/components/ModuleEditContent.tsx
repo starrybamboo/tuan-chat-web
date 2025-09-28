@@ -48,6 +48,7 @@ function CoverSlot({ image }: { image?: string | null }) {
 }
 
 export default function ModuleEdit({ data, onChange, onRegisterSave }: ModuleEditProps) {
+
   const [selectedTab, setSelectedTab] = useState<"base" | "readme">("base");
   const initial = useMemo(() => data, [data]);
   const [local, setLocal] = useState<Module>({ ...initial });
@@ -406,6 +407,7 @@ export default function ModuleEdit({ data, onChange, onRegisterSave }: ModuleEdi
           />
         </div>
       )}
+
     </div>
   );
 }

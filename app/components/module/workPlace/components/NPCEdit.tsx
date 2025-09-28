@@ -437,7 +437,6 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
             </button>
           </div>
         </div>
-
       </PopWindow>
       {/* 基础信息卡片 */}
       <div className="max-w-4xl mx-auto bg-base-100">
@@ -484,6 +483,17 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
                 />
               </div>
             </div>
+            <textarea
+              id="roleDescription"
+              value={localRole.description || ""}
+              onChange={(e) => {
+                setLocalRole(prev => ({ ...prev, description: e.target.value }));
+                setCharCount(e.target.value.length);
+                scheduleSave();
+              }}
+              placeholder="角色描述"
+              className="textarea textarea-bordered rounded-md w-full min-h-32 resize-none flex-1"
+            />
           </div>
 
           {/* 简介和类型表单整体在头像右侧，垂直居中 */}
@@ -547,6 +557,7 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
             </div>
           </div>
         </div>
+
         {/* 属性表格区域，UI参考NumericalEditor */}
         <div className="mt-6">
           <h3 className="font-bold mb-2 w-full border-b-2">角色属性</h3>
