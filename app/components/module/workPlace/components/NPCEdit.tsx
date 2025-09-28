@@ -437,7 +437,6 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
             </button>
           </div>
         </div>
-
       </PopWindow>
       {/* 基础信息卡片 */}
       <div className="max-w-4xl mx-auto bg-base-100">
@@ -483,42 +482,6 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
                   stopPopWindow={true}
                 />
               </div>
-            </div>
-            <div className="flex flex-col gap-2 w-full max-w-xs">
-              <label className="font-medium text-base" htmlFor="roleType">类型：</label>
-              <select
-                id="roleType"
-                value={localRole.type ?? ""}
-                onChange={(e) => {
-                  setLocalRole(prev => ({ ...prev, type: Number(e.target.value) }));
-                  scheduleSave();
-                }}
-                className="select rounded-md"
-              >
-                <option value={0}>NPC</option>
-                <option value={1}>预设卡</option>
-              </select>
-            </div>
-          </div>
-          <div className="divider divider-horizontal" />
-
-          {/* 简介和类型表单整体在头像右侧，垂直居中 */}
-          <div className="flex flex-col gap-4 w-2/3 justify-center h-full self-center">
-            <div className="flex items-center justify-between">
-              <label className="text-base" htmlFor="roleDescription">简介：</label>
-              <span
-                className={`text-base font-bold ${charCount > MAX_DESCRIPTION_LENGTH
-                  ? "text-error"
-                  : "text-base-content/70"
-                }`}
-              >
-                {charCount}
-                /
-                {MAX_DESCRIPTION_LENGTH}
-                {charCount > MAX_DESCRIPTION_LENGTH && (
-                  <span className="ml-2">(已超出描述字数上限)</span>
-                )}
-              </span>
             </div>
             <textarea
               id="roleDescription"
@@ -775,6 +738,7 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
             </div>
           </div>
         </div>
+
         {/* 属性表格区域，UI参考NumericalEditor */}
         <div className="mt-6">
           <h3 className="font-bold mb-2 w-full border-b-2">角色属性</h3>
