@@ -6,13 +6,13 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import QuillEditor from "../../../common/quillEditor/quillEditor";
 import { useModuleContext } from "../context/_moduleContext";
+import { invokeSaveWithTinyRetry } from "./invokeSaveWithTinyRetry";
 
 interface ItemEditProps {
   item: StageEntityResponse;
-  onRegisterSave?: (fn: () => void) => void;
 }
 
-export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
+export default function ItemEdit({ item }: ItemEditProps) {
   const [selectedTab, setSelectedTab] = useState<"image" | "description" | "tip">("image");
   const entityInfo = useMemo(() => item.entityInfo || {}, [item.entityInfo]);
   const { stageId, removeModuleTabItem } = useModuleContext();
@@ -76,10 +76,6 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
   useLayoutEffect(() => {
     saveRef.current = handleSave;
   });
-  useLayoutEffect(() => {
-    onRegisterSave?.(() => saveRef.current());
-  }, [onRegisterSave]);
-
   const generateUniqueFileName = (name: string): string => {
     const timestamp = Date.now();
     return `itemModule-${name}-${timestamp}`;
@@ -101,7 +97,8 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
   return (
     <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
       <div className="flex flex-col md:flex-row items-end justify-between gap-3">
-        <div className="flex items-center gap-4">
+        {/* 左侧标题 */}
+        <div className="flex items-center gap-4 self-start md:self-auto">
           <div>
             <h1 className="font-semibold text-2xl md:text-3xl my-2">{item.name}</h1>
             <p className="text-base-content/60">
@@ -132,6 +129,21 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
             onClick={() => setSelectedTab("tip")}
           >
             物品作用
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              // 使用微小重试机制，处理名字变更导致的短暂未注册窗口
+              invokeSaveWithTinyRetry(handleSave);
+            }}
+            className="btn bg-accent rounded-md flex-shrink-0 self-start md:self-auto"
+          >
+            <span className="flex items-center gap-1 whitespace-nowrap">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              保存
+            </span>
           </button>
         </div>
       </div>
@@ -182,7 +194,7 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
             />
           </div>
         )}
-        {/* 保存按钮已统一移至 EditModule 的全局固定按钮 */}
+        {/* 头部已经提供保存按钮 */}
       </div>
     </div>
   );

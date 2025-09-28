@@ -7,11 +7,11 @@ import { useModuleContext } from "../context/_moduleContext";
 import AddEntityToScene from "./addEntityToScene";
 import CreateEntityList from "./createEntityList";
 import EntityDetailList from "./EntityDetailList"; // 引入 EntityDetailList 组件
+import { invokeSaveWithTinyRetry } from "./invokeSaveWithTinyRetry";
 
 interface SceneEditProps {
   scene: StageEntityResponse;
   id: string | number; // 当前sceneEdit在moduleTabs中的id
-  onRegisterSave?: (fn: () => void) => void;
 }
 
 const types = {
@@ -80,7 +80,7 @@ function Folder({ moduleData, entityType, onClick, onDelete }:
   );
 }
 
-export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps) {
+export default function SceneEdit({ scene, id }: SceneEditProps) {
   const [selectedTab, setSelectedTab] = useState<"description" | "tip" | "assets">("description");
   const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
   const { stageId, removeModuleTabItem } = useModuleContext();
@@ -319,14 +319,12 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
   useLayoutEffect(() => {
     saveRef.current = handleSave;
   });
-  useLayoutEffect(() => {
-    onRegisterSave?.(() => saveRef.current());
-  }, [onRegisterSave]);
 
   return (
     <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
       <div className="flex flex-col md:flex-row items-end justify-between gap-3">
-        <div className="flex items-center gap-4">
+        {/* 左侧标题区域 */}
+        <div className="flex items-center gap-4 self-start md:self-auto">
           <div>
             <h1 className="font-semibold text-2xl md:text-3xl my-2">{scene.name}</h1>
             <p className="text-base-content/60">
@@ -357,6 +355,21 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
             onClick={() => setSelectedTab("assets")}
           >
             场景素材
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              // 使用微小重试机制，处理名字变更导致的短暂未注册窗口
+              invokeSaveWithTinyRetry(handleSave);
+            }}
+            className="btn btn-accent rounded-md flex-shrink-0 self-start md:self-auto"
+          >
+            <span className="flex items-center gap-1 whitespace-nowrap">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              保存
+            </span>
           </button>
         </div>
       </div>
