@@ -57,7 +57,7 @@ export default function MainWork() {
             </div>
           </div>
           <div className="bg-base-200 flex flex-col flex-1 overflow-y-auto relative">
-            <div className="max-w-7xl mx-auto w-full">
+            <div className="w-full">
               <EditModule />
             </div>
           </div>
