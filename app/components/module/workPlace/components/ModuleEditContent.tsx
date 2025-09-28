@@ -48,6 +48,7 @@ function CoverSlot({ image }: { image?: string | null }) {
 }
 
 export default function ModuleEdit({ data, onChange, onRegisterSave }: ModuleEditProps) {
+  const [selectedTab, setSelectedTab] = useState<"base" | "readme">("base");
   const initial = useMemo(() => data, [data]);
   const [local, setLocal] = useState<Module>({ ...initial });
   const [dirty, setDirty] = useState(false);
@@ -279,110 +280,132 @@ export default function ModuleEdit({ data, onChange, onRegisterSave }: ModuleEdi
   }, [isFirstShowForModule, initial]);
 
   return (
-    <div className="space-y-6 pb-20">
-      <div className="w-full h-full flex gap-4">
-        {/* 左侧规则选择面板 */}
-        {/* <div className="basis-1/3">
-          <RuleSelect
-            className="w-full h-[520px]"
-            ruleId={local.ruleId}
-            editable={false}
-            onRuleSelect={() => {}}
-          />
-        </div> */}
-
-        {/* 左侧封面 */}
-        <div className="w-1/3">
-          <div className="flex flex-col items-center justify-center relative">
-            <label className="label"><span className="label-text font-bold mb-2">模组封面</span></label>
-            <ImgUploaderWithCopper
-              setDownloadUrl={() => { }}
-              setCopperedDownloadUrl={handleImageChange}
-              fileName={uniqueFileName}
-            >
-              <CoverSlot image={local.image} />
-            </ImgUploaderWithCopper>
-          </div>
-        </div>
-
-        <div className="divider divider-horizontal mx-0"></div>
-
-        {/* 右侧表单区 */}
-        <div className="flex-1 flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label"><span className="label-text font-bold mb-2">模组作者</span></label>
-              <input
-                className="input input-bordered w-full rounded-md"
-                value={local.authorName}
-                onCompositionStart={() => { isComposing.current = true; }}
-                onCompositionEnd={() => {
-                  isComposing.current = false;
-                  setDirty(true);
-                }}
-                onChange={handleStringInput("authorName")}
-              />
-            </div>
-            <div>
-              <label className="label"><span className="label-text font-bold mb-2">模组名称</span></label>
-              <input
-                className="input input-bordered w-full rounded-md"
-                value={local.moduleName}
-                onCompositionStart={() => { isComposing.current = true; }}
-                onCompositionEnd={() => {
-                  isComposing.current = false;
-                  setDirty(true);
-                }}
-                onChange={handleStringInput("moduleName")}
-              />
-            </div>
-          </div>
-
+    <div className="pb-20 max-w-4xl mx-auto">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-8">
           <div>
-            <label className="label"><span className="label-text font-bold mb-2">简介</span></label>
-            <textarea
-              className="textarea textarea-bordered w-full min-h-28 rounded-md"
-              value={local.description}
-              onCompositionStart={() => { isComposing.current = true; }}
-              onCompositionEnd={() => {
-                isComposing.current = false;
-                setDirty(true);
-              }}
-              onChange={handleStringInput("description")}
+            <h1 className="font-semibold text-2xl break-words">模组编辑</h1>
+            <p className="text-base-content/60 mt-1">
+              {selectedTab === "base" && "模组基本信息"}
+              {selectedTab === "readme" && "README"}
+            </p>
+          </div>
+        </div>
+        <div className="mt-2 md:mt-0">
+          <select
+            className="select select-lg select-bordered rounded-md"
+            value={selectedTab}
+            onChange={e => setSelectedTab(e.target.value as "base" | "readme")}
+          >
+            <option value="base">模组基本信息</option>
+            <option value="readme">README</option>
+          </select>
+        </div>
+      </div>
+      <div className="divider"></div>
+      {selectedTab === "base" && (
+        <div className="w-full h-full flex flex-col gap-4 space-y-6">
+          {/* 左侧规则选择面板 */}
+          {/* <div className="basis-1/3">
+            <RuleSelect
+              className="w-full h-[520px]"
+              ruleId={local.ruleId}
+              editable={false}
+              onRuleSelect={() => {}}
             />
+          </div> */}
+
+          {/* 左侧封面 */}
+          <div className="w-full flex flex-col items-center justify-center py-4">
+            <div className="w-1/3 max-w-full flex flex-col items-center justify-center">
+              <ImgUploaderWithCopper
+                setDownloadUrl={() => { }}
+                setCopperedDownloadUrl={handleImageChange}
+                fileName={uniqueFileName}
+              >
+                <CoverSlot image={local.image} />
+              </ImgUploaderWithCopper>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="label"><span className="label-text font-bold mb-2">最少时长</span></label>
-              <input type="number" className="input input-bordered w-full rounded-md" value={local.minTime} onChange={handleNumberInput("minTime")} />
+          <div className="divider"></div>
+
+          {/* 右侧表单区 */}
+          <div className="flex-1 flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label"><span className="label-text font-bold mb-2">模组作者</span></label>
+                <input
+                  className="input input-bordered w-full rounded-md"
+                  value={local.authorName}
+                  onCompositionStart={() => { isComposing.current = true; }}
+                  onCompositionEnd={() => {
+                    isComposing.current = false;
+                    setDirty(true);
+                  }}
+                  onChange={handleStringInput("authorName")}
+                />
+              </div>
+              <div>
+                <label className="label"><span className="label-text font-bold mb-2">模组名称</span></label>
+                <input
+                  className="input input-bordered w-full rounded-md"
+                  value={local.moduleName}
+                  onCompositionStart={() => { isComposing.current = true; }}
+                  onCompositionEnd={() => {
+                    isComposing.current = false;
+                    setDirty(true);
+                  }}
+                  onChange={handleStringInput("moduleName")}
+                />
+              </div>
             </div>
+
             <div>
-              <label className="label"><span className="label-text font-bold mb-2">最多时长</span></label>
-              <input type="number" className="input input-bordered w-full rounded-md" value={local.maxTime} onChange={handleNumberInput("maxTime")} />
+              <label className="label"><span className="label-text font-bold mb-2">简介</span></label>
+              <textarea
+                className="textarea textarea-bordered w-full min-h-28 rounded-md"
+                value={local.description}
+                onCompositionStart={() => { isComposing.current = true; }}
+                onCompositionEnd={() => {
+                  isComposing.current = false;
+                  setDirty(true);
+                }}
+                onChange={handleStringInput("description")}
+              />
             </div>
-            <div>
-              <label className="label"><span className="label-text font-bold mb-2">最少人数</span></label>
-              <input type="number" className="input input-bordered w-full rounded-md" value={local.minPeople} onChange={handleNumberInput("minPeople")} />
-            </div>
-            <div>
-              <label className="label"><span className="label-text font-bold mb-2">最多人数</span></label>
-              <input type="number" className="input input-bordered w-full rounded-md" value={local.maxPeople} onChange={handleNumberInput("maxPeople")} />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label"><span className="label-text font-bold mb-2">最少时长</span></label>
+                <input type="number" className="input input-bordered w-full rounded-md" value={local.minTime} onChange={handleNumberInput("minTime")} />
+              </div>
+              <div>
+                <label className="label"><span className="label-text font-bold mb-2">最多时长</span></label>
+                <input type="number" className="input input-bordered w-full rounded-md" value={local.maxTime} onChange={handleNumberInput("maxTime")} />
+              </div>
+              <div>
+                <label className="label"><span className="label-text font-bold mb-2">最少人数</span></label>
+                <input type="number" className="input input-bordered w-full rounded-md" value={local.minPeople} onChange={handleNumberInput("minPeople")} />
+              </div>
+              <div>
+                <label className="label"><span className="label-text font-bold mb-2">最多人数</span></label>
+                <input type="number" className="input input-bordered w-full rounded-md" value={local.maxPeople} onChange={handleNumberInput("maxPeople")} />
+              </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* README 占满整行 */}
-      <div className="w-full">
-        <label className="label"><span className="label-text font-bold">README</span></label>
-        <Veditor
-          key={currentMid || "module-editor"}
-          id={`module-instruction-${currentMid || "default"}`}
-          placeholder={readmePlaceholder}
-          onchange={handleReadMeChange}
-        />
-      </div>
+      )}
+      {selectedTab === "readme" && (
+        <div className="w-full h-full">
+          <Veditor
+            key={currentMid || "module-editor"}
+            id={`module-instruction-${currentMid || "default"}`}
+            placeholder={readmePlaceholder}
+            onchange={handleReadMeChange}
+          />
+        </div>
+      )}
     </div>
   );
 }

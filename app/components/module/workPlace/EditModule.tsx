@@ -80,7 +80,7 @@ function RoleModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content h-fit! bg-base-100 border-base-300 p-6">
+      <div className="tab-content h-fit! bg-base-100 border-base-300 p-8 w-full">
         <NPCEdit role={role} onRegisterSave={registerSave} />
       </div>
     </>
@@ -136,7 +136,7 @@ function ItemModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content h-fit! bg-base-100 border-base-300 p-6">
+      <div className="tab-content h-fit! bg-base-100 border-base-300 p-8 w-full">
         <ItemEdit item={item} onRegisterSave={registerSave} />
       </div>
     </>
@@ -193,7 +193,7 @@ function LocationModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content h-full bg-base-100 border-base-300 p-6">
+      <div className="tab-content bg-base-100 border-base-300 p-8 w-full">
         {/* 这里可替换为具体的 SceneEdit 组件 */}
         <LocationEdit location={location} onRegisterSave={registerSave} />
       </div>
@@ -251,7 +251,7 @@ function SceneModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content h-full bg-base-100 border-base-300 p-6">
+      <div className="tab-content bg-base-100 border-base-300 p-8 w-full">
         <SceneEdit
           scene={scene}
           id={id}
@@ -312,7 +312,7 @@ function MapModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content h-full bg-base-100 border-base-300 p-6">
+      <div className="tab-content bg-base-100 border-base-300 p-8 w-full">
         <MapEdit map={map} onRegisterSave={registerSave} />
       </div>
     </>
@@ -369,7 +369,7 @@ function ModuleModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content h-full bg-base-100 border-base-300 p-6">
+      <div className="tab-content bg-base-100 border-base-300 p-8 w-full">
         <ModuleEdit data={moduleInfo} onRegisterSave={registerSave} />
       </div>
     </>
@@ -521,8 +521,8 @@ export default function EditModule() {
   }
 
   return (
-    <div className="h-screen p-4 ">
-      <div className="w-full h-full tabs tabs-lift">
+    <div className="h-full p-4">
+      <div className="w-full tabs tabs-lift">
         {roleModuleItems.map(item => (
           <RoleModuleTabItem
             key={item.id}
@@ -601,7 +601,7 @@ export default function EditModule() {
         }
         {
           moduleTabItems.length === 0 && (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="w-full min-h-[80vh] flex items-center justify-center">
               <div className="text-center space-y-4">
                 <h1 className="text-2xl font-bold text-foreground">模组编辑器</h1>
                 <p className="text-muted-foreground max-w-md">
