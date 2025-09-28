@@ -5,14 +5,7 @@ import { BaselineAutoAwesomeMotion } from "@/icons";
 import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"; // ordered: useMemo before useState (project rule)
 import { htmlToMarkdown } from "./htmlToMarkdown";
-import {
-  clearHtmlDebugHistory,
-  detectHtmlTag,
-  getHtmlDebugHistory,
-  HTML_DEBUG_FLAG,
-  setHtmlDebugEnabled,
-  subscribeHtmlDebug,
-} from "./htmlWysiwyg";
+import { convertHtmlTagIfAny, logHtmlTagIfAny } from "./htmlWysiwyg";
 import { markdownToHtmlWithEntities } from "./markdownToHtml";
 import MentionPreview from "./MentionPreview";
 import { InlineMenu, SelectionMenu } from "./toolbar";
@@ -569,34 +562,6 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
   useEffect(() => {
     onChangeRef.current = onchange;
   }, [onchange]);
-
-  // 调试：通过 window.__VEDITOR_DEBUG__ 或直接设置 window[HTML_DEBUG_FLAG]
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    const win = window as any;
-    const initial = !!(win.__VEDITOR_DEBUG__ || win[HTML_DEBUG_FLAG]);
-    setHtmlDebugEnabled(initial);
-
-    const toolbox = {
-      enable: (value: boolean) => setHtmlDebugEnabled(value),
-      toggle: () => setHtmlDebugEnabled(!(win[HTML_DEBUG_FLAG] ?? false)),
-      history: () => getHtmlDebugHistory(),
-      clear: () => {
-        clearHtmlDebugHistory();
-        return getHtmlDebugHistory();
-      },
-      subscribe: subscribeHtmlDebug,
-    };
-    win.__QUILL_HTML_DEBUG_API__ = toolbox;
-
-    return () => {
-      if (win.__QUILL_HTML_DEBUG_API__ === toolbox)
-        delete win.__QUILL_HTML_DEBUG_API__;
-      clearHtmlDebugHistory();
-    };
-  }, []);
 
   // 外部点击时关闭菜单（点击菜单或工具栏内部不关闭）
   useEffect(() => {
@@ -1236,7 +1201,62 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
           }
           // 构造一个位于空格位置的 range，供 detectMarkdown 识别前缀
           const fakeRange = { index: sel.index - 1, length: 0 } as any;
-          const htmlHandled = detectHtmlTag(editor, fakeRange);
+          // 先尝试 HTML 标签转换（优先级高于 Markdown），以免被其它规则干扰
+          try {
+            // 手动向左回溯到上一行起点，避免 getLine 偶发不一致
+            let scanStart = sel.index - 1; // 空格位置（刚输入的空格字符）
+            const maxBack = 500; // 安全限制，避免极长行性能问题
+            let steps = 0;
+            while (scanStart > 0 && steps < maxBack) {
+              const ch = editor.getText?.(scanStart - 1, 1) || "";
+              if (ch === "\n") {
+                break;
+              }
+              scanStart -= 1;
+              steps += 1;
+            }
+            const leftLen = (sel.index - 1) - scanStart; // 不含当前空格
+            const lineLeft = leftLen > 0 ? (editor.getText?.(scanStart, leftLen) || "") : "";
+            let convertedEarly = convertHtmlTagIfAny(editor, lineLeft, sel.index - 1);
+            // 增强2：若未转换且检测到是部分标签（缺少 >），尝试自动补一个 '>' 再转换
+            if (!convertedEarly) {
+              try {
+                // 简化：检测行末是否存在未闭合的 <tag ... 结构（不含 >），不需要捕获内容
+                const partial = /<[a-z0-9][^>]*$/i.test(lineLeft);
+                if (partial && !lineLeft.endsWith(">")) {
+                  // 临时补一个 '>' 进行一次假检测；不直接改文档，只改本地副本
+                  const simulated = `${lineLeft}>`;
+                  convertedEarly = convertHtmlTagIfAny(editor, simulated, sel.index - 1);
+                  if (convertedEarly) {
+                    // 如果实际转换成功，说明原来用户少输一个 '>'，我们需要把刚才真实文档中的那一个空格左侧缺失的 '>' 插入再删除，
+                    // 但 convertHtmlTagIfAny 内部是基于 simulated raw 定位，会定位失败（因为缺少 '>')。
+                    // 解决方式：若发现 simulated 成功而真实失败，再真正往文档补一个 '>' 再重试一次真实转换。
+                    // 为避免双重转换，这里判断：如果刚才成功其实已经完成（因为实现中只使用 lineLeft 重构 raw，不依赖真实文档的 '>' 字符），则不动作。
+                    // 若未来需要严格一致，可在此补救： editor.insertText(sel.index - 1, '>', 'silent'); 再次调用。
+                  }
+                }
+              }
+              catch { /* ignore auto close attempt */ }
+            }
+            if (convertedEarly) {
+              // 重新获取选区并刷新工具栏；然后直接退出后续 Markdown/inline 处理
+              try {
+                const afterHtmlSel = editor.getSelection?.(true);
+                if (afterHtmlSel && typeof afterHtmlSel.index === "number") {
+                  updateToolbarPosRef.current?.(afterHtmlSel.index);
+                }
+              }
+              catch { /* ignore */ }
+              refreshActiveFormatsRef.current();
+              scheduleToolbarUpdateRef.current();
+              return;
+            }
+            else {
+              // 未转换仍打印调试（可移除）
+              logHtmlTagIfAny(lineLeft);
+            }
+          }
+          catch { /* ignore html early convert */ }
           // 先尝试块级（行首前缀）
           const blockHandled = detectMarkdown(editor, fakeRange);
           // 再尝试对齐
@@ -1244,11 +1264,11 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
           // 若不是块级或对齐，再尝试行内 **/__ /~~ 模式
           const inlineHandled = !blockHandled && !alignmentHandled && detectInlineFormats(editor, sel);
 
-          if (htmlHandled || blockHandled || inlineHandled || alignmentHandled) {
+          if (blockHandled || inlineHandled || alignmentHandled) {
             handlingSpaceRef.current = true;
             try {
               // 对块级或对齐触发：删除触发用的空格；对行内触发：保留空格（更符合连续输入）
-              if (blockHandled || alignmentHandled || htmlHandled) {
+              if (blockHandled || alignmentHandled) {
                 editor.deleteText(sel.index - 1, 1, "user");
               }
               isFormattedRef.current = true;

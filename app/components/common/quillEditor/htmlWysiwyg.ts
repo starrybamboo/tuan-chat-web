@@ -1,511 +1,263 @@
-export type SupportedHtmlTag = "a" | "img" | "div" | "span";
+// 简单 HTML 标签识别（所见即所得预处理阶段）
+// 需求：在输入空格时（空格可位于标签中间或末尾），识别用户正在输入的部分/完整标签
+// 仅支持标签: span, div, a, img
+// 仅关注属性: src, href, id, width, height （其它属性忽略）
+// 当前阶段功能：匹配后在控制台输出解析结果，不做内容转换
+// 后续阶段可以在此基础上做真正的插入 / 富文本结构化
 
-export type HtmlToken = {
-  tag: SupportedHtmlTag;
-  snippet: string;
-  snippetStart: number;
-  trailingWhitespace: string;
-  isVoid: boolean;
-  attributes: Record<string, string>;
-  sanitizedHtml: string | null;
-  plainText: string;
+export type DetectedHtmlTagResult = {
+  tag: string; // 标签名
+  raw: string; // 原始匹配到的片段（不含触发空格自身）
+  closed: boolean; // 是否自闭合（img 或 以 /> 结束）
+  attrs: Record<string, string | true>; // 解析到的属性，只保留白名单
+  isPartial: boolean; // 是否为未闭合/输入中的部分（如 <div 或 <img src=" ）
 };
 
-export type HtmlDebugEntry = {
-  ts: number;
-  event: string;
-  payload?: Record<string, unknown>;
-};
+// 白名单
+const TAG_ALLOW = new Set(["span", "div", "a", "img"]);
+const ATTR_ALLOW = new Set(["src", "href", "id", "width", "height"]);
 
-type QuillLike = {
-  getLine?: (index: number) => [any, number] | undefined;
-  getText?: (index: number, length: number) => string;
-  getSelection?: (focus?: boolean) => { index: number; length: number } | null | undefined;
-  getLeaf?: (index: number) => [any, any] | null | undefined;
-  deleteText: (index: number, length: number, source?: "api" | "user" | "silent") => void;
-  insertText: (index: number, text: string, source?: "api" | "user" | "silent") => void;
-  insertEmbed: (index: number, embed: string, value: any, source?: "api" | "user" | "silent") => void;
-  formatText: (index: number, length: number, format: string, value: any, source?: "api" | "user" | "silent") => void;
-  setSelection: (index: number, length: number, source?: "api" | "user" | "silent") => void;
-  history: { cutoff: () => void };
-  clipboard?: { dangerouslyPasteHTML?: (index: number, html: string, source?: "api" | "user" | "silent") => unknown };
-};
-
-type HtmlRule = {
-  tag: SupportedHtmlTag;
-  isVoid: boolean;
-  outerPattern: RegExp;
-};
-
-const TRAILING_SPACE_PATTERN = /[\u0020\u00A0\u2000-\u200B\u205F\u3000]+$/;
-
-const HTML_RULES: HtmlRule[] = [
-  { tag: "a", isVoid: false, outerPattern: /(<a\b[^>]*>[\s\S]*<\/a\s*>)$/i },
-  { tag: "img", isVoid: true, outerPattern: /(<img\b[^<>]*?(?:\/>|>))$/i },
-  { tag: "div", isVoid: false, outerPattern: /(<div\b[^>]*>[\s\S]*<\/div\s*>)$/i },
-  { tag: "span", isVoid: false, outerPattern: /(<span\b[^>]*>[\s\S]*<\/span\s*>)$/i },
-];
-
-export const HTML_DEBUG_FLAG = "__QUILL_HTML_DEBUG__";
-const HTML_DEBUG_HISTORY_KEY = "__QUILL_HTML_DEBUG_HISTORY__";
-const MAX_DEBUG_HISTORY = 50;
-
-const debugListeners = new Set<(entry: HtmlDebugEntry) => void>();
-
-function logHtmlDebug(event: string, payload?: Record<string, unknown>): void {
-  const entry: HtmlDebugEntry = { ts: Date.now(), event, payload };
-
-  for (const listener of debugListeners) {
-    try {
-      listener(entry);
-    }
-    catch {
-      // ignore listener errors
-    }
+// 在行文本（到当前空格位置为止）中，向左回溯找到最近的 '<' 开头片段尝试解析
+export function detectHtmlTagOnSpace(lineLeft: string): DetectedHtmlTagResult | null {
+  // lineLeft: 截止当前输入空格(不含本次空格字符)之前的整行文本
+  const ltPos = lineLeft.lastIndexOf("<");
+  if (ltPos < 0) {
+    return null;
+  }
+  const fragment = lineLeft.slice(ltPos); // 从 < 开始到行尾
+  // 排除以 << 或 HTML 注释等复杂场景（简单防御）
+  if (/^<<|^<!--/.test(fragment)) {
+    return null;
+  }
+  // 基本标签名提取： <tag ...>
+  const tagNameMatch = /^<\s*([a-z][a-z0-9]*)/i.exec(fragment);
+  if (!tagNameMatch) {
+    return null;
+  }
+  const tag = tagNameMatch[1].toLowerCase();
+  if (!TAG_ALLOW.has(tag)) {
+    return null;
   }
 
-  try {
-    if (typeof window === "undefined")
-      return;
-    if (!(window as any)[HTML_DEBUG_FLAG])
-      return;
+  // 截取标签内部（去掉开头 <tagName），用于属性解析
+  const inner = fragment.slice(tagNameMatch[0].length);
+  // 判断是否已经遇到闭合 '>' 或 '/>'
+  const endGt = inner.indexOf(">");
+  let closedSyntax = false;
+  let attrArea = inner;
+  if (endGt >= 0) {
+    const beforeGt = inner.slice(0, endGt);
+    closedSyntax = /\/\s*$/.test(beforeGt) || tag === "img";
+    attrArea = beforeGt;
+  }
+  else {
+    // 尚未输入到 '>'，视为部分
+    attrArea = inner;
+  }
 
-    const history = Array.isArray((window as any)[HTML_DEBUG_HISTORY_KEY])
-      ? (window as any)[HTML_DEBUG_HISTORY_KEY] as HtmlDebugEntry[]
-      : [];
-    history.push(entry);
-    if (history.length > MAX_DEBUG_HISTORY)
-      history.splice(0, history.length - MAX_DEBUG_HISTORY);
-    (window as any)[HTML_DEBUG_HISTORY_KEY] = history;
-
-    if (typeof console?.warn === "function") {
-      const prefix = `[QuillHtml] ${event}`;
-      if (payload)
-        console.warn(prefix, payload);
-      else
-        console.warn(prefix);
+  const attrs: Record<string, string | true> = {};
+  // 属性 token 解析：允许形如 key="value" | key='value' | key=value | key
+  // 只解析白名单属性，其它忽略
+  // 使用 i 标记精简大小写类；第二层捕获组直接利用整体 ("..."|'...'|bare)
+  // attr 解析：name (= value)? ; value 可以是 ".." | '..' | bare
+  // 说明：匹配后 m[2], m[3], m[4] 之一为属性值；引用全部以避免 lint 误判未使用
+  const attrRegex = /([a-z_:][-\w:.]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>/]+)))?/gi;
+  for (;;) {
+    const m = attrRegex.exec(attrArea);
+    if (!m) {
+      break;
     }
+    const rawName = m[1];
+    const name = rawName.toLowerCase();
+    if (!ATTR_ALLOW.has(name)) {
+      continue;
+    }
+    // 访问 m[2]/m[3]/m[4] 确保捕获组被使用
+    const val = m[2] ?? m[3] ?? m[4];
+    attrs[name] = val !== undefined ? val : true;
   }
-  catch {
-    // ignore debug logging failures
-  }
-}
 
-export function subscribeHtmlDebug(listener: (entry: HtmlDebugEntry) => void): () => void {
-  debugListeners.add(listener);
-  return () => {
-    debugListeners.delete(listener);
+  const isPartial = endGt === -1; // 未输入 >
+  return {
+    tag,
+    raw: fragment,
+    closed: closedSyntax,
+    attrs,
+    isPartial,
   };
 }
 
-export function setHtmlDebugEnabled(enabled: boolean): void {
-  if (typeof window === "undefined")
-    return;
-  try {
-    (window as any)[HTML_DEBUG_FLAG] = enabled;
-    if (!enabled)
-      (window as any)[HTML_DEBUG_HISTORY_KEY] = [];
-  }
-  catch {
-    // ignore debug flag errors
+// 调用入口：在空格插入后，提供当前行(到空格前)文本进行检测并输出
+export function logHtmlTagIfAny(lineLeft: string): void {
+  const r = detectHtmlTagOnSpace(lineLeft);
+  if (r) {
+    // 暂时只输出
+    // 控制台格式化显示，便于后续扩展
+    // eslint-disable-next-line no-console
+    console.log("[HTML-TAG-DETECT]", r);
   }
 }
 
-export function getHtmlDebugHistory(): HtmlDebugEntry[] {
-  if (typeof window === "undefined")
-    return [];
-  try {
-    const history = (window as any)[HTML_DEBUG_HISTORY_KEY];
-    return Array.isArray(history) ? [...history] : [];
+// 将检测到的标签转换为 Quill 文档内容
+// 调用时机：用户在标签末尾或标签内部敲下空格（已经调用 detectHtmlTagOnSpace）后
+// 参数：
+//  quillInstance: Quill 实例
+//  lineLeft: 当前行（到空格前）文本
+//  globalIndex: 空格的文档 index（即刚刚插入的空格位置）
+// 返回：true 表示已处理并替换；false 表示未处理
+export function convertHtmlTagIfAny(
+  quillInstance: any,
+  lineLeft: string,
+  globalIndex: number,
+): boolean {
+  if (!quillInstance || typeof globalIndex !== "number") {
+    return false;
   }
-  catch {
-    return [];
+  const detected = detectHtmlTagOnSpace(lineLeft);
+  if (!detected) {
+    return false;
   }
-}
-
-export function clearHtmlDebugHistory(): void {
-  if (typeof window === "undefined")
-    return;
+  const { tag, raw, attrs, isPartial } = detected;
+  // 不处理未闭合（仍然输入中）的标签
+  if (isPartial) {
+    return false;
+  }
+  // 旧实现：基于 lineLeft 末尾删除到行末，可能会把标签后面的其它文本一起删掉；
+  // 新实现：精准只删除 raw 片段本身。
+  // 直接使用 raw.length 并向左回溯匹配，避免多次出现相同子串导致 lastIndexOf 错误定位。
+  const rawLen = raw.length;
+  if (!rawLen) {
+    return false;
+  }
+  // 最大向左回溯字符数（保护性能）
+  const maxBack = Math.min(600, globalIndex); // 不会超过当前 index
+  let tagDocStart = -1;
+  // 由于我们已在上层构造了 lineLeft = 当前行(不含空格)文本，理论上 raw 一定在 lineLeft 末尾，
+  // 但为提高健壮性，这里仍做从 globalIndex - rawLen 起始的精准匹配，失败则在一个窗口内继续回溯。
+  const primaryStart = globalIndex - rawLen; // 假设标签紧邻空格
   try {
-    (window as any)[HTML_DEBUG_HISTORY_KEY] = [];
+    const primaryText = quillInstance.getText?.(primaryStart, rawLen) || "";
+    if (primaryText === raw) {
+      tagDocStart = primaryStart;
+    }
   }
   catch {
     // ignore
   }
-}
-
-type SanitizedSnippet = {
-  attributes: Record<string, string>;
-  sanitizedHtml: string | null;
-  plainText: string;
-};
-
-export function detectHtmlTag(quillInstance: QuillLike | null | undefined, range: any): boolean {
-  if (!quillInstance || !range || typeof range.index !== "number")
-    return false;
-
-  const lineInfo = quillInstance.getLine?.(range.index);
-  if (!lineInfo || !Array.isArray(lineInfo) || lineInfo.length < 2)
-    return false;
-
-  const [line, offset] = lineInfo as [any, number];
-  const lineStart = range.index - offset;
-  const lineLength = typeof line?.length === "function" ? line.length() : 0;
-  const rawLineText = (quillInstance.getText?.(lineStart, Math.max(0, lineLength)) ?? "").replace(/\n$/, "");
-  const leftText = rawLineText.slice(0, Math.max(0, offset));
-
-  const token = parseHtmlToken(leftText);
-  if (!token) {
-    logHtmlDebug("detectHtmlTag:no-match", { leftText });
+  if (tagDocStart === -1) {
+    // 回溯扫描（最多 maxBack - rawLen 次）
+    const limit = Math.max(0, globalIndex - maxBack);
+    for (let start = primaryStart - 1; start >= limit; start -= 1) {
+      try {
+        const seg = quillInstance.getText?.(start, rawLen) || "";
+        if (seg === raw) {
+          tagDocStart = start;
+          break;
+        }
+      }
+      catch {
+        // ignore each iteration
+      }
+    }
+  }
+  if (tagDocStart < 0) {
+    console.warn("[HTML-CONVERT] 未找到标签源码位置，放弃转换", { raw });
     return false;
   }
+  const tagLength = rawLen; // 仅删除标签源码自身
 
-  const startIndex = lineStart + token.snippetStart;
-  const deleteLength = token.snippet.length + token.trailingWhitespace.length;
-  const fallbackText = token.snippet + token.trailingWhitespace;
-
-  logHtmlDebug("detectHtmlTag:matched", {
-    tag: token.tag,
-    startIndex,
-    deleteLength,
-    trailingWhitespace: token.trailingWhitespace,
-    snippet: token.snippet,
-  });
-
-  try {
-    quillInstance.history.cutoff();
-    quillInstance.deleteText(startIndex, deleteLength, "user");
-
-    let selectionIndex = startIndex;
-    let handled = false;
-
-    if (token.tag === "a") {
-      const result = applyAnchorReplacement(quillInstance, startIndex, token);
-      if (result != null) {
-        selectionIndex = result;
-        handled = true;
-      }
+  // 构造插入内容
+  const ops: any[] = [];
+  if (tag === "img") {
+    // 简单使用 Quill 内置 image blot：插入 attrs.src
+    const src = (attrs.src || attrs.href || "") as string;
+    if (!src) {
+      return false; // 没有 src 不转换
     }
-    else if (token.tag === "img") {
-      const result = applyImageReplacement(quillInstance, startIndex, token);
-      if (result != null) {
-        selectionIndex = result;
-        handled = true;
-      }
-    }
-    else {
-      const result = applyElementReplacement(quillInstance, startIndex, token);
-      if (result != null) {
-        selectionIndex = result;
-        handled = true;
-      }
-    }
-
-    if (!handled) {
-      logHtmlDebug("detectHtmlTag:unhandled", { tag: token.tag });
-      fallbackInsertOriginal(quillInstance, startIndex, fallbackText);
+    ops.push({ insert: { image: src } });
+    // 若有 width/height，后续可考虑自定义 blot，这里暂不处理尺寸
+  }
+  else if (tag === "a") {
+    // 以链接文字展示：优先 id / href / 占位符
+    const href = (attrs.href || attrs.src || "") as string;
+    const idText = (attrs.id as string) || "";
+    // 增强1：若既没有 href 也没有 id，则不转换，维持原始输入（避免出现占位符“链接”干扰用户继续编辑）
+    if (!href && !idText) {
       return false;
     }
-
-    if (token.trailingWhitespace) {
-      quillInstance.insertText(selectionIndex, token.trailingWhitespace, "user");
-      selectionIndex += token.trailingWhitespace.length;
-    }
-
-    quillInstance.setSelection(selectionIndex, 0, "silent");
-    quillInstance.history.cutoff();
-    logHtmlDebug("detectHtmlTag:success", { tag: token.tag, selectionIndex });
-    return true;
+    const text = href || idText;
+    ops.push({ insert: text, attributes: { link: href || undefined } });
   }
-  catch (error) {
-    logHtmlDebug("detectHtmlTag:error", { error: error instanceof Error ? error.message : String(error) });
-    fallbackInsertOriginal(quillInstance, startIndex, fallbackText);
+  else if (tag === "span" || tag === "div") {
+    // 目前没有特殊格式，直接插入一个空占位或 id
+    const content = (attrs.id as string) || (tag === "div" ? "" : "");
+    // 如果没有任何属性，尝试忽略，保持原样（返回 false）
+    if (!content && Object.keys(attrs).length === 0) {
+      return false;
+    }
+    ops.push({ insert: content || (tag === "div" ? "" : "") });
+  }
+  else {
+    return false; // 未覆盖标签
+  }
+
+  try {
+    // 先删除原始标签源码（silent 避免递归 text-change 引起的竞争）
+    if (tagLength > 0) {
+      quillInstance.deleteText(tagDocStart, tagLength, "silent");
+    }
+    // 在删除位置插入结构化内容（仍用 silent，手动调度刷新）并统计总插入长度
+    let insertPos = tagDocStart;
+    let insertedTotal = 0;
+    for (const op of ops) {
+      if (typeof op.insert === "object" && op.insert.image) {
+        quillInstance.insertEmbed(insertPos, "image", op.insert.image, "silent");
+        insertPos += 1;
+        insertedTotal += 1; // embed 长度视为 1
+      }
+      else if (typeof op.insert === "string") {
+        quillInstance.insertText(insertPos, op.insert, op.attributes || {}, "silent");
+        insertPos += op.insert.length;
+        insertedTotal += op.insert.length;
+      }
+    }
+    // 若是 img 并提供 width/height，尝试直接设置 DOM 属性（增强3）
+    if (tag === "img" && (attrs.width || attrs.height)) {
+      try {
+        const leafInfo = quillInstance.getLeaf(tagDocStart);
+        const leafNode = leafInfo && leafInfo[0] && leafInfo[0].domNode;
+        if (leafNode && leafNode.tagName === "IMG") {
+          const imgEl = leafNode as HTMLImageElement;
+          const w = attrs.width as string | undefined;
+          const h = attrs.height as string | undefined;
+          if (w) {
+            if (/^\d+$/.test(w)) {
+              imgEl.setAttribute("width", w);
+            }
+            else {
+              imgEl.style.width = w;
+            }
+          }
+          if (h) {
+            if (/^\d+$/.test(h)) {
+              imgEl.setAttribute("height", h);
+            }
+            else {
+              imgEl.style.height = h;
+            }
+          }
+        }
+      }
+      catch { /* ignore width/height set errors */ }
+    }
+    // 此时空格原 index(globalIndex) 已因为删除向左移动 tagLength，再因为插入向右移动 insertedTotal
+    // 新的空格位置 = (globalIndex - tagLength) + insertedTotal
+    const spaceNewIndex = (globalIndex - tagLength) + insertedTotal;
+    // 希望光标落在空格之后继续输入
+    quillInstance.setSelection(spaceNewIndex + 1, 0, "silent");
+  }
+  catch {
     return false;
   }
-}
-
-function parseHtmlToken(leftText: string): HtmlToken | null {
-  if (!leftText)
-    return null;
-
-  const trailingMatch = leftText.match(TRAILING_SPACE_PATTERN);
-  const trailingWhitespace = trailingMatch ? trailingMatch[0] : "";
-  const trimmed = trailingWhitespace ? leftText.slice(0, -trailingWhitespace.length) : leftText;
-
-  if (!trimmed)
-    return null;
-
-  for (const rule of HTML_RULES) {
-    const execResult = rule.outerPattern.exec(trimmed);
-    if (!execResult)
-      continue;
-
-    const snippet = execResult[1];
-    if (!snippet)
-      continue;
-
-    const snippetStart = typeof execResult.index === "number"
-      ? execResult.index
-      : trimmed.length - snippet.length;
-
-    const sanitized = sanitizeSnippet(snippet, rule.tag, rule.isVoid);
-    if (!sanitized) {
-      logHtmlDebug("parseHtmlToken:sanitize-failed", { tag: rule.tag, snippet });
-      continue;
-    }
-
-    return {
-      tag: rule.tag,
-      snippet,
-      snippetStart,
-      trailingWhitespace,
-      isVoid: rule.isVoid,
-      ...sanitized,
-    };
-  }
-
-  return null;
-}
-
-function sanitizeSnippet(snippet: string, tag: SupportedHtmlTag, isVoid: boolean): SanitizedSnippet | null {
-  if (typeof document === "undefined")
-    return legacySanitizeFallback(snippet, tag, isVoid);
-
-  const container = document.createElement("div");
-  container.innerHTML = snippet;
-
-  const element = container.firstElementChild as HTMLElement | null;
-  if (!element || element.tagName.toLowerCase() !== tag)
-    return null;
-
-  const attributes = sanitizeElementAttributes(element, tag);
-  if (!attributes)
-    return null;
-
-  if (isVoid) {
-    return {
-      attributes,
-      sanitizedHtml: null,
-      plainText: "",
-    };
-  }
-
-  const rawText = element.textContent ?? "";
-  element.textContent = rawText;
-
-  return {
-    attributes,
-    sanitizedHtml: element.outerHTML,
-    plainText: rawText,
-  };
-}
-
-function sanitizeElementAttributes(element: HTMLElement, tag: SupportedHtmlTag): Record<string, string> | null {
-  const allowed = new Set(["id", "width", "height", "ref"]);
-  if (tag === "a")
-    allowed.add("href");
-  if (tag === "img")
-    allowed.add("src");
-
-  const sanitized: Record<string, string> = {};
-  const attrs = Array.from(element.attributes);
-
-  for (const attr of attrs) {
-    const name = attr.name.toLowerCase();
-    if (name === "style") {
-      logHtmlDebug("sanitizeElementAttributes:style-rejected", { tag, snippet: element.outerHTML });
-      return null;
-    }
-
-    if (!allowed.has(name)) {
-      element.removeAttribute(attr.name);
-      continue;
-    }
-
-    const value = attr.value.trim();
-    if (!value) {
-      element.removeAttribute(attr.name);
-      continue;
-    }
-
-    if (tag === "a" && name === "href" && /^javascript:/i.test(value)) {
-      logHtmlDebug("sanitizeElementAttributes:href-rejected", { value });
-      return null;
-    }
-
-    sanitized[name] = value;
-    element.setAttribute(attr.name, value);
-  }
-
-  if (tag === "a" && !sanitized.href)
-    return null;
-  if (tag === "img" && !sanitized.src)
-    return null;
-
-  return sanitized;
-}
-
-function legacySanitizeFallback(snippet: string, tag: SupportedHtmlTag, isVoid: boolean): SanitizedSnippet | null {
-  const attrMatch = tag === "img"
-    ? /^<img\b([^<>]*?)(?:\/>|>)$/i.exec(snippet)
-    : /^<([a-z]+)\b([^>]*)>([\s\S]*?)<\/[a-z]+\s*>$/i.exec(snippet);
-
-  if (!attrMatch)
-    return null;
-
-  const attrRaw = isVoid ? (attrMatch[1] ?? "") : (attrMatch[2] ?? "");
-  const attributes = sanitizeAttributesFallback(attrRaw, tag);
-  if (!attributes)
-    return null;
-
-  const plainText = isVoid ? "" : (attrMatch[isVoid ? 0 : 3] ?? "");
-  const sanitizedHtml = isVoid ? null : buildFallbackHtml(tag, attributes, plainText);
-
-  return {
-    attributes,
-    sanitizedHtml,
-    plainText,
-  };
-}
-
-function sanitizeAttributesFallback(raw: string, tag: SupportedHtmlTag): Record<string, string> | null {
-  const allowed = new Set(["id", "width", "height", "ref"]);
-  if (tag === "a")
-    allowed.add("href");
-  if (tag === "img")
-    allowed.add("src");
-
-  const attrs: Record<string, string> = {};
-  const attrRegex = /([a-z_:][\w:.-]*)\s*=\s*"([^"]*)"/gi;
-  for (const match of raw.matchAll(attrRegex)) {
-    const name = match[1].toLowerCase();
-    if (!allowed.has(name))
-      continue;
-
-    const value = match[2].trim();
-    if (!value)
-      continue;
-    if (name === "href" && /^javascript:/i.test(value))
-      return null;
-    attrs[name] = value;
-  }
-
-  if (tag === "a" && !attrs.href)
-    return null;
-  if (tag === "img" && !attrs.src)
-    return null;
-
-  return attrs;
-}
-
-function buildFallbackHtml(tag: SupportedHtmlTag, attrs: Record<string, string>, innerContent: string): string {
-  const parts: string[] = [];
-  for (const [key, val] of Object.entries(attrs)) {
-    const safeVal = val.replace(/"/g, "&quot;");
-    parts.push(`${key}="${safeVal}"`);
-  }
-  const openTag = parts.length > 0
-    ? `<${tag} ${parts.join(" ")}>`
-    : `<${tag}>`;
-  const safeInner = innerContent
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-  return `${openTag}${safeInner}</${tag}>`;
-}
-
-function applyAnchorReplacement(quillInstance: QuillLike, startIndex: number, token: HtmlToken): number | null {
-  const href = token.attributes.href;
-  if (!href)
-    return null;
-
-  const collapsed = token.plainText.replace(/\s+/g, " ").trim();
-  const displayText = collapsed.length > 0 ? collapsed : href;
-
-  quillInstance.insertText(startIndex, displayText, "user");
-  quillInstance.formatText(startIndex, displayText.length, "link", href, "user");
-  applyAnchorAttributes(quillInstance, startIndex, displayText.length, token.attributes);
-  logHtmlDebug("applyAnchorReplacement", { href, displayText });
-  return startIndex + displayText.length;
-}
-
-function applyImageReplacement(quillInstance: QuillLike, startIndex: number, token: HtmlToken): number | null {
-  const src = token.attributes.src;
-  if (!src)
-    return null;
-
-  quillInstance.insertEmbed(startIndex, "image", src, "user");
-  applyImageAttributes(quillInstance, startIndex, token.attributes);
-  logHtmlDebug("applyImageReplacement", { src });
-  return startIndex + 1;
-}
-
-function applyElementReplacement(quillInstance: QuillLike, startIndex: number, token: HtmlToken): number | null {
-  if (!token.sanitizedHtml || !quillInstance.clipboard?.dangerouslyPasteHTML)
-    return null;
-
-  quillInstance.clipboard.dangerouslyPasteHTML(startIndex, token.sanitizedHtml, "user");
-  const afterSel = quillInstance.getSelection?.(true);
-  if (afterSel && typeof afterSel.index === "number") {
-    logHtmlDebug("applyElementReplacement", { tag: token.tag, selectionIndex: afterSel.index });
-    return afterSel.index;
-  }
-
-  return startIndex + (token.plainText.length > 0 ? token.plainText.length : 1);
-}
-
-function fallbackInsertOriginal(quillInstance: QuillLike, startIndex: number, original: string): void {
-  try {
-    quillInstance.insertText(startIndex, original, "user");
-  }
-  catch (error) {
-    logHtmlDebug("fallbackInsertOriginal:error", { error: error instanceof Error ? error.message : String(error) });
-  }
-}
-
-function applyAnchorAttributes(quillInstance: QuillLike, startIndex: number, _length: number, attributes: Record<string, string>): void {
-  if (typeof window === "undefined")
-    return;
-  try {
-    const leafTuple = quillInstance.getLeaf?.(startIndex);
-    const leaf = Array.isArray(leafTuple) ? leafTuple[0] : null;
-    const linkNode = (leaf?.parent?.domNode instanceof HTMLAnchorElement)
-      ? leaf.parent.domNode as HTMLAnchorElement
-      : (leaf?.domNode?.parentElement instanceof HTMLAnchorElement ? leaf.domNode.parentElement : null);
-    if (!linkNode)
-      return;
-    if (attributes.id)
-      linkNode.id = attributes.id;
-    if (attributes.ref)
-      linkNode.setAttribute("data-ref", attributes.ref);
-    if (attributes.width)
-      linkNode.setAttribute("data-width", attributes.width);
-    if (attributes.height)
-      linkNode.setAttribute("data-height", attributes.height);
-  }
-  catch (error) {
-    logHtmlDebug("applyAnchorAttributes:error", { error: error instanceof Error ? error.message : String(error) });
-  }
-}
-
-function applyImageAttributes(quillInstance: QuillLike, startIndex: number, attributes: Record<string, string>): void {
-  if (typeof window === "undefined")
-    return;
-  try {
-    const leafTuple = quillInstance.getLeaf?.(startIndex);
-    const leaf = Array.isArray(leafTuple) ? leafTuple[0] : null;
-    const imgNode = leaf?.domNode instanceof HTMLImageElement ? leaf.domNode : null;
-    if (!imgNode)
-      return;
-    if (attributes.id)
-      imgNode.id = attributes.id;
-    if (attributes.ref)
-      imgNode.setAttribute("data-ref", attributes.ref);
-    if (attributes.width)
-      imgNode.setAttribute("width", attributes.width);
-    if (attributes.height)
-      imgNode.setAttribute("height", attributes.height);
-  }
-  catch (error) {
-    logHtmlDebug("applyImageAttributes:error", { error: error instanceof Error ? error.message : String(error) });
-  }
+  return true;
 }
