@@ -60,7 +60,7 @@ export default function SideTopbar() {
 
   const items = useMemo(
     () => [
-      { id: ModuleListEnum.STAGE, icon: StageIcon, label: "暂存区", tooltip: "暂存区管理" },
+      { id: ModuleListEnum.STAGE, icon: StageIcon, label: "素材", tooltip: "素材管理" },
       { id: ModuleListEnum.MAP, icon: MapPlaceholderIcon, label: "剧情树", tooltip: "剧情/地点 流程图" },
       { id: ModuleListEnum.MODULE, icon: StageIcon, label: "模组", tooltip: "模组信息与管理" },
     ],
