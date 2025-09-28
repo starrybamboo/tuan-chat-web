@@ -209,8 +209,19 @@ export function htmlToMarkdown(html: string): string {
           flushListContextIfNeeded(tag);
           return;
         }
-        // 修正：先获取对齐属性，再处理内部文本
-        const align = node.getAttribute("align");
+
+        // 修正：检查 class 而不是 align 属性
+        let align = "";
+        if (node.classList.contains("ql-align-center")) {
+          align = "center";
+        }
+        else if (node.classList.contains("ql-align-right")) {
+          align = "right";
+        }
+        else if (node.classList.contains("ql-align-justify")) {
+          align = "justify";
+        }
+
         let text = normalize(toInlineMd(node)).trim();
         if (text) {
           if (align === "center") {

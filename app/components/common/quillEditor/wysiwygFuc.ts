@@ -77,7 +77,6 @@ export function detectMarkdown(
   }
   return false;
 }
-
 // 在输入空格时检测并应用内联格式：**bold**、__underline__、~~strike~~
 export function detectInlineFormats(
   quillInstance: any,
@@ -218,7 +217,6 @@ export function detectInlineFormats(
   }
   return false;
 }
-
 // 检测行尾的对齐语法：c/r/b + 空格
 export function detectAlignment(quillInstance: any, range: any): boolean {
   if (!quillInstance || !range)
@@ -265,7 +263,6 @@ export function detectAlignment(quillInstance: any, range: any): boolean {
     return false;
   }
 }
-
 // Backspace 时：若当前行为空并且为 header 或列表项，则移除其块级格式，退化为普通段落
 export function removeBlockFormatIfEmpty(quillInstance: any, range: any): boolean {
   if (!quillInstance || !range) {

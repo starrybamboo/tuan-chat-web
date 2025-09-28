@@ -5,10 +5,23 @@ import { BaselineAutoAwesomeMotion } from "@/icons";
 import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"; // ordered: useMemo before useState (project rule)
 import { htmlToMarkdown } from "./htmlToMarkdown";
+import {
+  clearHtmlDebugHistory,
+  detectHtmlTag,
+  getHtmlDebugHistory,
+  HTML_DEBUG_FLAG,
+  setHtmlDebugEnabled,
+  subscribeHtmlDebug,
+} from "./htmlWysiwyg";
 import { markdownToHtmlWithEntities } from "./markdownToHtml";
 import MentionPreview from "./MentionPreview";
 import { InlineMenu, SelectionMenu } from "./toolbar";
-import { detectAlignment, detectInlineFormats, detectMarkdown, removeBlockFormatIfEmpty } from "./wysiwygFuc";
+import {
+  detectAlignment,
+  detectInlineFormats,
+  detectMarkdown,
+  removeBlockFormatIfEmpty,
+} from "./wysiwygFuc";
 // Quill 样式与本地覆盖
 import "quill/dist/quill.snow.css";
 import "./quill-overrides.css";
@@ -557,7 +570,33 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
     onChangeRef.current = onchange;
   }, [onchange]);
 
-  // 调试：通过 window.__VEDITOR_DEBUG__ 控制
+  // 调试：通过 window.__VEDITOR_DEBUG__ 或直接设置 window[HTML_DEBUG_FLAG]
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const win = window as any;
+    const initial = !!(win.__VEDITOR_DEBUG__ || win[HTML_DEBUG_FLAG]);
+    setHtmlDebugEnabled(initial);
+
+    const toolbox = {
+      enable: (value: boolean) => setHtmlDebugEnabled(value),
+      toggle: () => setHtmlDebugEnabled(!(win[HTML_DEBUG_FLAG] ?? false)),
+      history: () => getHtmlDebugHistory(),
+      clear: () => {
+        clearHtmlDebugHistory();
+        return getHtmlDebugHistory();
+      },
+      subscribe: subscribeHtmlDebug,
+    };
+    win.__QUILL_HTML_DEBUG_API__ = toolbox;
+
+    return () => {
+      if (win.__QUILL_HTML_DEBUG_API__ === toolbox)
+        delete win.__QUILL_HTML_DEBUG_API__;
+      clearHtmlDebugHistory();
+    };
+  }, []);
 
   // 外部点击时关闭菜单（点击菜单或工具栏内部不关闭）
   useEffect(() => {
@@ -1197,6 +1236,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
           }
           // 构造一个位于空格位置的 range，供 detectMarkdown 识别前缀
           const fakeRange = { index: sel.index - 1, length: 0 } as any;
+          const htmlHandled = detectHtmlTag(editor, fakeRange);
           // 先尝试块级（行首前缀）
           const blockHandled = detectMarkdown(editor, fakeRange);
           // 再尝试对齐
@@ -1204,11 +1244,11 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
           // 若不是块级或对齐，再尝试行内 **/__ /~~ 模式
           const inlineHandled = !blockHandled && !alignmentHandled && detectInlineFormats(editor, sel);
 
-          if (blockHandled || inlineHandled || alignmentHandled) {
+          if (htmlHandled || blockHandled || inlineHandled || alignmentHandled) {
             handlingSpaceRef.current = true;
             try {
               // 对块级或对齐触发：删除触发用的空格；对行内触发：保留空格（更符合连续输入）
-              if (blockHandled || alignmentHandled) {
+              if (blockHandled || alignmentHandled || htmlHandled) {
                 editor.deleteText(sel.index - 1, 1, "user");
               }
               isFormattedRef.current = true;
