@@ -3,9 +3,9 @@ import { getScreenSize } from "@/utils/getScreenSize";
 import { useGetUserInfoQuery } from "api/queryHooks";
 import { useNavigate } from "react-router";
 
-export default function FriendItem({
+export default function ChatItem({
   id,
-  isDeleteContats,
+  isSmallScreen,
   unreadMessageNumber,
   currentContactUserId,
   setIsOpenLeftDrawer,
@@ -13,7 +13,7 @@ export default function FriendItem({
   deletedContactId,
 }: {
   id: number;
-  isDeleteContats: boolean;
+  isSmallScreen: boolean;
   unreadMessageNumber: number;
   currentContactUserId: number | null;
   setIsOpenLeftDrawer: (isOpen: boolean) => void;
@@ -32,19 +32,54 @@ export default function FriendItem({
     showedUnreadMessageNumber = 0;
   }
 
+  function EndTouchScroll() {
+    // console.log('触摸滚动结束', id);
+  }
+
+  function handleTouchStart() {
+    // console.log('触摸开始', id);
+
+  }
+  function handleTouchMove() {
+    // console.log('触摸移动', id);
+  }
+
+  function handleTouchEnd() {
+    EndTouchScroll();
+    // console.log('触摸结束', id);
+  }
+
+  function handleTouchCancel() {
+    EndTouchScroll();
+    // console.log('触摸被中断', id);
+  }
+
+  function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
+    e.stopPropagation();
+    navigate(`/chat/private/${id}`);
+    updateReadlinePosition(id);
+    if (getScreenSize() === "sm") {
+      setTimeout(() => {
+        setIsOpenLeftDrawer(false);
+      }, 0);
+    }
+  }
+
+  function handleDelete(e: React.MouseEvent<HTMLDivElement>) {
+    e.stopPropagation();
+    if (!isSmallScreen)
+      deletedContactId(id);
+  }
+
   return (
     <button
       className={`btn btn-ghost flex justify-start w-full gap-2 ${currentContactUserId === id ? "bg-info-content/30" : ""}`}
       type="button"
-      onClick={() => {
-        navigate(`/chat/private/${id}`);
-        updateReadlinePosition(id);
-        if (getScreenSize() === "sm") {
-          setTimeout(() => {
-            setIsOpenLeftDrawer(false);
-          }, 0);
-        }
-      }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
+      onClick={handleClick}
     >
       {/* 头像 */}
       <div className="indicator">
@@ -73,17 +108,12 @@ export default function FriendItem({
           </span>
         </div>
         {/* 删除联系人 */}
-        {isDeleteContats && (
-          <div
-            className="flex items-center justify-center absolute w-6 h-6 -right-2 -top-0.5 rounded-2xl bg-white transition-opacity duration-200"
-            onClick={(e) => {
-              e.stopPropagation();
-              deletedContactId(id);
-            }}
-          >
-            <XMarkICon />
-          </div>
-        )}
+        <div
+          className="flex items-center justify-center absolute w-6 h-6 -right-2 -top-0.5 rounded-2xl opacity-0 hover:opacity-100 transition-opacity duration-200"
+          onClick={handleDelete}
+        >
+          <XMarkICon />
+        </div>
       </div>
     </button>
   );
