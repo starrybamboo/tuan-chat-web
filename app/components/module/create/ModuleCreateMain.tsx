@@ -21,10 +21,11 @@ export default function ModuleCreateMain() {
         </p>
       </header>
       <form onSubmit={handleSubmit(submit)}>
-        <main className="flex flex-col md:flex-row gap-8 mt-12 py-10 px-4 border border-base-300 rounded-lg shadow-sm">
+        <main className="flex flex-col md:flex-row gap-8 mt-12 py-10 px-4 md:border md:border-base-300 md:rounded-lg md:shadow-sm">
           {/* 规则选择 */}
           <RuleSelector value={ruleId} onChange={setValue} />
-          <section className="flex-2/3 px-5 border-l border-base-300 ">
+          {/* <RulesSection currentRuleId={ruleId} onRuleChange={(id) => setValue("ruleId", id)} large={false} /> */}
+          <section className="flex-2/3 px-5 md:border-l md:border-base-300 ">
             { /* 模组信息 */ }
             <ModuleForm register={register} errors={errors} />
             {/* 模组封面 */}

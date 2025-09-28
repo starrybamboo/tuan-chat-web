@@ -108,10 +108,9 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
     const sorted: Record<number, DirectMessageEvent[]> = {};
     // 遍历每个联系人的消息
     Object.entries(wsMessages).forEach(([contactId, messages]) => {
-      const sortedMessages = [...messages].sort((a, b) => {
+      sorted[Number(contactId)] = [...messages].sort((a, b) => {
         return b.syncId - a.syncId;
       });
-      sorted[Number(contactId)] = sortedMessages;
     });
     return sorted;
   }, [wsMessages]);
