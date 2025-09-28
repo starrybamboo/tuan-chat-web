@@ -1,4 +1,5 @@
 const UNTIL = {
+  /** 检查参数列表中是否包含某个参数，包含则移除该参数并返回true，否则返回false */
   doesHaveArg: (args: string[], arg: string) => {
     // 转化为小写并去除空格
     const argsFmt = args.map(arg => arg.trim().toLowerCase());
@@ -11,6 +12,14 @@ const UNTIL = {
     return res;
   },
 
+  /**
+   * 设置角色能力值
+   * @param role 角色能力对象
+   * @param key 要设置的键
+   * @param value 要设置的值
+   * @param deafult_type 默认类型，当type为"auto"时，如果没有找到对应的键，则设置到该类型中
+   * @param type 设置类型，默认为"auto"，表示自动根据键名判断类型，也可以指定为"skill"、"ability"或"basic"
+   */
   setRoleAbilityValue: (role: RoleAbility, key: string, value: string, deafult_type: "skill" | "ability" | "basic", type: "auto" | "skill" | "ability" | "basic" = "auto"): void => {
     switch (type) {
       case "basic":
@@ -38,6 +47,13 @@ const UNTIL = {
     }
   },
 
+  /**
+   * 获取角色能力值
+   * @param role 角色能力对象
+   * @param key 要获取的键
+   * @param type 获取类型，默认为"auto"，表示自动根据键名判断类型，也可以指定为"skill"、"ability"或"basic"
+   * @returns 对应的值，如果没有找到则返回undefined
+   */
   getRoleAbilityValue: (role: RoleAbility, key: string, type: "auto" | "skill" | "ability" | "basic" = "auto"): string | undefined => {
     switch (type) {
       case "basic":
