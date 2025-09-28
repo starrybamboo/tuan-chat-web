@@ -83,7 +83,7 @@ function Folder({ moduleData, entityType, onClick, onDelete }:
 export default function SceneEdit({ scene, id }: SceneEditProps) {
   const [selectedTab, setSelectedTab] = useState<"description" | "tip" | "assets">("description");
   const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
-  const { stageId, removeModuleTabItem } = useModuleContext();
+  const { stageId, beginSelectionLock, endSelectionLock, forceSetCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
 
   // 本地状态
   const [localScene, setLocalScene] = useState({ ...entityInfo });
@@ -264,6 +264,18 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     localSceneRef.current = localScene;
   }, [localScene]);
   const handleSave = () => {
+    // 保存前开启一个短暂选中锁，防止保存期间异步刷新导致 tab 被切换
+    if (scene.id != null) {
+      beginSelectionLock("scene-save", 800);
+      // 强制保持当前 tab 选中
+      if (currentSelectedTabId !== scene.id.toString()) {
+        forceSetCurrentSelectedTabId(scene.id.toString());
+      }
+      else {
+        // 即便一致也再设一次，确保其它竞争 update 之后仍是该 id
+        forceSetCurrentSelectedTabId(scene.id.toString());
+      }
+    }
     setIsTransitioning(true);
     setTimeout(() => {
       setIsTransitioning(false);
@@ -305,9 +317,12 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
               });
               updateScene({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
             }
-            if (changed) {
-              removeModuleTabItem(scene.id!.toString());
-            }
+            // 成功后稍晚释放锁，确保任何 refetch 回调已落地
+            setTimeout(() => endSelectionLock(), 300);
+          },
+          onError: () => {
+            // 出错也及时释放锁，避免长时间阻塞切换
+            endSelectionLock();
           },
         },
       );

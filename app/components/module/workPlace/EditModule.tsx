@@ -1,7 +1,7 @@
 import type { StageEntityResponse } from "api";
 import type { SVGProps } from "react";
 import type { ItemModuleItem, MapModuleItem, ModuleModuleItem, ModuleTabItem, RoleModuleItem, SceneModuleItem } from "./context/types";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import ItemEdit from "./components/ItemEdit";
 import LocationEdit from "./components/LocationEdit";
 import MapEdit from "./components/MapEdit";
@@ -44,14 +44,6 @@ function RoleModuleTabItem({
 }) {
   const { id, label } = roleModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
-  console.warn(role);
-
-  // 当组件是最新的时候，自动选中
-  useEffect(() => {
-    if (isSelected && inputRef.current) {
-      inputRef.current.checked = true;
-    }
-  }, [isSelected]);
   return (
     <>
       <label className="tab flex-row-reverse pr-8! relative group before:hidden!">
@@ -61,7 +53,8 @@ function RoleModuleTabItem({
           name="WorkSpaceTab"
           className="tab"
           aria-label={label}
-          onClick={onTabClick.bind(null, id.toString(), "role")}
+          checked={isSelected}
+          onChange={() => onTabClick(id.toString(), "role")}
         />
         <div
           className={`
@@ -100,12 +93,6 @@ function ItemModuleTabItem({
 }) {
   const { id, label } = itemModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isSelected && inputRef.current) {
-      inputRef.current.checked = true;
-    }
-  }, [isSelected]);
   return (
     <>
       <label className="tab flex-row-reverse pr-8! relative group before:hidden!">
@@ -115,7 +102,8 @@ function ItemModuleTabItem({
           name="WorkSpaceTab"
           className="tab"
           aria-label={label}
-          onClick={onTabClick.bind(null, id.toString(), "item")}
+          checked={isSelected}
+          onChange={() => onTabClick(id.toString(), "item")}
         />
         <div
           className={`
@@ -155,12 +143,6 @@ function LocationModuleTabItem({
   const { id, label } = sceneModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (isSelected && inputRef.current) {
-      inputRef.current.checked = true;
-    }
-  }, [isSelected]);
-
   return (
     <>
       <label className="tab flex-row-reverse pr-8! relative group before:hidden!">
@@ -170,7 +152,8 @@ function LocationModuleTabItem({
           name="WorkSpaceTab"
           className="tab"
           aria-label={label}
-          onClick={onTabClick.bind(null, id.toString(), "location")}
+          checked={isSelected}
+          onChange={() => onTabClick(id.toString(), "location")}
         />
         <div
           className={`
@@ -211,12 +194,6 @@ function SceneModuleTabItem({
   const { id, label } = sceneModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (isSelected && inputRef.current) {
-      inputRef.current.checked = true;
-    }
-  }, [isSelected]);
-
   return (
     <>
       <label className="tab flex-row-reverse pr-8! relative group before:hidden!">
@@ -226,7 +203,8 @@ function SceneModuleTabItem({
           name="WorkSpaceTab"
           className="tab"
           aria-label={label}
-          onClick={onTabClick.bind(null, id.toString(), "scene")}
+          checked={isSelected}
+          onChange={() => onTabClick(id.toString(), "scene")}
         />
         <div
           className={`
@@ -269,12 +247,6 @@ function MapModuleTabItem({
   const { id, label } = mapModuleItem;
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (isSelected && inputRef.current) {
-      inputRef.current.checked = true;
-    }
-  }, [isSelected]);
-
   return (
     <>
       <label className="tab flex-row-reverse pr-8! relative group before:hidden!">
@@ -284,7 +256,8 @@ function MapModuleTabItem({
           name="WorkSpaceTab"
           className="tab"
           aria-label={label}
-          onClick={onTabClick.bind(null, id.toString(), "map")}
+          checked={isSelected}
+          onChange={() => onTabClick(id.toString(), "map")}
         />
         <div
           className={`
@@ -324,12 +297,6 @@ function ModuleModuleTabItem({
   const { id, label } = moduleItem;
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (isSelected && inputRef.current) {
-      inputRef.current.checked = true;
-    }
-  }, [isSelected]);
-
   return (
     <>
       <label className="tab flex-row-reverse pr-8! relative group before:hidden!">
@@ -339,7 +306,8 @@ function ModuleModuleTabItem({
           name="WorkSpaceTab"
           className="tab"
           aria-label={label}
-          onClick={onTabClick.bind(null, id.toString(), "module")}
+          checked={isSelected}
+          onChange={() => onTabClick(id.toString(), "module")}
         />
         <div
           className={`
@@ -402,7 +370,7 @@ export default function EditModule() {
             key={item.id}
             role={item.content}
             roleModuleItem={item}
-            isSelected={item.id === currentSelectedTabId}
+            isSelected={String(item.id) === String(currentSelectedTabId)}
             onTabClick={handleTabClick}
             onCloseClick={handleCloseTab}
           />
@@ -413,7 +381,7 @@ export default function EditModule() {
               key={item.id}
               itemModuleItem={item}
               item={item.content}
-              isSelected={item.id === currentSelectedTabId}
+              isSelected={String(item.id) === String(currentSelectedTabId)}
               onTabClick={handleTabClick}
               onCloseClick={handleCloseTab}
             />
@@ -425,7 +393,7 @@ export default function EditModule() {
               key={item.id}
               sceneModuleItem={item}
               location={item.content}
-              isSelected={item.id === currentSelectedTabId}
+              isSelected={String(item.id) === String(currentSelectedTabId)}
               onTabClick={handleTabClick}
               onCloseClick={handleCloseTab}
             />
@@ -437,7 +405,7 @@ export default function EditModule() {
               key={item.id}
               sceneModuleItem={item}
               scene={item.content}
-              isSelected={item.id === currentSelectedTabId}
+              isSelected={String(item.id) === String(currentSelectedTabId)}
               onTabClick={handleTabClick}
               onCloseClick={handleCloseTab}
             />
@@ -449,7 +417,7 @@ export default function EditModule() {
               key={item.id}
               mapModuleItem={item}
               map={item.content}
-              isSelected={item.id === currentSelectedTabId}
+              isSelected={String(item.id) === String(currentSelectedTabId)}
               onTabClick={handleTabClick}
               onCloseClick={handleCloseTab}
             />
@@ -461,7 +429,7 @@ export default function EditModule() {
               key={item.id}
               moduleItem={item as ModuleModuleItem}
               moduleInfo={item.content}
-              isSelected={item.id === currentSelectedTabId}
+              isSelected={String(item.id) === String(currentSelectedTabId)}
               onTabClick={handleTabClick as any}
               onCloseClick={handleCloseTab}
             />
