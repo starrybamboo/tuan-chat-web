@@ -81,6 +81,7 @@ function Folder({ moduleData, entityType, onClick, onDelete }:
 }
 
 export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps) {
+  const [selectedTab, setSelectedTab] = useState<"description" | "tip" | "assets">("description");
   const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
   const { stageId, removeModuleTabItem } = useModuleContext();
 
@@ -316,77 +317,83 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
   }, [onRegisterSave]);
 
   return (
-    <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
-      {/* 场景信息卡片 */}
-      <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
-        <div className="card-body">
-          <div className="flex items-center gap-8">
-            {/* 右侧内容 */}
-            <div className="flex-1 space-y-4 min-w-0 p-2">
-              <>
-                {/* 场景名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
-                <div className="text-lg font-bold break-words">{scene.name}</div>
-                <div>
-                  <label className="label">
-                    <span className="label-text font-bold mb-1">场景描述（玩家可见）</span>
-                  </label>
-                  <QuillEditor
-                    id={VeditorIdForDescription}
-                    placeholder={localScene.description}
-                    onchange={(value) => {
-                      setLocalScene(prev => ({ ...prev, description: value }));
-                      saveTimer.current && clearTimeout(saveTimer.current);
-                      saveTimer.current = setTimeout(handleSave, 8000);
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="label">
-                    <span className="label-text font-bold mb-1">剧情详细（kp可见）</span>
-                  </label>
-                  {/* <textarea
-                    value={localScene.tip || ""}
-                    onChange={(e) => {
-                      setLocalScene(prev => ({ ...prev, tip: e.target.value }));
-                      setCharCount(e.target.value.length);
-                    }}
-                    placeholder="对KP的提醒（检定，PL需要做什么来获得线索）"
-                    className="textarea textarea-bordered w-full h-24 resize-none"
-                  /> */}
-
-                  <QuillEditor
-                    id={VeditorId}
-                    placeholder={localScene.tip}
-                    onchange={(value) => {
-                      if (value !== entityInfo.tip) {
-                        setLocalScene(prev => ({ ...prev, tip: value }));
-                        saveTimer.current && clearTimeout(saveTimer.current);
-                        saveTimer.current = setTimeout(handleSave, 8000);
-                      }
-                    }}
-                  />
-                </div>
-              </>
-            </div>
+    <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="font-semibold text-2xl md:text-3xl my-2">{scene.name}</h1>
+            <p className="text-base-content/60">
+              {selectedTab === "description" && "场景描述"}
+              {selectedTab === "tip" && "剧情详细"}
+              {selectedTab === "assets" && "场景素材"}
+            </p>
           </div>
-          {/* 保存按钮已统一移至 EditModule 的全局固定按钮 */}
+        </div>
+        <div className="mt-2 md:mt-0">
+          <select
+            className="select select-lg select-bordered rounded-md"
+            value={selectedTab}
+            onChange={e => setSelectedTab(e.target.value as "description" | "tip" | "assets")}
+          >
+            <option value="description">场景描述</option>
+            <option value="tip">剧情详细</option>
+            <option value="assets">场景素材</option>
+          </select>
         </div>
       </div>
-
-      {/* 新增模块：locations, items, roles */}
-      <div className="space-y-4">
-        <Folder moduleData={locations} entityType="location" onClick={() => handleAddEntityOpen("location")} onDelete={handleDeleteEntity} />
-        <Folder moduleData={items} entityType="item" onClick={() => handleAddEntityOpen("item")} onDelete={handleDeleteEntity} />
-        <Folder moduleData={roles} entityType="role" onClick={() => handleAddEntityOpen("role")} onDelete={handleDeleteEntity} />
+      <div className="divider"></div>
+      {/* 场景信息卡片 */}
+      <div className={` bg-base-100 space-y-6 ${isEditing ? "ring-2 ring-primary" : ""}`}>
+        {selectedTab === "description" && (
+          <div className="flex items-center gap-8">
+            <div className="flex-1 min-w-0 overflow-hidden p-2">
+              <QuillEditor
+                id={VeditorIdForDescription}
+                placeholder={localScene.description || "玩家能看到的描述"}
+                onchange={(value) => {
+                  setLocalScene(prev => ({ ...prev, description: value }));
+                  saveTimer.current && clearTimeout(saveTimer.current);
+                  saveTimer.current = setTimeout(handleSave, 8000);
+                }}
+              />
+            </div>
+          </div>
+        )}
+        {selectedTab === "tip" && (
+          <div className="flex items-center gap-8">
+            <div className="flex-1 min-w-0 overflow-hidden p-2">
+              <QuillEditor
+                id={VeditorId}
+                placeholder={localScene.tip || "对KP的提醒（对于剧情的书写）"}
+                onchange={(value) => {
+                  if (value !== entityInfo.tip) {
+                    setLocalScene(prev => ({ ...prev, tip: value }));
+                    saveTimer.current && clearTimeout(saveTimer.current);
+                    saveTimer.current = setTimeout(handleSave, 8000);
+                  }
+                }}
+              />
+            </div>
+          </div>
+        )}
+        {selectedTab === "assets" && (
+          <>
+            <div className="space-y-4">
+              <Folder moduleData={locations} entityType="location" onClick={() => handleAddEntityOpen("location")} onDelete={handleDeleteEntity} />
+              <Folder moduleData={items} entityType="item" onClick={() => handleAddEntityOpen("item")} onDelete={handleDeleteEntity} />
+              <Folder moduleData={roles} entityType="role" onClick={() => handleAddEntityOpen("role")} onDelete={handleDeleteEntity} />
+            </div>
+            <AddEntityToScene
+              isOpen={isOpen}
+              onClose={handleClose}
+              stageId={stageId as number}
+              entityType={editEntityType}
+              existIdSet={editEntityType === "item" ? items : editEntityType === "role" ? roles : locations}
+              onConfirm={entities => handleAddEntity(entities)}
+            />
+          </>
+        )}
       </div>
-      <AddEntityToScene
-        isOpen={isOpen}
-        onClose={handleClose}
-        stageId={stageId as number}
-        entityType={editEntityType}
-        existIdSet={editEntityType === "item" ? items : editEntityType === "role" ? roles : locations}
-        onConfirm={entities => handleAddEntity(entities)}
-      />
 
     </div>
   );

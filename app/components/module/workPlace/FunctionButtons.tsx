@@ -36,7 +36,7 @@ export default function FunctionButtons() {
           <button
             type="button"
             onClick={() => navigate("/create", { replace: true })}
-            className="h-10 w-full px-3 gap-2 rounded-lg flex items-center justify-center border hover:bg-base-300 transition-colors"
+            className="cursor-pointer h-10 w-full px-3 gap-2 rounded-lg flex items-center justify-center border hover:bg-base-300 transition-colors"
           >
             <ArrowBackThickFill className="w-4 h-4" />
             返回
@@ -46,7 +46,7 @@ export default function FunctionButtons() {
           <button
             type="button"
             onClick={() => setIsCommitOpen(true)}
-            className="h-10 w-full px-3 gap-2 rounded-lg flex items-center justify-center bg-primary text-primary-content hover:bg-primary-focus transition-colors"
+            className="cursor-pointer h-10 w-full px-3 gap-2 rounded-lg flex items-center justify-center bg-primary text-primary-content hover:bg-primary-focus transition-colors"
           >
             <ChevronSmallTripleUp className="w-4 h-4" />
             保存
