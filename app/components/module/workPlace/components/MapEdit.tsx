@@ -434,7 +434,7 @@ export default function MapEdit({ map, onRegisterSave }: { map: StageEntityRespo
   }
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-[75vh]">
       <ReactFlow
         nodes={nodes}
         edges={edges}

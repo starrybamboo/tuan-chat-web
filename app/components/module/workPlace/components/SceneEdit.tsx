@@ -316,35 +316,38 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
   }, [onRegisterSave]);
 
   return (
-    <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
+    <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
+      <div className="flex flex-col md:flex-row items-center justify-between">
+        <div className="flex items-center">
+          <h1 className="font-semibold text-2xl break-words ml-2">{scene.name}</h1>
+        </div>
+      </div>
+      <div className="divider"></div>
       {/* 场景信息卡片 */}
-      <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
-        <div className="card-body">
-          <div className="flex items-center gap-8">
-            {/* 右侧内容 */}
-            <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
-              <>
-                {/* 场景名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
-                <div className="text-lg font-bold break-words">{scene.name}</div>
-                <div>
-                  <label className="label">
-                    <span className="label-text font-bold mb-1">场景描述（玩家可见）</span>
-                  </label>
-                  <Veditor
-                    id={VeditorIdForDescription}
-                    placeholder={localScene.description || "玩家能看到的描述"}
-                    onchange={(value) => {
-                      setLocalScene(prev => ({ ...prev, description: value }));
-                      saveTimer.current && clearTimeout(saveTimer.current);
-                      saveTimer.current = setTimeout(handleSave, 8000);
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="label">
-                    <span className="label-text font-bold mb-1">剧情详细</span>
-                  </label>
-                  {/* <textarea
+      <div className={` bg-base-100 space-y-6 ${isEditing ? "ring-2 ring-primary" : ""}`}>
+        <div className="flex items-center gap-8">
+          {/* 右侧内容 */}
+          <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
+            <>
+              <div>
+                <label className="label">
+                  <span className="label-text font-bold mb-1">场景描述（玩家可见）</span>
+                </label>
+                <Veditor
+                  id={VeditorIdForDescription}
+                  placeholder={localScene.description || "玩家能看到的描述"}
+                  onchange={(value) => {
+                    setLocalScene(prev => ({ ...prev, description: value }));
+                    saveTimer.current && clearTimeout(saveTimer.current);
+                    saveTimer.current = setTimeout(handleSave, 8000);
+                  }}
+                />
+              </div>
+              <div>
+                <label className="label">
+                  <span className="label-text font-bold mb-1">剧情详细</span>
+                </label>
+                {/* <textarea
                     value={localScene.tip || ""}
                     onChange={(e) => {
                       setLocalScene(prev => ({ ...prev, tip: e.target.value }));
@@ -354,23 +357,22 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
                     className="textarea textarea-bordered w-full h-24 resize-none"
                   /> */}
 
-                  <Veditor
-                    id={VeditorId}
-                    placeholder={localScene.tip || "对KP的提醒（对于剧情的书写）"}
-                    onchange={(value) => {
-                      if (value !== entityInfo.tip) {
-                        setLocalScene(prev => ({ ...prev, tip: value }));
-                        saveTimer.current && clearTimeout(saveTimer.current);
-                        saveTimer.current = setTimeout(handleSave, 8000);
-                      }
-                    }}
-                  />
-                </div>
-              </>
-            </div>
+                <Veditor
+                  id={VeditorId}
+                  placeholder={localScene.tip || "对KP的提醒（对于剧情的书写）"}
+                  onchange={(value) => {
+                    if (value !== entityInfo.tip) {
+                      setLocalScene(prev => ({ ...prev, tip: value }));
+                      saveTimer.current && clearTimeout(saveTimer.current);
+                      saveTimer.current = setTimeout(handleSave, 8000);
+                    }
+                  }}
+                />
+              </div>
+            </>
           </div>
-          {/* 保存按钮已统一移至 EditModule 的全局固定按钮 */}
         </div>
+        {/* 保存按钮已统一移至 EditModule 的全局固定按钮 */}
       </div>
 
       {/* 新增模块：locations, items, roles */}

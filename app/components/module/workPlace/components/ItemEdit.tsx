@@ -98,9 +98,15 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
   };
 
   return (
-    <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
+    <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
+      <div className="flex flex-col md:flex-row items-center justify-between">
+        <div className="flex items-center">
+          <h1 className="font-semibold text-2xl break-words ml-2">{item.name}</h1>
+        </div>
+      </div>
+      <div className="divider"></div>
       {/* 物品信息卡片 */}
-      <div className={` bg-base-100 ${isEditing ? "ring-2 ring-primary" : ""}`}>
+      <div className={`space-y-6 bg-base-100 ${isEditing ? "ring-2 ring-primary" : ""}`}>
         <div className="flex items-start gap-8">
           {/* 图片 */}
 
@@ -108,7 +114,6 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
           <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
             <>
               {/* 物品名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
-              <div className="text-lg w-48 font-bold break-words">{item.name}</div>
               <div className="w-48">
                 <ImgUploaderWithCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleImageChange} fileName={uniqueFileName}>
                   <div className="avatar cursor-pointer group flex items-center justify-center w-[50%] min-w-[120px] md:w-48">
@@ -123,7 +128,6 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
                   </div>
                 </ImgUploaderWithCopper>
               </div>
-              s
               <div>
                 <label className="label">
                   <span className="label-text font-bold">物品描述（玩家可见）</span>

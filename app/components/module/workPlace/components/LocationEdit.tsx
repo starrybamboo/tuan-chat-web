@@ -100,9 +100,15 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
   const VeditorIdForDescription = `location-description-editor-${location.id}`;
 
   return (
-    <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
+    <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
+      <div className="flex flex-col md:flex-row items-center justify-between">
+        <div className="flex items-center">
+          <h1 className="font-semibold text-2xl break-words ml-2">{location.name}</h1>
+        </div>
+      </div>
+      <div className="divider"></div>
       {/* 场景信息卡片 */}
-      <div className={` bg-base-100  ${isEditing ? "ring-2 ring-primary" : ""}`}>
+      <div className={`space-y-6 bg-base-100  ${isEditing ? "ring-2 ring-primary" : ""}`}>
 
         <div className="flex items-start gap-8">
 
@@ -110,7 +116,6 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
           <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
             <>
               {/* 地点名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
-              <div className="text-lg font-bold break-words">{location.name}</div>
               <div className="w-48">
                 {/* 头像 */}
                 <ImgUploaderWithCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleAvatarChange} fileName={uniqueFileName}>

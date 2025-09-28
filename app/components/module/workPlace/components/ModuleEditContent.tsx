@@ -279,14 +279,14 @@ export default function ModuleEdit({ data, onChange, onRegisterSave }: ModuleEdi
   }, [isFirstShowForModule, initial]);
 
   return (
-    <div className="space-y-6 pb-20 max-w-4xl mx-auto">
+    <div className=" pb-20 max-w-4xl mx-auto">
       <div className="flex flex-col md:flex-row items-center justify-between">
         <div className="flex items-center gap-8">
           <h1 className="font-semibold text-2xl break-words">模组基本信息</h1>
         </div>
       </div>
-      <div className="divider mb-8"></div>
-      <div className="w-full h-full flex gap-4">
+      <div className="divider"></div>
+      <div className="w-full h-full flex gap-4 space-y-6">
         {/* 左侧规则选择面板 */}
         {/* <div className="basis-1/3">
           <RuleSelect
@@ -299,10 +299,7 @@ export default function ModuleEdit({ data, onChange, onRegisterSave }: ModuleEdi
 
         {/* 左侧封面 */}
         <div className="w-1/3">
-          <div className="flex flex-col items-center justify-center relative">
-            <label className="label">
-              <span className="label-text font-bold mb-2">模组封面</span>
-            </label>
+          <div className="flex flex-col items-center justify-center h-full relative">
             <ImgUploaderWithCopper
               setDownloadUrl={() => { }}
               setCopperedDownloadUrl={handleImageChange}
@@ -380,6 +377,7 @@ export default function ModuleEdit({ data, onChange, onRegisterSave }: ModuleEdi
           </div>
         </div>
       </div>
+      <div className="divider"></div>
 
       {/* README 占满整行 */}
       <div className="w-full h-full">
