@@ -521,7 +521,7 @@ export default function EditModule() {
   }
 
   return (
-    <div className="h-screen p-4 ">
+    <div className="h-full p-4">
       <div className="w-full tabs tabs-lift">
         {roleModuleItems.map(item => (
           <RoleModuleTabItem
@@ -601,7 +601,7 @@ export default function EditModule() {
         }
         {
           moduleTabItems.length === 0 && (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="w-full min-h-[80vh] flex items-center justify-center">
               <div className="text-center space-y-4">
                 <h1 className="text-2xl font-bold text-foreground">模组编辑器</h1>
                 <p className="text-muted-foreground max-w-md">
