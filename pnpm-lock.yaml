@@ -50,9 +50,6 @@ importers:
       dagre:
         specifier: ^0.8.5
         version: 0.8.5
-      daisyui:
-        specifier: ^5.0.9
-        version: 5.0.9
       detect-port:
         specifier: ^2.1.0
         version: 2.1.0
@@ -162,6 +159,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.0.1
         version: 19.0.4(@types/react@19.0.12)
+      daisyui:
+        specifier: ^5.1.24
+        version: 5.1.24
       electron:
         specifier: ^35.0.3
         version: 35.0.3
@@ -2939,8 +2939,8 @@ packages:
   dagre@0.8.5:
     resolution: {integrity: sha512-/aTqmnRta7x7MCCpExk7HQL2O4owCT2h8NT//9I1OQ9vt29Pa0BzSAkR5lwFUcQ7491yVi/3CXU9jQ5o0Mn2Sw==}
 
-  daisyui@5.0.9:
-    resolution: {integrity: sha512-RsaehHh45f+0shWgZZaOY09/8eOae2voRsqJCD71j9yrnYgcke0Nj5ys0ZxrW4SPcc4+q96kWyJu0Z8P1zZdoA==}
+  daisyui@5.1.24:
+    resolution: {integrity: sha512-CFfVmaTNOM4H6rJ7YjD8pIZNmRg6merSI2Yx0cP2cOSvyfG571zSPf8Y8m6rLqsteVrE6cqI+hBcpJqNB3YqkA==}
 
   data-view-buffer@1.0.2:
     resolution: {integrity: sha512-EmKO5V3OLXh1rtK2wgXRansaK1/mtVdTUEiEI0W8RkvgT05kfxaH29PliLnpLP73yYO6142Q72QNa8Wx/A5CqQ==}
@@ -9730,7 +9730,7 @@ snapshots:
       graphlib: 2.1.8
       lodash: 4.17.21
 
-  daisyui@5.0.9: {}
+  daisyui@5.1.24: {}
 
   data-view-buffer@1.0.2:
     dependencies:

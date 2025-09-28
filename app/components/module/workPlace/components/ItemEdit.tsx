@@ -153,8 +153,8 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
               </>
             </div>
           </div>
-          {/* 保存按钮已统一移至 EditModule 的全局固定按钮 */}
         </div>
+        {/* 保存按钮已统一移至 EditModule 的全局固定按钮 */}
       </div>
     </div>
   );

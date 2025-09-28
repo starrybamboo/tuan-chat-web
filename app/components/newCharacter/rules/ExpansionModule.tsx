@@ -14,6 +14,8 @@ interface ExpansionModuleProps {
    */
   ruleId?: number;
   onLoadingChange?: (isLoading: boolean) => void;
+  isStImportModalOpen?: boolean;
+  onStImportModalClose?: () => void;
 }
 
 /**
@@ -24,6 +26,8 @@ export default function ExpansionModule({
   roleId,
   ruleId,
   onLoadingChange, // 1. 在 props 中解构出 onLoadingChange
+  isStImportModalOpen = false,
+  onStImportModalClose,
 }: ExpansionModuleProps) {
   // 状态
   const selectedRuleId = ruleId ?? 1;
@@ -134,120 +138,148 @@ export default function ExpansionModule({
   }, [isLoading, onLoadingChange]);
 
   return (
-    <div key={`expansion-module-${roleId}-${selectedRuleId}`} className="space-y-6">
-      {/* 加载状态 */}
-      {isLoading
-        ? (
-            <div className="space-y-6">
-              {/* 表演字段配置加载骨架 */}
-              <Section title="表演字段配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                <div className="space-y-4 animate-pulse">
-                  <div className="h-4 bg-base-300 rounded w-1/4"></div>
-                  <div className="space-y-3">
-                    <div className="h-10 bg-base-300 rounded"></div>
-                    <div className="h-10 bg-base-300 rounded"></div>
-                    <div className="h-10 bg-base-300 rounded"></div>
+    <>
+      <div key={`expansion-module-${roleId}-${selectedRuleId}`} className="space-y-6">
+        {/* 加载状态 */}
+        {isLoading
+          ? (
+              <div className="space-y-6">
+                {/* 表演字段配置加载骨架 */}
+                <Section title="表演字段配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                  <div className="space-y-4 animate-pulse">
+                    <div className="h-4 bg-base-300 rounded w-1/4"></div>
+                    <div className="space-y-3">
+                      <div className="h-10 bg-base-300 rounded"></div>
+                      <div className="h-10 bg-base-300 rounded"></div>
+                      <div className="h-10 bg-base-300 rounded"></div>
+                    </div>
                   </div>
-                </div>
-              </Section>
+                </Section>
 
-              {/* 基础属性配置加载骨架 */}
-              <Section title="基础属性配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                <div className="space-y-4 animate-pulse">
-                  <div className="h-4 bg-base-300 rounded w-1/3"></div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="h-16 bg-base-300 rounded"></div>
-                    <div className="h-16 bg-base-300 rounded"></div>
-                    <div className="h-16 bg-base-300 rounded"></div>
-                    <div className="h-16 bg-base-300 rounded"></div>
+                {/* 基础属性配置加载骨架 */}
+                <Section title="基础属性配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                  <div className="space-y-4 animate-pulse">
+                    <div className="h-4 bg-base-300 rounded w-1/3"></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="h-16 bg-base-300 rounded"></div>
+                      <div className="h-16 bg-base-300 rounded"></div>
+                      <div className="h-16 bg-base-300 rounded"></div>
+                      <div className="h-16 bg-base-300 rounded"></div>
+                    </div>
                   </div>
-                </div>
-              </Section>
+                </Section>
 
-              {/* 能力配置加载骨架 */}
-              <Section title="能力配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                <div className="space-y-4 animate-pulse">
-                  <div className="h-4 bg-base-300 rounded w-1/3"></div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="h-16 bg-base-300 rounded"></div>
-                    <div className="h-16 bg-base-300 rounded"></div>
-                    <div className="h-16 bg-base-300 rounded"></div>
-                    <div className="h-16 bg-base-300 rounded"></div>
+                {/* 能力配置加载骨架 */}
+                <Section title="能力配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                  <div className="space-y-4 animate-pulse">
+                    <div className="h-4 bg-base-300 rounded w-1/3"></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="h-16 bg-base-300 rounded"></div>
+                      <div className="h-16 bg-base-300 rounded"></div>
+                      <div className="h-16 bg-base-300 rounded"></div>
+                      <div className="h-16 bg-base-300 rounded"></div>
+                    </div>
                   </div>
-                </div>
-              </Section>
+                </Section>
 
-              {/* 技能配置加载骨架 */}
-              <Section title="技能配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                <div className="space-y-4 animate-pulse">
-                  <div className="h-4 bg-base-300 rounded w-1/3"></div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="h-16 bg-base-300 rounded"></div>
-                    <div className="h-16 bg-base-300 rounded"></div>
-                    <div className="h-16 bg-base-300 rounded"></div>
-                    <div className="h-16 bg-base-300 rounded"></div>
+                {/* 技能配置加载骨架 */}
+                <Section title="技能配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                  <div className="space-y-4 animate-pulse">
+                    <div className="h-4 bg-base-300 rounded w-1/3"></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="h-16 bg-base-300 rounded"></div>
+                      <div className="h-16 bg-base-300 rounded"></div>
+                      <div className="h-16 bg-base-300 rounded"></div>
+                      <div className="h-16 bg-base-300 rounded"></div>
+                    </div>
+                    <div className="h-10 bg-base-300 rounded w-1/2"></div>
                   </div>
-                  <div className="h-10 bg-base-300 rounded w-1/2"></div>
-                </div>
-              </Section>
-            </div>
-          )
-        : (
-          /* 规则详情区域 */
-            renderData && (
-              <>
-                <Section title="表演字段配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
-                  <PerformanceEditor
-                    fields={renderData.actTemplate}
-                    onChange={handleActTemplateChange}
-                    abilityData={renderData.actTemplate}
+                </Section>
+              </div>
+            )
+          : (
+        /* 规则详情区域 */
+              renderData && (
+                <>
+                  <Section title="表演字段配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+                    <PerformanceEditor
+                      fields={renderData.actTemplate}
+                      onChange={handleActTemplateChange}
+                      abilityData={renderData.actTemplate}
+                      roleId={roleId}
+                      ruleId={selectedRuleId}
+                    />
+                  </Section>
+
+                  <ConfigurationSection
+                    title="基础属性配置"
+                    abilityData={abilityQuery.data?.basicDefault || {}}
+                    ruleData={ruleDetailQuery.data?.basicDefault || {}}
+                    localEdits={localEdits.basicDefault}
+                    onDataChange={handleBasicChange}
                     roleId={roleId}
                     ruleId={selectedRuleId}
+                    fieldType="basic"
+                    customLabel="基础属性"
                   />
-                </Section>
 
-                <ConfigurationSection
-                  title="基础属性配置"
-                  abilityData={abilityQuery.data?.basicDefault || {}}
-                  ruleData={ruleDetailQuery.data?.basicDefault || {}}
-                  localEdits={localEdits.basicDefault}
-                  onDataChange={handleBasicChange}
+                  <ConfigurationSection
+                    title="能力配置"
+                    abilityData={abilityQuery.data?.abilityDefault || {}}
+                    ruleData={ruleDetailQuery.data?.abilityFormula || {}}
+                    localEdits={localEdits.abilityFormula}
+                    onDataChange={handleAbilityChange}
+                    roleId={roleId}
+                    ruleId={selectedRuleId}
+                    fieldType="ability"
+                    customLabel="能力"
+                  />
+
+                  <ConfigurationSection
+                    title="技能配置"
+                    abilityData={abilityQuery.data?.skillDefault || {}}
+                    ruleData={ruleDetailQuery.data?.skillDefault || {}}
+                    localEdits={localEdits.skillDefault}
+                    onDataChange={handleSkillChange}
+                    roleId={roleId}
+                    ruleId={selectedRuleId}
+                    fieldType="skill"
+                    customLabel="技能"
+                  />
+
+                </>
+              )
+            )}
+      </div>
+
+      {/* ST导入弹窗 */}
+      {isStImportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onStImportModalClose}>
+          <div className="bg-base-100 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold">使用ST指令快速导入配置</h3>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-circle btn-ghost"
+                  onClick={onStImportModalClose}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="max-h-96 overflow-y-auto">
+                <ImportWithStCmd
                   roleId={roleId}
                   ruleId={selectedRuleId}
-                  fieldType="basic"
-                  customLabel="基础属性"
+                  onImportSuccess={onStImportModalClose}
                 />
-
-                <ConfigurationSection
-                  title="能力配置"
-                  abilityData={abilityQuery.data?.abilityDefault || {}}
-                  ruleData={ruleDetailQuery.data?.abilityFormula || {}}
-                  localEdits={localEdits.abilityFormula}
-                  onDataChange={handleAbilityChange}
-                  roleId={roleId}
-                  ruleId={selectedRuleId}
-                  fieldType="ability"
-                  customLabel="能力"
-                />
-
-                <ConfigurationSection
-                  title="技能配置"
-                  abilityData={abilityQuery.data?.skillDefault || {}}
-                  ruleData={ruleDetailQuery.data?.skillDefault || {}}
-                  localEdits={localEdits.skillDefault}
-                  onDataChange={handleSkillChange}
-                  roleId={roleId}
-                  ruleId={selectedRuleId}
-                  fieldType="skill"
-                  customLabel="技能"
-                />
-
-                <Section title="使用st指令快速导入配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
-                  <ImportWithStCmd roleId={roleId} ruleId={selectedRuleId}></ImportWithStCmd>
-                </Section>
-              </>
-            )
-          )}
-    </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

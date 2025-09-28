@@ -47,7 +47,7 @@ export function SpriteCropper({
   cropMode = "sprite",
 }: SpriteCropperProps) {
   // 确定工作模式
-  const isBatchMode = roleAvatars.length > 0;
+  const isMutiAvatars = roleAvatars.length > 0;
   const isAvatarMode = cropMode === "avatar";
 
   // 根据裁剪模式过滤头像列表
@@ -56,19 +56,18 @@ export function SpriteCropper({
   // 批量模式下的当前立绘索引，使用传入的初始索引
   const [currentSpriteIndex, setCurrentSpriteIndex] = useState(() => {
     // 确保初始索引在有效范围内
-    if (isBatchMode && filteredAvatars.length > 0) {
+    if (filteredAvatars.length > 0) {
       return Math.max(0, Math.min(initialSpriteIndex, filteredAvatars.length - 1));
     }
     return 0;
   });
   // 批量裁剪的结果存储
-  const [batchResults, setBatchResults] = useState<{ avatarId: number; croppedImageUrl: string }[]>([]);
   // 操作模式：'single' | 'batch'
   const [operationMode, setOperationMode] = useState<"single" | "batch">("single");
 
   // 获取当前立绘URL
   const getCurrentSpriteUrl = () => {
-    if (isBatchMode && filteredAvatars.length > 0) {
+    if (filteredAvatars.length > 0) {
       return filteredAvatars[currentSpriteIndex]?.spriteUrl || "";
     }
     return spriteUrl || "";
@@ -76,7 +75,7 @@ export function SpriteCropper({
 
   // 获取当前立绘的avatarId
   const getCurrentAvatarId = () => {
-    if (isBatchMode && filteredAvatars.length > 0) {
+    if (filteredAvatars.length > 0) {
       return filteredAvatars[currentSpriteIndex]?.avatarId || 0;
     }
     return 0;
@@ -117,15 +116,15 @@ export function SpriteCropper({
   const transform = displayTransform;
 
   /**
-   * 处理应用位移（单体模式）
+   * 处理应用变换（单体模式）
    */
   async function handleApplyTransform() {
-    if (!isBatchMode && !currentAvatarId) {
+    if (!isMutiAvatars && !currentAvatarId) {
       console.error("单体模式下缺少avatarId");
       return;
     }
 
-    if (isBatchMode && filteredAvatars.length === 0) {
+    if (isMutiAvatars && filteredAvatars.length === 0) {
       console.error("批量模式下没有可用的头像");
       return;
     }
@@ -133,7 +132,7 @@ export function SpriteCropper({
     try {
       setIsProcessing(true);
 
-      const currentAvatar = isBatchMode
+      const currentAvatar = isMutiAvatars
         ? filteredAvatars[currentSpriteIndex]
         : roleAvatars.find(avatar => avatar.avatarId === currentAvatarId);
 
@@ -165,10 +164,10 @@ export function SpriteCropper({
   }
 
   /**
-   * 处理批量应用位移
+   * 处理批量应用变换
    */
   async function handleBatchApplyTransform() {
-    if (!isBatchMode || filteredAvatars.length === 0) {
+    if (!isMutiAvatars || filteredAvatars.length === 0) {
       console.error("批量模式下没有可用的头像");
       return;
     }
@@ -500,110 +499,54 @@ export function SpriteCropper({
     try {
       setIsProcessing(true);
 
-      // 获取裁剪后的canvas
+      // 1. 统一获取 currentAvatar (处理第一个差异点)
+      // ----------------------------------------------------
+      let currentAvatar: RoleAvatar | undefined;
+
+      if (isMutiAvatars) { // 假设 isBatchMode 重命名为 isMutiAvatars
+        currentAvatar = filteredAvatars[currentSpriteIndex];
+      }
+      else {
+        currentAvatar = roleAvatars.find(avatar => avatar.avatarId === currentAvatarId);
+      }
+
+      // 2. 执行共同的校验和核心逻辑
+      // ----------------------------------------------------
+      if (!currentAvatar) {
+        throw new Error("找不到当前头像数据");
+      }
+      if (!currentAvatar.roleId || !currentAvatar.avatarId) {
+        throw new Error("当前头像数据缺少必要字段 (roleId or avatarId)");
+      }
+
       const canvas = previewCanvasRef.current;
       if (!canvas) {
         throw new Error("Canvas not found");
       }
-
-      // 将canvas转换为Blob
       const croppedBlob = await canvasToBlob(canvas);
 
-      if (isBatchMode) {
-        // 批量模式：上传并更新当前头像/立绘
-        const currentAvatar = filteredAvatars[currentSpriteIndex];
-        if (!currentAvatar) {
-          throw new Error("当前头像数据不存在");
-        }
-
-        console.warn(`批量模式：应用裁剪到当前${isAvatarMode ? "头像(从立绘)" : "立绘"}`, {
+      // --- 共同的 Mutation 调用逻辑 ---
+      if (isAvatarMode) {
+        await applyCropAvatarMutation.mutateAsync({
+          roleId: currentAvatar.roleId,
           avatarId: currentAvatar.avatarId,
-          currentSpriteIndex,
-          isAvatarMode,
+          croppedImageBlob: croppedBlob,
+          currentAvatar,
         });
-
-        if (!currentAvatar.avatarId || !currentAvatar.roleId) {
-          throw new Error("当前头像数据缺少必要字段");
-        }
-
-        // 根据模式选择合适的mutation
-        if (isAvatarMode) {
-          await applyCropAvatarMutation.mutateAsync({
-            roleId: currentAvatar.roleId,
-            avatarId: currentAvatar.avatarId,
-            croppedImageBlob: croppedBlob,
-            currentAvatar,
-          });
-        }
-        else {
-          await applyCropMutation.mutateAsync({
-            roleId: currentAvatar.roleId,
-            avatarId: currentAvatar.avatarId,
-            croppedImageBlob: croppedBlob,
-            transform, // 立绘模式同时应用当前的transform设置
-            currentAvatar,
-          });
-        }
-
-        // 保存结果用于UI显示
-        const dataUrl = await getCroppedImageDataUrl();
-        const newResult = { avatarId: currentAvatar.avatarId!, croppedImageUrl: dataUrl };
-        const updatedResults = [...batchResults];
-
-        // 更新或添加结果
-        const existingIndex = updatedResults.findIndex(r => r.avatarId === currentAvatar.avatarId);
-        if (existingIndex >= 0) {
-          updatedResults[existingIndex] = newResult;
-        }
-        else {
-          updatedResults.push(newResult);
-        }
-
-        setBatchResults(updatedResults);
-
-        // 自动切换到下一个头像/立绘（如果有的话）
-        if (currentSpriteIndex < filteredAvatars.length - 1) {
-          setCurrentSpriteIndex(currentSpriteIndex + 1);
-        }
       }
       else {
-        // 单体模式：上传并更新头像/立绘
-        if (!currentAvatarId) {
-          throw new Error("单体模式下缺少avatarId");
-        }
-
-        const currentAvatar = roleAvatars.find(avatar => avatar.avatarId === currentAvatarId);
-        if (!currentAvatar) {
-          throw new Error("找不到当前头像数据");
-        }
-
-        if (!currentAvatar.roleId) {
-          throw new Error("当前头像数据缺少roleId");
-        }
-
-        // 根据模式选择合适的mutation
-        if (isAvatarMode) {
-          await applyCropAvatarMutation.mutateAsync({
-            roleId: currentAvatar.roleId,
-            avatarId: currentAvatarId,
-            croppedImageBlob: croppedBlob,
-            currentAvatar,
-          });
-        }
-        else {
-          await applyCropMutation.mutateAsync({
-            roleId: currentAvatar.roleId,
-            avatarId: currentAvatarId,
-            croppedImageBlob: croppedBlob,
-            transform, // 立绘模式同时应用当前的transform设置
-            currentAvatar,
-          });
-        }
-
-        // 获取dataUrl用于回调
-        const dataUrl = await getCroppedImageDataUrl();
-        onCropComplete?.(dataUrl);
+        await applyCropMutation.mutateAsync({
+          roleId: currentAvatar.roleId,
+          avatarId: currentAvatar.avatarId,
+          croppedImageBlob: croppedBlob,
+          transform, // 立绘模式同时应用当前的transform设置
+          currentAvatar,
+        });
       }
+
+      // --- 共同的回调逻辑 ---
+      const dataUrl = await getCroppedImageDataUrl();
+      onCropComplete?.(dataUrl);
     }
     catch (error) {
       console.error("应用裁剪失败:", error);
@@ -617,12 +560,11 @@ export function SpriteCropper({
    * 应用相同裁剪参数到所有头像/立绘
    */
   async function handleBatchCropAll() {
-    if (!isBatchMode || !completedCrop)
+    if (!isMutiAvatars || !completedCrop)
       return;
 
     try {
       setIsProcessing(true);
-      const results: { avatarId: number; croppedImageUrl: string }[] = [];
 
       console.warn(`开始批量裁剪所有${isAvatarMode ? "头像(从立绘)" : "立绘"}`, {
         avatarCount: filteredAvatars.length,
@@ -680,13 +622,7 @@ export function SpriteCropper({
             currentAvatar: avatar,
           });
         }
-
-        results.push({ avatarId: avatar.avatarId, croppedImageUrl: dataUrl });
       }
-
-      setBatchResults(results);
-
-      // 批量应用后不自动调用回调，让用户手动确认
     }
     catch (error) {
       console.error("批量裁剪失败:", error);
@@ -700,7 +636,7 @@ export function SpriteCropper({
    * 批量下载：将当前裁剪参数应用到所有头像/立绘并下载
    */
   async function handleBatchDownload() {
-    if (!isBatchMode || !completedCrop)
+    if (!isMutiAvatars || !completedCrop)
       return;
 
     try {
@@ -750,7 +686,7 @@ export function SpriteCropper({
   return (
     <div className="max-w-7xl mx-auto">
       {/* 批量模式下的头像/立绘选择器 - 移动到分隔线上方 */}
-      {isBatchMode && filteredAvatars.length > 1 && (
+      {isMutiAvatars && filteredAvatars.length > 1 && (
         <div className="flex w-full justify-between">
           <div className="flex items-center mb-4 gap-4">
             <h1 className="text-xl md:text-2xl font-bold">
@@ -766,7 +702,7 @@ export function SpriteCropper({
                 className="toggle toggle-primary toggle-sm"
                 checked={operationMode === "batch"}
                 onChange={e => setOperationMode(e.target.checked ? "batch" : "single")}
-                disabled={!isBatchMode || isProcessing}
+                disabled={!isMutiAvatars || isProcessing}
               />
               <span className="text-sm font-bold">批量</span>
             </div>
@@ -802,7 +738,7 @@ export function SpriteCropper({
         </div>
       )}
 
-      <div className="divider my-0"></div>
+      {isMutiAvatars && <div className="divider my-0"></div>}
 
       <div className="flex flex-col lg:flex-row gap-8 justify-center">
         {/* 左侧：原始图片裁剪区域 */}
@@ -899,7 +835,7 @@ export function SpriteCropper({
                                     <span className="loading loading-spinner loading-xs"></span>
                                   )
                                 : (
-                                    "应用位移"
+                                    "应用变换"
                                   )}
                             </button>
                           )}
@@ -941,7 +877,7 @@ export function SpriteCropper({
                                     <span className="loading loading-spinner loading-xs"></span>
                                   )
                                 : (
-                                    "一键位移"
+                                    "一键变换"
                                   )}
                             </button>
                           )}

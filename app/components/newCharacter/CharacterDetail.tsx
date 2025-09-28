@@ -1,7 +1,7 @@
 // import type { Transform } from "./sprite/TransformControl";
 import type { RoleAvatar } from "api";
 import type { Role } from "./types";
-import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
+import { useRuleDetailQuery, useRuleListQuery, useRulePageQuery } from "api/hooks/ruleQueryHooks";
 import { useGetRoleAvatarsQuery, useUpdateRoleWithLocalMutation } from "api/queryHooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
@@ -48,15 +48,13 @@ export default function CharacterDetail({
   const [selectedSpriteUrl, setSelectedSpriteUrl] = useState<string | null>("");
 
   // 获取角色所有头像
-  const { data: roleAvatarsResponse, isSuccess } = useGetRoleAvatarsQuery(role.id);
+  const { data: roleAvatarsResponse, isSuccess, isLoading: isQueryLoading } = useGetRoleAvatarsQuery(role.id);
 
   // 字数统计：由描述派生，避免在 useEffect 中 setState
   const charCount = useMemo(() => localRole.description?.length || 0, [localRole.description]);
   // 描述的最大储存量
   const MAX_DESCRIPTION_LENGTH = 140;
 
-  // 立绘预览相关状态
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   // 已由SpriteRenderStudio内部管理transform相关状态
 
   // 规则选择状态 - 使用 searchParams 替代 state
@@ -65,9 +63,56 @@ export default function CharacterDetail({
 
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false); // 规则选择弹窗状态
   const [isAudioModalOpen, setIsAudioModalOpen] = useState(false); // 音频上传弹窗状态
+  const [isStImportModalOpen, setIsStImportModalOpen] = useState(false); // ST导入弹窗状态
 
   // 获取当前规则详情
   const { data: currentRuleData } = useRuleDetailQuery(selectedRuleId);
+
+  // 预取规则数据 - 为规则选择弹窗准备数据
+  const [prefetchPageNum, setPrefetchPageNum] = useState(1);
+  const [prefetchKeyword, setPrefetchKeyword] = useState("");
+  const prefetchPageSize = 4;
+
+  // 获取完整规则列表用于计算当前规则所在页数
+  const { data: allRules = [] } = useRuleListQuery();
+
+  // 使用 ref 来跟踪是否已经为当前规则初始化过页码
+  const initializedRuleIdRef = useRef<number | null>(null);
+
+  // 根据当前选中规则定位所在页（只在规则首次加载或切换规则时执行）
+  useEffect(() => {
+    if (!selectedRuleId || !allRules.length)
+      return;
+
+    // 如果已经为当前规则初始化过，就不再重复初始化
+    if (initializedRuleIdRef.current === selectedRuleId)
+      return;
+
+    setIsRuleLoading(true);
+
+    // 找到选中规则索引
+    const ruleIndex = allRules.findIndex(rule => rule.ruleId === selectedRuleId);
+    if (ruleIndex === -1) {
+      setIsRuleLoading(false);
+      return;
+    }
+
+    const targetPage = Math.floor(ruleIndex / prefetchPageSize) + 1;
+    setPrefetchPageNum(targetPage);
+
+    // 标记当前规则已初始化
+    initializedRuleIdRef.current = selectedRuleId;
+
+    // 模拟加载延迟，给用户更好的反馈
+    setTimeout(() => setIsRuleLoading(false), 300);
+  }, [selectedRuleId, allRules, prefetchPageSize, role]);
+  // 预取规则列表数据 - 默认预取第一页，用户体验优先
+  useRulePageQuery({
+    pageNo: prefetchPageNum,
+    pageSize: prefetchPageSize,
+    keyword: prefetchKeyword,
+  });
+
   // 接口部分
   // 发送post数据部分,保存角色数据
   const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave);
@@ -75,10 +120,9 @@ export default function CharacterDetail({
   // 处理规则变更
   // --- CHANGED --- handleRuleChange 现在只调用从 prop 传来的函数
   const handleRuleChange = (newRuleId: number) => {
-    setIsRuleLoading(true);
     onRuleChange(newRuleId); // 调用父组件的函数来更新 URL
     setIsRuleModalOpen(false);
-    setTimeout(() => setIsRuleLoading(false), 300);
+    // loading 状态由 useEffect 管理，这里不需要重复设置
   };
 
   // 打开规则选择弹窗
@@ -113,55 +157,35 @@ export default function CharacterDetail({
     });
   };
 
-  // 当切换到不同角色时，更新本地状态
+  // localRole 同步（只在 role.id 变化时更新）
   useEffect(() => {
     if (role.id !== localRole.id) {
       setLocalRole(role);
-      setSelectedAvatarId(role.avatarId);
-      setSelectedAvatarUrl(role.avatar || "/favicon.ico");
-
-      // 如果头像列表已经加载，立即同步头像信息
-      if (roleAvatars.length > 0 && role.avatarId !== 0) {
-        const currentAvatar = roleAvatars.find(ele => ele.avatarId === role.avatarId);
-        if (currentAvatar) {
-          setSelectedAvatarUrl(currentAvatar.avatarUrl || "/favicon.ico");
-          setSelectedSpriteUrl(currentAvatar.spriteUrl || null);
-        }
-      }
-      else {
-        setSelectedSpriteUrl("");
-      }
     }
-  }, [role, localRole.id, roleAvatars]);
+  }, [role.id, localRole.id, role]);
 
-  // 处理角色头像数据更新
   useEffect(() => {
+    // 更新 roleAvatars
     if (isSuccess && roleAvatarsResponse?.success && Array.isArray(roleAvatarsResponse.data)) {
-      const avatarsData = roleAvatarsResponse.data;
-      setRoleAvatars(avatarsData);
+      setRoleAvatars(roleAvatarsResponse.data);
+    }
 
-      // 使用 localRole.avatarId 而不是 role.avatarId，确保与当前状态同步
-      if (localRole.avatarId !== 0) {
-        const currentAvatar = avatarsData.find(ele => ele.avatarId === localRole.avatarId);
-        const newAvatarUrl = currentAvatar?.avatarUrl || "/favicon.ico";
-        const newSpriteUrl = currentAvatar?.spriteUrl || null;
+    // 根据 localRole.avatarId + roleAvatars 计算头像状态
+    if (localRole.avatarId && localRole.avatarId !== 0 && roleAvatars.length > 0) {
+      const currentAvatar = roleAvatars.find(ele => ele.avatarId === localRole.avatarId);
+      setSelectedAvatarUrl(currentAvatar?.avatarUrl || "/favicon.ico");
+      setSelectedSpriteUrl(currentAvatar?.spriteUrl || null);
 
-        setSelectedAvatarUrl(newAvatarUrl);
-        setSelectedSpriteUrl(newSpriteUrl);
-
-        // 同时更新 localRole 的 avatar 字段，确保显示正确的头像
-        setLocalRole(prev => ({
-          ...prev,
-          avatar: newAvatarUrl,
-        }));
-      }
-      else {
-        setSelectedAvatarUrl("/favicon.ico");
-        setSelectedSpriteUrl("");
+      // 确保 localRole.avatar 跟 url 对齐
+      if (currentAvatar?.avatarUrl && localRole.avatar !== currentAvatar.avatarUrl) {
+        setLocalRole(prev => ({ ...prev, avatar: currentAvatar.avatarUrl }));
       }
     }
-  }, [isSuccess, roleAvatarsResponse, localRole.avatarId]);
-
+    else {
+      setSelectedAvatarUrl(localRole.avatar || "/favicon.ico");
+      setSelectedSpriteUrl("");
+    }
+  }, [isSuccess, roleAvatarsResponse, roleAvatars, localRole.avatarId, localRole.avatar]);
   // 干净的文本
   const cleanText = (text: string) => {
     if (!text)
@@ -259,39 +283,50 @@ export default function CharacterDetail({
             </p>
           </div>
         </div>
-        {isEditing
-          ? (
-              <button
-                type="button"
-                onClick={handleSave}
-                className={`btn btn-primary btn-sm md:btn-lg ${isTransitioning ? "scale-95" : ""}`}
-                disabled={isTransitioning}
-              >
-                {isTransitioning
-                  ? (
-                      <span className="loading loading-spinner loading-xs"></span>
-                    )
-                  : (
-                      <span className="flex items-center gap-1">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                          <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                        </svg>
-                        保存
-                      </span>
-                    )}
-              </button>
-            )
-          : (
-              <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg">
-                <span className="flex items-center gap-1">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                    <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                    <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                  </svg>
-                  编辑
-                </span>
-              </button>
-            )}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsStImportModalOpen(true)}
+            className="btn bg-info/70 text-info-content btn-sm md:btn-lg"
+          >
+            <span className="flex items-center gap-1">
+              ST导入
+            </span>
+          </button>
+          {isEditing
+            ? (
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className={`btn btn-primary btn-sm md:btn-lg ${isTransitioning ? "scale-95" : ""}`}
+                  disabled={isTransitioning}
+                >
+                  {isTransitioning
+                    ? (
+                        <span className="loading loading-spinner loading-xs"></span>
+                      )
+                    : (
+                        <span className="flex items-center gap-1">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                            <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                          </svg>
+                          保存
+                        </span>
+                      )}
+                </button>
+              )
+            : (
+                <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm md:btn-lg">
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                      <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                    </svg>
+                    编辑
+                  </span>
+                </button>
+              )}
+        </div>
       </div>
 
       <div className="max-md:hidden divider"></div>
@@ -313,56 +348,77 @@ export default function CharacterDetail({
                       {currentRuleData?.ruleName || "未选择规则"}
                     </p>
                   </div>
-                  {isEditing
-                    ? (
-                        <button
-                          type="button"
-                          onClick={handleSave}
-                          className={`btn btn-primary btn-sm ${isTransitioning ? "scale-95" : ""}`}
-                          disabled={isTransitioning}
-                        >
-                          {isTransitioning
-                            ? (
-                                <span className="loading loading-spinner loading-xs"></span>
-                              )
-                            : (
-                                <span className="flex items-center gap-1">
-                                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                                    <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                                  </svg>
-                                  保存
-                                </span>
-                              )}
-                        </button>
-                      )
-                    : (
-                        <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm">
-                          <span className="flex items-center gap-1">
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                              <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
-                              <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
-                            </svg>
-                            编辑
-                          </span>
-                        </button>
-                      )}
+                  <div className="flex items-center gap-2">
+                    {isEditing
+                      ? (
+                          <button
+                            type="button"
+                            onClick={handleSave}
+                            className={`btn btn-primary btn-sm ${isTransitioning ? "scale-95" : ""}`}
+                            disabled={isTransitioning}
+                          >
+                            {isTransitioning
+                              ? (
+                                  <span className="loading loading-spinner loading-xs"></span>
+                                )
+                              : (
+                                  <span className="flex items-center gap-1">
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                      <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                    </svg>
+                                    保存
+                                  </span>
+                                )}
+                          </button>
+                        )
+                      : (
+                          <button type="button" onClick={() => setIsEditing(true)} className="btn btn-accent btn-sm">
+                            <span className="flex items-center gap-1">
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
+                                <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
+                              </svg>
+                              编辑
+                            </span>
+                          </button>
+                        )}
+
+                    <button
+                      type="button"
+                      onClick={() => setIsStImportModalOpen(true)}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      <span className="flex items-center gap-1">
+                        ST导入
+                      </span>
+                    </button>
+                  </div>
                 </div>
                 <div className="divider my-0" />
               </div>
 
               <div className="flex justify-center mt-6 mb-2">
-                <CharacterAvatar
-                  role={localRole}
-                  roleAvatars={roleAvatars}
-                  selectedAvatarId={selectedAvatarId}
-                  selectedAvatarUrl={selectedAvatarUrl}
-                  selectedSpriteUrl={selectedSpriteUrl}
-                  onchange={handleAvatarChange}
-                  onSpritePreviewChange={url => setSelectedSpriteUrl(url)}
-                  onAvatarSelect={handleAvatarSelect}
-                  onAvatarDelete={handleAvatarDelete}
-                  onAvatarUpload={handleAvatarUpload}
-                />
+                {isQueryLoading
+                  ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="skeleton w-24 h-24 rounded-full"></div>
+                        <div className="skeleton h-4 w-20"></div>
+                      </div>
+                    )
+                  : (
+                      <CharacterAvatar
+                        role={localRole} // 当前角色基本信息
+                        roleAvatars={roleAvatars} // 当前角色的头像列表
+                        selectedAvatarId={selectedAvatarId} // 选中的头像ID?只在handleAvatarDelete有用
+                        selectedAvatarUrl={selectedAvatarUrl}// 选中的头像URL,只用了在这里传参了
+                        selectedSpriteUrl={selectedSpriteUrl}// 选中的立绘URL,只用于在这里传参了
+                        onchange={handleAvatarChange}// 头像变化的回调
+                        onSpritePreviewChange={url => setSelectedSpriteUrl(url)} // 设置selectedSpriteUrl的函数，用于切换头像后同步立绘组件
+                        onAvatarSelect={handleAvatarSelect} // 头像选择的回调
+                        onAvatarDelete={handleAvatarDelete} // 头像删除的回调
+                        onAvatarUpload={handleAvatarUpload} // 头像上传的回调
+                      />
+                    )}
               </div>
               {!isEditing && (
                 <div className="divider font-bold text-center text-xl">
@@ -511,7 +567,7 @@ export default function CharacterDetail({
         <div className="lg:col-span-3 space-y-6">
 
           {/* 渲染结果预览 */}
-          {isRuleLoading
+          {isRuleLoading || isQueryLoading
             ? (
                 <div className="card-sm md:card-xl bg-base-100 shadow-xs md:rounded-2xl md:border-2 border-base-content/10">
                   <div className="card-body">
@@ -536,7 +592,6 @@ export default function CharacterDetail({
                       characterName={localRole.name || "未命名角色"}
                       roleAvatars={roleAvatars}
                       initialAvatarId={localRole.avatarId}
-                      externalCanvasRef={previewCanvasRef}
                       className="w-full p-3 gap-4 flex mb-2"
                     />
                   </Section>
@@ -586,6 +641,8 @@ export default function CharacterDetail({
                 <ExpansionModule
                   roleId={localRole.id}
                   ruleId={selectedRuleId}
+                  isStImportModalOpen={isStImportModalOpen}
+                  onStImportModalClose={() => setIsStImportModalOpen(false)}
                 />
               )}
         </div>
@@ -612,6 +669,10 @@ export default function CharacterDetail({
                 <RulesSection
                   currentRuleId={selectedRuleId}
                   onRuleChange={handleRuleChange}
+                  pageNum={prefetchPageNum}
+                  onPageChange={setPrefetchPageNum}
+                  keyword={prefetchKeyword}
+                  onKeywordChange={setPrefetchKeyword}
                 />
               </div>
             </div>
