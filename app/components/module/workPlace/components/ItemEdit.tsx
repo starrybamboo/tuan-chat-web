@@ -4,8 +4,8 @@ import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderW
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import QuillEditor from "../../../common/quillEditor/quillEditor";
 import { useModuleContext } from "../context/_moduleContext";
-import Veditor from "./veditor";
 
 interface ItemEditProps {
   item: StageEntityResponse;
@@ -146,7 +146,7 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
         )}
         {selectedTab === "description" && (
           <div>
-            <Veditor
+            <QuillEditor
               id={VeditorIdForDescription}
               placeholder={localItem.description || ""}
               onchange={(value) => {
@@ -159,7 +159,7 @@ export default function ItemEdit({ item, onRegisterSave }: ItemEditProps) {
         )}
         {selectedTab === "tip" && (
           <div>
-            <Veditor
+            <QuillEditor
               id={vditorId}
               placeholder={localItem.tip || ""}
               onchange={(value) => {

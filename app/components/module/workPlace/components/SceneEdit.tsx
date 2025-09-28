@@ -2,11 +2,11 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import QuillEditor from "../../../common/quillEditor/quillEditor";
 import { useModuleContext } from "../context/_moduleContext";
 import AddEntityToScene from "./addEntityToScene";
 import CreateEntityList from "./createEntityList";
 import EntityDetailList from "./EntityDetailList"; // 引入 EntityDetailList 组件
-import Veditor from "./veditor";
 
 interface SceneEditProps {
   scene: StageEntityResponse;
@@ -347,7 +347,7 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
         {selectedTab === "description" && (
           <div className="flex items-center gap-8">
             <div className="flex-1 min-w-0 overflow-hidden p-2">
-              <Veditor
+              <QuillEditor
                 id={VeditorIdForDescription}
                 placeholder={localScene.description || "玩家能看到的描述"}
                 onchange={(value) => {
@@ -362,7 +362,7 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
         {selectedTab === "tip" && (
           <div className="flex items-center gap-8">
             <div className="flex-1 min-w-0 overflow-hidden p-2">
-              <Veditor
+              <QuillEditor
                 id={VeditorId}
                 placeholder={localScene.tip || "对KP的提醒（对于剧情的书写）"}
                 onchange={(value) => {

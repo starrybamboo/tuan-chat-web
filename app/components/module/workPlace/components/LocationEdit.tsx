@@ -5,8 +5,8 @@ import { useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import QuillEditor from "../../../common/quillEditor/quillEditor";
 import { useModuleContext } from "../context/_moduleContext";
-import Veditor from "./veditor";
 
 interface LocationEditProps {
   location: StageEntityResponse;
@@ -121,7 +121,7 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
           >
             <option value="image">场景图片</option>
             <option value="description">场景描述</option>
-            <option value="tip">地区支线</option>
+            <option value="tip">地区隐藏信息</option>
           </select>
         </div>
       </div>
@@ -148,7 +148,7 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
         )}
         {selectedTab === "description" && (
           <div>
-            <Veditor
+            <QuillEditor
               id={VeditorIdForDescription}
               placeholder={localLocation.description || ""}
               onchange={(value) => {
@@ -161,7 +161,7 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
         )}
         {selectedTab === "tip" && (
           <div>
-            <Veditor
+            <QuillEditor
               id={vditorId}
               placeholder={localLocation.tip || ""}
               onchange={(value) => {

@@ -1,0 +1,171 @@
+/* 让编辑区域填满外层容器的最小高度，并避免双边框 */
+.ql-wrapper {
+  min-height: 100px; /* 使内部容器可继承外层 min-height */
+}
+
+/* Quill 会在容器内创建 .ql-container 和 .ql-editor，这里同步继承高度 */
+.ql-wrapper .ql-container {
+  min-height: inherit;
+  border: none; /* 使用外层边框，避免双线 */
+  font-size: 0.833333vw; /* 14px */
+}
+
+.ql-wrapper .ql-editor {
+  min-height: inherit; /* 关键：编辑区随容器伸展 */
+  /* 小方块已移动到编辑区外，此处恢复对称内边距，避免影响文字对齐 */
+  padding: 0.714286vw 0.833333vw; /* 12px 14px */
+  line-height: 1.6;
+}
+
+/* 优化占位符颜色对比 */
+.ql-wrapper .ql-editor.ql-blank::before {
+  color: #9ca3af; /* tailwind gray-400 */
+}
+
+/* 外层相对定位容器，承载悬浮工具栏 */
+.ql-outer {
+  position: relative;
+}
+
+/* 行内悬浮工具栏（飞书风格精简版） */
+.ql-inline-toolbar {
+  position: absolute;
+  transform: translateY(-50%);
+  display: none;
+  padding: 0.238095vw; /* 4px */
+  background: #fff;
+  border: none; /* 移除边框 */
+  border-radius: 0.357143vw; /* 6px */
+  box-shadow: 0 0.238095vw 0.595238vw rgba(0, 0, 0, 0.08); /* 0 4px 10px */
+  z-index: 10;
+}
+.ql-inline-toolbar.visible {
+  display: inline-flex;
+  gap: 0.238095vw; /* 4px */
+  align-items: center;
+}
+.ql-inline-toolbar button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0.119048vw 0.357143vw; /* 2px 6px */
+  font-size: 0.714286vw; /* 12px */
+  color: #374151;
+  border-radius: 0.238095vw; /* 4px */
+  cursor: pointer;
+}
+.ql-inline-toolbar button:hover {
+  background: #f3f4f6; /* gray-100 */
+}
+.ql-inline-toolbar .sep {
+  width: 0.059524vw; /* 1px */
+  height: 0.952381vw; /* 16px */
+  background: #e5e7eb;
+  margin: 0 0.119048vw; /* 0 2px */
+}
+
+/* 工具栏上的图标按钮 */
+.ql-inline-toolbar .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.309524vw; /* 22px */
+  height: 1.309524vw; /* 22px */
+}
+
+/* 下拉菜单容器（默认隐藏，仅在 .open 时显示） */
+.ql-inline-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0.357143vw; /* 6px */
+  background: #fff;
+  border: none; /* 移除边框 */
+  border-radius: 0.357143vw; /* 6px */
+  box-shadow: 0 0.47619vw 1.190476vw rgba(0, 0, 0, 0.12); /* 0 8px 20px */
+  padding: 0.357143vw; /* 6px */
+  display: none;
+  min-width: 8.333333vw; /* 140px */
+  z-index: 999; /* 确保浮层在上方 */
+  overflow-y: auto;
+}
+.ql-inline-menu.open {
+  position: absolute;
+  top: 1.488095vw; /* 25px */
+  left: 0;
+  background: #fff;
+  border: none; /* 移除边框 */
+  box-shadow: 0 0.357143vw 1.071429vw rgba(0, 0, 0, 0.12); /* 0 6px 18px */
+  border-radius: 0.595238vw; /* 10px */
+  padding: 0.595238vw; /* 10px */
+  z-index: 999; /* 确保不被编辑器内容遮挡 */
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(6, 2.142857vw); /* 6 列，每项约 36px */
+  grid-auto-rows: 2.142857vw; /* 36px */
+  gap: 0.47619vw; /* 8px */
+  font-weight: 400;
+  max-height: 21.428571vw; /* 360px，防止超出屏幕过多 */
+}
+/* 空间不足时，向上展开 */
+.ql-inline-menu.drop-up {
+  top: auto !important;
+  bottom: 1.488095vw; /* 25px */
+}
+.ql-inline-menu button.style-h1 {
+  font-size: 20px;
+  font-weight: 700;
+}
+.ql-inline-menu button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.142857vw; /* 36px */
+  height: 2.142857vw; /* 36px */
+  background: #fff;
+  border: none; /* 移除按钮边框 */
+  border-radius: 0.47619vw; /* 8px */
+  color: #333;
+  cursor: pointer;
+}
+.ql-inline-menu button:hover {
+  background: #f5f7fb;
+}
+.ql-inline-menu button.style-inline-b {
+  font-weight: 700;
+}
+.ql-inline-menu button.style-inline-i {
+  font-style: italic;
+}
+.ql-inline-menu button.style-inline-s {
+  text-decoration: line-through;
+}
+.ql-inline-menu hr {
+  border: none;
+  background: #e9eefc;
+  margin: 0.238095vw 0; /* 4px 0 */
+}
+/* 移除文字风格预览类在菜单中的占位，菜单改用图标 */
+.ql-inline-menu .style-paragraph,
+.ql-inline-menu .style-h1,
+.ql-inline-menu .style-h2,
+.ql-inline-menu .style-h3,
+.ql-inline-menu .style-list,
+.ql-inline-menu .style-code,
+.ql-inline-menu .style-inline-b,
+.ql-inline-menu .style-inline-i,
+.ql-inline-menu .style-inline-u,
+.ql-inline-menu .style-inline-s {
+  font-size: 0;
+}
+
+/* 对齐样式 */
+.ql-align-center {
+  text-align: center;
+}
+.ql-align-right {
+  text-align: right;
+}
+.ql-align-justify {
+  text-align: justify;
+}
