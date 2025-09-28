@@ -279,7 +279,13 @@ export default function ModuleEdit({ data, onChange, onRegisterSave }: ModuleEdi
   }, [isFirstShowForModule, initial]);
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-20 max-w-4xl mx-auto">
+      <div className="flex flex-col md:flex-row items-center justify-between">
+        <div className="flex items-center gap-8">
+          <h1 className="font-semibold text-2xl break-words">模组基本信息</h1>
+        </div>
+      </div>
+      <div className="divider mb-8"></div>
       <div className="w-full h-full flex gap-4">
         {/* 左侧规则选择面板 */}
         {/* <div className="basis-1/3">
@@ -294,7 +300,9 @@ export default function ModuleEdit({ data, onChange, onRegisterSave }: ModuleEdi
         {/* 左侧封面 */}
         <div className="w-1/3">
           <div className="flex flex-col items-center justify-center relative">
-            <label className="label"><span className="label-text font-bold mb-2">模组封面</span></label>
+            <label className="label">
+              <span className="label-text font-bold mb-2">模组封面</span>
+            </label>
             <ImgUploaderWithCopper
               setDownloadUrl={() => { }}
               setCopperedDownloadUrl={handleImageChange}
@@ -305,7 +313,7 @@ export default function ModuleEdit({ data, onChange, onRegisterSave }: ModuleEdi
           </div>
         </div>
 
-        <div className="divider divider-horizontal mx-0"></div>
+        <div className="divider divider-horizontal"></div>
 
         {/* 右侧表单区 */}
         <div className="flex-1 flex flex-col gap-4">
@@ -374,7 +382,7 @@ export default function ModuleEdit({ data, onChange, onRegisterSave }: ModuleEdi
       </div>
 
       {/* README 占满整行 */}
-      <div className="w-full">
+      <div className="w-full h-full">
         <label className="label"><span className="label-text font-bold">README</span></label>
         <Veditor
           key={currentMid || "module-editor"}
