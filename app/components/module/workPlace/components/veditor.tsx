@@ -57,7 +57,7 @@ export default function Veditor({ id, placeholder, onchange }: vditorProps) {
         return;
       }
       vdRef.current = new V(container, {
-        minHeight: 300,
+        minHeight: 600,
         preview: {},
         after: () => {
           const initText = initialPlaceholderRef.current;
