@@ -12,14 +12,13 @@ import { useDeleteRoleAvatarMutation } from "api/queryHooks";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useModuleContext } from "../context/_moduleContext";
+import { invokeSaveWithTinyRetry } from "./invokeSaveWithTinyRetry";
 
 interface NPCEditProps {
   role: StageEntityResponse;
-  // allow parent to register this edit's save handler
-  onRegisterSave?: (fn: () => void) => void;
 }
 
-export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
+export default function NPCEdit({ role }: NPCEditProps) {
   // 接入接口
   const { mutate: updateRoleAvatar } = useUploadModuleRoleAvatarMutation();
   const { mutate: deleteAvatar } = useDeleteRoleAvatarMutation();
@@ -108,11 +107,6 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
   useLayoutEffect(() => {
     saveRef.current = handleSave;
   });
-  useLayoutEffect(() => {
-    if (onRegisterSave) {
-      onRegisterSave(() => saveRef.current());
-    }
-  }, [onRegisterSave]);
 
   // 自动保存防抖（在 handleSave 定义之后，避免使用前定义）
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
@@ -442,8 +436,8 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
       {/* 基础信息卡片 */}
       <div className="max-w-4xl mx-auto bg-base-100">
         {/* 头部区域仿 CharacterDetail，角色名、类型、简介一行展示 */}
-        <div className="flex flex-col md:flex-row items-center justify-between">
-          <div className="flex items-center gap-8">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center gap-8 flex-wrap md:flex-nowrap w-full md:w-auto">
             <div className="flex items-center gap-2">
               <select
                 id="roleType"
@@ -459,7 +453,7 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
                 <option value={1}>预设卡</option>
               </select>
             </div>
-            <div>
+            <div className="min-w-[120px]">
               <h1 className="font-semibold text-2xl break-words">{role.name}</h1>
               <p className="text-base-content/60">
                 角色类型 ·
@@ -467,12 +461,27 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
               </p>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              // 使用微小重试机制，处理名字变更导致的短暂未注册窗口
+              invokeSaveWithTinyRetry(handleSave);
+            }}
+            className="btn btn-primary flex-shrink-0 ml-auto md:ml-8 self-start md:self-auto"
+          >
+            <span className="flex items-center gap-1 whitespace-nowrap">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              保存角色信息
+            </span>
+          </button>
         </div>
         <div className="divider"></div>
         {/* 头像与表单横向布局，整体水平居中 */}
-        <div className="flex flex-row items-center justify-center gap-14 mb-8">
-          {/* 头像 */}
-          <div className="flex flex-col justify-start items-start shrink-0 ml-4">
+        <div className="flex flex-row items-start justify-start gap-10 mb-8">
+          {/* 头像 + 按钮同一行 */}
+          <div className="flex flex-row items-center gap-6 shrink-0 ml-4">
             <div className="avatar cursor-pointer group flex items-start justify-start" onClick={() => setChangeAvatarConfirmOpen(true)}>
               <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
@@ -486,8 +495,8 @@ export default function NPCEdit({ role, onRegisterSave }: NPCEditProps) {
             </div>
           </div>
 
-          {/* 简介和类型表单整体在头像右侧，垂直居中 */}
-          <div className="flex flex-col w-2/3 justify-center">
+          {/* 简介与计数字段占据剩余宽度 */}
+          <div className="flex flex-col flex-1 justify-center min-w-0">
             <div className="flex items-center justify-between">
               <label className="text-base mb-2" htmlFor="roleDescription">简介：</label>
               <span

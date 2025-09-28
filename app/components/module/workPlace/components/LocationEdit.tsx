@@ -7,13 +7,13 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import QuillEditor from "../../../common/quillEditor/quillEditor";
 import { useModuleContext } from "../context/_moduleContext";
+import { invokeSaveWithTinyRetry } from "./invokeSaveWithTinyRetry";
 
 interface LocationEditProps {
   location: StageEntityResponse;
-  onRegisterSave?: (fn: () => void) => void;
 }
 
-export default function LocationEdit({ location, onRegisterSave }: LocationEditProps) {
+export default function LocationEdit({ location }: LocationEditProps) {
   const [selectedTab, setSelectedTab] = useState<"image" | "description" | "tip">("image");
   const entityInfo = useMemo(() => location.entityInfo || {}, [location.entityInfo]);
   const { stageId, removeModuleTabItem } = useModuleContext();
@@ -76,9 +76,6 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
   useLayoutEffect(() => {
     saveRef.current = handleSave;
   });
-  useLayoutEffect(() => {
-    onRegisterSave?.(() => saveRef.current());
-  }, [onRegisterSave]);
 
   const generateUniqueFileName = (name: string): string => {
     const timestamp = Date.now();
@@ -103,7 +100,8 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
   return (
     <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
       <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-4">
+        {/* 左侧标题 */}
+        <div className="flex items-center gap-4 self-start md:self-auto">
           <div>
             <h1 className="font-semibold text-2xl md:text-3xl my-2">{location.name}</h1>
             <p className="text-base-content/60">
@@ -113,16 +111,34 @@ export default function LocationEdit({ location, onRegisterSave }: LocationEditP
             </p>
           </div>
         </div>
-        <div className="mt-2 md:mt-0">
-          <select
-            className="select select-lg select-bordered rounded-md"
-            value={selectedTab}
-            onChange={e => setSelectedTab(e.target.value as "image" | "description" | "tip")}
+        {/* 右侧分组：下拉 + 保存按钮 */}
+        <div className="flex items-center gap-3 md:gap-4 mt-2 md:mt-0 ml-auto">
+          <div>
+            <select
+              className="select select-lg select-bordered rounded-md"
+              value={selectedTab}
+              onChange={e => setSelectedTab(e.target.value as "image" | "description" | "tip")}
+            >
+              <option value="image">场景图片</option>
+              <option value="description">场景描述</option>
+              <option value="tip">地区隐藏信息</option>
+            </select>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              // 使用微小重试机制，处理名字变更导致的短暂未注册窗口
+              invokeSaveWithTinyRetry(handleSave);
+            }}
+            className="btn btn-primary flex-shrink-0 self-start md:self-auto"
           >
-            <option value="image">场景图片</option>
-            <option value="description">场景描述</option>
-            <option value="tip">地区隐藏信息</option>
-          </select>
+            <span className="flex items-center gap-1 whitespace-nowrap">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              保存地点信息
+            </span>
+          </button>
         </div>
       </div>
       <div className="divider"></div>
