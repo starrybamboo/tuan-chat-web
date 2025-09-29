@@ -10,6 +10,7 @@ import { AiReportControllerService } from './services/AiReportControllerService'
 import { AiWritingControllerService } from './services/AiWritingControllerService';
 import { AvatarControllerService } from './services/AvatarControllerService';
 import { ChatControllerService } from './services/ChatControllerService';
+import { ClassificationControllerService } from './services/ClassificationControllerService';
 import { CollectionControllerService } from './services/CollectionControllerService';
 import { CollectionListControllerService } from './services/CollectionListControllerService';
 import { CollectionListItemControllerService } from './services/CollectionListItemControllerService';
@@ -29,6 +30,7 @@ import { MessageSessionService } from './services/MessageSessionService';
 import { ModuleControllerService } from './services/ModuleControllerService';
 import { OssControllerService } from './services/OssControllerService';
 import { RatingService } from './services/RatingService';
+import { ResourceControllerService } from './services/ResourceControllerService';
 import { RoleControllerService } from './services/RoleControllerService';
 import { RoleGenerationControllerService } from './services/RoleGenerationControllerService';
 import { RoomControllerService } from './services/RoomControllerService';
@@ -55,6 +57,7 @@ export class TuanChat {
     public readonly aiWritingController: AiWritingControllerService;
     public readonly avatarController: AvatarControllerService;
     public readonly chatController: ChatControllerService;
+    public readonly classificationController: ClassificationControllerService;
     public readonly collectionController: CollectionControllerService;
     public readonly collectionListController: CollectionListControllerService;
     public readonly collectionListItemController: CollectionListItemControllerService;
@@ -74,6 +77,7 @@ export class TuanChat {
     public readonly moduleController: ModuleControllerService;
     public readonly ossController: OssControllerService;
     public readonly rating: RatingService;
+    public readonly resourceController: ResourceControllerService;
     public readonly roleController: RoleControllerService;
     public readonly roleGenerationController: RoleGenerationControllerService;
     public readonly roomController: RoomControllerService;
@@ -111,6 +115,7 @@ export class TuanChat {
         this.aiWritingController = new AiWritingControllerService(this.request);
         this.avatarController = new AvatarControllerService(this.request);
         this.chatController = new ChatControllerService(this.request);
+        this.classificationController = new ClassificationControllerService(this.request);
         this.collectionController = new CollectionControllerService(this.request);
         this.collectionListController = new CollectionListControllerService(this.request);
         this.collectionListItemController = new CollectionListItemControllerService(this.request);
@@ -130,6 +135,7 @@ export class TuanChat {
         this.moduleController = new ModuleControllerService(this.request);
         this.ossController = new OssControllerService(this.request);
         this.rating = new RatingService(this.request);
+        this.resourceController = new ResourceControllerService(this.request);
         this.roleController = new RoleControllerService(this.request);
         this.roleGenerationController = new RoleGenerationControllerService(this.request);
         this.roomController = new RoomControllerService(this.request);

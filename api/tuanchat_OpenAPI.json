@@ -39,8 +39,16 @@
       "description": "头像相关接口"
     },
     {
+      "name": "ResourceController",
+      "description": "资源管理相关接口"
+    },
+    {
       "name": "websocket-doc",
       "description": "WebSocket文档生成"
+    },
+    {
+      "name": "ClassificationController",
+      "description": "分类管理接口"
     },
     {
       "name": "EmojiController",
@@ -2470,6 +2478,77 @@
         }
       }
     },
+    "/capi/resource/update": {
+      "put": {
+        "tags": [
+          "ResourceController"
+        ],
+        "summary": "编辑资源",
+        "operationId": "updateResource",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourceUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultResourceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/module": {
       "put": {
         "tags": [
@@ -3259,7 +3338,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CollectionList"
+                "$ref": "#/components/schemas/CollectionListUpdateRequest"
               }
             }
           },
@@ -7539,6 +7618,503 @@
         }
       }
     },
+    "/capi/resource/user/page": {
+      "post": {
+        "tags": [
+          "ResourceController"
+        ],
+        "summary": "按照资源类型获取当前用户所有资源",
+        "operationId": "getUserResourcesByType",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourcePageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespResourceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/resource/upload": {
+      "post": {
+        "tags": [
+          "ResourceController"
+        ],
+        "summary": "上传某一资源",
+        "operationId": "uploadResource",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourceUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultResourceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/resource/public/page": {
+      "post": {
+        "tags": [
+          "ResourceController"
+        ],
+        "summary": "按照资源类型获取所有公开资源",
+        "operationId": "getPublicResourcesByType",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourcePageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespResourceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/resource/collections/user/page": {
+      "post": {
+        "tags": [
+          "ResourceController"
+        ],
+        "summary": "按照资源类型获取当前用户所有资源收藏集",
+        "operationId": "getUserResourceCollectionsByType",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourcePageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespCollectionList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/resource/collections/resources/page": {
+      "post": {
+        "tags": [
+          "ResourceController"
+        ],
+        "summary": "获取某一资源收藏集中的所有资源",
+        "operationId": "getResourcesInCollection",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionResourcePageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespResourceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/resource/collections/public/page": {
+      "post": {
+        "tags": [
+          "ResourceController"
+        ],
+        "summary": "根据资源类型获取所有公开资源收藏集",
+        "operationId": "getPublicResourceCollectionsByType",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourcePageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespCollectionList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/resource/batch-add-to-collection": {
+      "post": {
+        "tags": [
+          "ResourceController"
+        ],
+        "summary": "批量添加资源到资源收藏集",
+        "operationId": "batchAddResourcesToCollection",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourceBatchAddToCollectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/rating/page": {
       "post": {
         "tags": [
@@ -10615,6 +11191,88 @@
         }
       }
     },
+    "/capi/collection/list/user/type": {
+      "post": {
+        "tags": [
+          "CollectionListController"
+        ],
+        "summary": "获取用户指定类型的收藏列表",
+        "operationId": "getUserCollectionListsByType",
+        "parameters": [
+          {
+            "name": "resourceListType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "byte"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageBaseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespCollectionList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/collection/list/popular": {
       "post": {
         "tags": [
@@ -10622,6 +11280,88 @@
         ],
         "summary": "获取热门公开收藏列表",
         "operationId": "getPopularCollectionLists",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageBaseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultPageBaseRespCollectionList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/collection/list/popular/type": {
+      "post": {
+        "tags": [
+          "CollectionListController"
+        ],
+        "summary": "获取指定类型的热门公开收藏列表",
+        "operationId": "getPopularCollectionListsByType",
+        "parameters": [
+          {
+            "name": "resourceListType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "byte"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -11063,6 +11803,77 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultLong"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/classification/by-item": {
+      "post": {
+        "tags": [
+          "ClassificationController"
+        ],
+        "summary": "根据实体ID和类型获取对应的所有分类",
+        "operationId": "getClassificationsByItemIdAndType",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassificationByItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListClassificationResponse"
                 }
               }
             }
@@ -12748,6 +13559,78 @@
         }
       }
     },
+    "/capi/tag/list": {
+      "get": {
+        "tags": [
+          "TagController"
+        ],
+        "summary": "获取对应类型的所有标签列表",
+        "operationId": "listTagsByType",
+        "parameters": [
+          {
+            "name": "tagType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListTag"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/stage": {
       "get": {
         "tags": [
@@ -14270,6 +15153,79 @@
         }
       }
     },
+    "/capi/resource/detail": {
+      "get": {
+        "tags": [
+          "ResourceController"
+        ],
+        "summary": "获取资源详情",
+        "operationId": "getResourceDetail",
+        "parameters": [
+          {
+            "name": "resourceId",
+            "in": "query",
+            "description": "资源ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultResourceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/rating/user": {
       "get": {
         "tags": [
@@ -15258,6 +16214,150 @@
         }
       }
     },
+    "/capi/classification": {
+      "get": {
+        "tags": [
+          "ClassificationController"
+        ],
+        "summary": "根据分类ID获取所有的分类项",
+        "operationId": "getClassificationItems",
+        "parameters": [
+          {
+            "name": "classificationId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListClassificationItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/classification/list": {
+      "get": {
+        "tags": [
+          "ClassificationController"
+        ],
+        "summary": "查询所有特定类型的分类",
+        "operationId": "listClassificationsByType",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "byte"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListClassificationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/chat/session/room": {
       "get": {
         "tags": [
@@ -16130,6 +17230,79 @@
         }
       }
     },
+    "/capi/resource/delete": {
+      "delete": {
+        "tags": [
+          "ResourceController"
+        ],
+        "summary": "删除资源",
+        "operationId": "deleteResource",
+        "parameters": [
+          {
+            "name": "resourceId",
+            "in": "query",
+            "description": "资源ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultBoolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/community/post/delete": {
       "delete": {
         "tags": [
@@ -16232,7 +17405,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultObject": {
+      "ApiResult": {
         "required": [
           "success"
         ],
@@ -16258,7 +17431,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResult": {
+      "ApiResultObject": {
         "required": [
           "success"
         ],
@@ -17022,6 +18195,99 @@
         },
         "description": "能力字段更新请求"
       },
+      "ResourceUpdateRequest": {
+        "required": [
+          "resourceId"
+        ],
+        "type": "object",
+        "properties": {
+          "resourceId": {
+            "type": "integer",
+            "description": "资源ID",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "description": "资源名称"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "是否公开"
+          }
+        },
+        "description": "资源编辑请求"
+      },
+      "ApiResultResourceResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ResourceResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ResourceResponse": {
+        "type": "object",
+        "properties": {
+          "resourceId": {
+            "type": "integer",
+            "description": "资源id",
+            "format": "int64"
+          },
+          "type": {
+            "type": "string",
+            "description": "资源类型",
+            "format": "byte"
+          },
+          "typeDescription": {
+            "type": "string",
+            "description": "资源类型描述"
+          },
+          "url": {
+            "type": "string",
+            "description": "对应的oss url"
+          },
+          "name": {
+            "type": "string",
+            "description": "资源名称"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "上传用户",
+            "format": "int64"
+          },
+          "isAi": {
+            "type": "boolean",
+            "description": "是不是ai"
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间",
+            "format": "date-time"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "是不是公开"
+          }
+        },
+        "description": "资源响应"
+      },
       "ModuleUpdateRequest": {
         "required": [
           "moduleId"
@@ -17149,6 +18415,10 @@
             "type": "string",
             "description": "用户收藏注释"
           },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "逻辑删除"
+          },
           "createTime": {
             "type": "string",
             "description": "创建时间",
@@ -17187,17 +18457,15 @@
         },
         "description": "基础返回体"
       },
-      "CollectionList": {
+      "CollectionListUpdateRequest": {
+        "required": [
+          "collectionListId"
+        ],
         "type": "object",
         "properties": {
           "collectionListId": {
             "type": "integer",
-            "description": "列表ID",
-            "format": "int64"
-          },
-          "userId": {
-            "type": "integer",
-            "description": "创建者ID",
+            "description": "收藏列表ID",
             "format": "int64"
           },
           "collectionListName": {
@@ -17212,22 +18480,17 @@
             "type": "boolean",
             "description": "是否公开：0-私有，1-公开"
           },
+          "resourceListType": {
+            "type": "string",
+            "description": "资源列表类型",
+            "format": "byte"
+          },
           "coverImageUrl": {
             "type": "string",
             "description": "列表封面图片"
-          },
-          "createTime": {
-            "type": "string",
-            "description": "创建时间",
-            "format": "date-time"
-          },
-          "updateTime": {
-            "type": "string",
-            "description": "更新时间",
-            "format": "date-time"
           }
         },
-        "description": "收藏列表表"
+        "description": "更新收藏列表请求"
       },
       "ApiResultCollectionList": {
         "required": [
@@ -17253,6 +18516,57 @@
           }
         },
         "description": "基础返回体"
+      },
+      "CollectionList": {
+        "type": "object",
+        "properties": {
+          "collectionListId": {
+            "type": "integer",
+            "description": "列表ID",
+            "format": "int64"
+          },
+          "userId": {
+            "type": "integer",
+            "description": "创建者ID",
+            "format": "int64"
+          },
+          "collectionListName": {
+            "type": "string",
+            "description": "列表名称"
+          },
+          "description": {
+            "type": "string",
+            "description": "列表描述"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "是否公开：0-私有，1-公开"
+          },
+          "isDeleted": {
+            "type": "boolean",
+            "description": "逻辑删除"
+          },
+          "resourceListType": {
+            "type": "string",
+            "description": "资源列表类型",
+            "format": "byte"
+          },
+          "coverImageUrl": {
+            "type": "string",
+            "description": "列表封面图片"
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "description": "更新时间",
+            "format": "date-time"
+          }
+        },
+        "description": "收藏列表表"
       },
       "ChatMessageResponse": {
         "required": [
@@ -19572,6 +20886,237 @@
           }
         }
       },
+      "ResourcePageRequest": {
+        "type": "object",
+        "properties": {
+          "pageNo": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "页码",
+            "format": "int32",
+            "default": 1
+          },
+          "pageSize": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "description": "每页大小",
+            "format": "int32",
+            "default": 10
+          },
+          "type": {
+            "type": "string",
+            "description": "资源类型，不传则查询所有类型",
+            "format": "byte"
+          }
+        },
+        "description": "资源分页查询请求"
+      },
+      "ApiResultPageBaseRespResourceResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageBaseRespResourceResponse"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "PageBaseRespResourceResponse": {
+        "type": "object",
+        "properties": {
+          "pageNo": {
+            "type": "integer",
+            "description": "当前页数",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "每页查询数量",
+            "format": "int32"
+          },
+          "totalRecords": {
+            "type": "integer",
+            "description": "总记录数",
+            "format": "int64"
+          },
+          "isLast": {
+            "type": "boolean",
+            "description": "是否最后一页"
+          },
+          "list": {
+            "type": "array",
+            "description": "数据列表",
+            "items": {
+              "$ref": "#/components/schemas/ResourceResponse"
+            }
+          }
+        },
+        "description": "基础翻页返回"
+      },
+      "ResourceUploadRequest": {
+        "required": [
+          "name",
+          "type",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "资源类型",
+            "format": "byte"
+          },
+          "url": {
+            "type": "string",
+            "description": "对应的oss url"
+          },
+          "name": {
+            "type": "string",
+            "description": "资源名称"
+          },
+          "isAi": {
+            "type": "boolean",
+            "description": "是否为AI资源"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "是否公开"
+          }
+        },
+        "description": "资源上传请求"
+      },
+      "ApiResultPageBaseRespCollectionList": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PageBaseRespCollectionList"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "PageBaseRespCollectionList": {
+        "type": "object",
+        "properties": {
+          "pageNo": {
+            "type": "integer",
+            "description": "当前页数",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "每页查询数量",
+            "format": "int32"
+          },
+          "totalRecords": {
+            "type": "integer",
+            "description": "总记录数",
+            "format": "int64"
+          },
+          "isLast": {
+            "type": "boolean",
+            "description": "是否最后一页"
+          },
+          "list": {
+            "type": "array",
+            "description": "数据列表",
+            "items": {
+              "$ref": "#/components/schemas/CollectionList"
+            }
+          }
+        },
+        "description": "基础翻页返回"
+      },
+      "CollectionResourcePageRequest": {
+        "required": [
+          "collectionListId"
+        ],
+        "type": "object",
+        "properties": {
+          "pageNo": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "页码",
+            "format": "int32",
+            "default": 1
+          },
+          "pageSize": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+            "description": "每页大小",
+            "format": "int32",
+            "default": 10
+          },
+          "collectionListId": {
+            "type": "integer",
+            "description": "收藏集ID",
+            "format": "int64"
+          }
+        },
+        "description": "收藏集资源分页请求"
+      },
+      "ResourceBatchAddToCollectionRequest": {
+        "required": [
+          "collectionListId",
+          "resourceIds",
+          "resourceType"
+        ],
+        "type": "object",
+        "properties": {
+          "collectionListId": {
+            "type": "integer",
+            "description": "收藏集ID",
+            "format": "int64"
+          },
+          "resourceType": {
+            "type": "string",
+            "description": "资源类型",
+            "format": "byte"
+          },
+          "resourceIds": {
+            "type": "array",
+            "description": "资源ID列表",
+            "items": {
+              "type": "integer",
+              "description": "资源ID列表",
+              "format": "int64"
+            }
+          }
+        },
+        "description": "批量添加资源到收藏集请求"
+      },
       "RatingPageRequest": {
         "required": [
           "targetId",
@@ -21781,69 +23326,17 @@
             "description": "是否公开：0-私有，1-公开",
             "default": false
           },
+          "resourceListType": {
+            "type": "string",
+            "description": "资源列表类型",
+            "format": "byte"
+          },
           "coverImageUrl": {
             "type": "string",
             "description": "列表封面图片"
           }
         },
         "description": "创建收藏列表请求"
-      },
-      "ApiResultPageBaseRespCollectionList": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/PageBaseRespCollectionList"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "PageBaseRespCollectionList": {
-        "type": "object",
-        "properties": {
-          "pageNo": {
-            "type": "integer",
-            "description": "当前页数",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "description": "每页查询数量",
-            "format": "int32"
-          },
-          "totalRecords": {
-            "type": "integer",
-            "description": "总记录数",
-            "format": "int64"
-          },
-          "isLast": {
-            "type": "boolean",
-            "description": "是否最后一页"
-          },
-          "list": {
-            "type": "array",
-            "description": "数据列表",
-            "items": {
-              "$ref": "#/components/schemas/CollectionList"
-            }
-          }
-        },
-        "description": "基础翻页返回"
       },
       "CollectionListItemPageRequest": {
         "required": [
@@ -22012,6 +23505,80 @@
           }
         },
         "description": "检查是否已收藏请求"
+      },
+      "ClassificationByItemRequest": {
+        "required": [
+          "itemId",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "integer",
+            "description": "实体ID",
+            "format": "int64"
+          },
+          "type": {
+            "type": "string",
+            "description": "分类类型",
+            "format": "byte"
+          }
+        },
+        "description": "根据实体ID和类型获取分类请求"
+      },
+      "ApiResultListClassificationResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/ClassificationResponse"
+            }
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ClassificationResponse": {
+        "type": "object",
+        "properties": {
+          "classificationId": {
+            "type": "integer",
+            "description": "分类ID",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "description": "分类名称"
+          },
+          "type": {
+            "type": "string",
+            "description": "分类类型",
+            "format": "byte"
+          },
+          "createTime": {
+            "type": "string",
+            "description": "创建时间",
+            "format": "date-time"
+          }
+        },
+        "description": "分类响应"
       },
       "SessionReadUpdateRequest": {
         "required": [
@@ -23218,6 +24785,56 @@
           }
         },
         "description": "基础返回体"
+      },
+      "ApiResultListClassificationItemResponse": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/ClassificationItemResponse"
+            }
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ClassificationItemResponse": {
+        "type": "object",
+        "properties": {
+          "classificationId": {
+            "type": "integer",
+            "description": "分类ID",
+            "format": "int64"
+          },
+          "itemId": {
+            "type": "integer",
+            "description": "实体ID",
+            "format": "int64"
+          },
+          "type": {
+            "type": "string",
+            "description": "分类类型",
+            "format": "byte"
+          }
+        },
+        "description": "分类项响应"
       },
       "ApiResultMessageSessionResponse": {
         "required": [

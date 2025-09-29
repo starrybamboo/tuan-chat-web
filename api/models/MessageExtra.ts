@@ -2,7 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ClueMessage } from './ClueMessage';
 import type { DiceResult } from './DiceResult';
 import type { FileMessage } from './FileMessage';
 import type { ForwardMessage } from './ForwardMessage';
@@ -17,6 +16,5 @@ export type MessageExtra = {
     imageMessage?: ImageMessage;
     forwardMessage?: ForwardMessage;
     soundMessage?: SoundMessage;
-    clueMessage?: ClueMessage;
 };
 
