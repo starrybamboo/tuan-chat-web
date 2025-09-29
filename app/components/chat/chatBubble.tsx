@@ -14,6 +14,7 @@ import { formatTimeSmartly } from "@/utils/dataUtil";
 import { useGetRoleQuery } from "api/queryHooks";
 import React, { use, useMemo } from "react";
 import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
+import ClueMessage from "./smallComponents/clueMessage";
 
 export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
@@ -105,6 +106,9 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     }
     else if (message.messageType === 5) {
       return <ForwardMessage messageResponse={chatMessageResponse}></ForwardMessage>;
+    }
+    else if (message.messageType === 1000) {
+      return <ClueMessage messageResponse={chatMessageResponse}></ClueMessage>;
     }
     return (
       <>
