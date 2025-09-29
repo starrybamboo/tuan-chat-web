@@ -1,5 +1,5 @@
 import type { ModuleContextType, ModuleTabItem, TabId } from "./types";
-import { createContext, use, useCallback, useMemo, useRef, useState } from "react";
+import { createContext, use, useCallback, useMemo, useState } from "react";
 import { useImmer } from "use-immer";
 import { ModuleListEnum } from "./types";
 
@@ -10,9 +10,6 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
   const [stageId, _setStageId] = useState<TabId | null>(null); // 当前选中的模组暂存区的id
   const [moduleId, _setModuleId] = useState<TabId | null>(null); // 当前模组的模组id
   const [activeList, _setActiveList] = useState<ModuleListEnum>(ModuleListEnum.STAGE); // 当前选中的列表, 默认暂存区
-  // 选中锁，用于在重命名等操作期间阻止外部意外改变 currentSelectedTabId
-  const selectionLockRef = useRef<{ expire: number; reason?: string } | null>(null);
-  const selectionLockTimer = useRef<number | null>(null);
 
   // 保持回调的引用稳定，避免依赖 setXxx 触发下游 useEffect 重复执行
   const setStageIdCb = useCallback((id: TabId | null) => {
@@ -35,37 +32,7 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
   }, [updateModuleTabItems]);
 
   const setCurrentSelectedTabIdCb = useCallback((item: TabId | null) => {
-    // 如果存在锁且未过期，则忽略普通设置
-    const now = Date.now();
-    if (selectionLockRef.current && selectionLockRef.current.expire > now) {
-      return;
-    }
     _setCurrentSelectedTabId(item);
-  }, []);
-
-  const forceSetCurrentSelectedTabIdCb = useCallback((item: TabId | null) => {
-    _setCurrentSelectedTabId(item);
-  }, []);
-
-  const beginSelectionLockCb = useCallback((reason?: string, ttlMs: number = 300) => {
-    const expire = Date.now() + ttlMs;
-    selectionLockRef.current = { expire, reason };
-    if (selectionLockTimer.current) {
-      window.clearTimeout(selectionLockTimer.current);
-    }
-    selectionLockTimer.current = window.setTimeout(() => {
-      if (selectionLockRef.current && selectionLockRef.current.expire <= Date.now()) {
-        selectionLockRef.current = null;
-      }
-    }, ttlMs + 50);
-  }, []);
-
-  const endSelectionLockCb = useCallback(() => {
-    selectionLockRef.current = null;
-    if (selectionLockTimer.current) {
-      window.clearTimeout(selectionLockTimer.current);
-      selectionLockTimer.current = null;
-    }
   }, []);
 
   const pushModuleTabItemCb = useCallback((moduleTabItem: ModuleTabItem) => {
@@ -126,15 +93,12 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
     setStageId: setStageIdCb,
     setModuleId: setModuleIdCb,
     setCurrentSelectedTabId: setCurrentSelectedTabIdCb,
-    forceSetCurrentSelectedTabId: forceSetCurrentSelectedTabIdCb,
     pushModuleTabItem: pushModuleTabItemCb,
     removeModuleTabItem: removeModuleTabItemCb,
     updateModuleTabLabel: updateModuleTabLabelCb,
     updateModuleTabContentName: updateModuleTabContentNameCb,
     setActiveList: setActiveListCb,
-    beginSelectionLock: beginSelectionLockCb,
-    endSelectionLock: endSelectionLockCb,
-  }), [moduleTabItems, currentSelectedTabId, stageId, moduleId, activeList, setStageIdCb, setModuleIdCb, setCurrentSelectedTabIdCb, pushModuleTabItemCb, removeModuleTabItemCb, updateModuleTabLabelCb, updateModuleTabContentNameCb, setActiveListCb, forceSetCurrentSelectedTabIdCb, beginSelectionLockCb, endSelectionLockCb]);
+  }), [moduleTabItems, currentSelectedTabId, stageId, moduleId, activeList, setStageIdCb, setModuleIdCb, setCurrentSelectedTabIdCb, pushModuleTabItemCb, removeModuleTabItemCb, updateModuleTabLabelCb, updateModuleTabContentNameCb, setActiveListCb]);
 
   return (
     <ModuleContext

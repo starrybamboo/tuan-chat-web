@@ -25,7 +25,6 @@ export function LocationListItem({
   const [isRenaming, setIsRenaming] = useState(false);
   const [draftName, setDraftName] = useState(name);
   const [showMenu, setShowMenu] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -45,27 +44,11 @@ export function LocationListItem({
   };
   return (
     <div
-      className={`group relative w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""} ${
-        isDragging ? "opacity-50 bg-blue-100" : ""
-      }`}
+      className={`group relative w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""}`}
       onClick={onClick}
       onContextMenu={(e) => {
         e.preventDefault();
         setShowMenu(true);
-      }}
-      draggable
-      onDragStart={(e) => {
-        setIsDragging(true);
-        e.dataTransfer.setData("application/reactflow", JSON.stringify({
-          type: "location",
-          name: location.name,
-          id: location.id,
-          entityType: location.entityType,
-        }));
-        e.dataTransfer.effectAllowed = "move";
-      }}
-      onDragEnd={() => {
-        setIsDragging(false);
       }}
     >
       {/* 左侧内容 */}

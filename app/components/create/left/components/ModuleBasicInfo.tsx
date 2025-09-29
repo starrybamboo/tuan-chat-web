@@ -33,7 +33,8 @@ function ModuleBasicInfo({ moduleId }: ModuleBasicInfoProps) {
 
   return (
     <div className="p-4 h-full overflow-y-auto">
-      <h3 className="text-lg font-semibold mb-4">已保存的模组信息</h3>
+      <h3 className="text-lg font-semibold mb-4">模组基本信息</h3>
+
       {/* 模组封面 */}
       {module.image && (
         <div className="mb-4">

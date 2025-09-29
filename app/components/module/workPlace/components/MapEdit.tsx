@@ -14,7 +14,6 @@ import {
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import dagre from "dagre";
 import { useCallback, useEffect, useRef, useState } from "react";
-import toast from "react-hot-toast";
 import SceneNode from "../../detail/ContentTab/scene/react flow/NewSceneNode";
 import { useModuleContext } from "../context/_moduleContext";
 import SceneEdit from "./SceneEdit";
@@ -228,110 +227,6 @@ export default function MapEdit({ map, onRegisterSave }: { map: StageEntityRespo
     setEdges(els => reconnectEdge(oldEdge, newConnection, els));
   }, [map, updateMap]);
 
-  // 处理从外部拖拽到节点上的功能
-  const onDrop = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-
-    const reactFlowData = event.dataTransfer.getData("application/reactflow");
-    if (!reactFlowData)
-      return;
-
-    try {
-      const draggedItem = JSON.parse(reactFlowData);
-      const dropTarget = event.target as HTMLElement;
-
-      // 查找最近的场景节点
-      const sceneNode = dropTarget.closest("[data-id]");
-      if (!sceneNode)
-        return;
-
-      const sceneId = sceneNode.getAttribute("data-id");
-      if (!sceneId)
-        return;
-
-      // 查找对应的场景数据
-      const sceneData = data?.data?.find(item =>
-        item.entityType === 3 && item.name === sceneId,
-      );
-
-      if (!sceneData)
-        return;
-
-      // 更新场景数据
-      const currentEntityInfo = sceneData.entityInfo || {};
-      const updatedEntityInfo = { ...currentEntityInfo };
-      let wasAdded = false;
-      let alreadyExists = false;
-
-      switch (draggedItem.type) {
-        case "item": {
-          const currentItems = updatedEntityInfo.items || [];
-          if (!currentItems.includes(draggedItem.name)) {
-            updatedEntityInfo.items = [...currentItems, draggedItem.name];
-            wasAdded = true;
-          }
-          else {
-            alreadyExists = true;
-          }
-          break;
-        }
-        case "role": {
-          const currentRoles = updatedEntityInfo.roles || [];
-          if (!currentRoles.includes(draggedItem.name)) {
-            updatedEntityInfo.roles = [...currentRoles, draggedItem.name];
-            wasAdded = true;
-          }
-          else {
-            alreadyExists = true;
-          }
-          break;
-        }
-        case "location": {
-          const currentLocations = updatedEntityInfo.locations || [];
-          if (!currentLocations.includes(draggedItem.name)) {
-            updatedEntityInfo.locations = [...currentLocations, draggedItem.name];
-            wasAdded = true;
-          }
-          else {
-            alreadyExists = true;
-          }
-          break;
-        }
-      }
-
-      const typeText = draggedItem.type === "item"
-        ? "物品"
-        : draggedItem.type === "role" ? "角色" : "地点";
-
-      if (alreadyExists) {
-        toast.error(`${typeText}「${draggedItem.name}」已存在于场景「${sceneData.name}」中`);
-        return;
-      }
-
-      if (wasAdded) {
-        // 调用API更新场景
-        updateMap({
-          id: sceneData.id!,
-          name: sceneData.name!,
-          entityType: 3,
-          entityInfo: updatedEntityInfo,
-        });
-
-        // 显示成功提示
-        toast.success(`已将${typeText}「${draggedItem.name}」添加到场景「${sceneData.name}」`);
-      }
-    }
-    catch (error) {
-      console.error("Error handling drop:", error);
-      toast.error("拖拽添加失败，请重试");
-    }
-  }, [data, updateMap]);
-
-  const onDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-  }, []);
-
   // 仅为新增节点计算一个合理位置（使用 dagre），不改变已存在节点的位置
   const computePositionForNewNode = useCallback((
     nodeId: string,
@@ -402,18 +297,7 @@ export default function MapEdit({ map, onRegisterSave }: { map: StageEntityRespo
       id: item.name!,
       type: "mapEditNode",
       position: { x: 0, y: 0 },
-      data: {
-        label: item.name,
-        idx: -1,
-        children: <SceneEdit scene={item} id={item.id!}></SceneEdit>,
-        // 添加场景资源信息
-        sceneItems: item.entityInfo?.items || [],
-        sceneRoles: item.entityInfo?.roles || [],
-        sceneLocations: item.entityInfo?.locations || [],
-        description: item.entityInfo?.description || "",
-        tip: item.entityInfo?.tip || "",
-        isMobile,
-      },
+      data: { label: item.name, idx: -1, children: <SceneEdit scene={item} id={item.id!}></SceneEdit> },
     }));
 
     const dagreGraph = new dagre.graphlib.Graph();
@@ -503,18 +387,7 @@ export default function MapEdit({ map, onRegisterSave }: { map: StageEntityRespo
             id: item.name!,
             type: "mapEditNode",
             position: existingNode.position,
-            data: {
-              label: item.name,
-              idx: -1,
-              children: <SceneEdit scene={item} id={item.id!}></SceneEdit>,
-              // 更新场景资源信息
-              sceneItems: item.entityInfo?.items || [],
-              sceneRoles: item.entityInfo?.roles || [],
-              sceneLocations: item.entityInfo?.locations || [],
-              description: item.entityInfo?.description || "",
-              tip: item.entityInfo?.tip || "",
-              isMobile,
-            },
+            data: { label: item.name, idx: -1, children: <SceneEdit scene={item} id={item.id!}></SceneEdit> },
           };
           // 同步到累积集合，以便后续新节点计算参考
           const idx = accNodes.findIndex(n => n.id === node.id);
@@ -532,25 +405,14 @@ export default function MapEdit({ map, onRegisterSave }: { map: StageEntityRespo
           id: item.name!,
           type: "mapEditNode",
           position: pos,
-          data: {
-            label: item.name,
-            idx: -1,
-            children: <SceneEdit scene={item} id={item.id!}></SceneEdit>,
-            // 添加场景资源信息
-            sceneItems: item.entityInfo?.items || [],
-            sceneRoles: item.entityInfo?.roles || [],
-            sceneLocations: item.entityInfo?.locations || [],
-            description: item.entityInfo?.description || "",
-            tip: item.entityInfo?.tip || "",
-            isMobile,
-          },
+          data: { label: item.name, idx: -1, children: <SceneEdit scene={item} id={item.id!}></SceneEdit> },
         };
         accNodes.push(node);
         return node;
       });
       return built;
     });
-  }, [data, computePositionForNewNode, isMobile]);
+  }, [data, computePositionForNewNode]);
 
   if (isLoading) {
     return (
@@ -572,7 +434,7 @@ export default function MapEdit({ map, onRegisterSave }: { map: StageEntityRespo
   }
 
   return (
-    <div className="w-full h-[75vh]">
+    <div className="w-full h-full">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -582,8 +444,6 @@ export default function MapEdit({ map, onRegisterSave }: { map: StageEntityRespo
         onReconnect={onEdgesReconnect}
         onReconnectStart={onReconnectStart}
         onReconnectEnd={onReconnectEnd}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
         nodeTypes={nodeTypes}
         fitView
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
