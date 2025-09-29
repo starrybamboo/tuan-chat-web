@@ -674,7 +674,7 @@ export function SpriteCropper({
         </div>
       )}
 
-      {isMutiAvatars && <div className="divider my-0"></div>}
+      {isMutiAvatars && filteredAvatars.length > 1 && <div className="divider my-0"></div>}
 
       <div className="flex flex-col lg:flex-row gap-8 justify-center">
         {/* 左侧：原始图片裁剪区域 */}
