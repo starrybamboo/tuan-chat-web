@@ -27,6 +27,10 @@
       "description": "SC交易查询接口"
     },
     {
+      "name": "DistributedTaskScheduler",
+      "description": "分布式任务调度器管理"
+    },
+    {
       "name": "UserController",
       "description": "用户相关接口"
     },
@@ -99,8 +103,16 @@
       "description": "用户Feed相关接口"
     },
     {
+      "name": "Volunteer",
+      "description": "志愿者管理"
+    },
+    {
       "name": "MessageDirectController",
       "description": "私聊消息相关接口"
+    },
+    {
+      "name": "DistributedTask",
+      "description": "分布式任务管理"
     },
     {
       "name": "ChatController",
@@ -109,6 +121,10 @@
     {
       "name": "TagController",
       "description": "标签管理接口"
+    },
+    {
+      "name": "DistributedWS",
+      "description": "分布式任务 - HTTP触发WS能力"
     },
     {
       "name": "CommentController",
@@ -6455,6 +6471,67 @@
         }
       }
     },
+    "/capi/scheduler/trigger": {
+      "post": {
+        "tags": [
+          "DistributedTaskScheduler"
+        ],
+        "description": "手动触发任务调度",
+        "operationId": "triggerScheduling",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/rule/page": {
       "post": {
         "tags": [
@@ -8112,77 +8189,6 @@
         }
       }
     },
-    "/capi/message/direct/page": {
-      "post": {
-        "tags": [
-          "MessageDirectController"
-        ],
-        "summary": "分页查询会话消息",
-        "operationId": "getMessagePage",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MessageDirectPageRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultCursorPageBaseResponseMessageDirectResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/capi/message/direct/inbox": {
       "post": {
         "tags": [
@@ -9419,6 +9425,504 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/distributed-ws/volunteer/heartbeat": {
+      "post": {
+        "tags": [
+          "DistributedWS"
+        ],
+        "description": "模拟志愿者心跳（通过HTTP，以volunteerId定位连接并下发心跳ACK）",
+        "operationId": "volunteerHeartbeat",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VolunteerIdRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/distributed-ws/task/submit": {
+      "post": {
+        "tags": [
+          "DistributedWS"
+        ],
+        "description": "提交任务结果（通过HTTP，服务端按WS路径发送确认推送）",
+        "operationId": "submitTask",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskSubmitHttpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/distributed-ws/task/request": {
+      "post": {
+        "tags": [
+          "DistributedWS"
+        ],
+        "description": "模拟志愿者请求任务（通过HTTP触发WS提示）",
+        "operationId": "requestTask",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VolunteerIdRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/distributed-ws/task/cancel": {
+      "post": {
+        "tags": [
+          "DistributedWS"
+        ],
+        "description": "取消志愿者的任务（通过HTTP）",
+        "operationId": "cancelTask",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCancelPushRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/distributed-ws/task/assign": {
+      "post": {
+        "tags": [
+          "DistributedWS"
+        ],
+        "description": "向指定志愿者推送任务分配（通过HTTP）",
+        "operationId": "assignTask",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskAssignPushRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultString"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/distributed-task/{taskId}/cancel": {
+      "post": {
+        "tags": [
+          "DistributedTask"
+        ],
+        "description": "取消任务",
+        "operationId": "cancelTask_1",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultBoolean"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/distributed-task/create": {
+      "post": {
+        "tags": [
+          "DistributedTask"
+        ],
+        "description": "创建新任务",
+        "operationId": "createTask",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultLong"
                 }
               }
             }
@@ -12748,6 +13252,67 @@
         }
       }
     },
+    "/capi/volunteer/statistics": {
+      "get": {
+        "tags": [
+          "Volunteer"
+        ],
+        "description": "获取志愿者统计信息",
+        "operationId": "getStatistics",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultMapStringObject"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/stage": {
       "get": {
         "tags": [
@@ -13494,6 +14059,67 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultListSpace"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/scheduler/statistics": {
+      "get": {
+        "tags": [
+          "DistributedTaskScheduler"
+        ],
+        "description": "获取调度器统计信息",
+        "operationId": "getStatistics_1",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultSchedulerStatistics"
                 }
               }
             }
@@ -14961,6 +15587,417 @@
         }
       }
     },
+    "/capi/distributed-task/{taskId}": {
+      "get": {
+        "tags": [
+          "DistributedTask"
+        ],
+        "description": "获取任务详情",
+        "operationId": "getTask",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultDistributedTask"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/distributed-task/type/{taskType}": {
+      "get": {
+        "tags": [
+          "DistributedTask"
+        ],
+        "description": "按类型获取任务列表",
+        "operationId": "getTasksByType",
+        "parameters": [
+          {
+            "name": "taskType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListDistributedTask"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/distributed-task/statistics": {
+      "get": {
+        "tags": [
+          "DistributedTask"
+        ],
+        "description": "获取任务统计信息",
+        "operationId": "getStatistics_2",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultTaskStatistics"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/distributed-task/pending": {
+      "get": {
+        "tags": [
+          "DistributedTask"
+        ],
+        "description": "获取待分配任务列表",
+        "operationId": "getPendingTasks",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListDistributedTask"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/distributed-task/failed": {
+      "get": {
+        "tags": [
+          "DistributedTask"
+        ],
+        "description": "获取失败任务列表",
+        "operationId": "getFailedTasks",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListDistributedTask"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capi/distributed-task/completed": {
+      "get": {
+        "tags": [
+          "DistributedTask"
+        ],
+        "description": "获取已完成任务列表",
+        "operationId": "getCompletedTasks",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultListDistributedTask"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultVoid"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResultObject"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/capi/community/post/detail": {
       "get": {
         "tags": [
@@ -16232,7 +17269,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultObject": {
+      "ApiResult": {
         "required": [
           "success"
         ],
@@ -16258,7 +17295,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResult": {
+      "ApiResultObject": {
         "required": [
           "success"
         ],
@@ -17273,6 +18310,29 @@
         },
         "description": "转发的消息列表，json写死的，不会随着原来的消息而改变"
       },
+      "ClueMessage": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "img": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 64,
+            "minLength": 0,
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 1024,
+            "minLength": 0,
+            "type": "string"
+          }
+        }
+      },
       "DiceResult": {
         "required": [
           "result"
@@ -17472,6 +18532,9 @@
           },
           "soundMessage": {
             "$ref": "#/components/schemas/SoundMessage"
+          },
+          "clueMessage": {
+            "$ref": "#/components/schemas/ClueMessage"
           }
         },
         "description": "不同类型消息持有的额外信息"
@@ -20315,78 +21378,6 @@
         },
         "description": "撤回私聊消息请求"
       },
-      "MessageDirectPageRequest": {
-        "required": [
-          "targetUserId"
-        ],
-        "type": "object",
-        "properties": {
-          "cursor": {
-            "type": "number",
-            "description": "游标（上次翻页的最后一条记录的标识）",
-            "format": "double"
-          },
-          "pageSize": {
-            "minimum": 1,
-            "type": "integer",
-            "description": "每页大小",
-            "format": "int32"
-          },
-          "targetUserId": {
-            "type": "integer",
-            "description": "对话用户ID",
-            "format": "int64"
-          }
-        },
-        "description": "私聊消息分页查询请求"
-      },
-      "ApiResultCursorPageBaseResponseMessageDirectResponse": {
-        "required": [
-          "success"
-        ],
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "成功标识true or false"
-          },
-          "errCode": {
-            "type": "integer",
-            "description": "错误码",
-            "format": "int32"
-          },
-          "errMsg": {
-            "type": "string",
-            "description": "错误消息"
-          },
-          "data": {
-            "$ref": "#/components/schemas/CursorPageBaseResponseMessageDirectResponse"
-          }
-        },
-        "description": "基础返回体"
-      },
-      "CursorPageBaseResponseMessageDirectResponse": {
-        "type": "object",
-        "properties": {
-          "cursor": {
-            "type": "number",
-            "description": "游标（下次翻页带上这参数）",
-            "format": "double"
-          },
-          "isLast": {
-            "type": "boolean",
-            "description": "是否最后一页"
-          },
-          "list": {
-            "type": "array",
-            "description": "数据列表",
-            "items": {
-              "$ref": "#/components/schemas/MessageDirectResponse"
-            }
-          }
-        },
-        "description": "游标翻页返回"
-      },
       "ApiResultListMessageDirectResponse": {
         "required": [
           "success"
@@ -21070,6 +22061,112 @@
             "pattern": "^(jpg|jpeg|png|gif|webp)$",
             "type": "string",
             "description": "图片格式"
+          }
+        }
+      },
+      "VolunteerIdRequest": {
+        "required": [
+          "volunteerId"
+        ],
+        "type": "object",
+        "properties": {
+          "volunteerId": {
+            "type": "string"
+          }
+        }
+      },
+      "TaskSubmitHttpRequest": {
+        "required": [
+          "status",
+          "taskId",
+          "volunteerId"
+        ],
+        "type": "object",
+        "properties": {
+          "volunteerId": {
+            "type": "string"
+          },
+          "taskId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "string"
+          },
+          "resultData": {
+            "type": "string"
+          },
+          "errorMessage": {
+            "type": "string"
+          },
+          "executionDuration": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TaskCancelPushRequest": {
+        "required": [
+          "taskId",
+          "volunteerId"
+        ],
+        "type": "object",
+        "properties": {
+          "volunteerId": {
+            "type": "string"
+          },
+          "taskId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TaskAssignPushRequest": {
+        "required": [
+          "taskId",
+          "taskType",
+          "volunteerId"
+        ],
+        "type": "object",
+        "properties": {
+          "volunteerId": {
+            "type": "string"
+          },
+          "taskId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "taskType": {
+            "type": "string"
+          },
+          "inputData": {
+            "type": "string"
+          },
+          "taskName": {
+            "type": "string"
+          },
+          "estimatedDuration": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TaskCreateRequest": {
+        "required": [
+          "inputData",
+          "taskName",
+          "taskType"
+        ],
+        "type": "object",
+        "properties": {
+          "taskName": {
+            "type": "string"
+          },
+          "taskType": {
+            "type": "string"
+          },
+          "inputData": {
+            "type": "string"
           }
         }
       },
@@ -22645,6 +23742,36 @@
         },
         "description": "基础返回体"
       },
+      "ApiResultMapStringObject": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "description": "返回对象"
+            },
+            "description": "返回对象"
+          }
+        },
+        "description": "基础返回体"
+      },
       "ApiResultListStageResponse": {
         "required": [
           "success"
@@ -22760,6 +23887,56 @@
           }
         },
         "description": "基础返回体"
+      },
+      "ApiResultSchedulerStatistics": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SchedulerStatistics"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "SchedulerStatistics": {
+        "type": "object",
+        "properties": {
+          "pendingTasks": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "runningTasks": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "completedTasks": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "failedTasks": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "onlineVolunteers": {
+            "type": "object"
+          }
+        },
+        "description": "返回对象"
       },
       "ApiResultListUserRole": {
         "required": [
@@ -23164,6 +24341,172 @@
           }
         },
         "description": "基础返回体"
+      },
+      "ApiResultDistributedTask": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DistributedTask"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "DistributedTask": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "taskName": {
+            "type": "string"
+          },
+          "taskType": {
+            "type": "string"
+          },
+          "inputData": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "ASSIGNED",
+              "RUNNING",
+              "COMPLETED",
+              "FAILED",
+              "CANCELLED"
+            ]
+          },
+          "assignedVolunteerId": {
+            "type": "string"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assignTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completeTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resultData": {
+            "type": "string"
+          },
+          "errorMessage": {
+            "type": "string"
+          },
+          "executionDuration": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "running": {
+            "type": "boolean"
+          }
+        },
+        "description": "返回对象"
+      },
+      "ApiResultListDistributedTask": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "type": "array",
+            "description": "返回对象",
+            "items": {
+              "$ref": "#/components/schemas/DistributedTask"
+            }
+          }
+        },
+        "description": "基础返回体"
+      },
+      "ApiResultTaskStatistics": {
+        "required": [
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "成功标识true or false"
+          },
+          "errCode": {
+            "type": "integer",
+            "description": "错误码",
+            "format": "int32"
+          },
+          "errMsg": {
+            "type": "string",
+            "description": "错误消息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TaskStatistics"
+          }
+        },
+        "description": "基础返回体"
+      },
+      "TaskStatistics": {
+        "type": "object",
+        "properties": {
+          "totalTasks": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pendingTasks": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "runningTasks": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "completedTasks": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "failedTasks": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "返回对象"
       },
       "ApiResultListCommunityResponse": {
         "required": [

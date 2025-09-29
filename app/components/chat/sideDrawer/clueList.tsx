@@ -1,3 +1,4 @@
+import type { ClueMessage } from "api/models/ClueMessage";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
 import { useGetRoomItemsQuery, useGetRoomLocationsQuery } from "api/hooks/spaceModuleHooks";
@@ -6,7 +7,7 @@ import DisplayOfItemDetail from "../displayOfItemsDetail";
 import DisplayOfLocationDetail from "../displayOfLocationDetail";
 import { RoomContext } from "../roomContext";
 
-export default function ClueList() {
+export default function ClueList({ onSend }: { onSend: (clue: ClueMessage) => void }) {
   const { spaceId } = use(RoomContext);
   const userRoomQuery = useGetUserRoomsQuery(spaceId ?? -1);
   const rooms = useMemo(
@@ -228,7 +229,7 @@ export default function ClueList() {
         sidebarHidden={true}
       >
         {selectedItemId && (
-          <DisplayOfItemDetail itemId={selectedItemId} />
+          <DisplayOfItemDetail itemId={selectedItemId} onSend={onSend} />
         )}
       </PopWindow>
       {/* 地点详情窗口 */}

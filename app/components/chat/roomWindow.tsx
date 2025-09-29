@@ -2,6 +2,7 @@ import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/chatInputArea";
 
 import type { RoomContextType } from "@/components/chat/roomContext";
+import type { ClueMessage } from "api/models/ClueMessage";
 import type { VirtuosoHandle } from "react-virtuoso";
 import type { ChatMessageRequest, ChatMessageResponse, Message, SpaceMember, UserRole } from "../../../api";
 // hooks (local)
@@ -25,7 +26,6 @@ import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName"
 import { SpaceContext } from "@/components/chat/spaceContext";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
-import ItemWindow from "@/components/chat/window/itemWindow";
 import RenderWindow from "@/components/chat/window/renderWindow";
 import BetterImg from "@/components/common/betterImg";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
@@ -53,7 +53,6 @@ import {
   useGetSpaceInfoQuery,
 } from "../../../api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "../../../api/queryHooks";
-import DisplayOfItemDetail from "./displayOfItemsDetail";
 import ClueList from "./sideDrawer/clueList";
 
 // const PAGE_SIZE = 50; // 每页消息数量
@@ -147,9 +146,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   // 渲染对话
   const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
-
-  const [isItemsWindowOpen, setIsItemsWindowOpen] = useState<boolean>(false);
-  const [selectedItemId, setSelectedItemId] = useState<number>(-1);
 
   const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map" | "clue">("rightSideDrawer", "none");
 
@@ -399,6 +395,23 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     send(messageRequest);
   }
 
+  // 线索消息发送
+  const handleClueSend = (clue: ClueMessage) => {
+    const clueMessage: ChatMessageRequest = {
+      roomId,
+      roleId: curRoleId,
+      messageType: 1000,
+      content: "",
+      avatarId: curAvatarId,
+      extra: {
+        img: clue.img,
+        name: clue.name,
+        description: clue.description,
+      },
+    };
+    send(clueMessage);
+  };
+
   // *** 新增: onPasteFiles 的回调处理器 ***
   const handlePasteFiles = (files: File[]) => {
     updateImgFiles((draft) => {
@@ -519,7 +532,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   setSideDrawerState={setSideDrawerState}
                   updateEmojiUrls={updateEmojiUrls}
                   updateImgFiles={updateImgFiles}
-                  setIsItemsWindowOpen={setIsItemsWindowOpen}
                   disableSendMessage={disableSendMessage}
                   handleMessageSubmit={handleMessageSubmit}
                   autoComplete={autoComplete}
@@ -611,23 +623,12 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           </OpenAbleDrawer>
           <OpenAbleDrawer isOpen={sideDrawerState === "clue"} className="h-full bg-base-100 overflow-auto z-20">
             <div className="w-px bg-base-300"></div>
-            <ClueList></ClueList>
+            <ClueList onSend={handleClueSend}></ClueList>
           </OpenAbleDrawer>
         </div>
       </div>
-      <PopWindow isOpen={isItemsWindowOpen} onClose={() => setIsItemsWindowOpen(false)}>
-        <ItemWindow setSelectedItemId={setSelectedItemId}></ItemWindow>
-      </PopWindow>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleAddWindowOpen(false)}>
         <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
-      </PopWindow>
-      <PopWindow
-        isOpen={selectedItemId > 0}
-        onClose={() => setSelectedItemId(-1)}
-      >
-        {selectedItemId && (
-          <DisplayOfItemDetail itemId={selectedItemId} />
-        )}
       </PopWindow>
       <PopWindow isOpen={isRenderWindowOpen} onClose={() => setIsRenderWindowOpen(false)}>
         <RenderWindow></RenderWindow>

@@ -5,7 +5,6 @@ import {
   EmojiIconWhite,
   GalleryBroken,
   GirlIcon,
-  Items,
   PointOnMapPerspectiveLinear,
   SendIcon,
   SparklesOutline,
@@ -20,9 +19,6 @@ interface ChatToolbarProps {
   // 文件和表情处理
   updateEmojiUrls: (updater: (draft: string[]) => void) => void;
   updateImgFiles: (updater: (draft: File[]) => void) => void;
-
-  // 物品窗口控制
-  setIsItemsWindowOpen: (open: boolean) => void;
 
   // 消息发送
   disableSendMessage: boolean;
@@ -39,7 +35,6 @@ export function ChatToolbar({
   setSideDrawerState,
   updateEmojiUrls,
   updateImgFiles,
-  setIsItemsWindowOpen,
   disableSendMessage,
   handleMessageSubmit,
   autoComplete,
@@ -182,14 +177,6 @@ export function ChatToolbar({
           onClick={() => setSideDrawerState(sideDrawerState === "map" ? "none" : "map")}
         >
           <PointOnMapPerspectiveLinear className="size-7 jump_icon"></PointOnMapPerspectiveLinear>
-        </div>
-
-        <div className="tooltip" data-tip="上传物品">
-          <Items
-            className="size-7 cursor-pointer jump_icon"
-            onClick={() => setIsItemsWindowOpen(true)}
-          >
-          </Items>
         </div>
 
         <div
