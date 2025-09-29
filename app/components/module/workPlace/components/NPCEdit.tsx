@@ -467,13 +467,13 @@ export default function NPCEdit({ role }: NPCEditProps) {
               // 使用微小重试机制，处理名字变更导致的短暂未注册窗口
               invokeSaveWithTinyRetry(handleSave);
             }}
-            className="btn btn-primary flex-shrink-0 ml-auto md:ml-8 self-start md:self-auto"
+            className="btn bg-accent rounded-md flex-shrink-0 ml-auto md:ml-8 self-start md:self-auto"
           >
             <span className="flex items-center gap-1 whitespace-nowrap">
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
-              保存角色信息
+              保存
             </span>
           </button>
         </div>

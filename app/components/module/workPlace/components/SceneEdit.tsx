@@ -337,7 +337,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
   return (
     <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
-      <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+      <div className="flex flex-col md:flex-row items-end justify-between gap-3">
         {/* 左侧标题区域 */}
         <div className="flex items-center gap-4 self-start md:self-auto">
           <div>
@@ -349,32 +349,41 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
             </p>
           </div>
         </div>
-        {/* 右侧分组：下拉 + 按钮（保持靠右且彼此紧挨） */}
-        <div className="flex items-center gap-3 md:gap-4 mt-2 md:mt-0 ml-auto">
-          <div>
-            <select
-              className="select select-lg select-bordered rounded-md"
-              value={selectedTab}
-              onChange={e => setSelectedTab(e.target.value as "description" | "tip" | "assets")}
-            >
-              <option value="description">场景描述</option>
-              <option value="tip">剧情详细</option>
-              <option value="assets">场景素材</option>
-            </select>
-          </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className={`btn btn-md rounded-md ${selectedTab === "description" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => setSelectedTab("description")}
+          >
+            场景描述
+          </button>
+          <button
+            type="button"
+            className={`btn btn-md rounded-md ${selectedTab === "tip" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => setSelectedTab("tip")}
+          >
+            剧情详细
+          </button>
+          <button
+            type="button"
+            className={`btn btn-md rounded-md ${selectedTab === "assets" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => setSelectedTab("assets")}
+          >
+            场景素材
+          </button>
           <button
             type="button"
             onClick={() => {
               // 使用微小重试机制，处理名字变更导致的短暂未注册窗口
               invokeSaveWithTinyRetry(handleSave);
             }}
-            className="btn btn-primary flex-shrink-0 self-start md:self-auto"
+            className="btn btn-accent rounded-md flex-shrink-0 self-start md:self-auto"
           >
             <span className="flex items-center gap-1 whitespace-nowrap">
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                 <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
               </svg>
-              保存剧情信息
+              保存
             </span>
           </button>
         </div>

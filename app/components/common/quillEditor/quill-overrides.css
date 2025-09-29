@@ -1,6 +1,6 @@
 /* 让编辑区域填满外层容器的最小高度，并避免双边框 */
 .ql-wrapper {
-  min-height: 100vh; /* 使内部容器可继承外层 min-height */
+  min-height: 80vh; /* 使内部容器可继承外层 min-height */
 }
 
 /* Quill 会在容器内创建 .ql-container 和 .ql-editor，这里同步继承高度 */

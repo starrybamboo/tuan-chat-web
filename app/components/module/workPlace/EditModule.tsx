@@ -71,7 +71,7 @@ function RoleModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content h-fit! bg-base-100 border-base-300 p-8 w-full">
+      <div className="tab-content min-h-[85vh] bg-base-100 border-base-300 p-8 w-full">
         <NPCEdit role={role} />
       </div>
     </>
@@ -120,7 +120,7 @@ function ItemModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content h-fit! bg-base-100 border-base-300 p-8 w-full">
+      <div className="tab-content min-h-[85vh]  bg-base-100 border-base-300 p-8 w-full">
         <ItemEdit item={item} />
       </div>
     </>
@@ -170,7 +170,8 @@ function LocationModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content bg-base-100 border-base-300 p-8 w-full">
+      <div className="tab-content min-h-[85vh] bg-base-100 border-base-300 p-8 w-full">
+        {/* 这里可替换为具体的 SceneEdit 组件 */}
         <LocationEdit location={location} />
       </div>
     </>
@@ -220,7 +221,7 @@ function SceneModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content bg-base-100 border-base-300 p-8 w-full">
+      <div className="tab-content min-h-[85vh] bg-base-100 border-base-300 p-8 w-full">
         <SceneEdit
           scene={scene}
           id={id}
@@ -273,7 +274,7 @@ function MapModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content bg-base-100 border-base-300 p-8 w-full">
+      <div className="tab-content min-h-[85vh] bg-base-100 border-base-300 p-8 w-full">
         <MapEdit map={map} />
       </div>
     </>
@@ -323,7 +324,7 @@ function ModuleModuleTabItem({
         </div>
         {label}
       </label>
-      <div className="tab-content bg-base-100 border-base-300 p-8 w-full">
+      <div className="tab-content min-h-[85vh] bg-base-100 border-base-300 p-8 w-full">
         <ModuleEdit data={moduleInfo} />
       </div>
     </>

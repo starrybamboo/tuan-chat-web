@@ -51,10 +51,20 @@ export default function FunctionButtons() {
           <button
             type="button"
             onClick={() => setIsCommitOpen(true)}
+            className="cursor-pointer h-10 w-full px-3 gap-2 rounded-lg flex items-center justify-center bg-info/80 text-info-content hover:bg-info/70 transition-colors"
+          >
+            <ChevronSmallTripleUp className="w-4 h-4" />
+            应用
+          </button>
+        </div>
+        <div className="flex-1">
+          <button
+            type="button"
+            onClick={() => setIsDeclareOpen(true)}
             className="cursor-pointer h-10 w-full px-3 gap-2 rounded-lg flex items-center justify-center bg-primary text-primary-content hover:bg-primary-focus transition-colors"
           >
             <ChevronSmallTripleUp className="w-4 h-4" />
-            保存
+            发布
           </button>
         </div>
         <div className="flex-1">
