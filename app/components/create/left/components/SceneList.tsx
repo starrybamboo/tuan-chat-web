@@ -180,7 +180,7 @@ function SceneListItem(
 }
 
 export default function SceneList({ stageId, searchQuery: controlledQuery, deleteMode }: { stageId: number; searchQuery?: string; deleteMode?: boolean; showCreateButton?: boolean }) {
-  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem, updateModuleTabLabel, updateModuleTabContentName } = useModuleContext();
+  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem, updateModuleTabLabel, updateModuleTabContentName, beginSelectionLock, endSelectionLock, forceSetCurrentSelectedTabId } = useModuleContext();
   const handleClick = (scene: StageEntityResponse) => {
     pushModuleTabItem({
       id: scene.id!.toString(),
@@ -246,10 +246,13 @@ export default function SceneList({ stageId, searchQuery: controlledQuery, delet
                 name={(renameMap[i!.id!.toString()] ?? i!.name) || "未命名"}
                 deleteMode={deleteMode}
                 onRename={(nextName) => {
+                  const idStr = i!.id!.toString();
                   const oldName = i!.name!;
-                  setRenameMap(prev => ({ ...prev, [i!.id!.toString()]: nextName }));
-                  updateModuleTabLabel(i!.id!.toString(), nextName);
-                  updateModuleTabContentName(i!.id!.toString(), nextName);
+                  beginSelectionLock("scene-rename", 500);
+                  forceSetCurrentSelectedTabId(idStr);
+                  setRenameMap(prev => ({ ...prev, [idStr]: nextName }));
+                  updateModuleTabLabel(idStr, nextName);
+                  updateModuleTabContentName(idStr, nextName);
                   if (mapData) {
                     const oldMap = mapData?.entityInfo?.sceneMap || {};
                     const newMap: Record<string, any> = {};
@@ -265,8 +268,10 @@ export default function SceneList({ stageId, searchQuery: controlledQuery, delet
                     });
                     updateMap({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
                   }
-                  // 更新场景自身名称
                   updateMap({ id: i!.id!, entityType: 3, entityInfo: i!.entityInfo!, name: nextName });
+                  setTimeout(() => {
+                    endSelectionLock();
+                  }, 450);
                 }}
                 onDelete={() => {
                   removeModuleTabItem(i.id!.toString());

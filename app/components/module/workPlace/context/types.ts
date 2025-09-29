@@ -11,11 +11,17 @@ export type ModuleContextType = {
   setStageId: (id: TabId) => void;
   setModuleId: (id: TabId) => void;
   setCurrentSelectedTabId: (itemId: TabId) => void;
+  /** 强制设置当前选中 tab, 不受锁限制 */
+  forceSetCurrentSelectedTabId: (itemId: TabId) => void;
   pushModuleTabItem: (item: ModuleTabItem) => void;
   removeModuleTabItem: (id: TabId) => void;
   updateModuleTabLabel: (id: TabId, label: string) => void;
   updateModuleTabContentName: (id: TabId, name: string) => void;
   setActiveList: (list: ModuleListEnum) => void;
+  /** 开启一个短暂的选中锁，期间外部对 setCurrentSelectedTabId 的调用会被忽略 */
+  beginSelectionLock: (reason?: string, ttlMs?: number) => void;
+  /** 主动结束选中锁 */
+  endSelectionLock: () => void;
 };
 
 /**

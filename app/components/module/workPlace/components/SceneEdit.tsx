@@ -2,16 +2,16 @@
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import QuillEditor from "../../../common/quillEditor/quillEditor";
 import { useModuleContext } from "../context/_moduleContext";
 import AddEntityToScene from "./addEntityToScene";
 import CreateEntityList from "./createEntityList";
 import EntityDetailList from "./EntityDetailList"; // 引入 EntityDetailList 组件
-import Veditor from "./veditor";
+import { invokeSaveWithTinyRetry } from "./invokeSaveWithTinyRetry";
 
 interface SceneEditProps {
   scene: StageEntityResponse;
   id: string | number; // 当前sceneEdit在moduleTabs中的id
-  onRegisterSave?: (fn: () => void) => void;
 }
 
 const types = {
@@ -80,18 +80,26 @@ function Folder({ moduleData, entityType, onClick, onDelete }:
   );
 }
 
-export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps) {
+export default function SceneEdit({ scene, id }: SceneEditProps) {
+  const [selectedTab, setSelectedTab] = useState<"description" | "tip" | "assets">("description");
   const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
-  const { stageId, removeModuleTabItem } = useModuleContext();
+  const { stageId, beginSelectionLock, endSelectionLock, forceSetCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
 
   // 本地状态
   const [localScene, setLocalScene] = useState({ ...entityInfo });
+  const initialRef = useRef(true);
   // 名称改为列表侧重命名，这里不再编辑
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [editEntityType, setEditEntityType] = useState<"item" | "role" | "location">("role");
   const VeditorId = `scene-tip-editor-${id}`;
   const VeditorIdForDescription = `scene-description-editor-${id}`;
+
+  useEffect(() => {
+    if (initialRef.current) {
+      initialRef.current = false;
+    }
+  }, []);
 
   // 自动保存定时器
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
@@ -256,6 +264,18 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
     localSceneRef.current = localScene;
   }, [localScene]);
   const handleSave = () => {
+    // 保存前开启一个短暂选中锁，防止保存期间异步刷新导致 tab 被切换
+    if (scene.id != null) {
+      beginSelectionLock("scene-save", 800);
+      // 强制保持当前 tab 选中
+      if (currentSelectedTabId !== scene.id.toString()) {
+        forceSetCurrentSelectedTabId(scene.id.toString());
+      }
+      else {
+        // 即便一致也再设一次，确保其它竞争 update 之后仍是该 id
+        forceSetCurrentSelectedTabId(scene.id.toString());
+      }
+    }
     setIsTransitioning(true);
     setTimeout(() => {
       setIsTransitioning(false);
@@ -297,9 +317,12 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
               });
               updateScene({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
             }
-            if (changed) {
-              removeModuleTabItem(scene.id!.toString());
-            }
+            // 成功后稍晚释放锁，确保任何 refetch 回调已落地
+            setTimeout(() => endSelectionLock(), 300);
+          },
+          onError: () => {
+            // 出错也及时释放锁，避免长时间阻塞切换
+            endSelectionLock();
           },
         },
       );
@@ -311,82 +334,113 @@ export default function SceneEdit({ scene, id, onRegisterSave }: SceneEditProps)
   useLayoutEffect(() => {
     saveRef.current = handleSave;
   });
-  useLayoutEffect(() => {
-    onRegisterSave?.(() => saveRef.current());
-  }, [onRegisterSave]);
 
   return (
-    <div className={`space-y-6 pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
-      {/* 场景信息卡片 */}
-      <div className={`card bg-base-100 shadow-xl ${isEditing ? "ring-2 ring-primary" : ""}`}>
-        <div className="card-body">
-          <div className="flex items-center gap-8">
-            {/* 右侧内容 */}
-            <div className="flex-1 space-y-4 min-w-0 overflow-hidden p-2">
-              <>
-                {/* 场景名称改由左侧列表右键重命名，不在编辑器内显示可编辑输入框 */}
-                <div className="text-lg font-bold break-words">{scene.name}</div>
-                <div>
-                  <label className="label">
-                    <span className="label-text font-bold mb-1">场景描述（玩家可见）</span>
-                  </label>
-                  <Veditor
-                    id={VeditorIdForDescription}
-                    placeholder={localScene.description || "玩家能看到的描述"}
-                    onchange={(value) => {
-                      setLocalScene(prev => ({ ...prev, description: value }));
-                      saveTimer.current && clearTimeout(saveTimer.current);
-                      saveTimer.current = setTimeout(handleSave, 8000);
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="label">
-                    <span className="label-text font-bold mb-1">剧情详细</span>
-                  </label>
-                  {/* <textarea
-                    value={localScene.tip || ""}
-                    onChange={(e) => {
-                      setLocalScene(prev => ({ ...prev, tip: e.target.value }));
-                      setCharCount(e.target.value.length);
-                    }}
-                    placeholder="对KP的提醒（检定，PL需要做什么来获得线索）"
-                    className="textarea textarea-bordered w-full h-24 resize-none"
-                  /> */}
-
-                  <Veditor
-                    id={VeditorId}
-                    placeholder={localScene.tip || "对KP的提醒（对于剧情的书写）"}
-                    onchange={(value) => {
-                      if (value !== entityInfo.tip) {
-                        setLocalScene(prev => ({ ...prev, tip: value }));
-                        saveTimer.current && clearTimeout(saveTimer.current);
-                        saveTimer.current = setTimeout(handleSave, 8000);
-                      }
-                    }}
-                  />
-                </div>
-              </>
-            </div>
+    <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
+      <div className="flex flex-col md:flex-row items-end justify-between gap-3">
+        {/* 左侧标题区域 */}
+        <div className="flex items-center gap-4 self-start md:self-auto">
+          <div>
+            <h1 className="font-semibold text-2xl md:text-3xl my-2">{scene.name}</h1>
+            <p className="text-base-content/60">
+              {selectedTab === "description" && "场景描述"}
+              {selectedTab === "tip" && "剧情详细"}
+              {selectedTab === "assets" && "场景素材"}
+            </p>
           </div>
-          {/* 保存按钮已统一移至 EditModule 的全局固定按钮 */}
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className={`btn btn-md rounded-md ${selectedTab === "description" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => setSelectedTab("description")}
+          >
+            场景描述
+          </button>
+          <button
+            type="button"
+            className={`btn btn-md rounded-md ${selectedTab === "tip" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => setSelectedTab("tip")}
+          >
+            剧情详细
+          </button>
+          <button
+            type="button"
+            className={`btn btn-md rounded-md ${selectedTab === "assets" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => setSelectedTab("assets")}
+          >
+            场景素材
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              // 使用微小重试机制，处理名字变更导致的短暂未注册窗口
+              invokeSaveWithTinyRetry(handleSave);
+            }}
+            className="btn btn-accent rounded-md flex-shrink-0 self-start md:self-auto"
+          >
+            <span className="flex items-center gap-1 whitespace-nowrap">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              保存
+            </span>
+          </button>
         </div>
       </div>
-
-      {/* 新增模块：locations, items, roles */}
-      <div className="space-y-4">
-        <Folder moduleData={locations} entityType="location" onClick={() => handleAddEntityOpen("location")} onDelete={handleDeleteEntity} />
-        <Folder moduleData={items} entityType="item" onClick={() => handleAddEntityOpen("item")} onDelete={handleDeleteEntity} />
-        <Folder moduleData={roles} entityType="role" onClick={() => handleAddEntityOpen("role")} onDelete={handleDeleteEntity} />
+      <div className="divider"></div>
+      {/* 场景信息卡片 */}
+      <div className={` bg-base-100 space-y-6 ${isEditing ? "ring-2 ring-primary" : ""}`}>
+        {selectedTab === "description" && (
+          <div className="flex items-center gap-8">
+            <div className="flex-1 min-w-0 overflow-hidden p-2">
+              <QuillEditor
+                id={VeditorIdForDescription}
+                placeholder={initialRef.current ? localScene.description : "玩家能看到的描述"}
+                onchange={(value) => {
+                  setLocalScene(prev => ({ ...prev, description: value }));
+                  saveTimer.current && clearTimeout(saveTimer.current);
+                  saveTimer.current = setTimeout(handleSave, 8000);
+                }}
+              />
+            </div>
+          </div>
+        )}
+        {selectedTab === "tip" && (
+          <div className="flex items-center gap-8">
+            <div className="flex-1 min-w-0 overflow-hidden p-2">
+              <QuillEditor
+                id={VeditorId}
+                placeholder={localScene.tip || "对KP的提醒（对于剧情的书写）"}
+                onchange={(value) => {
+                  if (value !== entityInfo.tip) {
+                    setLocalScene(prev => ({ ...prev, tip: value }));
+                    saveTimer.current && clearTimeout(saveTimer.current);
+                    saveTimer.current = setTimeout(handleSave, 8000);
+                  }
+                }}
+              />
+            </div>
+          </div>
+        )}
+        {selectedTab === "assets" && (
+          <>
+            <div className="space-y-4">
+              <Folder moduleData={locations} entityType="location" onClick={() => handleAddEntityOpen("location")} onDelete={handleDeleteEntity} />
+              <Folder moduleData={items} entityType="item" onClick={() => handleAddEntityOpen("item")} onDelete={handleDeleteEntity} />
+              <Folder moduleData={roles} entityType="role" onClick={() => handleAddEntityOpen("role")} onDelete={handleDeleteEntity} />
+            </div>
+            <AddEntityToScene
+              isOpen={isOpen}
+              onClose={handleClose}
+              stageId={stageId as number}
+              entityType={editEntityType}
+              existIdSet={editEntityType === "item" ? items : editEntityType === "role" ? roles : locations}
+              onConfirm={entities => handleAddEntity(entities)}
+            />
+          </>
+        )}
       </div>
-      <AddEntityToScene
-        isOpen={isOpen}
-        onClose={handleClose}
-        stageId={stageId as number}
-        entityType={editEntityType}
-        existIdSet={editEntityType === "item" ? items : editEntityType === "role" ? roles : locations}
-        onConfirm={entities => handleAddEntity(entities)}
-      />
 
     </div>
   );

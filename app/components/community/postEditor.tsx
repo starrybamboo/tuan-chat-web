@@ -40,6 +40,7 @@ export default function PostEditor({
   messageId,
 }: PostEditorProps) {
   const [isPublishing, setIsPublishing] = useState<boolean>(false);
+  const [editorKey, setEditorKey] = useState<number>(0); // 用于重置编辑器
 
   const [storedPost, setStoredPost] = useLocalStorage<StoredPost>("saveWritingPost", {});
 
@@ -111,6 +112,8 @@ export default function PostEditor({
     setCoverImage(undefined);
     setCoverImageFile(undefined);
     setSelectedCommunityId(defaultCommunityId);
+    setEditorKey(prev => prev + 1); // 重置编辑器
+    setStoredPost({}); // 清除本地存储
     if (onClose) {
       onClose();
     }
@@ -265,7 +268,12 @@ export default function PostEditor({
             </div>
           )}
 
-          <MarkdownEditor onChange={(value) => { setContent(value); }} className="flex-1 min-w-0 overflow-hidden" defaultContent={content}></MarkdownEditor>
+          <MarkdownEditor
+            key={editorKey}
+            onChange={(value) => { setContent(value); }}
+            className="flex-1 min-w-0 overflow-hidden"
+            defaultContent={content}
+          />
           <div className="flex justify-end">
             <button
               type="submit"
