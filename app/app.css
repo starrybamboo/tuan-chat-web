@@ -102,3 +102,8 @@ body {
   border-radius: 0.5rem;
   animation: highlight-fade-out 3s ease-out;
 }
+
+.hidden-scrollbar {
+  overflow-y: auto;
+  scrollbar-width: none;
+}

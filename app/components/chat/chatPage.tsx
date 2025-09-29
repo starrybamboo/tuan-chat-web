@@ -215,7 +215,7 @@ export default function ChatPage() {
               {/* 分隔线 */}
               <div className="w-8 h-px bg-base-300 mx-3"></div>
 
-              <div className="overflow-y-auto overflow-x-hidden flex flex-col py-2 px-2">
+              <div className="hidden-scrollbar overflow-x-hidden flex flex-col py-2 px-2">
                 {/* 全部空间列表 */}
                 {spaces.map(space => (
                   <SpaceButton
