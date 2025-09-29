@@ -49,8 +49,30 @@ export function htmlToMarkdown(html: string): string {
         listStack = [];
     };
 
+    // 移除 anchor 中的 rel / target 属性（保存时不需要）
+    const stripRelTarget = (outer: string): string => {
+      // 简单字符串级处理，避免在序列化阶段创建过多临时 DOM；保持其它属性顺序
+      let cleaned = outer
+        .replace(/\s+(?:rel|target)=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+        .replace(/\s+(?:rel|target)(?=\s|>)/gi, ""); // 处理无值属性
+      // 压缩多余空格（不影响 href 等值内部）
+      cleaned = cleaned.replace(/<a\s+/i, m => m.replace(/\s{2,}/g, " "));
+      cleaned = cleaned.replace(/\s+>/g, ">");
+      return cleaned;
+    };
+
     const toInlineMd = (el: HTMLElement): string => {
       let txt = el.innerHTML || "";
+      // 预处理：保留允许的原始标签（a/img），用占位符标记，后续再还原；避免被通用正则 strip 掉
+      const preserved: string[] = [];
+      txt = txt.replace(/<a\b[^>]*>[\s\S]*?<\/a>/gi, (m) => {
+        preserved.push(stripRelTarget(m));
+        return `__PRESERVE_A_${preserved.length - 1}__`;
+      });
+      txt = txt.replace(/<img\b[^>]*>/gi, (m) => {
+        preserved.push(m);
+        return `__PRESERVE_IMG_${preserved.length - 1}__`;
+      });
       txt = txt
         .replace(/<strong>([\s\S]*?)<\/strong>/g, "**$1**")
         .replace(/<b>([\s\S]*?)<\/b>/g, "**$1**")
@@ -60,6 +82,11 @@ export function htmlToMarkdown(html: string): string {
         .replace(/<(?:s|strike|del)>([\s\S]*?)<\/(?:s|strike|del)>/g, "~~$1~~")
         .replace(/<code>([\s\S]*?)<\/code>/g, "`$1`");
       txt = txt.replace(/<[^>]+>/g, "");
+      // 还原占位符
+      txt = txt.replace(/__PRESERVE_(A|IMG)_(\d+)__/g, (_m, _type, idxStr) => {
+        const idx = Number(idxStr);
+        return preserved[idx] || "";
+      });
       return txt;
     };
 
@@ -223,6 +250,7 @@ export function htmlToMarkdown(html: string): string {
         }
 
         let text = normalize(toInlineMd(node)).trim();
+        // 如果段落内仅包含一个 <a> 或 <img> 并被保留下来，toInlineMd 会还原 outerHTML；此时继续下面对齐后缀逻辑即可
         if (text) {
           if (align === "center") {
             text += "c";
@@ -235,6 +263,22 @@ export function htmlToMarkdown(html: string): string {
           }
           lines.push(text);
           flushListContextIfNeeded(tag);
+        }
+        return;
+      }
+      // 直接保留裸露在根级别的 <a> 或 <img> 节点（不包裹段落），作为独立一行
+      if (tag === "a" && node.getAttribute("href")) {
+        let outer = node.outerHTML;
+        if (outer) {
+          outer = stripRelTarget(outer);
+          lines.push(outer.trim());
+        }
+        return;
+      }
+      if (tag === "img" && node.getAttribute("src")) {
+        const outer = node.outerHTML;
+        if (outer) {
+          lines.push(outer.trim());
         }
         return;
       }

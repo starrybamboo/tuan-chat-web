@@ -8,6 +8,7 @@ import { htmlToMarkdown } from "./htmlToMarkdown";
 import { convertHtmlTagIfAny, logHtmlTagIfAny } from "./htmlWysiwyg";
 import { markdownToHtmlWithEntities } from "./markdownToHtml";
 import MentionPreview from "./MentionPreview";
+import { restoreRawHtml } from "./restoreRawHtml";
 import { InlineMenu, SelectionMenu } from "./toolbar";
 import {
   detectAlignment,
@@ -947,7 +948,13 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
           pendingSerialize = false;
           try {
             const html = (editor as any).root?.innerHTML ?? "";
-            const md = htmlToMarkdown(html);
+            // 先还原含 data-origin-raw 的标签源码，再走 html->markdown
+            let restoredHtml = html;
+            try {
+              restoredHtml = restoreRawHtml(html);
+            }
+            catch { /* ignore restore errors */ }
+            const md = htmlToMarkdown(restoredHtml);
             if (md !== lastAppliedMarkdownRef.current) {
               try {
                 console.warn("[md]", md);
@@ -1461,9 +1468,84 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
       };
       rootEl?.addEventListener("keyup", onRootKeyUp, true);
 
-      // 粘贴：若是 Markdown 文本，则转换为 HTML 并以所见即所得形式插入
+      // 粘贴：1) 简单 HTML 片段 (<a>/<img>/<span>/<div>) 转为所见即所得并标记 data-origin-raw
+      //       2) 若是 Markdown 文本则转为所见即所得
       onRootPaste = (e: ClipboardEvent) => {
         try {
+          const htmlRaw = e.clipboardData?.getData("text/html") || "";
+          // 优先处理纯标签(不含复杂结构)的 htmlRaw，用很宽松的判定：标签数 <= 12 且不含脚本/表格/blockquote 等复杂块
+          if (htmlRaw && /<\s*(?:a|img|span|div)\b/i.test(htmlRaw) && !/<(?:script|table|tr|td|th|blockquote|h[1-6]|ul|ol|li)\b/i.test(htmlRaw)) {
+            const tmp = document.createElement("div");
+            tmp.innerHTML = htmlRaw;
+            const allowed = Array.from(tmp.querySelectorAll("a,img,span,div"));
+            if (allowed.length && allowed.length <= 12) {
+              // const editorRoot = (editor as any).root as HTMLElement; // 未使用，保留注释防止再度添加
+              const sel = editor.getSelection?.(true);
+              const insertIndex = sel && typeof sel.index === "number" ? sel.index : (editor.getLength?.() ?? 0);
+              e.preventDefault();
+              // 逐节点插入：a -> 文本+link, img -> image blot, span/div -> 其 textContent
+              let cursor = insertIndex;
+              const walkInsert = (node: HTMLElement) => {
+                const tag = node.tagName.toLowerCase();
+                if (tag === "a") {
+                  const href = node.getAttribute("href") || "";
+                  const text = node.textContent || href || "";
+                  if (text) {
+                    if (href) {
+                      editor.insertText(cursor, text, { link: href }, "user");
+                    }
+                    else {
+                      editor.insertText(cursor, text, {}, "user");
+                    }
+                    // 标记 data-origin-raw：在刚插入的叶节点上找 <a>
+                    try {
+                      const leaf = editor.getLeaf?.(cursor);
+                      const leafNode = leaf && leaf[0] && leaf[0].domNode as HTMLElement | undefined;
+                      let aEl: HTMLElement | null = leafNode || null;
+                      if (aEl && aEl.tagName !== "A") {
+                        aEl = aEl.closest("a");
+                      }
+                      if (aEl) {
+                        aEl.setAttribute("data-origin-raw", node.outerHTML);
+                      }
+                    }
+                    catch { /* ignore */ }
+                    cursor += text.length;
+                  }
+                }
+                else if (tag === "img") {
+                  const src = node.getAttribute("src") || "";
+                  if (src) {
+                    editor.insertEmbed(cursor, "image", src, "user");
+                    try {
+                      const leaf = editor.getLeaf?.(cursor);
+                      const leafNode = leaf && leaf[0] && leaf[0].domNode as HTMLElement | undefined;
+                      if (leafNode && leafNode.tagName === "IMG" && !leafNode.getAttribute("data-origin-raw")) {
+                        leafNode.setAttribute("data-origin-raw", node.outerHTML);
+                      }
+                    }
+                    catch { /* ignore */ }
+                    cursor += 1; // image blot 占位 1
+                  }
+                }
+                else if (tag === "span" || tag === "div") {
+                  const txt = node.textContent || "";
+                  if (txt) {
+                    editor.insertText(cursor, txt, "user");
+                    cursor += txt.length;
+                  }
+                }
+              };
+              allowed.forEach(n => walkInsert(n as HTMLElement));
+              // 粘贴结束后将光标放到末尾
+              try {
+                editor.setSelection(cursor, 0, "silent");
+              }
+              catch { /* ignore */ }
+              scheduleSerialize();
+              return;
+            }
+          }
           // 在代码块中不做 Markdown 转换，保持原样
           const sel = editor.getSelection?.(true);
           if (sel && typeof sel.index === "number") {

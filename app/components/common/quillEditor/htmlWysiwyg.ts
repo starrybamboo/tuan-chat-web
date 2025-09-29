@@ -48,7 +48,6 @@ export function detectHtmlTagOnSpace(lineLeft: string): DetectedHtmlTagResult | 
   if (endGt >= 0) {
     const beforeGt = inner.slice(0, endGt);
     closedSyntax = /\/\s*$/.test(beforeGt) || tag === "img";
-    attrArea = beforeGt;
   }
   else {
     // 尚未输入到 '>'，视为部分
@@ -62,7 +61,7 @@ export function detectHtmlTagOnSpace(lineLeft: string): DetectedHtmlTagResult | 
   // attr 解析：name (= value)? ; value 可以是 ".." | '..' | bare
   // 说明：匹配后 m[2], m[3], m[4] 之一为属性值；引用全部以避免 lint 误判未使用
   const attrRegex = /([a-z_:][-\w:.]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>/]+)))?/gi;
-  for (;;) {
+  for (; ;) {
     const m = attrRegex.exec(attrArea);
     if (!m) {
       break;
@@ -161,8 +160,21 @@ export function convertHtmlTagIfAny(
     }
   }
   if (tagDocStart < 0) {
-    console.warn("[HTML-CONVERT] 未找到标签源码位置，放弃转换", { raw });
-    return false;
+    // Fallback：尝试假设 raw 就在 globalIndex 之前紧邻出现
+    const possibleStart = globalIndex - rawLen;
+    if (possibleStart >= 0) {
+      try {
+        const seg = quillInstance.getText?.(possibleStart, rawLen) || "";
+        if (seg === raw) {
+          tagDocStart = possibleStart;
+        }
+      }
+      catch { /* ignore */ }
+    }
+    if (tagDocStart < 0) {
+      console.warn("[HTML-CONVERT] 未找到标签源码位置，放弃转换", { raw });
+      return false;
+    }
   }
   const tagLength = rawLen; // 仅删除标签源码自身
 
@@ -217,6 +229,37 @@ export function convertHtmlTagIfAny(
       }
       else if (typeof op.insert === "string") {
         quillInstance.insertText(insertPos, op.insert, op.attributes || {}, "silent");
+        // 如果是 a 标签：尝试立即为生成的 anchor 标记 data-origin-raw（包含延迟兜底）
+        if (tag === "a") {
+          try {
+            const leafInfo = quillInstance.getLeaf(insertPos);
+            const leafNode = leafInfo && leafInfo[0] && leafInfo[0].domNode as HTMLElement | undefined;
+            let anchor: HTMLElement | null = leafNode || null;
+            if (anchor && anchor.tagName !== "A") {
+              anchor = anchor.closest("a");
+            }
+            if (anchor && anchor.tagName === "A") {
+              anchor.setAttribute("data-origin-raw", raw);
+            }
+            else {
+              setTimeout(() => {
+                try {
+                  const leafInfo2 = quillInstance.getLeaf(insertPos);
+                  const leafNode2 = leafInfo2 && leafInfo2[0] && leafInfo2[0].domNode as HTMLElement | undefined;
+                  let anchor2: HTMLElement | null = leafNode2 || null;
+                  if (anchor2 && anchor2.tagName !== "A") {
+                    anchor2 = anchor2.closest("a");
+                  }
+                  if (anchor2 && anchor2.tagName === "A" && !anchor2.getAttribute("data-origin-raw")) {
+                    anchor2.setAttribute("data-origin-raw", raw);
+                  }
+                }
+                catch { /* ignore second attempt */ }
+              }, 0);
+            }
+          }
+          catch { /* ignore anchor mark */ }
+        }
         insertPos += op.insert.length;
         insertedTotal += op.insert.length;
       }
@@ -246,6 +289,13 @@ export function convertHtmlTagIfAny(
               imgEl.style.height = h;
             }
           }
+          // 记录原始 raw，便于保存还原
+          try {
+            if (!imgEl.getAttribute("data-origin-raw")) {
+              imgEl.setAttribute("data-origin-raw", raw);
+            }
+          }
+          catch { /* ignore set data-origin error */ }
         }
       }
       catch { /* ignore width/height set errors */ }

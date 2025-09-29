@@ -67,16 +67,6 @@ export default function FunctionButtons() {
             发布
           </button>
         </div>
-        <div className="flex-1">
-          <button
-            type="button"
-            onClick={() => setIsDeclareOpen(true)}
-            className="cursor-pointer h-10 w-full px-3 gap-2 rounded-lg flex items-center justify-center bg-primary text-primary-content hover:bg-primary-focus transition-colors"
-          >
-            <ChevronSmallTripleUp className="w-4 h-4" />
-            发布
-          </button>
-        </div>
       </div>
 
       <PopWindow isOpen={isCommitOpen} onClose={() => setIsCommitOpen(false)}>
