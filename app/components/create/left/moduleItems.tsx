@@ -38,7 +38,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
   // 全局实体搜索（角色/物品/地点/剧情）
   const [searchQuery, setSearchQuery] = React.useState("");
   const [activeTab, setActiveTab] = React.useState<EntityType>(2);
-  const [deleteMode, setDeleteMode] = React.useState(false);
+  // 删除模式相关功能已移除
   // 明确映射，避免字符串裁剪等错误
   const tabMeta = React.useMemo(
     () => ({
@@ -227,16 +227,6 @@ function ModuleItems({ stageId }: { stageId: number }) {
           <span>)</span>
         </h3>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className={`btn btn-error btn-sm ${deleteMode ? "btn-active" : ""}`}
-            onClick={() => setDeleteMode(v => !v)}
-            aria-pressed={deleteMode}
-            aria-label="删除模式切换"
-            title={deleteMode ? "退出删除模式" : "进入删除模式"}
-          >
-            { deleteMode ? "退出删除模式" : "进入删除模式"}
-          </button>
           <button type="button" className="btn btn-primary btn-sm" onClick={handleCreate} aria-label={`新建${activeTabLabel}`}>
             新建
           </button>
@@ -245,9 +235,9 @@ function ModuleItems({ stageId }: { stageId: number }) {
 
       {/* 仅渲染当前 Tab 的列表（受全局搜索控制） */}
       <div className="flex-1 overflow-y-auto">
-        {activeTab === 2 && <RoleList stageId={stageId} searchQuery={searchQuery} deleteMode={deleteMode} showCreateButton={false} />}
-        {activeTab === 1 && <ItemList stageId={stageId} searchQuery={searchQuery} deleteMode={deleteMode} showCreateButton={false} />}
-        {activeTab === 4 && <LocationList stageId={stageId} searchQuery={searchQuery} deleteMode={deleteMode} showCreateButton={false} />}
+        {activeTab === 2 && <RoleList stageId={stageId} searchQuery={searchQuery} showCreateButton={false} />}
+        {activeTab === 1 && <ItemList stageId={stageId} searchQuery={searchQuery} showCreateButton={false} />}
+        {activeTab === 4 && <LocationList stageId={stageId} searchQuery={searchQuery} showCreateButton={false} />}
       </div>
 
       {/* 角色创建/选择弹窗（仅在角色 Tab 下使用） */}

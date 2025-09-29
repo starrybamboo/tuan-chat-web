@@ -8,6 +8,7 @@ export interface PopWindowProp {
   /** 开启后会变成全屏，并且只能靠右上角的关闭按钮关闭 */
   fullScreen?: boolean;
   transparent?: boolean; // 是否透明背景
+  hiddenScrollbar?: boolean;
 }
 /**
  * 【Legacy】如无必要，请使用toastWindow来代替本组件
@@ -25,22 +26,23 @@ export interface PopWindowProp {
  * @param onClose 当关闭的时候的回调函数，一般类似setIsOpen(false)
  * @param fullScreen 开启后会变成全屏，并且只能靠右上角的关闭按钮关闭
  * @param transparent 背景透明
+ * @param hiddenScrollbar 滑动条隐藏
  * @constructor
  */
-export function PopWindow({ isOpen, children, onClose, fullScreen = false, transparent = false }: PopWindowProp) {
+export function PopWindow({ isOpen, children, onClose, fullScreen = false, transparent = false, hiddenScrollbar = false }: PopWindowProp) {
   if (!isOpen) {
     return null;
   }
   return (
     <Mounter targetId="modal-root">
-      <PopWindowComponent isOpen={isOpen} onClose={onClose} fullScreen={fullScreen} transparent={transparent}>
+      <PopWindowComponent isOpen={isOpen} onClose={onClose} fullScreen={fullScreen} transparent={transparent} hiddenScrollbar={hiddenScrollbar}>
         {children}
       </PopWindowComponent>
     </Mounter>
   );
 }
 
-export function PopWindowComponent({ isOpen, children, onClose, fullScreen = false, transparent = false }: PopWindowProp) {
+export function PopWindowComponent({ isOpen, children, onClose, fullScreen = false, transparent = false, hiddenScrollbar = false }: PopWindowProp) {
   return (
     <div className={`modal ${isOpen ? "modal-open" : ""}`}>
       <div
@@ -74,7 +76,7 @@ export function PopWindowComponent({ isOpen, children, onClose, fullScreen = fal
           </svg>
         </button>
         {/* 卡片内容 */}
-        <div className="w-full h-full overflow-auto min-h-0">
+        <div className={`${hiddenScrollbar ? "hidden-scrollbar" : "overflow-auto"} w-full h-full min-h-0`}>
           {children}
         </div>
       </div>
