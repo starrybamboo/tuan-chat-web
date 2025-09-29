@@ -24,7 +24,7 @@ interface RenderPreviewProps {
  * 渲染结果预览组件
  * 显示应用了Transform效果的立绘预览
  */
-export function RenderPreview({
+function RenderPreviewComponent({
   previewCanvasRef,
   transform,
   characterName = "角色名",
@@ -103,3 +103,5 @@ export function RenderPreview({
     </>
   );
 }
+
+export const RenderPreview = React.memo(RenderPreviewComponent);
