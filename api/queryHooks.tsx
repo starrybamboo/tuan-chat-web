@@ -617,7 +617,7 @@ export function useUpdateAvatarTitleMutation() {
       }
     },
     // 保持当前缓存，不立刻触发 refetch，避免选中项重置
-    onSuccess: () => { },
+    onSuccess: (_, variables) => { queryClient.invalidateQueries({ queryKey: ["roleAvatar", variables.roleId] }); },
   })
 }
 
@@ -643,10 +643,10 @@ export function useRoleAvatarQuery(avatarId: number) {
 }
 
 // 头像查询
-export function useRoleAvaters(roleId: number) {
+export function useRoleAvatars(roleId: number) {
   const roleAvatarQuery = useQuery({
     queryKey: ["roleAvatar", roleId],
-    queryFn: async (): Promise<string | undefined> => {
+    queryFn: async () => {
       try {
         const res = await tuanchat.avatarController.getRoleAvatars(roleId);
         if (
@@ -655,7 +655,7 @@ export function useRoleAvaters(roleId: number) {
           && res.data.length > 0
           && res.data[0]?.avatarUrl !== undefined
         ) {
-          return res.data[0].avatarUrl as string;
+          return res.data;
         }
         else {
           console.warn(`角色 ${roleId} 的头像数据无效或为空`);

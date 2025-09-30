@@ -4,13 +4,11 @@ import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatar from "@/components/common/roleAvatar";
 import { CharacterCopper } from "@/components/newCharacter/sprite/CharacterCopper";
 import { SpriteRenderStudio } from "@/components/newCharacter/sprite/SpriteRenderStudio";
-import { useQuery } from "@tanstack/react-query";
 import { useModuleIdQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useQueryEntitiesQuery, useUpdateEntityMutation, useUploadModuleRoleAvatarMutation } from "api/hooks/moduleQueryHooks";
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
-import { tuanchat } from "api/instance";
-import { useDeleteRoleAvatarMutation } from "api/queryHooks";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useDeleteRoleAvatarMutation, useRoleAvatars } from "api/queryHooks";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { useModuleContext } from "../context/_moduleContext";
 import { invokeSaveWithTinyRetry } from "./invokeSaveWithTinyRetry";
@@ -173,6 +171,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const { mutate: updateRoleAvatar } = useUploadModuleRoleAvatarMutation();
   const { mutate: deleteAvatar } = useDeleteRoleAvatarMutation();
   const moduleInfo = useModuleIdQuery(moduleId as number);
+  const { data } = useRoleAvatars(role.id as number);
   // entityInfo 结构见后端定义
   const entityInfo = role.entityInfo || {};
   const { stageId, removeModuleTabItem, updateModuleTabLabel } = useModuleContext();
@@ -191,6 +190,9 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const [avatarToDeleteIndex, setAvatarToDeleteIndex] = useState<number | null>(null);
 
   const MAX_DESCRIPTION_LENGTH = 140;
+
+  // 自动保存防抖（在 handleSave 定义之后，避免使用前定义）
+  const saveTimer = useRef<NodeJS.Timeout | null>(null);
 
   // 获取规则详细
   const { data: ruleAbility } = useGetRuleDetailQuery(moduleInfo.data?.data?.ruleId as number);
@@ -215,6 +217,20 @@ export default function NPCEdit({ role }: NPCEditProps) {
   useEffect(() => {
     localRoleRef.current = localRole;
   }, [localRole]);
+  useLayoutEffect(() => {
+    if (data) {
+      setRoleAvatars(data);
+    }
+  }, [data]);
+
+  // 包装为传入 SpriteRenderStudio 的数据：确保每个 avatar 都带有 roleId 与 avatarTitle(默认空结构)
+  const enrichedRoleAvatars = useMemo(() => {
+    return (roleAvatars || []).map((a: any) => ({
+      ...a,
+      roleId: a.roleId || role.id,
+      avatarTitle: a.avatarTitle || {},
+    }));
+  }, [roleAvatars, role.id]);
   useEffect(() => {
     abilityRef.current = ability;
   }, [ability]);
@@ -225,6 +241,9 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const handleSave = () => {
     setIsTransitioning(true);
     setTimeout(() => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+      }
       const updatedRole = { ...localRoleRef.current, ability: abilityRef.current };
       setIsTransitioning(false);
       const oldName = role.name;
@@ -258,9 +277,6 @@ export default function NPCEdit({ role }: NPCEditProps) {
   useLayoutEffect(() => {
     saveRef.current = handleSave;
   });
-
-  // 自动保存防抖（在 handleSave 定义之后，避免使用前定义）
-  const saveTimer = useRef<NodeJS.Timeout | null>(null);
   const scheduleSave = () => {
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
@@ -297,49 +313,6 @@ export default function NPCEdit({ role }: NPCEditProps) {
     setNewAbilityValue(0);
     setShowAbilityPopup(false);
   };
-
-  // 当 ruleAbility 或 ability 变化时执行一次迁移（仅当存在旧缩写且中文键缺失时）
-  useEffect(() => {
-    let changed = false;
-    const next = { ...ability } as any;
-    if (ruleAbility?.data?.basicDefault) {
-      Object.entries(ruleAbility.data.basicDefault).forEach(([abbr, cn]) => {
-        if (next[abbr] !== undefined) {
-          if (next[cn] === undefined) {
-            next[cn] = next[abbr];
-          }
-          delete next[abbr];
-          changed = true;
-        }
-      });
-    }
-    let t: any;
-    if (changed) {
-      t = setTimeout(() => {
-        setAbility(next);
-        scheduleSave();
-      }, 0);
-    }
-    return () => {
-      if (t) {
-        clearTimeout(t);
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ruleAbility?.data?.basicDefault]);
-
-  // 获取角色所有头像
-  useQuery({
-    queryKey: ["roleAvatar", role.id, localRole.avatarIds],
-    queryFn: async () => {
-      const res = localRole.avatarIds.map(async (avatarId: number) => {
-        const res = await tuanchat.avatarController.getRoleAvatar(avatarId);
-        return res.data;
-      });
-      setRoleAvatars(await Promise.all(res));
-      return null;
-    },
-  });
 
   // 处理弹窗相关事宜
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -516,8 +489,8 @@ export default function NPCEdit({ role }: NPCEditProps) {
               <h3 className="font-semibold mb-4">渲染结果预览</h3>
               <SpriteRenderStudio
                 characterName={role.name || "未命名角色"}
-                roleAvatars={roleAvatars as any}
-                initialAvatarId={localRole.avatarId}
+                roleAvatars={enrichedRoleAvatars as any}
+                initialAvatarId={localRole.avatarId || localRole.avartarIds?.[0]}
                 className="w-full p-3 gap-4 flex mb-2"
               />
             </div>
