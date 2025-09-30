@@ -3,6 +3,7 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
 import { useGetRoomItemsQuery, useGetRoomLocationsQuery } from "api/hooks/spaceModuleHooks";
 import { use, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import DisplayOfItemDetail from "../displayOfItemsDetail";
 import DisplayOfLocationDetail from "../displayOfLocationDetail";
 import { RoomContext } from "../roomContext";
@@ -30,6 +31,13 @@ export default function ClueList({ onSend }: { onSend: (clue: ClueMessage) => vo
 
   const [selectedItemId, setSelectedItemId] = useState<number>(-1);
   const [selectedLocationId, setSelectedLocationId] = useState<number>(-1);
+
+  const handleSend = (clue: ClueMessage) => {
+    onSend(clue);
+    setSelectedItemId(-1);
+    setSelectedLocationId(-1);
+    toast("发送成功");
+  };
 
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const toggleSection = (sectionId: string) => {
@@ -229,7 +237,7 @@ export default function ClueList({ onSend }: { onSend: (clue: ClueMessage) => vo
         hiddenScrollbar={true}
       >
         {selectedItemId && (
-          <DisplayOfItemDetail itemId={selectedItemId} onSend={onSend} />
+          <DisplayOfItemDetail itemId={selectedItemId} onSend={handleSend} />
         )}
       </PopWindow>
       {/* 地点详情窗口 */}
@@ -239,7 +247,7 @@ export default function ClueList({ onSend }: { onSend: (clue: ClueMessage) => vo
         hiddenScrollbar={true}
       >
         {selectedLocationId && (
-          <DisplayOfLocationDetail locationId={selectedLocationId} />
+          <DisplayOfLocationDetail locationId={selectedLocationId} onSend={handleSend} />
         )}
       </PopWindow>
     </div>
