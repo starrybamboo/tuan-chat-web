@@ -88,26 +88,21 @@ export default function FunctionButtons() {
       </div>
 
       <PopWindow isOpen={isCommitOpen} onClose={() => setIsCommitOpen(false)}>
-        <div className="space-y-4">
-          <div className="text-xl font-bold">是否确认提交？</div>
-          <div>
-            <label className="block mb-2 text-sm font-medium text-gray-700">提交说明：</label>
-            <input
-              type="text"
-              className="input input-bordered w-full"
-              value={message}
-              onChange={e => setMessage(e.target.value)}
-              placeholder="请输入提交说明"
-            />
+        <div className="p-4 max-w-sm flex flex-col min-h-[24vh]">
+          <h3 className="text-lg font-bold mb-4 text-center">是否确认提交？</h3>
+          <div className="flex-1 flex items-center justify-center mb-4">
+            <div className="w-full">
+              <label className="block mb-2 text-sm font-medium text-base-content/70 text-center">提交说明：</label>
+              <input
+                type="text"
+                className="input input-bordered w-full"
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                placeholder="请输入提交说明"
+              />
+            </div>
           </div>
-          <div className="flex justify-end space-x-2">
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleCommit}
-            >
-              确认提交
-            </button>
+          <div className="flex justify-end gap-2">
             <button
               type="button"
               className="btn btn-ghost"
@@ -115,16 +110,25 @@ export default function FunctionButtons() {
             >
               取消
             </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleCommit}
+            >
+              确认提交
+            </button>
           </div>
         </div>
       </PopWindow>
 
       <PopWindow isOpen={isUnsavedWarningOpen} onClose={() => setIsUnsavedWarningOpen(false)}>
-        <div className="p-4 max-w-sm">
-          <h3 className="text-lg font-bold mb-2">未保存的修改</h3>
-          <p className="mb-4 text-sm text-base-content/70">
-            检测到有未保存的修改，请先保存后再应用。
-          </p>
+        <div className="p-4 max-w-sm flex flex-col min-h-[24vh]">
+          <h3 className="text-lg font-bold mb-4 text-center">未保存的修改</h3>
+          <div className="flex-1 flex items-center justify-center mb-4">
+            <p className="text-sm text-base-content/70 text-center">
+              检测到有未保存的修改，请先保存后再应用。
+            </p>
+          </div>
           <div className="flex justify-end gap-2">
             <button
               type="button"
