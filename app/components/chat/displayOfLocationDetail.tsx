@@ -1,3 +1,4 @@
+import type { ClueMessage } from "api/models/ClueMessage";
 import { useLocationDetailQuery } from "api/hooks/moduleQueryHooks";
 
 interface EntityInfo {
@@ -12,7 +13,7 @@ interface StageEntityResponse {
   entityInfo?: EntityInfo;
 }
 
-function DisplayOfLocationDetail({ locationId }: { locationId: number }) {
+function DisplayOfLocationDetail({ locationId, onSend }: { locationId: number; onSend: (clue: ClueMessage) => void }) {
   const { data, isLoading, isError } = useLocationDetailQuery(locationId);
 
   const location = (data ?? [])[0] as StageEntityResponse | undefined;
@@ -28,6 +29,12 @@ function DisplayOfLocationDetail({ locationId }: { locationId: number }) {
 
   const { name } = location;
   const { description, image, tip } = entityInfo;
+
+  const clueMessage: ClueMessage = {
+    img: image ?? "",
+    name: name ?? "",
+    description: description ?? "",
+  };
 
   return (
     <div className="max-w-md w-full mx-auto mt-6 bg-neutral-50 dark:bg-neutral-800 rounded-xl shadow-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
@@ -49,10 +56,17 @@ function DisplayOfLocationDetail({ locationId }: { locationId: number }) {
             )}
       </div>
 
-      <div className="p-5 border-b border-neutral-200 dark:border-neutral-700">
-        <h2 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100 text-center">
+      <div className="p-5 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100">
           {name ?? "未命名地点"}
         </h2>
+        <button
+          type="button"
+          className="btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg rounded-md transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          onClick={() => onSend(clueMessage)}
+        >
+          公布
+        </button>
       </div>
 
       <div className="p-5 space-y-6">
