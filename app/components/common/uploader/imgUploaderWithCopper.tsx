@@ -7,6 +7,7 @@ import { PopWindow } from "@/components/common/popWindow";
 
 import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
 import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
+import { getCroppedImageFile } from "@/utils/CropperFunctions";
 
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useEffect, useRef, useState } from "react";
@@ -230,41 +231,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
     if (!image || !previewCanvas || !completedCrop) {
       throw new Error("Crop canvas does not exist");
     }
-
-    // This will size relative to the uploaded image
-    // size. If you want to size according to what they
-    // are looking at on screen, remove scaleX + scaleY
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-
-    const offscreen = new OffscreenCanvas(
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
-    );
-    const ctx = offscreen.getContext("2d");
-    if (!ctx) {
-      throw new Error("No 2d context");
-    }
-
-    ctx.drawImage(
-      previewCanvas,
-      0,
-      0,
-      previewCanvas.width,
-      previewCanvas.height,
-      0,
-      0,
-      offscreen.width,
-      offscreen.height,
-    );
-    // 可以用 { type: "image/jpeg", quality: <0 to 1> } 来压缩
-    const blob = await offscreen.convertToBlob({
-      type: "image/png",
-    });
-    return new File([blob], `${fileName}-coppered`, {
-      type: "image/png",
-      lastModified: Date.now(),
-    });
+    return await getCroppedImageFile(image, previewCanvas, completedCrop, `${fileName}-coppered`);
   }
 
   async function handleDownload() {

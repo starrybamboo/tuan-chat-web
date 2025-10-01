@@ -165,7 +165,7 @@ export default function PerformanceEditor({
                   <div className="card bg-base-100 shadow-sm p-2 h-full">
                     <div className="divider">{key}</div>
                     <div className="text-base-content mt-0.5 flex justify-center p-2">
-                      <div className="text-left">
+                      <div className="text-left break-all">
                         {fields[key] || <span className="text-base-content/50">未设置</span>}
                       </div>
                     </div>
