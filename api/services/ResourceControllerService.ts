@@ -3,12 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
+import type { ApiResultCollectionList } from '../models/ApiResultCollectionList';
 import type { ApiResultPageBaseRespCollectionList } from '../models/ApiResultPageBaseRespCollectionList';
 import type { ApiResultPageBaseRespResourceResponse } from '../models/ApiResultPageBaseRespResourceResponse';
 import type { ApiResultResourceResponse } from '../models/ApiResultResourceResponse';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { CollectionResourcePageRequest } from '../models/CollectionResourcePageRequest';
 import type { ResourceBatchAddToCollectionRequest } from '../models/ResourceBatchAddToCollectionRequest';
+import type { ResourceCollectionCreateRequest } from '../models/ResourceCollectionCreateRequest';
 import type { ResourcePageRequest } from '../models/ResourcePageRequest';
 import type { ResourceUpdateRequest } from '../models/ResourceUpdateRequest';
 import type { ResourceUploadRequest } from '../models/ResourceUploadRequest';
@@ -160,6 +162,28 @@ export class ResourceControllerService {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/resource/collections/public/page',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 创建资源收藏集
+     * @param requestBody
+     * @returns ApiResultCollectionList OK
+     * @throws ApiError
+     */
+    public createResourceCollection(
+        requestBody: ResourceCollectionCreateRequest,
+    ): CancelablePromise<ApiResultCollectionList> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/resource/collection',
             body: requestBody,
             mediaType: 'application/json',
             errors: {
