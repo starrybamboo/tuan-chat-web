@@ -7,14 +7,15 @@
 .ql-wrapper .ql-container {
   min-height: inherit;
   border: none; /* 使用外层边框，避免双线 */
-  font-size: 0.833333vw; /* 14px */
+  font-size: 0.952381vw; /* 16px (原 14px) */
 }
 
 .ql-wrapper .ql-editor {
   min-height: inherit; /* 关键：编辑区随容器伸展 */
   /* 小方块已移动到编辑区外，此处恢复对称内边距，避免影响文字对齐 */
-  padding: 0.714286vw 0.833333vw; /* 12px 14px */
+  padding: 1.190476vw 1.428571vw; /* 20px 24px (原 12px 14px) */
   line-height: 1.6;
+  font-size: 0.952381vw; /* 16px (原 14px) */
 }
 
 /* 优化占位符颜色对比 */

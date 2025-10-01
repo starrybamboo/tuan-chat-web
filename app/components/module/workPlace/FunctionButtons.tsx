@@ -13,9 +13,27 @@ export default function FunctionButtons() {
   const { mutate: updateModule } = useUpdateModuleMutation();
   const [isCommitOpen, setIsCommitOpen] = useState(false);
   const [isDeclareOpen, setIsDeclareOpen] = useState(false);
+  const [isUnsavedWarningOpen, setIsUnsavedWarningOpen] = useState(false);
   const [message, setMessage] = useState("");
 
   const moduleInfo = useModuleIdQuery(moduleId as number);
+
+  // 检查是否有未保存的修改（这里需要根据实际情况实现）
+  const hasUnsavedChanges = () => {
+    // TODO: 这里应该检查实际的未保存状态
+    // 可以从 context 或其他状态管理中获取
+    // 暂时返回 false，需要根据实际情况调整
+    return false;
+  };
+
+  const handleCommitClick = () => {
+    if (hasUnsavedChanges()) {
+      setIsUnsavedWarningOpen(true);
+    }
+    else {
+      setIsCommitOpen(true);
+    }
+  };
 
   const handleCommit = () => {
     if (message.trim() === "") {
@@ -50,11 +68,11 @@ export default function FunctionButtons() {
         <div className="flex-1">
           <button
             type="button"
-            onClick={() => setIsCommitOpen(true)}
+            onClick={handleCommitClick}
             className="cursor-pointer h-10 w-full px-3 gap-2 rounded-lg flex items-center justify-center bg-info/80 text-info-content hover:bg-info/70 transition-colors"
           >
             <ChevronSmallTripleUp className="w-4 h-4" />
-            应用
+            提交
           </button>
         </div>
         <div className="flex-1">
@@ -100,14 +118,38 @@ export default function FunctionButtons() {
           </div>
         </div>
       </PopWindow>
-      <PopWindow isOpen={isDeclareOpen} onClose={() => setIsDeclareOpen(false)}>
+
+      <PopWindow isOpen={isUnsavedWarningOpen} onClose={() => setIsUnsavedWarningOpen(false)}>
         <div className="p-4 max-w-sm">
-          <h3 className="text-lg font-bold mb-2">确认发布</h3>
+          <h3 className="text-lg font-bold mb-2">未保存的修改</h3>
           <p className="mb-4 text-sm text-base-content/70">
-            是否发布该模组：
-            <span className="font-semibold">{moduleInfo.data?.data?.moduleName || "未命名模组"}</span>
-            ？
+            检测到有未保存的修改，请先保存后再应用。
           </p>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setIsUnsavedWarningOpen(false)}
+            >
+              知道了
+            </button>
+          </div>
+        </div>
+      </PopWindow>
+
+      <PopWindow isOpen={isDeclareOpen} onClose={() => setIsDeclareOpen(false)}>
+        <div className="p-4 max-w-sm flex flex-col min-h-[24vh]">
+          <h3 className="text-lg font-bold mb-4 text-center">确认发布</h3>
+          <div className="flex-1 flex items-center justify-center mb-4">
+            <p className="text-sm text-base-content/70 text-center">
+              <span className="block mb-2">请先确认保存的内容是否提交</span>
+              <span className="block">
+                再确认是否发布该模组：
+                <span className="font-semibold">{moduleInfo.data?.data?.moduleName || "未命名模组"}</span>
+                ？
+              </span>
+            </p>
+          </div>
           <div className="flex justify-end gap-2">
             <button type="button" className="btn btn-ghost" onClick={() => setIsDeclareOpen(false)}>取消</button>
             <button
