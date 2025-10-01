@@ -76,6 +76,17 @@ interface ChatInputAreaProps {
 function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.RefObject<ChatInputAreaHandle | null> }) {
   const internalTextareaRef = useRef<HTMLDivElement>(null);
 
+  // 🔧 修复无限循环：使用 ref 保存 props.onInputSync，避免依赖变化导致重新创建回调
+  const onInputSyncRef = useRef(props.onInputSync);
+
+  // 保持 ref 始终指向最新的 callback
+  React.useEffect(() => {
+    onInputSyncRef.current = props.onInputSync;
+  }, [props.onInputSync]);
+
+  // ⚡ 性能优化：添加防抖定时器
+  const inputDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   /**
    * [内部] 从 DOM 提取 @提及 和纯文本
    */
@@ -201,11 +212,22 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
 
   /**
    * [事件] 处理输入。这是连接 DOM 和 React 状态的核心桥梁。
+   * 🔧 修复无限循环：使用 ref 调用 onInputSync，避免 props 变化导致依赖循环
+   * ⚡ 性能优化：添加防抖，减少大量输入时的计算频率
    */
   const handleInputInternal = () => {
-    // 解析内容并将纯文本和提及列表发送给父组件
-    const { textWithoutMentions, mentionedRoles } = extractMentionsAndTextInternal();
-    props.onInputSync(getPlainText(), textWithoutMentions, mentionedRoles);
+    // ⚡ 清除之前的防抖计时器
+    if (inputDebounceTimerRef.current) {
+      clearTimeout(inputDebounceTimerRef.current);
+    }
+
+    // ⚡ 50ms 防抖：快速输入时只处理最后一次，减少计算次数
+    inputDebounceTimerRef.current = setTimeout(() => {
+      // 解析内容并将纯文本和提及列表发送给父组件
+      const { textWithoutMentions, mentionedRoles } = extractMentionsAndTextInternal();
+      // 🔧 使用 ref 而不是直接使用 props，避免依赖变化导致无限循环
+      onInputSyncRef.current(getPlainText(), textWithoutMentions, mentionedRoles);
+    }, 50);
 
     // 在某些情况下（如输入法结束），onCompositionEnd 可能会在 onInput 之前触发
     // 但父组件的 isComposingRef 此时可能仍然是 true。
