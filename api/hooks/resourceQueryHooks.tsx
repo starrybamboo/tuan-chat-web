@@ -24,7 +24,9 @@ export function useUpdateResourceMutation() {
 /**
  * 获取当前用户的资源（按类型）
  */
-export function useGetUserResourcesByTypeQuery(request: ResourcePageRequest) {
+export function useGetUserResourcesByTypeQuery(request: ResourcePageRequest, p0: {
+    enabled: boolean;
+}) {
     return useQuery({
         queryKey: ["userResources", request],
         queryFn: () => tuanchat.resourceController.getUserResourcesByType(request),
@@ -100,7 +102,9 @@ export function useDeleteResourceMutation() {
 /**
  * 获取公开资源（按类型）
  */
-export function useGetPublicResourcesByTypeQuery(request: ResourcePageRequest) {
+export function useGetPublicResourcesByTypeQuery(request: ResourcePageRequest, p0: {
+    enabled: boolean;
+}) {
     return useQuery({
         queryKey: ["publicResources", request],
         queryFn: () => tuanchat.resourceController.getPublicResourcesByType(request),
@@ -111,7 +115,9 @@ export function useGetPublicResourcesByTypeQuery(request: ResourcePageRequest) {
 /**
  * 获取当前用户的资源集合（按类型）
  */
-export function useGetUserResourceCollectionsByTypeQuery(request: ResourcePageRequest) {
+export function useGetUserResourceCollectionsByTypeQuery(request: ResourcePageRequest, p0: {
+    enabled: boolean;
+}) {
     return useQuery({
         queryKey: ["userResourceCollections", request],
         queryFn: () => tuanchat.resourceController.getUserResourceCollectionsByType(request),
@@ -122,7 +128,9 @@ export function useGetUserResourceCollectionsByTypeQuery(request: ResourcePageRe
 /**
  * 获取公开资源集合（按类型）
  */
-export function useGetPublicResourceCollectionsByTypeQuery(request: ResourcePageRequest) {
+export function useGetPublicResourceCollectionsByTypeQuery(request: ResourcePageRequest, p0: {
+    enabled: boolean;
+}) {
     return useQuery({
         queryKey: ["publicResourceCollections", request],
         queryFn: () => tuanchat.resourceController.getPublicResourceCollectionsByType(request),
