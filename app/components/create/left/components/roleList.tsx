@@ -73,7 +73,7 @@ function RoleListItem(
         /> */}
         <RoleAvatar avatarId={role.entityInfo!.avatarId || (role.entityInfo!.avatarIds && role.entityInfo!.avatarIds.length > 0 ? role.entityInfo!.avatarIds[0] : 0)} width={10} isRounded={true} stopPopWindow={true} />
 
-        <div className="flex flex-col min-w-0">
+        <div className="flex flex-col min-w-0 truncate">
           {isRenaming
             ? (
                 <input

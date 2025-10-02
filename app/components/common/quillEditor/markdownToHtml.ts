@@ -7,45 +7,34 @@ export function rawMarkdownToHtml(md: string): string {
     console.warn("[MD->HTML][rawMarkdownToHtml] input.length", md.length);
   }
   catch { /* ignore */ }
-  // 统一换行
   const norm = md.replace(/\r\n?/g, "\n");
-  const lines = norm.split(/\n/);
+  let lines = norm.split(/\n/);
+  lines = lines.map(l => l === "\\n" ? "__BLANK_LINE__" : l);
   const blocks: string[] = [];
   const mentionPattern = /@(人物|地点|物品)(\S+)/g;
-
-  // 行内格式：先在块级拼装后统一处理（避免被块解析拆散）
   const applyInline = (text: string): string => {
     if (!text)
       return "";
-    // 先处理 mention
     let out = text.replace(mentionPattern, (_m, cat, name) => {
       const safeName = String(name || "").replace(/[<>]/g, "");
       const safeCat = String(cat || "").replace(/[<>]/g, "");
-      return `<span class=\"ql-mention-span\" data-label=\"${safeName}\" data-category=\"${safeCat}\">${safeName}</span>`;
+      return `<span class="ql-mention-span" data-label="${safeName}" data-category="${safeCat}">${safeName}</span>`;
     });
-    // 加粗 **text** 或 __text__
     out = out.replace(/(\*\*|__)([^\n]+?)\1/g, (_m, _b, inner) => `<strong>${inner}</strong>`);
-    // 斜体 *text* 或 _text_ （排除已被加粗处理的 ** 形式）
-    // 斜体：简单版本，避免复杂回溯；不匹配 ** 已处理过的场景（加粗在前）
     out = out.replace(/(^|\s)\*([^\n*]+)\*(?=\s|$)/g, (m, pre, inner) => `${pre}<em>${inner}</em>`);
     out = out.replace(/(^|\s)_([^\n_]+)_(?=\s|$)/g, (m, pre, inner) => `${pre}<em>${inner}</em>`);
-    // 下划线：自定义语法 ++text++ （Markdown 标准无下划线，这里自定义）
     out = out.replace(/\+\+([^\n]+?)\+\+/g, (_m, inner) => `<u>${inner}</u>`);
-    // 删除线 ~~text~~
     out = out.replace(/~~([^\n]+?)~~/g, (_m, inner) => `<s>${inner}</s>`);
     return out;
   };
-
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
-    // 空行 -> 段落分隔
-    if (!line.trim()) {
-      blocks.push("");
+    if (line === "__BLANK_LINE__" || !line.trim()) {
+      blocks.push("<p><br></p>");
       i++;
       continue;
     }
-    // 标题 # / ## / ###
     const headingMatch = /^(#{1,3})[ \t]([^\n]+)$/.exec(line);
     if (headingMatch) {
       const level = headingMatch[1].length;
@@ -54,16 +43,13 @@ export function rawMarkdownToHtml(md: string): string {
       i++;
       continue;
     }
-    // 代码块
     if (line.startsWith("```")) {
       const trimmed = line.trim();
-      // 占位符
       if (trimmed === "``````") {
         blocks.push("<pre><code></code></pre>");
         i++;
         continue;
       }
-      // 单行 fenced
       const single = /^```([^`].*?)```$/.exec(trimmed);
       if (single) {
         const inner = single[1];
@@ -72,15 +58,19 @@ export function rawMarkdownToHtml(md: string): string {
         i++;
         continue;
       }
-      // 多行 fenced: 收集后续直到结束 ```
       i++;
       const codeLines: string[] = [];
       while (i < lines.length && !lines[i].startsWith("```")) {
-        codeLines.push(lines[i]);
+        if (lines[i] === "__BLANK_LINE__") {
+          codeLines.push("");
+        }
+        else {
+          codeLines.push(lines[i]);
+        }
         i++;
       }
       if (i < lines.length && lines[i].startsWith("```")) {
-        i++; // consume closing
+        i++;
       }
       const joined = codeLines.join("\n");
       if (joined.trim().length === 0) {
@@ -92,7 +82,6 @@ export function rawMarkdownToHtml(md: string): string {
       }
       continue;
     }
-    // 有序列表
     if (/^\d+\.\s+/.test(line)) {
       const items: string[] = [];
       while (i < lines.length && /^\d+\.\s+/.test(lines[i])) {
@@ -103,7 +92,6 @@ export function rawMarkdownToHtml(md: string): string {
       blocks.push(`<ol>${items.join("")}</ol>`);
       continue;
     }
-    // 无序列表
     if (/^[\-*+]\s+/.test(line)) {
       const items: string[] = [];
       while (i < lines.length && /^[\-*+]\s+/.test(lines[i])) {
@@ -114,18 +102,14 @@ export function rawMarkdownToHtml(md: string): string {
       blocks.push(`<ul>${items.join("")}</ul>`);
       continue;
     }
-    // 段落：直到空行
     const para: string[] = [];
     while (i < lines.length && lines[i].trim()) {
       para.push(lines[i]);
       i++;
     }
-
     if (para.length > 0) {
-      let combined = para.join(" "); // 在此简化实现中，将多行合并为空格
+      let combined = para.join(" ");
       let alignAttr = "";
-
-      // 检测并移除对齐后缀
       if (combined.endsWith("c")) {
         alignAttr = " align=\"center\"";
         combined = combined.slice(0, -1).trimEnd();
@@ -138,13 +122,10 @@ export function rawMarkdownToHtml(md: string): string {
         alignAttr = " align=\"justify\"";
         combined = combined.slice(0, -1).trimEnd();
       }
-
       blocks.push(`<p${alignAttr}>${applyInline(combined)}</p>`);
     }
   }
-
-  // 把空块压成段落分隔
-  const html = blocks.map(b => b === "" ? "" : b).join("");
+  const html = blocks.join("");
   try {
     console.warn("[MD->HTML][rawMarkdownToHtml] output.length", html.length);
   }
@@ -160,7 +141,6 @@ export function markdownToHtmlWithEntities(md: string, entitiesMap: Record<strin
     console.warn("[MD->HTML][markdownToHtmlWithEntities] input.length", md.length);
   }
   catch { /* ignore */ }
-  // 先用 raw 转，再扫描 span 校验
   const preliminary = rawMarkdownToHtml(md);
   if (!preliminary)
     return "";

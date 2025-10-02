@@ -27,6 +27,21 @@ interface NPCEditProps {
   role: StageEntityResponse;
 }
 
+// 通用临时 ID 生成（兼容缺少 crypto.randomUUID 的环境）
+function generateTempId(): string {
+  try {
+    const g: any = globalThis as any;
+    if (g?.crypto?.randomUUID) {
+      return g.crypto.randomUUID();
+    }
+  }
+  catch {
+    // ignore and fallback
+  }
+  // 简易回退：时间戳 + 随机片段
+  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 // 内联的属性编辑模块 (简化版 ExpansionModule) - 独立定义避免每次渲染重建
 interface InlineExpansionModuleProps {
   ability: Record<string, number>;
@@ -929,7 +944,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
               className="btn btn-accent"
               onClick={() => {
                 setShowBatchCreateAbilityModal(true);
-                setBatchAbilities(Array.from({ length: 1 }).map(() => ({ id: crypto.randomUUID(), name: "", value: 0 })));
+                setBatchAbilities(Array.from({ length: 1 }).map(() => ({ id: generateTempId(), name: "", value: 0 })));
               }}
             >
               创建新能力
@@ -1012,7 +1027,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
                 className="btn btn-accent"
                 onClick={() => {
                   // 追加一行
-                  setBatchAbilities(prev => [...prev, { id: crypto.randomUUID(), name: "", value: 0 }]);
+                  setBatchAbilities(prev => [...prev, { id: generateTempId(), name: "", value: 0 }]);
                 }}
               >
                 + 添加一行
