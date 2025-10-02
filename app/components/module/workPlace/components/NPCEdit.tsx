@@ -82,6 +82,10 @@ function InlineExpansionModule({ ability, setAbility, scheduleSave, basicDefault
                       <input
                         type="text"
                         value={ability[label] ?? ""}
+                        onChange={(e) => {
+                          setAbility((prev: any) => ({ ...prev, [label]: Number(e.target.value) }));
+                          scheduleSave();
+                        }}
                         className="input input-bordered input-sm w-20"
                       />
                     </div>
@@ -198,8 +202,11 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const { data: ruleAbility } = useGetRuleDetailQuery(moduleInfo.data?.data?.ruleId as number);
   const [showAbilityPopup, setShowAbilityPopup] = useState(false);
   const [selectedAbilities, setSelectedAbilities] = useState<Record<string, number>>({});
-  const [newAbilityName, setNewAbilityName] = useState("");
-  const [newAbilityValue, setNewAbilityValue] = useState(0);
+  // 批量创建能力流程相关状态
+  const [showCreateAbilityCountModal, setShowCreateAbilityCountModal] = useState(false); // 第一步：输入数量
+  const [showBatchCreateAbilityModal, setShowBatchCreateAbilityModal] = useState(false); // 第二步：填写能力
+  const [batchAbilityCount, setBatchAbilityCount] = useState<number>(1);
+  const [batchAbilities, setBatchAbilities] = useState<Array<{ id: string; name: string; value: number }>>([]);
 
   // 规则能力搜索框
   const [abilitySearchQuery, setAbilitySearchQuery] = useState("");
@@ -297,21 +304,66 @@ export default function NPCEdit({ role }: NPCEditProps) {
 
   // 处理添加能力
   const handleAddAbilities = () => {
+    // 仅添加已勾选的能力（来自规则的预设能力）
     const updatedAbility = { ...ability };
     Object.entries(selectedAbilities).forEach(([key, value]) => {
       if (key && value !== undefined) {
         updatedAbility[key] = value;
       }
     });
-    if (newAbilityName) {
-      updatedAbility[newAbilityName] = newAbilityValue;
-    }
     setAbility(updatedAbility);
     updateRole({ id: role.id!, entityType: 2, entityInfo: { ...localRole, ability: updatedAbility }, name: role.name });
     setSelectedAbilities({});
-    setNewAbilityName("");
-    setNewAbilityValue(0);
     setShowAbilityPopup(false);
+  };
+
+  // 第一步：确认数量 -> 生成批量输入结构
+  const handleConfirmAbilityCount = () => {
+    const count = Math.min(Math.max(1, batchAbilityCount || 1), 50); // 限制 1-50
+    setBatchAbilityCount(count);
+    setBatchAbilities(Array.from({ length: count }).map(() => ({ id: crypto.randomUUID(), name: "", value: 0 })));
+    setShowCreateAbilityCountModal(false);
+    setShowBatchCreateAbilityModal(true);
+  };
+
+  // 第二步：提交批量创建
+  const handleConfirmBatchCreateAbilities = () => {
+    const updatedAbility = { ...ability } as Record<string, number>;
+    const duplicateNames: string[] = [];
+    const invalidNames: string[] = [];
+    batchAbilities.forEach(({ name, value }, idx) => {
+      const trimmed = (name || "").trim();
+      if (!trimmed) {
+        invalidNames.push(`第${idx + 1}条`);
+        return;
+      }
+      if (Object.prototype.hasOwnProperty.call(updatedAbility, trimmed)) {
+        duplicateNames.push(trimmed);
+        return;
+      }
+      updatedAbility[trimmed] = Number.isFinite(value) ? value : 0;
+    });
+    setAbility(updatedAbility);
+    updateRole({ id: role.id!, entityType: 2, entityInfo: { ...localRole, ability: updatedAbility }, name: role.name });
+    setShowBatchCreateAbilityModal(false);
+    setShowAbilityPopup(false);
+    toast.success("批量创建能力完成");
+    if (duplicateNames.length) {
+      toast.custom(() => (
+        <div className="px-3 py-2 bg-base-200 rounded text-sm">
+          以下能力已存在，已跳过：
+          {duplicateNames.join("、")}
+        </div>
+      ), { duration: 4000 });
+    }
+    if (invalidNames.length) {
+      toast.custom(() => (
+        <div className="px-3 py-2 bg-base-200 rounded text-sm">
+          以下条目标识为空，已跳过：
+          {invalidNames.join("、")}
+        </div>
+      ), { duration: 4000 });
+    }
   };
 
   // 处理弹窗相关事宜
@@ -678,12 +730,16 @@ export default function NPCEdit({ role }: NPCEditProps) {
               ? <div className="text-center py-4 text-base-content/50">未找到匹配的能力</div>
               : null;
           })()}
-          <div className="divider">或创建新能力</div>
-          <div className="flex gap-2 items-center">
-            <input type="text" value={newAbilityName} onChange={e => setNewAbilityName(e.target.value)} placeholder="能力名称" className="input input-bordered flex-1" />
-            <input type="number" value={newAbilityValue} onChange={e => setNewAbilityValue(Number(e.target.value))} placeholder="数值" className="input input-bordered w-20" />
-          </div>
           <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="btn btn-accent"
+              onClick={() => {
+                setShowCreateAbilityCountModal(true);
+              }}
+            >
+              批量创建新能力
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -701,6 +757,120 @@ export default function NPCEdit({ role }: NPCEditProps) {
             >
               确认添加
             </button>
+          </div>
+        </div>
+      </PopWindow>
+
+      {/* 创建能力：步骤一 输入数量 */}
+      <PopWindow
+        isOpen={showCreateAbilityCountModal}
+        onClose={() => setShowCreateAbilityCountModal(false)}
+        fullScreen={false}
+      >
+        <div className="space-y-4 w-[320px]">
+          <h3 className="font-bold text-lg">批量创建能力</h3>
+          <label className="form-control w-full">
+            <div className="label pb-1">
+              <span className="label-text">需要创建的能力数量 (1-50)</span>
+            </div>
+            <input
+              type="number"
+              className="input input-bordered w-full"
+              min={1}
+              max={50}
+              value={batchAbilityCount}
+              onChange={e => setBatchAbilityCount(Number(e.target.value))}
+            />
+          </label>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setShowCreateAbilityCountModal(false)}
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleConfirmAbilityCount}
+            >
+              下一步
+            </button>
+          </div>
+        </div>
+      </PopWindow>
+
+      {/* 创建能力：步骤二 批量填写 */}
+      <PopWindow
+        isOpen={showBatchCreateAbilityModal}
+        onClose={() => setShowBatchCreateAbilityModal(false)}
+        fullScreen={false}
+      >
+        <div className="space-y-4 w-full max-w-[520px]">
+          <h3 className="font-bold text-lg">创建新能力</h3>
+          <div className="max-h-[360px] overflow-y-auto pr-1 space-y-3">
+            {batchAbilities.map((item, idx) => (
+              <div
+                key={item.id}
+                className="flex items-center gap-2"
+              >
+                <span className="badge badge-neutral">{idx + 1}</span>
+                <input
+                  type="text"
+                  placeholder={`名称 ${idx + 1}`}
+                  className="input input-bordered flex-1"
+                  value={item.name}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setBatchAbilities(prev => prev.map((it, i) => (i === idx ? { ...it, name: v } : it)));
+                  }}
+                />
+                <input
+                  type="number"
+                  placeholder="数值"
+                  className="input input-bordered w-28"
+                  value={item.value}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setBatchAbilities(prev => prev.map((it, i) => (i === idx ? { ...it, value: v } : it)));
+                  }}
+                />
+              </div>
+            ))}
+            {batchAbilities.length === 0 && (
+              <div className="text-center text-sm opacity-60 py-6">未生成输入项</div>
+            )}
+          </div>
+          <div className="flex justify-between">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                setShowBatchCreateAbilityModal(false);
+              }}
+            >
+              取消
+            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn btn-accent"
+                onClick={() => {
+                  // 追加一行
+                  setBatchAbilities(prev => [...prev, { id: crypto.randomUUID(), name: "", value: 0 }]);
+                }}
+              >
+                + 添加一行
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleConfirmBatchCreateAbilities}
+              >
+                确认创建
+              </button>
+            </div>
           </div>
         </div>
       </PopWindow>

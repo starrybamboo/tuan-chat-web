@@ -27,6 +27,10 @@ export type Collection = {
      */
     comment?: string;
     /**
+     * 逻辑删除
+     */
+    isDeleted?: boolean;
+    /**
      * 创建时间
      */
     createTime?: string;

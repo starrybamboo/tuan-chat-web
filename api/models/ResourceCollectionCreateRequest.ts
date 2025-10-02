@@ -3,21 +3,13 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 收藏列表表
+ * 创建资源收藏列表请求
  */
-export type CollectionList = {
-    /**
-     * 列表ID
-     */
-    collectionListId?: number;
-    /**
-     * 创建者ID
-     */
-    userId?: number;
+export type ResourceCollectionCreateRequest = {
     /**
      * 列表名称
      */
-    collectionListName?: string;
+    collectionListName: string;
     /**
      * 列表描述
      */
@@ -27,10 +19,6 @@ export type CollectionList = {
      */
     isPublic?: boolean;
     /**
-     * 逻辑删除
-     */
-    isDeleted?: boolean;
-    /**
      * 资源列表类型
      */
     resourceListType?: string;
@@ -38,13 +26,5 @@ export type CollectionList = {
      * 列表封面图片
      */
     coverImageUrl?: string;
-    /**
-     * 创建时间
-     */
-    createTime?: string;
-    /**
-     * 更新时间
-     */
-    updateTime?: string;
 };
 

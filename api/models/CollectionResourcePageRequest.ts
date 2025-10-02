@@ -3,20 +3,20 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * 私聊消息分页查询请求
+ * 收藏集资源分页请求
  */
-export type MessageDirectPageRequest = {
+export type CollectionResourcePageRequest = {
     /**
-     * 游标（上次翻页的最后一条记录的标识）
+     * 页码
      */
-    cursor?: number;
+    pageNo?: number;
     /**
      * 每页大小
      */
     pageSize?: number;
     /**
-     * 对话用户ID
+     * 收藏集ID
      */
-    targetUserId: number;
+    collectionListId: number;
 };
 
