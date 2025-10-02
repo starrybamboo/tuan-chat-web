@@ -1,8 +1,8 @@
 import type { StageEntityResponse } from "api";
-import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
-import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { useModuleContext } from "../../workPlace/context/_moduleContext";
+import { ModuleItemEnum } from "../../workPlace/context/types";
 
 export function LocationListItem({
   location,
@@ -10,7 +10,6 @@ export function LocationListItem({
   isSelected,
   onClick,
   onDelete,
-  onRename,
   deleteMode,
 }: {
   location: StageEntityResponse;
@@ -18,41 +17,16 @@ export function LocationListItem({
   isSelected: boolean;
   onClick: () => void;
   onDelete?: () => void;
-  onRename?: (nextName: string) => void;
   deleteMode?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
-  const [isRenaming, setIsRenaming] = useState(false);
-  const [draftName, setDraftName] = useState(name);
-  const [showMenu, setShowMenu] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (isRenaming && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isRenaming]);
-
-  const commitRename = () => {
-    const next = draftName.trim();
-    setIsRenaming(false);
-    setShowMenu(false);
-    if (next && next !== name) {
-      onRename?.(next);
-    }
-  };
   return (
     <div
       className={`group relative w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""} ${
         isDragging ? "opacity-50 bg-blue-100" : ""
       }`}
       onClick={onClick}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setShowMenu(true);
-      }}
       draggable
       onDragStart={(e) => {
         setIsDragging(true);
@@ -76,54 +50,10 @@ export function LocationListItem({
           style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
         />
         <div className="flex flex-col min-w-0">
-          {isRenaming
-            ? (
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={draftName}
-                  onChange={e => setDraftName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      commitRename();
-                    }
-                    if (e.key === "Escape") {
-                      setIsRenaming(false);
-                      setShowMenu(false);
-                      setDraftName(name);
-                    }
-                  }}
-                  onBlur={commitRename}
-                  className="input input-bordered input-xs w-40"
-                />
-              )
-            : (
-                <p className="text-sm font-medium truncate">{name}</p>
-              )}
+          <p className="text-sm font-medium truncate">{name}</p>
           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{location.entityInfo?.description}</p>
         </div>
       </div>
-
-      {/* 右键菜单 */}
-      {showMenu && (
-        <div
-          className="absolute right-2 top-2 z-20 bg-base-100 shadow rounded border"
-          onClick={e => e.stopPropagation()}
-          onMouseLeave={() => setShowMenu(false)}
-        >
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs w-full"
-            onClick={() => {
-              setDraftName(name);
-              setIsRenaming(true);
-              setShowMenu(false);
-            }}
-          >
-            编辑
-          </button>
-        </div>
-      )}
 
       {/* 右侧按钮（删除确认） */}
       {onDelete && (
@@ -209,7 +139,7 @@ export function LocationListItem({
 }
 
 export function LocationList({ stageId, searchQuery: controlledQuery, deleteMode }: { stageId: number; searchQuery?: string; deleteMode?: boolean; showCreateButton?: boolean }) {
-  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem, updateModuleTabLabel, updateModuleTabContentName } = useModuleContext();
+  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem } = useModuleContext();
   const handleClick = (location: StageEntityResponse) => {
     const locationId = location.id!.toString();
     const locationName = location.name!;
@@ -234,8 +164,7 @@ export function LocationList({ stageId, searchQuery: controlledQuery, deleteMode
   const effectiveQuery = (controlledQuery ?? searchQuery).toLowerCase();
 
   // 根据搜索查询过滤列表，并按 id 升序稳定排序
-  const [renameMap, setRenameMap] = useState<Record<string, string>>({});
-  const filteredList = list?.filter(i => ((renameMap[i.id!.toString()] ?? i.name) || "").toLowerCase().includes(effectiveQuery));
+  const filteredList = list?.filter(i => ((i.name) || "").toLowerCase().includes(effectiveQuery));
   const sortedList = filteredList?.slice().sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
 
   const sceneList = data?.data?.filter(i => i!.entityType === 3);
@@ -275,30 +204,10 @@ export function LocationList({ stageId, searchQuery: controlledQuery, deleteMode
                 <LocationListItem
                   key={location.id!.toString()}
                   location={location}
-                  name={(renameMap[location.id!.toString()] ?? location.name) || "未命名"}
+                  name={location.name || "未命名"}
                   isSelected={currentSelectedTabId === location.id!.toString()}
                   onClick={() => handleClick(location)}
                   deleteMode={deleteMode}
-                  onRename={(nextName) => {
-                    const oldName = location.name!;
-                    setRenameMap(prev => ({ ...prev, [location.id!.toString()]: nextName }));
-                    updateModuleTabLabel(location.id!.toString(), nextName);
-                    updateModuleTabContentName(location.id!.toString(), nextName);
-                    // 更新地点名称
-                    updateScene(
-                      { id: location.id!, entityType: 4, entityInfo: location.entityInfo!, name: nextName },
-                      {
-                        onSuccess: () => {
-                          // 同步更新引用该地点的场景
-                          const newScenes = sceneList?.map((scene) => {
-                            const newLocations = scene.entityInfo?.locations.map((loc: string | undefined) => (loc === oldName ? nextName : loc));
-                            return { ...scene, entityInfo: { ...scene.entityInfo, locations: newLocations } };
-                          });
-                          newScenes?.forEach(scene => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
-                        },
-                      },
-                    );
-                  }}
                   onDelete={() => {
                     removeModuleTabItem(location.id!.toString());
                     deleteLocation({

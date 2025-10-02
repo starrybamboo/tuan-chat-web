@@ -1,8 +1,8 @@
 import type { StageEntityResponse } from "api";
-import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
-import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { useModuleContext } from "../../workPlace/context/_moduleContext";
+import { ModuleItemEnum } from "../../workPlace/context/types";
 
 function ItemListItem({
   item,
@@ -10,7 +10,6 @@ function ItemListItem({
   isSelected,
   onClick,
   onDelete,
-  onRename,
   deleteMode,
 }: {
   item: StageEntityResponse;
@@ -18,41 +17,16 @@ function ItemListItem({
   isSelected: boolean;
   onClick: () => void;
   onDelete?: () => void;
-  onRename?: (nextName: string) => void;
   deleteMode?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
-  const [isRenaming, setIsRenaming] = useState(false);
-  const [draftName, setDraftName] = useState(name);
-  const [showMenu, setShowMenu] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (isRenaming && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isRenaming]);
-
-  const commitRename = () => {
-    const next = draftName.trim();
-    setIsRenaming(false);
-    setShowMenu(false);
-    if (next && next !== name) {
-      onRename?.(next);
-    }
-  };
   return (
     <div
       className={`group relative w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""} ${
         isDragging ? "opacity-50 bg-blue-100" : ""
       }`}
       onClick={onClick}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setShowMenu(true);
-      }}
       draggable
       onDragStart={(e) => {
         setIsDragging(true);
@@ -76,54 +50,10 @@ function ItemListItem({
           style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
         />
         <div className="flex flex-col min-w-0">
-          {isRenaming
-            ? (
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={draftName}
-                  onChange={e => setDraftName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      commitRename();
-                    }
-                    if (e.key === "Escape") {
-                      setIsRenaming(false);
-                      setShowMenu(false);
-                      setDraftName(name);
-                    }
-                  }}
-                  onBlur={commitRename}
-                  className="input input-bordered input-xs w-40"
-                />
-              )
-            : (
-                <p className="text-sm font-medium truncate">{name}</p>
-              )}
+          <p className="text-sm font-medium truncate">{name}</p>
           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.entityInfo!.description}</p>
         </div>
       </div>
-
-      {/* 右键菜单 */}
-      {showMenu && (
-        <div
-          className="absolute right-2 top-2 z-20 bg-base-100 shadow rounded border"
-          onClick={e => e.stopPropagation()}
-          onMouseLeave={() => setShowMenu(false)}
-        >
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs w-full"
-            onClick={() => {
-              setDraftName(name);
-              setIsRenaming(true);
-              setShowMenu(false);
-            }}
-          >
-            编辑
-          </button>
-        </div>
-      )}
 
       {/* 右侧按钮 */}
       {onDelete && (
@@ -210,7 +140,7 @@ function ItemListItem({
 
 // 物品列表
 export default function ItemList({ stageId, searchQuery: controlledQuery, deleteMode }: { stageId: number; searchQuery?: string; deleteMode?: boolean; showCreateButton?: boolean }) {
-  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem, updateModuleTabLabel, updateModuleTabContentName } = useModuleContext();
+  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem } = useModuleContext();
   // const queryClient = useQueryClient();
 
   const handleClick = (item: StageEntityResponse) => {
@@ -228,7 +158,6 @@ export default function ItemList({ stageId, searchQuery: controlledQuery, delete
   // 创建物品并添加物品
   const { mutate: deleteItem } = useDeleteEntityMutation();
   const { mutate: updateScene } = useUpdateEntityMutation(stageId);
-  const { mutate: updateItem } = useUpdateEntityMutation(stageId);
 
   const list = data?.data?.filter(i => i.entityType === 1);
 
@@ -236,9 +165,7 @@ export default function ItemList({ stageId, searchQuery: controlledQuery, delete
   const [searchQuery, setSearchQuery] = useState("");
   const effectiveQuery = (controlledQuery ?? searchQuery).toLowerCase();
 
-  // 根据搜索查询过滤列表，并按 id 升序稳定排序
-  const [renameMap, setRenameMap] = useState<Record<string, string>>({});
-  const filteredList = list?.filter(i => ((renameMap[i.id!.toString()] ?? i.name) || "").toLowerCase().includes(effectiveQuery));
+  const filteredList = list?.filter(i => ((i.name || "").toLowerCase().includes(effectiveQuery)));
   const sortedList = filteredList?.slice().sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
 
   const sceneList = data?.data?.filter(i => i.entityType === 3);
@@ -276,30 +203,10 @@ export default function ItemList({ stageId, searchQuery: controlledQuery, delete
               <ItemListItem
                 key={item.id!.toString()}
                 item={item}
-                name={(renameMap[item.id!.toString()] ?? item.name) || "未命名"}
+                name={item.name || "未命名"}
                 isSelected={currentSelectedTabId === item.id!.toString()}
                 onClick={() => handleClick(item)}
                 deleteMode={deleteMode}
-                onRename={(nextName) => {
-                  const oldName = item.name!;
-                  setRenameMap(prev => ({ ...prev, [item.id!.toString()]: nextName }));
-                  updateModuleTabLabel(item.id!.toString(), nextName);
-                  updateModuleTabContentName(item.id!.toString(), nextName);
-                  // 更新物品名称
-                  updateItem(
-                    { id: item.id!, entityType: 1, entityInfo: item.entityInfo!, name: nextName },
-                    {
-                      onSuccess: () => {
-                        // 同步更新引用该物品的场景
-                        const newScenes = sceneList?.map((scene) => {
-                          const newItems = scene.entityInfo?.items.map((it: string | undefined) => (it === oldName ? nextName : it));
-                          return { ...scene, entityInfo: { ...scene.entityInfo, items: newItems } };
-                        });
-                        newScenes?.forEach(scene => updateScene({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
-                      },
-                    },
-                  );
-                }}
                 onDelete={() => {
                   removeModuleTabItem(item.id!.toString());
                   deleteItem({

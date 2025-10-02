@@ -1,8 +1,8 @@
 import type { StageEntityResponse } from "api";
-import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
-import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useAddEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
+import { useModuleContext } from "../../workPlace/context/_moduleContext";
+import { ModuleItemEnum } from "../../workPlace/context/types";
 import SceneList from "./SceneList";
 
 // 重构后的地图模块：挂载即打开地图标签，并包含剧情管理功能

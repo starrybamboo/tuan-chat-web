@@ -1,13 +1,13 @@
 /* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { Module } from "api";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+// import RuleSelect from "../../common/ruleSelect";
+import userContent from "@/components/module/detail/readmeDemo.md?raw";
 import { useUpdateModuleMutation } from "api/hooks/moduleAndStageQueryHooks";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import QuillEditor from "../../../common/quillEditor/quillEditor";
-// import RuleSelect from "../../common/ruleSelect";
-import userContent from "../../detail/readmeDemo.md?raw";
 import { useModuleContext } from "../context/_moduleContext";
 
 interface ModuleEditProps {
