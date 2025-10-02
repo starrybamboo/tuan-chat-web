@@ -467,8 +467,10 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
             <div className="flex-1 min-w-0 overflow-hidden p-2">
               <QuillEditor
                 id={VeditorIdForDescription}
-                placeholder={initialRef.current ? localScene.description : "玩家能看到的描述"}
+                placeholder={localScene.description || "玩家能看到的描述"}
                 onchange={(value) => {
+                  if (value === "")
+                    return;
                   setLocalScene(prev => ({ ...prev, description: value }));
                   saveTimer.current && clearTimeout(saveTimer.current);
                   saveTimer.current = setTimeout(handleSave, 8000);
@@ -484,11 +486,12 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                 id={VeditorId}
                 placeholder={localScene.tip || "对KP的提醒（对于剧情的书写）"}
                 onchange={(value) => {
-                  if (value !== entityInfo.tip) {
-                    setLocalScene(prev => ({ ...prev, tip: value }));
-                    saveTimer.current && clearTimeout(saveTimer.current);
-                    saveTimer.current = setTimeout(handleSave, 8000);
-                  }
+                  if (value === "")
+                    return;
+                  // 之前这里错误地写入了 description 导致切换 Tab 时 tip 覆盖 description
+                  setLocalScene(prev => ({ ...prev, tip: value }));
+                  saveTimer.current && clearTimeout(saveTimer.current);
+                  saveTimer.current = setTimeout(handleSave, 8000);
                 }}
               />
             </div>

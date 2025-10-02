@@ -264,6 +264,14 @@ export function htmlToMarkdown(html: string): string {
           lines.push(text);
           flushListContextIfNeeded(tag);
         }
+        else {
+          // 检测真正的空段落（例如 <p><br></p> 或 纯空 <p>），需要被保留为一个“空行”占位
+          // Quill 对多次回车会产生多个这样的段落；之前因为 trim() 直接忽略导致空行丢失
+          const rawHtml = node.innerHTML.replace(/\s+/g, "");
+          if (rawHtml === "" || rawHtml === "<br>" || /<br\/?>(?:<br\/?>)*/i.test(rawHtml)) {
+            lines.push("");
+          }
+        }
         return;
       }
       // 直接保留裸露在根级别的 <a> 或 <img> 节点（不包裹段落），作为独立一行
@@ -309,28 +317,12 @@ export function htmlToMarkdown(html: string): string {
         lines[i + 1] = "";
     }
 
-    // 合并多余的空行（>2 连续空行压缩为 1 个）
-    const compressed: string[] = [];
-    let prevEmpty = false;
-    for (const l of lines) {
-      const empty = l.trim().length === 0;
-      if (empty) {
-        if (!prevEmpty)
-          compressed.push("");
-        prevEmpty = true;
-      }
-      else {
-        compressed.push(l);
-        prevEmpty = false;
-      }
-    }
-    // 去掉首尾空行
-    while (compressed.length && compressed[0].trim() === "")
-      compressed.shift();
-    while (compressed.length && compressed[compressed.length - 1].trim() === "")
-      compressed.pop();
-
-    const result = compressed.join("\n\n");
+    // 不再压缩也不再裁剪首尾空行：首尾的空行同样由用户显式输入，需要被保留并编码。
+    const preserved = [...lines];
+    // 将纯空行编码为字面量 \\n ，以便后端存储后还能被还原。
+    const encoded = preserved.map(l => (l.trim() === "" ? "\\n" : l));
+    // 使用真实换行分隔行；只有本身为空行的行被替换成字面量 \\n 标记
+    const result = encoded.join("\n");
     // Fallback: 若原始 HTML 中存在 code-block 相关结构，但 result 中没有生成任何 ```，说明上面的结构识别失败（例如 DOM 结构差异）
     if (!/```/.test(result) && /ql-code-block|<pre[\s>]/i.test(html)) {
       try {
