@@ -1,19 +1,11 @@
+import type { ResourceResponse } from "../../../api/models/ResourceResponse";
 import { useState } from "react";
-
 import { AddToCollectionModal } from "./AddToCollectionModal";
 import AudioWavePlayer from "./AudioWavePlayer";
 import MoreBetterImg from "./MoreBetterImg";
 
 interface ResourceCardProps {
-  resource: {
-    resourceId: number; // 正确的ID字段
-    name: string;
-    url: string;
-    userId: number;
-    isPublic?: boolean;
-    isAI?: boolean;
-    type?: string;
-  };
+  resource: ResourceResponse;
   type: "5" | "6"; // 5: 图片, 6: 音频
   isPublic: boolean;
   onDelete?: (resourceId: number) => void;
@@ -32,8 +24,11 @@ export function ResourceCard({
 }: ResourceCardProps) {
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
 
+  // Simple mobile detection based on window width
+  const isMobile = typeof window !== "undefined" ? window.innerWidth <= 768 : false;
+
   const handleDeleteClick = () => {
-    if (onDelete) {
+    if (onDelete && resource.resourceId) {
       onDelete(resource.resourceId);
     }
   };
@@ -59,7 +54,7 @@ export function ResourceCard({
             : (
                 <div className="aspect-[4/3] pt-8 pb-3 px-3 flex flex-col justify-center">
                   <AudioWavePlayer
-                    audioUrl={resource.url}
+                    audioUrl={resource.url ? resource.url : ""}
                     audioName={resource.name}
                     displayName={false}
                     onDelete={() => handleDeleteClick()}
@@ -81,7 +76,7 @@ export function ResourceCard({
             {resource.isPublic && (
               <div className="badge badge-sm text-white bg-green-500 border-green-500">公开</div>
             )}
-            {resource.isAI && (
+            {resource.isAi && (
               <div className="badge badge-sm text-white bg-purple-500 border-purple-500">AI</div>
             )}
           </div>
@@ -92,6 +87,11 @@ export function ResourceCard({
           <h3 className="card-title text-sm font-medium truncate">
             {resource.name || "未命名素材"}
           </h3>
+
+          <div className={`flex justify-between text-base-content/60 ${isMobile ? "text-xs" : "text-xs"}`}>
+            <span>{resource.typeDescription || "未知类型"}</span>
+            <span>{resource.createTime}</span>
+          </div>
 
           {/* 操作按钮 */}
           <div className="card-actions">
@@ -116,7 +116,7 @@ export function ResourceCard({
       <AddToCollectionModal
         isOpen={isCollectionModalOpen}
         onClose={() => setIsCollectionModalOpen(false)}
-        resourceIds={[resource.resourceId]}
+        resourceIds={resource.resourceId !== undefined ? [resource.resourceId] : []}
         resourceType={type}
       />
     </>

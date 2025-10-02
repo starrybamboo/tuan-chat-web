@@ -1,9 +1,10 @@
 import type { CollectionList } from "../../../api/models/CollectionList";
 
+import { ApiError } from "api/core/ApiError";
+
 import { useState } from "react";
 
 import { toast } from "react-hot-toast";
-
 import { useBatchAddResourcesToCollectionMutation, useGetUserResourceCollectionsByTypeQuery } from "../../../api/hooks/resourceQueryHooks";
 
 interface AddToCollectionModalProps {
@@ -55,7 +56,9 @@ export function AddToCollectionModal({
     }
     catch (error) {
       console.error("添加到素材集失败:", error);
-      toast.error("添加失败，请重试");
+      if (error instanceof ApiError) {
+        toast.error(error.body?.errMsg);
+      }
     }
     finally {
       setIsSubmitting(false);

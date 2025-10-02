@@ -82,12 +82,9 @@ export default function ResourcePage() {
       <div className="bg-gradient-to-b from-cyan-500/5 to-transparent">
         <div className="max-w-6xl mx-auto px-4 py-12">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-500 text-sm font-medium mb-4">
-              资源中心
-            </div>
-            <h1 className="text-3xl md:text-5xl font-bold mb-4">资源管理</h1>
+            <h1 className="text-3xl md:text-5xl font-bold mb-4">资源广场</h1>
             <p className="text-lg text-muted-foreground mb-4">
-              为你的跑团模组寻找完美的图片和音频素材
+              为你的跑团模组寻找图片和音频素材
             </p>
           </div>
         </div>
@@ -139,7 +136,7 @@ export default function ResourcePage() {
                   onClick={() => setResourceType(type.key)}
                   className={`btn btn-sm md:btn-md ${
                     resourceType === type.key
-                      ? "btn-secondary"
+                      ? "btn-neutral"
                       : "btn-outline"
                   }`}
                 >
