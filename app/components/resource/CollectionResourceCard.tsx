@@ -1,4 +1,6 @@
 import type { ResourceResponse } from "../../../api/models/ResourceResponse";
+import AudioWavePlayer from "./AudioWavePlayer";
+import MoreBetterImg from "./MoreBetterImg";
 
 interface CollectionResourceCardProps {
   resource: ResourceResponse & {
@@ -41,16 +43,6 @@ export function CollectionResourceCard({
    * 根据资源类型返回对应的图标
    */
   const getResourceIcon = () => {
-    const type = resource.typeDescription?.toLowerCase() || "";
-
-    if (type.includes("image"))
-      return "🖼️";
-    if (type.includes("video"))
-      return "🎥";
-    if (type.includes("audio"))
-      return "🎵";
-    if (type.includes("document"))
-      return "📄";
     return "📎";
   };
 
@@ -58,40 +50,33 @@ export function CollectionResourceCard({
    * 渲染资源预览区域
    */
   const renderResourcePreview = () => {
-    if (resource.url) {
-      // 如果是音频文件，使用特殊处理
-      if (resource.typeDescription?.toLowerCase().includes("audio")) {
+    console.warn(resource);
+    if (resource.type) {
+      // 如果是音频文件，使用 AudioWavePlayer
+      if (resource.type === 6) {
         return (
-          <div className="flex items-center justify-center h-full bg-base-200">
-            <div className="text-center">
-              <div className="text-4xl mb-2">🎵</div>
-              <div className="text-xs text-base-content/60 px-2">音频文件</div>
-            </div>
+          <div className="aspect-[4/3] pt-8 pb-3 px-3 flex flex-col justify-center">
+            <AudioWavePlayer
+              audioUrl={resource.url ? resource.url : ""}
+              audioName={resource.name || "音频文件"}
+              displayName={false}
+              className=""
+            />
           </div>
         );
       }
 
-      // 其他类型尝试显示图片
-      return (
-        <img
-          src={resource.url}
-          alt={resource.name || "资源"}
-          className="w-full h-full object-cover rounded-t-lg"
-          onError={(e) => {
-            // 图片加载失败时显示对应图标
-            const target = e.target as HTMLImageElement;
-            target.style.display = "none";
-            const parent = target.parentElement;
-            if (parent) {
-              parent.innerHTML = `
-                <div class="flex items-center justify-center h-full">
-                  <div class="text-3xl">${getResourceIcon()}</div>
-                </div>
-              `;
-            }
-          }}
-        />
-      );
+      // 如果是图片文件，使用 MoreBetterImg
+      if (resource.type === 5) {
+        return (
+          <div className="aspect-[4/3]">
+            <MoreBetterImg
+              src={resource.url}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+            />
+          </div>
+        );
+      }
     }
 
     // 没有URL时显示对应图标
@@ -105,13 +90,12 @@ export function CollectionResourceCard({
   return (
     <div className="card bg-base-200 shadow-sm hover:shadow-md transition-all duration-200 group">
       {/* 资源预览区域 */}
-      <div className="relative aspect-video bg-base-300">
+      <div className="relative aspect-[4/3] bg-base-300 overflow-hidden">
         {renderResourcePreview()}
-
         {/* 删除按钮 */}
         <button
           type="button"
-          className="absolute top-2 right-2 btn btn-xs btn-circle btn-error opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-2 right-2 btn glass btn-xs btn-circle group-hover:opacity-100 transition-opacity"
           onClick={handleRemoveClick}
           title="从收藏列表中移除"
         >
@@ -134,15 +118,15 @@ export function CollectionResourceCard({
       </div>
 
       {/* 资源信息 */}
-      <div className="card-body p-3">
+      <div className="card-body p-2">
         <h4
-          className={`font-medium truncate ${isMobile ? "text-sm" : "text-sm"}`}
+          className={`font-medium truncate ${isMobile ? "text-xs" : "text-sm"}`}
           title={resource.name || "未命名资源"}
         >
           {resource.name || "未命名资源"}
         </h4>
 
-        <div className="flex justify-between text-xs text-base-content/60">
+        <div className={`flex justify-between text-base-content/60 ${isMobile ? "text-xs" : "text-xs"}`}>
           <span>{resource.typeDescription || "未知类型"}</span>
           <span>{formatDate(resource.createTime)}</span>
         </div>
