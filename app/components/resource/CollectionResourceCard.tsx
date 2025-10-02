@@ -50,7 +50,6 @@ export function CollectionResourceCard({
    * 渲染资源预览区域
    */
   const renderResourcePreview = () => {
-    console.warn(resource);
     if (resource.type) {
       // 如果是音频文件，使用 AudioWavePlayer
       if (resource.type === 6) {

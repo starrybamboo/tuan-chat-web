@@ -15,15 +15,34 @@ export default function ResourcePage() {
   const [_previousTab, setPreviousTab] = useState<TabType>("publicResources");
 
   const tabs: { key: TabType; label: string }[] = [
-    { key: "myResources", label: "我的素材" },
-    { key: "myCollections", label: "我的素材集" },
     { key: "publicResources", label: "公开素材" },
     { key: "publicCollections", label: "公开素材集" },
+    { key: "myResources", label: "我的素材" },
+    { key: "myCollections", label: "我的素材集" },
   ];
 
   const resourceTypes = [
-    { key: "5" as const, label: "图片", icon: "🖼️" },
-    { key: "6" as const, label: "音频", icon: "🎵" },
+    {
+      key: "5" as const,
+      label: "图片",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <path d="M21 15l-5-5L5 21"></path>
+        </svg>
+      ),
+    },
+    {
+      key: "6" as const,
+      label: "音频",
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M3 18V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <path d="M11 16V8l5 4-5 4z"></path>
+        </svg>
+      ),
+    },
   ];
 
   const handleTabChange = (newTab: TabType) => {
@@ -125,7 +144,7 @@ export default function ResourcePage() {
                   }`}
                 >
                   <span>{type.icon}</span>
-                  <span className="hidden sm:inline">{type.label}</span>
+                  <span className="sm:inline">{type.label}</span>
                 </button>
               ))}
             </div>
@@ -143,38 +162,48 @@ export default function ResourcePage() {
                 />
               </div>
 
-              {/* 操作按钮 - 仅在我的资源页面显示 */}
-              {(activeTab === "myResources" || activeTab === "myCollections") && (
-                <>
-                  {/* 桌面端上传按钮 */}
-                  <button
-                    type="button"
-                    onClick={() => setShowUploadModal(true)}
-                    className="hidden md:flex btn btn-primary gap-2 shadow-lg hover:shadow/30"
+              {/* 操作按钮 */}
+              {activeTab === "myResources" && (
+                /* 桌面端上传按钮 */
+                <button
+                  type="button"
+                  onClick={() => setShowUploadModal(true)}
+                  className="hidden md:flex btn btn-primary gap-2 shadow-lg hover:shadow/30"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                    上传资源
-                  </button>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  上传资源
+                </button>
+              )}
 
-                  {activeTab === "myCollections" && (
-                    <button
-                      type="button"
-                      onClick={() => setShowCreateCollectionModal(true)}
-                      className="btn btn-secondary btn-sm md:btn-md"
-                    >
-                      <span>📁</span>
-                      <span className="hidden sm:inline">新建素材集</span>
-                    </button>
-                  )}
-                </>
+              {activeTab === "myCollections" && (
+                <button
+                  type="button"
+                  onClick={() => setShowCreateCollectionModal(true)}
+                  className="hidden md:flex btn btn-secondary gap-2 shadow-lg hover:shadow/30"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-7 w-7"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+                  </svg>
+                  新建素材集
+                </button>
               )}
             </div>
           </div>
@@ -203,8 +232,8 @@ export default function ResourcePage() {
         resourceType={resourceType}
       />
 
-      {/* 移动端悬浮上传按钮 - 仅在我的资源页面显示 */}
-      {(activeTab === "myResources" || activeTab === "myCollections") && (
+      {/* 移动端悬浮按钮 */}
+      {activeTab === "myResources" && (
         <button
           type="button"
           className="md:hidden fixed bottom-8 right-8 z-50 btn btn-square btn-primary btn-lg shadow-2xl transition-all duration-300"
@@ -220,6 +249,29 @@ export default function ResourcePage() {
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
           </svg>
+        </button>
+      )}
+
+      {activeTab === "myCollections" && (
+        <button
+          type="button"
+          className="md:hidden fixed bottom-8 right-8 z-50 btn btn-square btn-secondary btn-lg shadow-2xl transition-all duration-300"
+          onClick={() => setShowCreateCollectionModal(true)}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-7 w-7"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+          </svg>
+          <span className="sr-only">新建素材集</span>
         </button>
       )}
     </div>
