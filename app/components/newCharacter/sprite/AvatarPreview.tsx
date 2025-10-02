@@ -31,7 +31,7 @@ interface AvatarPreviewProps {
  * 头像预览组件
  * 支持完整预览、图片预览、聊天预览等多种模式
  */
-export function AvatarPreview({
+function AvatarPreviewComponent({
   previewCanvasRef,
   currentAvatarUrl,
   characterName = "角色名",
@@ -153,3 +153,5 @@ export function AvatarPreview({
       return renderFullPreview();
   }
 }
+
+export const AvatarPreview = React.memo(AvatarPreviewComponent);

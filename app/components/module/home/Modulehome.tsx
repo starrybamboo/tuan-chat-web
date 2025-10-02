@@ -311,12 +311,26 @@ export default function ModuleHome() {
     );
   }, [allItems, searchKeyword]);
 
-  // 重新计算分页（基于搜索结果）
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  // 计算总页数（使用 API 返回的总记录数）
+  const totalPages = useMemo(() => {
+    // 如果有搜索关键词，使用前端过滤后的结果计算
+    if (searchKeyword.trim()) {
+      return Math.ceil(filteredItems.length / itemsPerPage);
+    }
+    // 否则使用后端返回的总记录数
+    return Math.ceil((moduleData?.totalRecords || 0) / itemsPerPage);
+  }, [moduleData?.totalRecords, filteredItems.length, itemsPerPage, searchKeyword]);
+
+  // 当前页显示的数据
   const currentItems = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredItems.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredItems, currentPage, itemsPerPage]);
+    // 如果有搜索关键词，使用前端分页
+    if (searchKeyword.trim()) {
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      return filteredItems.slice(startIndex, startIndex + itemsPerPage);
+    }
+    // 否则直接使用后端分页返回的数据
+    return filteredItems;
+  }, [filteredItems, currentPage, itemsPerPage, searchKeyword]);
 
   const [imagesReady, setImagesReady] = useState(false);
 

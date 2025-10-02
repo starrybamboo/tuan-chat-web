@@ -14,9 +14,18 @@ interface LocationEditProps {
 }
 
 export default function LocationEdit({ location }: LocationEditProps) {
-  const [selectedTab, setSelectedTab] = useState<"image" | "description" | "tip">("image");
+  const [selectedTab, setSelectedTab] = useState<"image" | "description">("image");
+  const [isPublic, setIsPublic] = useState(true); // 控制描述是公开还是私有
+  const [isPermissionExpanded, setIsPermissionExpanded] = useState(false); // 控制权限悬浮块展开/收起
   const entityInfo = useMemo(() => location.entityInfo || {}, [location.entityInfo]);
   const { stageId, removeModuleTabItem } = useModuleContext();
+
+  // 当切换到 description 标签时，自动展开权限控制块
+  useEffect(() => {
+    if (selectedTab === "description") {
+      setIsPermissionExpanded(true);
+    }
+  }, [selectedTab]);
 
   const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(item => item.entityType === 3);
 
@@ -107,7 +116,6 @@ export default function LocationEdit({ location }: LocationEditProps) {
             <p className="text-base-content/60">
               {selectedTab === "image" && "场景图片"}
               {selectedTab === "description" && "场景描述"}
-              {selectedTab === "tip" && "地区支线"}
             </p>
           </div>
         </div>
@@ -126,13 +134,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
           >
             场景描述
           </button>
-          <button
-            type="button"
-            className={`btn btn-md rounded-md ${selectedTab === "tip" ? "btn-primary" : "btn-outline"}`}
-            onClick={() => setSelectedTab("tip")}
-          >
-            地区支线
-          </button>
+          <div className="divider divider-horizontal mx-0"></div>
           <button
             type="button"
             onClick={() => {
@@ -151,6 +153,54 @@ export default function LocationEdit({ location }: LocationEditProps) {
         </div>
       </div>
       <div className="divider"></div>
+
+      {/* 权限控制悬浮块 - 仅在描述页面显示 */}
+      {selectedTab === "description" && (
+        <div className="relative mb-4">
+          <div className="absolute right-0 top-0 z-10 transition-all duration-300">
+            {!isPermissionExpanded
+              ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsPermissionExpanded(true)}
+                    className="btn btn-circle btn-sm btn-ghost hover:btn-primary"
+                    title="内容权限设置"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </button>
+                )
+              : (
+                  <fieldset className="fieldset bg-transparent border-primary rounded-box w-48 border p-4 mr-4">
+                    <legend className="fieldset-legend flex items-center gap-2">
+                      <span>内容权限</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsPermissionExpanded(false)}
+                        className="btn btn-circle btn-xs btn-ghost hover:btn-error"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </legend>
+                    <label className="label cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isPublic}
+                        onChange={e => setIsPublic(e.target.checked)}
+                        className="toggle toggle-primary"
+                      />
+                      <span className="label-text">{isPublic ? "公开可见的描述" : "仅kp可见的描述"}</span>
+                    </label>
+                  </fieldset>
+                )}
+          </div>
+        </div>
+      )}
+
       {/* 场景信息卡片 */}
       <div className={`space-y-6 bg-base-100  ${isEditing ? "ring-2 ring-primary" : ""}`}>
         {selectedTab === "image" && (
@@ -201,23 +251,15 @@ export default function LocationEdit({ location }: LocationEditProps) {
         {selectedTab === "description" && (
           <div>
             <QuillEditor
-              id={VeditorIdForDescription}
-              placeholder={localLocation.description || ""}
+              id={isPublic ? VeditorIdForDescription : vditorId}
+              placeholder={isPublic ? (localLocation.description || "") : (localLocation.tip || "")}
               onchange={(value) => {
-                setLocalLocation(prev => ({ ...prev, description: value }));
-                saveTimer.current && clearTimeout(saveTimer.current);
-                saveTimer.current = setTimeout(handleSave, 8000);
-              }}
-            />
-          </div>
-        )}
-        {selectedTab === "tip" && (
-          <div>
-            <QuillEditor
-              id={vditorId}
-              placeholder={localLocation.tip || ""}
-              onchange={(value) => {
-                setLocalLocation(prev => ({ ...prev, tip: value }));
+                if (isPublic) {
+                  setLocalLocation(prev => ({ ...prev, description: value }));
+                }
+                else {
+                  setLocalLocation(prev => ({ ...prev, tip: value }));
+                }
                 saveTimer.current && clearTimeout(saveTimer.current);
                 saveTimer.current = setTimeout(handleSave, 8000);
               }}
