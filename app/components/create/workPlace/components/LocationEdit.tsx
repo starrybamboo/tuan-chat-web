@@ -19,7 +19,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
   const [isPublic, setIsPublic] = useState(true); // 控制描述是公开还是私有
   const [isPermissionExpanded, setIsPermissionExpanded] = useState(false); // 控制权限悬浮块展开/收起
   const entityInfo = useMemo(() => location.entityInfo || {}, [location.entityInfo]);
-  const { stageId, removeModuleTabItem, updateModuleTabLabel, beginSelectionLock, endSelectionLock } = useModuleContext();
+  const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock } = useModuleContext();
 
   // 当切换到 description 标签时，自动展开权限控制块
   useEffect(() => {
@@ -149,23 +149,11 @@ export default function LocationEdit({ location }: LocationEditProps) {
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
-      const oldName = location.name;
-      const changed = false; // 名称通过 handleNameChange 修改
       // 先更新地点自身，成功后再同步引用与关闭标签
       updateLocation(
         { id: location.id!, entityInfo: localLocationRef.current, name: nameRef.current || location.name, entityType: 4 },
         {
           onSuccess: () => {
-            if (changed) {
-              // 同步更新 scene 中引用的地点名
-              const newScenes = sceneEntities?.map((scene) => {
-                const newLocations = scene.entityInfo?.locations.map((loc: string | undefined) => (loc === oldName ? location.name : loc));
-                return { ...scene, entityInfo: { ...scene.entityInfo, locations: newLocations } };
-              });
-              newScenes?.forEach(scene => updateLocation({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
-              // 最后移除标签
-              removeModuleTabItem(location.id!.toString());
-            }
             toast.success("保存成功");
           },
         },

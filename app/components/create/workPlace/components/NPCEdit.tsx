@@ -262,7 +262,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const { data } = useRoleAvatars(role.id as number);
   // entityInfo 结构见后端定义
   const entityInfo = role.entityInfo || {};
-  const { stageId, removeModuleTabItem, updateModuleTabLabel, beginSelectionLock, endSelectionLock } = useModuleContext();
+  const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock } = useModuleContext();
 
   const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(entity => entity.entityType === 3);
   // 本地状态
@@ -383,25 +383,11 @@ export default function NPCEdit({ role }: NPCEditProps) {
       }
       const updatedRole = { ...localRoleRef.current, ability: abilityRef.current };
       setIsTransitioning(false);
-      const oldName = role.name;
-      const changed = false; // 名称不在编辑器内修改
       // 先更新角色自身，成功后再同步引用与关闭标签，避免因移除标签导致保存函数不可用
       updateRole(
-        { id: role.id!, entityType: 2, entityInfo: updatedRole, name: role.name },
+        { id: role.id!, entityType: 2, entityInfo: updatedRole, name: nameInputRef.current },
         {
           onSuccess: () => {
-            if (changed) {
-              // 同步更新 scene 中的角色名
-              const newScenes = sceneEntities?.map((scene) => {
-                const newRoles = scene.entityInfo?.roles.map((r: string | undefined) => (r === oldName ? role.name : r));
-                return { ...scene, entityInfo: { ...scene.entityInfo, roles: newRoles } };
-              });
-              newScenes?.forEach(scene => updateRole({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
-              // 同步更新当前 Tab 的 label
-              updateModuleTabLabel(role.id!.toString(), role.name || "");
-              // 最后移除标签
-              removeModuleTabItem(role.id!.toString());
-            }
             toast.success("保存成功");
           },
         },
@@ -688,7 +674,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
                       setLocalRole(prev => ({ ...prev, type: Number(e.target.value) }));
                       scheduleSave();
                     }}
-                    className="select select-sm rounded-md"
+                    className="select select-sm rounded-md w-20"
                   >
                     <option value={0}>NPC</option>
                     <option value={1}>预设卡</option>
