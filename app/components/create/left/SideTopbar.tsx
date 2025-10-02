@@ -1,9 +1,9 @@
 /* eslint-disable react-dom/no-missing-button-type */
-import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
-import { ModuleItemEnum, ModuleListEnum } from "@/components/module/workPlace/context/types";
 import { StageIcon } from "@/icons";
 import { useModuleIdQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useEffect, useMemo } from "react";
+import { useModuleContext } from "../workPlace/context/_moduleContext";
+import { ModuleItemEnum, ModuleListEnum } from "../workPlace/context/types";
 
 // 简易 Map 图标，占位用
 function MapPlaceholderIcon(props: { className?: string }) {

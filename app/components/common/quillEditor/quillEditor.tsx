@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import type quill from "quill";
-import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
+import { useModuleContext } from "@/components/create/workPlace/context/_moduleContext";
 import { BaselineAutoAwesomeMotion } from "@/icons";
 import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"; // ordered: useMemo before useState (project rule)

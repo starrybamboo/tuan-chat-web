@@ -1,15 +1,25 @@
+// Type Imports
 import type { RoleAvatar as roleAvatar } from "api";
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
+
+// Alias Internal Imports
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatar from "@/components/common/roleAvatar";
 import { CharacterCopper } from "@/components/newCharacter/sprite/CharacterCopper";
 import { SpriteRenderStudio } from "@/components/newCharacter/sprite/SpriteRenderStudio";
+
+// External Libraries
+import { useQueryClient } from "@tanstack/react-query";
+// API Internal (value) Imports
 import { useModuleIdQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useQueryEntitiesQuery, useUpdateEntityMutation, useUploadModuleRoleAvatarMutation } from "api/hooks/moduleQueryHooks";
+
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useDeleteRoleAvatarMutation, useRoleAvatars } from "api/queryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+
+// Relative Imports
 import { useModuleContext } from "../context/_moduleContext";
 import { invokeSaveWithTinyRetry } from "./invokeSaveWithTinyRetry";
 
@@ -178,7 +188,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const { data } = useRoleAvatars(role.id as number);
   // entityInfo 结构见后端定义
   const entityInfo = role.entityInfo || {};
-  const { stageId, removeModuleTabItem, updateModuleTabLabel } = useModuleContext();
+  const { stageId, removeModuleTabItem, updateModuleTabLabel, beginSelectionLock, endSelectionLock } = useModuleContext();
 
   const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(entity => entity.entityType === 3);
   // 本地状态
@@ -187,6 +197,12 @@ export default function NPCEdit({ role }: NPCEditProps) {
   // 角色名改为仅在列表中重命名，编辑器内不再直接编辑
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [charCount, setCharCount] = useState(entityInfo.description?.length || 0);
+  // 名称可编辑（feishu h1 风格）
+  const nameInputRef = useRef(role.name || "");
+  const nameDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const queryClient = useQueryClient();
+  // 记录上一次已持久化到后端的名称（用于 scene 引用同步）
+  const lastPersistedNameRef = useRef(role.name || "");
 
   // 头像相关事宜
   const [copperedUrl, setCopperedUrl] = useState<string>("");
@@ -202,10 +218,9 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const { data: ruleAbility } = useGetRuleDetailQuery(moduleInfo.data?.data?.ruleId as number);
   const [showAbilityPopup, setShowAbilityPopup] = useState(false);
   const [selectedAbilities, setSelectedAbilities] = useState<Record<string, number>>({});
+
   // 批量创建能力流程相关状态
-  const [showCreateAbilityCountModal, setShowCreateAbilityCountModal] = useState(false); // 第一步：输入数量
-  const [showBatchCreateAbilityModal, setShowBatchCreateAbilityModal] = useState(false); // 第二步：填写能力
-  const [batchAbilityCount, setBatchAbilityCount] = useState<number>(1);
+  const [showBatchCreateAbilityModal, setShowBatchCreateAbilityModal] = useState(false); // 填写能力
   const [batchAbilities, setBatchAbilities] = useState<Array<{ id: string; name: string; value: number }>>([]);
 
   // 规则能力搜索框
@@ -241,9 +256,50 @@ export default function NPCEdit({ role }: NPCEditProps) {
   useEffect(() => {
     abilityRef.current = ability;
   }, [ability]);
-  useEffect(() => {
-    nameRef.current = role.name;
+  useLayoutEffect(() => {
+    if ((role.name || "") !== nameInputRef.current) {
+      nameRef.current = role.name;
+    }
   }, [role.name]);
+
+  // 将旧名称在所有 scene (entityType=3) 中的引用替换为新名称
+  const propagateNameChange = (oldName: string | undefined, newName: string | undefined) => {
+    if (!stageId) {
+      return;
+    }
+    if (!oldName || !newName || oldName === newName) {
+      return;
+    }
+    // 从当前查询缓存中获取并做乐观更新
+    queryClient.setQueryData<any>(["queryEntities", stageId], (oldData: any) => {
+      if (!oldData) {
+        return oldData;
+      }
+      const cloned = { ...oldData };
+      if (Array.isArray(cloned.data)) {
+        cloned.data = cloned.data.map((ent: any) => {
+          if (ent.entityType === 3 && Array.isArray(ent.entityInfo?.roles) && ent.entityInfo.roles.includes(oldName)) {
+            const newRoles = ent.entityInfo.roles.map((r: string | undefined) => (r === oldName ? newName : r));
+            return { ...ent, entityInfo: { ...ent.entityInfo, roles: newRoles } };
+          }
+          return ent;
+        });
+      }
+      return cloned;
+    });
+    // 找出需要真正持久化更新的 scene 实体（避免对所有 scene 逐个调用接口）
+    const scenesNeedUpdate = (sceneEntities || []).filter(scene => Array.isArray(scene.entityInfo?.roles) && scene.entityInfo.roles.includes(oldName));
+    scenesNeedUpdate.forEach((scene) => {
+      try {
+        const rolesArr = Array.isArray(scene.entityInfo?.roles) ? scene.entityInfo?.roles : [];
+        const newRoles = rolesArr.map((r: string | undefined) => (r === oldName ? newName : r));
+        updateRole({ id: scene.id!, entityType: 3, entityInfo: { ...scene.entityInfo, roles: newRoles }, name: scene.name });
+      }
+      catch (e) {
+        console.error("更新 scene 引用角色名失败", e);
+      }
+    });
+  };
 
   const handleSave = () => {
     setIsTransitioning(true);
@@ -316,17 +372,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
     setSelectedAbilities({});
     setShowAbilityPopup(false);
   };
-
-  // 第一步：确认数量 -> 生成批量输入结构
-  const handleConfirmAbilityCount = () => {
-    const count = Math.min(Math.max(1, batchAbilityCount || 1), 50); // 限制 1-50
-    setBatchAbilityCount(count);
-    setBatchAbilities(Array.from({ length: count }).map(() => ({ id: crypto.randomUUID(), name: "", value: 0 })));
-    setShowCreateAbilityCountModal(false);
-    setShowBatchCreateAbilityModal(true);
-  };
-
-  // 第二步：提交批量创建
+  // 提交批量创建
   const handleConfirmBatchCreateAbilities = () => {
     const updatedAbility = { ...ability } as Record<string, number>;
     const duplicateNames: string[] = [];
@@ -428,13 +474,82 @@ export default function NPCEdit({ role }: NPCEditProps) {
   // 生成唯一文件名
   const uniqueFileName = generateUniqueFileName(role.id as number);
 
+  // 即时更新列表/标签的辅助：更新 react-query 缓存里实体名字
+  const optimisticUpdateEntityName = (newName: string) => {
+    if (!stageId) {
+      return;
+    }
+    queryClient.setQueryData<any>(["queryEntities", stageId], (oldData: any) => {
+      if (!oldData) {
+        return oldData;
+      }
+      const cloned = { ...oldData };
+      if (Array.isArray(cloned.data)) {
+        cloned.data = cloned.data.map((ent: any) => ent.id === role.id ? { ...ent, name: newName } : ent);
+      }
+      return cloned;
+    });
+  };
+
+  // 名称输入变更：即时更新 UI + 标签 + 列表 + 防抖后持久化
+  const handleNameChange = (val: string) => {
+    // 在输入阶段重复刷新锁，防止外部跳转（例如 mapEdit 抢占 tab）
+    beginSelectionLock("editing-name", 1200);
+    nameInputRef.current = val;
+    // 更新 tab label & content name
+    updateModuleTabLabel(role.id!.toString(), val || "未命名");
+    optimisticUpdateEntityName(val || "未命名");
+    // 更新引用 ref
+    nameRef.current = val;
+    // 防抖保存名称（与其它字段分离，触发 updateRole 仅改 name）
+    if (nameDebounceTimer.current) {
+      clearTimeout(nameDebounceTimer.current);
+    }
+    nameDebounceTimer.current = setTimeout(() => {
+      const oldName = lastPersistedNameRef.current;
+      const newName = val;
+      updateRole(
+        { id: role.id!, entityType: 2, entityInfo: { ...localRoleRef.current, ability: abilityRef.current }, name: newName },
+        {
+          onSuccess: () => {
+            // 持久化成功后再进行 scene 引用同步（避免无效替换）
+            propagateNameChange(oldName, newName);
+            lastPersistedNameRef.current = newName;
+            // 保存成功后解除锁
+            endSelectionLock();
+            // 可选提示：toast.success("名称已保存");
+          },
+        },
+      );
+    }, 600);
+  };
+
   return (
     <div className={`transition-opacity duration-300 p-4 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
       {/* 顶部区域 (去掉返回按钮) */}
       <div className="hidden md:flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="font-semibold text-2xl md:text-3xl my-2">{role.name}</h1>
+            <div className="group relative max-w-full">
+              <input
+                type="text"
+                aria-label="编辑角色名称"
+                value={nameInputRef.current}
+                onChange={e => handleNameChange(e.target.value)}
+                onFocus={() => beginSelectionLock("editing-name", 1500)}
+                onBlur={() => endSelectionLock()}
+                placeholder="输入角色名称"
+                title="点击编辑角色名称"
+                className="editable-name-input font-semibold text-2xl md:text-3xl my-2 bg-transparent outline-none min-w-[60vw] truncate px-1 -mx-1 border-b border-dashed border-transparent focus:border-primary/70 focus:bg-primary/5 hover:border-base-content/40 hover:bg-base-200/40 rounded-sm transition-colors caret-primary"
+                maxLength={50}
+              />
+              <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 group-focus-within:opacity-80 transition-opacity text-base-content/60 pr-1">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                </svg>
+              </span>
+            </div>
             <p className="text-base-content/60">
               角色编辑 ·
               {localRole.type === 0 ? "NPC" : localRole.type === 1 ? "预设卡" : localRole.type}
@@ -466,7 +581,26 @@ export default function NPCEdit({ role }: NPCEditProps) {
               {/* 头像与类型选择 */}
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div>
-                  <h1 className="font-semibold text-xl">{role.name}</h1>
+                  <div className="group relative max-w-full">
+                    <input
+                      type="text"
+                      aria-label="编辑角色名称"
+                      value={nameInputRef.current}
+                      onChange={e => handleNameChange(e.target.value)}
+                      onFocus={() => beginSelectionLock("editing-name", 1500)}
+                      onBlur={() => endSelectionLock()}
+                      placeholder="输入角色名称"
+                      title="点击编辑角色名称"
+                      className="editable-name-input font-semibold text-xl bg-transparent outline-none w-full truncate px-1 -mx-1 border-b border-dashed border-transparent focus:border-primary/70 focus:bg-primary/5 hover:border-base-content/40 hover:bg-base-200/40 rounded-sm transition-colors caret-primary"
+                      maxLength={50}
+                    />
+                    <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 group-focus-within:opacity-80 transition-opacity text-base-content/60 pr-1">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                      </svg>
+                    </span>
+                  </div>
                   <p className="text-base-content/60 text-sm">
                     角色类型 ·
                     {localRole.type === 0 ? "NPC" : localRole.type === 1 ? "预设卡" : localRole.type}
@@ -500,7 +634,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
                   </div>
                 </div>
               </div>
-              <div className="divider font-bold text-center text-xl">{role.name}</div>
+              <div className="divider font-bold text-center text-xl">{nameInputRef.current || "未命名"}</div>
               <div>
                 <textarea
                   value={localRole.description || ""}
@@ -735,10 +869,11 @@ export default function NPCEdit({ role }: NPCEditProps) {
               type="button"
               className="btn btn-accent"
               onClick={() => {
-                setShowCreateAbilityCountModal(true);
+                setShowBatchCreateAbilityModal(true);
+                setBatchAbilities(Array.from({ length: 1 }).map(() => ({ id: crypto.randomUUID(), name: "", value: 0 })));
               }}
             >
-              批量创建新能力
+              创建新能力
             </button>
             <button
               type="button"
@@ -761,47 +896,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
         </div>
       </PopWindow>
 
-      {/* 创建能力：步骤一 输入数量 */}
-      <PopWindow
-        isOpen={showCreateAbilityCountModal}
-        onClose={() => setShowCreateAbilityCountModal(false)}
-        fullScreen={false}
-      >
-        <div className="space-y-4 w-[320px]">
-          <h3 className="font-bold text-lg">批量创建能力</h3>
-          <label className="form-control w-full">
-            <div className="label pb-1">
-              <span className="label-text">需要创建的能力数量 (1-50)</span>
-            </div>
-            <input
-              type="number"
-              className="input input-bordered w-full"
-              min={1}
-              max={50}
-              value={batchAbilityCount}
-              onChange={e => setBatchAbilityCount(Number(e.target.value))}
-            />
-          </label>
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => setShowCreateAbilityCountModal(false)}
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleConfirmAbilityCount}
-            >
-              下一步
-            </button>
-          </div>
-        </div>
-      </PopWindow>
-
-      {/* 创建能力：步骤二 批量填写 */}
+      {/* 创建能力: 批量填写 */}
       <PopWindow
         isOpen={showBatchCreateAbilityModal}
         onClose={() => setShowBatchCreateAbilityModal(false)}

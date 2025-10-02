@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from "@xyflow/react";
 import type { StageEntityResponse } from "api";
+import SceneNode from "@/components/module/detail/ContentTab/scene/react flow/NewSceneNode";
 import {
   addEdge,
   applyEdgeChanges,
@@ -15,7 +16,6 @@ import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/module
 import dagre from "dagre";
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import SceneNode from "../../detail/ContentTab/scene/react flow/NewSceneNode";
 import { useModuleContext } from "../context/_moduleContext";
 import SceneEdit from "./SceneEdit";
 import "@xyflow/react/dist/style.css";

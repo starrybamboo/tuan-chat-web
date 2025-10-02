@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import { useQueryClient } from "@tanstack/react-query";
 import { useQueryEntitiesQuery } from "api/hooks/moduleAndStageQueryHooks";
 import { useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -18,7 +19,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
   const [isPublic, setIsPublic] = useState(true); // 控制描述是公开还是私有
   const [isPermissionExpanded, setIsPermissionExpanded] = useState(false); // 控制权限悬浮块展开/收起
   const entityInfo = useMemo(() => location.entityInfo || {}, [location.entityInfo]);
-  const { stageId, removeModuleTabItem } = useModuleContext();
+  const { stageId, removeModuleTabItem, updateModuleTabLabel, beginSelectionLock, endSelectionLock } = useModuleContext();
 
   // 当切换到 description 标签时，自动展开权限控制块
   useEffect(() => {
@@ -31,9 +32,14 @@ export default function LocationEdit({ location }: LocationEditProps) {
 
   // 本地状态
   const [localLocation, setLocalLocation] = useState({ ...entityInfo });
-  // 名称改为列表侧重命名，这里不再编辑
+  // 名称支持内联编辑（与 NPCEdit 一致）
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const localLocationRef = useRef(localLocation);
+  useEffect(() => {
+    localLocationRef.current = localLocation;
+  }, [localLocation]);
 
   // 定时器
   const saveTimer = useRef<NodeJS.Timeout | null>(null);
@@ -44,12 +50,99 @@ export default function LocationEdit({ location }: LocationEditProps) {
 
   // 接入接口
   const { mutate: updateLocation } = useUpdateEntityMutation(stageId as number);
-  // const { mutate: renameLocation } = useRenameMutation("scene");
+  const queryClient = useQueryClient();
 
-  const localLocationRef = useRef(localLocation);
-  useEffect(() => {
-    localLocationRef.current = localLocation;
-  }, [localLocation]);
+  // 名称编辑相关 ref + 防抖
+  const nameInputRef = useRef(location.name || "");
+  const nameRef = useRef(location.name);
+  const nameDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const lastPersistedNameRef = useRef(location.name || "");
+  useLayoutEffect(() => {
+    if ((location.name || "") !== nameInputRef.current) {
+      nameRef.current = location.name;
+      nameInputRef.current = location.name || "";
+    }
+  }, [location.name]);
+
+  const optimisticUpdateEntityName = (newName: string) => {
+    if (!stageId) {
+      return;
+    }
+    queryClient.setQueryData<any>(["queryEntities", stageId], (oldData: any) => {
+      if (!oldData) {
+        return oldData;
+      }
+      const cloned = { ...oldData };
+      if (Array.isArray(cloned.data)) {
+        cloned.data = cloned.data.map((ent: any) => ent.id === location.id ? { ...ent, name: newName } : ent);
+      }
+      return cloned;
+    });
+  };
+
+  // 将旧地点名在所有 scene (entityType=3) 的 entityInfo.locations 数组中同步为新名字
+  const propagateNameChange = (oldName: string | undefined, newName: string | undefined) => {
+    if (!stageId) {
+      return;
+    }
+    if (!oldName || !newName || oldName === newName) {
+      return;
+    }
+    // 乐观更新缓存中的所有 scene locations
+    queryClient.setQueryData<any>(["queryEntities", stageId], (oldData: any) => {
+      if (!oldData) {
+        return oldData;
+      }
+      const cloned = { ...oldData };
+      if (Array.isArray(cloned.data)) {
+        cloned.data = cloned.data.map((ent: any) => {
+          if (ent.entityType === 3 && Array.isArray(ent.entityInfo?.locations) && ent.entityInfo.locations.includes(oldName)) {
+            const newLocations = ent.entityInfo.locations.map((loc: string | undefined) => (loc === oldName ? newName : loc));
+            return { ...ent, entityInfo: { ...ent.entityInfo, locations: newLocations } };
+          }
+          return ent;
+        });
+      }
+      return cloned;
+    });
+    // 找出需要持久化更新的 scene
+    const scenesNeedUpdate = (sceneEntities || []).filter(scene => Array.isArray(scene.entityInfo?.locations) && scene.entityInfo.locations.includes(oldName));
+    scenesNeedUpdate.forEach((scene) => {
+      try {
+        const locationsArr = Array.isArray(scene.entityInfo?.locations) ? scene.entityInfo?.locations : [];
+        const newLocations = locationsArr.map((loc: string | undefined) => (loc === oldName ? newName : loc));
+        updateLocation({ id: scene.id!, entityType: 3, entityInfo: { ...scene.entityInfo, locations: newLocations }, name: scene.name });
+      }
+      catch (e) {
+        console.error("更新 scene 引用地点名失败", e);
+      }
+    });
+  };
+
+  const handleNameChange = (val: string) => {
+    beginSelectionLock("editing-location-name", 1200);
+    nameInputRef.current = val;
+    updateModuleTabLabel(location.id!.toString(), val || "未命名");
+    optimisticUpdateEntityName(val || "未命名");
+    nameRef.current = val;
+    if (nameDebounceTimer.current) {
+      clearTimeout(nameDebounceTimer.current);
+    }
+    nameDebounceTimer.current = setTimeout(() => {
+      const oldName = lastPersistedNameRef.current;
+      const newName = val;
+      updateLocation(
+        { id: location.id!, entityType: 4, entityInfo: localLocationRef.current, name: newName },
+        {
+          onSuccess: () => {
+            propagateNameChange(oldName, newName);
+            lastPersistedNameRef.current = newName;
+            endSelectionLock();
+          },
+        },
+      );
+    }, 600);
+  };
 
   const handleSave = () => {
     setIsTransitioning(true);
@@ -57,10 +150,10 @@ export default function LocationEdit({ location }: LocationEditProps) {
       setIsTransitioning(false);
       setIsEditing(false);
       const oldName = location.name;
-      const changed = false; // 不在编辑器内修改名称
+      const changed = false; // 名称通过 handleNameChange 修改
       // 先更新地点自身，成功后再同步引用与关闭标签
       updateLocation(
-        { id: location.id!, entityInfo: localLocationRef.current, name: location.name, entityType: 4 },
+        { id: location.id!, entityInfo: localLocationRef.current, name: nameRef.current || location.name, entityType: 4 },
         {
           onSuccess: () => {
             if (changed) {
@@ -112,7 +205,26 @@ export default function LocationEdit({ location }: LocationEditProps) {
         {/* 左侧标题 */}
         <div className="flex items-center gap-4 self-start md:self-auto">
           <div>
-            <h1 className="font-semibold text-2xl md:text-3xl my-2">{location.name}</h1>
+            <div className="group relative max-w-full">
+              <input
+                type="text"
+                aria-label="编辑地点名称"
+                value={nameInputRef.current}
+                onChange={e => handleNameChange(e.target.value)}
+                onFocus={() => beginSelectionLock("editing-location-name", 1500)}
+                onBlur={() => endSelectionLock()}
+                placeholder="输入地点名称"
+                title="点击编辑地点名称"
+                className="font-semibold text-2xl md:text-3xl my-2 bg-transparent outline-none w-full truncate px-1 -mx-1 border-b border-dashed border-transparent focus:border-primary/70 focus:bg-primary/5 hover:border-base-content/40 hover:bg-base-200/40 rounded-sm transition-colors caret-primary"
+                maxLength={50}
+              />
+              <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 group-focus-within:opacity-80 transition-opacity text-base-content/60 pr-1">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                </svg>
+              </span>
+            </div>
             <p className="text-base-content/60">
               {selectedTab === "image" && "场景图片"}
               {selectedTab === "description" && "场景描述"}

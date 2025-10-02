@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
+import { useQueryClient } from "@tanstack/react-query";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import QuillEditor from "../../../common/quillEditor/quillEditor";
@@ -83,7 +84,7 @@ function Folder({ moduleData, entityType, onClick, onDelete }:
 export default function SceneEdit({ scene, id }: SceneEditProps) {
   const [selectedTab, setSelectedTab] = useState<"description" | "tip" | "assets">("description");
   const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
-  const { stageId, beginSelectionLock, endSelectionLock, forceSetCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
+  const { stageId, beginSelectionLock, endSelectionLock, forceSetCurrentSelectedTabId, currentSelectedTabId, updateModuleTabLabel } = useModuleContext();
 
   // 本地状态
   const [localScene, setLocalScene] = useState({ ...entityInfo });
@@ -106,6 +107,61 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
   // 接入接口
   const { mutate: updateScene } = useUpdateEntityMutation(stageId as number);
+  const queryClient = useQueryClient();
+
+  // 名称内联编辑（与其他编辑器一致）
+  const nameInputRef = useRef(scene.name || "");
+  const nameRef = useRef(scene.name);
+  const nameDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  useLayoutEffect(() => {
+    if ((scene.name || "") !== nameInputRef.current) {
+      nameRef.current = scene.name;
+      nameInputRef.current = scene.name || "";
+    }
+  }, [scene.name]);
+
+  const optimisticUpdateEntityName = (newName: string) => {
+    if (!stageId) {
+      return;
+    }
+    queryClient.setQueryData<any>(["queryEntities", stageId], (oldData: any) => {
+      if (!oldData) {
+        return oldData;
+      }
+      const cloned = { ...oldData };
+      if (Array.isArray(cloned.data)) {
+        cloned.data = cloned.data.map((ent: any) => ent.id === scene.id ? { ...ent, name: newName } : ent);
+      }
+      return cloned;
+    });
+  };
+
+  // 保存引用（需早于名称防抖使用）
+  const localSceneRef = useRef(localScene);
+  useEffect(() => {
+    localSceneRef.current = localScene;
+  }, [localScene]);
+
+  const handleNameChange = (val: string) => {
+    beginSelectionLock("editing-scene-name", 1200);
+    nameInputRef.current = val;
+    updateModuleTabLabel(scene.id!.toString(), val || "未命名");
+    optimisticUpdateEntityName(val || "未命名");
+    nameRef.current = val;
+    if (nameDebounceTimer.current) {
+      clearTimeout(nameDebounceTimer.current);
+    }
+    nameDebounceTimer.current = setTimeout(() => {
+      updateScene({ id: scene.id!, entityType: 3, entityInfo: localSceneRef.current, name: val }, {
+        onSuccess: () => {
+          endSelectionLock();
+        },
+        onError: () => endSelectionLock(),
+      });
+    }, 600);
+  };
+
+  // （重复的 localSceneRef 已移除）
 
   // 新增状态
   const [locations, setLocations] = useState<StageEntityResponse[]>([]);
@@ -258,11 +314,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     }
   }, [entities, scene.id, localScene]);
 
-  // 定时器的更新
-  const localSceneRef = useRef(localScene);
-  useEffect(() => {
-    localSceneRef.current = localScene;
-  }, [localScene]);
+  // 定时器的更新 (localSceneRef 已在前面声明并更新)
   const handleSave = () => {
     // 保存前开启一个短暂选中锁，防止保存期间异步刷新导致 tab 被切换
     if (scene.id != null) {
@@ -281,10 +333,10 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
       setIsTransitioning(false);
       setIsEditing(false);
       const oldName = scene.name;
-      const changed = false; // 不在编辑器内修改名称
+      const changed = false; // 名称单独通过 handleNameChange 修改
       // 先更新场景自身，成功后再同步地图引用及关闭标签
       updateScene(
-        { id: scene.id!, entityType: 3, entityInfo: localSceneRef.current, name: scene.name },
+        { id: scene.id!, entityType: 3, entityInfo: localSceneRef.current, name: nameRef.current || scene.name },
         {
           onSuccess: () => {
             if (changed && mapData) {
@@ -341,7 +393,26 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
         {/* 左侧标题区域 */}
         <div className="flex items-center gap-4 self-start md:self-auto">
           <div>
-            <h1 className="font-semibold text-2xl md:text-3xl my-2">{scene.name}</h1>
+            <div className="group relative max-w-full">
+              <input
+                type="text"
+                aria-label="编辑场景名称"
+                value={nameInputRef.current}
+                onChange={e => handleNameChange(e.target.value)}
+                onFocus={() => beginSelectionLock("editing-scene-name", 1500)}
+                onBlur={() => endSelectionLock()}
+                placeholder="输入场景名称"
+                title="点击编辑场景名称"
+                className="font-semibold text-2xl md:text-3xl my-2 bg-transparent outline-none w-full truncate px-1 -mx-1 border-b border-dashed border-transparent focus:border-primary/70 focus:bg-primary/5 hover:border-base-content/40 hover:bg-base-200/40 rounded-sm transition-colors caret-primary"
+                maxLength={60}
+              />
+              <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 group-focus-within:opacity-80 transition-opacity text-base-content/60 pr-1">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                </svg>
+              </span>
+            </div>
             <p className="text-base-content/60">
               {selectedTab === "description" && "场景描述"}
               {selectedTab === "tip" && "剧情详细"}

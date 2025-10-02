@@ -1,6 +1,6 @@
 import type { Route } from "./+types/create";
-import MainWork from "@/components/module/workPlace/MainWork";
-import Work from "@/components/module/workPlace/work";
+import MainWork from "@/components/create/workPlace/MainWork";
+import Work from "@/components/create/workPlace/work";
 import { useParams } from "react-router";
 
 export function meta(_args: Route.MetaArgs) {
