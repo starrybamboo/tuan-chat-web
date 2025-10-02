@@ -43,6 +43,56 @@ function InlineExpansionModule({ ability, setAbility, scheduleSave, basicDefault
   const basicKeys = Object.keys(basicDefaults || {});
   const abilityKeys = Object.keys(abilityDefaults || {});
 
+  // 处理数值输入，允许中间态("-", "", "-.", ".")，只在成为合法数字时写入数字并触发保存
+  const handleNumericInput = (label: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setAbility((prev: any) => {
+      const next = { ...prev };
+      // 允许的临时输入模式（不立即转为 number）
+      if (raw === "" || raw === "-" || raw === "." || raw === "-.") {
+        next[label] = raw; // 保持字符串形式
+        return next;
+      }
+      // 仅包含数字/一个可选的负号/一个可选的小数点的模式（逐字构建）
+      if (/^-?\d*(?:\.\d*)?$/.test(raw)) {
+        // 如果可以被正常解析为数字且不是仅有 '-' '.' 或 '-.' 的中间态
+        const parsed = Number(raw);
+        if (!Number.isNaN(parsed) && raw !== "-" && raw !== "." && raw !== "-.") {
+          next[label] = parsed;
+          scheduleSave();
+        }
+        else {
+          next[label] = raw; // 仍是中间态，保存字符串
+        }
+      }
+      // 其它非法输入忽略（保持原值）
+      return next;
+    });
+  };
+
+  // 失焦时如果仍是临时字符串，将其规范化为数字或清空
+  const commitNumericOnBlur = (label: string) => () => {
+    setAbility((prev: any) => {
+      const val = prev[label];
+      if (val === "" || val === undefined) {
+        return prev; // 空值不保存
+      }
+      if (typeof val === "string") {
+        const parsed = Number(val);
+        if (!Number.isNaN(parsed)) {
+          const next = { ...prev, [label]: parsed };
+          scheduleSave();
+          return next;
+        }
+        // 字符串但不能解析，忽略
+        return prev;
+      }
+      return prev;
+    });
+  };
+
+  const normalizeDisplay = (v: any) => (v === undefined || v === null ? "" : v);
+
   return (
     <div className="space-y-6">
       {/* 基础属性 Section */}
@@ -58,11 +108,15 @@ function InlineExpansionModule({ ability, setAbility, scheduleSave, basicDefault
                     <div className="font-medium text-sm truncate" title={label}>{label}</div>
                     <div className="flex items-center gap-2">
                       <input
-                        type="number"
-                        value={ability[label] ?? ""}
-                        onChange={(e) => {
-                          setAbility((prev: any) => ({ ...prev, [label]: Number(e.target.value) }));
-                          scheduleSave();
+                        type="text"
+                        inputMode="decimal"
+                        value={normalizeDisplay(ability[label])}
+                        onChange={handleNumericInput(label)}
+                        onBlur={commitNumericOnBlur(label)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            commitNumericOnBlur(label)();
+                          }
                         }}
                         className="input input-bordered input-sm w-20"
                       />
@@ -91,10 +145,14 @@ function InlineExpansionModule({ ability, setAbility, scheduleSave, basicDefault
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
-                        value={ability[label] ?? ""}
-                        onChange={(e) => {
-                          setAbility((prev: any) => ({ ...prev, [label]: Number(e.target.value) }));
-                          scheduleSave();
+                        inputMode="decimal"
+                        value={normalizeDisplay(ability[label])}
+                        onChange={handleNumericInput(label)}
+                        onBlur={commitNumericOnBlur(label)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            commitNumericOnBlur(label)();
+                          }
                         }}
                         className="input input-bordered input-sm w-20"
                       />
@@ -134,21 +192,22 @@ function InlineExpansionModule({ ability, setAbility, scheduleSave, basicDefault
         <div className="collapse-content">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {Object.entries(ability)
-              .filter(([key]) => !basicKeys.includes(key))
+              .filter(([key]) => !basicKeys.includes(key) && !abilityKeys.includes(key))
               .map(([key, value]) => (
                 <div key={key} className="card bg-base-100 shadow-sm p-3 border border-base-200">
                   <div className="flex justify-between items-center">
                     <div className="font-medium text-sm truncate" title={key}>{key}</div>
                     <div className="flex items-center gap-2">
                       <input
-                        type="number"
-                        value={value as number}
-                        onChange={(e) => {
-                          setAbility((prev: any) => ({
-                            ...prev,
-                            [key]: Number(e.target.value),
-                          }));
-                          scheduleSave();
+                        type="text"
+                        inputMode="decimal"
+                        value={normalizeDisplay(value)}
+                        onChange={handleNumericInput(key)}
+                        onBlur={commitNumericOnBlur(key)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            commitNumericOnBlur(key)();
+                          }
                         }}
                         className="input input-bordered input-sm w-20"
                       />
