@@ -3,6 +3,10 @@
 export function rawMarkdownToHtml(md: string): string {
   if (!md)
     return "";
+  try {
+    console.warn("[MD->HTML][rawMarkdownToHtml] input.length", md.length);
+  }
+  catch { /* ignore */ }
   // 统一换行
   const norm = md.replace(/\r\n?/g, "\n");
   const lines = norm.split(/\n/);
@@ -141,6 +145,10 @@ export function rawMarkdownToHtml(md: string): string {
 
   // 把空块压成段落分隔
   const html = blocks.map(b => b === "" ? "" : b).join("");
+  try {
+    console.warn("[MD->HTML][rawMarkdownToHtml] output.length", html.length);
+  }
+  catch { /* ignore */ }
   return html;
 }
 
@@ -148,7 +156,11 @@ export function rawMarkdownToHtml(md: string): string {
 export function markdownToHtmlWithEntities(md: string, entitiesMap: Record<string, string[]>): string {
   if (!md)
     return "";
-    // 先用 raw 转，再扫描 span 校验
+  try {
+    console.warn("[MD->HTML][markdownToHtmlWithEntities] input.length", md.length);
+  }
+  catch { /* ignore */ }
+  // 先用 raw 转，再扫描 span 校验
   const preliminary = rawMarkdownToHtml(md);
   if (!preliminary)
     return "";
@@ -170,5 +182,131 @@ export function markdownToHtmlWithEntities(md: string, entitiesMap: Record<strin
       span.parentNode?.replaceChild(textNode, span);
     }
   });
-  return container.innerHTML;
+  const out = container.innerHTML;
+  try {
+    console.warn("[MD->HTML][markdownToHtmlWithEntities] output.length", out.length);
+  }
+  catch { /* ignore */ }
+  return out;
+}
+
+/**
+ * 将 HTML 或纯文本中的 @类别名称 转成 span.ql-mention-span
+ */
+export function enhanceMentionsInHtml(raw: string, categories: string[] = ["人物", "地点", "物品"]): string {
+  if (!raw)
+    return "";
+  try {
+    console.warn("[MENTION][enhanceMentionsInHtml] input.length", raw.length);
+  }
+  catch { /* ignore */ }
+  if (typeof document === "undefined") {
+    const catAlt = categories.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+    const re = new RegExp(`@(${catAlt})([^\\s<>{}]+)`, "g");
+    return raw.replace(re, (_m, cat, name) => `<span class=\"ql-mention-span\" data-label=\"${name}\" data-category=\"${cat}\">${name}</span>`);
+  }
+  const container = document.createElement("div");
+  container.innerHTML = raw;
+  const catSet = new Set(categories);
+  const catAlt = categories.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  const mentionRe = new RegExp(`@(${catAlt})([^\s<>\u3000\u00A0\t\r\n]+)`, "g");
+  const skip = (n: Node | null): boolean => {
+    while (n) {
+      if (n instanceof HTMLElement) {
+        if (n.classList.contains("ql-code-block"))
+          return true;
+        const tag = n.tagName.toLowerCase();
+        if (tag === "code" || tag === "pre")
+          return true;
+        if (n.classList.contains("ql-mention-span"))
+          return true;
+      }
+      n = n.parentNode as (Node | null);
+    }
+    return false;
+  };
+  const walk = (node: Node) => {
+    if (node.nodeType === 3) {
+      if (skip(node.parentNode))
+        return;
+      const text = node.textContent || "";
+      if (!text.includes("@"))
+        return;
+      if (!mentionRe.test(text)) {
+        mentionRe.lastIndex = 0;
+        return;
+      }
+      mentionRe.lastIndex = 0;
+      const frag = document.createDocumentFragment();
+      let last = 0;
+      let m: RegExpExecArray | null = mentionRe.exec(text);
+      while (m) {
+        const full = m[0];
+        const cat = m[1];
+        const name = m[2];
+        if (m.index > last)
+          frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+        if (catSet.has(cat)) {
+          const span = document.createElement("span");
+          span.className = "ql-mention-span";
+          span.setAttribute("data-label", name);
+          span.setAttribute("data-category", cat);
+          span.textContent = name;
+          frag.appendChild(span);
+        }
+        else {
+          frag.appendChild(document.createTextNode(full));
+        }
+        last = m.index + full.length;
+        m = mentionRe.exec(text);
+      }
+      if (last < text.length)
+        frag.appendChild(document.createTextNode(text.slice(last)));
+      node.parentNode?.replaceChild(frag, node);
+      return;
+    }
+    if (node.nodeType === 1) {
+      const el = node as HTMLElement;
+      const tag = el.tagName.toLowerCase();
+      if (tag === "code" || tag === "pre" || el.classList.contains("ql-code-block"))
+        return;
+      Array.from(el.childNodes).forEach(c => walk(c));
+    }
+  };
+  Array.from(container.childNodes).forEach(c => walk(c));
+  const enhanced = container.innerHTML;
+  try {
+    console.warn("[MENTION][enhanceMentionsInHtml] replacedSpans", container.querySelectorAll("span.ql-mention-span").length);
+  }
+  catch { /* ignore */ }
+  return enhanced;
+}
+
+/**
+ * 后端内容 -> HTML（覆盖导入场景）
+ */
+export function backendContentToQuillHtml(content: string, format: "markdown" | "html" | "text" = "html"): string {
+  if (!content)
+    return "";
+  try {
+    console.warn("[IMPORT][backendContentToQuillHtml] start", { format, len: content.length });
+  }
+  catch { /* ignore */ }
+  let html: string;
+  if (format === "markdown") {
+    html = rawMarkdownToHtml(content);
+  }
+  else if (format === "text") {
+    const safe = content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    html = safe.split(/\r?\n/).map(l => l.trim() ? `<p>${l}</p>` : "").join("");
+  }
+  else {
+    html = content;
+  }
+  const finalHtml = enhanceMentionsInHtml(html);
+  try {
+    console.warn("[IMPORT][backendContentToQuillHtml] done", { finalLen: finalHtml.length });
+  }
+  catch { /* ignore */ }
+  return finalHtml;
 }

@@ -1,4 +1,4 @@
-import type { RoleResponse } from "api/models/RoleResponse";
+import type { UserRole } from "api";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useQueryClient } from "@tanstack/react-query";
@@ -102,10 +102,10 @@ export default function CreateRole({
   } = useGetInfiniteUserRolesQuery(userId ?? -1);
 
   // 转换角色数据格式
-  const convertRole = (role: RoleResponse): Role => ({
+  const convertRole = (role: UserRole): Role => ({
     id: role.roleId || 0,
     name: role.roleName || "",
-    description: role.description || "无描述",
+    description: role.description || "角色描述",
     avatar: "",
     avatarId: role.avatarId || 0,
     modelName: role.modelName || "",
@@ -183,7 +183,7 @@ export default function CreateRole({
     if (isSuccess) {
       loadRoles();
     }
-  }, [isSuccess]);
+  }, [isSuccess, loadRoles]);
 
   // 重置状态的函数
   const resetState = useCallback(() => {
