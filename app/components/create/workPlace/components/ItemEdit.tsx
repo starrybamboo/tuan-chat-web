@@ -15,7 +15,7 @@ interface ItemEditProps {
 
 export default function ItemEdit({ item }: ItemEditProps) {
   const entityInfo = useMemo(() => item.entityInfo || {}, [item.entityInfo]);
-  const { stageId, removeModuleTabItem, updateModuleTabLabel, beginSelectionLock, endSelectionLock } = useModuleContext();
+  const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock } = useModuleContext();
 
   const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(item => item.entityType === 3);
 
@@ -140,23 +140,11 @@ export default function ItemEdit({ item }: ItemEditProps) {
     setIsTransitioning(true);
     setTimeout(() => {
       setIsTransitioning(false);
-      const oldName = item.name;
-      const changed = false; // 名称单独通过 handleNameChange 修改
       // 先更新物品自身，成功后再同步引用与关闭标签
       updateItem(
         { id: item.id!, entityType: 1, entityInfo: localItemRef.current, name: nameRef.current || item.name },
         {
           onSuccess: () => {
-            if (changed) {
-              // 同步更新 scene 中引用的物品名
-              const newScenes = sceneEntities?.map((scene) => {
-                const newItems = scene.entityInfo?.items.map((it: string | undefined) => (it === oldName ? (nameRef.current || item.name) : it));
-                return { ...scene, entityInfo: { ...scene.entityInfo, items: newItems } };
-              });
-              newScenes?.forEach(scene => updateItem({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
-              // 最后移除标签
-              removeModuleTabItem(item.id!.toString());
-            }
             toast.success("保存成功");
           },
         },
