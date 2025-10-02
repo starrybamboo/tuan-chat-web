@@ -80,7 +80,7 @@ export function ResourceList({ type, isPublic, searchText: _searchText = "", sor
   }
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-6 min-h-[50vh] bg-base-100">
       {/* 资源网格 */}
       {resources.length === 0
         ? (

@@ -37,7 +37,7 @@ export function EmptyState({
   const defaultContent = getDefaultContent();
 
   return (
-    <div className="flex flex-col items-center justify-center h-64 text-base-content/60">
+    <div className="flex flex-col items-center justify-center min-h-[40vh] h-64 text-base-content/60 bg-base-100">
       <div className="text-6xl mb-4">{icon || defaultContent.icon}</div>
       <div className="text-lg font-medium mb-2">{title || defaultContent.title}</div>
       <div className="text-sm text-center max-w-sm">

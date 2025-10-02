@@ -76,7 +76,7 @@ export default function ResourcePage() {
   };
 
   return (
-    <div className="bg-base-100 relative">
+    <div className="bg-base-100 min-h-screen relative">
       {/* Header区域 */}
       <div className="bg-gradient-to-b from-cyan-500/5 to-transparent">
         <div className="max-w-6xl mx-auto px-4 py-12">
@@ -90,7 +90,7 @@ export default function ResourcePage() {
       </div>
 
       {/* 主要内容区域 */}
-      <div className="p-4 md:p-8">
+      <div className="p-4 md:p-8 bg-base-100">
         <div className="max-w-6xl mx-auto">
           {/* 标签栏 */}
           <div className="flex justify-center mb-6">
@@ -207,7 +207,7 @@ export default function ResourcePage() {
           <div className="divider mt-0 mb-8"></div>
 
           {/* 内容区域 */}
-          <div className="min-h-96">
+          <div className="min-h-[60vh] bg-base-100">
             {renderContent()}
           </div>
         </div>

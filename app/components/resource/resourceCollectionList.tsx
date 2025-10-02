@@ -119,7 +119,7 @@ export function ResourceCollectionList({ type, isPublic, searchText: _searchText
   }
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-6 min-h-[50vh] bg-base-100">
       {/* 集合网格 */}
       {collections.length === 0
         ? (
