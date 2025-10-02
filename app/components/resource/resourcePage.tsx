@@ -3,6 +3,7 @@ import { CreateCollectionModal } from "./CreateCollectionModal";
 import { ResourceCollectionList } from "./resourceCollectionList";
 import { ResourceList } from "./resourceList";
 import { UploadModal } from "./UploadModal";
+import { useResourcePageState } from "./useResourcePageState";
 
 type TabType = "myResources" | "myCollections" | "publicResources" | "publicCollections";
 
@@ -13,6 +14,9 @@ export default function ResourcePage() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
   const [_previousTab, setPreviousTab] = useState<TabType>("publicResources");
+
+  // 使用优化的状态管理hook
+  const { handleUploadSuccess, handleCreateCollectionSuccess } = useResourcePageState();
 
   const tabs: { key: TabType; label: string }[] = [
     { key: "publicResources", label: "公开素材" },
@@ -69,11 +73,6 @@ export default function ResourcePage() {
       default:
         return null;
     }
-  };
-
-  const handleUploadSuccess = () => {
-    // 刷新当前页面数据，这里可以通过context或者其他方式通知子组件刷新
-    window.location.reload();
   };
 
   return (
@@ -225,7 +224,7 @@ export default function ResourcePage() {
       <CreateCollectionModal
         isOpen={showCreateCollectionModal}
         onClose={() => setShowCreateCollectionModal(false)}
-        onSuccess={handleUploadSuccess}
+        onSuccess={handleCreateCollectionSuccess}
         resourceType={resourceType}
       />
 

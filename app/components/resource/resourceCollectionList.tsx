@@ -72,13 +72,7 @@ export function ResourceCollectionList({ type, isPublic, searchText: _searchText
       onSuccess: () => {
         toast.success("收藏列表更新成功");
         setSelectedCollection(updatedCollection);
-        // 刷新列表数据
-        if (isPublic) {
-          publicQuery.refetch();
-        }
-        else {
-          userQuery.refetch();
-        }
+        // 不需要手动refetch，mutation已经配置了缓存管理
       },
       onError: () => {
         toast.error("更新失败，请重试");
@@ -92,13 +86,7 @@ export function ResourceCollectionList({ type, isPublic, searchText: _searchText
         toast.success("收藏列表删除成功");
         setIsDetailModalOpen(false);
         setSelectedCollection(null);
-        // 刷新列表数据
-        if (isPublic) {
-          publicQuery.refetch();
-        }
-        else {
-          userQuery.refetch();
-        }
+        // 不需要手动refetch，mutation已经配置了缓存管理
       },
       onError: () => {
         toast.error("删除失败，请重试");

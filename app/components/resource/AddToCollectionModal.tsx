@@ -51,13 +51,22 @@ export function AddToCollectionModal({
         resourceIds,
       });
 
-      toast.success(`成功添加 ${resourceIds.length} 个资源到素材集`);
+      toast.success(`成功添加 ${resourceIds.length} 个资源到素材集`, {
+        duration: 4000,
+        icon: "✅",
+      });
+
+      // 添加成功后立即关闭弹窗
+      setSelectedCollectionId(null);
       onClose();
     }
     catch (error) {
       console.error("添加到素材集失败:", error);
       if (error instanceof ApiError) {
-        toast.error(error.body?.errMsg);
+        toast.error(error.body?.errMsg || "添加失败，请重试");
+      }
+      else {
+        toast.error("添加失败，请重试");
       }
     }
     finally {

@@ -31,7 +31,7 @@ export function ResourceList({ type, isPublic, searchText: _searchText = "", sor
     { enabled: !isPublic },
   );
 
-  const { data: resourcesData, isLoading, refetch } = isPublic ? publicQuery : userQuery;
+  const { data: resourcesData, isLoading } = isPublic ? publicQuery : userQuery;
 
   const deleteResourceMutation = useDeleteResourceMutation();
 
@@ -50,7 +50,7 @@ export function ResourceList({ type, isPublic, searchText: _searchText = "", sor
               try {
                 await deleteResourceMutation.mutateAsync(resourceId);
                 toast.success("删除成功");
-                refetch();
+                // 删除成功后不需要手动refetch，mutation已经配置了乐观更新和缓存管理
               }
               catch (error) {
                 console.error("删除失败:", error);
