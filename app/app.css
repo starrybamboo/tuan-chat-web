@@ -1,0 +1,109 @@
+@import "tailwindcss";
+@plugin "daisyui";
+@plugin "daisyui" {
+  themes: all;
+}
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  prefersdark: false;
+  color-scheme: "light";
+  --radius-selector: 0.5rem;
+  --radius-field: 1rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: "forest";
+  default: false;
+  prefersdark: true;
+  color-scheme: "dark";
+  --radius-selector: 0.5rem;
+  --radius-field: 1rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@custom-variant dark (&:where([data-theme=forest], [data-theme=forest] *));
+
+@theme {
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+    "Noto Color Emoji";
+}
+
+html,
+body {
+  @apply bg-white dark:bg-gray-950;
+
+  @media (prefers-color-scheme: dark) {
+    color-scheme: dark;
+  }
+}
+
+body {
+  width: 100vw;
+  max-height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* 全局缩放系数变量，用于优化移动端的组件大小*/
+@media (max-width: 768px) {
+  :root {
+    font-size: 15px; /* 基础缩放 (15/16=0.9375) */
+    --scale-factor: 0.9375;
+  }
+}
+@media (max-width: 480px) {
+  :root {
+    font-size: 14px; /* 基础缩放 (14/16=0.875) */
+    --scale-factor: 0.875;
+  }
+}
+
+.div-textarea:empty::before {
+  content: attr(data-placeholder);
+  opacity: 0.6;
+}
+
+@keyframes jump {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.jump_icon {
+  @apply hover:text-info hover:[animation:jump_0.4s_ease-in-out];
+}
+
+@keyframes highlight-fade-out {
+  from {
+    background-color: hsla(207, 90%, 54%, 0.4);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.highlight-animation {
+  border-radius: 0.5rem;
+  animation: highlight-fade-out 3s ease-out;
+}
+
+.hidden-scrollbar {
+  overflow-y: auto;
+  scrollbar-width: none;
+}

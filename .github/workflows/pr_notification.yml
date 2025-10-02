@@ -1,0 +1,146 @@
+name: PR Notification to Feishu
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [opened, reopened, synchronize]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Feishu Notification
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const crypto = require('crypto');
+            const https = require('https');
+            
+            // 飞书机器人的webhook ID (从URL中提取)
+            const webhookId = '4eb13c2e-cfbd-4e0a-959d-81035324c430';
+            const secret = '${{ secrets.FEISHU_SECRET }}';
+            
+            // 计算签名 - 修正为飞书API要求的格式
+            const timestamp = Math.floor(Date.now() / 1000);
+            const stringToSign = `${timestamp}\n${secret}`;
+            const sign = crypto.createHmac('sha256', stringToSign).digest('base64');
+            
+            console.log('Preparing PR notification payload');
+            
+            // 构建消息内容
+            const payload = {
+              timestamp: String(timestamp), // 转为字符串
+              sign: sign,
+              msg_type: "interactive",
+              card: {
+                config: {
+                  wide_screen_mode: true
+                },
+                header: {
+                  title: {
+                    tag: "plain_text",
+                    content: "🔔 收到新的PR请求"
+                  },
+                  template: "blue"
+                },
+                elements: [
+                  {
+                    tag: "div",
+                    text: {
+                      tag: "lark_md",
+                      content: `**PR标题**: ${context.payload.pull_request.title}`
+                    }
+                  },
+                  {
+                    tag: "div",
+                    text: {
+                      tag: "lark_md",
+                      content: `**创建者**: ${context.payload.pull_request.user.login}`
+                    }
+                  },
+                  {
+                    tag: "div",
+                    text: {
+                      tag: "lark_md",
+                      content: `**目标分支**: ${context.payload.pull_request.base.ref}`
+                    }
+                  },
+                  {
+                    tag: "div",
+                    text: {
+                      tag: "lark_md",
+                      content: `**源分支**: ${context.payload.pull_request.head.ref}`
+                    }
+                  },
+                  {
+                    tag: "div",
+                    text: {
+                      tag: "lark_md",
+                      content: `**状态**: ${context.payload.pull_request.state}`
+                    }
+                  },
+                  {
+                    tag: "action",
+                    actions: [
+                      {
+                        tag: "button",
+                        text: {
+                          tag: "plain_text",
+                          content: "查看PR详情"
+                        },
+                        url: context.payload.pull_request.html_url,
+                        type: "primary"
+                      }
+                    ]
+                  }
+                ]
+              }
+            };
+            
+            try {
+              console.log('Sending PR notification to Feishu');
+              
+              // 修正请求方式，按照示例代码
+              const postData = JSON.stringify(payload);
+              
+              return new Promise((resolve, reject) => {
+                const req = https.request({
+                  hostname: 'open.feishu.cn',
+                  port: 443,
+                  path: `/open-apis/bot/v2/hook/${webhookId}`,
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(postData)
+                  }
+                }, (res) => {
+                  let data = '';
+                  res.on('data', (chunk) => {
+                    data += chunk;
+                    process.stdout.write(chunk); // 直接输出响应数据
+                  });
+                  
+                  res.on('end', () => {
+                    console.log(`Feishu API response status: ${res.statusCode}`);
+                    console.log(`Feishu API response body: ${data}`);
+                    
+                    if (res.statusCode !== 200) {
+                      return reject(new Error(`Feishu API responded with status: ${res.statusCode}`));
+                    }
+                    console.log('Feishu notification sent successfully');
+                    resolve(data);
+                  });
+                });
+                
+                req.on('error', (error) => {
+                  console.error('Failed to send Feishu notification:', error.message);
+                  reject(error);
+                });
+                
+                req.write(postData);
+                req.end();
+              });
+            } catch (error) {
+              console.error('Failed to send Feishu notification:', error.message);
+              throw error;
+            }
