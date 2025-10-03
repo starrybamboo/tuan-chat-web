@@ -207,7 +207,7 @@ function InlineExpansionModule({ ability, setAbility, scheduleSave, basicDefault
         <div className="collapse-content">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {Object.entries(ability)
-              .filter(([key]) => !basicKeys.includes(key) && !abilityKeys.includes(key))
+              .filter(([key]) => !basicKeys.includes(key) && !abilityKeys.includes(key) && key !== "behavior")
               .map(([key, value]) => (
                 <div key={key} className="card bg-base-100 shadow-sm p-3 border border-base-200">
                   <div className="flex justify-between items-center">
