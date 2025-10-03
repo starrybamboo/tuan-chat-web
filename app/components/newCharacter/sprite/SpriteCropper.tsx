@@ -5,7 +5,7 @@ import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPrev
 import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
 import { canvasToBlob, getCroppedImageUrl } from "@/utils/CropperFunctions";
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/queryHooks";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
 import { AvatarPreview } from "./AvatarPreview";
 import { PerformanceMonitor } from "./PerformanceMonitor";
@@ -118,8 +118,34 @@ export function SpriteCropper({
   // 当前头像URL状态 - 用于头像模式下的实时预览
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState("");
 
+  // 添加渲染key用于强制重新渲染
+  const [renderKey, setRenderKey] = useState(0);
+
   // 使用displayTransform作为实际的transform
   const transform = displayTransform;
+
+  // 监听操作模式切换，重新绘制 Canvas
+  useEffect(() => {
+    if (completedCrop && imgRef.current && previewCanvasRef.current) {
+      const timeoutId = setTimeout(() => {
+        canvasPreview(
+          imgRef.current!,
+          previewCanvasRef.current!,
+          completedCrop,
+          1,
+          0,
+        );
+
+        if (isAvatarMode && previewCanvasRef.current) {
+          setCurrentAvatarUrl(previewCanvasRef.current.toDataURL());
+        }
+
+        setRenderKey(prev => prev + 1);
+      }); // 增加延迟，确保布局完全稳定
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [operationMode, completedCrop, isAvatarMode]);
 
   /**
    * 处理应用变换（单体模式）
@@ -301,10 +327,7 @@ export function SpriteCropper({
 
   /**
    * 将Img数据转换为Blob
-<<<<<<< HEAD
    * 使用 Web Worker 优化,将图像处理转移到后台线程
-=======
->>>>>>> da34d0cf425143e95dfdf1e2c3e3cfb2ce9be138
    */
   async function getCroppedImageBlobFromImg(img: HTMLImageElement): Promise<Blob> {
     if (!completedCrop) {
@@ -770,6 +793,7 @@ export function SpriteCropper({
               {isAvatarMode
                 ? (
                     <AvatarPreview
+                      key={`avatar-${renderKey}`}
                       previewCanvasRef={previewCanvasRef}
                       currentAvatarUrl={currentAvatarUrl}
                       characterName={characterName}
@@ -779,6 +803,7 @@ export function SpriteCropper({
                 : (
                     <>
                       <RenderPreview
+                        key={`render-${renderKey}`}
                         previewCanvasRef={previewCanvasRef}
                         transform={transform}
                         characterName={characterName}
