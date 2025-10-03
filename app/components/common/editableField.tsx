@@ -1,5 +1,5 @@
 import { useQueryState } from "@/components/common/customHooks/useQueryState";
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 
 interface EditableFieldProps {
   /** 显示的内容 */
@@ -31,6 +31,21 @@ export function EditableField({
   const [editContent, setEditContent] = useQueryState<string>(["editingMessageContent", fieldId], content, !!fieldId);
   const [cursorPosition, setCursorPosition] = useQueryState<number | null>(["editingMessageCursor", fieldId], null, !!fieldId);
 
+  // 使用 ref 来避免在编辑时被外部 content 更新干扰
+  const isEditingRef = useRef(isEditing);
+  useEffect(() => {
+    isEditingRef.current = isEditing;
+  }, [isEditing]);
+
+  // 只在开始编辑时同步外部 content 到 editContent
+  useEffect(() => {
+    if (isEditing && editContent !== content) {
+      // 如果刚进入编辑模式,同步外部内容
+      setEditContent(content);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing]); // 只依赖 isEditing,避免在编辑过程中被外部 content 更新干扰
+
   useEffect(() => {
     if (isEditing && cursorPosition !== null) {
       const element = textareaRef?.current;
@@ -40,27 +55,42 @@ export function EditableField({
       element?.setSelectionRange(cursorPosition, cursorPosition);
     }
   }, [isEditing, usingInput, cursorPosition]);
+
   const saveCursorPosition = (e: React.SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setCursorPosition(e.currentTarget.selectionStart);
   };
 
-  // 使用 useEffect 在内容变化时调整高度
-  useEffect(() => {
-    // 仅当处于编辑模式且 textarea 存在时执行
-    if (isEditing && !usingInput && textareaRef.current) {
+  // 使用回调函数来调整高度,避免在每次 editContent 变化时触发 effect
+  const adjustTextareaHeight = useCallback(() => {
+    if (textareaRef.current) {
       const textarea = textareaRef.current;
-      // 先重置高度，以正确计算缩小时的高度
       textarea.style.height = "auto";
-      // 将高度设置为内容所需的实际高度
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
-  }, [isEditing, usingInput, editContent]); // 依赖项包含 editContent，每次输入都会触发
+  }, []);
+
+  // 只在进入编辑模式时调整一次高度
+  useEffect(() => {
+    if (isEditing && !usingInput) {
+      adjustTextareaHeight();
+    }
+  }, [isEditing, usingInput, adjustTextareaHeight]);
 
   function handleDoubleClick() {
     if (canEdit) {
       setIsEditing(true);
     }
   }
+
+  // 处理内容变化,同时调整高度
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setEditContent(e.target.value);
+    // 立即调整高度而不是通过 useEffect
+    if (!usingInput) {
+      adjustTextareaHeight();
+    }
+  };
+
   return isEditing
     ? (
         usingInput
@@ -87,7 +117,7 @@ export function EditableField({
                 className={`${className} min-w-[18rem] sm:min-w-[26rem] bg-transparent p-2 border-0 border-base-300 rounded-[8px] w-full overflow-hidden resize-none`}
                 ref={textareaRef}
                 value={editContent}
-                onChange={e => setEditContent(e.target.value)}
+                onChange={handleChange}
                 onKeyUp={saveCursorPosition}
                 onClick={saveCursorPosition}
                 onKeyDown={(e) => {
