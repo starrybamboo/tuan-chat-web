@@ -8,8 +8,10 @@ import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransf
 import { useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
 import { AvatarPreview } from "./AvatarPreview";
+import { PerformanceMonitor } from "./PerformanceMonitor";
 import { RenderPreview } from "./RenderPreview";
 import { TransformControl } from "./TransformControl";
+import { useImageCropWorker } from "./useImageCropWorker";
 import { parseTransformFromAvatar } from "./utils";
 import "react-image-crop/dist/ReactCrop.css";
 
@@ -101,6 +103,9 @@ export function SpriteCropper({
   // 裁剪应用mutation hook - 根据模式选择合适的hook
   const applyCropMutation = useApplyCropMutation();
   const applyCropAvatarMutation = useApplyCropAvatarMutation();
+
+  // 使用 Worker 进行图像裁剪
+  const { cropImage } = useImageCropWorker();
 
   const [displayTransform, setDisplayTransform] = useState<Transform>(() => ({
     scale: 1,
@@ -296,6 +301,7 @@ export function SpriteCropper({
 
   /**
    * 将Img数据转换为Blob
+   * 使用 Web Worker 优化,将图像处理转移到后台线程
    */
   async function getCroppedImageBlobFromImg(img: HTMLImageElement): Promise<Blob> {
     if (!completedCrop) {
@@ -329,26 +335,38 @@ export function SpriteCropper({
     img.width = img.naturalWidth * scaleToCurrentDisplay;
     img.height = img.naturalHeight * scaleToCurrentDisplay;
 
-    // 直接用 OffscreenCanvas 作为输出
-    const scaleX = img.naturalWidth / img.width;
-    const scaleY = img.naturalHeight / img.height;
-    const outputCanvas = new OffscreenCanvas(
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
-    );
+    // 使用 Worker 在后台线程处理图像裁剪
+    try {
+      return await cropImage({
+        img,
+        crop: completedCrop,
+        scale: 1,
+        rotate: 0,
+      });
+    }
+    catch (error) {
+      console.error("Worker 裁剪失败，回退到主线程处理:", error);
 
-    // 直接用 canvasPreview 渲染到 OffscreenCanvas
-    await canvasPreview(
-      img,
-      outputCanvas,
-      completedCrop,
-      1,
-      0,
-    );
+      // 回退方案：在主线程使用 OffscreenCanvas
+      const scaleX = img.naturalWidth / img.width;
+      const scaleY = img.naturalHeight / img.height;
+      const outputCanvas = new OffscreenCanvas(
+        completedCrop.width * scaleX,
+        completedCrop.height * scaleY,
+      );
 
-    return await outputCanvas.convertToBlob({
-      type: "image/png",
-    });
+      await canvasPreview(
+        img,
+        outputCanvas,
+        completedCrop,
+        1,
+        0,
+      );
+
+      return await outputCanvas.convertToBlob({
+        type: "image/png",
+      });
+    }
   }
 
   /**
@@ -498,67 +516,100 @@ export function SpriteCropper({
 
   /**
    * 应用相同裁剪参数到所有头像/立绘
+   * 优化版本：并行处理 + 性能监控（基于 Performance API）
    */
   async function handleBatchCropAll() {
     if (!isMutiAvatars || !completedCrop)
       return;
 
+    const monitor = new PerformanceMonitor("批量裁剪");
+    monitor.start();
+
     try {
       setIsProcessing(true);
 
-      console.warn(`开始批量裁剪所有${isAvatarMode ? "头像(从立绘)" : "立绘"}`, {
-        avatarCount: filteredAvatars.length,
-        transform: isAvatarMode ? undefined : transform,
-      });
+      console.warn(`开始批量裁剪 ${filteredAvatars.length} 张${isAvatarMode ? "头像" : "立绘"}`);
 
-      // 为每个头像/立绘应用相同的裁剪参数并上传
-      for (let i = 0; i < filteredAvatars.length; i++) {
-        const avatar = filteredAvatars[i];
-        // 头像模式下从立绘裁剪头像，立绘模式下处理立绘
-        const imageUrl = avatar.spriteUrl;
-        if (!imageUrl || !avatar.avatarId)
-          continue;
+      // 阶段1：加载图片（用装饰器包装，不改变原逻辑）
+      const loadedImages = await monitor.measure("加载", async () => {
+        const imageLoadPromises = filteredAvatars.map(async (avatar, index) => {
+          const imageUrl = avatar.spriteUrl;
+          if (!imageUrl || !avatar.avatarId)
+            return null;
 
-        console.warn(`处理${isAvatarMode ? "头像" : "立绘"} ${i + 1}/${filteredAvatars.length}:`, avatar.avatarId);
+          console.warn(`加载 ${index + 1}/${filteredAvatars.length}`);
 
-        // 创建临时图片元素
-        const tempImg = new Image();
-        tempImg.crossOrigin = "anonymous";
+          const tempImg = new Image();
+          tempImg.crossOrigin = "anonymous";
 
-        await new Promise<void>((resolve, reject) => {
-          tempImg.onload = () => resolve();
-          tempImg.onerror = () => reject(new Error(`Failed to load image: ${imageUrl}`));
-          tempImg.src = imageUrl!;
+          await new Promise<void>((resolve, reject) => {
+            tempImg.onload = () => resolve();
+            tempImg.onerror = () => reject(new Error(`Failed to load: ${imageUrl}`));
+            tempImg.src = imageUrl!;
+          });
+
+          return { avatar, img: tempImg, index };
         });
 
-        // 使用通用函数获取裁剪结果的dataUrl（用于UI显示）
-        const croppedBlob = await getCroppedImageBlobFromImg(tempImg);
+        return (await Promise.all(imageLoadPromises)).filter(Boolean);
+      });
 
-        // 检查必要字段
-        if (!avatar.roleId) {
-          console.error(`${isAvatarMode ? "头像" : "立绘"} ${i + 1} 缺少roleId，跳过处理`);
-          continue;
-        }
+      // 阶段2：裁剪图片
+      const croppedResults = await monitor.measure("裁剪", async () => {
+        const cropPromises = loadedImages.map(async (item: any) => {
+          if (!item)
+            return null;
 
-        // 根据模式上传裁剪后的图片并更新头像记录
-        if (isAvatarMode) {
-          await applyCropAvatarMutation.mutateAsync({
-            roleId: avatar.roleId,
-            avatarId: avatar.avatarId,
-            croppedImageBlob: croppedBlob,
-            currentAvatar: avatar,
-          });
-        }
-        else {
-          await applyCropMutation.mutateAsync({
-            roleId: avatar.roleId,
-            avatarId: avatar.avatarId,
-            croppedImageBlob: croppedBlob,
-            transform, // 立绘模式同时应用当前的transform设置
-            currentAvatar: avatar,
-          });
-        }
-      }
+          try {
+            const croppedBlob = await getCroppedImageBlobFromImg(item.img);
+            return { ...item, croppedBlob };
+          }
+          catch (error) {
+            console.error(`裁剪失败 (${item.index + 1}):`, error);
+            return null;
+          }
+        });
+
+        return (await Promise.all(cropPromises)).filter(Boolean);
+      });
+
+      // 阶段3：上传结果
+      await monitor.measure("上传", async () => {
+        const uploadPromises = croppedResults.map(async (item: any, idx: number) => {
+          if (!item || !item.avatar.roleId)
+            return null;
+
+          try {
+            if (isAvatarMode) {
+              await applyCropAvatarMutation.mutateAsync({
+                roleId: item.avatar.roleId,
+                avatarId: item.avatar.avatarId!,
+                croppedImageBlob: item.croppedBlob,
+                currentAvatar: item.avatar,
+              });
+            }
+            else {
+              await applyCropMutation.mutateAsync({
+                roleId: item.avatar.roleId,
+                avatarId: item.avatar.avatarId!,
+                croppedImageBlob: item.croppedBlob,
+                transform,
+                currentAvatar: item.avatar,
+              });
+            }
+            console.warn(`上传完成 (${idx + 1}/${croppedResults.length})`);
+            return true;
+          }
+          catch (error) {
+            console.error(`上传失败 (${idx + 1}):`, error);
+            return false;
+          }
+        });
+
+        await Promise.all(uploadPromises);
+      });
+
+      monitor.printReport(filteredAvatars.length);
     }
     catch (error) {
       console.error("批量裁剪失败:", error);
