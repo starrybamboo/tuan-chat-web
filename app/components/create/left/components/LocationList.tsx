@@ -49,7 +49,7 @@ export function LocationListItem({
           alt="location"
           style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
         />
-        <div className="flex flex-col min-w-0">
+        <div className="flex flex-col min-w-0 truncate">
           <p className="text-sm font-medium truncate">{name}</p>
           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{location.entityInfo?.description}</p>
         </div>

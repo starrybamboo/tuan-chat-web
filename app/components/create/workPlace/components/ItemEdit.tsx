@@ -151,12 +151,6 @@ export default function ItemEdit({ item }: ItemEditProps) {
       );
     }, 300);
   };
-
-  // 对外注册保存函数（保持稳定引用，避免 effect 依赖 handleSave）
-  const saveRef = useRef<() => void>(() => {});
-  useLayoutEffect(() => {
-    saveRef.current = handleSave;
-  });
   const generateUniqueFileName = (name: string): string => {
     const timestamp = Date.now();
     return `itemModule-${name}-${timestamp}`;
