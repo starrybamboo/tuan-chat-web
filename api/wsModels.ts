@@ -368,3 +368,14 @@ export interface ChatStatusEvent {
     windowId?: string; // 可选的窗口标识符，用于区分多窗口环境下的状态更新
 }
 
+/**
+ * 房间扩展信息(extra)变动事件。
+ * Corresponds to message type 15.
+ */
+export interface RoomExtraChangeEvent {
+    roomId: number; // 房间ID
+    type: number;   // 变更类型 (1:更新/新增, 2:删除)
+    key: string;    // 变更内容的键名
+}
+
+

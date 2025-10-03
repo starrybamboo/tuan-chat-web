@@ -10,8 +10,7 @@ import type {
   ChatStatusEvent,
   ChatStatusType,
   DirectMessageEvent,
-  MemberChangePush, RoleChangePush,
-  RoomExtraChangeEvent
+  MemberChangePush, RoleChangePush, RoomExtraChangeEvent,
 } from "./wsModels";
 import {tuanchat} from "./instance";
 import {
