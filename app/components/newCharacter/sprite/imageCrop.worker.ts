@@ -5,6 +5,7 @@
 
 import type { PixelCrop } from "react-image-crop";
 
+console.warn("worker loaded");
 const TO_RADIANS = Math.PI / 180;
 
 type CropMessage = {
