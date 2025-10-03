@@ -1,12 +1,14 @@
+import type { ClueMessage } from "api/models/ClueMessage";
 import { PopWindow } from "@/components/common/popWindow";
 import { useGetUserRoomsQuery } from "api/hooks/chatQueryHooks";
 import { useGetRoomItemsQuery, useGetRoomLocationsQuery } from "api/hooks/spaceModuleHooks";
 import { use, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import DisplayOfItemDetail from "../displayOfItemsDetail";
 import DisplayOfLocationDetail from "../displayOfLocationDetail";
 import { RoomContext } from "../roomContext";
 
-export default function ClueList() {
+export default function ClueList({ onSend }: { onSend: (clue: ClueMessage) => void }) {
   const { spaceId } = use(RoomContext);
   const userRoomQuery = useGetUserRoomsQuery(spaceId ?? -1);
   const rooms = useMemo(
@@ -29,6 +31,13 @@ export default function ClueList() {
 
   const [selectedItemId, setSelectedItemId] = useState<number>(-1);
   const [selectedLocationId, setSelectedLocationId] = useState<number>(-1);
+
+  const handleSend = (clue: ClueMessage) => {
+    onSend(clue);
+    setSelectedItemId(-1);
+    setSelectedLocationId(-1);
+    toast("发送成功");
+  };
 
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const toggleSection = (sectionId: string) => {
@@ -225,18 +234,20 @@ export default function ClueList() {
       <PopWindow
         isOpen={selectedItemId > 0}
         onClose={() => setSelectedItemId(-1)}
+        hiddenScrollbar={true}
       >
         {selectedItemId && (
-          <DisplayOfItemDetail itemId={selectedItemId} />
+          <DisplayOfItemDetail itemId={selectedItemId} onSend={handleSend} />
         )}
       </PopWindow>
       {/* 地点详情窗口 */}
       <PopWindow
         isOpen={selectedLocationId > 0}
         onClose={() => setSelectedLocationId(-1)}
+        hiddenScrollbar={true}
       >
         {selectedLocationId && (
-          <DisplayOfLocationDetail locationId={selectedLocationId} />
+          <DisplayOfLocationDetail locationId={selectedLocationId} onSend={handleSend} />
         )}
       </PopWindow>
     </div>

@@ -1,8 +1,8 @@
 import type { StageEntityResponse } from "api";
-import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
-import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useAddEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useMemo, useState } from "react";
+import { useModuleContext } from "../../workPlace/context/_moduleContext";
+import { ModuleItemEnum } from "../../workPlace/context/types";
 import SceneList from "./SceneList";
 
 // 重构后的地图模块：挂载即打开地图标签，并包含剧情管理功能
@@ -13,9 +13,8 @@ export default function MapModule({ stageId }: { stageId: number }) {
   const { mutate: addScene } = useAddEntityMutation(3);
   const { mutate: updateMap } = useUpdateEntityMutation(stageId);
 
-  // 剧情搜索和删除模式状态
+  // 剧情搜索状态
   const [searchQuery, setSearchQuery] = useState("");
-  const [deleteMode, setDeleteMode] = useState(false);
 
   // 获取实体数据并分类
   const entities = useMemo(() => data?.data ?? [], [data]);
@@ -140,16 +139,6 @@ export default function MapModule({ stageId }: { stageId: number }) {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className={`btn btn-error btn-sm ${deleteMode ? "btn-active" : ""}`}
-            onClick={() => setDeleteMode(v => !v)}
-            aria-pressed={deleteMode}
-            aria-label="删除模式切换"
-            title={deleteMode ? "退出删除模式" : "进入删除模式"}
-          >
-            {deleteMode ? "退出删除模式" : "进入删除模式"}
-          </button>
-          <button
-            type="button"
             className="btn btn-primary btn-sm"
             onClick={handleCreateScene}
             aria-label="新建剧情"
@@ -164,7 +153,6 @@ export default function MapModule({ stageId }: { stageId: number }) {
         <SceneList
           stageId={stageId}
           searchQuery={searchQuery}
-          deleteMode={deleteMode}
           showCreateButton={false}
         />
       </div>

@@ -1,9 +1,9 @@
 import type { StageEntityResponse } from "api";
 import RoleAvatar from "@/components/common/roleAvatar";
-import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
-import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useRef, useState } from "react";
+import { useModuleContext } from "../../workPlace/context/_moduleContext";
+import { ModuleItemEnum } from "../../workPlace/context/types";
 
 // 角色表单项
 function RoleListItem(
@@ -73,7 +73,7 @@ function RoleListItem(
         /> */}
         <RoleAvatar avatarId={role.entityInfo!.avatarId || (role.entityInfo!.avatarIds && role.entityInfo!.avatarIds.length > 0 ? role.entityInfo!.avatarIds[0] : 0)} width={10} isRounded={true} stopPopWindow={true} />
 
-        <div className="flex flex-col min-w-0">
+        <div className="flex flex-col min-w-0 truncate">
           {isRenaming
             ? (
                 <input

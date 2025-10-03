@@ -4,7 +4,7 @@ const TO_RADIANS = Math.PI / 180;
 
 export async function canvasPreview(
   image: HTMLImageElement,
-  canvas: HTMLCanvasElement,
+  canvas: HTMLCanvasElement | OffscreenCanvas,
   crop: PixelCrop,
   scale = 1,
   rotate = 0,

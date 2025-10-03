@@ -1,102 +1,33 @@
 import type { StageEntityResponse } from "api";
-import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
-import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { useModuleContext } from "../../workPlace/context/_moduleContext";
+import { ModuleItemEnum } from "../../workPlace/context/types";
 
 // 场景表单项
 function SceneListItem(
-  { scene, name, isSelected, onClick, onDelete, onRename, deleteMode }: {
+  { scene, name, isSelected, onClick, onDelete, deleteMode }: {
     scene: StageEntityResponse;
     name: string;
     isSelected: boolean;
     onClick?: () => void;
     onDelete?: () => void;
-    onRename?: (nextName: string) => void;
     deleteMode?: boolean;
   },
 ) {
   const [confirming, setConfirming] = useState(false);
-  const [isRenaming, setIsRenaming] = useState(false);
-  const [draftName, setDraftName] = useState(name);
-  const [showMenu, setShowMenu] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (isRenaming && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isRenaming]);
-
-  const commitRename = () => {
-    const next = draftName.trim();
-    setIsRenaming(false);
-    setShowMenu(false);
-    if (next && next !== name) {
-      onRename?.(next);
-    }
-  };
   return (
     <div
       className={`group relative w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""}`}
       onClick={onClick}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setShowMenu(true);
-      }}
     >
       {/* 左侧内容 */}
       <div className="flex items-center gap-2 min-w-0">
-        <div className="flex flex-col min-w-0">
-          {isRenaming
-            ? (
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={draftName}
-                  onChange={e => setDraftName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      commitRename();
-                    }
-                    if (e.key === "Escape") {
-                      setIsRenaming(false);
-                      setShowMenu(false);
-                      setDraftName(name);
-                    }
-                  }}
-                  onBlur={commitRename}
-                  className="input input-bordered input-xs w-40"
-                />
-              )
-            : (
-                <p className="text-sm font-medium truncate">{name}</p>
-              )}
+        <div className="flex flex-col min-w-0 truncate">
+          <p className="text-sm font-medium">{name}</p>
           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{scene.entityInfo!.description}</p>
         </div>
       </div>
-
-      {/* 右键菜单 */}
-      {showMenu && (
-        <div
-          className="absolute right-2 top-2 z-20 bg-base-100 shadow rounded border"
-          onClick={e => e.stopPropagation()}
-          onMouseLeave={() => setShowMenu(false)}
-        >
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs w-full"
-            onClick={() => {
-              setDraftName(name);
-              setIsRenaming(true);
-              setShowMenu(false);
-            }}
-          >
-            编辑
-          </button>
-        </div>
-      )}
 
       {/* 右侧按钮（删除/确认） */}
       <div className="flex items-center gap-1">
@@ -180,7 +111,7 @@ function SceneListItem(
 }
 
 export default function SceneList({ stageId, searchQuery: controlledQuery, deleteMode }: { stageId: number; searchQuery?: string; deleteMode?: boolean; showCreateButton?: boolean }) {
-  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem, updateModuleTabLabel, updateModuleTabContentName } = useModuleContext();
+  const { pushModuleTabItem, setCurrentSelectedTabId, currentSelectedTabId, removeModuleTabItem } = useModuleContext();
   const handleClick = (scene: StageEntityResponse) => {
     pushModuleTabItem({
       id: scene.id!.toString(),
@@ -201,8 +132,7 @@ export default function SceneList({ stageId, searchQuery: controlledQuery, delet
   const effectiveQuery = (controlledQuery ?? searchQuery).toLowerCase();
 
   // 根据搜索查询过滤列表，并按 id 升序稳定排序
-  const [renameMap, setRenameMap] = useState<Record<string, string>>({});
-  const filteredList = list?.filter(i => ((renameMap[i.id!.toString()] ?? i.name) || "").toLowerCase().includes(effectiveQuery));
+  const filteredList = list?.filter(i => ((i.name) || "").toLowerCase().includes(effectiveQuery));
   const sortedList = filteredList?.slice().sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
 
   // 同步到地图
@@ -243,31 +173,8 @@ export default function SceneList({ stageId, searchQuery: controlledQuery, delet
               <SceneListItem
                 key={i!.id!.toString()}
                 scene={i!}
-                name={(renameMap[i!.id!.toString()] ?? i!.name) || "未命名"}
+                name={i!.name || "未命名"}
                 deleteMode={deleteMode}
-                onRename={(nextName) => {
-                  const oldName = i!.name!;
-                  setRenameMap(prev => ({ ...prev, [i!.id!.toString()]: nextName }));
-                  updateModuleTabLabel(i!.id!.toString(), nextName);
-                  updateModuleTabContentName(i!.id!.toString(), nextName);
-                  if (mapData) {
-                    const oldMap = mapData?.entityInfo?.sceneMap || {};
-                    const newMap: Record<string, any> = {};
-                    Object.entries(oldMap).forEach(([key, value]) => {
-                      const keyToUse = key === oldName ? nextName : key;
-                      if (Array.isArray(value)) {
-                        const replaced = value.map(v => v === oldName ? nextName : v);
-                        newMap[keyToUse] = replaced;
-                      }
-                      else {
-                        newMap[keyToUse] = value === oldName ? nextName : value;
-                      }
-                    });
-                    updateMap({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
-                  }
-                  // 更新场景自身名称
-                  updateMap({ id: i!.id!, entityType: 3, entityInfo: i!.entityInfo!, name: nextName });
-                }}
                 onDelete={() => {
                   removeModuleTabItem(i.id!.toString());
                   if (mapData) {

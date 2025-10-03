@@ -3,6 +3,7 @@ import type { Crop, PixelCrop } from "react-image-crop";
 import type { Transform } from "./TransformControl";
 import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
 import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
+import { canvasToBlob, getCroppedImageUrl } from "@/utils/CropperFunctions";
 import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransformMutation } from "api/queryHooks";
 import { useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
@@ -295,32 +296,19 @@ export function SpriteCropper({
   }
 
   /**
-   * 将canvas数据转换为Blob
+   * 将Img数据转换为Blob
    */
-  async function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
-    return new Promise((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (blob) {
-          resolve(blob);
-        }
-        else {
-          reject(new Error("Failed to convert canvas to blob"));
-        }
-      }, "image/png", 0.9);
-    });
-  }
-
-  /**
-   * 获取指定图片的裁剪结果（通用函数）
-   */
-  async function getCroppedImageFromImg(img: HTMLImageElement): Promise<string> {
+  async function getCroppedImageBlobFromImg(img: HTMLImageElement): Promise<Blob> {
     if (!completedCrop) {
       throw new Error("No completed crop");
     }
 
     // 如果是当前显示的图片，直接使用现有的处理逻辑
     if (imgRef.current && img.src === imgRef.current.src) {
-      return await getCroppedImageDataUrl();
+      // 直接用预览canvas导出blob
+      if (!previewCanvasRef.current)
+        throw new Error("No preview canvas");
+      return await canvasToBlob(previewCanvasRef.current);
     }
 
     // 对于其他图片，确保尺寸和当前图片一致
@@ -342,49 +330,34 @@ export function SpriteCropper({
     img.width = img.naturalWidth * scaleToCurrentDisplay;
     img.height = img.naturalHeight * scaleToCurrentDisplay;
 
-    // 创建临时预览canvas
-    const tempPreviewCanvas = document.createElement("canvas");
+    // 直接用 OffscreenCanvas 作为输出
+    const scaleX = img.naturalWidth / img.width;
+    const scaleY = img.naturalHeight / img.height;
+    const outputCanvas = new OffscreenCanvas(
+      completedCrop.width * scaleX,
+      completedCrop.height * scaleY,
+    );
 
-    // 使用canvasPreview处理图片（和当前预览完全相同的逻辑）
+    // 直接用 canvasPreview 渲染到 OffscreenCanvas
     await canvasPreview(
       img,
-      tempPreviewCanvas,
+      outputCanvas,
       completedCrop,
       1,
       0,
     );
 
-    // 创建最终输出canvas
-    const scaleX = img.naturalWidth / img.width;
-    const scaleY = img.naturalHeight / img.height;
-
-    const outputCanvas = new OffscreenCanvas(
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
-    );
-    const outputCtx = outputCanvas.getContext("2d");
-    if (!outputCtx) {
-      throw new Error("No 2d context");
-    }
-
-    // 将预览canvas的内容复制到输出canvas
-    outputCtx.drawImage(
-      tempPreviewCanvas,
-      0,
-      0,
-      tempPreviewCanvas.width,
-      tempPreviewCanvas.height,
-      0,
-      0,
-      outputCanvas.width,
-      outputCanvas.height,
-    );
-
-    const blob = await outputCanvas.convertToBlob({
+    return await outputCanvas.convertToBlob({
       type: "image/png",
     });
+  }
 
-    return new Promise<string>((resolve) => {
+  /**
+   * 获取指定图片的裁剪结果（通用函数）
+   */
+  async function getCroppedImageUrlFromImg(img: HTMLImageElement): Promise<string> {
+    const blob = await getCroppedImageBlobFromImg(img);
+    return await new Promise<string>((resolve) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.readAsDataURL(blob);
@@ -433,40 +406,7 @@ export function SpriteCropper({
     if (!image || !previewCanvas || !completedCrop) {
       throw new Error("Crop canvas does not exist");
     }
-
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-
-    const offscreen = new OffscreenCanvas(
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
-    );
-    const ctx = offscreen.getContext("2d");
-    if (!ctx) {
-      throw new Error("No 2d context");
-    }
-
-    ctx.drawImage(
-      previewCanvas,
-      0,
-      0,
-      previewCanvas.width,
-      previewCanvas.height,
-      0,
-      0,
-      offscreen.width,
-      offscreen.height,
-    );
-
-    const blob = await offscreen.convertToBlob({
-      type: "image/png",
-    });
-
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.readAsDataURL(blob);
-    });
+    return await getCroppedImageUrl(image, previewCanvas, completedCrop);
   }
 
   /**
@@ -613,9 +553,7 @@ export function SpriteCropper({
 
         const cropPromises = loadedImages.map(async ({ avatar, img }, i) => {
           // 裁剪图片并转换为Blob
-          const dataUrl = await getCroppedImageFromImg(img);
-          const response = await fetch(dataUrl);
-          const blob = await response.blob();
+          const blob = await getCroppedImageBlobFromImg(img);
 
           console.warn(`  ✓ 裁剪完成 ${i + 1}/${loadedImages.length}: ${avatar.avatarId}`);
           return { avatar, blob };
@@ -702,7 +640,7 @@ export function SpriteCropper({
         });
 
         // 使用通用函数获取裁剪结果
-        const dataUrl = await getCroppedImageFromImg(tempImg);
+        const dataUrl = await getCroppedImageUrlFromImg(tempImg);
 
         // 下载当前头像/立绘
         const a = document.createElement("a");
@@ -779,7 +717,7 @@ export function SpriteCropper({
         </div>
       )}
 
-      {isMutiAvatars && <div className="divider my-0"></div>}
+      {isMutiAvatars && filteredAvatars.length > 1 && <div className="divider my-0"></div>}
 
       <div className="flex flex-col lg:flex-row gap-8 justify-center">
         {/* 左侧：原始图片裁剪区域 */}

@@ -19,14 +19,14 @@ const ABILITY_MAP: { [key: string]: string } = {
   cm: "克苏鲁神话",
 };
 
-const ruleCoc = new RuleNameSpace(
+const executorCoc = new RuleNameSpace(
   0,
   "coc7",
   ["coc", "coc7th"],
   "COC7版规则的指令集",
 );
 
-export default ruleCoc;
+export default executorCoc;
 
 const cmdRc = new CommandExecutor(
   "rc",
@@ -123,7 +123,7 @@ const cmdRc = new CommandExecutor(
     return true;
   },
 );
-ruleCoc.addCmd(cmdRc);
+executorCoc.addCmd(cmdRc);
 
 /**
  * 带奖励骰和惩罚骰的检定掷骰
@@ -287,7 +287,7 @@ const cmdSc = new CommandExecutor(
     return true;
   },
 );
-ruleCoc.addCmd(cmdSc);
+executorCoc.addCmd(cmdSc);
 
 const cmdTi = new CommandExecutor(
   "ti",
@@ -332,7 +332,7 @@ const cmdTi = new CommandExecutor(
     return true;
   },
 );
-ruleCoc.addCmd(cmdTi);
+executorCoc.addCmd(cmdTi);
 
 const cmdLi = new CommandExecutor(
   "li",
@@ -383,4 +383,4 @@ const cmdLi = new CommandExecutor(
     return true;
   },
 );
-ruleCoc.addCmd(cmdLi);
+executorCoc.addCmd(cmdLi);

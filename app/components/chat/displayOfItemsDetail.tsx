@@ -1,3 +1,4 @@
+import type { ClueMessage } from "api/models/ClueMessage";
 import { useModuleItemDetailQuery } from "api/hooks/moduleQueryHooks";
 
 interface EntityInfo {
@@ -12,7 +13,7 @@ interface StageEntityResponse {
   entityInfo?: EntityInfo;
 }
 
-function DisplayOfItemDetail({ itemId }: { itemId: number }) {
+function DisplayOfItemDetail({ itemId, onSend }: { itemId: number; onSend: (clue: ClueMessage) => void }) {
   const { data, isLoading, isError } = useModuleItemDetailQuery(itemId);
 
   const item = (data ?? [])[0] as StageEntityResponse | undefined;
@@ -29,12 +30,18 @@ function DisplayOfItemDetail({ itemId }: { itemId: number }) {
   const { name } = item;
   const { description, image, tip } = entityInfo;
 
+  const clueMessage: ClueMessage = {
+    img: image ?? "",
+    name: name ?? "",
+    description: description ?? "",
+  };
+
   return (
     <div className="max-w-md w-full mx-auto mt-6 bg-neutral-50 dark:bg-neutral-800 rounded-xl shadow-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
       {/* 头部区域 */}
       <div className="p-5 border-b border-neutral-200 dark:border-neutral-700">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-lg flex items-center justify-center bg-neutral-100 dark:bg-neutral-700 overflow-hidden">
+          <div className="w-16 h-16 rounded-lg flex items-center justify-center bg-neutral-100 dark:bg-neutral-700 overflow-hidden flex-shrink-0">
             {image
               ? (
                   <img
@@ -49,7 +56,16 @@ function DisplayOfItemDetail({ itemId }: { itemId: number }) {
                   </span>
                 )}
           </div>
-          <h2 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100">{name ?? "未命名物品"}</h2>
+          <h2 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100 flex-grow">
+            {name ?? "未命名物品"}
+          </h2>
+          <button
+            type="button"
+            className="btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg rounded-md transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0"
+            onClick={() => onSend(clueMessage)}
+          >
+            公布
+          </button>
         </div>
       </div>
 
