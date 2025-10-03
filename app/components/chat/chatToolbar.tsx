@@ -49,17 +49,16 @@ export function ChatToolbar({
     <div className="flex pr-1 pl-2 justify-between ">
       <div className="flex gap-2">
         {/* 聊天状态选择器 */}
-        <div className="dropdown dropdown-top">
-          <div
-            role="button"
-            tabIndex={1}
-            className="min-w-0"
+        <details className="dropdown dropdown-top">
+          <summary
+            tabIndex={0}
+            className="min-w-0 cursor-pointer list-none"
           >
             <div
               className="tooltip"
               data-tip="当前状态"
             >
-              <div className="px-2 h-7 rounded-md border border-base-300 flex items-center text-xs cursor-pointer select-none gap-1 hover:border-info">
+              <div className="px-2 h-7 rounded-md border border-base-300 flex items-center text-xs select-none gap-1 hover:border-info">
                 <span
                   className={
                     currentChatStatus === "input"
@@ -77,9 +76,9 @@ export function ChatToolbar({
                 <svg xmlns="http://www.w3.org/2000/svg" className="size-3 opacity-60" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.173l3.71-3.942a.75.75 0 111.08 1.04l-4.25 4.516a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
               </div>
             </div>
-          </div>
+          </summary>
           <ul
-            tabIndex={1}
+            tabIndex={0}
             className="dropdown-content menu bg-base-100 rounded-box z-10 w-36 p-2 shadow-md border border-base-200 gap-1 text-sm"
           >
             {[
@@ -89,22 +88,29 @@ export function ChatToolbar({
               { value: "leave", label: "暂离", desc: "临时离开" },
             ].map(item => (
               <li key={item.value}>
-                <a
+                <button
+                  type="button"
                   className={`flex flex-col gap-0.5 py-1 ${currentChatStatus === item.value ? "active bg-base-200" : ""}`}
                   onClick={(e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     if (item.value !== currentChatStatus) {
                       onChangeChatStatus(item.value as any);
+                    }
+                    // 关闭 dropdown
+                    const details = (e.currentTarget as HTMLElement).closest("details");
+                    if (details) {
+                      details.removeAttribute("open");
                     }
                   }}
                 >
                   <span className="leading-none">{item.label}</span>
                   <span className="text-[10px] opacity-60 leading-none">{item.desc}</span>
-                </a>
+                </button>
               </li>
             ))}
           </ul>
-        </div>
+        </details>
         {/* 发送表情 */}
         <div className="dropdown dropdown-top">
           <div role="button" tabIndex={2} className="">

@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from "@xyflow/react";
 import type { StageEntityResponse } from "api";
+import SceneNode from "@/components/module/detail/ContentTab/scene/react flow/NewSceneNode";
 import {
   addEdge,
   applyEdgeChanges,
@@ -15,7 +16,6 @@ import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/module
 import dagre from "dagre";
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import SceneNode from "../../detail/ContentTab/scene/react flow/NewSceneNode";
 import { useModuleContext } from "../context/_moduleContext";
 import SceneEdit from "./SceneEdit";
 import "@xyflow/react/dist/style.css";
@@ -24,7 +24,7 @@ const nodeTypes = {
   mapEditNode: SceneNode,
 };
 
-export default function MapEdit({ map, onRegisterSave }: { map: StageEntityResponse; onRegisterSave?: (fn: () => void) => void }) {
+export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterSave?: (fn: () => void) => void }) {
   const { stageId } = useModuleContext();
   // 接入接口
   const { data, isLoading, error } = useQueryEntitiesQuery(stageId as number);
@@ -173,17 +173,6 @@ export default function MapEdit({ map, onRegisterSave }: { map: StageEntityRespo
 
     edgeReconnectSuccessful.current = true;
   }, [map, updateMap]);
-
-  // Map 编辑操作已即时保存；仍向父组件注册一个空保存函数，保证全局保存按钮可用
-  const saveRef = useRef<() => void>(() => {});
-  useEffect(() => {
-    saveRef.current = () => {
-      // no-op: MapEdit uses immediate saves on changes
-    };
-  });
-  useEffect(() => {
-    onRegisterSave?.(() => saveRef.current());
-  }, [onRegisterSave]);
 
   // 处理重连操作
   const onEdgesReconnect = useCallback((oldEdge: Edge, newConnection: Connection) => {

@@ -1,5 +1,5 @@
-import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
-import { ModuleListEnum } from "@/components/module/workPlace/context/types";
+import { useModuleContext } from "../workPlace/context/_moduleContext";
+import { ModuleListEnum } from "../workPlace/context/types";
 import MapModule from "./components/MapModule";
 import ModuleBasicInfo from "./components/ModuleBasicInfo";
 import ModuleItems from "./moduleItems";

@@ -148,4 +148,27 @@ export class TagControllerService {
             },
         });
     }
+    /**
+     * 获取对应类型的所有标签列表
+     * @param tagType
+     * @returns ApiResultListTag OK
+     * @throws ApiError
+     */
+    public listTagsByType(
+        tagType: number,
+    ): CancelablePromise<ApiResultListTag> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/tag/list',
+            query: {
+                'tagType': tagType,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
 }

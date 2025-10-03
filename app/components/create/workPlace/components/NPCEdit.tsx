@@ -1,15 +1,26 @@
+// Type Imports
 import type { RoleAvatar as roleAvatar } from "api";
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
+
+// Alias Internal Imports
 import { PopWindow } from "@/components/common/popWindow";
+import QuillEditor from "@/components/common/quillEditor/quillEditor";
 import RoleAvatar from "@/components/common/roleAvatar";
 import { CharacterCopper } from "@/components/newCharacter/sprite/CharacterCopper";
+
 import { SpriteRenderStudio } from "@/components/newCharacter/sprite/SpriteRenderStudio";
+// External Libraries
+import { useQueryClient } from "@tanstack/react-query";
+// API Internal (value) Imports
 import { useModuleIdQuery } from "api/hooks/moduleAndStageQueryHooks";
+
 import { useQueryEntitiesQuery, useUpdateEntityMutation, useUploadModuleRoleAvatarMutation } from "api/hooks/moduleQueryHooks";
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useDeleteRoleAvatarMutation, useRoleAvatars } from "api/queryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+
 import toast from "react-hot-toast";
+// Relative Imports
 import { useModuleContext } from "../context/_moduleContext";
 import { invokeSaveWithTinyRetry } from "./invokeSaveWithTinyRetry";
 
@@ -17,9 +28,24 @@ interface NPCEditProps {
   role: StageEntityResponse;
 }
 
+// 通用临时 ID 生成（兼容缺少 crypto.randomUUID 的环境）
+function generateTempId(): string {
+  try {
+    const g: any = globalThis as any;
+    if (g?.crypto?.randomUUID) {
+      return g.crypto.randomUUID();
+    }
+  }
+  catch {
+    // ignore and fallback
+  }
+  // 简易回退：时间戳 + 随机片段
+  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 // 内联的属性编辑模块 (简化版 ExpansionModule) - 独立定义避免每次渲染重建
 interface InlineExpansionModuleProps {
-  ability: Record<string, number>;
+  ability: Record<string, string>;
   setAbility: React.Dispatch<React.SetStateAction<any>>;
   scheduleSave: () => void;
   /** 基础属性中文键集合 */
@@ -32,6 +58,58 @@ function InlineExpansionModule({ ability, setAbility, scheduleSave, basicDefault
   // 基础属性键集合（中文）
   const basicKeys = Object.keys(basicDefaults || {});
   const abilityKeys = Object.keys(abilityDefaults || {});
+  // 使用quillEditor进行角色行为模式的编辑
+  const id = generateTempId();
+
+  // 处理数值输入，允许中间态("-", "", "-.", ".")，只在成为合法数字时写入数字并触发保存
+  const handleNumericInput = (label: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setAbility((prev: any) => {
+      const next = { ...prev };
+      // 允许的临时输入模式（不立即转为 number）
+      if (raw === "" || raw === "-" || raw === "." || raw === "-.") {
+        next[label] = raw; // 保持字符串形式
+        return next;
+      }
+      // 仅包含数字/一个可选的负号/一个可选的小数点的模式（逐字构建）
+      if (/^-?\d*(?:\.\d*)?$/.test(raw)) {
+        // 如果可以被正常解析为数字且不是仅有 '-' '.' 或 '-.' 的中间态
+        const parsed = Number(raw);
+        if (!Number.isNaN(parsed) && raw !== "-" && raw !== "." && raw !== "-.") {
+          next[label] = parsed;
+          scheduleSave();
+        }
+        else {
+          next[label] = raw; // 仍是中间态，保存字符串
+        }
+      }
+      // 其它非法输入忽略（保持原值）
+      return next;
+    });
+  };
+
+  // 失焦时如果仍是临时字符串，将其规范化为数字或清空
+  const commitNumericOnBlur = (label: string) => () => {
+    setAbility((prev: any) => {
+      const val = prev[label];
+      if (val === "" || val === undefined) {
+        return prev; // 空值不保存
+      }
+      if (typeof val === "string") {
+        const parsed = Number(val);
+        if (!Number.isNaN(parsed)) {
+          const next = { ...prev, [label]: parsed };
+          scheduleSave();
+          return next;
+        }
+        // 字符串但不能解析，忽略
+        return prev;
+      }
+      return prev;
+    });
+  };
+
+  const normalizeDisplay = (v: any) => (v === undefined || v === null ? "" : v);
 
   return (
     <div className="space-y-6">
@@ -48,11 +126,15 @@ function InlineExpansionModule({ ability, setAbility, scheduleSave, basicDefault
                     <div className="font-medium text-sm truncate" title={label}>{label}</div>
                     <div className="flex items-center gap-2">
                       <input
-                        type="number"
-                        value={ability[label] ?? ""}
-                        onChange={(e) => {
-                          setAbility((prev: any) => ({ ...prev, [label]: Number(e.target.value) }));
-                          scheduleSave();
+                        type="text"
+                        inputMode="decimal"
+                        value={normalizeDisplay(ability[label])}
+                        onChange={handleNumericInput(label)}
+                        onBlur={commitNumericOnBlur(label)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            commitNumericOnBlur(label)();
+                          }
                         }}
                         className="input input-bordered input-sm w-20"
                       />
@@ -81,7 +163,15 @@ function InlineExpansionModule({ ability, setAbility, scheduleSave, basicDefault
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
-                        value={ability[label] ?? ""}
+                        inputMode="decimal"
+                        value={normalizeDisplay(ability[label])}
+                        onChange={handleNumericInput(label)}
+                        onBlur={commitNumericOnBlur(label)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            commitNumericOnBlur(label)();
+                          }
+                        }}
                         className="input input-bordered input-sm w-20"
                       />
                     </div>
@@ -120,21 +210,22 @@ function InlineExpansionModule({ ability, setAbility, scheduleSave, basicDefault
         <div className="collapse-content">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {Object.entries(ability)
-              .filter(([key]) => !basicKeys.includes(key))
+              .filter(([key]) => !basicKeys.includes(key) && !abilityKeys.includes(key) && key !== "behavior")
               .map(([key, value]) => (
                 <div key={key} className="card bg-base-100 shadow-sm p-3 border border-base-200">
                   <div className="flex justify-between items-center">
                     <div className="font-medium text-sm truncate" title={key}>{key}</div>
                     <div className="flex items-center gap-2">
                       <input
-                        type="number"
-                        value={value as number}
-                        onChange={(e) => {
-                          setAbility((prev: any) => ({
-                            ...prev,
-                            [key]: Number(e.target.value),
-                          }));
-                          scheduleSave();
+                        type="text"
+                        inputMode="decimal"
+                        value={normalizeDisplay(value)}
+                        onChange={handleNumericInput(key)}
+                        onBlur={commitNumericOnBlur(key)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            commitNumericOnBlur(key)();
+                          }
                         }}
                         className="input input-bordered input-sm w-20"
                       />
@@ -160,6 +251,18 @@ function InlineExpansionModule({ ability, setAbility, scheduleSave, basicDefault
           </div>
         </div>
       </div>
+      <div>
+        <span className="font-bold">kp可见描述</span>
+        <QuillEditor
+          id={id}
+          placeholder={ability.behavior || "kp可见描述"}
+          onchange={(value) => {
+            if (value === "")
+              return;
+            setAbility((prev: any) => ({ ...prev, behavior: value }));
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -174,15 +277,21 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const { data } = useRoleAvatars(role.id as number);
   // entityInfo 结构见后端定义
   const entityInfo = role.entityInfo || {};
-  const { stageId, removeModuleTabItem, updateModuleTabLabel } = useModuleContext();
+  const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock } = useModuleContext();
 
   const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(entity => entity.entityType === 3);
   // 本地状态
   const [localRole, setLocalRole] = useState({ ...entityInfo });
-  const [ability, setAbility] = useState<Record<string, number>>(entityInfo.ability || {});
+  const [ability, setAbility] = useState<Record<string, string>>(entityInfo.ability || {});
   // 角色名改为仅在列表中重命名，编辑器内不再直接编辑
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [charCount, setCharCount] = useState(entityInfo.description?.length || 0);
+  // 名称可编辑（feishu h1 风格）
+  const nameInputRef = useRef(role.name || "");
+  const nameDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const queryClient = useQueryClient();
+  // 记录上一次已持久化到后端的名称（用于 scene 引用同步）
+  const lastPersistedNameRef = useRef(role.name || "");
 
   // 头像相关事宜
   const [copperedUrl, setCopperedUrl] = useState<string>("");
@@ -198,8 +307,10 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const { data: ruleAbility } = useGetRuleDetailQuery(moduleInfo.data?.data?.ruleId as number);
   const [showAbilityPopup, setShowAbilityPopup] = useState(false);
   const [selectedAbilities, setSelectedAbilities] = useState<Record<string, number>>({});
-  const [newAbilityName, setNewAbilityName] = useState("");
-  const [newAbilityValue, setNewAbilityValue] = useState(0);
+
+  // 批量创建能力流程相关状态
+  const [showBatchCreateAbilityModal, setShowBatchCreateAbilityModal] = useState(false); // 填写能力
+  const [batchAbilities, setBatchAbilities] = useState<Array<{ id: string; name: string; value: number }>>([]);
 
   // 规则能力搜索框
   const [abilitySearchQuery, setAbilitySearchQuery] = useState("");
@@ -234,9 +345,50 @@ export default function NPCEdit({ role }: NPCEditProps) {
   useEffect(() => {
     abilityRef.current = ability;
   }, [ability]);
-  useEffect(() => {
-    nameRef.current = role.name;
+  useLayoutEffect(() => {
+    if ((role.name || "") !== nameInputRef.current) {
+      nameRef.current = role.name;
+    }
   }, [role.name]);
+
+  // 将旧名称在所有 scene (entityType=3) 中的引用替换为新名称
+  const propagateNameChange = (oldName: string | undefined, newName: string | undefined) => {
+    if (!stageId) {
+      return;
+    }
+    if (!oldName || !newName || oldName === newName) {
+      return;
+    }
+    // 从当前查询缓存中获取并做乐观更新
+    queryClient.setQueryData<any>(["queryEntities", stageId], (oldData: any) => {
+      if (!oldData) {
+        return oldData;
+      }
+      const cloned = { ...oldData };
+      if (Array.isArray(cloned.data)) {
+        cloned.data = cloned.data.map((ent: any) => {
+          if (ent.entityType === 3 && Array.isArray(ent.entityInfo?.roles) && ent.entityInfo.roles.includes(oldName)) {
+            const newRoles = ent.entityInfo.roles.map((r: string | undefined) => (r === oldName ? newName : r));
+            return { ...ent, entityInfo: { ...ent.entityInfo, roles: newRoles } };
+          }
+          return ent;
+        });
+      }
+      return cloned;
+    });
+    // 找出需要真正持久化更新的 scene 实体（避免对所有 scene 逐个调用接口）
+    const scenesNeedUpdate = (sceneEntities || []).filter(scene => Array.isArray(scene.entityInfo?.roles) && scene.entityInfo.roles.includes(oldName));
+    scenesNeedUpdate.forEach((scene) => {
+      try {
+        const rolesArr = Array.isArray(scene.entityInfo?.roles) ? scene.entityInfo?.roles : [];
+        const newRoles = rolesArr.map((r: string | undefined) => (r === oldName ? newName : r));
+        updateRole({ id: scene.id!, entityType: 3, entityInfo: { ...scene.entityInfo, roles: newRoles }, name: scene.name });
+      }
+      catch (e) {
+        console.error("更新 scene 引用角色名失败", e);
+      }
+    });
+  };
 
   const handleSave = () => {
     setIsTransitioning(true);
@@ -246,37 +398,17 @@ export default function NPCEdit({ role }: NPCEditProps) {
       }
       const updatedRole = { ...localRoleRef.current, ability: abilityRef.current };
       setIsTransitioning(false);
-      const oldName = role.name;
-      const changed = false; // 名称不在编辑器内修改
       // 先更新角色自身，成功后再同步引用与关闭标签，避免因移除标签导致保存函数不可用
       updateRole(
-        { id: role.id!, entityType: 2, entityInfo: updatedRole, name: role.name },
+        { id: role.id!, entityType: 2, entityInfo: updatedRole, name: nameInputRef.current },
         {
           onSuccess: () => {
-            if (changed) {
-              // 同步更新 scene 中的角色名
-              const newScenes = sceneEntities?.map((scene) => {
-                const newRoles = scene.entityInfo?.roles.map((r: string | undefined) => (r === oldName ? role.name : r));
-                return { ...scene, entityInfo: { ...scene.entityInfo, roles: newRoles } };
-              });
-              newScenes?.forEach(scene => updateRole({ id: scene.id!, entityType: 3, entityInfo: scene.entityInfo, name: scene.name }));
-              // 同步更新当前 Tab 的 label
-              updateModuleTabLabel(role.id!.toString(), role.name || "");
-              // 最后移除标签
-              removeModuleTabItem(role.id!.toString());
-            }
             toast.success("保存成功");
           },
         },
       );
     }, 300);
   };
-
-  // 注册保存函数（保持稳定引用，避免依赖 handleSave）
-  const saveRef = useRef<() => void>(() => { });
-  useLayoutEffect(() => {
-    saveRef.current = handleSave;
-  });
   const scheduleSave = () => {
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
@@ -297,21 +429,56 @@ export default function NPCEdit({ role }: NPCEditProps) {
 
   // 处理添加能力
   const handleAddAbilities = () => {
+    // 仅添加已勾选的能力（来自规则的预设能力）
     const updatedAbility = { ...ability };
     Object.entries(selectedAbilities).forEach(([key, value]) => {
       if (key && value !== undefined) {
-        updatedAbility[key] = value;
+        updatedAbility[key] = value.toString();
       }
     });
-    if (newAbilityName) {
-      updatedAbility[newAbilityName] = newAbilityValue;
-    }
     setAbility(updatedAbility);
     updateRole({ id: role.id!, entityType: 2, entityInfo: { ...localRole, ability: updatedAbility }, name: role.name });
     setSelectedAbilities({});
-    setNewAbilityName("");
-    setNewAbilityValue(0);
     setShowAbilityPopup(false);
+  };
+  // 提交批量创建
+  const handleConfirmBatchCreateAbilities = () => {
+    const updatedAbility = { ...ability } as Record<string, string>;
+    const duplicateNames: string[] = [];
+    const invalidNames: string[] = [];
+    batchAbilities.forEach(({ name, value }, idx) => {
+      const trimmed = (name || "").trim();
+      if (!trimmed) {
+        invalidNames.push(`第${idx + 1}条`);
+        return;
+      }
+      if (Object.prototype.hasOwnProperty.call(updatedAbility, trimmed)) {
+        duplicateNames.push(trimmed);
+        return;
+      }
+      updatedAbility[trimmed] = Number.isFinite(value) ? value.toString() : "0";
+    });
+    setAbility(updatedAbility);
+    updateRole({ id: role.id!, entityType: 2, entityInfo: { ...localRole, ability: updatedAbility }, name: role.name });
+    setShowBatchCreateAbilityModal(false);
+    setShowAbilityPopup(false);
+    toast.success("批量创建能力完成");
+    if (duplicateNames.length) {
+      toast.custom(() => (
+        <div className="px-3 py-2 bg-base-200 rounded text-sm">
+          以下能力已存在，已跳过：
+          {duplicateNames.join("、")}
+        </div>
+      ), { duration: 4000 });
+    }
+    if (invalidNames.length) {
+      toast.custom(() => (
+        <div className="px-3 py-2 bg-base-200 rounded text-sm">
+          以下条目标识为空，已跳过：
+          {invalidNames.join("、")}
+        </div>
+      ), { duration: 4000 });
+    }
   };
 
   // 处理弹窗相关事宜
@@ -376,13 +543,82 @@ export default function NPCEdit({ role }: NPCEditProps) {
   // 生成唯一文件名
   const uniqueFileName = generateUniqueFileName(role.id as number);
 
+  // 即时更新列表/标签的辅助：更新 react-query 缓存里实体名字
+  const optimisticUpdateEntityName = (newName: string) => {
+    if (!stageId) {
+      return;
+    }
+    queryClient.setQueryData<any>(["queryEntities", stageId], (oldData: any) => {
+      if (!oldData) {
+        return oldData;
+      }
+      const cloned = { ...oldData };
+      if (Array.isArray(cloned.data)) {
+        cloned.data = cloned.data.map((ent: any) => ent.id === role.id ? { ...ent, name: newName } : ent);
+      }
+      return cloned;
+    });
+  };
+
+  // 名称输入变更：即时更新 UI + 标签 + 列表 + 防抖后持久化
+  const handleNameChange = (val: string) => {
+    // 在输入阶段重复刷新锁，防止外部跳转（例如 mapEdit 抢占 tab）
+    beginSelectionLock("editing-name", 1200);
+    nameInputRef.current = val;
+    // 更新 tab label & content name
+    updateModuleTabLabel(role.id!.toString(), val || "未命名");
+    optimisticUpdateEntityName(val || "未命名");
+    // 更新引用 ref
+    nameRef.current = val;
+    // 防抖保存名称（与其它字段分离，触发 updateRole 仅改 name）
+    if (nameDebounceTimer.current) {
+      clearTimeout(nameDebounceTimer.current);
+    }
+    nameDebounceTimer.current = setTimeout(() => {
+      const oldName = lastPersistedNameRef.current;
+      const newName = val;
+      updateRole(
+        { id: role.id!, entityType: 2, entityInfo: { ...localRoleRef.current, ability: abilityRef.current }, name: newName },
+        {
+          onSuccess: () => {
+            // 持久化成功后再进行 scene 引用同步（避免无效替换）
+            propagateNameChange(oldName, newName);
+            lastPersistedNameRef.current = newName;
+            // 保存成功后解除锁
+            endSelectionLock();
+            // 可选提示：toast.success("名称已保存");
+          },
+        },
+      );
+    }, 600);
+  };
+
   return (
     <div className={`transition-opacity duration-300 p-4 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
       {/* 顶部区域 (去掉返回按钮) */}
       <div className="hidden md:flex items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="font-semibold text-2xl md:text-3xl my-2">{role.name}</h1>
+            <div className="group relative max-w-full">
+              <input
+                type="text"
+                aria-label="编辑角色名称"
+                value={nameInputRef.current}
+                onChange={e => handleNameChange(e.target.value)}
+                onFocus={() => beginSelectionLock("editing-name", 1500)}
+                onBlur={() => endSelectionLock()}
+                placeholder="输入角色名称"
+                title="点击编辑角色名称"
+                className="editable-name-input font-semibold text-2xl md:text-3xl my-2 bg-transparent outline-none min-w-[60vw] truncate px-1 -mx-1 border-b border-dashed border-transparent focus:border-primary/70 focus:bg-primary/5 hover:border-base-content/40 hover:bg-base-200/40 rounded-sm transition-colors caret-primary"
+                maxLength={50}
+              />
+              <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 group-focus-within:opacity-80 transition-opacity text-base-content/60 pr-1">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                </svg>
+              </span>
+            </div>
             <p className="text-base-content/60">
               角色编辑 ·
               {localRole.type === 0 ? "NPC" : localRole.type === 1 ? "预设卡" : localRole.type}
@@ -414,7 +650,26 @@ export default function NPCEdit({ role }: NPCEditProps) {
               {/* 头像与类型选择 */}
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div>
-                  <h1 className="font-semibold text-xl">{role.name}</h1>
+                  <div className="group relative max-w-full">
+                    <input
+                      type="text"
+                      aria-label="编辑角色名称"
+                      value={nameInputRef.current}
+                      onChange={e => handleNameChange(e.target.value)}
+                      onFocus={() => beginSelectionLock("editing-name", 1500)}
+                      onBlur={() => endSelectionLock()}
+                      placeholder="输入角色名称"
+                      title="点击编辑角色名称"
+                      className="editable-name-input font-semibold text-xl bg-transparent outline-none w-full truncate px-1 -mx-1 border-b border-dashed border-transparent focus:border-primary/70 focus:bg-primary/5 hover:border-base-content/40 hover:bg-base-200/40 rounded-sm transition-colors caret-primary"
+                      maxLength={50}
+                    />
+                    <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 group-focus-within:opacity-80 transition-opacity text-base-content/60 pr-1">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                      </svg>
+                    </span>
+                  </div>
                   <p className="text-base-content/60 text-sm">
                     角色类型 ·
                     {localRole.type === 0 ? "NPC" : localRole.type === 1 ? "预设卡" : localRole.type}
@@ -428,7 +683,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
                       setLocalRole(prev => ({ ...prev, type: Number(e.target.value) }));
                       scheduleSave();
                     }}
-                    className="select select-sm rounded-md"
+                    className="select select-sm rounded-md w-20"
                   >
                     <option value={0}>NPC</option>
                     <option value={1}>预设卡</option>
@@ -448,7 +703,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
                   </div>
                 </div>
               </div>
-              <div className="divider font-bold text-center text-xl">{role.name}</div>
+              <div className="divider font-bold text-center text-xl">{nameInputRef.current || "未命名"}</div>
               <div>
                 <textarea
                   value={localRole.description || ""}
@@ -678,12 +933,17 @@ export default function NPCEdit({ role }: NPCEditProps) {
               ? <div className="text-center py-4 text-base-content/50">未找到匹配的能力</div>
               : null;
           })()}
-          <div className="divider">或创建新能力</div>
-          <div className="flex gap-2 items-center">
-            <input type="text" value={newAbilityName} onChange={e => setNewAbilityName(e.target.value)} placeholder="能力名称" className="input input-bordered flex-1" />
-            <input type="number" value={newAbilityValue} onChange={e => setNewAbilityValue(Number(e.target.value))} placeholder="数值" className="input input-bordered w-20" />
-          </div>
           <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="btn btn-accent"
+              onClick={() => {
+                setShowBatchCreateAbilityModal(true);
+                setBatchAbilities(Array.from({ length: 1 }).map(() => ({ id: generateTempId(), name: "", value: 0 })));
+              }}
+            >
+              创建新能力
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -701,6 +961,80 @@ export default function NPCEdit({ role }: NPCEditProps) {
             >
               确认添加
             </button>
+          </div>
+        </div>
+      </PopWindow>
+
+      {/* 创建能力: 批量填写 */}
+      <PopWindow
+        isOpen={showBatchCreateAbilityModal}
+        onClose={() => setShowBatchCreateAbilityModal(false)}
+        fullScreen={false}
+      >
+        <div className="space-y-4 w-full max-w-[520px]">
+          <h3 className="font-bold text-lg">创建新能力</h3>
+          <div className="max-h-[360px] overflow-y-auto pr-1 space-y-3">
+            {batchAbilities.map((item, idx) => (
+              <div
+                key={item.id}
+                className="flex items-center gap-2"
+              >
+                <span className="badge badge-neutral">{idx + 1}</span>
+                <input
+                  type="text"
+                  placeholder={`名称 ${idx + 1}`}
+                  className="input input-bordered flex-1"
+                  value={item.name}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setBatchAbilities(prev => prev.map((it, i) => (i === idx ? { ...it, name: v } : it)));
+                  }}
+                />
+                <input
+                  type="number"
+                  placeholder="数值"
+                  className="input input-bordered w-28"
+                  value={item.value}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setBatchAbilities(prev => prev.map((it, i) => (i === idx ? { ...it, value: v } : it)));
+                  }}
+                />
+              </div>
+            ))}
+            {batchAbilities.length === 0 && (
+              <div className="text-center text-sm opacity-60 py-6">未生成输入项</div>
+            )}
+          </div>
+          <div className="flex justify-between">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                setShowBatchCreateAbilityModal(false);
+              }}
+            >
+              取消
+            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn btn-accent"
+                onClick={() => {
+                  // 追加一行
+                  setBatchAbilities(prev => [...prev, { id: generateTempId(), name: "", value: 0 }]);
+                }}
+              >
+                + 添加一行
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleConfirmBatchCreateAbilities}
+              >
+                确认创建
+              </button>
+            </div>
           </div>
         </div>
       </PopWindow>

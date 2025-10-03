@@ -301,7 +301,10 @@ export function SpriteCropper({
 
   /**
    * 将Img数据转换为Blob
+<<<<<<< HEAD
    * 使用 Web Worker 优化,将图像处理转移到后台线程
+=======
+>>>>>>> da34d0cf425143e95dfdf1e2c3e3cfb2ce9be138
    */
   async function getCroppedImageBlobFromImg(img: HTMLImageElement): Promise<Blob> {
     if (!completedCrop) {
