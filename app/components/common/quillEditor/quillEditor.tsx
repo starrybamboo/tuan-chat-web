@@ -1569,7 +1569,16 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
             if (allowed.length && allowed.length <= 12) {
               // const editorRoot = (editor as any).root as HTMLElement; // 未使用，保留注释防止再度添加
               const sel = lastRangeRef.current;
-              const insertIndex = sel && typeof sel.index === "number" ? sel.index : (editor.getLength?.() ?? 0);
+              // 覆盖粘贴：若当前存在非折叠选区，先删除选中文本，再在原起点插入
+              let insertIndex = sel && typeof sel.index === "number" ? sel.index : (editor.getLength?.() ?? 0);
+              if (sel && typeof sel.index === "number" && sel.length && sel.length > 0) {
+                try {
+                  editor.deleteText(sel.index, sel.length, "user");
+                  insertIndex = sel.index; // 删除后插入点仍为原起点
+                  editor.setSelection(sel.index, 0, "silent");
+                }
+                catch { /* ignore deleteText errors */ }
+              }
               e.preventDefault();
               // 逐节点插入：a -> 文本+link, img -> image blot, span/div -> 其 textContent
               let cursor = insertIndex;
@@ -1675,9 +1684,18 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
           e.preventDefault();
           const html = markdownToHtmlWithEntities(normalized, entitiesRef.current);
           const selection = lastRangeRef.current;
-          const insertIndex = selection && typeof selection.index === "number"
+          let insertIndex = selection && typeof selection.index === "number"
             ? selection.index
             : (editor.getLength?.() ?? 0);
+          // 覆盖粘贴：如果有选中内容，先删除再插入
+          if (selection && typeof selection.index === "number" && selection.length && selection.length > 0) {
+            try {
+              editor.deleteText(selection.index, selection.length, "user");
+              insertIndex = selection.index;
+              editor.setSelection(selection.index, 0, "silent");
+            }
+            catch { /* ignore delete errors */ }
+          }
           // 使用 Quill 内置粘贴 HTML（带 index），保证生成正确 Delta 并插入到光标处
           (editor as any).clipboard?.dangerouslyPasteHTML?.(insertIndex, html, "user");
         }
