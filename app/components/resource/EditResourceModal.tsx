@@ -11,6 +11,7 @@ interface EditResourceModalProps {
   onClose: () => void;
   resource: ResourceResponse | null;
   onSuccess?: () => void;
+  onDelete?: (resourceId: number) => void;
 }
 
 /**
@@ -22,10 +23,12 @@ export function EditResourceModal({
   onClose,
   resource,
   onSuccess,
+  onDelete,
 }: EditResourceModalProps) {
   const [name, setName] = useState(() => resource?.name || "");
   const [isPublic, setIsPublic] = useState(() => resource?.isPublic || false);
   const [errors, setErrors] = useState<{ name?: string }>({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const updateResourceMutation = useUpdateResourceMutation();
 
@@ -77,6 +80,20 @@ export function EditResourceModal({
     onClose();
     // 重置表单状态
     setErrors({});
+    setShowDeleteConfirm(false);
+  };
+
+  // 处理删除确认
+  const handleDeleteConfirm = () => {
+    if (resource?.resourceId && onDelete) {
+      onDelete(resource.resourceId);
+      onClose();
+    }
+  };
+
+  // 处理删除取消
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
   };
 
   if (!isOpen || !resource) {
@@ -166,31 +183,68 @@ export function EditResourceModal({
 
         {/* 操作按钮 */}
         <div className="modal-action">
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={handleCancel}
-            disabled={updateResourceMutation.isPending}
-          >
-            取消
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={handleSave}
-            disabled={updateResourceMutation.isPending}
-          >
-            {updateResourceMutation.isPending
-              ? (
-                  <>
-                    <span className="loading loading-spinner loading-sm"></span>
-                    保存中...
-                  </>
-                )
-              : (
-                  "保存"
-                )}
-          </button>
+          {!showDeleteConfirm
+            ? (
+                <>
+                  {onDelete && (
+                    <button
+                      type="button"
+                      className="btn btn-error mr-auto"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      disabled={updateResourceMutation.isPending}
+                    >
+                      删除
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={handleCancel}
+                    disabled={updateResourceMutation.isPending}
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleSave}
+                    disabled={updateResourceMutation.isPending}
+                  >
+                    {updateResourceMutation.isPending
+                      ? (
+                          <>
+                            <span className="loading loading-spinner loading-sm"></span>
+                            保存中...
+                          </>
+                        )
+                      : (
+                          "保存"
+                        )}
+                  </button>
+                </>
+              )
+            : (
+                <>
+                  <div className="flex-1 text-left">
+                    <p className="text-error font-medium">确定要删除这个资源吗？</p>
+                    <p className="text-sm text-base-content/60 mt-1">此操作无法撤销</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={handleDeleteCancel}
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-error"
+                    onClick={handleDeleteConfirm}
+                  >
+                    确定删除
+                  </button>
+                </>
+              )}
         </div>
       </div>
     </div>

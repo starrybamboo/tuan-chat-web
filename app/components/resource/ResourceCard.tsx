@@ -1,6 +1,7 @@
 import type { ResourceResponse } from "../../../api/models/ResourceResponse";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
+import UserAvatarComponent from "../common/userAvatar";
 import { AddToCollectionModal } from "./AddToCollectionModal";
 import AudioWavePlayer from "./AudioWavePlayer";
 import { EditResourceModal } from "./EditResourceModal";
@@ -69,13 +70,16 @@ export function ResourceCard({
                 </div>
               )}
 
-          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <div className="absolute top-2 right-2 flex gap-1 group-hover:opacity-100 transition-opacity duration-200">
             <button
               type="button"
               className="btn btn-sm btn-circle bg-base-100/90 border-0 backdrop-blur-sm hover:bg-base-100"
-              onClick={handleDeleteClick}
+              onClick={handleAddToCollection}
+              title="收藏"
             >
-              <span className="text-xs">X</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 000-6.364 4.5 4.5 0 00-6.364 0L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
             </button>
           </div>
 
@@ -95,23 +99,22 @@ export function ResourceCard({
             {resource.name || "未命名素材"}
           </h3>
 
-          <div className={`flex justify-between text-base-content/60 ${isMobile ? "text-xs" : "text-xs"}`}>
-            <span>{resource.typeDescription || "未知类型"}</span>
-            <span>{resource.createTime}</span>
+          <div className={`flex justify-between items-center text-base-content/60 ${isMobile ? "text-xs" : "text-xs"} gap-2`}>
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <UserAvatarComponent
+                userId={resource.userId ?? -1}
+                width={6}
+                isRounded={true}
+                withName={true}
+              />
+            </div>
           </div>
 
           {/* 操作按钮 */}
           <div className="card-actions">
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={handleAddToCollection}
-            >
-              收藏
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm flex-1"
+              className="btn btn-primary btn-sm w-full"
               onClick={handleEdit}
             >
               编辑
@@ -137,6 +140,7 @@ export function ResourceCard({
         onSuccess={() => {
           toast.success("资源更新成功");
         }}
+        onDelete={onDelete}
       />
     </>
   );

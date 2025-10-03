@@ -19,18 +19,10 @@ export function ResourceCollectionCard({
   collectionList,
   _onLike,
   onClick,
-  onDelete,
 }: ResourceCollectionCardProps) {
   const handleCardClick = () => {
     if (onClick && collectionList.collectionListId) {
       onClick(collectionList.collectionListId);
-    }
-  };
-
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onDelete && collectionList.collectionListId) {
-      onDelete(collectionList.collectionListId);
     }
   };
 
@@ -57,17 +49,6 @@ export function ResourceCollectionCard({
                 <div className="text-6xl">📁</div>
               </div>
             )}
-
-        {/* 标签和操作按钮 */}
-        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <button
-            type="button"
-            className="btn btn-sm btn-circle bg-base-100/90 border-0 backdrop-blur-sm hover:bg-base-100"
-            onClick={handleDeleteClick}
-          >
-            <span className="text-xs">X</span>
-          </button>
-        </div>
 
         <div className="absolute top-2 left-2 flex gap-1">
           {collectionList.isPublic && (
