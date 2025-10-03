@@ -16,7 +16,7 @@ import React, { use, useMemo } from "react";
 import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
 import ClueMessage from "./smallComponents/clueMessage";
 
-export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
+function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
   /** 控制是否应用气泡样式，默认为false */
@@ -139,7 +139,8 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       </>
 
     );
-  }, [message.content, message.extra, message.messageType]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message.content, message.extra, message.messageType, message.messageId, message.replyMessageId]);
 
   // @角色
   function handleRoleNameClick() {
@@ -265,3 +266,23 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     </div>
   );
 }
+
+// 使用 React.memo 优化性能,避免不必要的重新渲染
+// 只在 chatMessageResponse 的内容真正变化时才重新渲染
+export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps) => {
+  // 自定义比较函数:只比较消息的关键属性
+  const prevMsg = prevProps.chatMessageResponse.message;
+  const nextMsg = nextProps.chatMessageResponse.message;
+
+  return (
+    prevMsg.messageId === nextMsg.messageId
+    && prevMsg.content === nextMsg.content
+    && prevMsg.avatarId === nextMsg.avatarId
+    && prevMsg.roleId === nextMsg.roleId
+    && prevMsg.updateTime === nextMsg.updateTime
+    && prevMsg.messageType === nextMsg.messageType
+    && prevProps.useChatBubbleStyle === nextProps.useChatBubbleStyle
+  );
+});
+
+ChatBubble.displayName = "ChatBubble";
