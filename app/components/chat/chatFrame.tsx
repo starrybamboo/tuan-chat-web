@@ -62,10 +62,10 @@ export default function ChatFrame(props: {
   // const moveMessageMutation = useMoveMessageMutation();
   const deleteMessageMutation = useDeleteMessageMutation();
   const updateMessageMutation = useUpdateMessageMutation();
-  const updateMessage = (message: Message) => {
+  const updateMessage = useCallback((message: Message) => {
     updateMessageMutation.mutate(message);
     roomContext.chatHistory?.addOrUpdateMessage({ message });
-  };
+  }, [updateMessageMutation, roomContext.chatHistory]);
 
   // 获取用户自定义表情列表
   const { data: emojisData } = useGetUserEmojisQuery();
@@ -242,7 +242,7 @@ export default function ChatFrame(props: {
   const [selectedMessageIds, updateSelectedMessageIds] = useState<Set<number>>(new Set());
   const isSelecting = selectedMessageIds.size > 0;
 
-  const toggleMessageSelection = (messageId: number) => {
+  const toggleMessageSelection = useCallback((messageId: number) => {
     updateSelectedMessageIds((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(messageId)) {
@@ -253,7 +253,7 @@ export default function ChatFrame(props: {
       }
       return newSet;
     });
-  };
+  }, []);
 
   const constructForwardRequest = (forwardRoomId: number) => {
     const forwardMessages = Array.from(selectedMessageIds)
@@ -357,7 +357,7 @@ export default function ChatFrame(props: {
    * @param targetIndex 将被移动到targetIndex对应的消息的下方
    * @param messageIds 要移动的消息租
    */
-  const handleMoveMessages = (
+  const handleMoveMessages = useCallback((
     targetIndex: number,
     messageIds: number[],
   ) => {
@@ -386,7 +386,7 @@ export default function ChatFrame(props: {
         position: (bottomMessagePosition - topMessagePosition) / (selectedMessages.length + 1) * (index + 1) + topMessagePosition,
       });
     }
-  };
+  }, [historyMessages, selectedMessageIds, updateMessage]);
   /**
    * 检查拖拽的位置
    */
@@ -444,17 +444,19 @@ export default function ChatFrame(props: {
     e.dataTransfer.setDragImage(clone, 0, 0);
     setTimeout(() => document.body.removeChild(clone));
   }, [historyMessages, isSelecting, selectedMessageIds.size]);
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     checkPosition(e);
-  };
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  }, [checkPosition]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     curDragOverMessageRef.current = null;
-  };
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>, dragEndIndex: number) => {
     e.preventDefault();
     curDragOverMessageRef.current = null;
 
@@ -470,7 +472,7 @@ export default function ChatFrame(props: {
 
     dragStartMessageIdRef.current = -1;
     indicatorRef.current?.remove();
-  };
+  }, [isSelecting, selectedMessageIds, handleMoveMessages]);
 
   /**
    * 右键菜单
@@ -534,27 +536,11 @@ export default function ChatFrame(props: {
     roomContext.setReplyMessage && roomContext.setReplyMessage(message);
   }
 
-  if (chatHistory?.loading) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-base-200">
-        <div className="flex flex-col items-center gap-2">
-          {/* 加载动画 */}
-          <span className="loading loading-spinner loading-lg text-info"></span>
-          {/* 提示文字 */}
-          <div className="text-center space-y-1">
-            <h3 className="text-lg font-medium text-base-content">正在获取历史消息</h3>
-            <p className="text-sm text-base-content/70">请稍候...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   /**
    * @param index 虚拟列表中的index，为了实现反向滚动，进行了偏移
    * @param chatMessageResponse
    */
-  const renderMessage = (index: number, chatMessageResponse: ChatMessageResponse) => {
+  const renderMessage = useCallback((index: number, chatMessageResponse: ChatMessageResponse) => {
     const isSelected = selectedMessageIds.has(chatMessageResponse.message.messageId);
     const draggable = (roomContext.curMember?.memberType ?? 3) < 3;
     const indexInHistoryMessages = virtuosoIndexToMessageIndex(index);
@@ -593,7 +579,35 @@ export default function ChatFrame(props: {
       </div>
     )
     );
-  };
+  }, [
+    selectedMessageIds,
+    roomContext.curMember?.memberType,
+    virtuosoIndexToMessageIndex,
+    isDragging,
+    isSelecting,
+    useChatBubbleStyle,
+    toggleMessageSelection,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleDragStart,
+  ]);
+
+  if (chatHistory?.loading) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-base-200">
+        <div className="flex flex-col items-center gap-2">
+          {/* 加载动画 */}
+          <span className="loading loading-spinner loading-lg text-info"></span>
+          {/* 提示文字 */}
+          <div className="text-center space-y-1">
+            <h3 className="text-lg font-medium text-base-content">正在获取历史消息</h3>
+            <p className="text-sm text-base-content/70">请稍候...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   /**
    * 渲染
    */
