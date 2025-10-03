@@ -2,7 +2,7 @@ import type { QueryKey } from "@tanstack/react-query";
 import type { Dispatch, SetStateAction } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * 一个自定义 Hook，它将 React 的 `useState` 与 TanStack Query 的缓存机制结合起来。
@@ -32,11 +32,34 @@ export function useQueryState<T>(
     return defaultValue;
   });
 
+  // 使用 ref 来实现防抖,避免频繁的缓存更新
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // 使用 useEffect 来将组件内的 state 变化同步回 TanStack Query 的缓存中。
   useEffect(() => {
     if (saveToCache) {
-      queryClient.setQueryData(queryKey, state);
+      // 清除之前的定时器
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      // 设置新的定时器,防抖 16ms (一帧的时间)
+      timeoutRef.current = setTimeout(() => {
+        queryClient.setQueryData(queryKey, state);
+        timeoutRef.current = null;
+      }, 16);
     }
+
+    // 清理函数
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        // 在组件卸载时立即保存最新状态
+        if (saveToCache) {
+          queryClient.setQueryData(queryKey, state);
+        }
+      }
+    };
     // 依赖数组至关重要。它包含了 state 本身以及 queryKey 的所有组成部分。
     // 这样可以确保当 state 发生变化，或者 queryKey (例如 fieldId) 发生变化时，
     // 这个 effect 都会重新执行，从而保证状态与缓存的正确同步。

@@ -33,15 +33,43 @@ export function EditableField({
 
   // 使用 ref 来避免在编辑时被外部 content 更新干扰
   const isEditingRef = useRef(isEditing);
+  const contentRef = useRef(content);
+  const initialContentRef = useRef<string | null>(null); // 记录进入编辑时的初始内容
+
   useEffect(() => {
     isEditingRef.current = isEditing;
   }, [isEditing]);
 
+  useEffect(() => {
+    // 只在非编辑状态下更新 contentRef
+    if (!isEditingRef.current) {
+      contentRef.current = content;
+    }
+  }, [content]);
+
   // 只在开始编辑时同步外部 content 到 editContent
   useEffect(() => {
-    if (isEditing && editContent !== content) {
-      // 如果刚进入编辑模式,同步外部内容
+    if (isEditing) {
+      // 只在刚进入编辑模式时同步一次
+      const savedContent = editContent;
+
+      // 记录进入编辑模式时的初始内容
+      if (initialContentRef.current === null) {
+        initialContentRef.current = content;
+      }
+
+      // 如果保存的编辑内容存在且不为空,优先使用保存的编辑内容
+      if (savedContent && savedContent.trim() !== "") {
+        // 保持用户正在编辑的内容,不做任何改变
+        return;
+      }
+
+      // 如果没有编辑过的内容,使用外部内容
       setEditContent(content);
+    }
+    else {
+      // 退出编辑模式时,重置初始内容记录
+      initialContentRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing]); // 只依赖 isEditing,避免在编辑过程中被外部 content 更新干扰
