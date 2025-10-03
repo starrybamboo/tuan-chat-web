@@ -321,7 +321,11 @@ export function htmlToMarkdown(html: string): string {
         lines[i + 1] = "";
     }
 
-    // 不再压缩也不再裁剪首尾空行：首尾的空行同样由用户显式输入，需要被保留并编码。
+    // 序列化策略说明：
+    // - 单回车：Quill 产生两个相邻非空 <p>，直接对应为两行 Markdown（不插入 \n 标记），表示“段落分隔”。
+    // - 双回车：中间出现一个空 <p><br></p>，该空段落编码成字面 \n，表示“可见空行/段落间额外间距”。
+    // - 多回车：多个空 <p> -> 多个连续 \n。
+    // 保留首尾空行的 \n 以保持用户显式输入。
     // 兼容历史：__BLANK_LINE__ / 私有区哨兵 -> 空行
     const normalized = lines.map(l => (l === "__BLANK_LINE__" || l === LEGACY_SENTRY_BLANK_LINE ? "" : l));
     // 空字符串（逻辑空行）统一编码为字面 \\n
