@@ -1,7 +1,9 @@
 import type { ResourceResponse } from "../../../api/models/ResourceResponse";
 import { useState } from "react";
+import { toast } from "react-hot-toast";
 import { AddToCollectionModal } from "./AddToCollectionModal";
 import AudioWavePlayer from "./AudioWavePlayer";
+import { EditResourceModal } from "./EditResourceModal";
 import MoreBetterImg from "./MoreBetterImg";
 
 interface ResourceCardProps {
@@ -23,6 +25,7 @@ export function ResourceCard({
   onDelete,
 }: ResourceCardProps) {
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Simple mobile detection based on window width
   const isMobile = typeof window !== "undefined" ? window.innerWidth <= 768 : false;
@@ -35,6 +38,10 @@ export function ResourceCard({
 
   const handleAddToCollection = () => {
     setIsCollectionModalOpen(true);
+  };
+
+  const handleEdit = () => {
+    setIsEditModalOpen(true);
   };
 
   return (
@@ -105,6 +112,7 @@ export function ResourceCard({
             <button
               type="button"
               className="btn btn-primary btn-sm flex-1"
+              onClick={handleEdit}
             >
               编辑
             </button>
@@ -118,6 +126,17 @@ export function ResourceCard({
         onClose={() => setIsCollectionModalOpen(false)}
         resourceIds={resource.resourceId !== undefined ? [resource.resourceId] : []}
         resourceType={type}
+      />
+
+      {/* 编辑资源的弹窗 */}
+      <EditResourceModal
+        key={resource.resourceId} // 使用resourceId作为key强制重新渲染
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        resource={resource}
+        onSuccess={() => {
+          toast.success("资源更新成功");
+        }}
       />
     </>
   );

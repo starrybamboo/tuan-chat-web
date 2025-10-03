@@ -73,7 +73,6 @@ export function ResourceCollectionCard({
           {collectionList.isPublic && (
             <div className="badge badge-sm text-white bg-green-500 border-green-500">公开</div>
           )}
-          <div className="badge badge-sm text-white bg-purple-500 border-purple-500">原创</div>
         </div>
       </div>
 
