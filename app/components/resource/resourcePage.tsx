@@ -63,11 +63,11 @@ export default function ResourcePage() {
   const renderContent = () => {
     switch (activeTab) {
       case "myResources":
-        return <ResourceList type={resourceType} isPublic={false} searchText={searchText} />;
+        return <ResourceList type={resourceType} isPublic={false} searchText={searchText} canEdit={true} />;
       case "myCollections":
         return <ResourceCollectionList type={resourceType} isPublic={false} searchText={searchText} />;
       case "publicResources":
-        return <ResourceList type={resourceType} isPublic={true} searchText={searchText} />;
+        return <ResourceList type={resourceType} isPublic={true} searchText={searchText} canEdit={false} />;
       case "publicCollections":
         return <ResourceCollectionList type={resourceType} isPublic={true} searchText={searchText} />;
       default:

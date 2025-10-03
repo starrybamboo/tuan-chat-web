@@ -14,6 +14,7 @@ interface ResourceCardProps {
   onDelete?: (resourceId: number) => void;
   onAddToCollection?: (resourceId: number) => void;
   onLike?: (resourceId: number) => void;
+  canEdit?: boolean;
 }
 
 /**
@@ -24,6 +25,7 @@ export function ResourceCard({
   resource,
   type,
   onDelete,
+  canEdit,
 }: ResourceCardProps) {
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -111,15 +113,17 @@ export function ResourceCard({
           </div>
 
           {/* 操作按钮 */}
-          <div className="card-actions">
-            <button
-              type="button"
-              className="btn btn-primary btn-sm w-full"
-              onClick={handleEdit}
-            >
-              编辑
-            </button>
-          </div>
+          {canEdit && (
+            <div className="card-actions">
+              <button
+                type="button"
+                className="btn btn-primary btn-sm w-full"
+                onClick={handleEdit}
+              >
+                编辑
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

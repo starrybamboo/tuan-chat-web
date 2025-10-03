@@ -48,6 +48,7 @@ export function CollectionListDetailMobile({
   }, [resourcesData?.data?.list]);
 
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editFormState, setEditFormState] = useState<{
     collectionListName: string;
     description: string;
@@ -92,13 +93,19 @@ export function CollectionListDetailMobile({
   }, [isEditMode, onEdit, collectionList, editForm]);
 
   const handleDelete = useCallback(() => {
+    setShowDeleteConfirm(true);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(() => {
     if (collectionList?.collectionListId && onDelete) {
-      // eslint-disable-next-line no-alert
-      if (window.confirm("确定要删除这个收藏列表吗？此操作不可恢复。")) {
-        onDelete(collectionList.collectionListId);
-      }
+      onDelete(collectionList.collectionListId);
+      setShowDeleteConfirm(false);
     }
   }, [collectionList?.collectionListId, onDelete]);
+
+  const handleDeleteCancel = useCallback(() => {
+    setShowDeleteConfirm(false);
+  }, []);
 
   const handleRemoveResource = useCallback((resourceId: number) => {
     if (!collectionList?.collectionListId) {
@@ -237,13 +244,40 @@ export function CollectionListDetailMobile({
             {/* 操作按钮 */}
             {!isEditMode && (
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="btn btn-error btn-outline flex-1"
-                  onClick={handleDelete}
-                >
-                  删除收藏列表
-                </button>
+                {!showDeleteConfirm
+                  ? (
+                      <button
+                        type="button"
+                        className="btn btn-error btn-outline flex-1"
+                        onClick={handleDelete}
+                      >
+                        删除收藏列表
+                      </button>
+                    )
+                  : (
+                      <div className="flex flex-col gap-3 w-full">
+                        <div className="bg-error/10 border border-error/20 rounded-lg p-4">
+                          <p className="text-error font-medium text-sm">确定要删除这个收藏列表吗？</p>
+                          <p className="text-xs text-base-content/60 mt-1">此操作无法撤销，将同时删除所有收藏的资源</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-ghost flex-1"
+                            onClick={handleDeleteCancel}
+                          >
+                            取消
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-error flex-1"
+                            onClick={handleDeleteConfirm}
+                          >
+                            确定删除
+                          </button>
+                        </div>
+                      </div>
+                    )}
               </div>
             )}
 
