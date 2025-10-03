@@ -7,6 +7,7 @@ import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransf
 import { useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
 import { AvatarPreview } from "./AvatarPreview";
+import { PerformanceMonitor } from "./PerformanceMonitor";
 import { RenderPreview } from "./RenderPreview";
 import { TransformControl } from "./TransformControl";
 import { parseTransformFromAvatar } from "./utils";
@@ -558,10 +559,15 @@ export function SpriteCropper({
 
   /**
    * 应用相同裁剪参数到所有头像/立绘
+   * 分为三个阶段：图片加载 -> 图片裁剪 -> 上传操作
    */
   async function handleBatchCropAll() {
     if (!isMutiAvatars || !completedCrop)
       return;
+
+    // 初始化性能监控器
+    const monitor = new PerformanceMonitor(`批量裁剪-${isAvatarMode ? "头像" : "立绘"}`);
+    monitor.start();
 
     try {
       setIsProcessing(true);
@@ -571,64 +577,99 @@ export function SpriteCropper({
         transform: isAvatarMode ? undefined : transform,
       });
 
-      // 为每个头像/立绘应用相同的裁剪参数并上传
-      for (let i = 0; i < filteredAvatars.length; i++) {
-        const avatar = filteredAvatars[i];
-        // 头像模式下从立绘裁剪头像，立绘模式下处理立绘
-        const imageUrl = avatar.spriteUrl;
-        if (!imageUrl || !avatar.avatarId)
-          continue;
+      // 过滤有效的头像数据
+      const validAvatars = filteredAvatars.filter(
+        avatar => avatar.spriteUrl && avatar.avatarId && avatar.roleId,
+      );
 
-        console.warn(`处理${isAvatarMode ? "头像" : "立绘"} ${i + 1}/${filteredAvatars.length}:`, avatar.avatarId);
+      console.warn(`有效${isAvatarMode ? "头像" : "立绘"}数量: ${validAvatars.length}/${filteredAvatars.length}`);
 
-        // 创建临时图片元素
-        const tempImg = new Image();
-        tempImg.crossOrigin = "anonymous";
+      // ===== 阶段1: 批量加载所有图片 =====
+      const loadedImages = await monitor.measure("阶段1-批量加载图片", async () => {
+        console.warn(`[阶段1] 开始批量加载 ${validAvatars.length} 张图片...`);
 
-        await new Promise<void>((resolve, reject) => {
-          tempImg.onload = () => resolve();
-          tempImg.onerror = () => reject(new Error(`Failed to load image: ${imageUrl}`));
-          tempImg.src = imageUrl!;
+        const imagePromises = validAvatars.map(async (avatar, i) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error(`Failed to load image: ${avatar.spriteUrl}`));
+            img.src = avatar.spriteUrl!;
+          });
+
+          console.warn(`  ✓ 加载完成 ${i + 1}/${validAvatars.length}: ${avatar.avatarId}`);
+          return { avatar, img };
         });
 
-        // 使用通用函数获取裁剪结果的dataUrl（用于UI显示）
-        const dataUrl = await getCroppedImageFromImg(tempImg);
+        return await Promise.all(imagePromises);
+      });
 
-        // 将dataUrl转换为Blob用于上传
-        const response = await fetch(dataUrl);
-        const croppedBlob = await response.blob();
+      console.warn(`[阶段1] 完成! 成功加载 ${loadedImages.length} 张图片`);
 
-        // 检查必要字段
-        if (!avatar.roleId) {
-          console.error(`${isAvatarMode ? "头像" : "立绘"} ${i + 1} 缺少roleId，跳过处理`);
-          continue;
-        }
+      // ===== 阶段2: 批量裁剪所有图片 =====
+      const croppedData = await monitor.measure("阶段2-批量裁剪图片", async () => {
+        console.warn(`[阶段2] 开始批量裁剪 ${loadedImages.length} 张图片...`);
 
-        // 根据模式上传裁剪后的图片并更新头像记录
-        if (isAvatarMode) {
-          await applyCropAvatarMutation.mutateAsync({
-            roleId: avatar.roleId,
-            avatarId: avatar.avatarId,
-            croppedImageBlob: croppedBlob,
-            currentAvatar: avatar,
-          });
+        const cropPromises = loadedImages.map(async ({ avatar, img }, i) => {
+          // 裁剪图片并转换为Blob
+          const dataUrl = await getCroppedImageFromImg(img);
+          const response = await fetch(dataUrl);
+          const blob = await response.blob();
+
+          console.warn(`  ✓ 裁剪完成 ${i + 1}/${loadedImages.length}: ${avatar.avatarId}`);
+          return { avatar, blob };
+        });
+
+        return await Promise.all(cropPromises);
+      });
+
+      console.warn(`[阶段2] 完成! 成功裁剪 ${croppedData.length} 张图片`);
+
+      // ===== 阶段3: 批量上传所有裁剪结果 =====
+      await monitor.measure("阶段3-批量上传", async () => {
+        console.warn(`[阶段3] 开始批量上传 ${croppedData.length} 张图片...`);
+
+        // 上传操作需要顺序执行以避免服务器压力过大
+        for (let i = 0; i < croppedData.length; i++) {
+          const { avatar, blob } = croppedData[i];
+
+          if (isAvatarMode) {
+            await applyCropAvatarMutation.mutateAsync({
+              roleId: avatar.roleId!,
+              avatarId: avatar.avatarId!,
+              croppedImageBlob: blob,
+              currentAvatar: avatar,
+            });
+          }
+          else {
+            await applyCropMutation.mutateAsync({
+              roleId: avatar.roleId!,
+              avatarId: avatar.avatarId!,
+              croppedImageBlob: blob,
+              transform, // 立绘模式同时应用当前的transform设置
+              currentAvatar: avatar,
+            });
+          }
+
+          console.warn(`  ✓ 上传完成 ${i + 1}/${croppedData.length}: ${avatar.avatarId}`);
         }
-        else {
-          await applyCropMutation.mutateAsync({
-            roleId: avatar.roleId,
-            avatarId: avatar.avatarId,
-            croppedImageBlob: croppedBlob,
-            transform, // 立绘模式同时应用当前的transform设置
-            currentAvatar: avatar,
-          });
-        }
-      }
+      });
+
+      console.warn(`[阶段3] 完成! 成功上传 ${croppedData.length} 张图片`);
+
+      // 打印性能报告
+      monitor.printReport(validAvatars.length);
     }
     catch (error) {
       console.error("批量裁剪失败:", error);
+      // 即使出错也打印性能报告
+      monitor.printReport(filteredAvatars.length);
     }
     finally {
       setIsProcessing(false);
+      // 清理性能标记，避免内存泄漏
+      monitor.clear();
     }
   }
 
