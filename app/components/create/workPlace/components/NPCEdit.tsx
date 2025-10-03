@@ -4,21 +4,22 @@ import type { StageEntityResponse } from "api/models/StageEntityResponse";
 
 // Alias Internal Imports
 import { PopWindow } from "@/components/common/popWindow";
+import QuillEditor from "@/components/common/quillEditor/quillEditor";
 import RoleAvatar from "@/components/common/roleAvatar";
 import { CharacterCopper } from "@/components/newCharacter/sprite/CharacterCopper";
-import { SpriteRenderStudio } from "@/components/newCharacter/sprite/SpriteRenderStudio";
 
+import { SpriteRenderStudio } from "@/components/newCharacter/sprite/SpriteRenderStudio";
 // External Libraries
 import { useQueryClient } from "@tanstack/react-query";
 // API Internal (value) Imports
 import { useModuleIdQuery } from "api/hooks/moduleAndStageQueryHooks";
-import { useQueryEntitiesQuery, useUpdateEntityMutation, useUploadModuleRoleAvatarMutation } from "api/hooks/moduleQueryHooks";
 
+import { useQueryEntitiesQuery, useUpdateEntityMutation, useUploadModuleRoleAvatarMutation } from "api/hooks/moduleQueryHooks";
 import { useGetRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useDeleteRoleAvatarMutation, useRoleAvatars } from "api/queryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import toast from "react-hot-toast";
 
+import toast from "react-hot-toast";
 // Relative Imports
 import { useModuleContext } from "../context/_moduleContext";
 import { invokeSaveWithTinyRetry } from "./invokeSaveWithTinyRetry";
@@ -44,7 +45,7 @@ function generateTempId(): string {
 
 // 内联的属性编辑模块 (简化版 ExpansionModule) - 独立定义避免每次渲染重建
 interface InlineExpansionModuleProps {
-  ability: Record<string, number>;
+  ability: Record<string, string>;
   setAbility: React.Dispatch<React.SetStateAction<any>>;
   scheduleSave: () => void;
   /** 基础属性中文键集合 */
@@ -57,6 +58,8 @@ function InlineExpansionModule({ ability, setAbility, scheduleSave, basicDefault
   // 基础属性键集合（中文）
   const basicKeys = Object.keys(basicDefaults || {});
   const abilityKeys = Object.keys(abilityDefaults || {});
+  // 使用quillEditor进行角色行为模式的编辑
+  const id = generateTempId();
 
   // 处理数值输入，允许中间态("-", "", "-.", ".")，只在成为合法数字时写入数字并触发保存
   const handleNumericInput = (label: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,6 +251,18 @@ function InlineExpansionModule({ ability, setAbility, scheduleSave, basicDefault
           </div>
         </div>
       </div>
+      <div>
+        <span className="font-bold">kp可见描述</span>
+        <QuillEditor
+          id={id}
+          placeholder={ability.behavior || "kp可见描述"}
+          onchange={(value) => {
+            if (value === "")
+              return;
+            setAbility((prev: any) => ({ ...prev, behavior: value }));
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -267,7 +282,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(entity => entity.entityType === 3);
   // 本地状态
   const [localRole, setLocalRole] = useState({ ...entityInfo });
-  const [ability, setAbility] = useState<Record<string, number>>(entityInfo.ability || {});
+  const [ability, setAbility] = useState<Record<string, string>>(entityInfo.ability || {});
   // 角色名改为仅在列表中重命名，编辑器内不再直接编辑
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [charCount, setCharCount] = useState(entityInfo.description?.length || 0);
@@ -394,12 +409,6 @@ export default function NPCEdit({ role }: NPCEditProps) {
       );
     }, 300);
   };
-
-  // 注册保存函数（保持稳定引用，避免依赖 handleSave）
-  const saveRef = useRef<() => void>(() => { });
-  useLayoutEffect(() => {
-    saveRef.current = handleSave;
-  });
   const scheduleSave = () => {
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
@@ -424,7 +433,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
     const updatedAbility = { ...ability };
     Object.entries(selectedAbilities).forEach(([key, value]) => {
       if (key && value !== undefined) {
-        updatedAbility[key] = value;
+        updatedAbility[key] = value.toString();
       }
     });
     setAbility(updatedAbility);
@@ -434,7 +443,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
   };
   // 提交批量创建
   const handleConfirmBatchCreateAbilities = () => {
-    const updatedAbility = { ...ability } as Record<string, number>;
+    const updatedAbility = { ...ability } as Record<string, string>;
     const duplicateNames: string[] = [];
     const invalidNames: string[] = [];
     batchAbilities.forEach(({ name, value }, idx) => {
@@ -447,7 +456,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
         duplicateNames.push(trimmed);
         return;
       }
-      updatedAbility[trimmed] = Number.isFinite(value) ? value : 0;
+      updatedAbility[trimmed] = Number.isFinite(value) ? value.toString() : "0";
     });
     setAbility(updatedAbility);
     updateRole({ id: role.id!, entityType: 2, entityInfo: { ...localRole, ability: updatedAbility }, name: role.name });

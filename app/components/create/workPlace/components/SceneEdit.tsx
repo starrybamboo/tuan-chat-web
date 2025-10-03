@@ -85,7 +85,7 @@ function Folder({ moduleData, entityType, onClick, onDelete }:
 export default function SceneEdit({ scene, id }: SceneEditProps) {
   const [selectedTab, setSelectedTab] = useState<"description" | "tip" | "assets">("description");
   const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
-  const { stageId, beginSelectionLock, endSelectionLock, forceSetCurrentSelectedTabId, currentSelectedTabId, updateModuleTabLabel } = useModuleContext();
+  const { stageId, beginSelectionLock, endSelectionLock, updateModuleTabLabel } = useModuleContext();
 
   // 本地状态
   const [localScene, setLocalScene] = useState({ ...entityInfo });
@@ -317,25 +317,13 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
   // 定时器的更新 (localSceneRef 已在前面声明并更新)
   const handleSave = () => {
-    // 保存前开启一个短暂选中锁，防止保存期间异步刷新导致 tab 被切换
-    if (scene.id != null) {
-      beginSelectionLock("scene-save", 800);
-      // 强制保持当前 tab 选中
-      if (currentSelectedTabId !== scene.id.toString()) {
-        forceSetCurrentSelectedTabId(scene.id.toString());
-      }
-      else {
-        // 即便一致也再设一次，确保其它竞争 update 之后仍是该 id
-        forceSetCurrentSelectedTabId(scene.id.toString());
-      }
-    }
+    beginSelectionLock("scene-save", 800);
     setIsTransitioning(true);
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
       const oldName = scene.name;
       const changed = false; // 名称单独通过 handleNameChange 修改
-      // 先更新场景自身，成功后再同步地图引用及关闭标签
       updateScene(
         { id: scene.id!, entityType: 3, entityInfo: localSceneRef.current, name: nameRef.current || scene.name },
         {
@@ -350,16 +338,13 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                 else {
                   newMap[key] = value;
                 }
-                // 处理值的替换（只处理数组类型的值）
                 if (Array.isArray(value)) {
-                  // 创建数组副本以避免修改只读数组
                   const newArray = [...value] as Array<string>;
                   newArray.forEach((item, index) => {
                     if (item === oldName) {
                       newArray[index] = scene.name as string;
                     }
                   });
-                  // 将修改后的数组赋值回newMap
                   if (key === oldName) {
                     newMap[scene.name as string] = newArray;
                   }
@@ -371,23 +356,15 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
               updateScene({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
             }
             toast.success("场景保存成功");
-            // 成功后稍晚释放锁，确保任何 refetch 回调已落地
             setTimeout(() => endSelectionLock(), 300);
           },
           onError: () => {
-            // 出错也及时释放锁，避免长时间阻塞切换
             endSelectionLock();
           },
         },
       );
     }, 300);
   };
-
-  // 对外注册保存函数（保持稳定引用，避免 effect 依赖 handleSave）
-  const saveRef = useRef<() => void>(() => {});
-  useLayoutEffect(() => {
-    saveRef.current = handleSave;
-  });
 
   return (
     <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
@@ -466,7 +443,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
       <div className={` bg-base-100 space-y-6 ${isEditing ? "ring-2 ring-primary" : ""}`}>
         {selectedTab === "description" && (
           <div className="flex items-center gap-8">
-            <div className="flex-1 min-w-0 overflow-hidden p-2">
+            <div className="flex-1 min-w-0 p-2">
               <QuillEditor
                 id={VeditorIdForDescription}
                 placeholder={localScene.description || "玩家能看到的描述"}
@@ -475,7 +452,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                     return;
                   setLocalScene(prev => ({ ...prev, description: value }));
                   saveTimer.current && clearTimeout(saveTimer.current);
-                  saveTimer.current = setTimeout(handleSave, 8000);
+                  saveTimer.current = setTimeout(() => handleSave(), 8000);
                 }}
               />
             </div>
@@ -483,7 +460,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
         )}
         {selectedTab === "tip" && (
           <div className="flex items-center gap-8">
-            <div className="flex-1 min-w-0 overflow-hidden p-2">
+            <div className="flex-1 min-w-0 p-2">
               <QuillEditor
                 id={VeditorId}
                 placeholder={localScene.tip || "对KP的提醒（对于剧情的书写）"}
@@ -493,7 +470,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                   // 之前这里错误地写入了 description 导致切换 Tab 时 tip 覆盖 description
                   setLocalScene(prev => ({ ...prev, tip: value }));
                   saveTimer.current && clearTimeout(saveTimer.current);
-                  saveTimer.current = setTimeout(handleSave, 8000);
+                  saveTimer.current = setTimeout(() => handleSave, 8000);
                 }}
               />
             </div>

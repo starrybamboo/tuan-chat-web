@@ -24,7 +24,7 @@ const nodeTypes = {
   mapEditNode: SceneNode,
 };
 
-export default function MapEdit({ map, onRegisterSave }: { map: StageEntityResponse; onRegisterSave?: (fn: () => void) => void }) {
+export default function MapEdit({ map }: { map: StageEntityResponse; onRegisterSave?: (fn: () => void) => void }) {
   const { stageId } = useModuleContext();
   // 接入接口
   const { data, isLoading, error } = useQueryEntitiesQuery(stageId as number);
@@ -173,17 +173,6 @@ export default function MapEdit({ map, onRegisterSave }: { map: StageEntityRespo
 
     edgeReconnectSuccessful.current = true;
   }, [map, updateMap]);
-
-  // Map 编辑操作已即时保存；仍向父组件注册一个空保存函数，保证全局保存按钮可用
-  const saveRef = useRef<() => void>(() => {});
-  useEffect(() => {
-    saveRef.current = () => {
-      // no-op: MapEdit uses immediate saves on changes
-    };
-  });
-  useEffect(() => {
-    onRegisterSave?.(() => saveRef.current());
-  }, [onRegisterSave]);
 
   // 处理重连操作
   const onEdgesReconnect = useCallback((oldEdge: Edge, newConnection: Connection) => {
