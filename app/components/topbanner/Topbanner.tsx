@@ -131,6 +131,7 @@ export default function Topbar() {
               <li><a onClick={() => handleNavigation("/module")}>模组</a></li>
               <li><a onClick={() => handleNavigation("/create")}>创作</a></li>
               <li><a onClick={() => handleNavigation("/collection")}>收藏</a></li>
+              <li><a onClick={() => handleNavigation("/resource")}>资源</a></li>
             </ul>
           </div>
 
@@ -152,6 +153,7 @@ export default function Topbar() {
             <a onClick={() => navigate("/module")} className="font-normal text-base hover:underline cursor-default">模组</a>
             <a onClick={() => navigate("/create")} className="font-normal text-base hover:underline cursor-default">创作</a>
             <a onClick={() => navigate("/collection")} className="font-normal text-base hover:underline cursor-default">收藏</a>
+            <a onClick={() => navigate("/resource")} className="font-normal text-base hover:underline cursor-default">资源</a>
           </div>
         </div>
 
