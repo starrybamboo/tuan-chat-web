@@ -1,19 +1,18 @@
 /* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { Module } from "api";
 import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+// import RuleSelect from "../../common/ruleSelect";
+import userContent from "@/components/module/detail/readmeDemo.md?raw";
 import { useUpdateModuleMutation } from "api/hooks/moduleAndStageQueryHooks";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import QuillEditor from "../../../common/quillEditor/quillEditor";
-// import RuleSelect from "../../common/ruleSelect";
-import userContent from "../../detail/readmeDemo.md?raw";
 import { useModuleContext } from "../context/_moduleContext";
 
 interface ModuleEditProps {
   data: Module;
   onChange?: (next: Module) => void;
-  onRegisterSave?: (fn: () => void) => void;
 }
 
 function CoverSlot({ image }: { image?: string | null }) {
@@ -47,7 +46,7 @@ function CoverSlot({ image }: { image?: string | null }) {
   );
 }
 
-export default function ModuleEdit({ data, onChange, onRegisterSave }: ModuleEditProps) {
+export default function ModuleEdit({ data, onChange }: ModuleEditProps) {
   const [selectedTab, setSelectedTab] = useState<"base" | "readme">("base");
   const initial = useMemo(() => data, [data]);
   const [local, setLocal] = useState<Module>({ ...initial });
@@ -156,15 +155,6 @@ export default function ModuleEdit({ data, onChange, onRegisterSave }: ModuleEdi
     // 直接持久化图片更新，不影响脏标记，避免二次自动保存
     doUpdate({ image: imageUrl }, { onSuccess: () => toast.success("封面已更新") });
   };
-
-  // 注册保存函数
-  const saveRef = useRef<() => void>(() => { });
-  useLayoutEffect(() => {
-    saveRef.current = handleSave;
-  });
-  useLayoutEffect(() => {
-    onRegisterSave?.(() => saveRef.current());
-  }, [onRegisterSave]);
 
   // 浅比较，避免不必要的本地重置
   const shallowEqual = (a: Module, b: Module) => (

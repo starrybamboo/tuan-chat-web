@@ -1,7 +1,9 @@
 /* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
+import { useQueryClient } from "@tanstack/react-query";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import QuillEditor from "../../../common/quillEditor/quillEditor";
 import { useModuleContext } from "../context/_moduleContext";
 import AddEntityToScene from "./addEntityToScene";
@@ -83,7 +85,7 @@ function Folder({ moduleData, entityType, onClick, onDelete }:
 export default function SceneEdit({ scene, id }: SceneEditProps) {
   const [selectedTab, setSelectedTab] = useState<"description" | "tip" | "assets">("description");
   const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
-  const { stageId, beginSelectionLock, endSelectionLock, forceSetCurrentSelectedTabId, currentSelectedTabId } = useModuleContext();
+  const { stageId, beginSelectionLock, endSelectionLock, updateModuleTabLabel } = useModuleContext();
 
   // 本地状态
   const [localScene, setLocalScene] = useState({ ...entityInfo });
@@ -106,6 +108,61 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
   // 接入接口
   const { mutate: updateScene } = useUpdateEntityMutation(stageId as number);
+  const queryClient = useQueryClient();
+
+  // 名称内联编辑（与其他编辑器一致）
+  const nameInputRef = useRef(scene.name || "");
+  const nameRef = useRef(scene.name);
+  const nameDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  useLayoutEffect(() => {
+    if ((scene.name || "") !== nameInputRef.current) {
+      nameRef.current = scene.name;
+      nameInputRef.current = scene.name || "";
+    }
+  }, [scene.name]);
+
+  const optimisticUpdateEntityName = (newName: string) => {
+    if (!stageId) {
+      return;
+    }
+    queryClient.setQueryData<any>(["queryEntities", stageId], (oldData: any) => {
+      if (!oldData) {
+        return oldData;
+      }
+      const cloned = { ...oldData };
+      if (Array.isArray(cloned.data)) {
+        cloned.data = cloned.data.map((ent: any) => ent.id === scene.id ? { ...ent, name: newName } : ent);
+      }
+      return cloned;
+    });
+  };
+
+  // 保存引用（需早于名称防抖使用）
+  const localSceneRef = useRef(localScene);
+  useEffect(() => {
+    localSceneRef.current = localScene;
+  }, [localScene]);
+
+  const handleNameChange = (val: string) => {
+    beginSelectionLock("editing-scene-name", 1200);
+    nameInputRef.current = val;
+    updateModuleTabLabel(scene.id!.toString(), val || "未命名");
+    optimisticUpdateEntityName(val || "未命名");
+    nameRef.current = val;
+    if (nameDebounceTimer.current) {
+      clearTimeout(nameDebounceTimer.current);
+    }
+    nameDebounceTimer.current = setTimeout(() => {
+      updateScene({ id: scene.id!, entityType: 3, entityInfo: localSceneRef.current, name: val }, {
+        onSuccess: () => {
+          endSelectionLock();
+        },
+        onError: () => endSelectionLock(),
+      });
+    }, 600);
+  };
+
+  // （重复的 localSceneRef 已移除）
 
   // 新增状态
   const [locations, setLocations] = useState<StageEntityResponse[]>([]);
@@ -258,33 +315,17 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     }
   }, [entities, scene.id, localScene]);
 
-  // 定时器的更新
-  const localSceneRef = useRef(localScene);
-  useEffect(() => {
-    localSceneRef.current = localScene;
-  }, [localScene]);
+  // 定时器的更新 (localSceneRef 已在前面声明并更新)
   const handleSave = () => {
-    // 保存前开启一个短暂选中锁，防止保存期间异步刷新导致 tab 被切换
-    if (scene.id != null) {
-      beginSelectionLock("scene-save", 800);
-      // 强制保持当前 tab 选中
-      if (currentSelectedTabId !== scene.id.toString()) {
-        forceSetCurrentSelectedTabId(scene.id.toString());
-      }
-      else {
-        // 即便一致也再设一次，确保其它竞争 update 之后仍是该 id
-        forceSetCurrentSelectedTabId(scene.id.toString());
-      }
-    }
+    beginSelectionLock("scene-save", 800);
     setIsTransitioning(true);
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
       const oldName = scene.name;
-      const changed = false; // 不在编辑器内修改名称
-      // 先更新场景自身，成功后再同步地图引用及关闭标签
+      const changed = false; // 名称单独通过 handleNameChange 修改
       updateScene(
-        { id: scene.id!, entityType: 3, entityInfo: localSceneRef.current, name: scene.name },
+        { id: scene.id!, entityType: 3, entityInfo: localSceneRef.current, name: nameRef.current || scene.name },
         {
           onSuccess: () => {
             if (changed && mapData) {
@@ -297,16 +338,13 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                 else {
                   newMap[key] = value;
                 }
-                // 处理值的替换（只处理数组类型的值）
                 if (Array.isArray(value)) {
-                  // 创建数组副本以避免修改只读数组
                   const newArray = [...value] as Array<string>;
                   newArray.forEach((item, index) => {
                     if (item === oldName) {
                       newArray[index] = scene.name as string;
                     }
                   });
-                  // 将修改后的数组赋值回newMap
                   if (key === oldName) {
                     newMap[scene.name as string] = newArray;
                   }
@@ -317,11 +355,10 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
               });
               updateScene({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
             }
-            // 成功后稍晚释放锁，确保任何 refetch 回调已落地
+            toast.success("场景保存成功");
             setTimeout(() => endSelectionLock(), 300);
           },
           onError: () => {
-            // 出错也及时释放锁，避免长时间阻塞切换
             endSelectionLock();
           },
         },
@@ -329,19 +366,32 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     }, 300);
   };
 
-  // 对外注册保存函数（保持稳定引用，避免 effect 依赖 handleSave）
-  const saveRef = useRef<() => void>(() => {});
-  useLayoutEffect(() => {
-    saveRef.current = handleSave;
-  });
-
   return (
     <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
       <div className="flex flex-col md:flex-row items-end justify-between gap-3">
         {/* 左侧标题区域 */}
         <div className="flex items-center gap-4 self-start md:self-auto">
           <div>
-            <h1 className="font-semibold text-2xl md:text-3xl my-2">{scene.name}</h1>
+            <div className="group relative max-w-full">
+              <input
+                type="text"
+                aria-label="编辑场景名称"
+                value={nameInputRef.current}
+                onChange={e => handleNameChange(e.target.value)}
+                onFocus={() => beginSelectionLock("editing-scene-name", 1500)}
+                onBlur={() => endSelectionLock()}
+                placeholder="输入场景名称"
+                title="点击编辑场景名称"
+                className="font-semibold text-2xl md:text-3xl my-2 bg-transparent outline-none w-full truncate px-1 -mx-1 border-b border-dashed border-transparent focus:border-primary/70 focus:bg-primary/5 hover:border-base-content/40 hover:bg-base-200/40 rounded-sm transition-colors caret-primary"
+                maxLength={60}
+              />
+              <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-60 group-focus-within:opacity-80 transition-opacity text-base-content/60 pr-1">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                </svg>
+              </span>
+            </div>
             <p className="text-base-content/60">
               {selectedTab === "description" && "场景描述"}
               {selectedTab === "tip" && "剧情详细"}
@@ -393,14 +443,16 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
       <div className={` bg-base-100 space-y-6 ${isEditing ? "ring-2 ring-primary" : ""}`}>
         {selectedTab === "description" && (
           <div className="flex items-center gap-8">
-            <div className="flex-1 min-w-0 overflow-hidden p-2">
+            <div className="flex-1 min-w-0 p-2">
               <QuillEditor
                 id={VeditorIdForDescription}
-                placeholder={initialRef.current ? localScene.description : "玩家能看到的描述"}
+                placeholder={localScene.description || "玩家能看到的描述"}
                 onchange={(value) => {
+                  if (value === "")
+                    return;
                   setLocalScene(prev => ({ ...prev, description: value }));
                   saveTimer.current && clearTimeout(saveTimer.current);
-                  saveTimer.current = setTimeout(handleSave, 8000);
+                  saveTimer.current = setTimeout(() => handleSave(), 8000);
                 }}
               />
             </div>
@@ -408,16 +460,17 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
         )}
         {selectedTab === "tip" && (
           <div className="flex items-center gap-8">
-            <div className="flex-1 min-w-0 overflow-hidden p-2">
+            <div className="flex-1 min-w-0 p-2">
               <QuillEditor
                 id={VeditorId}
                 placeholder={localScene.tip || "对KP的提醒（对于剧情的书写）"}
                 onchange={(value) => {
-                  if (value !== entityInfo.tip) {
-                    setLocalScene(prev => ({ ...prev, tip: value }));
-                    saveTimer.current && clearTimeout(saveTimer.current);
-                    saveTimer.current = setTimeout(handleSave, 8000);
-                  }
+                  if (value === "")
+                    return;
+                  // 之前这里错误地写入了 description 导致切换 Tab 时 tip 覆盖 description
+                  setLocalScene(prev => ({ ...prev, tip: value }));
+                  saveTimer.current && clearTimeout(saveTimer.current);
+                  saveTimer.current = setTimeout(() => handleSave, 8000);
                 }}
               />
             </div>

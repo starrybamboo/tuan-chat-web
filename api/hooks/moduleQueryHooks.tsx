@@ -328,8 +328,9 @@ export function useUpdateEntityMutation(stageId: number) {
     return useMutation({
         mutationFn: (req: EntityUpdateRequest) => tuanchat.stageController.update(req),
         mutationKey: ['updateEntity'],
-        onSuccess: (_data) => {
+        onSuccess: (_data,variables) => {
             queryClient.invalidateQueries({ queryKey: ['queryEntities', stageId], refetchType: 'all' });
+            queryClient.invalidateQueries({ queryKey: ['roleAvatar', variables.id] });
         }
     })
 }

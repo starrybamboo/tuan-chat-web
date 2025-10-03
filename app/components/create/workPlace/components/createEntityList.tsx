@@ -1,7 +1,7 @@
 import type { StageEntityResponse } from "api";
+import ItemDetail from "@/components/module/detail/ContentTab/scene/ItemDetail";
+import { getEntityListByType } from "@/components/module/detail/moduleUtils";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import ItemDetail from "../../detail/ContentTab/scene/ItemDetail";
-import { getEntityListByType } from "../../detail/moduleUtils";
 
 function EntityListItem(
   { entity, isSelected, onChange, onDelete }: {

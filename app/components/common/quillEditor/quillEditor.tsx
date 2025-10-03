@@ -1,13 +1,15 @@
 /* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-console */
 import type quill from "quill";
-import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
+import { useModuleContext } from "@/components/create/workPlace/context/_moduleContext";
 import { BaselineAutoAwesomeMotion } from "@/icons";
 import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"; // ordered: useMemo before useState (project rule)
 import { htmlToMarkdown } from "./htmlToMarkdown";
 import { convertHtmlTagIfAny, logHtmlTagIfAny } from "./htmlWysiwyg";
-import { markdownToHtmlWithEntities } from "./markdownToHtml";
+import { backendContentToQuillHtml, markdownToHtmlWithEntities } from "./markdownToHtml";
 import MentionPreview from "./MentionPreview";
+import { restoreRawHtml } from "./restoreRawHtml";
 import { InlineMenu, SelectionMenu } from "./toolbar";
 import {
   detectAlignment,
@@ -27,12 +29,70 @@ interface vditorProps {
 
 // 顶层预加载句柄，避免重复导入
 let vditorPromise: Promise<any> | null = null;
-function preloadVeditor() {
-  if (typeof window === "undefined") {
-    return null;
+// 全局标记避免重复注册
+let mentionBlotRegistered = false;
+
+function registerMentionBlot(Q: any) {
+  if (!Q || mentionBlotRegistered)
+    return;
+  try {
+    // 通过自有标记而不是 Q.import("formats/mention-span") 来避免控制台报错
+    const Embed = Q.import("blots/embed");
+    class MentionBlot extends Embed {
+      static blotName = "mention-span";
+      static tagName = "span";
+      static className = "ql-mention-span";
+      static create(value: any) {
+        const node = super.create();
+        node.setAttribute("data-label", value?.label || "");
+        node.setAttribute("data-category", value?.category || "");
+        node.textContent = value?.label || "";
+        const cat = value?.category || "";
+        const colorMap: Record<string, { bg: string; color: string }> = {
+          人物: { bg: "#fef3c7", color: "#92400e" },
+          地点: { bg: "#d1fae5", color: "#065f46" },
+          物品: { bg: "#e0f2fe", color: "#075985" },
+        };
+        let bg = "#eef2ff";
+        let fg = "#4338ca";
+        if (cat && colorMap[cat]) {
+          bg = colorMap[cat].bg;
+          fg = colorMap[cat].color;
+        }
+        (node as HTMLElement).style.background = bg;
+        (node as HTMLElement).style.padding = "0 4px";
+        (node as HTMLElement).style.borderRadius = "4px";
+        (node as HTMLElement).style.color = fg;
+        (node as HTMLElement).style.fontSize = "0.85em";
+        (node as HTMLElement).style.userSelect = "none";
+        return node;
+      }
+
+      static value(node: HTMLElement) {
+        return {
+          label: node.getAttribute("data-label") || node.textContent || "",
+          category: node.getAttribute("data-category") || "",
+        };
+      }
+    }
+
+    Q.register(MentionBlot);
+    mentionBlotRegistered = true;
   }
+  catch {
+    // ignore
+  }
+}
+
+function preloadVeditor() {
+  if (typeof window === "undefined")
+    return null;
   if (!vditorPromise) {
-    vditorPromise = import("quill");
+    vditorPromise = import("quill").then((mod) => {
+      const Q = (mod as any)?.default ?? mod;
+      registerMentionBlot(Q);
+      return mod;
+    });
   }
   return vditorPromise;
 }
@@ -127,6 +187,7 @@ function computeNativeCaretPos(wrapper: HTMLElement | null, root: HTMLElement | 
 
 export default function QuillEditor({ id, placeholder, onchange }: vditorProps) {
   const quillRef = useRef<quill | null>(null);
+  // 旧自定义行宽实现已移除（改为 Visual Line Pack）
   // 从上下文获取 stageId 来拉取实体
   let stageIdCtx: number | null = null;
   try {
@@ -142,8 +203,6 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const floatingTbRef = useRef<HTMLDivElement | null>(null);
-  // 调试：可视化/日志开关与参考线
-  const debugLineRef = useRef<HTMLDivElement | null>(null);
   // 提供稳定引用，供事件处理器中调用，避免依赖项警告
   const scheduleToolbarUpdateRef = useRef<() => void>(() => { });
   const [tbVisible, setTbVisible] = useState(false);
@@ -170,6 +229,29 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
   const selectionChangeHandlerRef = useRef<((range: any) => void) | null>(null);
   const hoverRef = useRef(false);
   const focusRef = useRef(false);
+  // 缓存最新选区，避免在其它逻辑中反复调用 editor.getSelection() 触发滚动
+  const lastRangeRef = useRef<any | null>(null);
+  // 安全获取当前选区（不使用 true 强制聚焦），并更新缓存；避免滚动跳跃但保证 WYSIWYG 逻辑拿到最新光标
+  const getSafeSelection = useCallback(() => {
+    try {
+      const editor = quillRef.current as any;
+      if (!editor)
+        return lastRangeRef.current;
+      const sel = editor.getSelection?.(); // 不传 true，避免 ensureCursorVisible
+      if (sel && typeof sel.index === "number") {
+        lastRangeRef.current = { index: sel.index, length: sel.length || 0 };
+      }
+      return lastRangeRef.current;
+    }
+    catch {
+      return lastRangeRef.current;
+    }
+  }, []);
+  // 记录鼠标按下前的滚动位置，用于防止点击导致的自动滚动跳跃
+  const mouseDownScrollTopRef = useRef<number | null>(null);
+  const mouseClickSelectingRef = useRef(false);
+  // 硬性滚动锁：一次点击内禁止编辑器把目标行“贴底”或强制滚动
+  const lockScrollRef = useRef(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   // 选中文本时的横向工具栏（与光标态小方块互斥）
@@ -193,6 +275,15 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
   // 后续可在 popup UI 中使用这些状态。
   const [mentionActive, setMentionActive] = useState(false); // 是否已进入 mention 模式
   const [mentionStart, setMentionStart] = useState<number | null>(null); // 记录 @ 所在的文档 index
+  // 引入 ref 以便在原生 keydown 捕获阶段使用最新值（避免闭包拿到旧状态）
+  const mentionActiveRef = useRef(false);
+  const mentionStartRef = useRef<number | null>(null);
+  useEffect(() => {
+    mentionActiveRef.current = mentionActive;
+  }, [mentionActive]);
+  useEffect(() => {
+    mentionStartRef.current = mentionStart;
+  }, [mentionStart]);
   // 查询字符串（暂未用于 UI，前缀下划线避免未使用 lint 报错）
   const [_mentionQuery, setMentionQuery] = useState(""); // @ 之后的查询字符串（到光标）
   const mentionStageRef = useRef<"category" | "entity" | null>(null); // 分阶段：category -> entity
@@ -205,9 +296,8 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
   // 为稳定性：地点优先使用 entityType === 4，如果没有则备用 entityType === 3
   const roleNames = useMemo(() => allEntities.filter((e: any) => e.entityType === 2).map((e: any) => e.name).filter(Boolean), [allEntities]);
   const locationPrimary = useMemo(() => allEntities.filter((e: any) => e.entityType === 4).map((e: any) => e.name).filter(Boolean), [allEntities]);
-  const locationFromScene = useMemo(() => allEntities.filter((e: any) => e.entityType === 3).map((e: any) => e.name).filter(Boolean), [allEntities]);
   const itemNames = useMemo(() => allEntities.filter((e: any) => e.entityType === 1).map((e: any) => e.name).filter(Boolean), [allEntities]);
-  const locationNames = locationPrimary.length ? locationPrimary : locationFromScene;
+  const locationNames = locationPrimary;
   const categoriesRef = useRef<string[]>(["人物", "地点", "物品"]); // 保持顺序
   const [currentCategory, setCurrentCategory] = useState<string | null>(null);
   const entitiesRef = useRef<Record<string, string[]>>({
@@ -328,69 +418,17 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
   }, [filtered, mentionActive]);
 
   // 自定义 mention blot：等待 Quill 实例就绪再注册，避免首次 effect 运行时实例未创建导致漏注册
+  // 旧的按需注册逻辑已被顶层预加载中的 registerMentionBlot 取代
   useEffect(() => {
-    const editor = quillRef.current as any;
-    if (!editor) {
-      return; // 等下一次 quillRef 有值再尝试
-    }
-    try {
-      const Q = editor.constructor || (window as any).Quill;
-      if (!Q) {
-        return;
-      }
-      // 已注册则跳过
+    if (editorReady) {
       try {
-        // 若已可 import 则说明存在
-        const existing = Q.import("formats/mention-span");
-        if (existing) {
-          return;
-        }
+        const editor = quillRef.current as any;
+        const Q = editor?.constructor || (window as any).Quill;
+        registerMentionBlot(Q);
       }
       catch {
-        // 说明尚未注册，继续注册
+        // ignore
       }
-      const Embed = Q.import("blots/embed");
-      class MentionBlot extends Embed {
-        static blotName = "mention-span";
-        static tagName = "span";
-        static className = "ql-mention-span";
-        static create(value: any) {
-          const node = super.create();
-          node.setAttribute("data-label", value?.label || "");
-          node.setAttribute("data-category", value?.category || "");
-          node.textContent = value?.label || "";
-          const cat = value?.category || "";
-          const colorMap: Record<string, { bg: string; color: string }> = {
-            人物: { bg: "#fef3c7", color: "#92400e" },
-            地点: { bg: "#d1fae5", color: "#065f46" },
-            物品: { bg: "#e0f2fe", color: "#075985" },
-          };
-          let bg = "#eef2ff";
-          let fg = "#4338ca";
-          if (cat && colorMap[cat]) {
-            bg = colorMap[cat].bg;
-            fg = colorMap[cat].color;
-          }
-          node.style.background = bg;
-          node.style.padding = "0 4px";
-          node.style.borderRadius = "4px";
-          node.style.color = fg;
-          node.style.fontSize = "0.85em";
-          node.style.userSelect = "none";
-          return node;
-        }
-
-        static value(node: HTMLElement) {
-          return {
-            label: node.getAttribute("data-label") || node.textContent || "",
-            category: node.getAttribute("data-category") || "",
-          };
-        }
-      }
-      Q.register(MentionBlot);
-    }
-    catch {
-      // ignore
     }
   }, [editorReady]);
 
@@ -400,7 +438,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
       return;
     }
     try {
-      const sel = editor.getSelection?.(true);
+      const sel = lastRangeRef.current;
       if (!sel || typeof sel.index !== "number") {
         return;
       }
@@ -512,7 +550,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
       if (!editor) {
         return;
       }
-      const sel = editor.getSelection?.(true);
+      const sel = lastRangeRef.current;
       if (!sel || typeof sel.index !== "number") {
         setActiveHeader(0);
         setActiveList("");
@@ -641,7 +679,18 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
       raf1Ref.current = requestAnimationFrame(() => {
         raf2Ref.current = requestAnimationFrame(() => {
           try {
-            const sel = editor.getSelection?.(true);
+            // 不使用 getSelection(true)，避免在 hover 时隐式聚焦导致页面滚动/跳转到光标位置
+            const sel = lastRangeRef.current;
+            if (lockScrollRef.current)
+              return; // 硬锁期间不定位
+            // 若当前并未聚焦且只是 hover，不强制显示定位，直接退出（防止滚动）
+            try {
+              const rootActive = document.activeElement === (editor as any).root;
+              if (!rootActive && !focusRef.current && hoverRef.current && !sel) {
+                return; // 悬停但未聚焦且无选区，不触发定位
+              }
+            }
+            catch { /* ignore */ }
             if (sel && typeof sel.index === "number") {
               const rootRect = el.getBoundingClientRect();
               const wrapRect = wrapper.getBoundingClientRect();
@@ -682,18 +731,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
                 catch {
                   // ignore
                 }
-                if (typeof window !== "undefined" && (window as any).__VEDITOR_DEBUG__) {
-                  console.warn("[QuillEditor][schedule/caret]", {
-                    selIndex: sel.index,
-                    boundsTop: bCaret.top || 0,
-                    rootRectTop: rootRect.top,
-                    wrapRectTop: wrapRect.top,
-                    rootScrollTop: effScrollTop,
-                    clientHeight: el.clientHeight,
-                    scrollHeight: el.scrollHeight,
-                    computedTop: caretTop,
-                  });
-                }
+                // caret position updated
                 setTbTop(Math.max(0, caretTop));
                 // 计算小方块左侧位置：放到编辑区左外侧
                 try {
@@ -707,18 +745,6 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
                     nextLeft = Math.max(-tbW - 8, 8 - wrapRect.left);
                   }
                   setTbLeft(nextLeft);
-                }
-                catch {
-                  // ignore
-                }
-                // 调试线跟随小方块工具栏
-                try {
-                  if (debugLineRef.current) {
-                    debugLineRef.current.style.top = `${Math.max(0, caretTop)}px`;
-                    debugLineRef.current.style.display = (typeof window !== "undefined" && (window as any).__VEDITOR_DEBUG__)
-                      ? "block"
-                      : "none";
-                  }
                 }
                 catch {
                   // ignore
@@ -742,20 +768,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
                   const maxLeft = Math.max(0, wrapper.clientWidth - approxWidth - 8);
                   left = Math.max(8, Math.min(left, maxLeft));
                   const top = Math.max(0, selTop - approxHeight - 8);
-                  if (typeof window !== "undefined" && (window as any).__VEDITOR_DEBUG__) {
-                    console.warn("[QuillEditor][schedule/selection]", {
-                      selIndex: sel.index,
-                      selLength: sel.length,
-                      boundsTop: (bSel as any).top || 0,
-                      boundsLeft: (bSel as any).left || 0,
-                      boundsWidth: (bSel as any).width || 0,
-                      rootRectTop: rootRect.top,
-                      wrapRectTop: wrapRect.top,
-                      rootScrollTop: el.scrollTop,
-                      computedTop: top,
-                      computedLeft: left,
-                    });
-                  }
+                  // selection toolbar position updated
                   setSelTbTop(top - 15);
                   setSelTbLeft(left);
                   setSelTbVisible(true);
@@ -769,14 +782,6 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
               // 无有效选区，隐藏两个工具栏
               setTbVisible(false);
               setSelTbVisible(false);
-              try {
-                if (debugLineRef.current) {
-                  debugLineRef.current.style.display = "none";
-                }
-              }
-              catch {
-                // ignore
-              }
             }
           }
           catch {
@@ -820,6 +825,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
     let onRootKeyDown: ((e: KeyboardEvent) => void) | null = null;
     let onRootKeyUp: ((e: KeyboardEvent) => void) | null = null;
     let onRootMouseUp: ((e: MouseEvent) => void) | null = null;
+    let onRootMouseDown: ((e: MouseEvent) => void) | null = null;
     let onRootPaste: ((e: ClipboardEvent) => void) | null = null;
     // 为可清理的 DOM 事件处理器预留引用（此处不需要 scroll 句柄，滚动监听在独立 effect 中）
     // Enter/换行后用于清理新行块级格式的定时器
@@ -830,6 +836,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
       // 动态加载 vditor 以避免首屏阻塞，并利用上方的预加载
       const mod = await preloadVeditor();
       const Q = (mod?.default ?? mod) as any;
+      registerMentionBlot(Q);
       if (!Q || quillRef.current || !container) {
         return;
       }
@@ -869,18 +876,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
           const rootRect = root.getBoundingClientRect();
           const wrapRect = wrapper.getBoundingClientRect();
           const top = (rootRect.top + (b.top || 0) - root.scrollTop) - wrapRect.top;
-          if (typeof window !== "undefined" && (window as any).__VEDITOR_DEBUG__) {
-            console.warn("[QuillEditor][update]", {
-              selIndex: idx,
-              boundsTop: b.top || 0,
-              rootRectTop: rootRect.top,
-              wrapRectTop: wrapRect.top,
-              rootScrollTop: root.scrollTop,
-              clientHeight: root.clientHeight,
-              scrollHeight: root.scrollHeight,
-              computedTop: top,
-            });
-          }
+          // inline toolbar update position
           setTbTop(Math.max(0, top));
           // 计算小方块左侧位置：放到编辑区左外侧
           try {
@@ -892,17 +888,6 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
               nextLeft = Math.max(-tbW - 8, 8 - wrapRect.left);
             }
             setTbLeft(nextLeft);
-          }
-          catch {
-            // ignore
-          }
-          try {
-            if (debugLineRef.current) {
-              debugLineRef.current.style.top = `${Math.max(0, top)}px`;
-              debugLineRef.current.style.display = (typeof window !== "undefined" && (window as any).__VEDITOR_DEBUG__)
-                ? "block"
-                : "none";
-            }
           }
           catch {
             // ignore
@@ -947,14 +932,35 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
           pendingSerialize = false;
           try {
             const html = (editor as any).root?.innerHTML ?? "";
-            const md = htmlToMarkdown(html);
+            // 先还原含 data-origin-raw 的标签源码，再走 html->markdown
+            let restoredHtml = html;
+            try {
+              restoredHtml = restoreRawHtml(html);
+            }
+            catch { /* ignore restore errors */ }
+            const md = htmlToMarkdown(restoredHtml);
+            // 统一输出空行统计
+            try {
+              const lines = md.split(/\n/);
+              let encoded = 0;
+              let seq = 0;
+              let run = false;
+              lines.forEach((l) => {
+                if (l === "\\n") {
+                  encoded += 1;
+                  if (!run) {
+                    run = true;
+                    seq += 1;
+                  }
+                }
+                else {
+                  run = false;
+                }
+              });
+              console.log("[BlankLine] lines=", lines.length, "encoded=", encoded, "sequences=", seq);
+            }
+            catch { /* ignore */ }
             if (md !== lastAppliedMarkdownRef.current) {
-              try {
-                console.warn("[md]", md);
-              }
-              catch {
-                // ignore
-              }
               lastAppliedMarkdownRef.current = md;
               onChangeRef.current?.(md);
             }
@@ -966,10 +972,13 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
       };
 
       const onTextChange = (delta: any, _old: any, source: any) => {
+        // 在用户输入开始时尝试刷新一次缓存的选区，保证后续 markdown / mention 解析有最新 index
+        if (source === "user") {
+          getSafeSelection();
+        }
         // 1) 同步：将 HTML 转为 Markdown，仅在用户操作时回传，避免外部设置导致回环
         if (!applyingExternalRef.current && source === "user")
           scheduleSerialize();
-
         // 2) 基于 delta 的 Markdown 检测：仅在用户输入、非重入时处理
         if (handlingSpaceRef.current || source !== "user") {
           return;
@@ -997,28 +1006,74 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
             }
           }
           // ---- Minimal @ detection (Plan B) ----
+          // 新增：检测本次 delta 是否删除了原始的 @ 位置；如果是则立即退出 mention 模式
+          if (mentionActive && mentionStart != null && delta && Array.isArray(delta.ops)) {
+            try {
+              let cursor = 0; // 游标表示当前文档扫描位置（基于 delta 应用前）
+              let deletedAtMention = false;
+              // mention delta ops removed
+              for (const op of delta.ops) {
+                if (!op) {
+                  continue;
+                }
+                if (typeof op.retain === "number") {
+                  cursor += op.retain;
+                }
+                if (typeof op.delete === "number") {
+                  const delStart = cursor; // 删除段开始位置
+                  const delEnd = cursor + op.delete; // (开区间右端)
+                  if (mentionStart >= delStart && mentionStart < delEnd) {
+                    deletedAtMention = true;
+                  }
+                  // delete 不前进 cursor（Quill Delta 语义）
+                }
+                if (typeof op.insert === "string") {
+                  cursor += op.insert.length;
+                }
+              }
+              if (deletedAtMention) {
+                setMentionActive(false);
+                setMentionStart(null);
+                setMentionQuery("");
+                mentionStageRef.current = null;
+                setMentionPos(null);
+              }
+            }
+            catch { /* ignore delta delete parse */ }
+          }
           // 仅在本次 delta 新插入了 '@' 且当前未处于 mentionActive 时尝试激活
           if (!mentionActive && mentionAtInsertedRef.current) {
             try {
-              const selNow = editor.getSelection?.(true);
+              const selNow = lastRangeRef.current;
               if (selNow && typeof selNow.index === "number" && lastAtRelative != null) {
-                // 全局 index = 光标位置 - (本次插入总长度 - 最后一个 @ 相对位置) - 1
-                const globalIdx = Math.max(0, selNow.index - (inserted.length - lastAtRelative) - 1);
+                // 修复: 去除原先多余的 -1，直接使 globalIdx 指向刚插入的 @ 字符
+                let globalIdx = Math.max(0, selNow.index - (inserted.length - lastAtRelative));
+                // 校验该位置是否真的是 @；若不是而后一个是 @（IME 合并 / 换行分割），尝试向后纠正
                 let ch = "";
                 try {
                   ch = editor.getText?.(globalIdx, 1) || "";
                 }
-                catch {
-                  // ignore
-                }
-                // 如果该位置不是 @，尝试向后再看一位（可能 IME 合并导致）
+                catch { /* ignore */ }
                 if (ch !== "@") {
                   try {
-                    ch = editor.getText?.(globalIdx + 1, 1) || "";
+                    const nextCh = editor.getText?.(globalIdx + 1, 1) || "";
+                    if (nextCh === "@") {
+                      globalIdx = globalIdx + 1;
+                      ch = "@";
+                    }
                   }
-                  catch {
-                    // ignore
+                  catch { /* ignore */ }
+                }
+                // 进一步防御：如果还是不是 @，尝试向前回溯一个（极端合并场景）
+                if (ch !== "@" && globalIdx > 0) {
+                  try {
+                    const prevCh = editor.getText?.(globalIdx - 1, 1) || "";
+                    if (prevCh === "@") {
+                      globalIdx = globalIdx - 1;
+                      ch = "@";
+                    }
                   }
+                  catch { /* ignore */ }
                 }
                 if (ch === "@") {
                   try {
@@ -1033,30 +1088,16 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
                       setMentionPos({ top, left });
                     }
                   }
-                  catch { }
+                  catch { /* ignore */ }
                   setMentionActive(true);
                   mentionStageRef.current = "category";
                   setMentionStage("category");
                   setMentionStart(globalIdx);
                   setMentionQuery("");
-                  try {
-                    console.warn("[mention] activated", globalIdx, { inserted, lastAtRelative });
-                  }
-                  catch {
-                    // ignore
-                  }
-                }
-                else {
-                  try {
-                    console.warn("[mention-debug] could not locate @", { sel: selNow.index, inserted, lastAtRelative });
-                  }
-                  catch {
-                    // ignore
-                  }
                 }
               }
             }
-            catch { }
+            catch { /* ignore overall */ }
             finally {
               mentionAtInsertedRef.current = false;
             }
@@ -1067,17 +1108,13 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
           // 若已激活 mention，实时更新 query；若用户退格到 @ 之前或换行，则退出
           if (mentionActive) {
             try {
-              const selNow = editor.getSelection?.(true);
+              const selNow = lastRangeRef.current;
               if (!selNow || typeof selNow.index !== "number") {
                 setMentionActive(false);
                 setMentionStart(null);
                 setMentionQuery("");
                 mentionStageRef.current = null;
                 setMentionPos(null);
-                try {
-                  console.warn("[mention] cancelled: lost selection");
-                }
-                catch { }
               }
               else if (mentionStart != null) {
                 if (selNow.index <= mentionStart) {
@@ -1087,12 +1124,6 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
                   setMentionQuery("");
                   mentionStageRef.current = null;
                   setMentionPos(null);
-                  try {
-                    console.warn("[mention] cancelled: caret moved before @");
-                  }
-                  catch {
-                    // ignore
-                  }
                 }
                 else {
                   // 获取 @ 到当前光标之间的文本，不包含 @
@@ -1104,12 +1135,6 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
                     setMentionQuery("");
                     mentionStageRef.current = null;
                     setMentionPos(null);
-                    try {
-                      console.warn("[mention] cancelled: newline");
-                    }
-                    catch {
-                      // ignore
-                    }
                   }
                   else {
                     setMentionQuery(slice.slice(1)); // 去掉开头的 @
@@ -1143,7 +1168,15 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
             }
             lineFormatTimer = setTimeout(() => {
               try {
-                const selAfter = editor.getSelection?.(true);
+                // 新增：强制获取最新选区，防止 lastRangeRef 仍指向换行前位置
+                try {
+                  const freshSel = editor.getSelection?.();
+                  if (freshSel && typeof freshSel.index === "number") {
+                    lastRangeRef.current = { index: freshSel.index, length: freshSel.length || 0 };
+                  }
+                }
+                catch { /* ignore fresh selection */ }
+                const selAfter = lastRangeRef.current;
                 if (!selAfter || typeof selAfter.index !== "number") {
                   return;
                 }
@@ -1153,7 +1186,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
                 }
                 const [_nLine, nOffset] = newLineInfo as [any, number];
                 const newLineStart = selAfter.index - nOffset;
-                // 判断换行前一行是否在 code-block：以 selAfter.index - 1 获取前一行并检查其块格式
+                // 获取上一行（换行符之前）的格式
                 const prevLineTuple = editor.getLine?.(Math.max(0, selAfter.index - 1));
                 let prevLineStart = Math.max(0, selAfter.index - 1);
                 if (prevLineTuple && Array.isArray(prevLineTuple) && prevLineTuple.length >= 2) {
@@ -1163,16 +1196,14 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
                 const prevFormats = editor.getFormat?.(prevLineStart, 1) ?? {};
                 const prevInCodeBlock = !!("code-block" in prevFormats);
                 if (prevInCodeBlock) {
-                  // 代码块中回车：确保新行也处于 code-block
                   editor.formatLine(newLineStart, 1, "code-block", true, "user");
                 }
                 else {
-                  // 非代码块：清除所有块级格式，让新行成为普通段落
+                  // 仅作用于新行；不触碰上一行的 header/list 格式，避免误清除
                   editor.formatLine(newLineStart, 1, "header", false, "user");
                   editor.formatLine(newLineStart, 1, "list", false, "user");
                   editor.formatLine(newLineStart, 1, "code-block", false, "user");
                 }
-                // 回车后刷新工具栏位置
                 updateToolbarPosRef.current?.(selAfter.index);
               }
               catch {
@@ -1186,7 +1217,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
             return;
           }
 
-          const sel = editor.getSelection?.(true);
+          const sel = lastRangeRef.current;
           if (!sel || typeof sel.index !== "number") {
             return;
           }
@@ -1241,7 +1272,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
             if (convertedEarly) {
               // 重新获取选区并刷新工具栏；然后直接退出后续 Markdown/inline 处理
               try {
-                const afterHtmlSel = editor.getSelection?.(true);
+                const afterHtmlSel = lastRangeRef.current;
                 if (afterHtmlSel && typeof afterHtmlSel.index === "number") {
                   updateToolbarPosRef.current?.(afterHtmlSel.index);
                 }
@@ -1278,7 +1309,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
             }
             // silent 选区变动后手动刷新工具栏位置
             try {
-              const afterSel = editor.getSelection?.(true);
+              const afterSel = lastRangeRef.current;
               if (afterSel && typeof afterSel.index === "number") {
                 updateToolbarPosRef.current?.(afterSel.index);
               }
@@ -1304,12 +1335,37 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
         const root = (editor as any).root as HTMLElement;
         const hasFocus = !!range && document.activeElement === root;
         focusRef.current = hasFocus;
+        lastRangeRef.current = range ? { index: range.index, length: range.length || 0 } : null;
         if (!range) {
           setTbVisible(false);
           setSelTbVisible(false);
           return;
         }
         const collapsed = !(range.length && range.length > 0);
+        // 若这是一次鼠标点击触发的折叠选区，并且自动滚动导致 root.scrollTop 大幅变化，则恢复之前的滚动位置，避免“跳到底部”体验
+        if (collapsed && mouseClickSelectingRef.current) {
+          try {
+            const prev = mouseDownScrollTopRef.current;
+            if (prev != null) {
+              const now = root.scrollTop;
+              const diff = Math.abs(now - prev);
+              // 只要发生任何非用户滚动（diff>0），立即硬恢复
+              if (diff > 0) {
+                lockScrollRef.current = true; // 锁定，阻止后续定位参与滚动
+                root.scrollTop = prev;
+                // 下一帧释放锁
+                requestAnimationFrame(() => {
+                  lockScrollRef.current = false;
+                });
+              }
+            }
+          }
+          catch { /* ignore */ }
+          finally {
+            mouseClickSelectingRef.current = false;
+            mouseDownScrollTopRef.current = null;
+          }
+        }
         // 折叠：仅在 hover 或 focus 时显示小方块；隐藏横向
         setTbVisible(collapsed && (hoverRef.current || hasFocus));
         if (collapsed) {
@@ -1405,7 +1461,41 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
       rootEl = editor.root as HTMLElement;
       onRootKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Backspace") {
-          const sel = editor.getSelection?.(true);
+          const sel = getSafeSelection();
+          if (sel && sel.length === 0 && typeof sel.index === "number") {
+            const mActive = mentionActiveRef.current;
+            const mStart = mentionStartRef.current;
+            // 1) 即将删除的字符是 @（无论其是否在行首）
+            try {
+              if (mActive && mStart != null) {
+                // 情况 A：光标在 @ 之后（典型：| 光标位置，按下 Backspace 删除前一个 @）
+                const deletingIdx = sel.index - 1; // 将被删除的字符 index
+                if (deletingIdx === mStart) {
+                  const ch = deletingIdx >= 0 ? (editor.getText?.(deletingIdx, 1) || "") : "";
+                  if (ch === "@") {
+                    setMentionActive(false);
+                    setMentionStart(null);
+                    setMentionQuery("");
+                    mentionStageRef.current = null;
+                    setMentionPos(null);
+                  }
+                }
+                else {
+                  // 情况 B：由于前面字符被删除/替换导致 mentionStart 失效，若原始位置已不是 @ 也强制关闭
+                  const stillAt = editor.getText?.(mStart, 1) || "";
+                  if (stillAt !== "@") {
+                    setMentionActive(false);
+                    setMentionStart(null);
+                    setMentionQuery("");
+                    mentionStageRef.current = null;
+                    setMentionPos(null);
+                  }
+                }
+              }
+            }
+            catch { /* ignore mention backspace */ }
+          }
+          // 原有块级格式清除逻辑（如空标题、空列表项退化）
           if (sel && removeBlockFormatIfEmpty(editor, sel)) {
             try {
               e.preventDefault();
@@ -1414,7 +1504,6 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
               // ignore
             }
             isFormattedRef.current = false;
-            // 兜底：调度刷新工具栏位置
             scheduleToolbarUpdateRef.current();
           }
         }
@@ -1424,7 +1513,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
       // 鼠标结束选择（mouseup）与键盘选择（keyup）时，立即显示和定位横向工具栏
       onRootMouseUp = () => {
         try {
-          const sel = editor.getSelection?.(true);
+          const sel = getSafeSelection();
           if (sel && sel.length && sel.length > 0) {
             onSelChange(sel);
           }
@@ -1434,38 +1523,128 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
         }
       };
       rootEl?.addEventListener("mouseup", onRootMouseUp, true);
+      onRootMouseDown = () => {
+        try {
+          const root = (editor as any).root as HTMLElement;
+          mouseDownScrollTopRef.current = root?.scrollTop ?? null;
+          mouseClickSelectingRef.current = true;
+        }
+        catch {
+          mouseDownScrollTopRef.current = null;
+          mouseClickSelectingRef.current = false;
+        }
+      };
+      rootEl?.addEventListener("mousedown", onRootMouseDown, true);
 
       onRootKeyUp = (_e: KeyboardEvent) => {
         try {
-          const sel = editor.getSelection?.(true);
-          if (!sel) {
+          const lr = getSafeSelection();
+          if (!lr)
+            return;
+          if (lr.length && lr.length > 0) {
+            scheduleToolbarUpdateRef.current?.();
             return;
           }
-          if (sel.length && sel.length > 0) {
-            onSelChange(sel);
-            return;
-          }
-          // 折叠：直接使用原生定位刷新一次，保证连续退格后光标变化立即反映
           const wrapper = wrapperRef.current;
           const root = editor.root as HTMLElement;
           const native = computeNativeCaretPos(wrapper, root);
-          if (native) {
+          if (native)
             setTbTop(Math.max(0, native.top));
-            // 左定位使用 scheduleToolbarUpdate 里的逻辑，这里只更新 top，随后调度一次完整刷新
-          }
           scheduleToolbarUpdateRef.current?.();
         }
-        catch {
-          // ignore
-        }
+        catch { /* ignore */ }
       };
       rootEl?.addEventListener("keyup", onRootKeyUp, true);
 
-      // 粘贴：若是 Markdown 文本，则转换为 HTML 并以所见即所得形式插入
+      // 粘贴：1) 简单 HTML 片段 (<a>/<img>/<span>/<div>) 转为所见即所得并标记 data-origin-raw
+      //       2) 若是 Markdown 文本则转为所见即所得
       onRootPaste = (e: ClipboardEvent) => {
         try {
+          const htmlRaw = e.clipboardData?.getData("text/html") || "";
+          // 优先处理纯标签(不含复杂结构)的 htmlRaw，用很宽松的判定：标签数 <= 12 且不含脚本/表格/blockquote 等复杂块
+          if (htmlRaw && /<\s*(?:a|img|span|div)\b/i.test(htmlRaw) && !/<(?:script|table|tr|td|th|blockquote|h[1-6]|ul|ol|li)\b/i.test(htmlRaw)) {
+            const tmp = document.createElement("div");
+            tmp.innerHTML = htmlRaw;
+            const allowed = Array.from(tmp.querySelectorAll("a,img,span,div"));
+            if (allowed.length && allowed.length <= 12) {
+              // const editorRoot = (editor as any).root as HTMLElement; // 未使用，保留注释防止再度添加
+              const sel = lastRangeRef.current;
+              // 覆盖粘贴：若当前存在非折叠选区，先删除选中文本，再在原起点插入
+              let insertIndex = sel && typeof sel.index === "number" ? sel.index : (editor.getLength?.() ?? 0);
+              if (sel && typeof sel.index === "number" && sel.length && sel.length > 0) {
+                try {
+                  editor.deleteText(sel.index, sel.length, "user");
+                  insertIndex = sel.index; // 删除后插入点仍为原起点
+                  editor.setSelection(sel.index, 0, "silent");
+                }
+                catch { /* ignore deleteText errors */ }
+              }
+              e.preventDefault();
+              // 逐节点插入：a -> 文本+link, img -> image blot, span/div -> 其 textContent
+              let cursor = insertIndex;
+              const walkInsert = (node: HTMLElement) => {
+                const tag = node.tagName.toLowerCase();
+                if (tag === "a") {
+                  const href = node.getAttribute("href") || "";
+                  const text = node.textContent || href || "";
+                  if (text) {
+                    if (href) {
+                      editor.insertText(cursor, text, { link: href }, "user");
+                    }
+                    else {
+                      editor.insertText(cursor, text, {}, "user");
+                    }
+                    // 标记 data-origin-raw：在刚插入的叶节点上找 <a>
+                    try {
+                      const leaf = editor.getLeaf?.(cursor);
+                      const leafNode = leaf && leaf[0] && leaf[0].domNode as HTMLElement | undefined;
+                      let aEl: HTMLElement | null = leafNode || null;
+                      if (aEl && aEl.tagName !== "A") {
+                        aEl = aEl.closest("a");
+                      }
+                      if (aEl) {
+                        aEl.setAttribute("data-origin-raw", node.outerHTML);
+                      }
+                    }
+                    catch { /* ignore */ }
+                    cursor += text.length;
+                  }
+                }
+                else if (tag === "img") {
+                  const src = node.getAttribute("src") || "";
+                  if (src) {
+                    editor.insertEmbed(cursor, "image", src, "user");
+                    try {
+                      const leaf = editor.getLeaf?.(cursor);
+                      const leafNode = leaf && leaf[0] && leaf[0].domNode as HTMLElement | undefined;
+                      if (leafNode && leafNode.tagName === "IMG" && !leafNode.getAttribute("data-origin-raw")) {
+                        leafNode.setAttribute("data-origin-raw", node.outerHTML);
+                      }
+                    }
+                    catch { /* ignore */ }
+                    cursor += 1; // image blot 占位 1
+                  }
+                }
+                else if (tag === "span" || tag === "div") {
+                  const txt = node.textContent || "";
+                  if (txt) {
+                    editor.insertText(cursor, txt, "user");
+                    cursor += txt.length;
+                  }
+                }
+              };
+              allowed.forEach(n => walkInsert(n as HTMLElement));
+              // 粘贴结束后将光标放到末尾
+              try {
+                editor.setSelection(cursor, 0, "silent");
+              }
+              catch { /* ignore */ }
+              scheduleSerialize();
+              return;
+            }
+          }
           // 在代码块中不做 Markdown 转换，保持原样
-          const sel = editor.getSelection?.(true);
+          const sel = lastRangeRef.current;
           if (sel && typeof sel.index === "number") {
             const fmt = editor.getFormat?.(Math.max(0, sel.index - 1), 1) ?? {};
             if ("code-block" in fmt) {
@@ -1504,10 +1683,19 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
 
           e.preventDefault();
           const html = markdownToHtmlWithEntities(normalized, entitiesRef.current);
-          const selection = editor.getSelection?.(true);
-          const insertIndex = selection && typeof selection.index === "number"
+          const selection = lastRangeRef.current;
+          let insertIndex = selection && typeof selection.index === "number"
             ? selection.index
             : (editor.getLength?.() ?? 0);
+          // 覆盖粘贴：如果有选中内容，先删除再插入
+          if (selection && typeof selection.index === "number" && selection.length && selection.length > 0) {
+            try {
+              editor.deleteText(selection.index, selection.length, "user");
+              insertIndex = selection.index;
+              editor.setSelection(selection.index, 0, "silent");
+            }
+            catch { /* ignore delete errors */ }
+          }
           // 使用 Quill 内置粘贴 HTML（带 index），保证生成正确 Delta 并插入到光标处
           (editor as any).clipboard?.dangerouslyPasteHTML?.(insertIndex, html, "user");
         }
@@ -1540,6 +1728,14 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
       if (rootEl && onRootMouseUp) {
         try {
           rootEl.removeEventListener("mouseup", onRootMouseUp, true);
+        }
+        catch {
+          // ignore
+        }
+      }
+      if (rootEl && onRootMouseDown) {
+        try {
+          rootEl.removeEventListener("mousedown", onRootMouseDown, true);
         }
         catch {
           // ignore
@@ -1624,7 +1820,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
     };
   }, []);
 
-  // 独立滚动监听：编辑器滚动时更新工具栏位置与显示
+  // 独立滚动监听：编辑器滚动时更新工具栏位置
   useEffect(() => {
     const editor = quillRef.current as any;
     const el = editor?.root as HTMLElement | null;
@@ -1713,13 +1909,92 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
     };
   }, [placeholder]);
 
+  // 覆盖导入（对外使用 window.__QUILL_IMPORT__ 或可通过再封装的 ref 暴露）
+  const importBackendContentRef = useRef<((content: string, format?: "markdown" | "html" | "text") => void) | null>(null);
+  useEffect(() => {
+    importBackendContentRef.current = (content: string, format: "markdown" | "html" | "text" = "html") => {
+      const editor = quillRef.current as any;
+      if (!editor || !content)
+        return;
+      const debug = (_msg: string, _extra?: any) => {
+        try {
+          // import debug removed
+        }
+        catch { /* ignore */ }
+      };
+      try {
+        debug("start import", { format, rawLength: content.length });
+        const html = backendContentToQuillHtml(content, format);
+        debug("converted html", { htmlSnippet: html.slice(0, 120) });
+        applyingExternalRef.current = true;
+        lastAppliedMarkdownRef.current = format === "markdown" ? content : null;
+        editor.setText("");
+        editor.clipboard?.dangerouslyPasteHTML?.(0, html, "api");
+        debug("html pasted", { editorLength: editor.getLength?.() });
+        const root = editor.root as HTMLElement;
+        const spans = Array.from(root.querySelectorAll("span.ql-mention-span[data-label][data-category]"));
+        debug("span collected", { spanCount: spans.length });
+        spans.forEach((sp, idx) => {
+          const label = sp.getAttribute("data-label") || sp.textContent || "";
+          const category = sp.getAttribute("data-category") || "";
+          if (!label || !category) {
+            debug("skip span missing attr", { idx });
+            return;
+          }
+          try {
+            // 方式一：直接通过 Quill.getIndex 需要 leaf; 这里用 selection hack 获取 index
+            const range = document.createRange();
+            range.selectNode(sp);
+            const selNative = window.getSelection();
+            selNative?.removeAllRanges();
+            selNative?.addRange(range);
+            const cur = getSafeSelection();
+            const index = typeof cur?.index === "number" ? cur.index : null;
+            const existingBlot = (window as any).Quill?.find?.(sp);
+            if (existingBlot) {
+              debug("span already associated with blot?", { idx, label, category });
+              return;
+            }
+            if (index == null) {
+              debug("cannot compute index", { idx, label, category });
+              return;
+            }
+            const len = sp.textContent?.length || 0;
+            debug("replace span -> blot", { idx, label, category, index, textLen: len });
+            editor.deleteText(index, len, "api");
+            editor.insertEmbed(index, "mention-span", { label, category }, "api");
+          }
+          catch (e) {
+            debug("replace failed", { idx, label, category, err: (e as any)?.message });
+          }
+        });
+        try {
+          editor.setSelection(editor.getLength?.() - 1, 0, "silent");
+          debug("setSelection end", { len: editor.getLength?.() });
+        }
+        catch { /* ignore */ }
+      }
+      catch { /* ignore overall */ }
+      finally {
+        // eslint-disable-next-line react-web-api/no-leaked-timeout
+        setTimeout(() => {
+          applyingExternalRef.current = false;
+          debug("import complete", {});
+        }, 0);
+      }
+    };
+    if (typeof window !== "undefined") {
+      (window as any).__QUILL_IMPORT__ = importBackendContentRef.current;
+    }
+  }, []);
+
   // 工具栏动作：块级与行内
   const applyHeader = (level: 1 | 2 | 3) => {
     const editor = quillRef.current as any;
     if (!editor) {
       return;
     }
-    const sel = editor.getSelection?.(true);
+    const sel = lastRangeRef.current;
     if (!sel || typeof sel.index !== "number") {
       return;
     }
@@ -1743,7 +2018,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
     if (!editor) {
       return;
     }
-    const sel = editor.getSelection?.(true);
+    const sel = lastRangeRef.current;
     if (!sel || typeof sel.index !== "number") {
       return;
     }
@@ -1767,7 +2042,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
     if (!editor) {
       return;
     }
-    const sel = editor.getSelection?.(true);
+    const sel = lastRangeRef.current;
     if (!sel || typeof sel.index !== "number") {
       return;
     }
@@ -1780,7 +2055,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
       editor.format?.(attr, !isOn, "user");
     }
     editor.focus?.();
-    const cur = editor.getSelection?.(true);
+    const cur = lastRangeRef.current;
     if (cur && typeof cur.index === "number") {
       updateToolbarPosRef.current?.(cur.index);
     }
@@ -1792,7 +2067,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
     if (!editor) {
       return;
     }
-    const sel = editor.getSelection?.(true);
+    const sel = lastRangeRef.current;
     if (!sel || typeof sel.index !== "number") {
       return;
     }
@@ -1834,7 +2109,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
     if (!editor) {
       return;
     }
-    const sel = editor.getSelection?.(true);
+    const sel = lastRangeRef.current;
     if (!sel || typeof sel.index !== "number") {
       return;
     }
@@ -1890,7 +2165,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
     if (!editor) {
       return;
     }
-    const sel = editor.getSelection?.(true);
+    const sel = lastRangeRef.current;
     if (!sel || typeof sel.index !== "number") {
       return;
     }
@@ -1914,7 +2189,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
     if (!editor) {
       return;
     }
-    const sel = editor.getSelection?.(true);
+    const sel = getSafeSelection();
     if (!sel || typeof sel.index !== "number") {
       return;
     }
@@ -1922,7 +2197,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
     if (len > 0) {
       editor.removeFormat?.(sel.index, len, "user");
     }
-    const cur = editor.getSelection?.(true);
+    const cur = getSafeSelection();
     if (cur && typeof cur.index === "number") {
       updateToolbarPosRef.current?.(cur.index);
     }
@@ -1938,17 +2213,10 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
       style={{ overflow: "visible" }}
       onMouseEnter={() => {
         hoverRef.current = true;
-        try {
-          const editor = quillRef.current as any;
-          const sel = editor?.getSelection?.(true);
-          // 仅在折叠选区时显示小方块工具栏
-          setTbVisible(!!sel && !(sel.length && sel.length > 0));
-          // 统一调度，确保两类工具栏位置/可见性正确
-          scheduleToolbarUpdateRef.current?.();
-        }
-        catch {
-          // ignore
-        }
+        // 直接使用缓存的 lastRangeRef，不触发任何 selection 读取
+        const lr = lastRangeRef.current;
+        setTbVisible(!!lr && lr.length === 0 && (focusRef.current));
+        scheduleToolbarUpdateRef.current?.();
       }}
       onMouseLeave={() => {
         hoverRef.current = false;
@@ -2026,22 +2294,6 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
           onMenuClearInline={onMenuClearInline}
         />
       </div>
-      {/* 调试：在 wrapper 内渲染一条虚线参考线，显示当前计算的 top（默认隐藏，通过 window.__VEDITOR_DEBUG__ 控制显示） */}
-      <div
-        ref={debugLineRef}
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          top: tbTop,
-          height: 0,
-          borderTop: "1px dashed rgba(255, 0, 0, 0.6)",
-          pointerEvents: "none",
-          zIndex: 9999,
-          display: "none",
-        }}
-        aria-hidden="true"
-      />
       {/* Minimal Mention Popup：使用 mentionPos 精确定位（无则回退 tbTop+28/left:8） */}
       {mentionActive && (
         <div

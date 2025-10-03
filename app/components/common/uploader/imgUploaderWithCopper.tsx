@@ -7,28 +7,28 @@ import { PopWindow } from "@/components/common/popWindow";
 
 import { canvasPreview } from "@/components/common/uploader/imgCopper/canvasPreview";
 import { useDebounceEffect } from "@/components/common/uploader/imgCopper/useDebounceEffect";
+import { getCroppedImageFile } from "@/utils/CropperFunctions";
 
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { useEffect, useRef, useState } from "react";
-import { centerCrop, makeAspectCrop, ReactCrop } from "react-image-crop";
+import { ReactCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 
-function centerSquareCrop(mediaWidth: number, mediaHeight: number) {
-  const side = Math.min(mediaWidth, mediaHeight);
-  const percent = (side / mediaWidth) * 100;
-  return centerCrop(
-    makeAspectCrop(
-      {
-        unit: "%",
-        width: percent,
-      },
-      1,
-      mediaWidth,
-      mediaHeight,
-    ),
-    mediaWidth,
-    mediaHeight,
-  );
+// 原先强制 1:1，现在改成自由裁剪：初始化给一个居中稍大的默认矩形（不锁定比例）
+function makeInitialFreeCrop(mediaWidth: number, mediaHeight: number) {
+  // 取较小边的 90% 作为初始宽高基准，保持居中；用户之后可随意拖动改变为任意长宽比
+  const base = Math.min(mediaWidth, mediaHeight) * 0.9;
+  const initWidth = Math.min(base, mediaWidth * 0.9);
+  const initHeight = Math.min(base, mediaHeight * 0.9);
+  const x = (mediaWidth - initWidth) / mediaWidth * 100;
+  const y = (mediaHeight - initHeight) / mediaHeight * 100;
+  return {
+    unit: "%" as const,
+    x,
+    y,
+    width: (initWidth / mediaWidth) * 100,
+    height: (initHeight / mediaHeight) * 100,
+  };
 }
 
 interface ImgUploaderWithCopperProps {
@@ -71,7 +71,9 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      requestAnimationFrame(() => {
+        setIsMobile(window.innerWidth < 768);
+      });
     };
 
     checkMobile();
@@ -99,7 +101,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
       const naturalW = imgEl.naturalWidth || imgEl.width;
       const naturalH = imgEl.naturalHeight || imgEl.height;
       setStatusMessage("已加载图片，请调整裁剪框以生成预览...");
-      setCrop(centerSquareCrop(naturalW, naturalH));
+      setCrop(makeInitialFreeCrop(naturalW, naturalH));
       // completedCrop 由 onComplete 更新 - 在加载时清空旧的 completedCrop
       setCompletedCrop(undefined);
       clearPreviewCanvas();
@@ -230,41 +232,7 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
     if (!image || !previewCanvas || !completedCrop) {
       throw new Error("Crop canvas does not exist");
     }
-
-    // This will size relative to the uploaded image
-    // size. If you want to size according to what they
-    // are looking at on screen, remove scaleX + scaleY
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-
-    const offscreen = new OffscreenCanvas(
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
-    );
-    const ctx = offscreen.getContext("2d");
-    if (!ctx) {
-      throw new Error("No 2d context");
-    }
-
-    ctx.drawImage(
-      previewCanvas,
-      0,
-      0,
-      previewCanvas.width,
-      previewCanvas.height,
-      0,
-      0,
-      offscreen.width,
-      offscreen.height,
-    );
-    // 可以用 { type: "image/jpeg", quality: <0 to 1> } 来压缩
-    const blob = await offscreen.convertToBlob({
-      type: "image/png",
-    });
-    return new File([blob], `${fileName}-coppered`, {
-      type: "image/png",
-      lastModified: Date.now(),
-    });
+    return await getCroppedImageFile(image, previewCanvas, completedCrop, `${fileName}-coppered`);
   }
 
   async function handleDownload() {
@@ -330,10 +298,9 @@ export function ImgUploaderWithCopper({ setDownloadUrl, setCopperedDownloadUrl, 
                 crop={crop}
                 onChange={(_, percentCrop) => setCrop(percentCrop)}
                 onComplete={c => setCompletedCrop(c)}
-                aspect={1}
-                // minWidth={400}
+                // 不再传 aspect，实现自由比例裁剪
                 minHeight={10}
-                // 移动端禁用键盘控制，避免误操作
+                keepSelection={true}
                 disabled={false}
               >
                 <img

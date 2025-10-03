@@ -1,3 +1,7 @@
+// 空行策略回退：不再在 Markdown 文本中写入私有区字符；仅把空行编码为字面 \\n。
+// 兼容：若旧内容中已经存在 U+E000（私有区哨兵）或 __BLANK_LINE__ ，在序列化时同样视为逻辑空行。
+const LEGACY_SENTRY_BLANK_LINE = "\uE000"; // 仅用作识别，不再新写入
+
 export function htmlToMarkdown(html: string): string {
   if (!html)
     return "";
@@ -49,8 +53,30 @@ export function htmlToMarkdown(html: string): string {
         listStack = [];
     };
 
+    // 移除 anchor 中的 rel / target 属性（保存时不需要）
+    const stripRelTarget = (outer: string): string => {
+      // 简单字符串级处理，避免在序列化阶段创建过多临时 DOM；保持其它属性顺序
+      let cleaned = outer
+        .replace(/\s+(?:rel|target)=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+        .replace(/\s+(?:rel|target)(?=\s|>)/gi, ""); // 处理无值属性
+      // 压缩多余空格（不影响 href 等值内部）
+      cleaned = cleaned.replace(/<a\s+/i, m => m.replace(/\s{2,}/g, " "));
+      cleaned = cleaned.replace(/\s+>/g, ">");
+      return cleaned;
+    };
+
     const toInlineMd = (el: HTMLElement): string => {
       let txt = el.innerHTML || "";
+      // 预处理：保留允许的原始标签（a/img），用占位符标记，后续再还原；避免被通用正则 strip 掉
+      const preserved: string[] = [];
+      txt = txt.replace(/<a\b[^>]*>[\s\S]*?<\/a>/gi, (m) => {
+        preserved.push(stripRelTarget(m));
+        return `__PRESERVE_A_${preserved.length - 1}__`;
+      });
+      txt = txt.replace(/<img\b[^>]*>/gi, (m) => {
+        preserved.push(m);
+        return `__PRESERVE_IMG_${preserved.length - 1}__`;
+      });
       txt = txt
         .replace(/<strong>([\s\S]*?)<\/strong>/g, "**$1**")
         .replace(/<b>([\s\S]*?)<\/b>/g, "**$1**")
@@ -60,6 +86,11 @@ export function htmlToMarkdown(html: string): string {
         .replace(/<(?:s|strike|del)>([\s\S]*?)<\/(?:s|strike|del)>/g, "~~$1~~")
         .replace(/<code>([\s\S]*?)<\/code>/g, "`$1`");
       txt = txt.replace(/<[^>]+>/g, "");
+      // 还原占位符
+      txt = txt.replace(/__PRESERVE_(A|IMG)_(\d+)__/g, (_m, _type, idxStr) => {
+        const idx = Number(idxStr);
+        return preserved[idx] || "";
+      });
       return txt;
     };
 
@@ -221,8 +252,98 @@ export function htmlToMarkdown(html: string): string {
         else if (node.classList.contains("ql-align-justify")) {
           align = "justify";
         }
-
-        let text = normalize(toInlineMd(node)).trim();
+        // ============ 首行缩进提取逻辑（Tab / ql-indent-N -> /t 令牌） ============
+        // 目标：
+        //  1. 用户通过 Tab 或前导空格产生的首行缩进被序列化。
+        //  2. Quill 内置缩进格式（class="ql-indent-N"）同样被映射为 N 个 /t。
+        //  3. 不影响空行与普通段落。
+        // 规则：
+        //  - 每 1 个实际 Tab 或 4 个连续空格视作一个缩进单位 -> 输出 /t 令牌。
+        //  - 不足 4 的尾随空格原样保留。
+        //  - 若存在 ql-indent-N 类，优先加上 N 个单位（再叠加真实前导空格/Tab）。
+        let inlineRaw = toInlineMd(node); // 已转换为 markdown 风格的内联文本（仍可能含有 &nbsp; 实体）
+        // 解码 &nbsp; -> \u00A0 以便统一被前导空白正则捕获
+        if (inlineRaw.includes("&nbsp;")) {
+          inlineRaw = inlineRaw.replace(/&nbsp;/g, "\u00A0");
+        }
+        // 某些情况下 Quill 可能产生包装 span（已在 toInlineMd 去标签），此处直接匹配前导空白（空格 / 制表 / 不断行空格）
+        const rawLeadingMatch = /^([ \t\u00A0]+)/.exec(inlineRaw);
+        let indentTokenPrefix = "";
+        let bodyPart = inlineRaw;
+        if (rawLeadingMatch) {
+          const leading = rawLeadingMatch[1];
+          bodyPart = inlineRaw.slice(leading.length);
+          // 统一把 \u00A0 当作普通空格处理
+          const leadingExpanded = leading.replace(/\u00A0/g, " ");
+          // 统计 Tab 数（\t）
+          const tabCount = (leadingExpanded.match(/\t/g) || []).length;
+          // 剔除 Tab 后的剩余空格
+          const spacesOnly = leadingExpanded.replace(/\t/g, "");
+          const spaceCount = spacesOnly.length;
+          const fromTabs = tabCount; // 1 Tab -> 1 单位
+          const fromSpaces = Math.floor(spaceCount / 4);
+          const leftoverSpaces = spaceCount % 4;
+          const baseUnits = fromTabs + fromSpaces;
+          indentTokenPrefix = "/t".repeat(baseUnits) + (leftoverSpaces ? " ".repeat(leftoverSpaces) : "");
+        }
+        // 解析 ql-indent-N 类（若有），在现有单位前追加（保持类产生的视觉缩进在最前）
+        const indentClassMatch = Array.from(node.classList).find(c => /^ql-indent-\d+$/.test(c));
+        if (indentClassMatch) {
+          const n = Number.parseInt(indentClassMatch.replace(/^\D+/, ""), 10);
+          if (!Number.isNaN(n) && n > 0) {
+            indentTokenPrefix = "/t".repeat(n) + indentTokenPrefix; // 类缩进优先
+          }
+        }
+        // 解析 inline style 缩进：text-indent / padding-left / margin-left
+        // 适配场景：某些按 Tab 的实现可能只写入 style 而不生成前导空格或 ql-indent-N 类
+        // 规则：
+        //   - 基准单位 base = 2em 或 32px（与常见编辑器“首行缩进2字符”近似）；
+        //   - text-indent 优先，其次 padding-left，再次 margin-left；
+        //   - 若数值 < 1 个单位则忽略（避免误把极小微调视为缩进）；
+        //   - em/rem -> 以 1em=16px 估算；px 直接使用；
+        //   - 结果取 floor(value/base) 追加对应数量 /t；
+        //   - 不与 class/前导空格互斥，可叠加。
+        const styleAttr = (node.getAttribute("style") || "").toLowerCase();
+        if (styleAttr && !/ql-indent-\d+/.test(node.className)) { // 若已有类仍允许叠加，但避免重复解析同来源
+          const extractLen = (prop: string): number | null => {
+            const re = new RegExp(`${prop}\\s*:\\s*([^;]+)`);
+            const m = re.exec(styleAttr);
+            if (!m)
+              return null;
+            let raw = m[1].trim();
+            // 去掉可能的 !important
+            raw = raw.replace(/!important$/, "").trim();
+            const valMatch = /^(\d+(?:\.\d+)?)(px|em|rem)?$/.exec(raw);
+            if (!valMatch)
+              return null;
+            const num = Number.parseFloat(valMatch[1]);
+            const unit = valMatch[2] || "px"; // 无单位当 px
+            if (Number.isNaN(num) || num <= 0)
+              return null;
+            let px = num;
+            if (unit === "em" || unit === "rem")
+              px = num * 16; // 估算
+            return px;
+          };
+          const pxIndent = extractLen("text-indent") ?? extractLen("padding-left") ?? extractLen("margin-left");
+          if (pxIndent != null) {
+            const basePx = 32; // 2em 约等于 32px
+            const units = Math.floor(pxIndent / basePx);
+            if (units > 0) {
+              indentTokenPrefix = "/t".repeat(units) + indentTokenPrefix;
+            }
+          }
+        }
+        // 对正文部分做（非首部）空白压缩：保留前导（已提取），内部连续空白仍折叠
+        // 对正文：保留用户显式输入的连续空格（不再全部折叠），只做必要的换行与 \u00A0 -> 空格转换。
+        // 去掉首尾空白时，保留尾部为了防止与对齐后缀 (c|r|b) 混淆，采用暂存策略：先检测对齐后缀再 trimEnd。
+        let bodyNormalized = bodyPart.replace(/\u00A0/g, " ").replace(/\r\n?/g, "\n");
+        // 暂不全局压缩多空格，避免合并：仅规范化换行。
+        bodyNormalized = bodyNormalized.replace(/\n+/g, " ");
+        // 不立即 trimEnd，这在下面对齐后缀检测后再处理
+        bodyNormalized = bodyNormalized.replace(/^ +/, "");
+        let text = indentTokenPrefix + bodyNormalized;
+        // 如果段落内仅包含一个 <a> 或 <img> 并被保留下来，toInlineMd 会还原 outerHTML；此时继续下面对齐后缀逻辑即可
         if (text) {
           if (align === "center") {
             text += "c";
@@ -235,6 +356,30 @@ export function htmlToMarkdown(html: string): string {
           }
           lines.push(text);
           flushListContextIfNeeded(tag);
+        }
+        else {
+          // 检测真正的空段落（例如 <p><br></p> 或 纯空 <p>），需要被保留为一个“空行”占位
+          // Quill 对多次回车会产生多个这样的段落；之前因为 trim() 直接忽略导致空行丢失
+          const rawHtml = node.innerHTML.replace(/\s+/g, "");
+          if (rawHtml === "" || rawHtml === "<br>" || /<br\/?>(?:<br\/?>)*/i.test(rawHtml)) {
+            lines.push(""); // 直接暂存为空字符串，稍后统一编码为 \\n
+          }
+        }
+        return;
+      }
+      // 直接保留裸露在根级别的 <a> 或 <img> 节点（不包裹段落），作为独立一行
+      if (tag === "a" && node.getAttribute("href")) {
+        let outer = node.outerHTML;
+        if (outer) {
+          outer = stripRelTarget(outer);
+          lines.push(outer.trim());
+        }
+        return;
+      }
+      if (tag === "img" && node.getAttribute("src")) {
+        const outer = node.outerHTML;
+        if (outer) {
+          lines.push(outer.trim());
         }
         return;
       }
@@ -265,28 +410,17 @@ export function htmlToMarkdown(html: string): string {
         lines[i + 1] = "";
     }
 
-    // 合并多余的空行（>2 连续空行压缩为 1 个）
-    const compressed: string[] = [];
-    let prevEmpty = false;
-    for (const l of lines) {
-      const empty = l.trim().length === 0;
-      if (empty) {
-        if (!prevEmpty)
-          compressed.push("");
-        prevEmpty = true;
-      }
-      else {
-        compressed.push(l);
-        prevEmpty = false;
-      }
-    }
-    // 去掉首尾空行
-    while (compressed.length && compressed[0].trim() === "")
-      compressed.shift();
-    while (compressed.length && compressed[compressed.length - 1].trim() === "")
-      compressed.pop();
-
-    const result = compressed.join("\n\n");
+    // 序列化策略说明：
+    // - 单回车：Quill 产生两个相邻非空 <p>，直接对应为两行 Markdown（不插入 \n 标记），表示“段落分隔”。
+    // - 双回车：中间出现一个空 <p><br></p>，该空段落编码成字面 \n，表示“可见空行/段落间额外间距”。
+    // - 多回车：多个空 <p> -> 多个连续 \n。
+    // 保留首尾空行的 \n 以保持用户显式输入。
+    // 兼容历史：__BLANK_LINE__ / 私有区哨兵 -> 空行
+    const normalized = lines.map(l => (l === "__BLANK_LINE__" || l === LEGACY_SENTRY_BLANK_LINE ? "" : l));
+    // 空字符串（逻辑空行）统一编码为字面 \\n
+    const encoded = normalized.map(l => (l.trim() === "" ? "\\n" : l));
+    // 使用真实换行分隔行；只有本身为空行的行被替换成字面量 \\n 标记
+    const result = encoded.join("\n");
     // Fallback: 若原始 HTML 中存在 code-block 相关结构，但 result 中没有生成任何 ```，说明上面的结构识别失败（例如 DOM 结构差异）
     if (!/```/.test(result) && /ql-code-block|<pre[\s>]/i.test(html)) {
       try {

@@ -3,18 +3,59 @@
   min-height: 80vh; /* 使内部容器可继承外层 min-height */
 }
 
+/* 全局基准变量（可被外层覆盖）。如果你想要 10vw，这里设置 10vw；建议后面用 clamp 控制上限。 */
+:root {
+  /* 基准 20px；使用 vmin 自适配（以较小边为参考），限制范围避免极端抖动 */
+  /* 计算：在 1680x(>=1680) 情况下 1vmin = 16.8px，因此 20px ≈ 1.19vmin */
+  --ql-base-size: clamp(18px, 1.2vmin, 26px);
+  /* 如需更大放大曲线，可改成 clamp(18px, 1.4vmin, 32px); */
+}
 /* Quill 会在容器内创建 .ql-container 和 .ql-editor，这里同步继承高度 */
 .ql-wrapper .ql-container {
   min-height: inherit;
   border: none; /* 使用外层边框，避免双线 */
-  font-size: 0.833333vw; /* 14px */
+  font-size: var(--ql-base-size) !important; /* 强制覆盖 Quill 内置样式 */
 }
 
 .ql-wrapper .ql-editor {
   min-height: inherit; /* 关键：编辑区随容器伸展 */
-  /* 小方块已移动到编辑区外，此处恢复对称内边距，避免影响文字对齐 */
-  padding: 0.714286vw 0.833333vw; /* 12px 14px */
-  line-height: 1.6;
+  padding: 1.190476vw 1.428571vw; /* 20px 24px */
+  line-height: 1.45; /* 回调高少许易读性 */
+  font-size: var(--ql-base-size) !important;
+}
+
+/* 标题等比放大（沿用 Quill 默认比例：h1:2em, h2:1.5em, h3:1.17em）并加粗 600 */
+/* 标题：提高特定性并加 !important 避免被 Quill 主题覆盖 */
+.ql-wrapper .ql-editor h1,
+.ql-wrapper .ql-editor h2,
+.ql-wrapper .ql-editor h3 {
+  font-weight: 600 !important;
+  line-height: 1.15 !important;
+  margin: 0.55em 0 0.4em !important;
+}
+.ql-wrapper .ql-editor h1 {
+  font-size: calc(var(--ql-base-size) * 2) !important;
+}
+.ql-wrapper .ql-editor h2 {
+  font-size: calc(var(--ql-base-size) * 1.5) !important;
+}
+.ql-wrapper .ql-editor h3 {
+  font-size: calc(var(--ql-base-size) * 1.17) !important;
+}
+
+/* Debug: 临时调试字形尺寸，可给外层添加 class "ql-debug-font" 查看实际计算结果 */
+.ql-debug-font .ql-editor::after {
+  content: "BASE=" attr(data-base) " computed=" attr(data-computed); /* 动态脚本写入 */
+  position: fixed;
+  bottom: 8px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 9999;
 }
 
 /* 优化占位符颜色对比 */
@@ -112,9 +153,10 @@
   top: auto !important;
   bottom: 1.488095vw; /* 25px */
 }
+/* 工具栏预览：避免 5vw 过大，使用基准的 0.4 倍做展示（可按需调整） */
 .ql-inline-menu button.style-h1 {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: calc(var(--ql-base-size) * 0.4);
+  font-weight: 900;
 }
 .ql-inline-menu button {
   display: inline-flex;

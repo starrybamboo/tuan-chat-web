@@ -1,8 +1,9 @@
 import type { RoomContextType } from "@/components/chat/roomContext";
 import type { RuleNameSpace } from "@/components/common/dicer/cmd";
 import type { ChatMessageRequest, RoleAbility, UserRole } from "../../../../api";
-import CmdExeCoc from "@/components/common/dicer/cmdExeCoc";
+import executorCoc from "@/components/common/dicer/cmdExeCoc";
 import executorDnd from "@/components/common/dicer/cmdExeDnd";
+import executorFu from "@/components/common/dicer/cmdExeFu";
 import executorPublic from "@/components/common/dicer/cmdExePublic";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
@@ -15,8 +16,9 @@ import { tuanchat } from "../../../../api/instance";
 import { useGetRoleQuery } from "../../../../api/queryHooks";
 
 const RULES: Map<number, RuleNameSpace> = new Map();
-RULES.set(1, CmdExeCoc);
+RULES.set(1, executorCoc); // CoC规则
 RULES.set(2, executorDnd); // DnD规则
+RULES.set(3, executorFu); // 最终物语规则
 
 export function isCommand(command: string) {
   const trimmed = command.trim();
