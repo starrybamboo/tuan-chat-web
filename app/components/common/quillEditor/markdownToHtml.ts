@@ -35,98 +35,91 @@ export function rawMarkdownToHtml(md: string): string {
     out = out.replace(/~~([^\n]+?)~~/g, (_m, inner) => `<s>${inner}</s>`);
     return out;
   };
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    if (!line.trim()) {
+  for (let idx = 0; idx < lines.length; idx++) {
+    const line = lines[idx];
+    if (!line.trim()) { // 空行
       blocks.push("<p><br></p>");
-      i++;
       continue;
     }
+    // 单行 heading
     const headingMatch = /^(#{1,3})[ \t]([^\n]+)$/.exec(line);
     if (headingMatch) {
       const level = headingMatch[1].length;
       const content = headingMatch[2];
       blocks.push(`<h${level}>${applyInline(content)}</h${level}>`);
-      i++;
       continue;
     }
-    if (line.startsWith("```")) {
-      const trimmed = line.trim();
-      if (trimmed === "``````") {
-        blocks.push("<pre><code></code></pre>");
-        i++;
-        continue;
+    // fenced code（单行）
+    if (/^```[^`].*?```$/.test(line.trim())) {
+      const inner = line.trim().replace(/^```|```$/g, "");
+      const escaped = inner.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      blocks.push(`<pre><code>${escaped}</code></pre>`);
+      continue;
+    }
+    // fenced code 多行块开始
+    if (line.trim().startsWith("```")) {
+      const codeBody: string[] = [];
+      let j = idx + 1;
+      while (j < lines.length) {
+        const ln = lines[j].trim();
+        if (ln.startsWith("```"))
+          break;
+        codeBody.push(lines[j]);
+        j++;
       }
-      const single = /^```([^`].*?)```$/.exec(trimmed);
-      if (single) {
-        const inner = single[1];
-        const escaped = inner.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        blocks.push(`<pre><code>${escaped}</code></pre>`);
-        i++;
-        continue;
-      }
-      i++;
-      const codeLines: string[] = [];
-      while (i < lines.length && !lines[i].startsWith("```")) {
-        codeLines.push(lines[i] === "" ? "" : lines[i]);
-        i++;
-      }
-      if (i < lines.length && lines[i].startsWith("```")) {
-        i++;
-      }
-      const joined = codeLines.join("\n");
-      if (joined.trim().length === 0) {
-        blocks.push("<pre><code></code></pre>");
+      if (j < lines.length && lines[j].trim().startsWith("```")) {
+        idx = j; // 跳过结束 fence
       }
       else {
-        const escaped = joined.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        blocks.push(`<pre><code>${escaped}</code></pre>`);
+        idx = lines.length; // 未闭合：视作到末尾
       }
+      const joined = codeBody.join("\n");
+      const escaped = joined.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      blocks.push(`<pre><code>${escaped}</code></pre>`);
       continue;
     }
+    // 有序列表：连续行
     if (/^\d+\.\s+/.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^\d+\.\s+/.test(lines[i])) {
-        const raw = lines[i].replace(/^\d+\.\s+/, "");
-        items.push(`<li>${applyInline(raw)}</li>`);
-        i++;
+      let j = idx;
+      while (j < lines.length && /^\d+\.\s+/.test(lines[j])) {
+        const rawItem = lines[j].replace(/^\d+\.\s+/, "");
+        items.push(`<li>${applyInline(rawItem)}</li>`);
+        j++;
       }
+      idx = j - 1;
       blocks.push(`<ol>${items.join("")}</ol>`);
       continue;
     }
+    // 无序列表
     if (/^[\-*+]\s+/.test(line)) {
       const items: string[] = [];
-      while (i < lines.length && /^[\-*+]\s+/.test(lines[i])) {
-        const raw = lines[i].replace(/^[\-*+]\s+/, "");
-        items.push(`<li>${applyInline(raw)}</li>`);
-        i++;
+      let j = idx;
+      while (j < lines.length && /^[\-*+]\s+/.test(lines[j])) {
+        const rawItem = lines[j].replace(/^[\-*+]\s+/, "");
+        items.push(`<li>${applyInline(rawItem)}</li>`);
+        j++;
       }
+      idx = j - 1;
       blocks.push(`<ul>${items.join("")}</ul>`);
       continue;
     }
-    const para: string[] = [];
-    while (i < lines.length && lines[i].trim()) {
-      para.push(lines[i]);
-      i++;
+    // 普通段落（单行）
+    let alignAttr = "";
+    let content = line;
+    if (content.endsWith("c")) {
+      alignAttr = " align=\"center\"";
+      content = content.slice(0, -1).trimEnd();
     }
-    if (para.length > 0) {
-      let combined = para.join(" ");
-      let alignAttr = "";
-      if (combined.endsWith("c")) {
-        alignAttr = " align=\"center\"";
-        combined = combined.slice(0, -1).trimEnd();
-      }
-      else if (combined.endsWith("r")) {
-        alignAttr = " align=\"right\"";
-        combined = combined.slice(0, -1).trimEnd();
-      }
-      else if (combined.endsWith("b")) {
-        alignAttr = " align=\"justify\"";
-        combined = combined.slice(0, -1).trimEnd();
-      }
-      blocks.push(`<p${alignAttr}>${applyInline(combined)}</p>`);
+    else if (content.endsWith("r")) {
+      alignAttr = " align=\"right\"";
+      content = content.slice(0, -1).trimEnd();
     }
+    else if (content.endsWith("b")) {
+      alignAttr = " align=\"justify\"";
+      content = content.slice(0, -1).trimEnd();
+    }
+    blocks.push(`<p${alignAttr}>${applyInline(content)}</p>`);
   }
   const html = blocks.join("");
   try {
