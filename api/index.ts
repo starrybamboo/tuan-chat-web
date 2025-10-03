@@ -245,7 +245,6 @@ export type { RoomUpdateRequest } from './models/RoomUpdateRequest';
 export type { Rule } from './models/Rule';
 export type { RuleCloneRequest } from './models/RuleCloneRequest';
 export type { RuleCreateRequest } from './models/RuleCreateRequest';
-export type { RuleFieldUpdateRequest } from './models/RuleFieldUpdateRequest';
 export type { RulePageRequest } from './models/RulePageRequest';
 export type { RuleResponse } from './models/RuleResponse';
 export type { RuleUpdateRequest } from './models/RuleUpdateRequest';

@@ -1359,85 +1359,13 @@
           "RuleController"
         ],
         "summary": "更新规则",
-        "description": "更新现有规则的信息，包括名称、描述及相关模板",
+        "description": "更新现有规则的信息，包括名称、描述及相关模板，因为要支持顺序，只支持全量更新",
         "operationId": "updateRule",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RuleUpdateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/rule/updateFields": {
-      "put": {
-        "tags": [
-          "RuleController"
-        ],
-        "summary": "更新规则字段",
-        "description": "更新规则的JSON字段，支持字段重命名和删除。新key为null表示删除该字段。",
-        "operationId": "updateRuleFields",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RuleFieldUpdateRequest"
               }
             }
           },
@@ -5725,78 +5653,6 @@
               "*/*": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiResultLong"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultObject"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/capi/space/start": {
-      "post": {
-        "tags": [
-          "space-controller"
-        ],
-        "summary": "将所有观战成员加入所有房间，后续如果有新的观战成员加入空间，则需要重新调用这个接口",
-        "operationId": "start",
-        "parameters": [
-          {
-            "name": "spaceId",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiResultVoid"
                 }
               }
             }
@@ -18513,7 +18369,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResult": {
+      "ApiResultObject": {
         "required": [
           "success"
         ],
@@ -18539,7 +18395,7 @@
         },
         "description": "基础返回体"
       },
-      "ApiResultObject": {
+      "ApiResult": {
         "required": [
           "success"
         ],
@@ -19002,73 +18858,6 @@
         },
         "description": "规则更新请求对象"
       },
-      "RuleFieldUpdateRequest": {
-        "required": [
-          "ruleId"
-        ],
-        "type": "object",
-        "properties": {
-          "ruleId": {
-            "type": "integer",
-            "description": "规则ID",
-            "format": "int64",
-            "example": 1
-          },
-          "actTemplateFields": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "表演模板字段映射，新key为null代表删除字段",
-              "example": "{\"旧key\":\"新key\",\"要删除的key\":null}"
-            },
-            "description": "表演模板字段映射，新key为null代表删除字段",
-            "example": {
-              "旧key": "新key",
-              "要删除的key": null
-            }
-          },
-          "abilityFormulaFields": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "能力公式字段映射，新key为null代表删除字段",
-              "example": "{\"旧key\":\"新key\",\"要删除的key\":null}"
-            },
-            "description": "能力公式字段映射，新key为null代表删除字段",
-            "example": {
-              "旧key": "新key",
-              "要删除的key": null
-            }
-          },
-          "skillDefaultFields": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "技能默认值字段映射，新key为null代表删除字段",
-              "example": "{\"旧key\":\"新key\",\"要删除的key\":null}"
-            },
-            "description": "技能默认值字段映射，新key为null代表删除字段",
-            "example": {
-              "旧key": "新key",
-              "要删除的key": null
-            }
-          },
-          "basicDefaultFields": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string",
-              "description": "基础默认值字段映射，新key为null代表删除字段",
-              "example": "{\"旧key\":\"新key\",\"要删除的key\":null}"
-            },
-            "description": "基础默认值字段映射，新key为null代表删除字段",
-            "example": {
-              "旧key": "新key",
-              "要删除的key": null
-            }
-          }
-        },
-        "description": "规则字段更新请求"
-      },
       "RoomMuteRequest": {
         "required": [
           "roomId"
@@ -19356,6 +19145,11 @@
           "resourceId": {
             "type": "integer",
             "description": "资源id",
+            "format": "int64"
+          },
+          "collectionId": {
+            "type": "integer",
+            "description": "收藏id",
             "format": "int64"
           },
           "type": {

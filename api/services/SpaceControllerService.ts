@@ -105,29 +105,6 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 将所有观战成员加入所有房间，后续如果有新的观战成员加入空间，则需要重新调用这个接口
-     * @param spaceId
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public start(
-        spaceId: number,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/capi/space/start',
-            query: {
-                'spaceId': spaceId,
-            },
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
      * 创建子群聊房间（场景），此场景是{roomId}的下个场景，允许多分支
      * @param requestBody
      * @returns ApiResultRoom OK
