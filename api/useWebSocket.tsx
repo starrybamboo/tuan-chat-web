@@ -239,10 +239,18 @@ export function useWebSocket() {
       case 11:{ // 成员变动
         const event = message as MemberChangePush;
         queryClient.invalidateQueries({ queryKey: ["getRoomMemberList",event.data.roomId] });
-        // 如果是加入群组，要更新订阅信息
+        // 如果是加入群组，要更新订阅信息，以及所有的房间信息
         if (event.data.changeType === 1){
           queryClient.invalidateQueries({ queryKey: ['getUserSessions',event.data.roomId] });
           queryClient.invalidateQueries({ queryKey: ['getRoomSession'] });
+        }
+        // 如果是加入或者退出群组，要更新所有的房间信息
+        if (event.data.changeType === 1 || event.data.changeType === 2){
+          // 延迟500ms，防止数据更新不及时
+          setTimeout(()=>{
+            queryClient.invalidateQueries({ queryKey: ["getUserSpaces"] });
+            queryClient.invalidateQueries({ queryKey: ["getUserRooms"] });
+          },500)
         }
         break;
       }
