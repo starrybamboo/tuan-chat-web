@@ -11,6 +11,10 @@ export type ResourceResponse = {
      */
     resourceId?: number;
     /**
+     * 收藏id
+     */
+    collectionId?: number;
+    /**
      * 资源类型
      */
     type?: string;
