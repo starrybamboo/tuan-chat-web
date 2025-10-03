@@ -6,7 +6,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import {useCallback, useEffect, useRef, useState} from "react";
 import { useImmer } from "use-immer";
 import {useGlobalContext} from "@/components/globalContextProvider";
-import type {ChatStatusEvent, ChatStatusType, DirectMessageEvent, RoomExtraChangeEvent} from "./wsModels";
+import type {
+  ChatStatusEvent,
+  ChatStatusType,
+  DirectMessageEvent,
+  MemberChangePush, RoleChangePush,
+  RoomExtraChangeEvent
+} from "./wsModels";
 import {tuanchat} from "./instance";
 import {
   useGetUserSessionsQuery,
@@ -231,13 +237,19 @@ export function useWebSocket() {
         break;
       }
       case 11:{ // 成员变动
-        queryClient.invalidateQueries({ queryKey: ["getSpaceMemberList"] });
-        queryClient.invalidateQueries({ queryKey: ["getRoomMemberList"] });
+        const event = message as MemberChangePush;
+        queryClient.invalidateQueries({ queryKey: ["getRoomMemberList",event.data.roomId] });
+        // 如果是加入群组，要更新订阅信息
+        if (event.data.changeType === 1){
+          queryClient.invalidateQueries({ queryKey: ['getUserSessions',event.data.roomId] });
+          queryClient.invalidateQueries({ queryKey: ['getRoomSession'] });
+        }
         break;
       }
       case 12:{ // 角色变动
+        const event = message as RoleChangePush
         queryClient.invalidateQueries({ queryKey: ["spaceRole"] });
-        queryClient.invalidateQueries({ queryKey: ["roomRole"] });
+        queryClient.invalidateQueries({ queryKey: ["roomRole",event.data.roomId] });
         break;
       }
       case 14:{ // 房间解散
