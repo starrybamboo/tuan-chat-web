@@ -187,6 +187,7 @@ function computeNativeCaretPos(wrapper: HTMLElement | null, root: HTMLElement | 
 
 export default function QuillEditor({ id, placeholder, onchange }: vditorProps) {
   const quillRef = useRef<quill | null>(null);
+  // 旧自定义行宽实现已移除（改为 Visual Line Pack）
   // 从上下文获取 stageId 来拉取实体
   let stageIdCtx: number | null = null;
   try {

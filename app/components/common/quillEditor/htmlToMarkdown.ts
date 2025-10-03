@@ -1,3 +1,7 @@
+// 空行策略回退：不再在 Markdown 文本中写入私有区字符；仅把空行编码为字面 \\n。
+// 兼容：若旧内容中已经存在 U+E000（私有区哨兵）或 __BLANK_LINE__ ，在序列化时同样视为逻辑空行。
+const LEGACY_SENTRY_BLANK_LINE = "\uE000"; // 仅用作识别，不再新写入
+
 export function htmlToMarkdown(html: string): string {
   if (!html)
     return "";
@@ -269,7 +273,7 @@ export function htmlToMarkdown(html: string): string {
           // Quill 对多次回车会产生多个这样的段落；之前因为 trim() 直接忽略导致空行丢失
           const rawHtml = node.innerHTML.replace(/\s+/g, "");
           if (rawHtml === "" || rawHtml === "<br>" || /<br\/?>(?:<br\/?>)*/i.test(rawHtml)) {
-            lines.push("");
+            lines.push(""); // 直接暂存为空字符串，稍后统一编码为 \\n
           }
         }
         return;
@@ -318,9 +322,10 @@ export function htmlToMarkdown(html: string): string {
     }
 
     // 不再压缩也不再裁剪首尾空行：首尾的空行同样由用户显式输入，需要被保留并编码。
-    const preserved = [...lines];
-    // 将纯空行编码为字面量 \\n ，以便后端存储后还能被还原。
-    const encoded = preserved.map(l => (l.trim() === "" ? "\\n" : l));
+    // 兼容历史：__BLANK_LINE__ / 私有区哨兵 -> 空行
+    const normalized = lines.map(l => (l === "__BLANK_LINE__" || l === LEGACY_SENTRY_BLANK_LINE ? "" : l));
+    // 空字符串（逻辑空行）统一编码为字面 \\n
+    const encoded = normalized.map(l => (l.trim() === "" ? "\\n" : l));
     // 使用真实换行分隔行；只有本身为空行的行被替换成字面量 \\n 标记
     const result = encoded.join("\n");
     // Fallback: 若原始 HTML 中存在 code-block 相关结构，但 result 中没有生成任何 ```，说明上面的结构识别失败（例如 DOM 结构差异）
