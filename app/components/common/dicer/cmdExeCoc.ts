@@ -3,6 +3,7 @@ import { parseDiceExpression, rollDice } from "@/components/common/dicer/dice";
 import UNTIL from "@/components/common/dicer/utils";
 
 // 属性名中英文对照表
+// noinspection NonAsciiCharacters
 const ABILITY_MAP: { [key: string]: string } = {
   str: "力量",
   dex: "敏捷",
@@ -17,6 +18,23 @@ const ABILITY_MAP: { [key: string]: string } = {
   mp: "魔法",
   hp: "体力",
   cm: "克苏鲁神话",
+  克苏鲁: "克苏鲁神话",
+  计算机: "计算机使用",
+  电脑: "计算机使用",
+  灵感: "智力",
+  理智: "san值",
+  理智值: "san值",
+  运气: "幸运",
+  驾驶: "汽车驾驶",
+  汽车: "汽车驾驶",
+  图书馆: "图书馆使用",
+  开锁: "锁匠",
+  撬锁: "锁匠",
+  领航: "导航",
+  重型操作: "操作重型机械",
+  重型机械: "操作重型机械",
+  重型: "操作重型机械",
+  侦察: "侦查",
 };
 
 const executorCoc = new RuleNameSpace(
@@ -89,7 +107,7 @@ const cmdRc = new CommandExecutor(
 
     let value = Number.parseInt(UNTIL.getRoleAbilityValue(curAbility, name) || "");
 
-    if ((value === undefined || Number.isNaN(value)) && attr === undefined && attr === undefined) {
+    if ((value === undefined || Number.isNaN(value)) && attr === undefined) {
       cpi.sendMsg(prop, `错误：未找到技能或属性`);
       return false;
     }
@@ -125,69 +143,80 @@ const cmdRc = new CommandExecutor(
 );
 executorCoc.addCmd(cmdRc);
 
-/**
- * 带奖励骰和惩罚骰的检定掷骰
- * @param bp 奖励骰数，负数表示惩罚骰数
- * @returns 骰子结果数组 [最终结果, 奖励/惩罚骰1, 奖励/惩罚骰2,...]
- */
-function rollDiceWithBP(bp: number = 0): number[] {
-  let bonus: boolean = false;
-  const result: number[] = Array.from({ length: bp + 2 });
-  if (bp > 0) {
-    bonus = true;
-  }
-  bp = Math.abs(bp);
-  let tens = Math.floor(Math.random() * 10);
-  const ones = Math.floor(Math.random() * 10);
-  result[1] = tens;
-  for (let i = 1; i <= bp; i++) {
-    const roll = Math.floor(Math.random() * 10);
-    if ((connect2D10(tens, ones) > connect2D10(roll, ones)) === bonus) {
-      tens = roll;
+const cmdEn = new CommandExecutor(
+  "en",
+  [],
+  "进行成长检定",
+  [".en 教育"],
+  "",
+  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+    const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
+    // 所有参数转为小写
+    args = args.map(arg => arg.toLowerCase());
+    const _isForceToasted = UNTIL.doesHaveArg(args, "h");
+    // 解析参数
+    // 1. 以正负号开头的数字
+    const signedNumbers = args.filter(str => /^[+-]\d+(?:\.\d+)?$/.test(str));
+
+    // 2. 无符号数字
+    const unsignedNumbers = args.filter(str => /^\d+(?:\.\d+)?$/.test(str));
+
+    // 3. 其他
+    const names = args.filter(str =>
+      !/^[+-]\d+(?:\.\d+)?$/.test(str)
+      && !/^\d+(?:\.\d+)?$/.test(str)
+      && !/^\d*[bp]$/.test(str),
+    );
+    const [attr] = unsignedNumbers;
+    const [bonus] = signedNumbers;
+    let [name] = names;
+    // 补丁：添加对于英文简写属性不可读的临时解决方案
+    // TODO 后续添加更健壮的属性解析方案
+    if (!name) {
+      throw new Error("错误：缺少技能名称");
     }
-    result[i + 1] = roll;
-  }
-  result[0] = connect2D10(tens, ones);
-  return result;
-}
+    if (ABILITY_MAP[name.toLowerCase()]) {
+      name = ABILITY_MAP[name.toLowerCase()];
+    }
+    if (!curAbility?.ability && !curAbility?.skill && !curAbility?.basic && unsignedNumbers.length === 0) {
+      cpi.sendMsg(prop, `未设置角色能力？`);
+      return false;
+    }
 
-/**
- * 将d100的个位数和十位数连接起来，其中‘00’会被替换为‘100’
- */
-function connect2D10(tens: number, ones: number) {
-  let result = tens * 10 + ones;
-  if (result === 0) {
-    result = 100;
-  }
-  return result;
-}
+    let value = Number.parseInt(UNTIL.getRoleAbilityValue(curAbility, name) || "");
 
-function buildCheckResult(attr: string, roll: number, value: number): string {
-  let result = "";
-  const fifth = Math.floor(value / 5);
-  const half = Math.floor(value / 2);
+    if ((value === undefined || Number.isNaN(value)) && attr === undefined) {
+      cpi.sendMsg(prop, `错误：未找到技能或属性`);
+      return false;
+    }
 
-  if (roll <= 5) {
-    result = "大成功";
-  }
-  else if (roll >= 96) {
-    result = "大失败";
-  }
-  else if (roll > value) {
-    result = "失败";
-  }
-  else if (roll <= fifth) {
-    result = "极难成功";
-  }
-  else if (roll <= half) {
-    result = "困难成功";
-  }
-  else {
-    result = "普通成功";
-  }
+    if (attr !== undefined) {
+      value = Number.parseInt(attr);
+    }
 
-  return `${attr}检定：D100=${roll}/${value} ${result}`;
-}
+    if (bonus !== undefined) {
+      value += Number.parseInt(bonus);
+    }
+
+    if (value < 0) {
+      value = 0;
+    }
+
+    // 掷d100检定
+    const checkValue = Math.floor(Math.random() * 100) + 1;
+    let { result, doNeedImprove } = buildEnCheckResult(name, checkValue, value);
+    let improveAmount = 0;
+    if (doNeedImprove) {
+      improveAmount = Math.floor(Math.random() * 10) + 1;
+      UNTIL.setRoleAbilityValue(curAbility, name, String(value + improveAmount), "skill");
+      cpi.setRoleAbilityList(mentioned[0].roleId, curAbility);
+      result += `\n${name}成长：${value} -> ${value + improveAmount}`;
+    }
+    cpi.sendMsg(prop, result);
+    return true;
+  },
+);
+executorCoc.addCmd(cmdEn);
 
 const cmdSc = new CommandExecutor(
   "sc",
@@ -384,3 +413,176 @@ const cmdLi = new CommandExecutor(
   },
 );
 executorCoc.addCmd(cmdLi);
+
+const cmdSt = new CommandExecutor(
+  "st",
+  [],
+  "属性设置",
+  [".st 力量70", ".st show 敏捷", ".st 力量+10", ".st 敏捷-5"],
+  ".st [属性名][属性值] / .st show [属性名]",
+  async (args: string[], mentioned: UserRole[], cpi: CPI, _prop: ExecutorProp): Promise<boolean> => {
+    const role = mentioned[0];
+    const input = args.join("");
+    // 修改对象存储变化详情：{ 属性名: { 原值, 操作符, 变化值, 新值 } }
+    const abilityChanges: {
+      [key: string]: { old: number; op: string; val: number; new: number };
+    } = {};
+    // 使用正则匹配所有属性+数值的组合
+    const matches = input.matchAll(/([^\d+-]+)([+-]?)(\d+)/g);
+    const curAbility = cpi.getRoleAbilityList(role.roleId);
+    if (!curAbility) {
+      cpi.sendToast("非法操作，当前角色不存在于提及列表中。");
+      return false;
+    }
+
+    if (args[0]?.toLowerCase() === "show") {
+      if (!("ability" in curAbility || "basic" in curAbility || "skill" in curAbility)) {
+        cpi.sendToast("当前角色没有属性信息，请先设置属性。");
+        return false;
+      }
+
+      // TODO: 展示全部属性的功能
+      const showProps = args.slice(1).filter(arg => arg.trim() !== "");
+      if (showProps.length === 0) {
+        cpi.sendToast("请指定要展示的属性");
+        return false;
+      }
+
+      const result: string[] = [];
+      for (const prop of showProps) {
+        const normalizedKey = prop.toLowerCase();
+        const key = ABILITY_MAP[normalizedKey] || prop;
+        const value = UNTIL.getRoleAbilityValue(curAbility, key) ?? 0; // 修改这里，添加默认值0
+
+        result.push(`${key}: ${value}`);
+      }
+
+      cpi.sendToast(`${role?.roleName || "当前角色"}的属性展示：\n${result.join("\n")}`);
+      return true;
+    }
+
+    // st 实现
+    for (const match of matches) {
+      const rawKey = match[1].trim();
+      const operator = match[2];
+      const value = Number.parseInt(match[3], 10);
+
+      // 统一转换为小写进行比较
+      const normalizedKey = rawKey.toLowerCase();
+      const key = ABILITY_MAP[normalizedKey] || rawKey;
+
+      const currentValue = Number.parseInt(UNTIL.getRoleAbilityValue(curAbility, key) ?? "0"); // 原有值（默认0）
+      let newValue: number;
+
+      if (operator === "+") {
+        newValue = currentValue + value; // 增量：原有值+新值
+      }
+      else if (operator === "-") {
+        newValue = currentValue - value; // 减量：原有值-新值
+      }
+      else {
+        newValue = value; // 无运算符：直接赋值
+      }
+
+      // 存储变化详情
+      abilityChanges[key] = {
+        old: currentValue,
+        op: operator || "=", // 直接赋值时显示"="
+        val: value,
+        new: newValue,
+      };
+
+      // 更新属性
+      UNTIL.setRoleAbilityValue(curAbility, key, newValue.toString(), "skill", "auto");
+    }
+    // 生成包含变化过程的提示信息
+    const changeEntries = Object.entries(abilityChanges)
+      .map(([key, { old, op, val, new: newValue }]) => {
+        if (op !== "=") {
+          return `${key}: ${old}${op}${val}->${newValue}`; // 拼接格式："力量: 70+10=80" 或 "敏捷: 50-5=45" 或 "智力: =90"
+        }
+        else {
+          return `${key}: ${old}->${newValue}`;
+        }
+      });
+    // 拼接成带花括号和换行的格式
+    const updateDetails = `{\n${changeEntries.join("\n")}\n}`;
+
+    cpi.setRoleAbilityList(role.roleId, curAbility);
+    cpi.sendMsg(_prop, `属性设置成功：${role?.roleName || "当前角色"}的属性已更新: ${updateDetails}`);
+    // cpi.sendToast( `属性设置成功：${role?.roleName || "当前角色"}的属性已更新: ${updateDetails}`);
+    return true;
+  },
+);
+executorCoc.addCmd(cmdSt);
+
+/**
+ * 带奖励骰和惩罚骰的检定掷骰
+ * @param bp 奖励骰数，负数表示惩罚骰数
+ * @returns 骰子结果数组 [最终结果, 奖励/惩罚骰1, 奖励/惩罚骰2,...]
+ */
+function rollDiceWithBP(bp: number = 0): number[] {
+  let bonus: boolean = false;
+  const result: number[] = Array.from({ length: bp + 2 });
+  if (bp > 0) {
+    bonus = true;
+  }
+  bp = Math.abs(bp);
+  let tens = Math.floor(Math.random() * 10);
+  const ones = Math.floor(Math.random() * 10);
+  result[1] = tens;
+  for (let i = 1; i <= bp; i++) {
+    const roll = Math.floor(Math.random() * 10);
+    if ((connect2D10(tens, ones) > connect2D10(roll, ones)) === bonus) {
+      tens = roll;
+    }
+    result[i + 1] = roll;
+  }
+  result[0] = connect2D10(tens, ones);
+  return result;
+}
+
+/**
+ * 将d100的个位数和十位数连接起来，其中‘00’会被替换为‘100’
+ */
+function connect2D10(tens: number, ones: number) {
+  let result = tens * 10 + ones;
+  if (result === 0) {
+    result = 100;
+  }
+  return result;
+}
+
+function buildCheckResult(attr: string, roll: number, value: number): string {
+  let result = "";
+  const fifth = Math.floor(value / 5);
+  const half = Math.floor(value / 2);
+
+  if (roll <= 5) {
+    result = "大成功";
+  }
+  else if (roll >= 96) {
+    result = "大失败";
+  }
+  else if (roll > value) {
+    result = "失败";
+  }
+  else if (roll <= fifth) {
+    result = "极难成功";
+  }
+  else if (roll <= half) {
+    result = "困难成功";
+  }
+  else {
+    result = "普通成功";
+  }
+
+  return `${attr}检定：D100=${roll}/${value} ${result}`;
+}
+
+function buildEnCheckResult(attr: string, roll: number, value: number): { result: string; doNeedImprove: boolean } {
+  if (roll > 95 || roll > value) {
+    return { result: `${attr}教育检定：D100=${roll}/${value}，检定成功`, doNeedImprove: true };
+  }
+  return { result: `${attr}教育检定：D100=${roll}/${value}，检定失败`, doNeedImprove: false };
+}
