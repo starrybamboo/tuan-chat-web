@@ -3,6 +3,7 @@ import type { StageEntityResponse } from "api/models/StageEntityResponse";
 import { useQueryClient } from "@tanstack/react-query";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import QuillEditor from "../../../common/quillEditor/quillEditor";
 import { useModuleContext } from "../context/_moduleContext";
 import AddEntityToScene from "./addEntityToScene";
@@ -369,6 +370,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
               });
               updateScene({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
             }
+            toast.success("场景保存成功");
             // 成功后稍晚释放锁，确保任何 refetch 回调已落地
             setTimeout(() => endSelectionLock(), 300);
           },
