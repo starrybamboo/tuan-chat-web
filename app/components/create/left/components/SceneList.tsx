@@ -23,8 +23,8 @@ function SceneListItem(
     >
       {/* 左侧内容 */}
       <div className="flex items-center gap-2 min-w-0">
-        <div className="flex flex-col min-w-0">
-          <p className="text-sm font-medium truncate">{name}</p>
+        <div className="flex flex-col min-w-0 truncate">
+          <p className="text-sm font-medium">{name}</p>
           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{scene.entityInfo!.description}</p>
         </div>
       </div>
