@@ -49,6 +49,7 @@ import {
   useAddRoomRoleMutation,
   useGetMemberListQuery,
   useGetRoomInfoQuery,
+  useGetRoomModuleRoleQuery,
   useGetRoomRoleQuery,
   useGetSpaceInfoQuery,
 } from "../../../api/hooks/chatQueryHooks";
@@ -113,11 +114,18 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   // 获取当前群聊中的所有角色
   const roomRolesQuery = useGetRoomRoleQuery(roomId);
   const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
+  // 获取当前群聊中的所有NPC角色
+  const roomNpcRolesQuery = useGetRoomModuleRoleQuery(roomId);
+  const roomNpcRoles = useMemo(() => roomNpcRolesQuery.data?.data ?? [], [roomNpcRolesQuery.data?.data]);
+  // 用户拥有的角色 + 所有NPC角色
   const roomRolesThatUserOwn = useMemo(() => {
-    if (spaceContext.isSpaceOwner)
-      return roomRoles;
-    return roomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
-  }, [roomRoles, spaceContext.isSpaceOwner, userRoles]);
+    // 先获取用户拥有的玩家角色
+    const playerRoles = spaceContext.isSpaceOwner
+      ? roomRoles
+      : roomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
+    // 合并玩家角色和NPC角色
+    return [...playerRoles, ...roomNpcRoles];
+  }, [roomRoles, roomNpcRoles, spaceContext.isSpaceOwner, userRoles]);
 
   // 房间ID到角色ID的映射
   const [curRoleIdMap, setCurRoleIdMap] = useLocalStorage<Record<number, number>>(
@@ -227,11 +235,15 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
 
+  // 判断是否是观战成员 (memberType >= 3)
+  const isSpectator = (curMember?.memberType ?? 3) >= 3;
+
   const { myStatus: myStatue, handleManualStatusChange } = useChatInputStatus({
     roomId,
     userId,
     webSocketUtils,
     inputText,
+    isSpectator, // 观战成员不发送状态
   });
   // 移除旧的输入状态即时 effect 和单独 idle 定时器（统一由 snapshot 驱动）
 
@@ -557,6 +569,7 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   autoComplete={autoComplete}
                   currentChatStatus={myStatue as any}
                   onChangeChatStatus={handleManualStatusChange}
+                  isSpectator={isSpectator}
                 />
                 <div className="flex gap-2 items-stretch">
                   <AvatarSwitch

@@ -15,6 +15,7 @@ import {
   useDissolveRoomMutation,
   useGetMemberListQuery,
   useGetRoomInfoQuery,
+  useGetRoomModuleRoleQuery,
   useGetRoomRoleQuery,
   useUpdateRoomMutation,
 } from "api/hooks/chatQueryHooks";
@@ -55,17 +56,22 @@ function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDia
   const roomMembers = useMemo(() => membersQuery.data?.data ?? [], [membersQuery.data?.data]);
   const roomRolesQuery = useGetRoomRoleQuery(propRoomId ?? -1);
   const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
+  // 获取房间NPC角色
+  const roomNpcRolesQuery = useGetRoomModuleRoleQuery(propRoomId ?? -1);
+  const roomNpcRoles = useMemo(() => roomNpcRolesQuery.data?.data ?? [], [roomNpcRolesQuery.data?.data]);
 
   // 获取用户的所有角色
   const userRolesQuery = useGetUserRolesQuery(userId ?? -1);
   const userRoles = useMemo(() => userRolesQuery.data?.data ?? [], [userRolesQuery.data?.data]);
 
-  // 用户在当前房间拥有的角色
+  // 用户在当前房间拥有的角色 + NPC角色
   const roomRolesThatUserOwn = useMemo(() => {
-    if (spaceContext?.isSpaceOwner)
-      return roomRoles;
-    return roomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
-  }, [roomRoles, spaceContext?.isSpaceOwner, userRoles]);
+    const playerRoles = spaceContext?.isSpaceOwner
+      ? roomRoles
+      : roomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
+    // 合并玩家角色和NPC角色
+    return [...playerRoles, ...roomNpcRoles];
+  }, [roomRoles, roomNpcRoles, spaceContext?.isSpaceOwner, userRoles]);
 
   const [isMemberHandleOpen, setIsMemberHandleOpen] = useSearchParamsState<boolean>(`spaceUserPop${propRoomId}`, false);
 
