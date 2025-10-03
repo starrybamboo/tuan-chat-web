@@ -20,6 +20,16 @@ export function rawMarkdownToHtml(md: string): string {
   lines = lines.map(l => (l === "\\n" || l === "__BLANK_LINE__" || l === LEGACY_SENTINEL) ? "" : l);
   const blocks: string[] = [];
   const mentionPattern = /@(人物|地点|物品)(\S+)/g;
+  const preserveRuns = (txt: string): string => {
+    // 已经包含 &nbsp; 的段落说明部分空格已被处理，避免重复；我们只把纯普通空格的连续串转换
+    return txt.replace(/ {2,}/g, (m) => {
+      // m 长度 >=2, 保留首个普通空格，其余转 &nbsp;
+      if (!m.trim()) {
+        return ` ${"&nbsp;".repeat(m.length - 1)}`;
+      }
+      return m; // 理论上纯空格，这里防御
+    });
+  };
   const applyInline = (text: string): string => {
     if (!text)
       return "";
@@ -33,6 +43,7 @@ export function rawMarkdownToHtml(md: string): string {
     out = out.replace(/(^|\s)_([^\n_]+)_(?=\s|$)/g, (m, pre, inner) => `${pre}<em>${inner}</em>`);
     out = out.replace(/\+\+([^\n]+?)\+\+/g, (_m, inner) => `<u>${inner}</u>`);
     out = out.replace(/~~([^\n]+?)~~/g, (_m, inner) => `<s>${inner}</s>`);
+    out = preserveRuns(out);
     return out;
   };
   for (let idx = 0; idx < lines.length; idx++) {
@@ -107,6 +118,16 @@ export function rawMarkdownToHtml(md: string): string {
     // 普通段落（单行）
     let alignAttr = "";
     let content = line;
+    // 解析首行 /t 缩进令牌：连续 /t 代表缩进单位，每单位转为 4 个不可折叠空格（&nbsp;×4）
+    if (/^(?:\/t)+/.test(content)) {
+      const tokenMatch = /^(?:\/t)+/.exec(content);
+      if (tokenMatch) {
+        const tokenSeq = tokenMatch[0];
+        const unitCount = tokenSeq.length / 2; // '/t' 长度为2
+        const indentHtml = Array.from({ length: unitCount }, () => "&nbsp;&nbsp;&nbsp;&nbsp;").join("");
+        content = indentHtml + content.slice(tokenSeq.length);
+      }
+    }
     if (content.endsWith("c")) {
       alignAttr = " align=\"center\"";
       content = content.slice(0, -1).trimEnd();
@@ -119,6 +140,7 @@ export function rawMarkdownToHtml(md: string): string {
       alignAttr = " align=\"justify\"";
       content = content.slice(0, -1).trimEnd();
     }
+    content = preserveRuns(content);
     blocks.push(`<p${alignAttr}>${applyInline(content)}</p>`);
   }
   const html = blocks.join("");
