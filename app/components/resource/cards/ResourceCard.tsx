@@ -1,11 +1,11 @@
-import type { ResourceResponse } from "../../../api/models/ResourceResponse";
+import type { ResourceResponse } from "../../../../api/models/ResourceResponse";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import UserAvatarComponent from "../common/userAvatar";
-import { AddToCollectionModal } from "./AddToCollectionModal";
-import AudioWavePlayer from "./AudioWavePlayer";
-import { EditResourceModal } from "./EditResourceModal";
-import MoreBetterImg from "./MoreBetterImg";
+import UserAvatarComponent from "../../common/userAvatar";
+import { AddToCollectionModal } from "../modals/AddToCollectionModal";
+import { EditResourceModal } from "../modals/EditResourceModal";
+import AudioWavePlayer from "../utils/AudioWavePlayer";
+import MoreBetterImg from "../utils/MoreBetterImg";
 
 interface ResourceCardProps {
   resource: ResourceResponse;

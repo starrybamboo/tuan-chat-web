@@ -12,10 +12,10 @@ import {
   useGetUserResourcesByTypeQuery,
 } from "../../../../api/hooks/resourceQueryHooks";
 import UserAvatarComponent from "../../common/userAvatar";
-import { EmptyState } from "../../resource/EmptyState";
-import { LoadingState } from "../../resource/LoadingState";
-import MoreBetterImg from "../../resource/MoreBetterImg";
-import { Pagination } from "../../resource/Pagination";
+import { EmptyState } from "../../resource/ui/EmptyState";
+import { LoadingState } from "../../resource/ui/LoadingState";
+import { Pagination } from "../../resource/ui/Pagination";
+import MoreBetterImg from "../../resource/utils/MoreBetterImg";
 
 type TabType = "myResources" | "publicResources" | "myCollections" | "publicCollections";
 

@@ -1,10 +1,10 @@
-import type { ResourceResponse } from "../../../api/models/ResourceResponse";
+import type { ResourceResponse } from "../../../../api/models/ResourceResponse";
 
 import { ApiError } from "api/core/ApiError";
 
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import { useUpdateResourceMutation } from "../../../api/hooks/resourceQueryHooks";
+import { useUpdateResourceMutation } from "../../../../api/hooks/resourceQueryHooks";
 
 interface EditResourceModalProps {
   isOpen: boolean;

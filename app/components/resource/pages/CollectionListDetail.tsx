@@ -1,9 +1,9 @@
-import type { CollectionList } from "../../../api/models/CollectionList";
-import type { ResourceResponse } from "../../../api/models/ResourceResponse";
+import type { CollectionList } from "../../../../api/models/CollectionList";
+import type { ResourceResponse } from "../../../../api/models/ResourceResponse";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
-import { useGetResourcesInCollectionQuery } from "../../../api/hooks/resourceQueryHooks";
-import { CollectionResourceCard } from "./CollectionResourceCard";
+import { useGetResourcesInCollectionQuery } from "../../../../api/hooks/resourceQueryHooks";
+import { CollectionResourceCard } from "../cards/CollectionResourceCard";
 
 interface CollectionListDetailProps {
   collectionList?: CollectionList;

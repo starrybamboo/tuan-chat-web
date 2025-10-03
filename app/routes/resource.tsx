@@ -1,5 +1,5 @@
 import type { Route } from "./+types/resource";
-import ResourcePage from "@/components/resource/resourcePage";
+import ResourcePage from "@/components/resource/pages/resourcePage";
 
 export function meta(_args: Route.MetaArgs) {
   return [

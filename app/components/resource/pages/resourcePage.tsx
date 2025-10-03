@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { CreateCollectionModal } from "./CreateCollectionModal";
+import { useResourcePageState } from "../hooks/useResourcePageState";
+import { CreateCollectionModal } from "../modals/CreateCollectionModal";
+import { UploadModal } from "../modals/UploadModal";
 import { ResourceCollectionList } from "./resourceCollectionList";
 import { ResourceList } from "./resourceList";
-import { UploadModal } from "./UploadModal";
-import { useResourcePageState } from "./useResourcePageState";
 
 type TabType = "myResources" | "myCollections" | "publicResources" | "publicCollections";
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useCreateResourceCollectionMutation } from "../../../api/hooks/resourceQueryHooks";
-import { UploadUtils } from "../../utils/UploadUtils";
+import { useCreateResourceCollectionMutation } from "../../../../api/hooks/resourceQueryHooks";
+import { UploadUtils } from "../../../utils/UploadUtils";
 
 interface CreateCollectionModalProps {
   isOpen: boolean;

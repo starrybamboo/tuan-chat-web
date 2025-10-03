@@ -1,6 +1,6 @@
-import type { ResourceResponse } from "../../../api/models/ResourceResponse";
-import AudioWavePlayer from "./AudioWavePlayer";
-import MoreBetterImg from "./MoreBetterImg";
+import type { ResourceResponse } from "../../../../api/models/ResourceResponse";
+import AudioWavePlayer from "../utils/AudioWavePlayer";
+import MoreBetterImg from "../utils/MoreBetterImg";
 
 interface CollectionResourceCardProps {
   resource: ResourceResponse;

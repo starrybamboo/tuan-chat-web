@@ -5,11 +5,11 @@ import {
   useDeleteResourceMutation,
   useGetPublicResourcesByTypeQuery,
   useGetUserResourcesByTypeQuery,
-} from "../../../api/hooks/resourceQueryHooks";
-import { EmptyState } from "./EmptyState";
-import { LoadingState } from "./LoadingState";
-import { Pagination } from "./Pagination";
-import { ResourceCard } from "./ResourceCard";
+} from "../../../../api/hooks/resourceQueryHooks";
+import { ResourceCard } from "../cards/ResourceCard";
+import { EmptyState } from "../ui/EmptyState";
+import { LoadingState } from "../ui/LoadingState";
+import { Pagination } from "../ui/Pagination";
 
 interface ResourceListProps {
   type: "5" | "6"; // 5: 图片, 6: 音频

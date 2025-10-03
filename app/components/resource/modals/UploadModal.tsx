@@ -1,7 +1,7 @@
 import { UploadUtils } from "@/utils/UploadUtils";
 import { useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
-import { useUploadResourceMutation } from "../../../api/hooks/resourceQueryHooks";
+import { useUploadResourceMutation } from "../../../../api/hooks/resourceQueryHooks";
 
 interface UploadModalProps {
   isOpen: boolean;

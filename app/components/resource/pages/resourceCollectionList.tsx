@@ -1,20 +1,20 @@
-import type { CollectionList } from "../../../api/models/CollectionList";
+import type { CollectionList } from "../../../../api/models/CollectionList";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import {
   useDeleteCollectionListMutation,
   useRemoveFromListMutation,
   useUpdateCollectionListMutation,
-} from "../../../api/hooks/collectionQueryHooks";
+} from "../../../../api/hooks/collectionQueryHooks";
 import {
   useGetPublicResourceCollectionsByTypeQuery,
   useGetUserResourceCollectionsByTypeQuery,
-} from "../../../api/hooks/resourceQueryHooks";
+} from "../../../../api/hooks/resourceQueryHooks";
+import { ResourceCollectionCard } from "../cards/ResourceCollectionCard";
+import { EmptyState } from "../ui/EmptyState";
+import { LoadingState } from "../ui/LoadingState";
+import { Pagination } from "../ui/Pagination";
 import { CollectionListDetail } from "./CollectionListDetail";
-import { EmptyState } from "./EmptyState";
-import { LoadingState } from "./LoadingState";
-import { Pagination } from "./Pagination";
-import { ResourceCollectionCard } from "./ResourceCollectionCard";
 
 interface ResourceCollectionListProps {
   type: "5" | "6"; // 5: 图片, 6: 音频

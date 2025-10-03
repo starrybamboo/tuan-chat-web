@@ -1,4 +1,4 @@
-import type { CollectionList } from "../../../api/models/CollectionList";
+import type { CollectionList } from "../../../../api/models/CollectionList";
 
 interface ResourceCollectionCardProps {
   collectionList: CollectionList & {
