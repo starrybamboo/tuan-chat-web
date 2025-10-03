@@ -17,10 +17,6 @@ interface CollectionListDetailProps {
 
 // 资源项接口 - 扩展 ResourceResponse 以包含收藏ID
 interface ResourceItem extends ResourceResponse {
-  /**
-   * 收藏id - 用于删除操作
-   */
-  collectionId?: number;
 }
 
 // 编辑表单状态类型

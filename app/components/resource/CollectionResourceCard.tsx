@@ -3,12 +3,7 @@ import AudioWavePlayer from "./AudioWavePlayer";
 import MoreBetterImg from "./MoreBetterImg";
 
 interface CollectionResourceCardProps {
-  resource: ResourceResponse & {
-    /**
-     * 收藏id - 用于删除操作
-     */
-    collectionId?: number;
-  };
+  resource: ResourceResponse;
   /**
    * 格式化日期的函数
    */
