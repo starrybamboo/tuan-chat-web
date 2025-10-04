@@ -55,6 +55,7 @@ type UseChatInputStatusParams = {
   idleThresholdMs?: number; // 默认 10s
   leaveThresholdMs?: number; // 默认 5min
   lockDurationMs?: number; // 默认 3s
+  isSpectator?: boolean; // 是否是观战成员，观战成员不发送状态
 };
 
 type UseChatInputStatusReturn = {
@@ -80,6 +81,7 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
     idleThresholdMs = 10_000,
     leaveThresholdMs = 5 * 60_000,
     lockDurationMs = 3_000,
+    isSpectator = false,
   } = params;
 
   const lastActivityRef = useRef<number>(Date.now());
@@ -111,10 +113,16 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
   // 辅助函数：发送状态更新（带冲突检测）
   const sendStatusUpdate = useCallback((status: ChatStatusType) => {
     logGroup(`📤 尝试发送状态更新: ${status}`, () => {
-      log(LogLevel.DEBUG, "参数检查", { userId, roomId, status });
+      log(LogLevel.DEBUG, "参数检查", { userId, roomId, status, isSpectator });
 
       if (!userId || roomId <= 0) {
         log(LogLevel.WARN, "❌ 参数无效，取消发送", { userId, roomId });
+        return;
+      }
+
+      // 观战成员不发送状态
+      if (isSpectator) {
+        log(LogLevel.INFO, "👁️ 观战成员，跳过状态发送");
         return;
       }
 
@@ -140,7 +148,7 @@ export function useChatInputStatus(params: UseChatInputStatusParams): UseChatInp
         lastSent: lastStatusSentRef.current,
       });
     });
-  }, [roomId, userId]);
+  }, [roomId, userId, isSpectator]);
 
   // 同步输入与活动时间 (添加真正的防抖以避免频繁触发导致卡死)
   useEffect(() => {

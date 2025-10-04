@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks-extra/no-direct-set-state-in-use-effect */
 import type { StageEntityResponse } from "api/models/StageEntityResponse";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import { ImgUploaderWithSelector } from "@/components/common/uploader/ImgUploaderWithSelector";
 import { useQueryClient } from "@tanstack/react-query";
 import { useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -240,7 +240,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
         <div>
           <div className="flex items-center justify-center py-4">
             <div className="w-48">
-              <ImgUploaderWithCopper setDownloadUrl={() => { }} setCopperedDownloadUrl={handleImageChange} fileName={uniqueFileName}>
+              <ImgUploaderWithSelector setDownloadUrl={() => { }} setCopperedDownloadUrl={handleImageChange} fileName={uniqueFileName}>
                 <div className="avatar cursor-pointer group flex items-center justify-center w-full min-w-[120px] md:w-48">
                   <div className="rounded-xl ring-primary ring-offset-base-100 w-full ring ring-offset-2 relative">
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center z-1" />
@@ -251,7 +251,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
                     />
                   </div>
                 </div>
-              </ImgUploaderWithCopper>
+              </ImgUploaderWithSelector>
             </div>
           </div>
         </div>

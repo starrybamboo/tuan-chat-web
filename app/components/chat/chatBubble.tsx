@@ -16,7 +16,7 @@ import React, { use, useMemo } from "react";
 import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
 import ClueMessage from "./smallComponents/clueMessage";
 
-export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
+function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
   /** 控制是否应用气泡样式，默认为false */
@@ -139,7 +139,8 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       </>
 
     );
-  }, [message.content, message.extra, message.messageType]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message.content, message.extra, message.messageType, message.messageId, message.replyMessageId]);
 
   // @角色
   function handleRoleNameClick() {
@@ -265,3 +266,98 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     </div>
   );
 }
+
+// 使用 React.memo 优化性能,避免不必要的重新渲染
+// 只在 chatMessageResponse 的内容真正变化时才重新渲染
+export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps) => {
+  // 自定义比较函数:只比较消息的关键属性
+  const prevMsg = prevProps.chatMessageResponse.message;
+  const nextMsg = nextProps.chatMessageResponse.message;
+
+  // 如果消息ID不同,肯定需要重新渲染
+  if (prevMsg.messageId !== nextMsg.messageId) {
+    return false;
+  }
+
+  // 检查所有可能影响渲染的属性
+  const isEqual = (
+    prevMsg.content === nextMsg.content
+    && prevMsg.avatarId === nextMsg.avatarId
+    && prevMsg.roleId === nextMsg.roleId
+    && prevMsg.updateTime === nextMsg.updateTime
+    && prevMsg.messageType === nextMsg.messageType
+    && prevMsg.status === nextMsg.status // 新增: 检查消息状态(删除/正常)
+    && prevMsg.replyMessageId === nextMsg.replyMessageId // 新增: 检查回复消息ID
+    && prevProps.useChatBubbleStyle === nextProps.useChatBubbleStyle
+  );
+
+  // 如果基础属性不相等,直接返回 false
+  if (!isEqual) {
+    return false;
+  }
+
+  // 深度比较 extra 对象
+  // 如果两者都没有 extra,或者都是同一个引用,则相等
+  if (prevMsg.extra === nextMsg.extra) {
+    return true;
+  }
+
+  // 如果一个有 extra 另一个没有,则不相等
+  if (!prevMsg.extra || !nextMsg.extra) {
+    return false;
+  }
+
+  // 比较 extra 的关键属性
+  const prevExtra = prevMsg.extra;
+  const nextExtra = nextMsg.extra;
+
+  // 检查 imageMessage
+  if (prevExtra.imageMessage !== nextExtra.imageMessage) {
+    if (!prevExtra.imageMessage || !nextExtra.imageMessage) {
+      return false;
+    }
+    if (prevExtra.imageMessage.url !== nextExtra.imageMessage.url
+      || prevExtra.imageMessage.background !== nextExtra.imageMessage.background
+      || prevExtra.imageMessage.width !== nextExtra.imageMessage.width
+      || prevExtra.imageMessage.height !== nextExtra.imageMessage.height) {
+      return false;
+    }
+  }
+
+  // 检查 fileMessage
+  if (prevExtra.fileMessage !== nextExtra.fileMessage) {
+    if (!prevExtra.fileMessage && !nextExtra.fileMessage) {
+      // 都没有,继续检查其他属性
+    }
+    else if (!prevExtra.fileMessage || !nextExtra.fileMessage) {
+      return false;
+    }
+    else if (prevExtra.fileMessage.url !== nextExtra.fileMessage.url) {
+      return false;
+    }
+  }
+
+  // 检查 forwardMessage - 使用 JSON 序列化比较
+  if (JSON.stringify(prevExtra.forwardMessage) !== JSON.stringify(nextExtra.forwardMessage)) {
+    return false;
+  }
+
+  // 检查 clueMessage
+  if (JSON.stringify(prevExtra.clueMessage) !== JSON.stringify(nextExtra.clueMessage)) {
+    return false;
+  }
+
+  // 检查 soundMessage
+  if (JSON.stringify(prevExtra.soundMessage) !== JSON.stringify(nextExtra.soundMessage)) {
+    return false;
+  }
+
+  // 检查 diceResult
+  if (JSON.stringify(prevExtra.diceResult) !== JSON.stringify(nextExtra.diceResult)) {
+    return false;
+  }
+
+  return true;
+});
+
+ChatBubble.displayName = "ChatBubble";

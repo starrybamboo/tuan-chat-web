@@ -126,9 +126,56 @@ export function useUpdateCollectionListMutation() {
         mutationFn: (req: CollectionList) => tuanchat.collectionListController.updateCollectionList(req),
         mutationKey: ['updateCollectionList'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getCollectionList', variables.collectionListId] });
-            queryClient.invalidateQueries({ queryKey: ['getUserCollectionLists'] });
-        }
+            queryClient.invalidateQueries({ 
+                queryKey: ['getCollectionList', variables.collectionListId],
+                refetchType: 'active' 
+            });
+            queryClient.invalidateQueries({ 
+                queryKey: ['getUserCollectionLists'],
+                refetchType: 'active' 
+            });
+            // 如果是公开收藏列表，也更新公开列表缓存
+            if (variables.isPublic) {
+                queryClient.invalidateQueries({ 
+                    queryKey: ['userResourceCollections'],
+                    refetchType: 'active' 
+                });
+                queryClient.invalidateQueries({ 
+                    queryKey: ['publicResourceCollections'],
+                    refetchType: 'active' 
+                });
+            }
+        },
+        // 添加乐观更新
+        onMutate: async (updatedCollection) => {
+            await queryClient.cancelQueries({ queryKey: ['getUserCollectionLists'] });
+            
+            const previousCollections = queryClient.getQueryData(['getUserCollectionLists']);
+            
+            // 乐观更新集合列表
+            queryClient.setQueryData(['getUserCollectionLists'], (old: any) => {
+                if (!old?.data?.list) return old;
+                
+                return {
+                    ...old,
+                    data: {
+                        ...old.data,
+                        list: old.data.list.map((collection: any) => 
+                            collection.collectionListId === updatedCollection.collectionListId
+                                ? { ...collection, ...updatedCollection }
+                                : collection
+                        )
+                    }
+                };
+            });
+            
+            return { previousCollections };
+        },
+        onError: (_err, _variables, context) => {
+            if (context?.previousCollections) {
+                queryClient.setQueryData(['getUserCollectionLists'], context.previousCollections);
+            }
+        },
     });
 }
 
@@ -154,9 +201,70 @@ export function useDeleteCollectionListMutation() {
     return useMutation({
         mutationFn: (collectionListId: number) => tuanchat.collectionListController.deleteCollectionList(collectionListId),
         mutationKey: ['deleteCollectionList'],
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['getUserCollectionLists'] });
-        }
+        onSuccess: (_, deletedCollectionListId) => {
+            queryClient.invalidateQueries({ 
+                queryKey: ['getUserCollectionLists'],
+                refetchType: 'active' 
+            });
+            queryClient.invalidateQueries({ 
+                queryKey: ['userResourceCollections'],
+                refetchType: 'active' 
+            });
+            queryClient.invalidateQueries({ 
+                queryKey: ['publicResourceCollections'],
+                refetchType: 'active' 
+            });
+            // 移除特定收藏列表的缓存
+            queryClient.removeQueries({ 
+                queryKey: ['getCollectionList', deletedCollectionListId] 
+            });
+        },
+        // 添加乐观更新
+        onMutate: async (deletedCollectionListId) => {
+            await queryClient.cancelQueries({ queryKey: ['getUserCollectionLists'] });
+            await queryClient.cancelQueries({ queryKey: ['userResourceCollections'] });
+            await queryClient.cancelQueries({ queryKey: ['publicResourceCollections'] });
+            
+            const previousUserCollectionLists = queryClient.getQueryData(['getUserCollectionLists']);
+            const previousUserResourceCollections = queryClient.getQueryData(['userResourceCollections']);
+            const previousPublicResourceCollections = queryClient.getQueryData(['publicResourceCollections']);
+            
+            // 乐观删除 - 从所有相关列表中移除收藏列表
+            const removeFromList = (old: any) => {
+                if (!old?.data?.list) return old;
+                return {
+                    ...old,
+                    data: {
+                        ...old.data,
+                        list: old.data.list.filter((collection: any) => 
+                            collection.collectionListId !== deletedCollectionListId
+                        )
+                    }
+                };
+            };
+            
+            queryClient.setQueryData(['getUserCollectionLists'], removeFromList);
+            queryClient.setQueryData(['userResourceCollections'], removeFromList);
+            queryClient.setQueryData(['publicResourceCollections'], removeFromList);
+            
+            return { 
+                previousUserCollectionLists, 
+                previousUserResourceCollections,
+                previousPublicResourceCollections 
+            };
+        },
+        onError: (_err, _deletedCollectionListId, context) => {
+            // 发生错误时回滚所有相关缓存
+            if (context?.previousUserCollectionLists) {
+                queryClient.setQueryData(['getUserCollectionLists'], context.previousUserCollectionLists);
+            }
+            if (context?.previousUserResourceCollections) {
+                queryClient.setQueryData(['userResourceCollections'], context.previousUserResourceCollections);
+            }
+            if (context?.previousPublicResourceCollections) {
+                queryClient.setQueryData(['publicResourceCollections'], context.previousPublicResourceCollections);
+            }
+        },
     });
 }
 
@@ -214,8 +322,53 @@ export function useBatchAddToListMutation() {
         mutationFn: (req: CollectionListItemBatchAddRequest) => tuanchat.collectionListItemController.batchAddToList(req),
         mutationKey: ['batchAddToList'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getListCollections', { collectionListId: variables.collectionListId }] });
-        }
+            // 更新收藏列表中的资源
+            queryClient.invalidateQueries({ 
+                queryKey: ['resourcesInCollection', { collectionListId: variables.collectionListId }],
+                refetchType: 'active'
+            });
+            queryClient.invalidateQueries({ 
+                queryKey: ['getListCollections', { collectionListId: variables.collectionListId }],
+                refetchType: 'active'
+            });
+        },
+        // 添加乐观更新
+        onMutate: async (variables) => {
+            const queryKey = ['resourcesInCollection', { collectionListId: variables.collectionListId }];
+            
+            await queryClient.cancelQueries({ queryKey });
+            
+            const previousData = queryClient.getQueryData(queryKey);
+            
+            // 乐观更新 - 添加新的收藏项
+            queryClient.setQueryData(queryKey, (old: any) => {
+                if (!old?.data?.list) return old;
+                
+                // 创建临时的收藏项
+                const tempCollections = variables.collectionIds.map(id => ({
+                    collectionId: id,
+                    resourceId: Date.now() + Math.random(), // 临时ID
+                    name: "正在添加...",
+                    createTime: new Date().toISOString(),
+                    isAdding: true
+                }));
+                
+                return {
+                    ...old,
+                    data: {
+                        ...old.data,
+                        list: [...tempCollections, ...old.data.list]
+                    }
+                };
+            });
+            
+            return { previousData, queryKey };
+        },
+        onError: (_err, _variables, context) => {
+            if (context?.previousData && context?.queryKey) {
+                queryClient.setQueryData(context.queryKey, context.previousData);
+            }
+        },
     });
 }
 
@@ -228,8 +381,52 @@ export function useAddToListMutation() {
         mutationFn: (req: CollectionListItemAddRequest) => tuanchat.collectionListItemController.addToList(req),
         mutationKey: ['addToList'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getListCollections', { collectionListId: variables.collectionListId }] });
-        }
+            // 更新收藏列表中的资源
+            queryClient.invalidateQueries({ 
+                queryKey: ['resourcesInCollection', { collectionListId: variables.collectionListId }],
+                refetchType: 'active'
+            });
+            queryClient.invalidateQueries({ 
+                queryKey: ['getListCollections', { collectionListId: variables.collectionListId }],
+                refetchType: 'active'
+            });
+        },
+        // 添加乐观更新
+        onMutate: async (variables) => {
+            const queryKey = ['resourcesInCollection', { collectionListId: variables.collectionListId }];
+            
+            await queryClient.cancelQueries({ queryKey });
+            
+            const previousData = queryClient.getQueryData(queryKey);
+            
+            // 乐观更新 - 添加新的收藏项
+            queryClient.setQueryData(queryKey, (old: any) => {
+                if (!old?.data?.list) return old;
+                
+                const tempCollection = {
+                    collectionId: variables.collectionId,
+                    resourceId: Date.now(), // 临时ID
+                    name: "正在添加...",
+                    createTime: new Date().toISOString(),
+                    isAdding: true
+                };
+                
+                return {
+                    ...old,
+                    data: {
+                        ...old.data,
+                        list: [tempCollection, ...old.data.list]
+                    }
+                };
+            });
+            
+            return { previousData, queryKey };
+        },
+        onError: (_err, _variables, context) => {
+            if (context?.previousData && context?.queryKey) {
+                queryClient.setQueryData(context.queryKey, context.previousData);
+            }
+        },
     });
 }
 
@@ -242,8 +439,50 @@ export function useRemoveFromListMutation() {
         mutationFn: (req: CollectionListItemRemoveRequest) => tuanchat.collectionListItemController.removeFromList(req),
         mutationKey: ['removeFromList'],
         onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: ['getListCollections', { collectionListId: variables.collectionListId }] });
-        }
+            // 更新收藏列表详情中的资源列表
+            queryClient.invalidateQueries({ 
+                queryKey: ['resourcesInCollection', { collectionListId: variables.collectionListId }],
+                refetchType: 'active'
+            });
+            // 更新收藏列表查询
+            queryClient.invalidateQueries({ 
+                queryKey: ['getListCollections', { collectionListId: variables.collectionListId }],
+                refetchType: 'active'
+            });
+        },
+        // 添加乐观更新
+        onMutate: async (variables) => {
+            const queryKey = ['resourcesInCollection', { collectionListId: variables.collectionListId }];
+            
+            // 取消相关查询
+            await queryClient.cancelQueries({ queryKey });
+            
+            // 保存当前状态
+            const previousResourcesData = queryClient.getQueryData(queryKey);
+            
+            // 乐观更新 - 立即从列表中移除资源
+            queryClient.setQueryData(queryKey, (old: any) => {
+                if (!old?.data?.list) return old;
+                
+                return {
+                    ...old,
+                    data: {
+                        ...old.data,
+                        list: old.data.list.filter((resource: any) => 
+                            resource.collectionId !== variables.collectionId
+                        )
+                    }
+                };
+            });
+            
+            return { previousResourcesData, queryKey };
+        },
+        onError: (_err, _variables, context) => {
+            // 发生错误时回滚
+            if (context?.previousResourcesData && context?.queryKey) {
+                queryClient.setQueryData(context.queryKey, context.previousResourcesData);
+            }
+        },
     });
 }
 
