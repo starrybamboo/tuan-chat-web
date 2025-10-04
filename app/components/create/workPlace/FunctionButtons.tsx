@@ -165,6 +165,7 @@ export default function FunctionButtons() {
                   {
                     onSuccess: () => {
                       toast.success("发布成功");
+                      navigate(`/module/detail/${moduleId}`, { replace: true });
                     },
                     onError: (error: any) => {
                       const message = (error?.response?.data?.message as string | undefined) || (error?.message as string | undefined) || "发布失败，请稍后重试";

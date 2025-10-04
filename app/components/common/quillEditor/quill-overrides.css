@@ -211,3 +211,73 @@
 .ql-align-justify {
   text-align: justify;
 }
+
+/* 水平线统一样式 */
+.ql-editor hr,
+.ql-editor .ql-hr {
+  border: none;
+  border-top: 3px solid #e5e7eb;
+  margin: 1.2em 0;
+  height: 0;
+}
+
+/* @弹窗修饰 */
+.mention-preview .preview-html h1 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0.55em 0 0.4em;
+}
+.mention-preview .preview-html h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0.55em 0 0.4em;
+}
+.mention-preview .preview-html h3 {
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0.5em 0 0.35em;
+}
+.mention-preview .preview-html p {
+  margin: 0.45em 0;
+}
+.mention-preview .preview-html .ql-mention-span {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  background: #eef2ff;
+  color: #4338ca;
+}
+.mention-preview .preview-html .ql-mention-span[data-category="人物"] {
+  background: #fef3c7;
+  color: #92400e;
+}
+.mention-preview .preview-html .ql-mention-span[data-category="地点"] {
+  background: #d1fae5;
+  color: #065f46;
+}
+.mention-preview .preview-html .ql-mention-span[data-category="物品"] {
+  background: #e0f2fe;
+  color: #075985;
+}
+.mention-preview .preview-html strong {
+  font-weight: 600;
+}
+.mention-preview .preview-html em {
+  font-style: italic;
+}
+.mention-preview .preview-html u {
+  text-decoration: underline;
+}
+.mention-preview .preview-html s {
+  text-decoration: line-through;
+}
+.mention-preview .preview-html hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 0.6em 0;
+}

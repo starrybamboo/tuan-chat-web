@@ -22,6 +22,8 @@ export type ModuleContextType = {
   beginSelectionLock: (reason?: string, ttlMs?: number) => void;
   /** 主动结束选中锁 */
   endSelectionLock: () => void;
+  /** 设置当前 tab 的保存函数 */
+  setTabSaveFunction: (fn: () => void) => void;
 };
 
 /**

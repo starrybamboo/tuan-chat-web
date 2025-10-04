@@ -31,56 +31,72 @@ interface vditorProps {
 let vditorPromise: Promise<any> | null = null;
 // 全局标记避免重复注册
 let mentionBlotRegistered = false;
+let hrBlotRegistered = false;
 
 function registerMentionBlot(Q: any) {
-  if (!Q || mentionBlotRegistered)
-    return;
-  try {
-    // 通过自有标记而不是 Q.import("formats/mention-span") 来避免控制台报错
-    const Embed = Q.import("blots/embed");
-    class MentionBlot extends Embed {
-      static blotName = "mention-span";
-      static tagName = "span";
-      static className = "ql-mention-span";
-      static create(value: any) {
-        const node = super.create();
-        node.setAttribute("data-label", value?.label || "");
-        node.setAttribute("data-category", value?.category || "");
-        node.textContent = value?.label || "";
-        const cat = value?.category || "";
-        const colorMap: Record<string, { bg: string; color: string }> = {
-          人物: { bg: "#fef3c7", color: "#92400e" },
-          地点: { bg: "#d1fae5", color: "#065f46" },
-          物品: { bg: "#e0f2fe", color: "#075985" },
-        };
-        let bg = "#eef2ff";
-        let fg = "#4338ca";
-        if (cat && colorMap[cat]) {
-          bg = colorMap[cat].bg;
-          fg = colorMap[cat].color;
+  if (Q && !mentionBlotRegistered) {
+    try {
+      const Embed = Q.import("blots/embed");
+      class MentionBlot extends Embed {
+        static blotName = "mention-span";
+        static tagName = "span";
+        static className = "ql-mention-span";
+
+        static create(value: any) {
+          const node = super.create();
+          node.setAttribute("data-label", value?.label || "");
+          node.setAttribute("data-category", value?.category || "");
+          node.textContent = value?.label || "";
+          const cat = value?.category || "";
+          const colorMap: Record<string, { bg: string; color: string }> = {
+            人物: { bg: "#fef3c7", color: "#92400e" },
+            地点: { bg: "#d1fae5", color: "#065f46" },
+            物品: { bg: "#e0f2fe", color: "#075985" },
+          };
+          let bg = "#eef2ff";
+          let fg = "#4338ca";
+          if (cat && colorMap[cat]) {
+            bg = colorMap[cat].bg;
+            fg = colorMap[cat].color;
+          }
+          (node as HTMLElement).style.background = bg;
+          (node as HTMLElement).style.padding = "0 4px";
+          (node as HTMLElement).style.borderRadius = "4px";
+          (node as HTMLElement).style.color = fg;
+          (node as HTMLElement).style.fontSize = "0.85em";
+          (node as HTMLElement).style.userSelect = "none";
+          return node;
         }
-        (node as HTMLElement).style.background = bg;
-        (node as HTMLElement).style.padding = "0 4px";
-        (node as HTMLElement).style.borderRadius = "4px";
-        (node as HTMLElement).style.color = fg;
-        (node as HTMLElement).style.fontSize = "0.85em";
-        (node as HTMLElement).style.userSelect = "none";
-        return node;
-      }
 
-      static value(node: HTMLElement) {
-        return {
-          label: node.getAttribute("data-label") || node.textContent || "",
-          category: node.getAttribute("data-category") || "",
-        };
+        static value(node: HTMLElement) {
+          return {
+            label: node.getAttribute("data-label") || node.textContent || "",
+            category: node.getAttribute("data-category") || "",
+          };
+        }
       }
+      Q.register(MentionBlot);
+      mentionBlotRegistered = true;
     }
-
-    Q.register(MentionBlot);
-    mentionBlotRegistered = true;
+    catch { /* ignore */ }
   }
-  catch {
-    // ignore
+  if (Q && !hrBlotRegistered) {
+    try {
+      const BlockEmbed = Q.import("blots/block/embed");
+      class HrBlot extends BlockEmbed {
+        static blotName = "hr";
+        static tagName = "hr";
+        static className = "ql-hr";
+        static create() {
+          const node = super.create();
+          (node as HTMLElement).setAttribute("contenteditable", "false");
+          return node;
+        }
+      }
+      Q.register(HrBlot);
+      hrBlotRegistered = true;
+    }
+    catch { /* ignore */ }
   }
 }
 
@@ -224,6 +240,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
   const isFormattedRef = useRef(false);
   // 防重入：在 text-change 中删除空格时避免递归触发
   const handlingSpaceRef = useRef(false);
+  // 取消边界即时检测：仅在输入空格时触发行内格式转换
   // 记录监听器，便于卸载
   const textChangeHandlerRef = useRef<((delta: any, oldDelta: any, source: any) => void) | null>(null);
   const selectionChangeHandlerRef = useRef<((range: any) => void) | null>(null);
@@ -827,6 +844,8 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
     let onRootMouseUp: ((e: MouseEvent) => void) | null = null;
     let onRootMouseDown: ((e: MouseEvent) => void) | null = null;
     let onRootPaste: ((e: ClipboardEvent) => void) | null = null;
+    let onRootCopy: ((e: ClipboardEvent) => void) | null = null;
+    let onRootCut: ((e: ClipboardEvent) => void) | null = null;
     // 为可清理的 DOM 事件处理器预留引用（此处不需要 scroll 句柄，滚动监听在独立 effect 中）
     // Enter/换行后用于清理新行块级格式的定时器
     let lineFormatTimer: ReturnType<typeof setTimeout> | null = null;
@@ -857,6 +876,14 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
           // 统一以 delta 处理，Clipboard 配置最小化；自定义粘贴在 root paste 事件中完成
           clipboard: {
             matchVisual: false,
+          },
+          // 启用 Quill 内置撤销/重做栈，避免浏览器原生撤销导致一次性清空
+          // userOnly:true 表示仅记录用户触发(source === 'user')的变更，
+          // 初始加载/外部导入使用 'api' / 'silent' 不会进入历史，从而 Ctrl+Z 不会回退到“空”状态
+          history: {
+            delay: 800,
+            maxStack: 500,
+            userOnly: true,
           },
         },
       });
@@ -910,6 +937,13 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
           // 清空现有内容并插入
           (editor as any).setText?.("");
           (editor as any).clipboard?.dangerouslyPasteHTML?.(0, html, "api");
+          // 初始内容插入后清空历史：防止第一步撤销回到完全空白
+          try {
+            (editor as any).history?.clear?.();
+          }
+          catch {
+            // ignore
+          }
           initMdTimer = setTimeout(() => {
             applyingExternalRef.current = false;
           }, 0);
@@ -1211,7 +1245,43 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
               }
             }, 0);
           }
-          // 仅当插入以空格结尾时再尝试触发（支持半角/不间断/全角空格）
+          // --- 水平线检测：不需要空格。条件：本次 inserted 含 '-' 且光标所在行（去末尾换行）恰好为 '---'
+          if (inserted.includes("-")) {
+            try {
+              const selLocal = lastRangeRef.current;
+              if (selLocal && typeof selLocal.index === "number") {
+                const editorInstance = quillRef.current as any;
+                const lineInfo = editorInstance.getLine?.(Math.max(0, selLocal.index - 1));
+                if (lineInfo && Array.isArray(lineInfo)) {
+                  const line = lineInfo[0];
+                  const offset = lineInfo[1];
+                  const lineStart = (selLocal.index - 1) - offset;
+                  const lineText = editorInstance.getText?.(lineStart, line.length()) || "";
+                  const pure = lineText.replace(/\n$/, ""); // 去掉行尾换行
+                  const fmt = editorInstance.getFormat?.(lineStart, 1) || {};
+                  const inCode = !!fmt["code-block"];
+                  if (!inCode && pure === "---") {
+                    handlingSpaceRef.current = true;
+                    try {
+                      editorInstance.deleteText(lineStart, line.length(), "user");
+                      editorInstance.insertEmbed(lineStart, "hr", true, "user");
+                      editorInstance.insertText(lineStart + 1, "\n", "user");
+                      editorInstance.setSelection(lineStart + 2, 0, "silent");
+                    }
+                    finally {
+                      handlingSpaceRef.current = false;
+                    }
+                    refreshActiveFormatsRef.current();
+                    scheduleToolbarUpdateRef.current();
+                    return; // hr 已处理
+                  }
+                }
+              }
+            }
+            catch { /* ignore hr detection */ }
+          }
+
+          // 以下仍然保留原逻辑：仅在输入空格时尝试行内/块级检测
           const endsWithSpace = /[\u0020\u00A0\u2007\u3000]$/.test(inserted);
           if (!endsWithSpace) {
             return;
@@ -1293,7 +1363,9 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
           // 再尝试对齐
           const alignmentHandled = !blockHandled && detectAlignment(editor, fakeRange);
           // 若不是块级或对齐，再尝试行内 **/__ /~~ 模式
+          console.log("[INLINE-DEBUG] space trigger inserted=", inserted, "sel=", sel, "endsWithSpace=", endsWithSpace);
           const inlineHandled = !blockHandled && !alignmentHandled && detectInlineFormats(editor, sel);
+          console.log("[INLINE-DEBUG] results block=", blockHandled, "align=", alignmentHandled, "inline=", inlineHandled);
 
           if (blockHandled || inlineHandled || alignmentHandled) {
             handlingSpaceRef.current = true;
@@ -1538,6 +1610,14 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
 
       onRootKeyUp = (_e: KeyboardEvent) => {
         try {
+          // 确保拿到最新光标（Quill 对连续输入有时不会触发 selection-change）
+          const editor = quillRef.current as any;
+          if (editor && editor.getSelection) {
+            const curSel = editor.getSelection();
+            if (curSel && typeof curSel.index === "number") {
+              lastRangeRef.current = { index: curSel.index, length: curSel.length || 0 };
+            }
+          }
           const lr = getSafeSelection();
           if (!lr)
             return;
@@ -1704,6 +1784,128 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
         }
       };
       rootEl?.addEventListener("paste", onRootPaste, true);
+      // 自定义复制/剪切：将当前选区序列化为带 /t 与 \n 占位的纯文本，保留 HTML
+      onRootCopy = (e: ClipboardEvent) => {
+        try {
+          const sel = window.getSelection();
+          if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
+            return; // 让默认行为处理（无选区或空选区）
+          }
+          const range = sel.getRangeAt(0);
+          // 仅处理复制来源于编辑器 root 内部的
+          const root = (editor as any).root as HTMLElement;
+          if (!root || !root.contains(range.commonAncestorContainer)) {
+            return;
+          }
+          const frag = range.cloneContents();
+          const tmp = document.createElement("div");
+          tmp.appendChild(frag);
+          // 将 fragment 内部每个块级行转为一行文本
+          const lines: string[] = [];
+          const blockSelector = "p,div,li,pre,h1,h2,h3,h4,h5,h6";
+          const blocks = tmp.querySelectorAll(blockSelector);
+
+          const pxToUnits = (px: number) => {
+            if (Number.isNaN(px) || px <= 0) {
+              return 0;
+            }
+            return Math.max(0, Math.floor(px / 32)); // 32px ≈ 1 /t 单位
+          };
+          const detectIndentUnits = (el: HTMLElement): number => {
+            // 1) ql-indent-N 类
+            let clsUnits = 0;
+            el.classList.forEach((c) => {
+              const m = c.match(/^ql-indent-(\d+)$/u);
+              if (m) {
+                const v = Number.parseInt(m[1], 10);
+                if (!Number.isNaN(v) && v > clsUnits) {
+                  clsUnits = v;
+                }
+              }
+            });
+            if (clsUnits > 0) {
+              return clsUnits;
+            }
+            // 2) style text-indent / padding-left / margin-left
+            const style = window.getComputedStyle(el);
+            const cand = [style.textIndent, style.paddingLeft, style.marginLeft];
+            for (const v of cand) {
+              if (!v) {
+                continue;
+              }
+              const num = Number.parseFloat(v);
+              if (!Number.isNaN(num) && num > 0) {
+                const u = pxToUnits(num);
+                if (u > 0) {
+                  return u;
+                }
+              }
+            }
+            // 3) 前导 &nbsp; 统计 (每 4 个视为 1 单位)
+            const html = el.innerHTML || "";
+            const m = html.match(/^(&nbsp;)+/u);
+            if (m) {
+              const count = (m[0].match(/&nbsp;/g) || []).length;
+              return Math.max(0, Math.floor(count / 4));
+            }
+            return 0;
+          };
+          const isCode = (el: HTMLElement) => el.closest("pre, .ql-code-block-container, .ql-code-block") != null || el.classList.contains("ql-code-block");
+
+          if (blocks.length === 0) {
+            // 选区可能只是单行文本节点
+            const textRaw = tmp.textContent || "";
+            if (textRaw) {
+              e.preventDefault();
+              e.clipboardData?.setData("text/plain", textRaw);
+            }
+            return;
+          }
+          blocks.forEach((bEl) => {
+            const el = bEl as HTMLElement;
+            // 识别空行 <p><br></p>
+            // 简化空行检测：允许若干空白与可选的单个 <br> 结构（含属性）-- 避免复杂回溯
+            const inner = el.innerHTML || "";
+            const isBlank = inner === "" || inner === "<br>" || /^(?:<br\s*\/?>)?$/i.test(inner.trim());
+            if (isBlank) {
+              lines.push("\\n");
+              return;
+            }
+            let lineText = "";
+            if (isCode(el)) {
+              // 代码块原样保留 (包含缩进空格)
+              lineText = (el.textContent || "").replace(/\r?\n$/, "");
+            }
+            else {
+              const units = detectIndentUnits(el);
+              const baseText = (el.textContent || "").replace(/\r?\n/g, "");
+              lineText = (units > 0 ? ("/t".repeat(units)) : "") + baseText;
+            }
+            lines.push(lineText);
+          });
+          const plain = lines.join("\n");
+          // 生成 HTML 片段（保持原复制的结构）
+          const htmlOut = tmp.innerHTML;
+          e.preventDefault();
+          // text/plain: 含 /t 与 \n
+          e.clipboardData?.setData("text/plain", plain);
+          // text/markdown 可与 plain 同步（下游粘贴时我们已有解析逻辑）
+          e.clipboardData?.setData("text/markdown", plain);
+          // 保留 HTML 供富文本粘贴
+          e.clipboardData?.setData("text/html", htmlOut);
+        }
+        catch {
+          // ignore copy errors
+        }
+      };
+      onRootCut = (e: ClipboardEvent) => {
+        if (onRootCopy) {
+          onRootCopy(e);
+        }
+        // 让剪切行为继续删除选区内容（保持默认），所以不 preventDefault 这里
+      };
+      rootEl?.addEventListener("copy", onRootCopy, true);
+      rootEl?.addEventListener("cut", onRootCut, true);
       // 滚动监听改为独立 effect 绑定，见组件底部 useEffect
 
       // 悬停控制显示
@@ -1757,6 +1959,18 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
           // ignore
         }
       }
+      try {
+        if (rootEl && onRootCopy) {
+          rootEl.removeEventListener("copy", onRootCopy, true);
+        }
+      }
+      catch { /* ignore */ }
+      try {
+        if (rootEl && onRootCut) {
+          rootEl.removeEventListener("cut", onRootCut, true);
+        }
+      }
+      catch { /* ignore */ }
       // 2) 移除 Quill 事件
       const editor = quillRef.current as any;
       if (editor && textChangeHandlerRef.current) {
@@ -1930,6 +2144,13 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
         lastAppliedMarkdownRef.current = format === "markdown" ? content : null;
         editor.setText("");
         editor.clipboard?.dangerouslyPasteHTML?.(0, html, "api");
+        // 导入外部内容后清空历史，避免一次 Ctrl+Z 清空全部
+        try {
+          editor.history?.clear?.();
+        }
+        catch {
+          // ignore
+        }
         debug("html pasted", { editorLength: editor.getLength?.() });
         const root = editor.root as HTMLElement;
         const spans = Array.from(root.querySelectorAll("span.ql-mention-span[data-label][data-category]"));
@@ -2456,6 +2677,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
             mentionPreviewLockRef.current = false;
             setMentionPreviewVisible(false);
           }}
+          entitiesMap={entitiesRef.current}
         />
       )}
     </div>
