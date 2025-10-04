@@ -85,7 +85,7 @@ function Folder({ moduleData, entityType, onClick, onDelete }:
 export default function SceneEdit({ scene, id }: SceneEditProps) {
   const [selectedTab, setSelectedTab] = useState<"description" | "tip" | "assets">("description");
   const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
-  const { stageId, beginSelectionLock, endSelectionLock, updateModuleTabLabel } = useModuleContext();
+  const { stageId, beginSelectionLock, endSelectionLock, updateModuleTabLabel, setTabSaveFunction, currentSelectedTabId } = useModuleContext();
 
   // 本地状态
   const [localScene, setLocalScene] = useState({ ...entityInfo });
@@ -183,6 +183,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
   };
 
   const handleAddEntity = (entities: StageEntityResponse[]) => {
+    beginSelectionLock("adding-entity", 2000);
     const entitiesNames = entities.map(entity => entity.name);
     if (editEntityType === "item") {
       updateScene({
@@ -211,9 +212,13 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
       });
       setLocalScene(prev => ({ ...prev, locations: [...(prev.locations || []), ...entitiesNames] }));
     }
+    setTimeout(() => {
+      endSelectionLock();
+    }, 2000);
   };
 
   const handleDeleteEntity = (entity: StageEntityResponse) => {
+    beginSelectionLock("deleting-entity", 2000);
     if (entity.entityType! === 1) {
       const filteredItems = localScene.items?.filter((item: string | undefined) => item !== entity.name);
       updateScene({
@@ -221,6 +226,8 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
         name: scene.name!,
         entityType: 3,
         entityInfo: { ...localScene, items: (filteredItems || []) },
+      }, {
+        onSuccess: () => endSelectionLock(),
       });
       setLocalScene(prev => ({ ...prev, items: (filteredItems || []) }));
     }
@@ -245,6 +252,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
       setLocalScene(prev => ({ ...prev, locations: (filteredLocations || []) }));
     }
+    setTimeout(() => endSelectionLock(), 1000);
   };
 
   const handleClose = () => {
@@ -366,6 +374,28 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     }, 300);
   };
 
+  // 保存函数注册：使用稳定包装器防止闭包陈旧 & 初始为 no-op
+  const latestHandleSaveRef = useRef(handleSave);
+  latestHandleSaveRef.current = handleSave; // 每次 render 更新指针
+  useEffect(() => {
+    const tabId = scene.id?.toString();
+    if (!tabId) {
+      return;
+    }
+    if (currentSelectedTabId === tabId) {
+      // 仅在自己被选中时注册保存函数
+      setTabSaveFunction(() => {
+        latestHandleSaveRef.current();
+      });
+    }
+    // 若不是自身，不需要主动清除（新激活 tab 会覆盖），除非卸载阶段仍占用
+    return () => {
+      if (currentSelectedTabId === tabId) {
+        setTabSaveFunction(() => {});
+      }
+    };
+  }, [currentSelectedTabId, scene.id, setTabSaveFunction]);
+
   return (
     <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
       <div className="flex flex-col md:flex-row items-end justify-between gap-3">
@@ -470,7 +500,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                   // 之前这里错误地写入了 description 导致切换 Tab 时 tip 覆盖 description
                   setLocalScene(prev => ({ ...prev, tip: value }));
                   saveTimer.current && clearTimeout(saveTimer.current);
-                  saveTimer.current = setTimeout(() => handleSave, 8000);
+                  saveTimer.current = setTimeout(() => handleSave(), 8000);
                 }}
               />
             </div>

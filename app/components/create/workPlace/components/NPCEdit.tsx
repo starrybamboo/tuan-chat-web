@@ -47,6 +47,8 @@ function generateTempId(): string {
 interface InlineExpansionModuleProps {
   ability: Record<string, string>;
   setAbility: React.Dispatch<React.SetStateAction<any>>;
+  act: Record<string, string>;
+  setAct: React.Dispatch<React.SetStateAction<any>>;
   scheduleSave: () => void;
   /** 基础属性中文键集合 */
   basicDefaults: Record<string, any>;
@@ -54,7 +56,7 @@ interface InlineExpansionModuleProps {
   setShowAbilityPopup: (v: boolean) => void;
 }
 
-function InlineExpansionModule({ ability, setAbility, scheduleSave, basicDefaults, abilityDefaults, setShowAbilityPopup }: InlineExpansionModuleProps) {
+function InlineExpansionModule({ ability, setAbility, act, setAct, scheduleSave, basicDefaults, abilityDefaults, setShowAbilityPopup }: InlineExpansionModuleProps) {
   // 基础属性键集合（中文）
   const basicKeys = Object.keys(basicDefaults || {});
   const abilityKeys = Object.keys(abilityDefaults || {});
@@ -255,11 +257,13 @@ function InlineExpansionModule({ ability, setAbility, scheduleSave, basicDefault
         <span className="font-bold">kp可见描述</span>
         <QuillEditor
           id={id}
-          placeholder={ability.behavior || "kp可见描述"}
+          placeholder={act.背景故事 || "kp可见描述"}
           onchange={(value) => {
             if (value === "")
               return;
-            setAbility((prev: any) => ({ ...prev, behavior: value }));
+            const newAct = { ...act, 背景故事: value };
+            setAct(newAct);
+            scheduleSave();
           }}
         />
       </div>
@@ -277,12 +281,13 @@ export default function NPCEdit({ role }: NPCEditProps) {
   const { data } = useRoleAvatars(role.id as number);
   // entityInfo 结构见后端定义
   const entityInfo = role.entityInfo || {};
-  const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock } = useModuleContext();
+  const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock, setTabSaveFunction, currentSelectedTabId } = useModuleContext();
 
   const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(entity => entity.entityType === 3);
   // 本地状态
   const [localRole, setLocalRole] = useState({ ...entityInfo });
   const [ability, setAbility] = useState<Record<string, string>>(entityInfo.ability || {});
+  const [act, setAct] = useState<Record<string, string>>(entityInfo.act || {});
   // 角色名改为仅在列表中重命名，编辑器内不再直接编辑
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [charCount, setCharCount] = useState(entityInfo.description?.length || 0);
@@ -323,6 +328,7 @@ export default function NPCEdit({ role }: NPCEditProps) {
   // 引用最新状态，供防抖保存时使用
   const localRoleRef = useRef(localRole);
   const abilityRef = useRef(ability);
+  const actRef = useRef(act);
   // 名称不在此处编辑，保持与外部同步
   const nameRef = useRef(role.name);
   useEffect(() => {
@@ -345,6 +351,9 @@ export default function NPCEdit({ role }: NPCEditProps) {
   useEffect(() => {
     abilityRef.current = ability;
   }, [ability]);
+  useEffect(() => {
+    actRef.current = act;
+  }, [act]);
   useLayoutEffect(() => {
     if ((role.name || "") !== nameInputRef.current) {
       nameRef.current = role.name;
@@ -396,14 +405,14 @@ export default function NPCEdit({ role }: NPCEditProps) {
       if (saveTimer.current) {
         clearTimeout(saveTimer.current);
       }
-      const updatedRole = { ...localRoleRef.current, ability: abilityRef.current };
+      const updatedRole = { ...localRoleRef.current, ability: abilityRef.current, act: actRef.current };
       setIsTransitioning(false);
       // 先更新角色自身，成功后再同步引用与关闭标签，避免因移除标签导致保存函数不可用
       updateRole(
         { id: role.id!, entityType: 2, entityInfo: updatedRole, name: nameInputRef.current },
         {
           onSuccess: () => {
-            toast.success("保存成功");
+            toast.success("角色保存成功");
           },
         },
       );
@@ -593,6 +602,26 @@ export default function NPCEdit({ role }: NPCEditProps) {
     }, 600);
   };
 
+  // 保存函数注册：使用稳定包装器防止闭包陈旧 & 初始为 no-op
+  const latestHandleSaveRef = useRef(handleSave);
+  latestHandleSaveRef.current = handleSave; // 每次 render 更新指针
+  useEffect(() => {
+    const tabId = role.id?.toString();
+    if (!tabId) {
+      return;
+    }
+    if (currentSelectedTabId === tabId) {
+      setTabSaveFunction(() => {
+        latestHandleSaveRef.current();
+      });
+    }
+    return () => {
+      if (currentSelectedTabId === tabId) {
+        setTabSaveFunction(() => {});
+      }
+    };
+  }, [currentSelectedTabId, role.id, setTabSaveFunction]);
+
   return (
     <div className={`transition-opacity duration-300 p-4 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
       {/* 顶部区域 (去掉返回按钮) */}
@@ -754,6 +783,8 @@ export default function NPCEdit({ role }: NPCEditProps) {
           <InlineExpansionModule
             ability={ability}
             setAbility={setAbility}
+            act={act}
+            setAct={setAct}
             scheduleSave={scheduleSave}
             basicDefaults={ruleAbility?.data?.basicDefault || {}}
             abilityDefaults={ruleAbility?.data?.abilityFormula || {}}

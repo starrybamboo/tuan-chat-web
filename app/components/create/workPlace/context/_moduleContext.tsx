@@ -13,6 +13,8 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
   // 选中锁，用于在重命名等操作期间阻止外部意外改变 currentSelectedTabId
   const selectionLockRef = useRef<{ expire: number; reason?: string } | null>(null);
   const selectionLockTimer = useRef<number | null>(null);
+  // 切换页面时保存；保持一个永不为 null 的函数，避免调用处判空带来竞态
+  const tabSaveFunctionRef = useRef<() => void>(() => {});
 
   // 保持回调的引用稳定，避免依赖 setXxx 触发下游 useEffect 重复执行
   const setStageIdCb = useCallback((id: TabId | null) => {
@@ -35,12 +37,32 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
   }, [updateModuleTabItems]);
 
   const setCurrentSelectedTabIdCb = useCallback((item: TabId | null) => {
-    // 如果存在锁且未过期，则忽略普通设置
     const now = Date.now();
+    // 锁定期间直接忽略外部切换
     if (selectionLockRef.current && selectionLockRef.current.expire > now) {
       return;
     }
-    _setCurrentSelectedTabId(item);
+    _setCurrentSelectedTabId((prev) => {
+      // 重复设置同一个 tab，直接忽略，减少无意义保存
+      if (prev === item) {
+        return prev;
+      }
+      // 在真正切换之前先保存“旧” tab（此时旧组件仍未卸载）
+      try {
+        if (tabSaveFunctionRef.current) {
+          tabSaveFunctionRef.current();
+        }
+      }
+      catch (e) {
+        console.error("auto save (before tab switch) failed", e);
+      }
+      return item;
+    });
+  }, []);
+
+  const setTabSaveFunctionCb = useCallback((fn: () => void) => {
+    // 始终存放一个函数，fn 不存在时回退到 no-op
+    tabSaveFunctionRef.current = fn || (() => {});
   }, []);
 
   const forceSetCurrentSelectedTabIdCb = useCallback((item: TabId | null) => {
@@ -126,6 +148,7 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
     setStageId: setStageIdCb,
     setModuleId: setModuleIdCb,
     setCurrentSelectedTabId: setCurrentSelectedTabIdCb,
+    setTabSaveFunction: setTabSaveFunctionCb,
     forceSetCurrentSelectedTabId: forceSetCurrentSelectedTabIdCb,
     pushModuleTabItem: pushModuleTabItemCb,
     removeModuleTabItem: removeModuleTabItemCb,
@@ -134,7 +157,7 @@ export function ModuleProvider({ children }: { children: React.ReactNode }) {
     setActiveList: setActiveListCb,
     beginSelectionLock: beginSelectionLockCb,
     endSelectionLock: endSelectionLockCb,
-  }), [moduleTabItems, currentSelectedTabId, stageId, moduleId, activeList, setStageIdCb, setModuleIdCb, setCurrentSelectedTabIdCb, pushModuleTabItemCb, removeModuleTabItemCb, updateModuleTabLabelCb, updateModuleTabContentNameCb, setActiveListCb, forceSetCurrentSelectedTabIdCb, beginSelectionLockCb, endSelectionLockCb]);
+  }), [moduleTabItems, currentSelectedTabId, stageId, moduleId, activeList, setStageIdCb, setModuleIdCb, setCurrentSelectedTabIdCb, setTabSaveFunctionCb, forceSetCurrentSelectedTabIdCb, pushModuleTabItemCb, removeModuleTabItemCb, updateModuleTabLabelCb, updateModuleTabContentNameCb, setActiveListCb, beginSelectionLockCb, endSelectionLockCb]);
 
   return (
     <ModuleContext

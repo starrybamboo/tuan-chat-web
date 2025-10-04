@@ -15,7 +15,7 @@ interface ItemEditProps {
 
 export default function ItemEdit({ item }: ItemEditProps) {
   const entityInfo = useMemo(() => item.entityInfo || {}, [item.entityInfo]);
-  const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock } = useModuleContext();
+  const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock, setTabSaveFunction, currentSelectedTabId } = useModuleContext();
 
   const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(item => item.entityType === 3);
 
@@ -145,7 +145,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
         { id: item.id!, entityType: 1, entityInfo: localItemRef.current, name: nameRef.current || item.name },
         {
           onSuccess: () => {
-            toast.success("保存成功");
+            toast.success("物品保存成功");
           },
         },
       );
@@ -168,6 +168,26 @@ export default function ItemEdit({ item }: ItemEditProps) {
       name: item.name!,
     });
   };
+
+  // 保存函数注册：使用稳定包装器防止闭包陈旧 & 初始为 no-op
+  const latestHandleSaveRef = useRef(handleSave);
+  latestHandleSaveRef.current = handleSave; // 每次 render 更新指针
+  useEffect(() => {
+    const tabId = item.id?.toString();
+    if (!tabId) {
+      return;
+    }
+    if (currentSelectedTabId === tabId) {
+      setTabSaveFunction(() => {
+        latestHandleSaveRef.current();
+      });
+    }
+    return () => {
+      if (currentSelectedTabId === tabId) {
+        setTabSaveFunction(() => {});
+      }
+    };
+  }, [currentSelectedTabId, item.id, setTabSaveFunction]);
 
   return (
     <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
