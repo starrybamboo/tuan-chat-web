@@ -56,7 +56,7 @@ export default function ModuleEdit({ data, onChange }: ModuleEditProps) {
   const readmeLockTimerRef = useRef<number | null>(null);
   const [readmeLocked, setReadmeLocked] = useState(false);
 
-  const { moduleId } = useModuleContext();
+  const { moduleId, currentSelectedTabId, setTabSaveFunction } = useModuleContext();
   const { mutate: updateModule } = useUpdateModuleMutation();
 
   // 计算当前模块 ID（上下文优先，其次 localStorage）
@@ -268,6 +268,26 @@ export default function ModuleEdit({ data, onChange }: ModuleEditProps) {
     }
     return (initial?.readMe ?? userContent ?? "");
   }, [isFirstShowForModule, initial]);
+
+  // 保存函数注册：使用稳定包装器防止闭包陈旧 & 初始为 no-op
+  const latestHandleSaveRef = useRef(handleSave);
+  latestHandleSaveRef.current = handleSave; // 每次 render 更新指针
+  useEffect(() => {
+    const tabId = "当前模组";
+    if (!tabId) {
+      return;
+    }
+    if (currentSelectedTabId === tabId) {
+      setTabSaveFunction(() => {
+        latestHandleSaveRef.current();
+      });
+    }
+    return () => {
+      if (currentSelectedTabId === tabId) {
+        setTabSaveFunction(() => { });
+      }
+    };
+  }, [currentMid, currentSelectedTabId, setTabSaveFunction]);
 
   return (
     <div className="pb-20 max-w-4xl mx-auto">

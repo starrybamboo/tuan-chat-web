@@ -16,7 +16,7 @@ interface LocationEditProps {
 
 export default function LocationEdit({ location }: LocationEditProps) {
   const entityInfo = useMemo(() => location.entityInfo || {}, [location.entityInfo]);
-  const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock } = useModuleContext();
+  const { stageId, updateModuleTabLabel, beginSelectionLock, endSelectionLock, setTabSaveFunction, currentSelectedTabId } = useModuleContext();
 
   const sceneEntities = useQueryEntitiesQuery(stageId as number).data?.data?.filter(item => item.entityType === 3);
 
@@ -146,7 +146,7 @@ export default function LocationEdit({ location }: LocationEditProps) {
         { id: location.id!, entityType: 4, entityInfo: localLocationRef.current, name: nameRef.current || location.name },
         {
           onSuccess: () => {
-            toast.success("保存成功");
+            toast.success("地点保存成功");
           },
         },
       );
@@ -170,6 +170,26 @@ export default function LocationEdit({ location }: LocationEditProps) {
       name: location.name!,
     });
   };
+
+  // 保存函数注册：使用稳定包装器防止闭包陈旧 & 初始为 no-op
+  const latestHandleSaveRef = useRef(handleSave);
+  latestHandleSaveRef.current = handleSave; // 每次 render 更新指针
+  useEffect(() => {
+    const tabId = location.id?.toString();
+    if (!tabId) {
+      return;
+    }
+    if (currentSelectedTabId === tabId) {
+      setTabSaveFunction(() => {
+        latestHandleSaveRef.current();
+      });
+    }
+    return () => {
+      if (currentSelectedTabId === tabId) {
+        setTabSaveFunction(() => {});
+      }
+    };
+  }, [currentSelectedTabId, location.id, setTabSaveFunction]);
 
   return (
     <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>

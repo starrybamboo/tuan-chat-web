@@ -208,6 +208,12 @@ export function htmlToMarkdown(html: string): string {
         flushListContextIfNeeded(tag);
         return; // 不再下钻其子（已经提取）
       }
+      // 水平分隔线 <hr> -> ---
+      if (tag === "hr") {
+        lines.push("---");
+        flushListContextIfNeeded(tag);
+        return;
+      }
       if (tag === "ul" || tag === "ol") {
         // Quill 可能会用 <ol class="ql-bullet"> 来表示无序列表，这里根据类名修正为逻辑上的 ul
         const logicalType: "ul" | "ol" = (tag === "ol" && node.classList.contains("ql-bullet")) ? "ul" : tag as ("ul" | "ol");
@@ -237,6 +243,15 @@ export function htmlToMarkdown(html: string): string {
         // 避免将代码块外层的 p/div 容器的文本内容（包含代码）重复输出
         if (node.querySelector("div.ql-code-block, pre, code")) {
           Array.from(node.childNodes).forEach(child => walk(child));
+          flushListContextIfNeeded(tag);
+          return;
+        }
+
+        // 特殊：某些编辑场景中 hr 可能被包裹在 <p> 或 <div> 内，如 <p><hr></p>
+        // 如果该段仅包含一个 hr（允许前后空白与 <br>），序列化为 ---
+        const childEls = Array.from(node.children).filter(c => c instanceof HTMLElement) as HTMLElement[];
+        if (childEls.length === 1 && childEls[0].tagName.toLowerCase() === "hr") {
+          lines.push("---");
           flushListContextIfNeeded(tag);
           return;
         }
