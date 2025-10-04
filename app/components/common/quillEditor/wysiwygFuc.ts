@@ -103,7 +103,7 @@ export function detectInlineFormats(
   const leftText = rawLineText.slice(0, leftOffset);
   const rightAfterSpaceText = rawLineText.slice(leftOffset + 1); // 跳过空格后的文本
 
-  // 先处理“闭合标记在光标右侧”的场景：**text␠** / __text␠__ / ~~text␠~~
+  // 先处理“闭合标记在光标右侧”的场景：**text␠** / __text␠__ / ~~text␠~~ / *text␠* （允许 text 前后出现 0~1 个空格，将被修剪）
   // 即：空格位于内文与闭合标记之间
   {
     const candidates: Array<{ token: string; attr: "bold" | "underline" | "strike" | "italic" }> = [
@@ -124,21 +124,22 @@ export function detectInlineFormats(
         continue;
       }
       const innerStart = openPos + c.token.length;
-      const innerLen = Math.max(0, leftOffset - innerStart);
-      // 需要至少有 1 个字符作为内文，且内文首字符不能是空白
+      let innerLen = Math.max(0, leftOffset - innerStart);
       if (innerLen <= 0) {
         continue;
       }
-      const firstInnerCh = leftText.charAt(innerStart);
-      if (/\s/.test(firstInnerCh)) {
+      let innerRaw = leftText.slice(innerStart, innerStart + innerLen);
+      // 允许首尾各 1 个空格（用户在 * 文本*␠ 或 ** 文本**␠ 的情况）
+      innerRaw = innerRaw.replace(/^ (.+)$/s, "$1").replace(/^(.+) $/s, "$1");
+      if (!innerRaw || /^\s+$/.test(innerRaw)) {
         continue;
       }
       // 删除前的冲突校验：对于斜体的单字符标记，确保开标记前一个字符不是同一标记（避免 ** / __ 冲突）
       const openStart = lineStart + openPos;
-      if (c.token.length === 1) {
-        const prevCh = quillInstance.getText?.(Math.max(0, openStart - 1), 1) ?? "";
+      if (c.token.length === 1 && openStart > 0) {
+        const prevCh = quillInstance.getText?.(openStart - 1, 1) ?? "";
         if (prevCh === c.token) {
-          continue;
+          continue; // 前面同一标记，推测是 ** / __ 中的一部分
         }
       }
       try {
@@ -148,6 +149,18 @@ export function detectInlineFormats(
         // 再删除左侧开标记
         quillInstance.deleteText(openStart, c.token.length, "user");
         // 对“内文”应用格式：此时内文区间起点位于 openStart，长度 = innerLen
+        // 如果修剪了首尾空格，需要先删除内文中多余的前导/尾随空格再格式化
+        const segment = leftText.slice(innerStart, innerStart + innerLen);
+        const leadingSpace = segment.startsWith(" ");
+        const trailingSpace = segment.endsWith(" ");
+        if (trailingSpace) {
+          quillInstance.deleteText(openStart + c.token.length + innerLen - 1, 1, "user");
+          innerLen -= 1;
+        }
+        if (leadingSpace) {
+          quillInstance.deleteText(openStart + c.token.length, 1, "user");
+          innerLen -= 1;
+        }
         quillInstance.formatText(openStart, innerLen, c.attr, true, "user");
         // 调整光标：删除了左侧开标记（在光标左侧），光标左移开标记长度；
         // 右侧闭合标记的删除不影响现有光标位置。
@@ -165,16 +178,12 @@ export function detectInlineFormats(
   // 三种模式的正则，锚定到 leftText 的末尾（即空格之前）
   const patterns: Array<{ re: RegExp; attr: "bold" | "underline" | "strike" | "italic"; open: number; close: number; token?: string }>
         = [
-          // **bold** → 不允许以空白或*开头，内部不包含*
-          { re: /\*\*([^\s*][^*]*)\*\*$/, attr: "bold", open: 2, close: 2, token: "**" },
-          // __underline__ → 不允许以空白或_开头，内部不包含_
-          { re: /__([^\s_][^_]*)__$/, attr: "underline", open: 2, close: 2, token: "__" },
-          // ~~strike~~ → 内部不包含~
+          // 允许内部出现普通字符与空格；后续我们自行修剪首尾至多一个空格
+          { re: /\*\*([^*]+)\*\*$/, attr: "bold", open: 2, close: 2, token: "**" },
+          { re: /__([^_]+)__$/, attr: "underline", open: 2, close: 2, token: "__" },
           { re: /~~([^~]+)~~$/, attr: "strike", open: 2, close: 2, token: "~~" },
-          // *italic* → 不允许以空白或*开头，内部不包含*
-          { re: /\*([^\s*][^*]*)\*$/, attr: "italic", open: 1, close: 1, token: "*" },
-          // _italic_ → 不允许以空白或_开头，内部不包含_
-          { re: /_([^\s_][^_]*)_$/, attr: "italic", open: 1, close: 1, token: "_" },
+          { re: /\*([^*]+)\*$/, attr: "italic", open: 1, close: 1, token: "*" },
+          { re: /_([^_]+)_$/, attr: "italic", open: 1, close: 1, token: "_" },
         ];
 
   for (const pat of patterns) {
@@ -193,10 +202,10 @@ export function detectInlineFormats(
     const startInLine = leftOffset - matchLen;
     const startIndex = lineStart + Math.max(0, startInLine);
     // 额外校验：对于斜体的单字符标记，确保开标记前一个字符不是同一标记，避免与 **/__ 冲突
-    if (pat.token === "*" || pat.token === "_") {
-      const prevCh = quillInstance.getText?.(Math.max(0, startIndex - 1), 1) ?? "";
+    if ((pat.token === "*" || pat.token === "_") && startIndex > 0) {
+      const prevCh = quillInstance.getText?.(startIndex - 1, 1) ?? "";
       if (prevCh === pat.token) {
-        continue;
+        continue; // 避免与 **/__ 冲突，但允许行首单标记
       }
     }
     // 先从右往左删除关闭标记，再删除打开标记，避免索引位移干扰
@@ -204,12 +213,28 @@ export function detectInlineFormats(
       const closePos = startIndex + matchLen - pat.close;
       quillInstance.deleteText(closePos, pat.close, "user");
       quillInstance.deleteText(startIndex, pat.open, "user");
-      // 对“内文”应用内联格式（删除两端标记后，内文现在位于 startIndex）
-      quillInstance.formatText(startIndex, innerLen, pat.attr, true, "user");
-      // 将光标定位到空格之后；由于删除了 4 个标记字符，整体左移 4
-      const finalIndex = Math.max(0, selRange.index - (pat.open + pat.close));
-      quillInstance.setSelection(finalIndex, 0, "silent");
-      return true;
+      // 现在内文从 startIndex 开始，长度为 innerLen
+      // 修剪首尾至多一个空格（允许 ** 文本**␠ / **文本 **␠）
+      let leading = false;
+      let trailing = false;
+      if (inner.startsWith(" ")) {
+        leading = true;
+      }
+      if (inner.endsWith(" ")) {
+        trailing = true;
+      }
+      if (leading) {
+        quillInstance.deleteText(startIndex, 1, "user");
+      }
+      if (trailing) {
+        quillInstance.deleteText(startIndex + innerLen - (leading ? 2 : 1), 1, "user");
+      }
+      const finalInnerLen = innerLen - (leading ? 1 : 0) - (trailing ? 1 : 0);
+      if (finalInnerLen > 0) {
+        quillInstance.formatText(startIndex, finalInnerLen, pat.attr, true, "user");
+        quillInstance.setSelection(startIndex + finalInnerLen, 0, "silent");
+        return true;
+      }
     }
     catch {
       // ignore并尝试下一个模式
@@ -217,6 +242,7 @@ export function detectInlineFormats(
   }
   return false;
 }
+
 // 检测行尾的对齐语法：c/r/b + 空格
 export function detectAlignment(quillInstance: any, range: any): boolean {
   if (!quillInstance || !range)

@@ -52,6 +52,11 @@ export function rawMarkdownToHtml(md: string): string {
       blocks.push("<p><br></p>");
       continue;
     }
+    // 水平分隔线：独立一行的 --- （不允许有其它字符，允许前后空白）
+    if (/^\s*---\s*$/.test(line)) {
+      blocks.push("<hr>");
+      continue;
+    }
     // 单行 heading
     const headingMatch = /^(#{1,3})[ \t]([^\n]+)$/.exec(line);
     if (headingMatch) {

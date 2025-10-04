@@ -139,6 +139,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
   const handleSave = () => {
     setIsTransitioning(true);
     setTimeout(() => {
+      beginSelectionLock("saving-item", 2000);
       setIsTransitioning(false);
       // 先更新物品自身，成功后再同步引用与关闭标签
       updateItem(
@@ -146,6 +147,7 @@ export default function ItemEdit({ item }: ItemEditProps) {
         {
           onSuccess: () => {
             toast.success("物品保存成功");
+            endSelectionLock();
           },
         },
       );

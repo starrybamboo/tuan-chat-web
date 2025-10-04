@@ -31,56 +31,72 @@ interface vditorProps {
 let vditorPromise: Promise<any> | null = null;
 // 全局标记避免重复注册
 let mentionBlotRegistered = false;
+let hrBlotRegistered = false;
 
 function registerMentionBlot(Q: any) {
-  if (!Q || mentionBlotRegistered)
-    return;
-  try {
-    // 通过自有标记而不是 Q.import("formats/mention-span") 来避免控制台报错
-    const Embed = Q.import("blots/embed");
-    class MentionBlot extends Embed {
-      static blotName = "mention-span";
-      static tagName = "span";
-      static className = "ql-mention-span";
-      static create(value: any) {
-        const node = super.create();
-        node.setAttribute("data-label", value?.label || "");
-        node.setAttribute("data-category", value?.category || "");
-        node.textContent = value?.label || "";
-        const cat = value?.category || "";
-        const colorMap: Record<string, { bg: string; color: string }> = {
-          人物: { bg: "#fef3c7", color: "#92400e" },
-          地点: { bg: "#d1fae5", color: "#065f46" },
-          物品: { bg: "#e0f2fe", color: "#075985" },
-        };
-        let bg = "#eef2ff";
-        let fg = "#4338ca";
-        if (cat && colorMap[cat]) {
-          bg = colorMap[cat].bg;
-          fg = colorMap[cat].color;
+  if (Q && !mentionBlotRegistered) {
+    try {
+      const Embed = Q.import("blots/embed");
+      class MentionBlot extends Embed {
+        static blotName = "mention-span";
+        static tagName = "span";
+        static className = "ql-mention-span";
+
+        static create(value: any) {
+          const node = super.create();
+          node.setAttribute("data-label", value?.label || "");
+          node.setAttribute("data-category", value?.category || "");
+          node.textContent = value?.label || "";
+          const cat = value?.category || "";
+          const colorMap: Record<string, { bg: string; color: string }> = {
+            人物: { bg: "#fef3c7", color: "#92400e" },
+            地点: { bg: "#d1fae5", color: "#065f46" },
+            物品: { bg: "#e0f2fe", color: "#075985" },
+          };
+          let bg = "#eef2ff";
+          let fg = "#4338ca";
+          if (cat && colorMap[cat]) {
+            bg = colorMap[cat].bg;
+            fg = colorMap[cat].color;
+          }
+          (node as HTMLElement).style.background = bg;
+          (node as HTMLElement).style.padding = "0 4px";
+          (node as HTMLElement).style.borderRadius = "4px";
+          (node as HTMLElement).style.color = fg;
+          (node as HTMLElement).style.fontSize = "0.85em";
+          (node as HTMLElement).style.userSelect = "none";
+          return node;
         }
-        (node as HTMLElement).style.background = bg;
-        (node as HTMLElement).style.padding = "0 4px";
-        (node as HTMLElement).style.borderRadius = "4px";
-        (node as HTMLElement).style.color = fg;
-        (node as HTMLElement).style.fontSize = "0.85em";
-        (node as HTMLElement).style.userSelect = "none";
-        return node;
-      }
 
-      static value(node: HTMLElement) {
-        return {
-          label: node.getAttribute("data-label") || node.textContent || "",
-          category: node.getAttribute("data-category") || "",
-        };
+        static value(node: HTMLElement) {
+          return {
+            label: node.getAttribute("data-label") || node.textContent || "",
+            category: node.getAttribute("data-category") || "",
+          };
+        }
       }
+      Q.register(MentionBlot);
+      mentionBlotRegistered = true;
     }
-
-    Q.register(MentionBlot);
-    mentionBlotRegistered = true;
+    catch { /* ignore */ }
   }
-  catch {
-    // ignore
+  if (Q && !hrBlotRegistered) {
+    try {
+      const BlockEmbed = Q.import("blots/block/embed");
+      class HrBlot extends BlockEmbed {
+        static blotName = "hr";
+        static tagName = "hr";
+        static className = "ql-hr";
+        static create() {
+          const node = super.create();
+          (node as HTMLElement).setAttribute("contenteditable", "false");
+          return node;
+        }
+      }
+      Q.register(HrBlot);
+      hrBlotRegistered = true;
+    }
+    catch { /* ignore */ }
   }
 }
 
@@ -224,6 +240,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
   const isFormattedRef = useRef(false);
   // 防重入：在 text-change 中删除空格时避免递归触发
   const handlingSpaceRef = useRef(false);
+  // 取消边界即时检测：仅在输入空格时触发行内格式转换
   // 记录监听器，便于卸载
   const textChangeHandlerRef = useRef<((delta: any, oldDelta: any, source: any) => void) | null>(null);
   const selectionChangeHandlerRef = useRef<((range: any) => void) | null>(null);
@@ -1228,7 +1245,43 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
               }
             }, 0);
           }
-          // 仅当插入以空格结尾时再尝试触发（支持半角/不间断/全角空格）
+          // --- 水平线检测：不需要空格。条件：本次 inserted 含 '-' 且光标所在行（去末尾换行）恰好为 '---'
+          if (inserted.includes("-")) {
+            try {
+              const selLocal = lastRangeRef.current;
+              if (selLocal && typeof selLocal.index === "number") {
+                const editorInstance = quillRef.current as any;
+                const lineInfo = editorInstance.getLine?.(Math.max(0, selLocal.index - 1));
+                if (lineInfo && Array.isArray(lineInfo)) {
+                  const line = lineInfo[0];
+                  const offset = lineInfo[1];
+                  const lineStart = (selLocal.index - 1) - offset;
+                  const lineText = editorInstance.getText?.(lineStart, line.length()) || "";
+                  const pure = lineText.replace(/\n$/, ""); // 去掉行尾换行
+                  const fmt = editorInstance.getFormat?.(lineStart, 1) || {};
+                  const inCode = !!fmt["code-block"];
+                  if (!inCode && pure === "---") {
+                    handlingSpaceRef.current = true;
+                    try {
+                      editorInstance.deleteText(lineStart, line.length(), "user");
+                      editorInstance.insertEmbed(lineStart, "hr", true, "user");
+                      editorInstance.insertText(lineStart + 1, "\n", "user");
+                      editorInstance.setSelection(lineStart + 2, 0, "silent");
+                    }
+                    finally {
+                      handlingSpaceRef.current = false;
+                    }
+                    refreshActiveFormatsRef.current();
+                    scheduleToolbarUpdateRef.current();
+                    return; // hr 已处理
+                  }
+                }
+              }
+            }
+            catch { /* ignore hr detection */ }
+          }
+
+          // 以下仍然保留原逻辑：仅在输入空格时尝试行内/块级检测
           const endsWithSpace = /[\u0020\u00A0\u2007\u3000]$/.test(inserted);
           if (!endsWithSpace) {
             return;
@@ -1310,7 +1363,9 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
           // 再尝试对齐
           const alignmentHandled = !blockHandled && detectAlignment(editor, fakeRange);
           // 若不是块级或对齐，再尝试行内 **/__ /~~ 模式
+          console.log("[INLINE-DEBUG] space trigger inserted=", inserted, "sel=", sel, "endsWithSpace=", endsWithSpace);
           const inlineHandled = !blockHandled && !alignmentHandled && detectInlineFormats(editor, sel);
+          console.log("[INLINE-DEBUG] results block=", blockHandled, "align=", alignmentHandled, "inline=", inlineHandled);
 
           if (blockHandled || inlineHandled || alignmentHandled) {
             handlingSpaceRef.current = true;
@@ -1555,6 +1610,14 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
 
       onRootKeyUp = (_e: KeyboardEvent) => {
         try {
+          // 确保拿到最新光标（Quill 对连续输入有时不会触发 selection-change）
+          const editor = quillRef.current as any;
+          if (editor && editor.getSelection) {
+            const curSel = editor.getSelection();
+            if (curSel && typeof curSel.index === "number") {
+              lastRangeRef.current = { index: curSel.index, length: curSel.length || 0 };
+            }
+          }
           const lr = getSafeSelection();
           if (!lr)
             return;
@@ -2614,6 +2677,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
             mentionPreviewLockRef.current = false;
             setMentionPreviewVisible(false);
           }}
+          entitiesMap={entitiesRef.current}
         />
       )}
     </div>
