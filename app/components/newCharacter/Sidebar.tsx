@@ -1,11 +1,12 @@
 import type { UserRole } from "api";
 import type { Role } from "./types";
 import { tuanchat } from "@/../api/instance";
+import { getRoleRule } from "@/utils/roleRuleStorage";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDeleteRolesMutation, useGetInfiniteUserRolesQuery } from "api/queryHooks";
 // import { useCreateRoleMutation, useDeleteRolesMutation, useGetInfiniteUserRolesQuery, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
-import { Link, NavLink, useNavigate, useSearchParams } from "react-router";
+import { Link, NavLink, useNavigate } from "react-router";
 import { PopWindow } from "../common/popWindow";
 import { useGlobalContext } from "../globalContextProvider";
 import { RoleListItem } from "./RoleListItem";
@@ -250,7 +251,6 @@ export function Sidebar({
   };
 
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
   // 删除确认处理函数
   const handleConfirmDelete = async () => {
@@ -426,8 +426,10 @@ export function Sidebar({
               </div>
             </Link>
             {filteredRoles.map((role) => {
-              // 构建保留当前查询参数的 URL
-              const roleUrl = `/role/${role.id}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+              // 获取角色存储的规则ID,如果没有则使用默认规则ID=1
+              const storedRuleId = getRoleRule(role.id) || 1;
+              // 构建保留当前查询参数的 URL,但使用存储的规则ID
+              const roleUrl = `/role/${role.id}?rule=${storedRuleId}`;
 
               return (
                 <NavLink
