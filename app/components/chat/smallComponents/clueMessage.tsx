@@ -21,6 +21,7 @@ function ClueMessage({ messageResponse }: { messageResponse: ChatMessageResponse
 
           {/* 线索图片 + 描述 */}
           <div className="relative">
+
             {/* 线索图片 */}
             {clueMessage.img && (
               <div className="float-left mr-3 mb-3 w-32 rounded overflow-hidden border border-base-300">
