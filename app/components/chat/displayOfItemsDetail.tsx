@@ -1,5 +1,6 @@
 import type { ClueMessage } from "api/models/ClueMessage";
 import { useModuleItemDetailQuery } from "api/hooks/moduleQueryHooks";
+import MarkdownMentionViewer from "../common/quillEditor/MarkdownMentionViewer";
 
 interface EntityInfo {
   description?: string;
@@ -61,7 +62,7 @@ function DisplayOfItemDetail({ itemId, onSend }: { itemId: number; onSend: (clue
           </h2>
           <button
             type="button"
-            className="btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg rounded-md transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0"
+            className="btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0"
             onClick={() => onSend(clueMessage)}
           >
             公布
@@ -74,18 +75,24 @@ function DisplayOfItemDetail({ itemId, onSend }: { itemId: number; onSend: (clue
         {description && (
           <div>
             <h3 className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">描述</h3>
-            <p className="text-neutral-700 dark:text-neutral-200 whitespace-pre-line leading-relaxed">
-              {description}
-            </p>
+            <div className="text-neutral-700 dark:text-neutral-200 leading-relaxed">
+              <MarkdownMentionViewer
+                markdown={description || "无描述信息"}
+                enableHoverPreview={true}
+              />
+            </div>
           </div>
         )}
 
         {tip && (
           <div className="bg-blue-50 dark:bg-blue-900 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
             <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-200 mb-2 uppercase tracking-wider">提示</h3>
-            <p className="text-blue-800 dark:text-blue-100 whitespace-pre-line leading-relaxed">
-              {tip}
-            </p>
+            <div className="text-blue-800 dark:text-blue-100 leading-relaxed">
+              <MarkdownMentionViewer
+                markdown={tip || "无提示"}
+                enableHoverPreview={true}
+              />
+            </div>
           </div>
         )}
       </div>

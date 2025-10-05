@@ -37,19 +37,19 @@ export default function ExpansionModule({
   const ruleDetailQuery = useRuleDetailQuery(selectedRuleId || 0);
   const setRoleAbilityMutation = useSetRoleAbilityMutation();
 
-  // 初始化能力数据
-  useEffect(() => {
-    if (ruleDetailQuery.data && !abilityQuery.data && !abilityQuery.isLoading) {
-      setRoleAbilityMutation.mutate({
-        ruleId: ruleDetailQuery.data?.ruleId || 0,
-        roleId,
-        act: ruleDetailQuery.data?.actTemplate || {},
-        basic: ruleDetailQuery.data?.basicDefault || {},
-        ability: ruleDetailQuery.data?.abilityFormula || {},
-        skill: ruleDetailQuery.data?.skillDefault || {},
-      });
-    }
-  }, [ruleDetailQuery.data, abilityQuery.data, abilityQuery.isLoading, roleId, setRoleAbilityMutation]);
+  // 初始化能力数据 - 现在不再自动创建,需要用户手动触发
+  // useEffect(() => {
+  //   if (ruleDetailQuery.data && !abilityQuery.data && !abilityQuery.isLoading) {
+  //     setRoleAbilityMutation.mutate({
+  //       ruleId: ruleDetailQuery.data?.ruleId || 0,
+  //       roleId,
+  //       act: ruleDetailQuery.data?.actTemplate || {},
+  //       basic: ruleDetailQuery.data?.basicDefault || {},
+  //       ability: ruleDetailQuery.data?.abilityFormula || {},
+  //       skill: ruleDetailQuery.data?.skillDefault || {},
+  //     });
+  //   }
+  // }, [ruleDetailQuery.data, abilityQuery.data, abilityQuery.isLoading, roleId, setRoleAbilityMutation]);
 
   // 用于存储本地编辑状态的数据
   const [localEdits, setLocalEdits] = useState<{
@@ -128,6 +128,23 @@ export default function ExpansionModule({
     setLocalEdits(prev => ({ ...prev, abilityFormula: newData }));
   };
 
+  // 检查是否规则未创建
+  const isRuleNotCreated = !abilityQuery.isLoading && !abilityQuery.data && ruleDetailQuery.data;
+
+  // 手动创建规则数据
+  const handleCreateRule = () => {
+    if (ruleDetailQuery.data) {
+      setRoleAbilityMutation.mutate({
+        ruleId: ruleDetailQuery.data?.ruleId || 0,
+        roleId,
+        act: ruleDetailQuery.data?.actTemplate || {},
+        basic: ruleDetailQuery.data?.basicDefault || {},
+        ability: ruleDetailQuery.data?.abilityFormula || {},
+        skill: ruleDetailQuery.data?.skillDefault || {},
+      });
+    }
+  };
+
   // 检查加载状态
   const isLoading = ruleDetailQuery.isLoading || abilityQuery.isLoading || !renderData;
 
@@ -140,116 +157,134 @@ export default function ExpansionModule({
   return (
     <>
       <div key={`expansion-module-${roleId}-${selectedRuleId}`} className="space-y-6">
-        {/* 加载状态 */}
-        {isLoading
+        {/* 规则未创建状态 */}
+        {isRuleNotCreated
           ? (
-              <div className="space-y-6">
-                {/* 表演字段配置加载骨架 */}
-                <Section title="表演字段配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                  <div className="space-y-4 animate-pulse">
-                    <div className="h-4 bg-base-300 rounded w-1/4"></div>
-                    <div className="space-y-3">
-                      <div className="h-10 bg-base-300 rounded"></div>
-                      <div className="h-10 bg-base-300 rounded"></div>
-                      <div className="h-10 bg-base-300 rounded"></div>
-                    </div>
-                  </div>
-                </Section>
-
-                {/* 基础属性配置加载骨架 */}
-                <Section title="基础属性配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                  <div className="space-y-4 animate-pulse">
-                    <div className="h-4 bg-base-300 rounded w-1/3"></div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="h-16 bg-base-300 rounded"></div>
-                      <div className="h-16 bg-base-300 rounded"></div>
-                      <div className="h-16 bg-base-300 rounded"></div>
-                      <div className="h-16 bg-base-300 rounded"></div>
-                    </div>
-                  </div>
-                </Section>
-
-                {/* 能力配置加载骨架 */}
-                <Section title="能力配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                  <div className="space-y-4 animate-pulse">
-                    <div className="h-4 bg-base-300 rounded w-1/3"></div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="h-16 bg-base-300 rounded"></div>
-                      <div className="h-16 bg-base-300 rounded"></div>
-                      <div className="h-16 bg-base-300 rounded"></div>
-                      <div className="h-16 bg-base-300 rounded"></div>
-                    </div>
-                  </div>
-                </Section>
-
-                {/* 技能配置加载骨架 */}
-                <Section title="技能配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
-                  <div className="space-y-4 animate-pulse">
-                    <div className="h-4 bg-base-300 rounded w-1/3"></div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="h-16 bg-base-300 rounded"></div>
-                      <div className="h-16 bg-base-300 rounded"></div>
-                      <div className="h-16 bg-base-300 rounded"></div>
-                      <div className="h-16 bg-base-300 rounded"></div>
-                    </div>
-                    <div className="h-10 bg-base-300 rounded w-1/2"></div>
-                  </div>
-                </Section>
+              <div className="card bg-base-100 shadow-xs rounded-2xl border-2 border-base-content/10">
+                <div className="card-body items-center text-center py-16">
+                  <div className="text-6xl mb-4">📋</div>
+                  <h3 className="text-xl font-semibold mb-2">规则尚未创建</h3>
+                  <p className="text-base-content/70 mb-6">
+                    该角色还未配置此规则系统,点击下方按钮开始创建
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleCreateRule}
+                  >
+                    创建规则配置
+                  </button>
+                </div>
               </div>
             )
-          : (
-        /* 规则详情区域 */
-              renderData && (
-                <>
-                  <Section title="表演字段配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
-                    <PerformanceEditor
-                      fields={renderData.actTemplate}
-                      onChange={handleActTemplateChange}
-                      abilityData={renderData.actTemplate}
-                      roleId={roleId}
-                      ruleId={selectedRuleId}
-                    />
+          : isLoading
+            ? (
+                <div className="space-y-6">
+                  {/* 表演字段配置加载骨架 */}
+                  <Section title="表演字段配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                    <div className="space-y-4 animate-pulse">
+                      <div className="h-4 bg-base-300 rounded w-1/4"></div>
+                      <div className="space-y-3">
+                        <div className="h-10 bg-base-300 rounded"></div>
+                        <div className="h-10 bg-base-300 rounded"></div>
+                        <div className="h-10 bg-base-300 rounded"></div>
+                      </div>
+                    </div>
                   </Section>
 
-                  <ConfigurationSection
-                    title="基础属性配置"
-                    abilityData={abilityQuery.data?.basicDefault || {}}
-                    ruleData={ruleDetailQuery.data?.basicDefault || {}}
-                    localEdits={localEdits.basicDefault}
-                    onDataChange={handleBasicChange}
-                    roleId={roleId}
-                    ruleId={selectedRuleId}
-                    fieldType="basic"
-                    customLabel="基础属性"
-                  />
+                  {/* 基础属性配置加载骨架 */}
+                  <Section title="基础属性配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                    <div className="space-y-4 animate-pulse">
+                      <div className="h-4 bg-base-300 rounded w-1/3"></div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="h-16 bg-base-300 rounded"></div>
+                        <div className="h-16 bg-base-300 rounded"></div>
+                        <div className="h-16 bg-base-300 rounded"></div>
+                        <div className="h-16 bg-base-300 rounded"></div>
+                      </div>
+                    </div>
+                  </Section>
 
-                  <ConfigurationSection
-                    title="能力配置"
-                    abilityData={abilityQuery.data?.abilityDefault || {}}
-                    ruleData={ruleDetailQuery.data?.abilityFormula || {}}
-                    localEdits={localEdits.abilityFormula}
-                    onDataChange={handleAbilityChange}
-                    roleId={roleId}
-                    ruleId={selectedRuleId}
-                    fieldType="ability"
-                    customLabel="能力"
-                  />
+                  {/* 能力配置加载骨架 */}
+                  <Section title="能力配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                    <div className="space-y-4 animate-pulse">
+                      <div className="h-4 bg-base-300 rounded w-1/3"></div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="h-16 bg-base-300 rounded"></div>
+                        <div className="h-16 bg-base-300 rounded"></div>
+                        <div className="h-16 bg-base-300 rounded"></div>
+                        <div className="h-16 bg-base-300 rounded"></div>
+                      </div>
+                    </div>
+                  </Section>
 
-                  <ConfigurationSection
-                    title="技能配置"
-                    abilityData={abilityQuery.data?.skillDefault || {}}
-                    ruleData={ruleDetailQuery.data?.skillDefault || {}}
-                    localEdits={localEdits.skillDefault}
-                    onDataChange={handleSkillChange}
-                    roleId={roleId}
-                    ruleId={selectedRuleId}
-                    fieldType="skill"
-                    customLabel="技能"
-                  />
-
-                </>
+                  {/* 技能配置加载骨架 */}
+                  <Section title="技能配置" className="rounded-2xl border-2 border-base-content/10 bg-base-100">
+                    <div className="space-y-4 animate-pulse">
+                      <div className="h-4 bg-base-300 rounded w-1/3"></div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="h-16 bg-base-300 rounded"></div>
+                        <div className="h-16 bg-base-300 rounded"></div>
+                        <div className="h-16 bg-base-300 rounded"></div>
+                        <div className="h-16 bg-base-300 rounded"></div>
+                      </div>
+                      <div className="h-10 bg-base-300 rounded w-1/2"></div>
+                    </div>
+                  </Section>
+                </div>
               )
-            )}
+            : (
+                renderData && (
+                  <>
+                    <Section title="表演字段配置" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
+                      <PerformanceEditor
+                        fields={renderData.actTemplate}
+                        onChange={handleActTemplateChange}
+                        abilityData={renderData.actTemplate}
+                        roleId={roleId}
+                        ruleId={selectedRuleId}
+                      />
+                    </Section>
+
+                    <ConfigurationSection
+                      title="基础属性配置"
+                      abilityData={abilityQuery.data?.basicDefault || {}}
+                      ruleData={ruleDetailQuery.data?.basicDefault || {}}
+                      localEdits={localEdits.basicDefault}
+                      onDataChange={handleBasicChange}
+                      roleId={roleId}
+                      ruleId={selectedRuleId}
+                      fieldType="basic"
+                      customLabel="基础属性"
+                    />
+
+                    <ConfigurationSection
+                      title="能力配置"
+                      abilityData={abilityQuery.data?.abilityDefault || {}}
+                      ruleData={ruleDetailQuery.data?.abilityFormula || {}}
+                      localEdits={localEdits.abilityFormula}
+                      onDataChange={handleAbilityChange}
+                      roleId={roleId}
+                      ruleId={selectedRuleId}
+                      fieldType="ability"
+                      customLabel="能力"
+                    />
+
+                    <ConfigurationSection
+                      title="技能配置"
+                      abilityData={abilityQuery.data?.skillDefault || {}}
+                      ruleData={ruleDetailQuery.data?.skillDefault || {}}
+                      localEdits={localEdits.skillDefault}
+                      onDataChange={handleSkillChange}
+                      roleId={roleId}
+                      ruleId={selectedRuleId}
+                      fieldType="skill"
+                      customLabel="技能"
+                    />
+
+                  </>
+                )
+              )}
       </div>
 
       {/* ST导入弹窗 */}

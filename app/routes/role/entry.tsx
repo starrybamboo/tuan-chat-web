@@ -4,6 +4,7 @@ import AICreateRole from "@/components/newCharacter/RoleCreation/AICreateRole";
 import CreateEntry from "@/components/newCharacter/RoleCreation/CreateEntry";
 
 import CreateRoleBySelf from "@/components/newCharacter/RoleCreation/CreateRoleBySelf";
+import { setRoleRule } from "@/utils/roleRuleStorage";
 import { useState } from "react";
 import { useNavigate, useOutletContext } from "react-router";
 
@@ -22,11 +23,14 @@ export default function RoleCreationPage() {
   const handleCreationComplete = (newRole: Role, ruleId?: number) => {
     // 这里我们可以手动更新一下 roles 状态，以便 Sidebar 立即显示新角色
     setRoles(prevRoles => [newRole, ...prevRoles]);
-    // 如果提供了规则ID，则导航到具体规则页面，否则导航到角色详情页
+    // 如果提供了规则ID，保存到存储并导航到具体规则页面
     if (ruleId) {
+      setRoleRule(newRole.id, ruleId);
       navigate(`/role/${newRole.id}?rule=${ruleId}`);
     }
     else {
+      // 默认规则ID为1，也保存到存储
+      setRoleRule(newRole.id, 1);
       navigate(`/role/${newRole.id}`);
     }
   };
