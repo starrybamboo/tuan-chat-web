@@ -20,24 +20,25 @@ function ClueMessage({ messageResponse }: { messageResponse: ChatMessageResponse
           <h4 className="text-lg font-semibold text-info">{clueMessage.name}</h4>
 
           {/* 线索图片 + 描述 */}
-          <div className="overflow-hidden">
+          <div className="relative">
             {/* 线索图片 */}
             {clueMessage.img && (
               <div className="float-left mr-3 mb-3 w-32 rounded overflow-hidden border border-base-300">
                 <BetterImg
                   src={clueMessage.img}
-                  className="w-full h-full object-cover cursor-pointer aspect-square"
+                  className="w-full h-full object-cover cursor-pointer aspect-square relative z-10"
                   key={`${clueMessage.name}-img`}
                 />
               </div>
             )}
 
             {/* 线索描述 */}
-            <div className="text-base text-base-content/90">
+            <div className="text-base text-base-content/90 min-h-[128px]">
               <MarkdownMentionViewer
                 markdown={clueMessage.description || "无描述信息"}
                 enableHoverPreview={true}
               />
+              <div className="clear-both"></div>
             </div>
           </div>
         </div>
