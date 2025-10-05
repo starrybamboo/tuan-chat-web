@@ -1,5 +1,7 @@
 import type { Role } from "@/components/newCharacter/types";
 import CharacterDetail from "@/components/newCharacter/CharacterDetail";
+import { getRoleRule, setRoleRule } from "@/utils/roleRuleStorage";
+import { useEffect } from "react";
 // --- CHANGED --- 引入更多 react-router hooks
 import { Navigate, useNavigate, useOutletContext, useParams, useSearchParams } from "react-router";
 
@@ -24,6 +26,21 @@ export default function RoleDetailPage() {
   // useEffect(() => { ... }, [numericRoleId]);
 
   const numericRoleId = roleId ? Number.parseInt(roleId, 10) : Number.NaN;
+
+  // --- ADDED --- 从 URL search params 解析 ruleId,如果没有则从存储中获取
+  const urlRuleId = searchParams.get("rule");
+  const storedRuleId = getRoleRule(numericRoleId || 0);
+  const selectedRuleId = urlRuleId ? Number(urlRuleId) : (storedRuleId || 1);
+
+  // 如果URL中没有规则参数但存储中有,则更新URL
+  useEffect(() => {
+    if (!urlRuleId && storedRuleId && numericRoleId) {
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.set("rule", storedRuleId.toString());
+      navigate(`?${newSearchParams.toString()}`, { replace: true });
+    }
+  }, [urlRuleId, storedRuleId, searchParams, navigate, numericRoleId]);
+
   if (!roleId || Number.isNaN(numericRoleId)) {
     return <Navigate to="/role" replace />;
   }
@@ -32,9 +49,6 @@ export default function RoleDetailPage() {
   if (!currentRole) {
     return <div>角色未找到或正在加载...</div>;
   }
-
-  // --- ADDED --- 从 URL search params 解析 ruleId，并提供默认值
-  const selectedRuleId = Number(searchParams.get("rule")) || 1;
 
   const handleSave = (updatedRole: Role) => {
     setRoles(prev =>
@@ -49,6 +63,8 @@ export default function RoleDetailPage() {
   const handleRuleChange = (newRuleId: number) => {
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.set("rule", newRuleId.toString());
+    // 保存到浏览器存储
+    setRoleRule(numericRoleId, newRuleId);
     // 使用 replace: true 避免在浏览器历史中留下太多记录
     navigate(`?${newSearchParams.toString()}`, { replace: true });
   };
