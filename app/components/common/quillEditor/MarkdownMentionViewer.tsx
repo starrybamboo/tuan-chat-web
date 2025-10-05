@@ -5,7 +5,7 @@ import MentionPreview from "./MentionPreview";
 
 interface MarkdownMentionViewerProps {
   markdown: string;
-  entitiesMap: Record<string, string[]>; // { 人物: [...], 地点: [...], 物品: [...] }
+  entitiesMap?: Record<string, string[]>; // { 人物: [...], 地点: [...], 物品: [...] }
   className?: string;
   // 控制预览面板是否启用
   enableHoverPreview?: boolean;
@@ -20,7 +20,7 @@ interface MarkdownMentionViewerProps {
  * - 支持鼠标悬停显示缩略 MentionPreview（与编辑器共用组件）
  */
 export default function MarkdownMentionViewer(props: MarkdownMentionViewerProps) {
-  const { markdown, entitiesMap, className, enableHoverPreview = true, resolveDescription } = props;
+  const { markdown, entitiesMap = {}, className, enableHoverPreview = true, resolveDescription } = props;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [preview, setPreview] = useState<{
     category: string;
