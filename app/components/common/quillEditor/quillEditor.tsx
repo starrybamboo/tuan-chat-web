@@ -1602,7 +1602,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
                     else if (category === "地点") {
                       type = 4; // 使用地点类型
                     }
-                    const matched = allEntities.find((e: any) => e.name === label && (type === 0 || e.entityType === type));
+                    const matched = allEntities.find((e: StageEntityResponse) => e.name === label && (type === 0 || e.entityType === type));
                     if (matched) {
                       onDeleteSpecialRef.current(matched as StageEntityResponse);
                     }
