@@ -15,7 +15,7 @@ export const DEFAULT_MODULE_DATA = {
   image: "https://imagebucket-1322308688.cos.ap-tokyo.myqcloud.com/picnia/image/65d2fa0e1c42c75df8dd3713.jpg",
   createTime: null as string | null,
   updateTime: null as string | null,
-  instruction: null as string | null,
+  readMe: null as string | null,
 };
 
 export type ModuleData = typeof DEFAULT_MODULE_DATA;

@@ -13,6 +13,7 @@ interface SceneNodeProps {
     sceneLocations?: string[];
     description?: string;
     tip?: string;
+    image?: string; // 新增图片字段
     moduleSceneName?: string;
     children?: React.ReactNode;
     isMobile?: boolean; // 新增移动端标识
@@ -69,16 +70,29 @@ function SceneNode({ data, selected }: SceneNodeProps) {
       onDrop={handleDrop}
     >
       <div
-        className={`${selected ? "border-2 border-blue-500" : ""} ${
-          isDragOver ? "ring-2 ring-green-400 ring-opacity-75 bg-green-50" : ""
+        className={`relative rounded-xs ${selected ? "border-2 border-blue-500" : ""} ${
+          isDragOver ? "ring-2 ring-green-400 ring-opacity-75" : ""
         }`}
         onClick={handleNodeClick}
       >
+        {/* 背景图片（覆盖整个节点，降低透明度） */}
+        <div className="absolute inset-0 -z-[1] opacity-30">
+          <img
+            src={data.image || "/moduleDefaultImage.webp"}
+            alt={data.label}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              // 图片加载失败时使用默认图片
+              (e.currentTarget as HTMLImageElement).src = "/moduleDefaultImage.webp";
+            }}
+          />
+        </div>
+
         {/* 右下偏移的背景层，仅作用于本内容区 */}
         <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 bg-base-300 opacity-50 rounded-xs -z-10"></div>
 
         {/* 场景标题 */}
-        <div className="bg-base-100 p-3 text-center">
+        <div className="relative bg-base-200 p-3 text-center">
           <div className="flex items-center justify-center">
             <span className="text-xl font-black leading-none mr-2">「 </span>
             <span className="text-lg font-bold tracking-wide">{data.label}</span>
@@ -87,7 +101,7 @@ function SceneNode({ data, selected }: SceneNodeProps) {
         </div>
 
         {/* 场景资源信息 */}
-        <div className="bg-base-50 p-2 space-y-1 text-xs">
+        <div className="relative bg-base-50 p-2 space-y-1 text-xs">
           {/* 包含角色 */}
           {data.sceneRoles && data.sceneRoles.length > 0 && (
             <div className="flex items-center gap-1">
