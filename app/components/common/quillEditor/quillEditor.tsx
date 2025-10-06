@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-console */
+import type { StageEntityResponse } from "api";
 import type quill from "quill";
 import { useModuleContext } from "@/components/create/workPlace/context/_moduleContext";
 import { BaselineAutoAwesomeMotion } from "@/icons";
@@ -25,6 +26,8 @@ interface vditorProps {
   id: string;
   placeholder: string; // 仅用于首次挂载时的初始内容
   onchange: (value: string) => void;
+  onSpecialKey?: (key: StageEntityResponse[]) => void; // 用于捕获 @
+  onDeleteSpecialKey?: (key: StageEntityResponse) => void; // 用于捕获 Backspace 删除 @
 }
 
 // 顶层预加载句柄，避免重复导入
@@ -201,7 +204,7 @@ function computeNativeCaretPos(wrapper: HTMLElement | null, root: HTMLElement | 
   }
 }
 
-export default function QuillEditor({ id, placeholder, onchange }: vditorProps) {
+export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, onDeleteSpecialKey }: vditorProps) {
   const quillRef = useRef<quill | null>(null);
   // 旧自定义行宽实现已移除（改为 Visual Line Pack）
   // 从上下文获取 stageId 来拉取实体
@@ -233,6 +236,7 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
   const raf2Ref = useRef<number | null>(null);
   // 用于触发函数
   const onChangeRef = useRef(onchange);
+  const onDeleteSpecialRef = useRef(onDeleteSpecialKey);
   const initialPlaceholderRef = useRef(placeholder);
   const lastAppliedMarkdownRef = useRef<string | null>(null);
   const applyingExternalRef = useRef(false);
@@ -464,6 +468,9 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
         editor.deleteText(mentionStart, deleteLen, "user");
       }
       let insertedEmbed = false;
+      if (onSpecialKey) {
+        onSpecialKey(allEntities.filter((e: StageEntityResponse) => e.name === label));
+      }
       try {
         editor.insertEmbed(mentionStart, "mention-span", { label, category: currentCategory || "" }, "user");
         insertedEmbed = true;
@@ -617,6 +624,9 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
   useEffect(() => {
     onChangeRef.current = onchange;
   }, [onchange]);
+  useEffect(() => {
+    onDeleteSpecialRef.current = onDeleteSpecialKey;
+  }, [onDeleteSpecialKey]);
 
   // 外部点击时关闭菜单（点击菜单或工具栏内部不关闭）
   useEffect(() => {
@@ -1566,6 +1576,50 @@ export default function QuillEditor({ id, placeholder, onchange }: vditorProps) 
               }
             }
             catch { /* ignore mention backspace */ }
+
+            // 2) 删除已渲染的 mention-span Embed：当光标紧贴其后并按下 Backspace
+            try {
+              if (sel.index > 0) {
+                // 获取光标前一个位置的 blot
+                const prevIndex = sel.index - 1;
+                // getLeaf 能拿到 embed，若是 mention-span 应该有 domNode 的 class
+                const leafInfo = (editor as any).getLeaf?.(prevIndex);
+                const leaf = leafInfo && leafInfo[0];
+                const leafNode: HTMLElement | null = leaf ? leaf.domNode : null;
+                if (leafNode && leafNode.classList?.contains("ql-mention-span")) {
+                  // 读取 label 与 category
+                  const label = leafNode.getAttribute("data-label") || leafNode.textContent || "";
+                  const category = leafNode.getAttribute("data-category") || "";
+                  // 在删除前尝试找出对应实体传给回调
+                  if (label && onDeleteSpecialRef.current) {
+                    let type = 0;
+                    if (category === "物品") {
+                      type = 1;
+                    }
+                    else if (category === "人物") {
+                      type = 2;
+                    }
+                    else if (category === "地点") {
+                      type = 4; // 使用地点类型
+                    }
+                    const matched = allEntities.find((e: StageEntityResponse) => e.name === label && (type === 0 || e.entityType === type));
+                    if (matched) {
+                      onDeleteSpecialRef.current(matched as StageEntityResponse);
+                    }
+                  }
+                  // 删除 blot（长度 1）
+                  try {
+                    editor.deleteText(prevIndex, 1, "user");
+                    e.preventDefault();
+                    scheduleToolbarUpdateRef.current?.();
+                    refreshActiveFormatsRef.current();
+                    return; // 已处理删除实体，不再继续后续块级逻辑
+                  }
+                  catch { /* ignore delete embed */ }
+                }
+              }
+            }
+            catch { /* ignore embed backspace */ }
           }
           // 原有块级格式清除逻辑（如空标题、空列表项退化）
           if (sel && removeBlockFormatIfEmpty(editor, sel)) {

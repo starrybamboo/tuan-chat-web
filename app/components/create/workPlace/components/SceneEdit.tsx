@@ -184,8 +184,9 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
   const handleAddEntity = (entities: StageEntityResponse[]) => {
     beginSelectionLock("adding-entity", 2000);
+    const entityType = entities[0]?.entityType;
     const entitiesNames = entities.map(entity => entity.name);
-    if (editEntityType === "item") {
+    if (entityType === 1) {
       updateScene({
         id: scene.id!,
         name: scene.name!,
@@ -194,7 +195,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
       });
       setLocalScene(prev => ({ ...prev, items: [...(prev.items || []), ...entitiesNames] }));
     }
-    if (editEntityType === "role") {
+    if (entityType === 2) {
       updateScene({
         id: scene.id!,
         name: scene.name!,
@@ -203,7 +204,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
       });
       setLocalScene(prev => ({ ...prev, roles: [...(prev.roles || []), ...entitiesNames] }));
     }
-    if (editEntityType === "location") {
+    if (entityType === 4) {
       updateScene({
         id: scene.id!,
         name: scene.name!,
@@ -484,6 +485,8 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                   saveTimer.current && clearTimeout(saveTimer.current);
                   saveTimer.current = setTimeout(() => handleSave(), 8000);
                 }}
+                onSpecialKey={handleAddEntity}
+                onDeleteSpecialKey={handleDeleteEntity}
               />
             </div>
           </div>
@@ -502,6 +505,8 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                   saveTimer.current && clearTimeout(saveTimer.current);
                   saveTimer.current = setTimeout(() => handleSave(), 8000);
                 }}
+                onSpecialKey={handleAddEntity}
+                onDeleteSpecialKey={handleDeleteEntity}
               />
             </div>
           </div>
