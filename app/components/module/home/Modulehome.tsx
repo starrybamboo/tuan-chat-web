@@ -154,11 +154,11 @@ export function ContentCard({
                   <span className="font-semibold">时长：</span>
                   <span className="ml-1">
                     {minTime && maxTime
-                      ? `${Math.floor(minTime / 60)}-${Math.floor(maxTime / 60)}分钟`
+                      ? `${minTime}-${maxTime}小时`
                       : minTime
-                        ? `${Math.floor(minTime / 60)}+分钟`
+                        ? `${minTime}+小时`
                         : maxTime
-                          ? `最长${Math.floor(maxTime / 60)}分钟`
+                          ? `最长${maxTime}小时`
                           : ""}
                   </span>
                 </div>
@@ -292,7 +292,7 @@ export default function ModuleHome() {
         minTime: module.minTime,
         maxTime: module.maxTime,
         parent: module.parent, // 从哪个模组fork来
-        instruction: module.instruction, // md字段
+        readMe: module.readMe, // md字段
       }));
   }, [moduleData, RuleList]);
 
@@ -605,7 +605,7 @@ export default function ModuleHome() {
                             minTime: card.minTime, // 模组可能需要花费时间
                             maxTime: card.maxTime,
                             parent: card.parent, // 从哪个模组fork来
-                            instruction: card.instruction, // md字段
+                            readMe: card.readMe, // md字段
                           },
                         },
                       });
