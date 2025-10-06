@@ -1,6 +1,6 @@
 import type { ModuleData } from "./constants";
-import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import { PopWindow } from "@/components/common/popWindow";
+import MarkdownMentionViewer from "@/components/common/quillEditor/MarkdownMentionViewer";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useCreateSpaceMutation, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
@@ -353,8 +353,10 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
           </label>
           <div className="tab-content">
             <div className="fieldset bg-base-100 border-base-300 rounded-box border p-4 mb-4">
-              {/* 使用 MarkDownViewer 显示用户内容 */}
-              <MarkDownViewer content={moduleData.instruction || userContent} />
+              {/* 使用 MarkdownMentionViewer 显示用户内容 */}
+              <MarkdownMentionViewer
+                markdown={moduleData.readMe ? moduleData.readMe : userContent}
+              />
             </div>
           </div>
           <label className="tab">
