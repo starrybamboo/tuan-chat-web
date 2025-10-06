@@ -52,7 +52,7 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
         name: itemData.name,
         description: itemInfo.description,
         tip: itemInfo.tip,
-        image: entityType === "scene" ? undefined : normalizeImagePath(itemInfo.image),
+        image: normalizeImagePath(itemInfo.image),
         sceneItems: itemData.sceneItems || [],
         sceneRoles: itemData.sceneRoles || [],
         sceneLocations: itemData.sceneLocations || [],
@@ -73,7 +73,7 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
         <div className="hidden md:block">
           <h1 className="text-2xl md:text-3xl font-bold ">{normalizedItemInfo?.name || "未命名"}</h1>
         </div>
-        {entityType !== "scene" && normalizedItemInfo?.image && (
+        {normalizedItemInfo?.image && (
           <div className="flex flex-col gap-2">
             <h4 className="text-xs md:text-sm font-medium text-base-content/60">图片</h4>
             <div className="w-32 h-32 rounded-lg overflow-hidden border border-base-300">
