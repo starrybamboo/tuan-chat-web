@@ -1,3 +1,4 @@
+import MarkdownMentionViewer from "@/components/common/quillEditor/MarkdownMentionViewer";
 import { useMemo, useState } from "react";
 
 interface ItemDetailProps {
@@ -92,18 +93,18 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
         {normalizedItemInfo?.description && (
           <div className="w-full">
             <h4 className="font-semibold text-base md:text-lg  mb-2">描述</h4>
-            <p className="bg-info/10  p-3 rounded-lg text-sm md:text-base">
-              {normalizedItemInfo.description}
-            </p>
+            <div className="bg-info/10  p-3 rounded-lg text-sm md:text-base">
+              <MarkdownMentionViewer markdown={normalizedItemInfo.description} />
+            </div>
           </div>
         )}
         {/* KP提示（统一为SceneDetail样式） */}
         {normalizedItemInfo?.tip && (
           <div className="w-full">
             <h4 className="font-semibold text-base md:text-lg mb-2 text-orange-600">KP提示</h4>
-            <p className=" bg-orange-50/10 p-3 rounded-lg border-l-4 border-orange-200 text-sm md:text-base">
-              {normalizedItemInfo.tip}
-            </p>
+            <div className=" bg-orange-50/10 p-3 rounded-lg border-l-4 border-orange-200 text-sm md:text-base">
+              <MarkdownMentionViewer markdown={normalizedItemInfo.tip} />
+            </div>
           </div>
         )}
         {/* Scene 类型专属信息 */}
@@ -182,15 +183,19 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
                       </div>
                     )}
                     {selectedEntityInfo.description && (
-                      <div className="mb-2">
-                        <span className="font-semibold text-base-content/70 text-xs md:text-sm">描述：</span>
-                        <span className="text-xs md:text-sm">{selectedEntityInfo.description}</span>
+                      <div className="mb-3">
+                        <div className="font-semibold text-base-content/70 text-xs md:text-sm mb-1">描述：</div>
+                        <div className="text-xs md:text-sm pl-2 border-l-2 border-base-300">
+                          <MarkdownMentionViewer markdown={selectedEntityInfo.description} />
+                        </div>
                       </div>
                     )}
                     {selectedEntityInfo.tip && (
                       <div className="mb-2">
-                        <span className="font-semibold text-orange-600 text-xs md:text-sm">KP提示：</span>
-                        <span className="text-xs md:text-sm">{selectedEntityInfo.tip}</span>
+                        <div className="font-semibold text-orange-600 text-xs md:text-sm mb-1">KP提示：</div>
+                        <div className="text-xs md:text-sm pl-2 border-l-2 border-orange-300">
+                          <MarkdownMentionViewer markdown={selectedEntityInfo.tip} />
+                        </div>
                       </div>
                     )}
                   </div>

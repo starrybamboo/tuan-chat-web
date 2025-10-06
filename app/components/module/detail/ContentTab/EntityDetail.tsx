@@ -1,3 +1,4 @@
+import MarkdownMentionViewer from "@/components/common/quillEditor/MarkdownMentionViewer";
 import { useMemo, useState } from "react";
 
 interface EntityDetailProps {
@@ -73,15 +74,23 @@ const EntityDetail: React.FC<EntityDetailProps> = ({ moduleInfo }) => {
                         </div>
                       )}
                       {selectedEntityInfo.description && (
-                        <div className="mb-2">
-                          <span className="font-semibold">描述：</span>
-                          <span>{selectedEntityInfo.description}</span>
+                        <div className="mb-4">
+                          <div className="font-semibold mb-2">描述：</div>
+                          <div className="pl-2 border-l-2 border-base-300">
+                            <MarkdownMentionViewer
+                              markdown={selectedEntityInfo.description}
+                            />
+                          </div>
                         </div>
                       )}
                       {selectedEntityInfo.tip && (
-                        <div className="mb-2">
-                          <span className="font-semibold text-orange-600">KP提示：</span>
-                          <span>{selectedEntityInfo.tip}</span>
+                        <div className="mb-4">
+                          <div className="font-semibold text-orange-600 mb-2">KP提示：</div>
+                          <div className="pl-2 border-l-2 border-orange-300">
+                            <MarkdownMentionViewer
+                              markdown={selectedEntityInfo.tip}
+                            />
+                          </div>
                         </div>
                       )}
                       {/* 如果没有任何内容也提示暂无数据 */}
