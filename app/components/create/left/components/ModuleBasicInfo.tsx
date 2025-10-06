@@ -7,8 +7,6 @@ interface ModuleBasicInfoProps {
 
 function ModuleBasicInfo({ moduleId }: ModuleBasicInfoProps) {
   const { data: moduleData, isLoading, error } = useModuleDetailByIdQuery(moduleId);
-  console.warn("moduleData:", moduleData);
-
   if (isLoading) {
     return (
       <div className="p-4">

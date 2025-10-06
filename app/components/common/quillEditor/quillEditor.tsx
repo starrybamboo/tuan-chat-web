@@ -28,6 +28,28 @@ interface vditorProps {
   onchange: (value: string) => void;
   onSpecialKey?: (key: StageEntityResponse[]) => void; // 用于捕获 @
   onDeleteSpecialKey?: (key: StageEntityResponse) => void; // 用于捕获 Backspace 删除 @
+  /**
+   * （可选）启用选区/光标位置持久化。
+   * 传入唯一 key（建议包含业务 ID），将自动把最近一次有效的选区写入 localStorage，
+   * 并在组件重新挂载且 editor 就绪后恢复该位置。
+   * 仅需要在特定场景（例如 模组 README 编辑）开启，避免其它实例的额外存取开销。
+   */
+  persistSelectionKey?: string;
+  /**
+   * 外部激活标记：当从 false -> true 过渡时（例如切换 Tab 回到该编辑器），
+   * 若尚未恢复过或需要再次确保定位，则尝试读取 persistSelectionKey 存储的选区并定位。
+   * 不传则不进行“激活触发”恢复，仅依赖首次挂载恢复。
+   */
+  active?: boolean;
+  /**
+   * 与 active 联动：仅在本次 active 从 false->true 的过渡阶段执行一次 focus + ensureVisible。
+   * 不会持续监听，防止频繁抢占用户光标。
+   */
+  focusOnActive?: boolean;
+  /**
+   * 调试：输出选区持久化 / 恢复 / 聚焦 / 滚动相关日志。
+   */
+  debugSelection?: boolean;
 }
 
 // 顶层预加载句柄，避免重复导入
@@ -204,7 +226,7 @@ function computeNativeCaretPos(wrapper: HTMLElement | null, root: HTMLElement | 
   }
 }
 
-export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, onDeleteSpecialKey }: vditorProps) {
+export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, onDeleteSpecialKey, persistSelectionKey, active, focusOnActive, debugSelection }: vditorProps) {
   const quillRef = useRef<quill | null>(null);
   // 旧自定义行宽实现已移除（改为 Visual Line Pack）
   // 从上下文获取 stageId 来拉取实体
@@ -252,6 +274,8 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
   const focusRef = useRef(false);
   // 缓存最新选区，避免在其它逻辑中反复调用 editor.getSelection() 触发滚动
   const lastRangeRef = useRef<any | null>(null);
+  // 标记首次挂载恢复是否执行
+  const restoredSelectionRef = useRef(false);
   // 安全获取当前选区（不使用 true 强制聚焦），并更新缓存；避免滚动跳跃但保证 WYSIWYG 逻辑拿到最新光标
   const getSafeSelection = useCallback(() => {
     try {
@@ -983,27 +1007,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
             }
             catch { /* ignore restore errors */ }
             const md = htmlToMarkdown(restoredHtml);
-            // 统一输出空行统计
-            try {
-              const lines = md.split(/\n/);
-              let encoded = 0;
-              let seq = 0;
-              let run = false;
-              lines.forEach((l) => {
-                if (l === "\\n") {
-                  encoded += 1;
-                  if (!run) {
-                    run = true;
-                    seq += 1;
-                  }
-                }
-                else {
-                  run = false;
-                }
-              });
-              console.log("[BlankLine] lines=", lines.length, "encoded=", encoded, "sequences=", seq);
-            }
-            catch { /* ignore */ }
+
             if (md !== lastAppliedMarkdownRef.current) {
               lastAppliedMarkdownRef.current = md;
               onChangeRef.current?.(md);
@@ -1373,9 +1377,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
           // 再尝试对齐
           const alignmentHandled = !blockHandled && detectAlignment(editor, fakeRange);
           // 若不是块级或对齐，再尝试行内 **/__ /~~ 模式
-          console.log("[INLINE-DEBUG] space trigger inserted=", inserted, "sel=", sel, "endsWithSpace=", endsWithSpace);
           const inlineHandled = !blockHandled && !alignmentHandled && detectInlineFormats(editor, sel);
-          console.log("[INLINE-DEBUG] results block=", blockHandled, "align=", alignmentHandled, "inline=", inlineHandled);
 
           if (blockHandled || inlineHandled || alignmentHandled) {
             handlingSpaceRef.current = true;
@@ -1418,6 +1420,13 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
         const hasFocus = !!range && document.activeElement === root;
         focusRef.current = hasFocus;
         lastRangeRef.current = range ? { index: range.index, length: range.length || 0 } : null;
+        // 持久化：仅存储有效选区（折叠或非折叠都允许）。使用 try 捕获以防隐私模式等报错
+        if (persistSelectionKey && range && typeof range.index === "number" && typeof window !== "undefined") {
+          try {
+            window.localStorage.setItem(persistSelectionKey, JSON.stringify({ i: range.index, l: range.length || 0 }));
+          }
+          catch { /* ignore */ }
+        }
         if (!range) {
           setTbVisible(false);
           setSelTbVisible(false);
@@ -1513,7 +1522,6 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
       };
       editor.on?.("selection-change", onSelChange);
       selectionChangeHandlerRef.current = onSelChange;
-
       // 不再依赖 space/enter 的键盘绑定，统一在 delta 中识别（稳定于 IME 与不同浏览器事件序）
 
       // Backspace：统一处理空标题行/空列表项，退化为段落
@@ -1538,101 +1546,96 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
         },
       );
       // 不再使用 Enter 键绑定，改为在 delta 中识别 "\n" 并清除新行格式（见 onTextChange 内）
-
-      // 兜底：在编辑器根节点捕获 Backspace，确保空标题/空列表也能移除格式
+      // 兜底：在编辑器根节点捕获 Backspace，处理 mention / embed 删除与空块格式清除
       rootEl = editor.root as HTMLElement;
       onRootKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Backspace") {
-          const sel = getSafeSelection();
-          if (sel && sel.length === 0 && typeof sel.index === "number") {
-            const mActive = mentionActiveRef.current;
-            const mStart = mentionStartRef.current;
-            // 1) 即将删除的字符是 @（无论其是否在行首）
-            try {
-              if (mActive && mStart != null) {
-                // 情况 A：光标在 @ 之后（典型：| 光标位置，按下 Backspace 删除前一个 @）
-                const deletingIdx = sel.index - 1; // 将被删除的字符 index
-                if (deletingIdx === mStart) {
-                  const ch = deletingIdx >= 0 ? (editor.getText?.(deletingIdx, 1) || "") : "";
-                  if (ch === "@") {
-                    setMentionActive(false);
-                    setMentionStart(null);
-                    setMentionQuery("");
-                    mentionStageRef.current = null;
-                    setMentionPos(null);
-                  }
-                }
-                else {
-                  // 情况 B：由于前面字符被删除/替换导致 mentionStart 失效，若原始位置已不是 @ 也强制关闭
-                  const stillAt = editor.getText?.(mStart, 1) || "";
-                  if (stillAt !== "@") {
-                    setMentionActive(false);
-                    setMentionStart(null);
-                    setMentionQuery("");
-                    mentionStageRef.current = null;
-                    setMentionPos(null);
-                  }
-                }
-              }
-            }
-            catch { /* ignore mention backspace */ }
+        if (e.key !== "Backspace") {
+          return;
+        }
+        const sel = getSafeSelection();
+        if (!sel || sel.length !== 0 || typeof sel.index !== "number") {
+          return;
+        }
 
-            // 2) 删除已渲染的 mention-span Embed：当光标紧贴其后并按下 Backspace
-            try {
-              if (sel.index > 0) {
-                // 获取光标前一个位置的 blot
-                const prevIndex = sel.index - 1;
-                // getLeaf 能拿到 embed，若是 mention-span 应该有 domNode 的 class
-                const leafInfo = (editor as any).getLeaf?.(prevIndex);
-                const leaf = leafInfo && leafInfo[0];
-                const leafNode: HTMLElement | null = leaf ? leaf.domNode : null;
-                if (leafNode && leafNode.classList?.contains("ql-mention-span")) {
-                  // 读取 label 与 category
-                  const label = leafNode.getAttribute("data-label") || leafNode.textContent || "";
-                  const category = leafNode.getAttribute("data-category") || "";
-                  // 在删除前尝试找出对应实体传给回调
-                  if (label && onDeleteSpecialRef.current) {
-                    let type = 0;
-                    if (category === "物品") {
-                      type = 1;
-                    }
-                    else if (category === "人物") {
-                      type = 2;
-                    }
-                    else if (category === "地点") {
-                      type = 4; // 使用地点类型
-                    }
-                    const matched = allEntities.find((e: StageEntityResponse) => e.name === label && (type === 0 || e.entityType === type));
-                    if (matched) {
-                      onDeleteSpecialRef.current(matched as StageEntityResponse);
-                    }
-                  }
-                  // 删除 blot（长度 1）
-                  try {
-                    editor.deleteText(prevIndex, 1, "user");
-                    e.preventDefault();
-                    scheduleToolbarUpdateRef.current?.();
-                    refreshActiveFormatsRef.current();
-                    return; // 已处理删除实体，不再继续后续块级逻辑
-                  }
-                  catch { /* ignore delete embed */ }
-                }
+        // 1) mention 起始 @ 被删除 -> 退出 mention 模式
+        try {
+          const mActive = mentionActiveRef.current;
+          const mStart = mentionStartRef.current;
+          if (mActive && mStart != null) {
+            const deletingIdx = sel.index - 1;
+            if (deletingIdx === mStart) {
+              const ch = deletingIdx >= 0 ? (editor.getText?.(deletingIdx, 1) || "") : "";
+              if (ch === "@") {
+                setMentionActive(false);
+                setMentionStart(null);
+                setMentionQuery("");
+                mentionStageRef.current = null;
+                setMentionPos(null);
               }
             }
-            catch { /* ignore embed backspace */ }
+            else {
+              const stillAt = editor.getText?.(mStart, 1) || "";
+              if (stillAt !== "@") {
+                setMentionActive(false);
+                setMentionStart(null);
+                setMentionQuery("");
+                mentionStageRef.current = null;
+                setMentionPos(null);
+              }
+            }
           }
-          // 原有块级格式清除逻辑（如空标题、空列表项退化）
-          if (sel && removeBlockFormatIfEmpty(editor, sel)) {
-            try {
-              e.preventDefault();
+        }
+        catch { /* ignore mention backspace */ }
+
+        // 2) 删除紧前的 mention-span embed
+        try {
+          if (sel.index > 0) {
+            const prevIndex = sel.index - 1;
+            const leafInfo = (editor as any).getLeaf?.(prevIndex);
+            const leaf = leafInfo && leafInfo[0];
+            const leafNode: HTMLElement | null = leaf ? leaf.domNode : null;
+            if (leafNode && leafNode.classList?.contains("ql-mention-span")) {
+              const label = leafNode.getAttribute("data-label") || leafNode.textContent || "";
+              const category = leafNode.getAttribute("data-category") || "";
+              if (label && onDeleteSpecialRef.current) {
+                let type = 0;
+                if (category === "物品") {
+                  type = 1;
+                }
+                else if (category === "人物") {
+                  type = 2;
+                }
+                else if (category === "地点") {
+                  type = 4;
+                }
+                const matched = allEntities.find((e: StageEntityResponse) => e.name === label && (type === 0 || e.entityType === type));
+                if (matched) {
+                  onDeleteSpecialRef.current(matched as StageEntityResponse);
+                }
+              }
+              try {
+                editor.deleteText(prevIndex, 1, "user");
+                e.preventDefault();
+                scheduleToolbarUpdateRef.current?.();
+                refreshActiveFormatsRef.current();
+                return; // 处理完 embed
+              }
+              catch { /* ignore delete embed */ }
             }
-            catch {
-              // ignore
-            }
+          }
+        }
+        catch { /* ignore embed backspace */ }
+
+        // 3) 空块格式清除（标题/列表退化）
+        try {
+          const removed = removeBlockFormatIfEmpty(editor, sel);
+          if (removed) {
+            e.preventDefault();
             isFormattedRef.current = false;
             scheduleToolbarUpdateRef.current();
           }
         }
+        catch { /* ignore block format */ }
       };
       rootEl?.addEventListener("keydown", onRootKeyDown, true);
 
@@ -2176,6 +2179,172 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
       }
     };
   }, [placeholder]);
+
+  // 封装统一恢复函数
+  const attemptRestoreSelection = useCallback(
+    (source: string, { focus = false, ensureVisible = false, force = false }: { focus?: boolean; ensureVisible?: boolean; force?: boolean } = {}) => {
+      if (!persistSelectionKey || typeof window === "undefined") {
+        if (debugSelection) {
+          console.log("[QuillDebug] restore-skip", { source, reason: "no-key-or-window" });
+        }
+        return false;
+      }
+      const editor = quillRef.current as any;
+      if (!editor) {
+        if (debugSelection) {
+          console.log("[QuillDebug] restore-skip", { source, reason: "no-editor" });
+        }
+        return false;
+      }
+      const len = editor.getLength?.() ?? 0;
+      if (len <= 1) {
+        if (debugSelection) {
+          console.log("[QuillDebug] restore-skip", { source, reason: "content-too-short", len });
+        }
+        return false;
+      }
+      const existing = editor.getSelection?.();
+      if (!force && existing && typeof existing.index === "number") {
+        if (debugSelection) {
+          console.log("[QuillDebug] restore-skip", { source, reason: "has-selection", existing });
+        }
+        if (focus) {
+          try {
+            editor.focus?.();
+          }
+          catch {
+            /* ignore */
+          }
+        }
+        if (ensureVisible && existing) {
+          try {
+            const b = editor.getBounds?.(existing.index, 0) || { top: 0, height: 24 };
+            const root = editor.root as HTMLElement;
+            const caretTop = b.top;
+            const caretBottom = caretTop + (b.height || 24);
+            const viewTop = root.scrollTop;
+            const viewBottom = viewTop + root.clientHeight;
+            if (caretTop < viewTop) {
+              root.scrollTop = Math.max(0, caretTop - 20);
+            }
+            else if (caretBottom > viewBottom) {
+              root.scrollTop = Math.max(0, caretBottom - root.clientHeight + 20);
+            }
+          }
+          catch { /* ignore */ }
+        }
+        return false;
+      }
+      let raw: string | null = null;
+      try {
+        raw = window.localStorage.getItem(persistSelectionKey);
+      }
+      catch {
+        raw = null;
+      }
+      if (!raw) {
+        if (debugSelection) {
+          console.log("[QuillDebug] restore-skip", { source, reason: "no-raw" });
+        }
+        return false;
+      }
+      let parsed: any = null;
+      try {
+        parsed = JSON.parse(raw);
+      }
+      catch {
+        parsed = null;
+      }
+      if (!parsed || typeof parsed.i !== "number") {
+        if (debugSelection) {
+          console.log("[QuillDebug] restore-skip", { source, reason: "invalid-parsed", raw });
+        }
+        return false;
+      }
+      const idx = Math.min(Math.max(0, parsed.i), Math.max(0, len - 1));
+      const selLen = (typeof parsed.l === "number" && parsed.l > 0) ? Math.min(parsed.l, Math.max(0, len - 1 - idx)) : 0;
+      try {
+        editor.setSelection?.(idx, selLen, "silent");
+        lastRangeRef.current = { index: idx, length: selLen };
+        if (debugSelection) {
+          console.log("[QuillDebug] restore-applied", { source, idx, selLen, len });
+        }
+      }
+      catch {
+        if (debugSelection) {
+          console.log("[QuillDebug] restore-error-setSelection", { source });
+        }
+      }
+      if (focus) {
+        try {
+          editor.focus?.();
+        }
+        catch {
+          /* ignore */
+        }
+      }
+      if (ensureVisible) {
+        try {
+          const b = editor.getBounds?.(idx, 0) || { top: 0, height: 24 };
+          const root = editor.root as HTMLElement;
+          const caretTop = b.top;
+          const caretBottom = caretTop + (b.height || 24);
+          const viewTop = root.scrollTop;
+          const viewBottom = viewTop + root.clientHeight;
+          if (caretTop < viewTop) {
+            root.scrollTop = Math.max(0, caretTop - 20);
+          }
+          else if (caretBottom > viewBottom) {
+            root.scrollTop = Math.max(0, caretBottom - root.clientHeight + 20);
+          }
+        }
+        catch { /* ignore */ }
+      }
+      scheduleToolbarUpdateRef.current?.();
+      return true;
+    },
+    [persistSelectionKey, debugSelection],
+  );
+
+  // 首次 editorReady 尝试强制恢复
+  useEffect(() => {
+    if (!editorReady || restoredSelectionRef.current) {
+      return;
+    }
+    const ok = attemptRestoreSelection("editorReady", { focus: true, ensureVisible: true, force: true });
+    if (ok) {
+      restoredSelectionRef.current = true;
+    }
+  }, [editorReady, attemptRestoreSelection]);
+
+  // 每次 active=true 都尝试（不 force，若已有选区仅确保可见 & 聚焦）
+  useEffect(() => {
+    if (!editorReady || !active) {
+      return;
+    }
+    attemptRestoreSelection("active", { focus: !!focusOnActive, ensureVisible: !!focusOnActive, force: false });
+  }, [active, editorReady, focusOnActive, attemptRestoreSelection]);
+
+  // 组件卸载前兜底写入最后一次缓存的选区
+  useEffect(() => {
+    return () => {
+      if (!persistSelectionKey || typeof window === "undefined") {
+        return;
+      }
+      const r = lastRangeRef.current;
+      if (r && typeof r.index === "number") {
+        try {
+          window.localStorage.setItem(persistSelectionKey, JSON.stringify({ i: r.index, l: r.length || 0 }));
+          if (debugSelection) {
+            console.log("[QuillDebug] unmount save selection", { key: persistSelectionKey, r });
+          }
+        }
+        catch {
+          // ignore
+        }
+      }
+    };
+  }, [persistSelectionKey, debugSelection]);
 
   // 覆盖导入（对外使用 window.__QUILL_IMPORT__ 或可通过再封装的 ref 暴露）
   const importBackendContentRef = useRef<((content: string, format?: "markdown" | "html" | "text") => void) | null>(null);
