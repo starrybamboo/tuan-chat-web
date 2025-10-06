@@ -428,6 +428,9 @@ export default function ModuleEdit({ data, onChange }: ModuleEditProps) {
             id={`module-instruction-${currentMid || "default"}`}
             placeholder={readmePlaceholder}
             onchange={handleReadMeChange}
+            persistSelectionKey={currentMid ? `module_readme_sel_${currentMid}` : undefined}
+            active={currentSelectedTabId === "当前模组" && selectedTab === "readme"}
+            focusOnActive
           />
         </div>
       )}
