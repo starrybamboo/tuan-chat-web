@@ -311,3 +311,157 @@ export function convertHtmlTagIfAny(
   }
   return true;
 }
+
+// ====== 追加：批量渲染（只读场景） ======
+// 将整段文本中的内联受支持 HTML 标签替换为安全的可点击 / 嵌入结构。
+// 仅处理允许列表 (a,img,span,div)，属性白名单同上；不做递归嵌套（简单线性替换）。
+// 使用策略：在 MarkdownMentionViewer 输出 html 后，再调用一次 renderInlineHtmlUsingWysiwyg 转换已经保留的原始标签文本。
+export function renderInlineHtmlUsingWysiwyg(html: string): string {
+  if (!html || typeof html !== "string") {
+    return html;
+  }
+  // 全局调试开关：沿用 MentionPreview 的 window.__MENTION_PREVIEW_DEBUG__
+  const isDbg = ((): boolean => {
+    try {
+      return typeof window !== "undefined" && !!(window as any).__MENTION_PREVIEW_DEBUG__;
+    }
+    catch {
+      return false;
+    }
+  })();
+  const wDbg = (...a: any[]) => {
+    if (!isDbg) {
+      return;
+    }
+    try {
+      console.error("[WYSIWYG-DBG]", ...a);
+    }
+    catch {
+      // ignore
+    }
+  };
+  // 匹配自闭合 img 及普通 a/span/div。尽量避免与已经转义的 &lt; 冲突（此函数假设传入的是未转义标签）。
+  // 属性块：一个空白起头后跟任意非 '>' 字符；可选出现一次
+  const IMG_RE = /<img(?:\s[^>]*)?>/gi;
+  const TAG_RE = /<(a|span|div)(?:\s[^>]*)?>[\s\S]*?<\/\1>/gi;
+  const ATTR_RE = /([a-z_:][-\w:.]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>/]+)))?/gi;
+
+  const sanitizeAttr = (name: string, value: string | true): string | null => {
+    const lower = name.toLowerCase();
+    if (!ATTR_ALLOW.has(lower)) {
+      return null;
+    }
+    if (value === true) {
+      return `${lower}=""`;
+    }
+    if (lower === "href" || lower === "src") {
+      if (typeof value === "string" && /^javascript:/i.test(value)) {
+        return null;
+      }
+    }
+    const safe = String(value).replace(/"/g, "&quot;");
+    return `${lower}="${safe}"`;
+  };
+
+  const escapeHtml = (t: string): string => t
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // 先处理 IMG（不会包含内部文本）
+  html = html.replace(IMG_RE, (m) => {
+    const attrs: string[] = [];
+    ATTR_RE.lastIndex = 0;
+    for (;;) {
+      const match = ATTR_RE.exec(m);
+      if (!match) {
+        break;
+      }
+      const rawName = match[1];
+      const val = match[2] ?? match[3] ?? match[4];
+      const built = sanitizeAttr(rawName, val ?? true);
+      if (built) {
+        attrs.push(built);
+      }
+    }
+    const hasSrc = attrs.some(a => a.startsWith("src="));
+    if (!hasSrc) {
+      return "";
+    }
+    return `<img ${attrs.join(" ")} />`;
+  });
+
+  if (isDbg) {
+    try {
+      wDbg("A-CANDIDATES-BEFORE", (html.match(/<a[^>]*>[^<]{0,80}<\/a>/gi) || []).slice(0, 5));
+    }
+    catch {
+      // ignore
+    }
+  }
+
+  html = html.replace(TAG_RE, (m) => {
+    const tagMatch = /^<(a|span|div)(?:\s+|>)/i.exec(m);
+    if (!tagMatch) {
+      return m;
+    }
+    const tag = tagMatch[1].toLowerCase();
+    const closeIdx = m.indexOf(">");
+    if (closeIdx < 0) {
+      return m;
+    }
+    const attrPart = m.slice(tagMatch[0].length, closeIdx);
+    const innerRaw = m.slice(closeIdx + 1, m.length - (tag.length + 3));
+    const kept: string[] = [];
+    ATTR_RE.lastIndex = 0;
+    for (;;) {
+      const mm = ATTR_RE.exec(attrPart);
+      if (!mm) {
+        break;
+      }
+      const rawName = mm[1];
+      const val = mm[2] ?? mm[3] ?? mm[4];
+      const built = sanitizeAttr(rawName, val ?? true);
+      if (built) {
+        kept.push(built);
+      }
+    }
+    if (tag === "a") {
+      const hasHref = kept.some(a => a.startsWith("href="));
+      if (!hasHref) {
+        return escapeHtml(innerRaw);
+      }
+      // 提取 href 值，用于在无可见文本时回填
+      let hrefVal = "";
+      for (const kv of kept) {
+        if (kv.startsWith("href=")) {
+          hrefVal = kv.slice(6, -1); // 去掉 href=" 与 末尾的 "
+          break;
+        }
+      }
+      kept.push("target=\"_blank\"", "rel=\"noopener noreferrer\"");
+      const visuallyEmpty = !innerRaw.replace(/(&(nbsp|#160);|\s)+/gi, " ").trim();
+      const useFallback = !innerRaw.trim() || visuallyEmpty;
+      const display = useFallback ? escapeHtml(hrefVal) : innerRaw;
+      if (useFallback) {
+        wDbg("A-FALLBACK", { href: hrefVal, reason: visuallyEmpty ? "visually-empty" : "empty" });
+      }
+      wDbg("A-REWRITE", { original: m.slice(0, 80), resultPreview: `<a ${kept.join(" ")}>${display.slice(0, 60)}` });
+      return `<a ${kept.join(" ")}>${display}</a>`;
+    }
+    if (tag === "span" || tag === "div") {
+      const idAttr = kept.find(a => a.startsWith("id="));
+      const idVal = idAttr ? idAttr.replace(/^id="|"$/g, "") : "";
+      const inner = innerRaw.trim() ? innerRaw : escapeHtml(idVal);
+      const dataAttr = idVal ? ` data-origin-id="${escapeHtml(idVal)}"` : "";
+      return `<span class="html-tag-${tag}"${dataAttr}>${inner}</span>`;
+    }
+    return m;
+  });
+
+  if (isDbg && !html.includes("<a") && /[_/]t="_blank"/.test(html)) {
+    wDbg("BROKEN-A-PATTERN", html.slice(0, 200));
+  }
+
+  return html;
+}

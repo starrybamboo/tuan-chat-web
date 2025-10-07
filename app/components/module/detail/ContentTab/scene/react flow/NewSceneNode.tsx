@@ -60,6 +60,15 @@ function SceneNode({ data, selected }: SceneNodeProps) {
     // 拖拽处理在MapEdit组件中已经实现
   };
 
+  // 统一放大 Handle 的点击热区：视觉 18x18，可通过 after 伪元素再扩 10px（需 Tailwind 支持）
+  const enlargedHandleStyle: React.CSSProperties = {
+    width: 18,
+    height: 18,
+    minWidth: 18,
+    minHeight: 18,
+    borderWidth: 2,
+  };
+
   return (
     <div
       className="border min-w-[120px] rounded-xs"
@@ -187,12 +196,14 @@ function SceneNode({ data, selected }: SceneNodeProps) {
       <Handle
         type="source"
         position={data.isMobile ? Position.Bottom : Position.Right}
-        className={data.isMobile ? "!absolute !left-1/2" : "!absolute !top-1/2"}
+        style={enlargedHandleStyle}
+        className={`${data.isMobile ? "!absolute !left-1/2" : "!absolute !top-1/2"} !w-[18px] !h-[18px] before:content-[''] before:absolute before:inset-[-5px] before:block before:w-[28px] before:h-[28px] before:rounded-full before:bg-transparent`}
       />
       <Handle
         type="target"
         position={data.isMobile ? Position.Top : Position.Left}
-        className={data.isMobile ? "!absolute !left-1/2" : "!absolute !top-1/2"}
+        style={enlargedHandleStyle}
+        className={`${data.isMobile ? "!absolute !left-1/2" : "!absolute !top-1/2"} !w-[18px] !h-[18px] before:content-[''] before:absolute before:inset-[-5px] before:block before:w-[28px] before:h-[28px] before:rounded-full before:bg-transparent`}
       />
 
       {/* 节点标签显示在下方 */}
