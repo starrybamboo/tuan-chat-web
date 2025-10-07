@@ -6,8 +6,8 @@ import { useModuleContext } from "@/components/create/workPlace/context/_moduleC
 import { BaselineAutoAwesomeMotion } from "@/icons";
 import { useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"; // ordered: useMemo before useState (project rule)
+import { convertHtmlTagIfAny, logHtmlTagIfAny } from "./htmlTagWysiwyg";
 import { htmlToMarkdown } from "./htmlToMarkdown";
-import { convertHtmlTagIfAny, logHtmlTagIfAny } from "./htmlWysiwyg";
 import { backendContentToQuillHtml, markdownToHtmlWithEntities } from "./markdownToHtml";
 import MentionPreview from "./MentionPreview";
 import { restoreRawHtml } from "./restoreRawHtml";
