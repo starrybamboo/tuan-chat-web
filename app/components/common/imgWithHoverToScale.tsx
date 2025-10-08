@@ -9,7 +9,7 @@ interface ImgWithHoverProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 
 /**
  * @param hoverTime hover多久后会出现放大的图片，单位是毫秒
- * @param hoverImgClassName
+ * @param imgViewHeight 预览图片的尺寸，单位是VH;
  * @param enableScale
  * @param src
  * @param alt
