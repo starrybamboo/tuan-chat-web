@@ -85,7 +85,6 @@ export default function RoleAvatarComponent({
                   src={roleAvatar?.avatarUrl}
                   alt={alt}
                   className={`${!stopPopWindow && "hover:scale-110"} transition-transform w-full h-full object-cover`}
-                  hoverImgClassName="h-[30vh]"
                 />
               )}
         </div>

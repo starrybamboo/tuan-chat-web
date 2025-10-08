@@ -13,10 +13,10 @@ import ChatInputArea from "@/components/chat/chatInputArea";
 import ChatStatusBar from "@/components/chat/chatStatusBar";
 import ChatToolbar from "@/components/chat/chatToolbar";
 import CommandPanel from "@/components/chat/commandPanel";
+import { ExpressionChooser } from "@/components/chat/expressionChooser";
 import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { useChatHistory } from "@/components/chat/indexedDB/useChatHistory";
 import SearchBar from "@/components/chat/inlineSearch";
-import DNDMap from "@/components/chat/map/DNDMap";
 import { RoomContext } from "@/components/chat/roomContext";
 import InitiativeList from "@/components/chat/sideDrawer/initiativeList";
 import RoomRoleList from "@/components/chat/sideDrawer/roomRoleList";
@@ -39,9 +39,9 @@ import {
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
 import { getScreenSize } from "@/utils/getScreenSize";
-import { UploadUtils } from "@/utils/UploadUtils";
 // *** 导入新组件及其 Handle 类型 ***
 
+import { UploadUtils } from "@/utils/UploadUtils";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
@@ -670,7 +670,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             onWidthChange={setMapDrawerWidth}
             maxWidth={window.innerWidth - 700}
           >
-            <DNDMap></DNDMap>
+            {/* <DNDMap></DNDMap> */}
+            <ExpressionChooser roleId={10012} handleExpressionChange={() => {}} handleRoleChange={() => {}}></ExpressionChooser>
           </OpenAbleDrawer>
           <OpenAbleDrawer
             isOpen={sideDrawerState === "clue"}
