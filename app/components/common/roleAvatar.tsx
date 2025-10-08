@@ -1,5 +1,6 @@
 import { RoomContext } from "@/components/chat/roomContext";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
+import ImgWithHoverToScale from "@/components/common/imgWithHoverToScale";
 import { PopWindow } from "@/components/common/popWindow";
 import { RoleDetail } from "@/components/common/roleDetail";
 import { getScreenSize } from "@/utils/getScreenSize";
@@ -33,16 +34,19 @@ const sizeMap = {
  * @param stopPopWindow 是否禁用点击弹出角色详情窗口，默认为false
  * @param alt
  * @param allowKickOut 是否允许被踢出，模组角色是不可以的
+ * @param hoverToScale 是否允许鼠标悬停时放大
  */
 export default function RoleAvatarComponent({
   avatarId,
   roleId,
   width,
   isRounded,
+  // eslint-disable-next-line unused-imports/no-unused-vars
   withTitle = false,
   stopPopWindow = false,
   alt = "avatar",
   allowKickOut = true,
+  hoverToScale = false,
 }: {
   avatarId: number;
   roleId?: number;
@@ -52,6 +56,7 @@ export default function RoleAvatarComponent({
   stopPopWindow?: boolean; // 点击后是否会产生roleDetail弹窗
   alt?: string;
   allowKickOut?: boolean;
+  hoverToScale?: boolean;
 }) {
   const avatarQuery = useGetRoleAvatarQuery(avatarId);
   const roleAvatar = avatarQuery.data?.data;
@@ -75,7 +80,8 @@ export default function RoleAvatarComponent({
                 <span className={`${sizeMap[width]} text-sm`}>{alt}</span>
               )
             : (
-                <img
+                <ImgWithHoverToScale
+                  enableScale={hoverToScale}
                   src={roleAvatar?.avatarUrl}
                   alt={alt}
                   className={`${!stopPopWindow && "hover:scale-110"} transition-transform w-full h-full object-cover`}
@@ -83,9 +89,9 @@ export default function RoleAvatarComponent({
               )}
         </div>
       </div>
-      {
-        withTitle && <div className="text-xs truncate max-w-full">{avatarQuery.data?.data?.avatarTitle}</div>
-      }
+      {/* { */}
+      {/*  withTitle && <div className="text-xs truncate max-w-full">{avatarQuery.data?.data?.avatarTitle}</div> */}
+      {/* } */}
       <div className="absolute">
         {
           (isOpen && !stopPopWindow && roomId) && (

@@ -141,7 +141,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     },
   ): boolean => {
     const { moveCursorToEnd = false } = options || {};
-    const selectionInfo = getEditorRange();
+    const selectionInfo = getEditorRange(internalTextareaRef.current);
     const selection = selectionInfo?.selection;
     const range = selectionInfo?.range;
     if (!selection || !range || selection.rangeCount === 0)
