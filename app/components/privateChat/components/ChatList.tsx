@@ -8,6 +8,7 @@ export default function ChatListItem({
   unreadMessageNumbers,
   currentContactUserId,
   deletedThisContactId,
+  openContextMenu,
 }: {
   isSmallScreen: boolean;
   realTimeContacts: number[];
@@ -17,6 +18,7 @@ export default function ChatListItem({
   unreadMessageNumbers: Record<number, number>;
   currentContactUserId: number | null;
   deletedThisContactId: (contactId: number) => void;
+  openContextMenu: (x: number, y: number, id: number) => void;
 }) {
   return (
     <div className="p-2 pt-4 flex flex-col gap-2">
@@ -39,6 +41,7 @@ export default function ChatListItem({
                   setIsOpenLeftDrawer={setIsOpenLeftDrawer}
                   updateReadlinePosition={updateReadlinePosition}
                   deletedContactId={deletedThisContactId}
+                  openContextMenu={openContextMenu}
                 />
               ))
             )

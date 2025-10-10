@@ -2,6 +2,8 @@ import { useGlobalContext } from "@/components/globalContextProvider";
 import { getScreenSize } from "@/utils/getScreenSize";
 import { useParams } from "react-router";
 import ChatList from "./components/ChatList";
+import ContextMenuCommon from "./components/ContextMenuCommon";
+import { useContextMenuCommon } from "./hooks/useContextMenuCommon";
 import { usePrivateMessageList } from "./hooks/usePrivateMessageList";
 import { useUnreadCount } from "./hooks/useUnreadCount";
 
@@ -56,6 +58,17 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
   // 屏幕大小
   const isSmallScreen = getScreenSize() === "sm";
 
+  const { contextMenu, openContextMenu, closeContextMenu } = useContextMenuCommon();
+
+  const menuItems = [
+    {
+      label: "删除消息",
+      onClick: () => {
+        deletedThisContactId(contextMenu?.id || -1);
+      },
+    },
+  ];
+
   return (
     <div
       className="flex flex-col h-full bg-base-100"
@@ -91,9 +104,15 @@ export default function LeftChatList({ setIsOpenLeftDrawer }: { setIsOpenLeftDra
                 unreadMessageNumbers={unreadMessageNumbers}
                 currentContactUserId={currentContactUserId}
                 deletedThisContactId={deletedThisContactId}
+                openContextMenu={openContextMenu}
               />
             )}
       </div>
+      <ContextMenuCommon
+        menuItems={menuItems}
+        contextMenu={contextMenu}
+        closeContextMenu={closeContextMenu}
+      />
     </div>
   );
 }
