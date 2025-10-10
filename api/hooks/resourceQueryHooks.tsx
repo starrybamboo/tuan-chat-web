@@ -84,6 +84,7 @@ export function useUploadResourceMutation() {
                     url: newResource.url,
                     type: newResource.type,
                     isPublic: newResource.isPublic,
+                    isAi: newResource.isAi || false,
                     createTime: new Date().toISOString(),
                     typeDescription: newResource.type === "5" ? "图片" : "音频",
                     isUploading: true // 标记为正在上传

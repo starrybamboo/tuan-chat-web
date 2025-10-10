@@ -1,5 +1,6 @@
 import type { CollectionList } from "../../../../api/models/CollectionList";
 import type { ResourceResponse } from "../../../../api/models/ResourceResponse";
+import UserAvatarComponent from "@/components/common/userAvatar";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useGetResourcesInCollectionQuery } from "../../../../api/hooks/resourceQueryHooks";
@@ -194,12 +195,16 @@ function InfoDisplay({
       )}
 
       <div className="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <span className="text-base-content/60">创建者：</span>
-          <span className="font-medium">
-            用户_
-            {collectionList.userId}
-          </span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-base-content/60 shrink-0">创建者：</span>
+          <div className="flex items-center min-w-0">
+            <UserAvatarComponent
+              userId={collectionList.userId ?? -1}
+              width={6}
+              isRounded={true}
+              withName={true}
+            />
+          </div>
         </div>
         <div>
           <span className="text-base-content/60">创建时间：</span>

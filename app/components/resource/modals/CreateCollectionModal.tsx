@@ -12,7 +12,7 @@ interface CreateCollectionModalProps {
 export function CreateCollectionModal({ isOpen, onClose, onSuccess, resourceType }: CreateCollectionModalProps) {
   const [collectionName, setCollectionName] = useState("");
   const [description, setDescription] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [coverImage, setCoverImage] = useState<string | undefined>(undefined);
   const [coverImageFile, setCoverImageFile] = useState<File | undefined>(undefined);
