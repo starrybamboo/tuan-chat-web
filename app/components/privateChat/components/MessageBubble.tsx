@@ -20,7 +20,7 @@ export default function MessageBubble({ message, isOwn }: MessageBubbleProps) {
           <BetterImg
             src={imgData?.url}
             size={{ width: imgData?.width, height: imgData?.height }}
-            className="max-h-[40vh] max-w-[300px] rounded-lg"
+            className="max-h-[40vh] max-w-[245px] rounded-lg"
           />
         </div>
       );

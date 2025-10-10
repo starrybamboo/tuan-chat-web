@@ -8,7 +8,7 @@ export default function TopInfo({ setIsOpenLeftDrawer, currentContactUserInfo }:
         className="size-6 sm:hidden"
       />
       <span className="text-center font-semibold line-clamp-1 absolute left-1/2 transform -translate-x-1/2">
-        {currentContactUserInfo ? `${currentContactUserInfo.username}` : "好友"}
+        {currentContactUserInfo ? `${currentContactUserInfo.username}` : "互关列表"}
       </span>
     </div>
   );

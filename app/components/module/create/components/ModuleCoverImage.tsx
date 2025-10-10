@@ -22,10 +22,9 @@ export default function ModuleCoverImage({
 
   return (
     <div className="mb-5">
-      <p className="text-xl font-bold mb-5">模组封面</p>
+      <p className="text-xl font-bold mb-5 text-indigo-600 dark:text-green-600">3. 添加模组封面</p>
       <div
-        className={`basis-1/3 flex items-center justify-center relative ${errors.image ? "border-2 border-error rounded-lg" : ""
-        }`}
+        className="flex items-center justify-center relative"
       >
         <Controller
           control={control}
@@ -108,7 +107,7 @@ export default function ModuleCoverImage({
           )}
         />
         {errors.image && (
-          <p className="absolute -bottom-8 left-0 text-error">
+          <p className="absolute -bottom-6 left-0 text-sm text-error">
             {typeof errors.image.message === "string"
               ? errors.image.message
               : "请上传模组封面"}
