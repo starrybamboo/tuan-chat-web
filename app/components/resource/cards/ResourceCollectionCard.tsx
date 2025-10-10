@@ -1,10 +1,8 @@
 import type { CollectionList } from "../../../../api/models/CollectionList";
+import UserAvatarComponent from "@/components/common/userAvatar";
 
 interface ResourceCollectionCardProps {
-  collectionList: CollectionList & {
-    resourceCount?: number;
-    likeCount?: number;
-  };
+  collectionList: CollectionList;
   onAddToCollection?: (collectionId: number) => void;
   _onLike?: (collectionId: number) => void;
   onClick?: (collectionId: number) => void;
@@ -45,7 +43,7 @@ export function ResourceCollectionCard({
               />
             )
           : (
-              <div className="flex items-center justify-center h-full bg-gradient-to-br from-primary/20 to-secondary/20 rounded-t-lg">
+              <div className="flex items-center justify-center w-full h-48 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-t-lg">
                 <div className="text-6xl">📁</div>
               </div>
             )}
@@ -58,7 +56,7 @@ export function ResourceCollectionCard({
       </div>
 
       {/* 收藏列表信息 */}
-      <div className="card-body p-3">
+      <div className="card-body p-3 flex flex-col h-full">
         <h3 className="card-title text-sm font-medium truncate">
           {collectionList.collectionListName || "素材及测试"}
         </h3>
@@ -69,15 +67,14 @@ export function ResourceCollectionCard({
           </p>
         )}
 
-        <div className="flex items-center justify-between text-xs text-base-content/60 mb-2">
-          <span>
-            用户_
-            {collectionList.userId || "gozifw"}
-          </span>
-          <span>
-            {(collectionList as any).resourceCount || 0}
-            素材
-          </span>
+        <div className="flex-1" />
+        <div className="flex items-center justify-between text-xs text-base-content/60 mt-2">
+          <UserAvatarComponent
+            userId={collectionList.userId ?? -1}
+            width={6}
+            isRounded={true}
+            withName={true}
+          />
         </div>
       </div>
     </div>
