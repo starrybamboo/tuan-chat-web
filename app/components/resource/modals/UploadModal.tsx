@@ -13,7 +13,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
   const [selectedType, setSelectedType] = useState<"5" | "6">("5"); // 5: 图片, 6: 音频
   const [isUploading, setIsUploading] = useState(false);
   const [resourceName, setResourceName] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
   const [isAI, setIsAI] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -130,7 +130,7 @@ export function UploadModal({ isOpen, onClose, onSuccess }: UploadModalProps) {
         url,
         name: resourceName,
         isPublic,
-        // 如果有AI标记，可以在这里添加相关字段
+        isAi: isAI,
       });
 
       toast.success("资源上传成功！", { id: "resource-upload" });

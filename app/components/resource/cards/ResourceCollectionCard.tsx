@@ -38,7 +38,7 @@ export function ResourceCollectionCard({
               <img
                 src={collectionList.coverImageUrl}
                 alt={collectionList.collectionListName}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200 rounded-t-lg"
+                className="w-full h-full object-cover transition-transform duration-200 rounded-t-lg"
                 onError={(e) => {
                   e.currentTarget.src = "/moduleDefaultImage.webp";
                 }}
