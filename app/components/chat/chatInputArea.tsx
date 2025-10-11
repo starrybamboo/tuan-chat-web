@@ -117,14 +117,14 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
   };
 
   /**
-   *  将 <br> 和 <div> 转换为 \n 并清理 HTML 以获取纯文本。
+   *  获取纯文本。
    */
   const getPlainText = (): string => {
-    const content = internalTextareaRef.current?.innerHTML || "";
-    return content
-      .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/&nbsp;/g, " ")
-      .replace(/<[^>]+(>|$)/g, ""); // 移除所有其他 HTML
+    return internalTextareaRef.current?.textContent || "";
+    // return content
+    //   .replace(/<br\s*\/?>/gi, "\n")
+    //   .replace(/&nbsp;/g, " ")
+    //   .replace(/<[^>]+(>|$)/g, ""); // 移除所有其他 HTML
   };
 
   /**
