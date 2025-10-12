@@ -14,5 +14,6 @@ export type ModuleImportByIdRequest = {
      * 模组ID
      */
     moduleId: number;
+    optionMask?: number;
 };
 

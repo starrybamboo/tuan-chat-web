@@ -2,17 +2,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * RoomLocation对象
- */
-export type RoomLocation = {
-    /**
-     * 房间ID
-     */
+export type RoomClue = {
     roomId: number;
-    /**
-     * 暂存区实体ID
-     */
     stageEntityId: number;
+    /**
+     * 0场景本身，1item，2location
+     */
+    type: number;
 };
 
