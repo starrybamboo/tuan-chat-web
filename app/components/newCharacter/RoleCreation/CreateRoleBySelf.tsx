@@ -153,30 +153,30 @@ export default function CreateRoleBySelf({ onBack, setRoles, setSelectedRoleId, 
 
       case 4:
         return (
-          <AttributeStep
-            title="基础能力值"
-            attributes={characterData.basic}
-            onAttributeChange={(key, value) => handleAttributeChange("basic", key, value)}
-            onAddField={(k, v) => handleAddField("basic", k, v)}
-            onDeleteField={k => handleDeleteField("basic", k)}
-            onRenameField={(ok, nk) => handleRenameField("basic", ok, nk)}
-          />
+          <>
+            <AttributeStep
+              title="基础能力值"
+              attributes={characterData.basic}
+              onAttributeChange={(key, value) => handleAttributeChange("basic", key, value)}
+              onAddField={(k, v) => handleAddField("basic", k, v)}
+              onDeleteField={k => handleDeleteField("basic", k)}
+              onRenameField={(ok, nk) => handleRenameField("basic", ok, nk)}
+            />
+            <div className="mt-6">
+              <AttributeStep
+                title="计算能力值"
+                attributes={characterData.ability}
+                showInfoAlert={true}
+                onAttributeChange={(key, value) => handleAttributeChange("ability", key, value)}
+                onAddField={(k, v) => handleAddField("ability", k, v)}
+                onDeleteField={k => handleDeleteField("ability", k)}
+                onRenameField={(ok, nk) => handleRenameField("ability", ok, nk)}
+              />
+            </div>
+          </>
         );
 
       case 5:
-        return (
-          <AttributeStep
-            title="计算能力值"
-            attributes={characterData.ability}
-            showInfoAlert={true}
-            onAttributeChange={(key, value) => handleAttributeChange("ability", key, value)}
-            onAddField={(k, v) => handleAddField("ability", k, v)}
-            onDeleteField={k => handleDeleteField("ability", k)}
-            onRenameField={(ok, nk) => handleRenameField("ability", ok, nk)}
-          />
-        );
-
-      case 6:
         return (
           <AttributeStep
             title="技能设定"

@@ -1,5 +1,5 @@
 import MarkdownMentionViewer from "@/components/common/quillEditor/MarkdownMentionViewer";
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 interface ItemDetailProps {
   itemName: string;
@@ -8,7 +8,7 @@ interface ItemDetailProps {
   moduleInfo?: any;
 }
 
-export default function ItemDetail({ itemName, itemList, entityType, moduleInfo }: ItemDetailProps) {
+function ItemDetail({ itemName, itemList, entityType, moduleInfo }: ItemDetailProps) {
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null);
   const selectedEntityInfo = useMemo(() => {
     if (!selectedEntity || !Array.isArray(moduleInfo)) {
@@ -216,3 +216,6 @@ export default function ItemDetail({ itemName, itemList, entityType, moduleInfo 
     </div>
   );
 }
+
+// 使用 memo 导出，避免父组件更新时不必要的重渲染
+export default memo(ItemDetail);

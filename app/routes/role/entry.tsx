@@ -4,6 +4,7 @@ import AICreateRole from "@/components/newCharacter/RoleCreation/AICreateRole";
 import CreateEntry from "@/components/newCharacter/RoleCreation/CreateEntry";
 
 import CreateRoleBySelf from "@/components/newCharacter/RoleCreation/CreateRoleBySelf";
+import STCreateRole from "@/components/newCharacter/RoleCreation/STCreateRole";
 import { setRoleRule } from "@/utils/roleRuleStorage";
 import { useState } from "react";
 import { useNavigate, useOutletContext } from "react-router";
@@ -17,7 +18,7 @@ export default function RoleCreationPage() {
   const { setRoles } = useOutletContext<RoleContext>();
   const navigate = useNavigate();
 
-  const [mode, setMode] = useState<"self" | "AI" | "excel" | "entry">("entry");
+  const [mode, setMode] = useState<"self" | "AI" | "ST" | "entry">("entry");
 
   // 当一个角色被创建并保存后，导航到它的详情页
   const handleCreationComplete = (newRole: Role, ruleId?: number) => {
@@ -47,12 +48,16 @@ export default function RoleCreationPage() {
   if (mode === "AI") {
     return <AICreateRole onBack={() => setMode("entry")} onComplete={handleCreationComplete} />;
   }
+  if (mode === "ST") {
+    return <STCreateRole onBack={() => setMode("entry")} onComplete={handleCreationComplete} />;
+  }
 
   // 默认渲染创建入口
   return (
     <CreateEntry
       AICreate={() => setMode("AI")}
       createBySelf={() => setMode("self")}
+      STCreate={() => setMode("ST")}
     />
   );
 }
