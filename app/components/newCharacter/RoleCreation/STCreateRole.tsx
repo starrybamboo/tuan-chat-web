@@ -25,8 +25,8 @@ interface STCreateRoleProps {
 const ST_STEPS = [
   { id: 1, title: "基础信息" },
   { id: 2, title: "选择规则" },
-  { id: 3, title: "ST导入" },
-  { id: 4, title: "角色表演" },
+  { id: 3, title: "角色表演" },
+  { id: 4, title: "ST导入" },
   { id: 5, title: "能力配置" },
   { id: 6, title: "技能设定" },
 ];
@@ -241,8 +241,10 @@ export default function STCreateRole({
     : currentStep === 2
       ? characterData.ruleId > 0
       : currentStep === 3
-        ? hasImported
-        : true;
+        ? true
+        : currentStep === 4
+          ? hasImported
+          : true;
 
   // 渲染步骤内容
   const renderStepContent = () => {
@@ -266,15 +268,6 @@ export default function STCreateRole({
 
       case 3:
         return (
-          <STImportStep
-            ruleId={characterData.ruleId}
-            characterData={characterData}
-            onImportSuccess={handleImportSuccess}
-          />
-        );
-
-      case 4:
-        return (
           <Section title="角色表演能力" className="rounded-2xl md:border-2 md:border-base-content/10 bg-base-100">
             <AttributeEditor
               title="角色表演能力"
@@ -285,6 +278,15 @@ export default function STCreateRole({
               onRenameField={(ok: string, nk: string) => handleRenameField("act", ok, nk)}
             />
           </Section>
+        );
+
+      case 4:
+        return (
+          <STImportStep
+            ruleId={characterData.ruleId}
+            characterData={characterData}
+            onImportSuccess={handleImportSuccess}
+          />
         );
 
       case 5:
