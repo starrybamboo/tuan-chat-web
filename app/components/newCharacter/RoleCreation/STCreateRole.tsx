@@ -1,20 +1,19 @@
 import type { Role } from "../types";
 import type { CharacterData } from "./types";
-import { useGenerateAbilityByRuleMutation, useGenerateBasicInfoByRuleMutation, useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
+import { useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useCreateRoleMutation, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
 import { useCallback, useEffect, useState } from "react";
 import RulesSection from "../rules/RulesSection";
 import Section from "../Section";
-import AIGenerationCard from "./components/AIGenerationCard";
 import AttributeEditor from "./components/AttributeEditor";
 import CreatePageHeader from "./components/CreatePageHeader";
 import NavigationButtons from "./components/NavigationButtons";
 import StepIndicator from "./components/StepIndicator";
-import { AI_STEPS } from "./constants";
 import BasicInfoStep from "./steps/BasicInfoStep";
+import STImportStep from "./steps/STImportStep";
 
-interface AICreateRoleProps {
+interface STCreateRoleProps {
   onBack?: () => void;
   onComplete?: (characterData: Role, ruleId?: number) => void;
   setRoles?: React.Dispatch<React.SetStateAction<Role[]>>;
@@ -22,17 +21,27 @@ interface AICreateRoleProps {
   onSave?: (updatedRole: Role) => void;
 }
 
+// ST指令导入步骤定义
+const ST_STEPS = [
+  { id: 1, title: "基础信息" },
+  { id: 2, title: "选择规则" },
+  { id: 3, title: "ST导入" },
+  { id: 4, title: "角色表演" },
+  { id: 5, title: "能力配置" },
+  { id: 6, title: "技能设定" },
+];
+
 /**
- * AI智能创建角色组件
- * 通过AI辅助，分步完成角色创建
+ * ST指令创建角色组件
+ * 通过ST指令导入，快速完成角色创建
  */
-export default function AICreateRole({
+export default function STCreateRole({
   onBack,
   onComplete,
   setRoles,
   setSelectedRoleId,
   onSave,
-}: AICreateRoleProps) {
+}: STCreateRoleProps) {
   // 步骤控制
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -48,10 +57,8 @@ export default function AICreateRole({
     skill: {},
   });
 
-  // AI相关状态
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [hasGenerated, setHasGenerated] = useState(false); // 追踪是否已生成
+  // ST导入相关状态
+  const [hasImported, setHasImported] = useState(false); // 追踪是否已导入
   const [isSaving, setIsSaving] = useState(false);
 
   // 跟踪当前已加载的规则ID，用于检测规则变更
@@ -60,8 +67,6 @@ export default function AICreateRole({
   // API hooks
   const { mutateAsync: createRole } = useCreateRoleMutation();
   const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
-  const { mutate: generateBasicInfoByRule } = useGenerateBasicInfoByRuleMutation();
-  const { mutate: generateAbilityByRule } = useGenerateAbilityByRuleMutation();
   const { mutate: setRoleAbility } = useSetRoleAbilityMutation();
   const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave || (() => { }));
 
@@ -152,95 +157,13 @@ export default function AICreateRole({
     });
   };
 
-  // AI生成处理
-  const handleAIGenerate = async () => {
-    if (!aiPrompt.trim() || !isValidRuleId)
-      return;
-
-    setIsGenerating(true);
-
-    try {
-      const ruleId = selectedRuleId;
-
-      // 生成角色表演能力 (act)
-      await new Promise((resolve) => {
-        generateBasicInfoByRule(
-          { ruleId, prompt: aiPrompt },
-          {
-            onSuccess: (data) => {
-              if (data?.data) {
-                const actData: Record<string, string> = {};
-                Object.entries(data.data).forEach(([key, value]) => {
-                  actData[key] = typeof value === "object" ? JSON.stringify(value) : String(value);
-                });
-                setCharacterData(prev => ({
-                  ...prev,
-                  act: { ...prev.act, ...actData },
-                }));
-              }
-              resolve(data);
-            },
-            onError: (error) => {
-              console.error("生成角色表演能力失败:", error);
-              resolve(null);
-            },
-          },
-        );
-      });
-
-      // 生成基础信息、能力数据和技能 (basic + ability + skill)
-      await new Promise((resolve) => {
-        generateAbilityByRule(
-          { ruleId, prompt: aiPrompt },
-          {
-            onSuccess: (data) => {
-              if (data?.data) {
-                const responseData = data.data;
-                const basicData: Record<string, string> = {};
-                if (responseData.basic) {
-                  Object.entries(responseData.basic).forEach(([key, value]) => {
-                    basicData[key] = String(value);
-                  });
-                }
-                const abilityData: Record<string, string> = {};
-                if (responseData.属性 || responseData.ability) {
-                  const abilitySource = responseData.属性 || responseData.ability;
-                  Object.entries(abilitySource).forEach(([key, value]) => {
-                    abilityData[key] = String(value);
-                  });
-                }
-                const skillData: Record<string, string> = {};
-                if (responseData.技能 || responseData.skill) {
-                  const skillSource = responseData.技能 || responseData.skill;
-                  Object.entries(skillSource).forEach(([key, value]) => {
-                    skillData[key] = String(value);
-                  });
-                }
-                setCharacterData(prev => ({
-                  ...prev,
-                  basic: { ...prev.basic, ...basicData },
-                  ability: { ...prev.ability, ...abilityData },
-                  skill: { ...prev.skill, ...skillData },
-                }));
-              }
-              resolve(data);
-            },
-            onError: (error) => {
-              console.error("生成能力数据失败:", error);
-              resolve(null);
-            },
-          },
-        );
-      });
-
-      setHasGenerated(true);
-    }
-    catch (error) {
-      console.error("AI生成失败:", error);
-    }
-    finally {
-      setIsGenerating(false);
-    }
+  // ST导入成功回调
+  const handleImportSuccess = (importedData: Partial<CharacterData>) => {
+    setCharacterData(prev => ({
+      ...prev,
+      ...importedData,
+    }));
+    setHasImported(true);
   };
 
   // 完成创建
@@ -318,7 +241,7 @@ export default function AICreateRole({
     : currentStep === 2
       ? characterData.ruleId > 0
       : currentStep === 3
-        ? hasGenerated
+        ? hasImported
         : true;
 
   // 渲染步骤内容
@@ -343,15 +266,10 @@ export default function AICreateRole({
 
       case 3:
         return (
-          <AIGenerationCard
-            title="描述你的角色想法"
-            description="详细描述角色的背景、性格、能力特点，AI会根据描述生成完整的角色信息"
-            placeholder="例如：一个来自北方的勇敢战士，擅长双手剑，有着保护弱者的坚定信念，曾经是皇家骑士团的成员..."
-            prompt={aiPrompt}
-            isGenerating={isGenerating}
-            disabled={false}
-            onPromptChange={setAiPrompt}
-            onGenerate={handleAIGenerate}
+          <STImportStep
+            ruleId={characterData.ruleId}
+            characterData={characterData}
+            onImportSuccess={handleImportSuccess}
           />
         );
 
@@ -417,24 +335,24 @@ export default function AICreateRole({
   return (
     <div className="max-w-4xl mx-auto p-6">
       <CreatePageHeader
-        title="AI智能创建角色"
-        description="通过AI辅助，分步完成角色创建"
+        title="ST指令创建角色"
+        description="通过ST指令快速导入角色属性"
         onBack={onBack}
       />
 
-      <StepIndicator steps={AI_STEPS} currentStep={currentStep} />
+      <StepIndicator steps={ST_STEPS} currentStep={currentStep} />
 
       <div className="mb-8">{renderStepContent()}</div>
 
       <NavigationButtons
         currentStep={currentStep}
-        totalSteps={AI_STEPS.length}
+        totalSteps={ST_STEPS.length}
         canProceed={canProceedCurrent && !isSaving}
         onPrevious={() => setCurrentStep(Math.max(1, currentStep - 1))}
         onNext={() => {
           if (!canProceedCurrent || isSaving)
             return;
-          setCurrentStep(Math.min(AI_STEPS.length, currentStep + 1));
+          setCurrentStep(Math.min(ST_STEPS.length, currentStep + 1));
         }}
         onComplete={handleComplete}
       />
