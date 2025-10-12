@@ -20,10 +20,10 @@ export default function STImportStep({ characterData, onImportSuccess }: STImpor
     edu: "教育",
     siz: "体型",
     int: "智力",
-    san: "san值",
+    san值: "san",
     luck: "幸运",
-    mp: "魔法",
-    hp: "体力",
+    魔法: "mp",
+    体力: "hp",
     cm: "克苏鲁神话",
   };
 
@@ -76,19 +76,19 @@ export default function STImportStep({ characterData, onImportSuccess }: STImpor
         const finalKey = ABILITY_MAP[normalizedKey] || rawKey;
 
         // 根据属性类型分配到不同的section
-        // 这里简单地将所有导入的属性放到skill中，你可以根据需要调整
-        if (finalKey in characterData.skill || finalKey in updatedSkills) {
-          updatedSkills[finalKey] = value;
-        }
-        else if (finalKey in characterData.basic || finalKey in updatedBasic) {
+        // 优先检查原始characterData中是否已存在该字段
+        if (finalKey in characterData.basic) {
           updatedBasic[finalKey] = value;
         }
-        else if (finalKey in characterData.ability || finalKey in updatedAbility) {
+        else if (finalKey in characterData.ability) {
           updatedAbility[finalKey] = value;
         }
+        else if (finalKey in characterData.skill) {
+          updatedSkills[finalKey] = value;
+        }
         else {
-          // 默认放到basic中
-          updatedBasic[finalKey] = value;
+          // 默认放到skill中
+          updatedSkills[finalKey] = value;
         }
 
         importedAttrs.push(`${finalKey}:${value}`);
