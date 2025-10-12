@@ -14,5 +14,6 @@ export type ModuleImportRequest = {
      * 提交ID
      */
     commitId: number;
+    optionMask?: number;
 };
 

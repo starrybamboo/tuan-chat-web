@@ -186,7 +186,7 @@ export class AbilityControllerService {
      * @returns ApiResultVoid OK
      * @throws ApiError
      */
-    public addItem1(
+    public addItem(
         itemId: number,
         abilityId: number,
     ): CancelablePromise<ApiResultVoid> {

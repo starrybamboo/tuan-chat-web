@@ -17,7 +17,7 @@ export type ResourceResponse = {
     /**
      * 资源类型
      */
-    type?: number;
+    type?: string;
     /**
      * 资源类型描述
      */

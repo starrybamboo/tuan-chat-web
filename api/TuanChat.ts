@@ -43,6 +43,7 @@ import { RuleControllerService } from './services/RuleControllerService';
 import { ScTransactionsService } from './services/ScTransactionsService';
 import { ScWalletsService } from './services/ScWalletsService';
 import { ShortLinkControllerService } from './services/ShortLinkControllerService';
+import { SpaceClueService } from './services/SpaceClueService';
 import { SpaceControllerService } from './services/SpaceControllerService';
 import { SpaceMemberControllerService } from './services/SpaceMemberControllerService';
 import { SpaceModuleControllerService } from './services/SpaceModuleControllerService';
@@ -94,6 +95,7 @@ export class TuanChat {
     public readonly scTransactions: ScTransactionsService;
     public readonly scWallets: ScWalletsService;
     public readonly shortLinkController: ShortLinkControllerService;
+    public readonly spaceClue: SpaceClueService;
     public readonly spaceController: SpaceControllerService;
     public readonly spaceMemberController: SpaceMemberControllerService;
     public readonly spaceModuleController: SpaceModuleControllerService;
@@ -156,6 +158,7 @@ export class TuanChat {
         this.scTransactions = new ScTransactionsService(this.request);
         this.scWallets = new ScWalletsService(this.request);
         this.shortLinkController = new ShortLinkControllerService(this.request);
+        this.spaceClue = new SpaceClueService(this.request);
         this.spaceController = new SpaceControllerService(this.request);
         this.spaceMemberController = new SpaceMemberControllerService(this.request);
         this.spaceModuleController = new SpaceModuleControllerService(this.request);
