@@ -25,6 +25,7 @@ export interface AtMentionHandle {
   onKeyDown: (e: React.KeyboardEvent) => boolean; // 返回 true 表示事件已被处理
   onKeyUp: (e: React.KeyboardEvent) => void;
   onMouseDown: (e: React.MouseEvent) => boolean; // 返回 true 表示事件已被处理
+  closeDialog: () => void; // 关闭对话框的方法
 }
 
 function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & { ref?: React.RefObject<AtMentionHandle | null> }) {
@@ -53,6 +54,23 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
       });
     }
   }, [showDialog, searchKey]);
+
+  // 监听输入框的焦点状态，如果失焦，则关闭@选项框
+  useEffect(() => {
+    const editorEl = chatInputRef.current?.getRawElement();
+    if (!editorEl)
+      return;
+
+    const handleBlur = () => {
+      setShowDialog(false);
+      setSearchKey("");
+    };
+
+    editorEl.addEventListener("blur", handleBlur);
+    return () => {
+      editorEl.removeEventListener("blur", handleBlur);
+    };
+  }, [chatInputRef]);
 
   // 4. 所有内部逻辑函数
   const checkDialogTrigger = useCallback(() => {
@@ -187,6 +205,12 @@ function AtMentionController({ ref, chatInputRef, allRoles }: AtMentionProps & {
         return true;
       }
       return false;
+    },
+
+    /** 关闭对话框 */
+    closeDialog: () => {
+      setShowDialog(false);
+      setSearchKey("");
     },
   }));
 

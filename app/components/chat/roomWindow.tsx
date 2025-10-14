@@ -38,10 +38,10 @@ import {
   BaselineArrowBackIosNew,
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
-import { getScreenSize } from "@/utils/getScreenSize";
-import { UploadUtils } from "@/utils/UploadUtils";
 // *** 导入新组件及其 Handle 类型 ***
 
+import { getScreenSize } from "@/utils/getScreenSize";
+import { UploadUtils } from "@/utils/UploadUtils";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
@@ -54,7 +54,8 @@ import {
   useGetSpaceInfoQuery,
 } from "../../../api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "../../../api/queryHooks";
-import ClueList from "./sideDrawer/clueList";
+import ClueListForKP from "./sideDrawer/clueListForKP";
+import ClueListForPL from "./sideDrawer/clueListForPL";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
@@ -678,8 +679,9 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
             initialWidth={clueDrawerWidth}
             onWidthChange={setClueDrawerWidth}
           >
-
-            <ClueList onSend={handleClueSend}></ClueList>
+            {spaceContext.isSpaceOwner
+              ? <ClueListForKP onSend={handleClueSend}></ClueListForKP>
+              : <ClueListForPL onSend={handleClueSend}></ClueListForPL>}
           </OpenAbleDrawer>
         </div>
       </div>

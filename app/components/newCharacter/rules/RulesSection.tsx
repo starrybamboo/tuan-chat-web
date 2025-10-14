@@ -101,7 +101,7 @@ export default function RulesSection({
           <button
             type="button"
             onClick={() => setPageNum(pageNum + 1)}
-            disabled={rules.length < pageSize}
+            disabled={rules.length <= pageSize}
             className="join-item btn btn-ghost btn-sm disabled:opacity-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

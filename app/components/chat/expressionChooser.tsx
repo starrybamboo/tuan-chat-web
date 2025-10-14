@@ -88,7 +88,7 @@ export function ExpressionChooser({
                     {roleAvatars.map(avatar => (
                       <div
                         onClick={() => handleExpressionChange(avatar.avatarId ?? -1)}
-                        className="aspect-square rounded-lg transition-all hover:bg-base-200 p-2 cursor-pointer flex items-center justify-center"
+                        className="aspect-square rounded-lg transition-all hover:bg-base-200 cursor-pointer flex items-center justify-center"
                         key={avatar.avatarId}
                         title="点击选择表情"
                       >
@@ -98,6 +98,7 @@ export function ExpressionChooser({
                           isRounded={false}
                           withTitle={false}
                           stopPopWindow={true}
+                          hoverToScale={true}
                         />
                       </div>
                     ))}

@@ -38,6 +38,13 @@ export function Pagination({
 
   return (
     <div className="space-y-6">
+      {/* 底部提示 */}
+      {showBottomMessage && totalItems >= pageSize && (
+        <div className="text-center text-base-content/50 text-sm">
+          已经到底啦 (^_^) ✧
+        </div>
+      )}
+
       {/* 分页控制 */}
       {totalItems > 0 && (
         <div className="flex justify-center gap-2">
@@ -64,13 +71,6 @@ export function Pagination({
           >
             下一页
           </button>
-        </div>
-      )}
-
-      {/* 底部提示 */}
-      {showBottomMessage && totalItems >= pageSize && (
-        <div className="text-center text-base-content/50 text-sm">
-          已经到底啦 (^_^) ✧
         </div>
       )}
     </div>

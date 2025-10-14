@@ -1,5 +1,6 @@
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useSpaceInvitedMutation } from "api/hooks/chatQueryHooks";
+import { tuanchat } from "api/instance";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
@@ -38,7 +39,15 @@ export default function InvitePage() {
           return;
         }
 
-        navigate(`/chat/${spaceId}`);
+        // 获取用户在该空间下的所有群组（这里用不了useQuery就直接用tuanchat了）
+        const { data: roomsData } = await tuanchat.roomController.getUserRooms(spaceId);
+        if (roomsData && roomsData.length > 0) {
+          const firstRoomId = roomsData[0].roomId;
+          navigate(`/chat/${spaceId}/${firstRoomId}`);
+        }
+        else {
+          navigate(`/chat/${spaceId}`);
+        }
       }
       catch (err: any) {
         const status = err?.response?.status ?? err?.status;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { getEntityListByType } from "../moduleUtils";
 import ItemDetail from "./scene/ItemDetail";
 
@@ -38,7 +38,8 @@ interface ItemsProps {
   entityType?: EntityType;
 }
 
-export default function EntityList({ moduleData: moduleInfo, entityType = "item" }: ItemsProps) {
+// 使用 memo 包裹组件，避免父组件（ContentTab）重渲染时不必要的重新渲染
+function EntityList({ moduleData: moduleInfo, entityType = "item" }: ItemsProps) {
   // 选中的实体唯一标识符为name
   const [selectedName, setSelectedName] = useState<string | null>(null);
   // 控制侧边栏是否收起
@@ -174,3 +175,6 @@ export default function EntityList({ moduleData: moduleInfo, entityType = "item"
     </div>
   );
 }
+
+// 使用 memo 导出，避免 React Flow 状态更新时触发此组件重渲染
+export default memo(EntityList);

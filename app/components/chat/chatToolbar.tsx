@@ -10,8 +10,6 @@ import {
   SparklesOutline,
   SwordSwing,
 } from "@/icons";
-import React, { use } from "react";
-import { SpaceContext } from "./spaceContext";
 
 interface ChatToolbarProps {
   // 侧边栏状态
@@ -46,44 +44,59 @@ export function ChatToolbar({
   onChangeChatStatus,
   isSpectator = false,
 }: ChatToolbarProps) {
-  const spaceContext = use(SpaceContext);
+  // 调试日志
+  console.warn("🛠️ ChatToolbar 渲染", {
+    isSpectator,
+    currentChatStatus,
+    onChangeChatStatusType: typeof onChangeChatStatus,
+  });
 
   return (
     <div className="flex pr-1 pl-2 justify-between ">
       <div className="flex gap-2">
         {/* 聊天状态选择器 - 观战成员不显示 */}
         {!isSpectator && (
-          <details className="dropdown dropdown-top">
+          <details
+            className="dropdown dropdown-top"
+            onToggle={(e) => {
+              console.warn("🔄 Dropdown 状态变化", { open: (e.target as HTMLDetailsElement).open });
+            }}
+            style={{ pointerEvents: "auto" }}
+          >
             <summary
               tabIndex={0}
-              className="min-w-0 cursor-pointer list-none"
+              className="min-w-0 cursor-pointer list-none px-2 h-7 rounded-md border border-base-300 flex items-center text-xs select-none gap-1 hover:border-info"
+              style={{ pointerEvents: "auto", zIndex: 100, position: "relative" }}
+              onClick={(e) => {
+                console.warn("📋 Dropdown summary 被点击", {
+                  isOpen: (e.currentTarget.parentElement as HTMLDetailsElement)?.open,
+                  target: e.target,
+                  currentTarget: e.currentTarget,
+                });
+              }}
+              onMouseEnter={() => console.warn("🖱️ 鼠标进入 summary")}
+              onMouseDown={() => console.warn("🖱️ 鼠标按下 summary")}
             >
-              <div
-                className="tooltip"
-                data-tip="当前状态"
+              <span
+                className={
+                  currentChatStatus === "input"
+                    ? "text-info"
+                    : currentChatStatus === "wait"
+                      ? "text-warning"
+                      : currentChatStatus === "leave" ? "text-error" : "opacity-70"
+                }
               >
-                <div className="px-2 h-7 rounded-md border border-base-300 flex items-center text-xs select-none gap-1 hover:border-info">
-                  <span
-                    className={
-                      currentChatStatus === "input"
-                        ? "text-info"
-                        : currentChatStatus === "wait"
-                          ? "text-warning"
-                          : currentChatStatus === "leave" ? "text-error" : "opacity-70"
-                    }
-                  >
-                    {currentChatStatus === "idle" && "空闲"}
-                    {currentChatStatus === "input" && "输入中"}
-                    {currentChatStatus === "wait" && "等待扮演"}
-                    {currentChatStatus === "leave" && "暂离"}
-                  </span>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="size-3 opacity-60" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.173l3.71-3.942a.75.75 0 111.08 1.04l-4.25 4.516a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
-                </div>
-              </div>
+                {currentChatStatus === "idle" && "空闲"}
+                {currentChatStatus === "input" && "输入中"}
+                {currentChatStatus === "wait" && "等待扮演"}
+                {currentChatStatus === "leave" && "暂离"}
+              </span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="size-3 opacity-60" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.173l3.71-3.942a.75.75 0 111.08 1.04l-4.25 4.516a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
             </summary>
             <ul
               tabIndex={0}
-              className="dropdown-content menu bg-base-100 rounded-box z-10 w-36 p-2 shadow-md border border-base-200 gap-1 text-sm"
+              className="dropdown-content menu bg-base-100 rounded-box w-36 p-2 shadow-md border border-base-200 gap-1 text-sm"
+              style={{ zIndex: 9999, position: "absolute" }}
             >
               {[
                 { value: "idle", label: "空闲", desc: "清除正在输入" },
@@ -92,15 +105,18 @@ export function ChatToolbar({
                 { value: "leave", label: "暂离", desc: "临时离开" },
               ].map(item => (
                 <li key={item.value}>
-                  <button
-                    type="button"
+                  <a
                     className={`flex flex-col gap-0.5 py-1 ${currentChatStatus === item.value ? "active bg-base-200" : ""}`}
                     onClick={(e) => {
+                      console.warn("🔘 状态按钮被点击", {
+                        clickedValue: item.value,
+                        currentStatus: currentChatStatus,
+                        onChangeChatStatus: typeof onChangeChatStatus,
+                      });
                       e.preventDefault();
                       e.stopPropagation();
-                      if (item.value !== currentChatStatus) {
-                        onChangeChatStatus(item.value as any);
-                      }
+                      console.warn("✅ 调用 onChangeChatStatus", item.value);
+                      onChangeChatStatus(item.value as any);
                       // 关闭 dropdown
                       const details = (e.currentTarget as HTMLElement).closest("details");
                       if (details) {
@@ -110,7 +126,7 @@ export function ChatToolbar({
                   >
                     <span className="leading-none">{item.label}</span>
                     <span className="text-[10px] opacity-60 leading-none">{item.desc}</span>
-                  </button>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -170,15 +186,13 @@ export function ChatToolbar({
 
       {/* 右侧按钮组 */}
       <div className="flex gap-2">
-        {spaceContext.isSpaceOwner && (
-          <div
-            className="tooltip tooltip-bottom hover:text-info"
-            data-tip="查看线索"
-            onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}
-          >
-            <Detective className="size-7"></Detective>
-          </div>
-        )}
+        <div
+          className="tooltip tooltip-bottom hover:text-info"
+          data-tip="查看线索"
+          onClick={() => setSideDrawerState(sideDrawerState === "clue" ? "none" : "clue")}
+        >
+          <Detective className="size-7"></Detective>
+        </div>
 
         <div
           className="tooltip"

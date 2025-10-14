@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useResourcePageState } from "../hooks/useResourcePageState";
 import { CreateCollectionModal } from "../modals/CreateCollectionModal";
 import { UploadModal } from "../modals/UploadModal";
@@ -15,15 +15,19 @@ export default function ResourcePage() {
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
   const [_previousTab, setPreviousTab] = useState<TabType>("publicResources");
 
+  // 用于动态计算指示器位置和大小
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+
   // 使用优化的状态管理hook
   const { handleUploadSuccess, handleCreateCollectionSuccess } = useResourcePageState();
 
-  const tabs: { key: TabType; label: string }[] = [
-    { key: "publicResources", label: "公开素材" },
-    { key: "publicCollections", label: "公开素材集" },
-    { key: "myResources", label: "我的素材" },
-    { key: "myCollections", label: "我的素材集" },
-  ];
+  const tabs = useMemo(() => [
+    { key: "publicResources" as const, label: "公开素材" },
+    { key: "publicCollections" as const, label: "公开素材集" },
+    { key: "myResources" as const, label: "我的素材" },
+    { key: "myCollections" as const, label: "我的素材集" },
+  ], []);
 
   const resourceTypes = [
     {
@@ -56,9 +60,61 @@ export default function ResourcePage() {
     }
   };
 
-  const getTabIndex = (tabKey: TabType) => {
+  const getTabIndex = useCallback((tabKey: TabType) => {
     return tabs.findIndex(tab => tab.key === tabKey);
-  };
+  }, [tabs]);
+
+  // 动态计算指示器位置和大小
+  const updateIndicatorPosition = useCallback(() => {
+    if (!tabsContainerRef.current)
+      return;
+
+    const activeIndex = getTabIndex(activeTab);
+    const buttons = tabsContainerRef.current.querySelectorAll("button");
+    const activeButton = buttons[activeIndex];
+
+    if (activeButton) {
+      const containerRect = tabsContainerRef.current.getBoundingClientRect();
+      const buttonRect = activeButton.getBoundingClientRect();
+
+      const newStyle = {
+        left: buttonRect.left - containerRect.left + 4, // 4px for container padding
+        width: buttonRect.width,
+      };
+
+      setIndicatorStyle(newStyle);
+    }
+  }, [activeTab, getTabIndex]);
+
+  // 监听 activeTab 变化
+  useEffect(() => {
+    const timer = requestAnimationFrame(() => {
+      updateIndicatorPosition();
+    });
+
+    return () => {
+      cancelAnimationFrame(timer);
+    };
+  }, [activeTab, updateIndicatorPosition]);
+
+  // 监听窗口大小变化
+  useEffect(() => {
+    const handleResize = () => {
+      updateIndicatorPosition();
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // 初始化计算
+    const initTimer = requestAnimationFrame(() => {
+      updateIndicatorPosition();
+    });
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      cancelAnimationFrame(initTimer);
+    };
+  }, [updateIndicatorPosition]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -94,16 +150,18 @@ export default function ResourcePage() {
         <div className="max-w-6xl mx-auto">
           {/* 标签栏 */}
           <div className="flex justify-center mb-6">
-            <div className="relative flex bg-base-200 rounded-full p-1 gap-1">
+            <div
+              ref={tabsContainerRef}
+              className="relative flex bg-base-200 rounded-full p-1 gap-1"
+            >
               {/* 滑动背景指示器 */}
               <div
-                className="absolute bg-primary rounded-full transition-transform duration-300 ease-out shadow-sm"
+                className="absolute bg-primary rounded-full transition-all duration-300 ease-out shadow-sm"
                 style={{
-                  width: `calc(25% - 4px)`,
+                  width: `${indicatorStyle.width}px`,
                   height: "calc(100% - 8px)",
                   top: "4px",
-                  left: "4px",
-                  transform: `translateX(${getTabIndex(activeTab) * 100}%)`,
+                  left: `${indicatorStyle.left}px`,
                 }}
               />
 
@@ -112,7 +170,7 @@ export default function ResourcePage() {
                   key={tab.key}
                   type="button"
                   onClick={() => handleTabChange(tab.key)}
-                  className={`relative z-10 px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap ${
+                  className={`relative z-10 px-3 sm:px-4 md:px-6 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                     activeTab === tab.key
                       ? "text-primary-content"
                       : "text-base-content/70 hover:text-base-content"
