@@ -372,7 +372,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
   // 定时器的更新 (localSceneRef 已在前面声明并更新)
   const handleSave = () => {
-    beginSelectionLock("scene-save", 700);
+    beginSelectionLock("scene-save", 10000);
     setIsTransitioning(true);
     setTimeout(() => {
       setIsTransitioning(false);
