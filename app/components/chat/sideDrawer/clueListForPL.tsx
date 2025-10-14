@@ -1,6 +1,7 @@
 import type { SpaceClueCreateRequest } from "api";
 import type { ClueMessage } from "api/models/ClueMessage";
 import { PopWindow } from "@/components/common/popWindow";
+import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
 import { useAddCluesMutation, useGetCluesBySpaceQuery } from "api/hooks/spaceClueHooks";
 import { use, useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -180,7 +181,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
             <button
               type="button"
               onClick={() => toggleSection("items")}
-              className="btn flex w-full max-w-56 mx-auto gap-3 p-2 bg-base-200 rounded-lg items-center hover:bg-base-300 transition"
+              className="btn flex w-full max-w-64 mx-auto gap-3 p-2 bg-base-200 rounded-lg items-center hover:bg-base-300 transition"
               aria-expanded={expandedSections.has("items")}
               aria-controls="items-drawer"
             >
@@ -210,7 +211,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
             {expandedSections.has("items") && (
               <div
                 id="items-drawer"
-                className="mt-2 ml-2 space-y-2 animate-fade-in"
+                className="mt-2 space-y-2 animate-fade-in max-w-64 mx-auto"
               >
                 {itemClues.length === 0
                   ? (
@@ -222,9 +223,9 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                       itemClues.map(clue => (
                         <div
                           key={clue.id}
-                          className="flex items-center justify-between bg-neutral-50 dark:bg-neutral-800 px-3 py-2 rounded-lg border border-base-300"
+                          className="flex items-center justify-between bg-neutral-50 dark:bg-neutral-800 px-3 py-2 rounded-lg border border-base-300 w-full"
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
                             {clue.image
                               ? (
                                   <img
@@ -240,13 +241,13 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                                     </svg>
                                   </div>
                                 )}
-                            <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100 truncate max-w-32">
+                            <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100 truncate flex-1">
                               {clue.name}
                             </span>
                           </div>
                           <button
                             type="button"
-                            className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                            className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex-shrink-0 ml-2"
                             onClick={() => handleViewClue(clue)}
                           >
                             查看
@@ -263,7 +264,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
             <button
               type="button"
               onClick={() => toggleSection("locations")}
-              className="btn flex w-full max-w-56 mx-auto gap-3 p-2 bg-base-200 rounded-lg items-center hover:bg-base-300 transition"
+              className="btn flex w-full max-w-64 mx-auto gap-3 p-2 bg-base-200 rounded-lg items-center hover:bg-base-300 transition"
               aria-expanded={expandedSections.has("locations")}
               aria-controls="locations-drawer"
             >
@@ -294,7 +295,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
             {expandedSections.has("locations") && (
               <div
                 id="locations-drawer"
-                className="mt-2 ml-2 space-y-2 animate-fade-in"
+                className="mt-2 space-y-2 animate-fade-in max-w-64 mx-auto"
               >
                 {locationClues.length === 0
                   ? (
@@ -306,22 +307,22 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                       locationClues.map(clue => (
                         <div
                           key={clue.id}
-                          className="flex items-center justify-between bg-neutral-50 dark:bg-neutral-800 px-3 py-2 rounded-lg border border-base-300"
+                          className="flex items-center justify-between bg-neutral-50 dark:bg-neutral-800 px-3 py-2 rounded-lg border border-base-300 w-full"
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
                             <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
                               <svg className="w-3 h-3 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                               </svg>
                             </div>
-                            <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100 truncate max-w-32">
+                            <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100 truncate flex-1">
                               {clue.name}
                             </span>
                           </div>
                           <button
                             type="button"
-                            className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                            className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex-shrink-0 ml-2"
                             onClick={() => handleViewClue(clue)}
                           >
                             查看
@@ -338,7 +339,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
             <button
               type="button"
               onClick={() => toggleSection("others")}
-              className="btn flex w-full max-w-56 mx-auto gap-3 p-2 bg-base-200 rounded-lg items-center hover:bg-base-300 transition"
+              className="btn flex w-full max-w-64 mx-auto gap-3 p-2 bg-base-200 rounded-lg items-center hover:bg-base-300 transition"
               aria-expanded={expandedSections.has("others")}
               aria-controls="others-drawer"
             >
@@ -368,7 +369,7 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
             {expandedSections.has("others") && (
               <div
                 id="others-drawer"
-                className="mt-2 ml-2 space-y-2 animate-fade-in"
+                className="mt-2 space-y-2 animate-fade-in max-w-64 mx-auto"
               >
                 {otherClues.length === 0
                   ? (
@@ -380,21 +381,21 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
                       otherClues.map(clue => (
                         <div
                           key={clue.id}
-                          className="flex items-center justify-between bg-neutral-50 dark:bg-neutral-800 px-3 py-2 rounded-lg border border-base-300"
+                          className="flex items-center justify-between bg-neutral-50 dark:bg-neutral-800 px-3 py-2 rounded-lg border border-base-300 w-full"
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
                             <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center flex-shrink-0">
                               <svg className="w-3 h-3 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                               </svg>
                             </div>
-                            <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100 truncate max-w-32">
+                            <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100 truncate flex-1">
                               {clue.name}
                             </span>
                           </div>
                           <button
                             type="button"
-                            className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                            className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex-shrink-0 ml-2"
                             onClick={() => handleViewClue(clue)}
                           >
                             查看
@@ -417,21 +418,45 @@ export default function ClueListForPL({ onSend }: { onSend: (clue: ClueMessage) 
           {/* 头部区域 */}
           <div className="p-5 border-b border-neutral-200 dark:border-neutral-700">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-lg flex items-center justify-center bg-neutral-100 dark:bg-neutral-700 overflow-hidden flex-shrink-0">
-                {newClue.image
-                  ? (
-                      <img
-                        src={newClue.image}
-                        alt="线索图片"
-                        className="w-full h-full object-cover transition-transform duration-300"
-                      />
-                    )
-                  : (
-                      <span className="text-neutral-400 dark:text-neutral-300 text-sm text-center px-2">
-                        暂无图片
-                      </span>
-                    )}
-              </div>
+              <ImgUploaderWithCopper
+                setCopperedDownloadUrl={(url) => {
+                  handleInputChange("image", url);
+                }}
+                fileName={`clue-image-${Date.now()}`}
+              >
+                <div className="relative group overflow-hidden rounded-lg w-16 h-16 cursor-pointer border-2 border-dashed border-neutral-300 dark:border-neutral-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-300">
+                  {newClue.image
+                    ? (
+                        <>
+                          <img
+                            src={newClue.image}
+                            alt="线索图片"
+                            className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm">
+                            <div className="text-center">
+                              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              <span className="text-xs font-medium text-blue-600 dark:text-blue-400 block">
+                                更换
+                              </span>
+                            </div>
+                          </div>
+                        </>
+                      )
+                    : (
+                        <div className="w-full h-full flex flex-col items-center justify-center transition-all duration-300 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20">
+                          <svg className="w-6 h-6 text-neutral-400 dark:text-neutral-500 group-hover:text-blue-400 dark:group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span className="text-xs text-neutral-500 dark:text-neutral-400 group-hover:text-blue-400 dark:group-hover:text-blue-500 transition-colors mt-1">
+                            上传
+                          </span>
+                        </div>
+                      )}
+                </div>
+              </ImgUploaderWithCopper>
               <h2 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100 flex-grow">
                 添加新线索
               </h2>
