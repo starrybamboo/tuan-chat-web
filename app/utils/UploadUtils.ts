@@ -58,17 +58,27 @@ export class UploadUtils {
    */
   async uploadImg(file: File, scene: 1 | 2 | 3 | 4 = 1, quality = 0.7, maxSize = 2560): Promise<string> {
     let new_file = file;
+    const originalSize = file.size;
 
     const isGif = await this.isGifFile(file);
     // 对于图片文件进行处理
     if (file.type.startsWith("image/")) {
       // 精确检测GIF文件，优先使用文件头检测
       if (isGif) {
+        console.warn(`[图片上传] GIF 文件跳过压缩: ${file.name} (${(originalSize / 1024).toFixed(2)} KB)`);
         new_file = file;
       }
       else {
         // 其他图片格式进行压缩
         new_file = await compressImage(file, quality, maxSize);
+        const compressedSize = new_file.size;
+        const compressionRatio = Number.parseFloat(((1 - compressedSize / originalSize) * 100).toFixed(1));
+        console.warn(
+          `[图片上传] 压缩完成: ${file.name}\n`
+          + `  原始大小: ${(originalSize / 1024).toFixed(2)} KB\n`
+          + `  压缩后: ${(compressedSize / 1024).toFixed(2)} KB\n`
+          + `  压缩率: ${compressionRatio}% ${compressionRatio > 0 ? "✅" : "⚠️"}`,
+        );
       }
     }
 
