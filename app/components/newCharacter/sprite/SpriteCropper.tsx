@@ -8,7 +8,6 @@ import { useApplyCropAvatarMutation, useApplyCropMutation, useUpdateAvatarTransf
 import { useEffect, useRef, useState } from "react";
 import { ReactCrop } from "react-image-crop";
 import { AvatarPreview } from "./AvatarPreview";
-import { PerformanceMonitor } from "./PerformanceMonitor";
 import { RenderPreview } from "./RenderPreview";
 import { TransformControl } from "./TransformControl";
 import { useImageCropWorker } from "./useImageCropWorker";
@@ -543,14 +542,11 @@ export function SpriteCropper({
 
   /**
    * 应用相同裁剪参数到所有头像/立绘
-   * 优化版本：并行处理 + 性能监控（基于 Performance API） + 并发控制
+   * 优化版本：并行处理 + 并发控制
    */
   async function handleBatchCropAll() {
     if (!isMutiAvatars || !completedCrop)
       return;
-
-    const monitor = new PerformanceMonitor("批量裁剪");
-    monitor.start();
 
     const MAX_CONCURRENCY = 8; // 最大并发数
 
@@ -560,62 +556,59 @@ export function SpriteCropper({
       console.warn(`开始批量裁剪 ${filteredAvatars.length} 张${isAvatarMode ? "头像" : "立绘"}（最大并发:${MAX_CONCURRENCY}）`);
 
       // 阶段1：加载图片（并发控制）
-      const loadedImages = await monitor.measure("加载", async () => {
-        const results = await cropImagesWithConcurrency(
-          filteredAvatars,
-          MAX_CONCURRENCY,
-          async (avatar, index) => {
-            const imageUrl = avatar.spriteUrl;
-            if (!imageUrl || !avatar.avatarId)
-              return null;
+      const results = await cropImagesWithConcurrency(
+        filteredAvatars,
+        MAX_CONCURRENCY,
+        async (avatar, index) => {
+          const imageUrl = avatar.spriteUrl;
+          if (!imageUrl || !avatar.avatarId)
+            return null;
 
-            console.warn(`加载 ${index + 1}/${filteredAvatars.length}`);
+          console.warn(`加载 ${index + 1}/${filteredAvatars.length}`);
 
-            const tempImg = new Image();
-            tempImg.crossOrigin = "anonymous";
+          const tempImg = new Image();
+          tempImg.crossOrigin = "anonymous";
 
-            await new Promise<void>((resolve, reject) => {
-              tempImg.onload = () => resolve();
-              tempImg.onerror = () => reject(new Error(`Failed to load: ${imageUrl}`));
-              tempImg.src = imageUrl!;
-            });
+          await new Promise<void>((resolve, reject) => {
+            tempImg.onload = () => resolve();
+            tempImg.onerror = () => reject(new Error(`Failed to load: ${imageUrl}`));
+            tempImg.src = imageUrl!;
+          });
 
-            return { avatar, img: tempImg, index };
-          },
-        );
+          return { avatar, img: tempImg, index };
+        },
+      );
 
-        return results.filter(Boolean);
-      });
+      const loadedImages = results.filter(Boolean);
 
       // 阶段2：裁剪图片（并发控制）
       console.warn(`阶段1加载完成，共 ${loadedImages.length} 张图片`);
 
-      const croppedResults = await monitor.measure("裁剪", async () => {
-        console.warn("开始裁剪图片blob");
-        const results = await cropImagesWithConcurrency(
-          loadedImages,
-          MAX_CONCURRENCY,
-          async (item: any, _) => {
-            if (!item) {
-              console.warn("跳过空项");
-              return null;
-            }
+      console.warn("开始裁剪图片blob");
+      const cropResults = await cropImagesWithConcurrency(
+        loadedImages,
+        MAX_CONCURRENCY,
+        async (item: any, _) => {
+          if (!item) {
+            console.warn("跳过空项");
+            return null;
+          }
 
-            try {
-              const croppedBlob = await getCroppedImageBlobFromImg(item.img);
-              console.warn(`裁剪完成 (${item.index + 1}/${loadedImages.length})`);
-              return { ...item, croppedBlob };
-            }
-            catch (error) {
-              console.error(`裁剪失败 (${item.index + 1}):`, error);
-              return null;
-            }
-          },
-        );
-        const successCount = results.filter(Boolean).length;
-        console.warn(`裁剪完成，成功 ${successCount}/${loadedImages.length} 张`);
-        return results.filter(Boolean);
-      });
+          try {
+            const croppedBlob = await getCroppedImageBlobFromImg(item.img);
+            console.warn(`裁剪完成 (${item.index + 1}/${loadedImages.length})`);
+            return { ...item, croppedBlob };
+          }
+          catch (error) {
+            console.error(`裁剪失败 (${item.index + 1}):`, error);
+            return null;
+          }
+        },
+      );
+
+      const croppedResults = cropResults.filter(Boolean);
+      const successCount = croppedResults.length;
+      console.warn(`裁剪完成，成功 ${successCount}/${loadedImages.length} 张`);
 
       // 阶段3：上传结果（并发控制）
       console.warn(`进入上传阶段，待上传 ${croppedResults.length} 张图片`);
@@ -625,48 +618,44 @@ export function SpriteCropper({
         return;
       }
 
-      await monitor.measure("上传", async () => {
-        console.warn("开始上传图片");
-        const results = await cropImagesWithConcurrency(
-          croppedResults,
-          MAX_CONCURRENCY,
-          async (item: any, idx: number) => {
-            if (!item || !item.avatar.roleId)
-              return null;
+      console.warn("开始上传图片");
+      const uploadResults = await cropImagesWithConcurrency(
+        croppedResults,
+        MAX_CONCURRENCY,
+        async (item: any, idx: number) => {
+          if (!item || !item.avatar.roleId)
+            return null;
 
-            try {
-              if (isAvatarMode) {
-                await applyCropAvatarMutation.mutateAsync({
-                  roleId: item.avatar.roleId,
-                  avatarId: item.avatar.avatarId!,
-                  croppedImageBlob: item.croppedBlob,
-                  currentAvatar: item.avatar,
-                });
-              }
-              else {
-                await applyCropMutation.mutateAsync({
-                  roleId: item.avatar.roleId,
-                  avatarId: item.avatar.avatarId!,
-                  croppedImageBlob: item.croppedBlob,
-                  transform,
-                  currentAvatar: item.avatar,
-                });
-              }
-              console.warn(`上传完成 (${idx + 1}/${croppedResults.length})`);
-              return true;
+          try {
+            if (isAvatarMode) {
+              await applyCropAvatarMutation.mutateAsync({
+                roleId: item.avatar.roleId,
+                avatarId: item.avatar.avatarId!,
+                croppedImageBlob: item.croppedBlob,
+                currentAvatar: item.avatar,
+              });
             }
-            catch (error) {
-              console.error(`上传失败 (${idx + 1}):`, error);
-              return false;
+            else {
+              await applyCropMutation.mutateAsync({
+                roleId: item.avatar.roleId,
+                avatarId: item.avatar.avatarId!,
+                croppedImageBlob: item.croppedBlob,
+                transform,
+                currentAvatar: item.avatar,
+              });
             }
-          },
-        );
+            console.warn(`上传完成 (${idx + 1}/${croppedResults.length})`);
+            return true;
+          }
+          catch (error) {
+            console.error(`上传失败 (${idx + 1}):`, error);
+            return false;
+          }
+        },
+      );
 
-        const successCount = results.filter(Boolean).length;
-        console.warn(`上传阶段完成，成功 ${successCount}/${croppedResults.length} 张`);
-      });
-
-      monitor.printReport(filteredAvatars.length);
+      const uploadSuccessCount = uploadResults.filter(Boolean).length;
+      console.warn(`上传阶段完成，成功 ${uploadSuccessCount}/${croppedResults.length} 张`);
     }
     catch (error) {
       console.error("批量裁剪失败:", error);
