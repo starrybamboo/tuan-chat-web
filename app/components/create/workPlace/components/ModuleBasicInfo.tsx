@@ -1,5 +1,5 @@
 import type { Module } from "api";
-import { ImgUploaderWithCopper } from "@/components/common/uploader/imgUploaderWithCopper";
+import { ImgUploaderWithSelector } from "@/components/common/uploader/ImgUploaderWithSelector";
 import { useCallback, useState } from "react";
 
 interface ModuleBasicInfoProps {
@@ -87,13 +87,13 @@ export default function ModuleBasicInfo({
                 <CoverSlot image={localModule.image} />
               )
             : (
-                <ImgUploaderWithCopper
+                <ImgUploaderWithSelector
                   setDownloadUrl={() => {}}
                   setCopperedDownloadUrl={handleImageChange}
                   fileName={uniqueFileName}
                 >
                   <CoverSlot image={localModule.image} />
-                </ImgUploaderWithCopper>
+                </ImgUploaderWithSelector>
               )}
         </div>
       </div>

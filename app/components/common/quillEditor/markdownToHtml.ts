@@ -10,10 +10,6 @@ export function isBlankLineSentinel(v: string): boolean {
 export function rawMarkdownToHtml(md: string): string {
   if (!md)
     return "";
-  try {
-    console.warn("[MD->HTML][rawMarkdownToHtml] input.length", md.length);
-  }
-  catch { /* ignore */ }
   const norm = md.replace(/\r\n?/g, "\n");
   let lines = norm.split(/\n/);
   // 统一折叠为空字符串（逻辑空行）
@@ -50,6 +46,11 @@ export function rawMarkdownToHtml(md: string): string {
     const line = lines[idx];
     if (!line.trim()) { // 空行
       blocks.push("<p><br></p>");
+      continue;
+    }
+    // 水平分隔线：独立一行的 --- （不允许有其它字符，允许前后空白）
+    if (/^\s*---\s*$/.test(line)) {
+      blocks.push("<hr>");
       continue;
     }
     // 单行 heading
@@ -89,30 +90,73 @@ export function rawMarkdownToHtml(md: string): string {
       blocks.push(`<pre><code>${escaped}</code></pre>`);
       continue;
     }
-    // 有序列表：连续行
-    if (/^\d+\.\s+/.test(line)) {
-      const items: string[] = [];
+    // ===== 嵌套列表解析（树构建：子列表嵌入父 <li> 内） =====
+    if (/^[ \t]{0,30}(?:\d+\.\s+|[\-*+]\s+)/.test(line)) {
+      type ListNode = { indent: number; ordered: boolean; content: string; children: ListNode[] };
+      const root: ListNode[] = [];
+      const stack: { indent: number; nodes: ListNode[] }[] = [{ indent: -1, nodes: root }];
+      const getIndent = (s: string) => s.replace(/\t/g, "    ").length;
       let j = idx;
-      while (j < lines.length && /^\d+\.\s+/.test(lines[j])) {
-        const rawItem = lines[j].replace(/^\d+\.\s+/, "");
-        items.push(`<li>${applyInline(rawItem)}</li>`);
-        j++;
+      for (; j < lines.length; j++) {
+        const ln = lines[j];
+        if (!ln.trim()) {
+          break;
+        }
+        const m = /^([ \t]{0,30})(.*)$/.exec(ln);
+        if (!m) {
+          break;
+        }
+        const indent = getIndent(m[1] || "");
+        let rest = m[2];
+        let ordered = false;
+        const orderedHead = /^\d+\.\s+/.exec(rest);
+        if (orderedHead) {
+          ordered = true;
+          rest = rest.slice(orderedHead[0].length);
+        }
+        else {
+          const bulletHead = /^[\-*+]\s+/.exec(rest);
+          if (bulletHead) {
+            rest = rest.slice(bulletHead[0].length);
+          }
+          else {
+            break; // 非列表行
+          }
+        }
+        while (stack.length && indent <= stack[stack.length - 1].indent) {
+          stack.pop();
+        }
+        if (!stack.length) {
+          stack.push({ indent: -1, nodes: root });
+        }
+        // 仅当缩进 > 顶层且不是 0（根层）时才进入子层级
+        if (indent > stack[stack.length - 1].indent && !(stack[stack.length - 1].indent === -1 && indent === 0)) {
+          const parentArr = stack[stack.length - 1].nodes;
+          const parentNode = parentArr[parentArr.length - 1];
+          if (parentNode) {
+            stack.push({ indent, nodes: parentNode.children });
+          }
+        }
+        const arr = stack[stack.length - 1].nodes;
+        arr.push({ indent, ordered, content: rest.trim(), children: [] });
       }
+      const renderNodes = (nodes: ListNode[]): string => {
+        let html = "";
+        let i = 0;
+        while (i < nodes.length) {
+          const orderedFlag = nodes[i].ordered;
+          html += orderedFlag ? "<ol>" : "<ul>";
+          while (i < nodes.length && nodes[i].ordered === orderedFlag) {
+            const n = nodes[i];
+            html += `<li>${applyInline(n.content)}${n.children.length ? renderNodes(n.children) : ""}</li>`;
+            i++;
+          }
+          html += orderedFlag ? "</ol>" : "</ul>";
+        }
+        return html;
+      };
+      blocks.push(renderNodes(root));
       idx = j - 1;
-      blocks.push(`<ol>${items.join("")}</ol>`);
-      continue;
-    }
-    // 无序列表
-    if (/^[\-*+]\s+/.test(line)) {
-      const items: string[] = [];
-      let j = idx;
-      while (j < lines.length && /^[\-*+]\s+/.test(lines[j])) {
-        const rawItem = lines[j].replace(/^[\-*+]\s+/, "");
-        items.push(`<li>${applyInline(rawItem)}</li>`);
-        j++;
-      }
-      idx = j - 1;
-      blocks.push(`<ul>${items.join("")}</ul>`);
       continue;
     }
     // 普通段落（单行）
@@ -144,10 +188,6 @@ export function rawMarkdownToHtml(md: string): string {
     blocks.push(`<p${alignAttr}>${applyInline(content)}</p>`);
   }
   const html = blocks.join("");
-  try {
-    console.warn("[MD->HTML][rawMarkdownToHtml] output.length", html.length);
-  }
-  catch { /* ignore */ }
   return html;
 }
 
@@ -155,10 +195,6 @@ export function rawMarkdownToHtml(md: string): string {
 export function markdownToHtmlWithEntities(md: string, entitiesMap: Record<string, string[]>): string {
   if (!md)
     return "";
-  try {
-    console.warn("[MD->HTML][markdownToHtmlWithEntities] input.length", md.length);
-  }
-  catch { /* ignore */ }
   const preliminary = rawMarkdownToHtml(md);
   if (!preliminary)
     return "";
@@ -181,10 +217,6 @@ export function markdownToHtmlWithEntities(md: string, entitiesMap: Record<strin
     }
   });
   const out = container.innerHTML;
-  try {
-    console.warn("[MD->HTML][markdownToHtmlWithEntities] output.length", out.length);
-  }
-  catch { /* ignore */ }
   return out;
 }
 
@@ -194,10 +226,6 @@ export function markdownToHtmlWithEntities(md: string, entitiesMap: Record<strin
 export function enhanceMentionsInHtml(raw: string, categories: string[] = ["人物", "地点", "物品"]): string {
   if (!raw)
     return "";
-  try {
-    console.warn("[MENTION][enhanceMentionsInHtml] input.length", raw.length);
-  }
-  catch { /* ignore */ }
   if (typeof document === "undefined") {
     const catAlt = categories.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
     const re = new RegExp(`@(${catAlt})([^\\s<>{}]+)`, "g");
@@ -273,10 +301,6 @@ export function enhanceMentionsInHtml(raw: string, categories: string[] = ["人�
   };
   Array.from(container.childNodes).forEach(c => walk(c));
   const enhanced = container.innerHTML;
-  try {
-    console.warn("[MENTION][enhanceMentionsInHtml] replacedSpans", container.querySelectorAll("span.ql-mention-span").length);
-  }
-  catch { /* ignore */ }
   return enhanced;
 }
 
@@ -286,10 +310,6 @@ export function enhanceMentionsInHtml(raw: string, categories: string[] = ["人�
 export function backendContentToQuillHtml(content: string, format: "markdown" | "html" | "text" = "html"): string {
   if (!content)
     return "";
-  try {
-    console.warn("[IMPORT][backendContentToQuillHtml] start", { format, len: content.length });
-  }
-  catch { /* ignore */ }
   let html: string;
   if (format === "markdown") {
     html = rawMarkdownToHtml(content);
@@ -302,9 +322,5 @@ export function backendContentToQuillHtml(content: string, format: "markdown" | 
     html = content;
   }
   const finalHtml = enhanceMentionsInHtml(html);
-  try {
-    console.warn("[IMPORT][backendContentToQuillHtml] done", { finalLen: finalHtml.length });
-  }
-  catch { /* ignore */ }
   return finalHtml;
 }

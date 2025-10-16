@@ -194,9 +194,9 @@ export default function SceneList({ stageId, searchQuery: controlledQuery, delet
                     }
                     updateMap({
                       id: mapData.id!,
+                      name: mapData.name,
                       entityType: 5,
                       entityInfo: {
-                        ...mapData.entityInfo,
                         sceneMap: newMap,
                       },
                     });

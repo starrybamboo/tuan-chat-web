@@ -112,21 +112,20 @@ export default function SpaceDetailPanel() {
             }
           </div>
           {spaceRoles.map((role) => {
-            const roleInfo = role.entityInfo as { avatarId?: number; roleName?: string } | undefined;
             return (
               <div
-                key={role.id}
+                key={role.roleId}
                 className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg items-center "
               >
                 {/* role列表 */}
                 <RoleAvatarComponent
-                  avatarId={roleInfo?.avatarId ?? 0}
+                  avatarId={role.avatarId ?? 0}
                   width={8}
                   isRounded={true}
                   withTitle={false}
                 />
                 <div className="flex flex-col items-center gap-2 text-sm font-medium">
-                  <span>{role.name || roleInfo?.roleName || "未命名角色"}</span>
+                  <span>{role.roleName || "未命名角色"}</span>
                 </div>
               </div>
             );

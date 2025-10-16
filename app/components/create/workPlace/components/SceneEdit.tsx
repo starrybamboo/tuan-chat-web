@@ -85,7 +85,16 @@ function Folder({ moduleData, entityType, onClick, onDelete }:
 export default function SceneEdit({ scene, id }: SceneEditProps) {
   const [selectedTab, setSelectedTab] = useState<"description" | "tip" | "assets">("description");
   const entityInfo = useMemo(() => scene.entityInfo || {}, [scene.entityInfo]);
-  const { stageId, beginSelectionLock, endSelectionLock, updateModuleTabLabel } = useModuleContext();
+  const { stageId, beginSelectionLock, endSelectionLock, updateModuleTabLabel, setTabSaveFunction, currentSelectedTabId } = useModuleContext();
+
+  // 获取所有实体
+  const { data: entities } = useQueryEntitiesQuery(stageId as number);
+  // 获取地图
+  const mapDataRef = useRef<StageEntityResponse>(entities?.data?.find(item => item.entityType === 5));
+
+  useEffect(() => {
+    mapDataRef.current = entities?.data?.find(item => item.entityType === 5);
+  }, [entities]);
 
   // 本地状态
   const [localScene, setLocalScene] = useState({ ...entityInfo });
@@ -112,9 +121,13 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
   // 名称内联编辑（与其他编辑器一致）
   const nameInputRef = useRef(scene.name || "");
+  // 乐观更新，保持名称同步
   const nameRef = useRef(scene.name);
+  // 悲观更新，同步地图
+  const oldNameRef = useRef(scene.name);
   const nameDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   useLayoutEffect(() => {
+    oldNameRef.current = scene.name;
     if ((scene.name || "") !== nameInputRef.current) {
       nameRef.current = scene.name;
       nameInputRef.current = scene.name || "";
@@ -144,7 +157,8 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
   }, [localScene]);
 
   const handleNameChange = (val: string) => {
-    beginSelectionLock("editing-scene-name", 1200);
+    beginSelectionLock("editing-scene-name", 800);
+    const oldName = oldNameRef.current;
     nameInputRef.current = val;
     updateModuleTabLabel(scene.id!.toString(), val || "未命名");
     optimisticUpdateEntityName(val || "未命名");
@@ -155,24 +169,56 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
     nameDebounceTimer.current = setTimeout(() => {
       updateScene({ id: scene.id!, entityType: 3, entityInfo: localSceneRef.current, name: val }, {
         onSuccess: () => {
-          endSelectionLock();
+          if (mapDataRef.current) {
+            const oldMap = { ...mapDataRef.current.entityInfo?.sceneMap } as Record<string, any>;
+            const newMap: Record<string, any> = {};
+            Object.entries(oldMap).forEach(([key, value]) => {
+              if (key === oldName) {
+                newMap[val as string] = value;
+              }
+              else {
+                newMap[key] = value;
+              }
+              if (Array.isArray(value)) {
+                const newArray = [...value] as Array<string>;
+                newArray.forEach((item, index) => {
+                  if (item === oldName) {
+                    newArray[index] = val as string;
+                  }
+                });
+                if (key === oldName) {
+                  newMap[val as string] = newArray;
+                }
+                else {
+                  newMap[key] = newArray;
+                }
+              }
+            });
+            updateScene({ id: mapDataRef.current.id!, entityType: 5, entityInfo: { sceneMap: newMap }, name: mapDataRef.current.name }, {
+              onSuccess: () => {
+                oldNameRef.current = val;
+              },
+            });
+          }
         },
         onError: () => endSelectionLock(),
       });
     }, 600);
   };
 
-  // （重复的 localSceneRef 已移除）
+  // 如果在名称输入框 blur 时还有未触发的防抖提交，不立即解除锁，避免用户立刻切换到其它模块
+  const handleNameInputBlur = () => {
+    // 若正在等待提交（存在定时器），交由提交成功/失败回调释放锁
+    if (nameDebounceTimer.current) {
+      return;
+    }
+    endSelectionLock();
+  };
 
   // 新增状态
   const [locations, setLocations] = useState<StageEntityResponse[]>([]);
   const [items, setItems] = useState<StageEntityResponse[]>([]);
   const [roles, setRoles] = useState<StageEntityResponse[]>([]);
-
-  // 获取所有实体
-  const { data: entities } = useQueryEntitiesQuery(stageId as number);
-  // 获取地图
-  const mapData = entities?.data?.filter(item => item.entityType === 5)[0];
 
   // 弹窗相关
   const [isOpen, setIsOpen] = useState(false);
@@ -183,8 +229,10 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
   };
 
   const handleAddEntity = (entities: StageEntityResponse[]) => {
+    beginSelectionLock("adding-entity", 2000);
+    const entityType = entities[0]?.entityType;
     const entitiesNames = entities.map(entity => entity.name);
-    if (editEntityType === "item") {
+    if (entityType === 1) {
       updateScene({
         id: scene.id!,
         name: scene.name!,
@@ -193,7 +241,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
       });
       setLocalScene(prev => ({ ...prev, items: [...(prev.items || []), ...entitiesNames] }));
     }
-    if (editEntityType === "role") {
+    if (entityType === 2) {
       updateScene({
         id: scene.id!,
         name: scene.name!,
@@ -202,7 +250,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
       });
       setLocalScene(prev => ({ ...prev, roles: [...(prev.roles || []), ...entitiesNames] }));
     }
-    if (editEntityType === "location") {
+    if (entityType === 4) {
       updateScene({
         id: scene.id!,
         name: scene.name!,
@@ -211,9 +259,13 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
       });
       setLocalScene(prev => ({ ...prev, locations: [...(prev.locations || []), ...entitiesNames] }));
     }
+    setTimeout(() => {
+      endSelectionLock();
+    }, 2000);
   };
 
   const handleDeleteEntity = (entity: StageEntityResponse) => {
+    beginSelectionLock("deleting-entity", 2000);
     if (entity.entityType! === 1) {
       const filteredItems = localScene.items?.filter((item: string | undefined) => item !== entity.name);
       updateScene({
@@ -221,6 +273,8 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
         name: scene.name!,
         entityType: 3,
         entityInfo: { ...localScene, items: (filteredItems || []) },
+      }, {
+        onSuccess: () => endSelectionLock(),
       });
       setLocalScene(prev => ({ ...prev, items: (filteredItems || []) }));
     }
@@ -245,6 +299,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
       setLocalScene(prev => ({ ...prev, locations: (filteredLocations || []) }));
     }
+    setTimeout(() => endSelectionLock(), 1000);
   };
 
   const handleClose = () => {
@@ -317,44 +372,15 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
   // 定时器的更新 (localSceneRef 已在前面声明并更新)
   const handleSave = () => {
-    beginSelectionLock("scene-save", 800);
+    beginSelectionLock("scene-save", 700);
     setIsTransitioning(true);
     setTimeout(() => {
       setIsTransitioning(false);
       setIsEditing(false);
-      const oldName = scene.name;
-      const changed = false; // 名称单独通过 handleNameChange 修改
       updateScene(
         { id: scene.id!, entityType: 3, entityInfo: localSceneRef.current, name: nameRef.current || scene.name },
         {
           onSuccess: () => {
-            if (changed && mapData) {
-              const oldMap = { ...mapData.entityInfo?.sceneMap } as Record<string, any>;
-              const newMap: Record<string, any> = {};
-              Object.entries(oldMap).forEach(([key, value]) => {
-                if (key === oldName) {
-                  newMap[scene.name as string] = value;
-                }
-                else {
-                  newMap[key] = value;
-                }
-                if (Array.isArray(value)) {
-                  const newArray = [...value] as Array<string>;
-                  newArray.forEach((item, index) => {
-                    if (item === oldName) {
-                      newArray[index] = scene.name as string;
-                    }
-                  });
-                  if (key === oldName) {
-                    newMap[scene.name as string] = newArray;
-                  }
-                  else {
-                    newMap[key] = newArray;
-                  }
-                }
-              });
-              updateScene({ id: mapData.id!, entityType: 5, entityInfo: { ...mapData.entityInfo, sceneMap: newMap }, name: mapData.name });
-            }
             toast.success("场景保存成功");
             setTimeout(() => endSelectionLock(), 300);
           },
@@ -365,6 +391,28 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
       );
     }, 300);
   };
+
+  // 保存函数注册：使用稳定包装器防止闭包陈旧 & 初始为 no-op
+  const latestHandleSaveRef = useRef(handleSave);
+  latestHandleSaveRef.current = handleSave; // 每次 render 更新指针
+  useEffect(() => {
+    const tabId = scene.id?.toString();
+    if (!tabId) {
+      return;
+    }
+    if (currentSelectedTabId === tabId) {
+      // 仅在自己被选中时注册保存函数
+      setTabSaveFunction(() => {
+        latestHandleSaveRef.current();
+      });
+    }
+    // 若不是自身，不需要主动清除（新激活 tab 会覆盖），除非卸载阶段仍占用
+    return () => {
+      if (currentSelectedTabId === tabId) {
+        setTabSaveFunction(() => {});
+      }
+    };
+  }, [currentSelectedTabId, scene.id, setTabSaveFunction]);
 
   return (
     <div className={`max-w-4xl mx-auto pb-20 transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-50" : ""}`}>
@@ -379,7 +427,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                 value={nameInputRef.current}
                 onChange={e => handleNameChange(e.target.value)}
                 onFocus={() => beginSelectionLock("editing-scene-name", 1500)}
-                onBlur={() => endSelectionLock()}
+                onBlur={handleNameInputBlur}
                 placeholder="输入场景名称"
                 title="点击编辑场景名称"
                 className="font-semibold text-2xl md:text-3xl my-2 bg-transparent outline-none w-full truncate px-1 -mx-1 border-b border-dashed border-transparent focus:border-primary/70 focus:bg-primary/5 hover:border-base-content/40 hover:bg-base-200/40 rounded-sm transition-colors caret-primary"
@@ -454,6 +502,8 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                   saveTimer.current && clearTimeout(saveTimer.current);
                   saveTimer.current = setTimeout(() => handleSave(), 8000);
                 }}
+                onSpecialKey={handleAddEntity}
+                onDeleteSpecialKey={handleDeleteEntity}
               />
             </div>
           </div>
@@ -470,8 +520,10 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                   // 之前这里错误地写入了 description 导致切换 Tab 时 tip 覆盖 description
                   setLocalScene(prev => ({ ...prev, tip: value }));
                   saveTimer.current && clearTimeout(saveTimer.current);
-                  saveTimer.current = setTimeout(() => handleSave, 8000);
+                  saveTimer.current = setTimeout(() => handleSave(), 8000);
                 }}
+                onSpecialKey={handleAddEntity}
+                onDeleteSpecialKey={handleDeleteEntity}
               />
             </div>
           </div>

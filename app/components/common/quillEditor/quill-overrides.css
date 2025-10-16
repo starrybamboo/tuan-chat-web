@@ -211,3 +211,232 @@
 .ql-align-justify {
   text-align: justify;
 }
+
+/* 水平线统一样式 */
+.ql-editor hr,
+.ql-editor .ql-hr {
+  border: none;
+  border-top: 3px solid #e5e7eb;
+  margin: 1.2em 0;
+  height: 0;
+}
+
+/* @弹窗修饰 */
+.mention-preview .preview-html h1 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0.55em 0 0.4em;
+}
+.mention-preview .preview-html h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0.55em 0 0.4em;
+}
+.mention-preview .preview-html h3 {
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0.5em 0 0.35em;
+}
+.mention-preview .preview-html p {
+  margin: 0.45em 0;
+}
+.mention-preview .preview-html .ql-mention-span {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  background: #eef2ff;
+  color: #4338ca;
+}
+.mention-preview .preview-html .ql-mention-span[data-category="人物"] {
+  background: #fef3c7;
+  color: #92400e;
+}
+.mention-preview .preview-html .ql-mention-span[data-category="地点"] {
+  background: #d1fae5;
+  color: #065f46;
+}
+.mention-preview .preview-html .ql-mention-span[data-category="物品"] {
+  background: #e0f2fe;
+  color: #075985;
+}
+.mention-preview .preview-html strong {
+  font-weight: 600;
+}
+.mention-preview .preview-html em {
+  font-style: italic;
+}
+.mention-preview .preview-html u {
+  text-decoration: underline;
+}
+.mention-preview .preview-html s {
+  text-decoration: line-through;
+}
+.mention-preview .preview-html hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 0.6em 0;
+}
+
+/* 通用 Markdown 展示区域（弹窗 & 外部组件复用） */
+.mention-markdown {
+  --mm-link-color: #2563eb;
+  --mm-link-visited: #4f46e5;
+  --mm-link-hover: #1d4ed8;
+  --mm-list-indent-step: 1.1em;
+}
+.mention-markdown h1,
+.mention-markdown h2,
+.mention-markdown h3 {
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0.9em 0 0.5em;
+}
+.mention-markdown h1 {
+  font-size: 1.9rem;
+}
+.mention-markdown h2 {
+  font-size: 1.55rem;
+}
+.mention-markdown h3 {
+  font-size: 1.3rem;
+}
+.mention-markdown p {
+  margin: 0.6em 0;
+}
+.mention-markdown strong {
+  font-weight: 600;
+}
+.mention-markdown em {
+  font-style: italic;
+}
+.mention-markdown u {
+  text-decoration: underline;
+}
+.mention-markdown s {
+  text-decoration: line-through;
+}
+.mention-markdown hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1.2em 0;
+}
+.mention-markdown a {
+  color: var(--mm-link-color);
+  text-decoration: underline;
+  cursor: pointer;
+  word-break: break-all;
+}
+.mention-markdown a:visited {
+  color: var(--mm-link-visited);
+}
+.mention-markdown a:hover {
+  color: var(--mm-link-hover);
+}
+
+.mention-markdown ul {
+  list-style-type: disc;
+  margin: 0.75em 1.25em;
+  padding-left: 1.25em;
+}
+.mention-markdown ol {
+  list-style-type: decimal;
+  margin: 0.75em 1.25em;
+  padding-left: 1.25em;
+}
+.mention-markdown li {
+  margin: 0.25em 0;
+  line-height: 1.45;
+}
+.mention-markdown li ul,
+.mention-markdown li ol {
+  margin: 0.3em 0;
+}
+
+/* 多级缩进（5 级） */
+.mention-markdown ul ul,
+.mention-markdown ol ul,
+.mention-markdown ul ol,
+.mention-markdown ol ol {
+  margin-left: calc(var(--mm-list-indent-step) * 1);
+}
+.mention-markdown ul ul ul,
+.mention-markdown ol ul ul {
+  margin-left: calc(var(--mm-list-indent-step) * 2);
+}
+.mention-markdown ul ul ul ul {
+  margin-left: calc(var(--mm-list-indent-step) * 3);
+}
+.mention-markdown ul ul ul ul ul {
+  margin-left: calc(var(--mm-list-indent-step) * 4);
+}
+
+/* .mention-preview .preview-html, .markdown-mention-viewer 仍然可手动再加 class="mention-markdown" 以获得变量覆盖能力 */
+
+/* 在不支持 @apply 的环境（非 PostCSS Tailwind）时的后备：直接列出两个容器引用通用类的所有规则（保持冗余让构建不报错） */
+.mention-preview .preview-html a,
+.markdown-mention-viewer a {
+  color: var(--mm-link-color);
+  text-decoration: underline;
+  cursor: pointer;
+  word-break: break-all;
+}
+.mention-preview .preview-html a:visited,
+.markdown-mention-viewer a:visited {
+  color: var(--mm-link-visited);
+}
+.mention-preview .preview-html a:hover,
+.markdown-mention-viewer a:hover {
+  color: var(--mm-link-hover);
+}
+.mention-preview .preview-html ul,
+.markdown-mention-viewer ul {
+  list-style-type: disc;
+  margin: 0.75em 1.25em;
+  padding-left: 1.25em;
+}
+.mention-preview .preview-html ol,
+.markdown-mention-viewer ol {
+  list-style-type: decimal;
+  margin: 0.75em 1.25em;
+  padding-left: 1.25em;
+}
+.mention-preview .preview-html li,
+.markdown-mention-viewer li {
+  margin: 0.25em 0;
+  line-height: 1.45;
+}
+.mention-preview .preview-html li ul,
+.mention-preview .preview-html li ol,
+.markdown-mention-viewer li ul,
+.markdown-mention-viewer li ol {
+  margin: 0.3em 0;
+}
+.mention-preview .preview-html ul ul,
+.mention-preview .preview-html ol ul,
+.mention-preview .preview-html ul ol,
+.mention-preview .preview-html ol ol,
+.markdown-mention-viewer ul ul,
+.markdown-mention-viewer ol ul,
+.markdown-mention-viewer ul ol,
+.markdown-mention-viewer ol ol {
+  margin-left: calc(var(--mm-list-indent-step) * 1);
+}
+.mention-preview .preview-html ul ul ul,
+.mention-preview .preview-html ol ul ul,
+.markdown-mention-viewer ul ul ul,
+.markdown-mention-viewer ol ul ul {
+  margin-left: calc(var(--mm-list-indent-step) * 2);
+}
+.mention-preview .preview-html ul ul ul ul,
+.markdown-mention-viewer ul ul ul ul {
+  margin-left: calc(var(--mm-list-indent-step) * 3);
+}
+.mention-preview .preview-html ul ul ul ul ul,
+.markdown-mention-viewer ul ul ul ul ul {
+  margin-left: calc(var(--mm-list-indent-step) * 4);
+}

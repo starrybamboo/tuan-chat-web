@@ -44,8 +44,23 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       if (newMessages[0].message.roomId === roomId) {
         setMessages((prevMessages) => {
           const messageMap = new Map(prevMessages.map(msg => [msg.message.messageId, msg]));
+          let hasChanges = false;
+
           newMessages.filter(msg => msg.message.roomId === roomId)
-            .forEach(msg => messageMap.set(msg.message.messageId, msg));
+            .forEach((msg) => {
+              const existingMsg = messageMap.get(msg.message.messageId);
+              // 只有在消息真正变化时才更新
+              if (!existingMsg || JSON.stringify(existingMsg) !== JSON.stringify(msg)) {
+                messageMap.set(msg.message.messageId, msg);
+                hasChanges = true;
+              }
+            });
+
+          // 如果没有变化，返回原数组以避免不必要的重渲染
+          if (!hasChanges) {
+            return prevMessages;
+          }
+
           const updatedMessages = Array.from(messageMap.values());
           // 按 position 排序确保顺序
           return updatedMessages.sort((a, b) => a.message.position - b.message.position);

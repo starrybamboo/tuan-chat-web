@@ -69,7 +69,7 @@ export class ItemControllerService {
      * @returns ApiResultLong OK
      * @throws ApiError
      */
-    public addItem2(
+    public addItem1(
         requestBody: ItemAddRequest,
     ): CancelablePromise<ApiResultLong> {
         return this.httpRequest.request({

@@ -542,7 +542,11 @@ export function SpriteCropper({
 
   /**
    * 应用相同裁剪参数到所有头像/立绘
+<<<<<<< HEAD
    * 优化版本：并行处理 + 性能监控（基于 Performance API）
+=======
+   * 分为三个阶段：图片加载 -> 图片裁剪 -> 上传操作
+>>>>>>> 1ae141b547b0b17793657201f7d2e6e566c633b5
    */
   async function handleBatchCropAll() {
     if (!isMutiAvatars || !completedCrop)
