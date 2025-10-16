@@ -213,6 +213,48 @@ class WorkerPool {
 }
 
 /**
+ * 并发控制辅助函数
+ * @param tasks 任务数组
+ * @param maxConcurrency 最大并发数
+ * @param processor 处理函数
+ */
+async function runWithConcurrencyLimit<T, R>(
+  tasks: T[],
+  maxConcurrency: number,
+  processor: (task: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results: (R | null)[] = Array.from({ length: tasks.length });
+  const executing: Promise<void>[] = [];
+
+  for (let i = 0; i < tasks.length; i++) {
+    const task = tasks[i];
+    const taskIndex = i;
+
+    const promise = (async () => {
+      try {
+        const result = await processor(task, taskIndex);
+        results[taskIndex] = result;
+      }
+      catch (error) {
+        console.error(`任务 ${taskIndex + 1} 执行失败:`, error);
+        results[taskIndex] = null;
+      }
+    })();
+
+    executing.push(promise);
+
+    if (executing.length >= maxConcurrency) {
+      await Promise.race(executing);
+      // 移除已完成的 promise，保持并发队列流动
+      executing.splice(0, executing.findIndex(() => true) + 1);
+    }
+  }
+
+  await Promise.all(executing);
+  return results as R[];
+}
+
+/**
  * 使用 Web Worker Pool 进行图像裁剪，支持并行处理
  */
 export function useImageCropWorker() {
@@ -240,5 +282,19 @@ export function useImageCropWorker() {
     return workerPoolRef.current.cropImage(params);
   };
 
-  return { cropImage };
+  /**
+   * 批量裁剪图像（带并发控制）
+   * @param tasks 任务数组
+   * @param maxConcurrency 最大并发数，默认为 8
+   * @param processor 处理函数
+   */
+  const cropImagesWithConcurrency = async <T, R>(
+    tasks: T[],
+    maxConcurrency: number = 8,
+    processor: (task: T, index: number) => Promise<R>,
+  ): Promise<R[]> => {
+    return runWithConcurrencyLimit(tasks, maxConcurrency, processor);
+  };
+
+  return { cropImage, cropImagesWithConcurrency };
 }
