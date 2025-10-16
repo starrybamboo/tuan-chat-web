@@ -44,10 +44,10 @@ async function canvasPreviewOffscreen(
   const scaleX = imageNaturalWidth / imageDisplayWidth;
   const scaleY = imageNaturalHeight / imageDisplayHeight;
 
-  const canvas = new OffscreenCanvas(
-    Math.floor(crop.width * scaleX * pixelRatio),
-    Math.floor(crop.height * scaleY * pixelRatio),
-  );
+  const canvasWidth = Math.floor(crop.width * scaleX * pixelRatio);
+  const canvasHeight = Math.floor(crop.height * scaleY * pixelRatio);
+
+  const canvas = new OffscreenCanvas(canvasWidth, canvasHeight);
 
   const ctx = canvas.getContext("2d");
   if (!ctx) {
@@ -91,10 +91,12 @@ async function canvasPreviewOffscreen(
   // 清理 ImageBitmap 资源（已转移所有权，用完即释放）
   imageBitmap.close();
 
-  // 转换为 Blob
-  return await canvas.convertToBlob({
+  // 转换为 Blob - 使用 PNG 格式
+  const blob = await canvas.convertToBlob({
     type: "image/png",
   });
+
+  return blob;
 }
 
 // Worker 消息处理
@@ -126,6 +128,8 @@ globalThis.addEventListener("message", async (e: MessageEvent<CropMessage>) => {
     globalThis.postMessage(response);
   }
   catch (error) {
+    console.error("[Worker] 裁剪失败:", error);
+
     const response: CropResponse = {
       type: "error",
       error: error instanceof Error ? error.message : "Unknown error",
@@ -133,4 +137,13 @@ globalThis.addEventListener("message", async (e: MessageEvent<CropMessage>) => {
 
     globalThis.postMessage(response);
   }
+});
+
+// Worker 全局错误处理
+globalThis.addEventListener("error", (e) => {
+  console.error("[Worker] 全局错误:", e.error);
+});
+
+globalThis.addEventListener("unhandledrejection", (e) => {
+  console.error("[Worker] 未处理的 Promise 拒绝:", e.reason);
 });

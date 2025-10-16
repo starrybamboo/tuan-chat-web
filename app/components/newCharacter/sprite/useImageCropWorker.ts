@@ -47,6 +47,12 @@ class WorkerPool {
         new URL("./imageCrop.worker.ts", import.meta.url),
         { type: "module" },
       );
+
+      // 监听 Worker 错误
+      worker.addEventListener("error", (e) => {
+        console.error(`[WorkerPool] Worker ${i} 错误:`, e);
+      });
+
       this.workers.push(worker);
       this.availableWorkers.push(worker);
     }
@@ -102,8 +108,14 @@ class WorkerPool {
     const { img, crop, scale = 1, rotate = 0 } = params;
 
     // 使用 createImageBitmap 创建可转移的 ImageBitmap
-    // 这比 canvas 操作更快，且支持零拷贝转移到 Worker
-    const imageBitmap = await createImageBitmap(img);
+    let imageBitmap: ImageBitmap | null = null;
+    try {
+      imageBitmap = await createImageBitmap(img);
+    }
+    catch (error) {
+      console.error("[WorkerPool] ImageBitmap 创建失败:", error);
+      throw new Error(`Failed to create ImageBitmap: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
 
     // 准备消息
     const message: CropMessage = {
@@ -119,25 +131,76 @@ class WorkerPool {
       imageDisplayHeight: img.height,
     };
 
-    // 发送到 Worker 并等待响应
+    // 发送到 Worker 并等待响应（带超时保护）
     // 使用 Transferable Objects 零拷贝转移 ImageBitmap 所有权
     return new Promise((resolve, reject) => {
-      const handleMessage = (e: MessageEvent<CropResponse>) => {
+      let timeoutId: number | null = null;
+      let isResolved = false;
+      let messageHandler: ((e: MessageEvent<CropResponse>) => void) | null = null;
+      let errorHandler: ((error: ErrorEvent) => void) | null = null;
+
+      const cleanup = () => {
+        if (timeoutId !== null) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        if (messageHandler) {
+          worker.removeEventListener("message", messageHandler);
+          messageHandler = null;
+        }
+        if (errorHandler) {
+          worker.removeEventListener("error", errorHandler);
+          errorHandler = null;
+        }
+      };
+
+      messageHandler = (e: MessageEvent<CropResponse>) => {
+        if (isResolved)
+          return;
+
         const response = e.data;
 
         if (response.type === "success" && response.blob) {
-          worker.removeEventListener("message", handleMessage);
+          isResolved = true;
+          cleanup();
           resolve(response.blob);
         }
         else if (response.type === "error") {
-          worker.removeEventListener("message", handleMessage);
+          isResolved = true;
+          cleanup();
           reject(new Error(response.error || "Unknown worker error"));
         }
       };
 
-      worker.addEventListener("message", handleMessage);
+      errorHandler = (error: ErrorEvent) => {
+        if (isResolved)
+          return;
+        isResolved = true;
+        cleanup();
+        reject(new Error(`Worker error: ${error.message}`));
+      };
+
+      // 30秒超时保护
+      timeoutId = window.setTimeout(() => {
+        if (isResolved)
+          return;
+        isResolved = true;
+        cleanup();
+        reject(new Error("Worker timeout after 5s"));
+      }, 5000);
+
+      worker.addEventListener("message", messageHandler);
+      worker.addEventListener("error", errorHandler);
+
       // 第二个参数指定 transferable 对象，实现零拷贝转移
-      worker.postMessage(message, [imageBitmap]);
+      try {
+        worker.postMessage(message, [imageBitmap]);
+      }
+      catch (error) {
+        isResolved = true;
+        cleanup();
+        reject(new Error(`Failed to post message: ${error instanceof Error ? error.message : "Unknown error"}`));
+      }
     });
   }
 

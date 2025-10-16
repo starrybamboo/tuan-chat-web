@@ -363,12 +363,13 @@ export function SpriteCropper({
 
     // 使用 Worker 在后台线程处理图像裁剪
     try {
-      return await cropImage({
+      const blob = await cropImage({
         img,
         crop: completedCrop,
         scale: 1,
         rotate: 0,
       });
+      return blob;
     }
     catch (error) {
       console.error("Worker 裁剪失败，回退到主线程处理:", error);
@@ -542,11 +543,7 @@ export function SpriteCropper({
 
   /**
    * 应用相同裁剪参数到所有头像/立绘
-<<<<<<< HEAD
    * 优化版本：并行处理 + 性能监控（基于 Performance API）
-=======
-   * 分为三个阶段：图片加载 -> 图片裁剪 -> 上传操作
->>>>>>> 1ae141b547b0b17793657201f7d2e6e566c633b5
    */
   async function handleBatchCropAll() {
     if (!isMutiAvatars || !completedCrop)
@@ -585,13 +582,19 @@ export function SpriteCropper({
       });
 
       // 阶段2：裁剪图片
+      console.warn(`阶段1加载完成，共 ${loadedImages.length} 张图片`);
+
       const croppedResults = await monitor.measure("裁剪", async () => {
+        console.warn("开始裁剪图片blob");
         const cropPromises = loadedImages.map(async (item: any) => {
-          if (!item)
+          if (!item) {
+            console.warn("跳过空项");
             return null;
+          }
 
           try {
             const croppedBlob = await getCroppedImageBlobFromImg(item.img);
+            console.warn(`裁剪完成 (${item.index + 1}/${loadedImages.length})`);
             return { ...item, croppedBlob };
           }
           catch (error) {
@@ -599,12 +602,22 @@ export function SpriteCropper({
             return null;
           }
         });
-
-        return (await Promise.all(cropPromises)).filter(Boolean);
+        console.warn("等待所有裁剪完成...");
+        const results = (await Promise.all(cropPromises)).filter(Boolean);
+        console.warn(`裁剪完成，成功 ${results.length}/${loadedImages.length} 张`);
+        return results;
       });
 
       // 阶段3：上传结果
+      console.warn(`进入上传阶段，待上传 ${croppedResults.length} 张图片`);
+
+      if (croppedResults.length === 0) {
+        console.error("没有可上传的图片，跳过上传阶段");
+        return;
+      }
+
       await monitor.measure("上传", async () => {
+        console.warn("开始上传图片");
         const uploadPromises = croppedResults.map(async (item: any, idx: number) => {
           if (!item || !item.avatar.roleId)
             return null;
