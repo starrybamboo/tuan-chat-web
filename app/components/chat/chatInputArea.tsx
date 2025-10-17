@@ -264,7 +264,7 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
         wordBreak: "break-all",
         wordWrap: "break-word",
         whiteSpace: "pre-wrap",
-        overflowWrap: "break-word",
+        overflowWrap: "anywhere",
       }}
       ref={internalTextareaRef}
       onInput={handleInputInternal} // 使用内部的 input 处理器
