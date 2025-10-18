@@ -4,13 +4,11 @@ import UpdatesPopWindow from "@/components/topbanner/updatesWindow";
 import { ConnectionIcon, WebgalIcon } from "@/icons";
 import { checkAuthStatus } from "@/utils/auth/authapi";
 import { isElectronEnv } from "@/utils/isElectronEnv";
-import { QueryClient, useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import LoginButton from "../auth/LoginButton";
 import ThemeSwitch from "../themeSwitch";
-
-const queryClient = new QueryClient();
 
 function ActivitiesButton() {
   return (
@@ -28,6 +26,7 @@ function ActivitiesButton() {
 
 export default function Topbar() {
   const switchRef = useRef<HTMLDivElement | null>(null);
+  const queryClient = useQueryClient(); // 使用 hook 获取 QueryClient 实例
 
   // 点击处理：如果点击发生在 switchRef 内部，则不重复触发；否则查找内部 input 并触发它
   const handleClick = (e?: React.MouseEvent) => {
@@ -74,16 +73,6 @@ export default function Topbar() {
   const isLoggedIn = authStatus?.isLoggedIn || false;
   const userId = (isLoggedIn && authStatus?.token) ? Number(authStatus.token) : 0;
 
-  // 处理导航并关闭下拉菜单
-  const handleNavigation = (path: string) => {
-    navigate(path);
-    setIsDropdownOpen(false);
-    // 强制移除焦点
-    setTimeout(() => {
-      (document.activeElement as HTMLElement)?.blur();
-    }, 100);
-  };
-
   // 处理用户菜单导航并关闭下拉菜单
   const handleUserNavigation = (path: string) => {
     navigate(path);
@@ -124,36 +113,37 @@ export default function Topbar() {
               </svg>
             </div>
             <ul className="dropdown-content z-[50] menu p-2 shadow bg-base-200 rounded-box w-52 mt-3 text-base-content">
-              <li><a onClick={() => handleNavigation("/feed")}>推荐</a></li>
-              <li><a onClick={() => handleNavigation("/community/1")}>社区</a></li>
-              <li><a onClick={() => handleNavigation("/chat")}>聊天</a></li>
-              <li><a onClick={() => handleNavigation("/role")}>角色</a></li>
-              <li><a onClick={() => handleNavigation("/module")}>模组</a></li>
-              <li><a onClick={() => handleNavigation("/create")}>创作</a></li>
-              <li><a onClick={() => handleNavigation("/collection")}>收藏</a></li>
-              <li><a onClick={() => handleNavigation("/resource")}>资源</a></li>
+              <li><Link to="/feed" onClick={() => setIsDropdownOpen(false)}>推荐</Link></li>
+              <li><Link to="/community/1" onClick={() => setIsDropdownOpen(false)}>社区</Link></li>
+              <li><Link to="/chat" onClick={() => setIsDropdownOpen(false)}>聊天</Link></li>
+              <li><Link to="/role" onClick={() => setIsDropdownOpen(false)}>角色</Link></li>
+              <li><Link to="/module" onClick={() => setIsDropdownOpen(false)}>模组</Link></li>
+              <li><Link to="/create" onClick={() => setIsDropdownOpen(false)}>创作</Link></li>
+              <li><Link to="/collection" onClick={() => setIsDropdownOpen(false)}>收藏</Link></li>
+              <li><Link to="/resource" onClick={() => setIsDropdownOpen(false)}>资源</Link></li>
             </ul>
           </div>
 
           <div className="hidden lg:flex">
-            <img
-              src="http://47.119.147.6/tuan/favicon.ico"
-              alt="Logo"
-              className="h-8 w-8 mr-4 ml-2"
-              onClick={() => navigate("/")}
-            />
+            <Link to="/">
+              <img
+                src="http://47.119.147.6/tuan/favicon.ico"
+                alt="Logo"
+                className="h-8 w-8 mr-4 ml-2"
+              />
+            </Link>
           </div>
 
           {/* 导航链接 - 在移动端隐藏 */}
           <div className="hidden lg:flex gap-7">
-            <a onClick={() => navigate("/feed")} className="font-normal text-base hover:underline cursor-default ">推荐</a>
-            <a onClick={() => navigate("/community/1")} className="font-normal text-base hover:underline cursor-default">社区</a>
-            <a onClick={() => navigate("/chat")} className="font-normal text-base hover:underline cursor-default">聊天</a>
-            <a onClick={() => navigate("/role")} className="font-normal text-base hover:underline cursor-default">角色</a>
-            <a onClick={() => navigate("/module")} className="font-normal text-base hover:underline cursor-default">模组</a>
-            <a onClick={() => navigate("/create")} className="font-normal text-base hover:underline cursor-default">创作</a>
-            <a onClick={() => navigate("/collection")} className="font-normal text-base hover:underline cursor-default">收藏</a>
-            <a onClick={() => navigate("/resource")} className="font-normal text-base hover:underline cursor-default">资源</a>
+            <Link to="/feed" className="font-normal text-base hover:underline cursor-default">推荐</Link>
+            <Link to="/community/1" className="font-normal text-base hover:underline cursor-default">社区</Link>
+            <Link to="/chat" className="font-normal text-base hover:underline cursor-default">聊天</Link>
+            <Link to="/role" className="font-normal text-base hover:underline cursor-default">角色</Link>
+            <Link to="/module" className="font-normal text-base hover:underline cursor-default">模组</Link>
+            <Link to="/create" className="font-normal text-base hover:underline cursor-default">创作</Link>
+            <Link to="/collection" className="font-normal text-base hover:underline cursor-default">收藏</Link>
+            <Link to="/resource" className="font-normal text-base hover:underline cursor-default">资源</Link>
           </div>
         </div>
 
