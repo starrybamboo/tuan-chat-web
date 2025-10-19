@@ -504,6 +504,9 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                 }}
                 onSpecialKey={handleAddEntity}
                 onDeleteSpecialKey={handleDeleteEntity}
+                persistSelectionKey={id ? `scene-description-${id}` : undefined}
+                active={currentSelectedTabId === scene.id?.toString() && selectedTab === "description"}
+                focusOnActive
               />
             </div>
           </div>
@@ -524,6 +527,9 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                 }}
                 onSpecialKey={handleAddEntity}
                 onDeleteSpecialKey={handleDeleteEntity}
+                persistSelectionKey={id ? `scene-tip-${id}` : undefined}
+                active={currentSelectedTabId === scene.id?.toString() && selectedTab === "tip"}
+                focusOnActive
               />
             </div>
           </div>
