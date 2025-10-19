@@ -315,11 +315,16 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
   const [mentionPreviewData, setMentionPreviewData] = useState<{ category: string; name: string; description?: string } | null>(null);
   const [mentionPreviewPos, setMentionPreviewPos] = useState<{ leftVw: number; topVw: number }>({ leftVw: 0, topVw: 0 });
   const mentionPreviewLockRef = useRef(false);
-
-  // 仅检测本次 delta 新插入的 @，不改动原 Markdown / inline 逻辑执行顺序
   // 后续可在 popup UI 中使用这些状态。
   const [mentionActive, setMentionActive] = useState(false); // 是否已进入 mention 模式
   const [mentionStart, setMentionStart] = useState<number | null>(null); // 记录 @ 所在的文档 index
+  // ===== Slash Alignment Commands (/center /right /left /justify) =====
+  const [slashActive, setSlashActive] = useState(false);
+  const [slashQuery, setSlashQuery] = useState("");
+  const [slashPos, setSlashPos] = useState<{ top: number; left: number } | null>(null);
+  const [slashHighlight, setSlashHighlight] = useState(0);
+  const slashStartRef = useRef<number | null>(null); // 记录 '/' 开始位置
+  const slashActiveRef = useRef(false);
   // 引入 ref 以便在原生 keydown 捕获阶段使用最新值（避免闭包拿到旧状态）
   const mentionActiveRef = useRef(false);
   const mentionStartRef = useRef<number | null>(null);
@@ -327,8 +332,12 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
     mentionActiveRef.current = mentionActive;
   }, [mentionActive]);
   useEffect(() => {
+    slashActiveRef.current = slashActive;
+  }, [slashActive]);
+  useEffect(() => {
     mentionStartRef.current = mentionStart;
   }, [mentionStart]);
+  // (移除调试) 原 logSlash 已删除
   // 查询字符串（暂未用于 UI，前缀下划线避免未使用 lint 报错）
   const [_mentionQuery, setMentionQuery] = useState(""); // @ 之后的查询字符串（到光标）
   const mentionStageRef = useRef<"category" | "entity" | null>(null); // 分阶段：category -> entity
@@ -1294,6 +1303,123 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
             }
             catch { /* ignore hr detection */ }
           }
+
+          // ---- Hybrid Slash Command Detection ----
+          try {
+            if (!mentionActive) {
+              const selNow = lastRangeRef.current;
+              if (selNow && typeof selNow.index === "number") {
+                const caret = selNow.index;
+                // 1) 即时触发：检测本次 inserted 中的新 '/'
+                if (inserted.includes("/")) {
+                  const prevIdx = caret - 1;
+                  if (prevIdx >= 0) {
+                    const ch = editor.getText?.(prevIdx, 1) || "";
+                    if (ch === "/") {
+                      const leftChar = prevIdx - 1 >= 0 ? (editor.getText?.(prevIdx - 1, 1) || "") : "";
+                      if (prevIdx === 0 || leftChar === "\n" || /\s/.test(leftChar) || /[^0-9a-z]/i.test(leftChar)) {
+                        slashStartRef.current = prevIdx;
+                        setSlashQuery("");
+                        const b = editor.getBounds?.(caret, 0) || { top: 0, left: 0, height: 0 };
+                        const root = (editor as any).root as HTMLElement;
+                        const wrap = wrapperRef.current;
+                        if (root && wrap) {
+                          const rootRect = root.getBoundingClientRect();
+                          const wrapRect = wrap.getBoundingClientRect();
+                          const top = (rootRect.top + (b.top || 0) - root.scrollTop) - wrapRect.top + (b.height || 16);
+                          const left = (rootRect.left + (b.left || 0) - wrapRect.left);
+                          setSlashPos({ top, left });
+                        }
+                        setSlashHighlight(0);
+                        setSlashActive(true);
+                        // immediate slash activation (debug logs removed)
+                      }
+                    }
+                  }
+                }
+                // 2) 行前缀兜底扫描（用于删除或移动光标后仍保留 '/...'）
+                let scanStart = Math.max(0, caret - 1);
+                const maxBack = 300;
+                let steps = 0;
+                while (scanStart > 0 && steps < maxBack) {
+                  const ch = editor.getText?.(scanStart - 1, 1) || "";
+                  if (ch === "\n") {
+                    break;
+                  }
+                  scanStart -= 1;
+                  steps += 1;
+                }
+                const leftLen = caret - scanStart;
+                const lineLeft = editor.getText?.(scanStart, leftLen) || "";
+                const trimmed = lineLeft.trimEnd();
+                const match = /^\s*\/(.*)$/.exec(trimmed);
+                if (match) {
+                  const after = match[1];
+                  const slashRel = lineLeft.lastIndexOf("/");
+                  const globalSlash = scanStart + slashRel;
+                  // 若当前还未记录 start 或 start 改变（例如用户在行中间删除重新形成）更新之
+                  if (slashStartRef.current !== globalSlash) {
+                    slashStartRef.current = globalSlash;
+                    if (!slashActiveRef.current) {
+                      setSlashActive(true);
+                      setSlashHighlight(0);
+                      // fallback slash activation (debug logs removed)
+                    }
+                  }
+                  // 更新 query
+                  const qLower = after.toLowerCase();
+                  if (qLower !== slashQuery) {
+                    setSlashQuery(qLower);
+                    // slash query update (debug logs removed)
+                  }
+                  // 更新位置
+                  try {
+                    const b = editor.getBounds?.(caret, 0) || { top: 0, left: 0, height: 0 };
+                    const root = (editor as any).root as HTMLElement;
+                    const wrap = wrapperRef.current;
+                    if (root && wrap) {
+                      const rootRect = root.getBoundingClientRect();
+                      const wrapRect = wrap.getBoundingClientRect();
+                      const top = (rootRect.top + (b.top || 0) - root.scrollTop) - wrapRect.top + (b.height || 16);
+                      const left = (rootRect.left + (b.left || 0) - wrapRect.left);
+                      setSlashPos({ top, left });
+                    }
+                  }
+                  catch { /* ignore */ }
+                }
+                else if (slashActiveRef.current) {
+                  // 行已经不再以 / 开头（允许前导空格）
+                  // close slash popup: fallback pattern miss
+                  setSlashActive(false);
+                  setSlashQuery("");
+                  setSlashPos(null);
+                  slashStartRef.current = null;
+                }
+                // 3) 细化关闭：segment 结构破坏或光标回退
+                if (slashActiveRef.current && slashStartRef.current != null) {
+                  const startIdx = slashStartRef.current;
+                  if (caret <= startIdx) {
+                    // close slash popup: caret moved before '/'
+                    setSlashActive(false);
+                    setSlashQuery("");
+                    setSlashPos(null);
+                    slashStartRef.current = null;
+                  }
+                  else {
+                    const seg = editor.getText?.(startIdx, caret - startIdx) || "";
+                    if (!/^\/[a-z]*$/i.test(seg)) {
+                      // close slash popup: segment invalid
+                      setSlashActive(false);
+                      setSlashQuery("");
+                      setSlashPos(null);
+                      slashStartRef.current = null;
+                    }
+                  }
+                }
+              }
+            }
+          }
+          catch { /* ignore hybrid slash */ }
 
           // 以下仍然保留原逻辑：仅在输入空格时尝试行内/块级检测
           const endsWithSpace = /[\u0020\u00A0\u2007\u3000]$/.test(inserted);
@@ -2576,6 +2702,83 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
     refreshActiveFormats();
   };
 
+  // 应用 slash 命令（删除 '/xxx' 并设置对齐）
+  const applySlashCommand = useCallback((cmd: string) => {
+    const editor = quillRef.current as any;
+    const sel = lastRangeRef.current;
+    const start = slashStartRef.current;
+    if (!editor || !sel || typeof sel.index !== "number" || start == null) {
+      return;
+    }
+    try {
+      const deleteLen = Math.max(0, sel.index - start);
+      if (deleteLen > 0) {
+        editor.deleteText(start, deleteLen, "user");
+        editor.setSelection(start, 0, "silent");
+      }
+      setAlign((cmd as any) === "left" ? "left" : (cmd as any));
+    }
+    catch { /* ignore */ }
+    finally {
+      setSlashActive(false);
+      setSlashQuery("");
+      setSlashPos(null);
+      slashStartRef.current = null;
+    }
+  }, [setAlign]);
+
+  // 键盘导航（与 mention 类似）
+  useEffect(() => {
+    if (!slashActive) {
+      return;
+    }
+    const editor = quillRef.current as any;
+    const options = ["center", "right", "left", "justify"].filter(o => o.startsWith(slashQuery.toLowerCase()));
+    const onKey = (e: KeyboardEvent) => {
+      if (!slashActiveRef.current) {
+        return;
+      }
+      if (["ArrowDown", "ArrowUp", "Enter", "Escape", "Tab"].includes(e.key)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (e.key === "ArrowDown") {
+        setSlashHighlight(h => (options.length ? (h + 1) % options.length : 0));
+      }
+      else if (e.key === "ArrowUp") {
+        setSlashHighlight(h => (options.length ? (h - 1 + options.length) % options.length : 0));
+      }
+      else if (e.key === "Escape") {
+        setSlashActive(false);
+        setSlashQuery("");
+        setSlashPos(null);
+        slashStartRef.current = null;
+      }
+      else if (e.key === "Enter" || e.key === "Tab") {
+        if (options.length) {
+          const target = options[Math.min(slashHighlight, options.length - 1)];
+          applySlashCommand(target);
+        }
+        else {
+          setSlashActive(false);
+          setSlashQuery("");
+          setSlashPos(null);
+          slashStartRef.current = null;
+        }
+      }
+    };
+    try {
+      editor?.root?.addEventListener("keydown", onKey, true);
+    }
+    catch { /* ignore */ }
+    return () => {
+      try {
+        editor?.root?.removeEventListener("keydown", onKey, true);
+      }
+      catch { /* ignore */ }
+    };
+  }, [slashActive, slashQuery, slashHighlight, applySlashCommand]);
+
   // 菜单点击封装，避免内联多语句导致 lint 警告
   const onMenuHeader = (lv: 1 | 2 | 3) => {
     applyHeader(lv);
@@ -2902,6 +3105,67 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
           }}
           entitiesMap={entitiesRef.current}
         />
+      )}
+      {/* Slash command popup */}
+      {slashActive && !mentionActive && (
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 1090,
+            top: slashPos ? slashPos.top : (tbTop + 28),
+            left: slashPos ? slashPos.left : 8,
+            background: "#ffffff",
+            border: "1px solid #e5e7eb",
+            borderRadius: 6,
+            padding: "4px 6px",
+            fontSize: 12,
+            color: "#374151",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+            minWidth: 140,
+            maxHeight: 200,
+          }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>对齐</div>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: 150, overflowY: "auto" }}>
+            {["center", "right", "left", "justify"].filter(o => o.startsWith(slashQuery.toLowerCase())).map((cmd, i) => (
+              <li
+                key={cmd}
+                onMouseEnter={() => setSlashHighlight(i)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  applySlashCommand(cmd);
+                }}
+                style={{
+                  cursor: "pointer",
+                  padding: "4px 6px",
+                  borderRadius: 4,
+                  background: i === slashHighlight ? "#dbeafe" : "transparent",
+                  color: i === slashHighlight ? "#1e3a8a" : "#374151",
+                  fontWeight: i === slashHighlight ? 600 : 400,
+                  fontSize: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "background 80ms",
+                }}
+              >
+                <span style={{ flex: "1 1 auto" }}>
+                  /
+                  {cmd}
+                </span>
+                <span style={{ opacity: 0.55, fontSize: 11 }}>{cmd === "left" ? "左对齐" : cmd === "center" ? "居中" : cmd === "right" ? "右对齐" : "两端对齐"}</span>
+              </li>
+            ))}
+            {["center", "right", "left", "justify"].filter(o => o.startsWith(slashQuery.toLowerCase())).length === 0 && (
+              <li style={{ padding: "4px 6px", opacity: 0.6 }}>无匹配命令</li>
+            )}
+          </ul>
+          <div style={{ marginTop: 4, fontSize: 10, opacity: 0.5, display: "flex", justifyContent: "space-between", gap: 8 }}>
+            <span>↑↓ 选择</span>
+            <span>Enter 应用</span>
+            <span>Esc 取消</span>
+          </div>
+        </div>
       )}
     </div>
   );
