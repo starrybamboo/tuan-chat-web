@@ -81,7 +81,7 @@ const UNTIL = {
         return getRoleAbilityValueAuto(role, key);
     }
   },
-  CalculateExpression: calculateExpression,
+  calculateExpression,
 };
 
 export default UNTIL;
@@ -334,7 +334,8 @@ function evaluatePostfix(postfix: (number | string)[]): number {
           if (b === 0) {
             throw new Error("除数不能为零");
           }
-          result = a / b;
+          // 结果向下取整
+          result = Math.floor(a / b);
           break;
         default:
           throw new Error(`未知的运算符: ${token}`);
