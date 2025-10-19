@@ -23,7 +23,8 @@ interface ModifiedRuleItem {
   ruleDescription: string;
 }
 
-function RuleSelect({ className, onRuleSelect }: { className?: string; onRuleSelect?: (id: number) => void }) {
+// 允许通过可选的 ruleId 指定初始选中项；UI 与功能保持不变，仅增强可用性和滚动区域结构
+function RuleSelect({ className, onRuleSelect, ruleId, editable = true }: { className?: string; onRuleSelect?: (id: number) => void; ruleId?: number; editable?: boolean }) {
   const [pageSize, _setPageSize] = useState(20);
   const [pageNo, _setPageNo] = useState(1);
   const [_pageCount, _setPageCount] = useState(0);
@@ -31,6 +32,11 @@ function RuleSelect({ className, onRuleSelect }: { className?: string; onRuleSel
   const [keyword, setKeyword] = useState("");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectRuleId, setSelectRuleId] = useState<number | string | null>(null);
+
+  // 外部传入的默认选中规则
+  if (ruleId != null && selectRuleId == null) {
+    setSelectRuleId(ruleId);
+  }
 
   const { data, isLoading, isSuccess } = useGetRulePageInfiniteQuery({
     pageNo,
@@ -62,9 +68,9 @@ function RuleSelect({ className, onRuleSelect }: { className?: string; onRuleSel
 
   return (
     <div
-      className={`rounded-xl bg-base-200 flex flex-col ${className || ""}`}
+      className={`rounded-xl bg-base-200 shadow flex flex-col overflow-hidden ${className || ""}`}
     >
-      <div className="flex h-[40px] mb-4">
+      <div className="flex h-[40px] mb-4 px-3 pt-3">
         <h2 className="text-lg font-bold h-full flex items-center">选择规则</h2>
         <label className="input basis-2/3 ml-auto">
           <input
@@ -73,7 +79,12 @@ function RuleSelect({ className, onRuleSelect }: { className?: string; onRuleSel
             placeholder="Search"
             value={keyword}
             onChange={handleKeywordChange}
+            disabled={!editable}
+            aria-disabled={!editable}
             onKeyDown={(e) => {
+              if (!editable) {
+                return;
+              }
               if (e.key === "Enter") {
                 e.preventDefault();
                 setSearchKeyword(keyword);
@@ -83,15 +94,20 @@ function RuleSelect({ className, onRuleSelect }: { className?: string; onRuleSel
           <kbd className="kbd kbd-sm">⏎</kbd>
         </label>
       </div>
-      <ScrollList<ModifiedRuleItem>
-        items={processedRuleData}
-        RenderItem={RuleListItem}
-        selectedId={selectRuleId}
-        onSelect={(id) => {
-          setSelectRuleId(id);
-          onRuleSelect?.(id as number);
-        }}
-      />
+      <div className="flex-1 min-h-0 overflow-auto px-3 pb-3">
+        <ScrollList<ModifiedRuleItem>
+          items={processedRuleData}
+          RenderItem={RuleListItem}
+          selectedId={selectRuleId}
+          onSelect={(id) => {
+            if (!editable) {
+              return;
+            }
+            setSelectRuleId(id);
+            onRuleSelect?.(id as number);
+          }}
+        />
+      </div>
     </div>
   );
 }

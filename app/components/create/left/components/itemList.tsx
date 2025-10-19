@@ -1,27 +1,46 @@
 import type { StageEntityResponse } from "api";
-import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
-import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useState } from "react";
+import { useModuleContext } from "../../workPlace/context/_moduleContext";
+import { ModuleItemEnum } from "../../workPlace/context/types";
 
 function ItemListItem({
   item,
+  name,
   isSelected,
   onClick,
   onDelete,
   deleteMode,
 }: {
   item: StageEntityResponse;
+  name: string;
   isSelected: boolean;
   onClick: () => void;
   onDelete?: () => void;
   deleteMode?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   return (
     <div
-      className={`group w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""}`}
+      className={`group relative w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""} ${
+        isDragging ? "opacity-50 bg-blue-100" : ""
+      }`}
       onClick={onClick}
+      draggable
+      onDragStart={(e) => {
+        setIsDragging(true);
+        e.dataTransfer.setData("application/reactflow", JSON.stringify({
+          type: "item",
+          name: item.name,
+          id: item.id,
+          entityType: item.entityType,
+        }));
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragEnd={() => {
+        setIsDragging(false);
+      }}
     >
       {/* 左侧内容 */}
       <div className="flex items-center gap-2 min-w-0">
@@ -30,8 +49,8 @@ function ItemListItem({
           alt="item"
           style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
         />
-        <div className="flex flex-col min-w-0">
-          <p className="text-sm font-medium truncate">{item.name}</p>
+        <div className="flex flex-col min-w-0 truncate">
+          <p className="text-sm font-medium truncate">{name}</p>
           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.entityInfo!.description}</p>
         </div>
       </div>
@@ -146,8 +165,7 @@ export default function ItemList({ stageId, searchQuery: controlledQuery, delete
   const [searchQuery, setSearchQuery] = useState("");
   const effectiveQuery = (controlledQuery ?? searchQuery).toLowerCase();
 
-  // 根据搜索查询过滤列表，并按 id 升序稳定排序
-  const filteredList = list?.filter(i => i.name?.toLowerCase().includes(effectiveQuery));
+  const filteredList = list?.filter(i => ((i.name || "").toLowerCase().includes(effectiveQuery)));
   const sortedList = filteredList?.slice().sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
 
   const sceneList = data?.data?.filter(i => i.entityType === 3);
@@ -185,6 +203,7 @@ export default function ItemList({ stageId, searchQuery: controlledQuery, delete
               <ItemListItem
                 key={item.id!.toString()}
                 item={item}
+                name={item.name || "未命名"}
                 isSelected={currentSelectedTabId === item.id!.toString()}
                 onClick={() => handleClick(item)}
                 deleteMode={deleteMode}

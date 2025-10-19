@@ -40,7 +40,7 @@ export function useGetSpaceModuleRoleQuery(spaceId: number) {
 export function useGetRoomItemsQuery(roomId: number) {
   return useQuery({
     queryKey: ['roomItems', roomId],
-    queryFn: () => tuanchat.spaceModuleController.roomItem(roomId),
+    queryFn: () => tuanchat.spaceModuleController.roomItem(roomId, 1),
     staleTime: 10000, // 缓存时间
     enabled: roomId >= 0,
   })
@@ -53,8 +53,8 @@ export function useGetRoomItemsQuery(roomId: number) {
 export function useGetRoomLocationsQuery(roomId: number) {
   return useQuery({
     queryKey: ['roomLocations', roomId],
-    queryFn: () => tuanchat.spaceModuleController.roomLocation(roomId),
+    queryFn: () => tuanchat.spaceModuleController.roomItem(roomId, 2),
     staleTime: 10000, // 缓存时间
-    enabled: roomId != -1
+    enabled: roomId >= 0,
   })
 }

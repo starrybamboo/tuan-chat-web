@@ -1,9 +1,12 @@
+import type { ClueMessage } from "api/models/ClueMessage";
 import { useModuleItemDetailQuery } from "api/hooks/moduleQueryHooks";
+import MarkdownMentionViewer from "../common/quillEditor/MarkdownMentionViewer";
 
 interface EntityInfo {
   description?: string;
   image?: string;
   tip?: string;
+  note?: string;
 }
 
 interface StageEntityResponse {
@@ -12,29 +15,75 @@ interface StageEntityResponse {
   entityInfo?: EntityInfo;
 }
 
-function DisplayOfItemDetail({ itemId }: { itemId: number }) {
-  const { data, isLoading, isError } = useModuleItemDetailQuery(itemId);
+interface ManualData {
+  name?: string;
+  description?: string;
+  image?: string;
+  note?: string;
+}
 
-  const item = (data ?? [])[0] as StageEntityResponse | undefined;
-  const entityInfo = item?.entityInfo;
+interface DisplayOfItemDetailProps {
+  itemId?: number;
+  manualData?: ManualData;
+  onSend: (clue: ClueMessage) => void;
+}
 
-  if (isLoading) {
+function DisplayOfItemDetail({ itemId, manualData, onSend }: DisplayOfItemDetailProps) {
+  // 如果提供了 manualData，则使用手动数据，否则通过 itemId 获取数据
+  const { data, isLoading, isError } = useModuleItemDetailQuery(
+    manualData ? -1 : (itemId ?? -1),
+  );
+
+  const useManualData = !!manualData;
+
+  let item: StageEntityResponse | undefined;
+  let entityInfo: EntityInfo | undefined;
+
+  if (useManualData) {
+    item = {
+      name: manualData.name,
+      entityInfo: {
+        description: manualData.description,
+        image: manualData.image,
+        note: manualData.note,
+      },
+    };
+    entityInfo = item.entityInfo;
+  }
+  else {
+    item = (data ?? [])[0] as StageEntityResponse | undefined;
+    entityInfo = item?.entityInfo;
+  }
+
+  if (!useManualData && isLoading) {
     return <div className="text-neutral-500 dark:text-neutral-300">加载中...</div>;
   }
 
-  if (isError || !item || !entityInfo) {
+  if (!useManualData && (isError || !item || !entityInfo)) {
     return <div className="text-red-500 dark:text-red-300">加载失败或未找到物品信息</div>;
   }
 
-  const { name } = item;
-  const { description, image, tip } = entityInfo;
+  if (useManualData && !manualData?.name) {
+    return <div className="text-red-500 dark:text-red-300">物品信息不完整</div>;
+  }
+
+  const { name } = item!;
+  const { description, image } = entityInfo!;
+
+  const noteOrTip = useManualData ? manualData!.note : entityInfo!.tip;
+
+  const clueMessage: ClueMessage = {
+    img: image ?? "",
+    name: name ?? "",
+    description: description ?? "",
+  };
 
   return (
     <div className="max-w-md w-full mx-auto mt-6 bg-neutral-50 dark:bg-neutral-800 rounded-xl shadow-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
       {/* 头部区域 */}
       <div className="p-5 border-b border-neutral-200 dark:border-neutral-700">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-lg flex items-center justify-center bg-neutral-100 dark:bg-neutral-700 overflow-hidden">
+          <div className="w-16 h-16 rounded-lg flex items-center justify-center bg-neutral-100 dark:bg-neutral-700 overflow-hidden flex-shrink-0">
             {image
               ? (
                   <img
@@ -49,7 +98,16 @@ function DisplayOfItemDetail({ itemId }: { itemId: number }) {
                   </span>
                 )}
           </div>
-          <h2 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100">{name ?? "未命名物品"}</h2>
+          <h2 className="text-2xl font-bold text-neutral-800 dark:text-neutral-100 flex-grow">
+            {name ?? "未命名物品"}
+          </h2>
+          <button
+            type="button"
+            className="btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex-shrink-0"
+            onClick={() => onSend(clueMessage)}
+          >
+            公布
+          </button>
         </div>
       </div>
 
@@ -58,18 +116,26 @@ function DisplayOfItemDetail({ itemId }: { itemId: number }) {
         {description && (
           <div>
             <h3 className="text-sm font-semibold text-neutral-500 dark:text-neutral-400 mb-2 uppercase tracking-wider">描述</h3>
-            <p className="text-neutral-700 dark:text-neutral-200 whitespace-pre-line leading-relaxed">
-              {description}
-            </p>
+            <div className="text-neutral-700 dark:text-neutral-200 leading-relaxed">
+              <MarkdownMentionViewer
+                markdown={description || "无描述信息"}
+                enableHoverPreview={true}
+              />
+            </div>
           </div>
         )}
 
-        {tip && (
+        {noteOrTip && (
           <div className="bg-blue-50 dark:bg-blue-900 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
-            <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-200 mb-2 uppercase tracking-wider">提示</h3>
-            <p className="text-blue-800 dark:text-blue-100 whitespace-pre-line leading-relaxed">
-              {tip}
-            </p>
+            <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-200 mb-2 uppercase tracking-wider">
+              {useManualData ? "笔记" : "提示"}
+            </h3>
+            <div className="text-blue-800 dark:text-blue-100 leading-relaxed">
+              <MarkdownMentionViewer
+                markdown={noteOrTip || (useManualData ? "无笔记" : "无提示")}
+                enableHoverPreview={true}
+              />
+            </div>
           </div>
         )}
       </div>

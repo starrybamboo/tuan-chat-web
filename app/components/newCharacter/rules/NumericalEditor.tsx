@@ -1,4 +1,7 @@
-import { useUpdateKeyFieldMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
+import {
+  useUpdateKeyFieldByRoleIdMutation,
+  useUpdateRoleAbilityByRoleIdMutation,
+} from "api/hooks/abilityQueryHooks";
 import { useEffect, useState } from "react";
 import AddFieldForm from "../shared/AddFieldForm";
 import EditableField from "../shared/EditableField";
@@ -12,7 +15,8 @@ type FieldType = "basic" | "ability" | "skill";
 interface NumericalEditorProps {
   data: NumericalData;
   onChange: (data: NumericalData) => void;
-  abilityId: number;
+  roleId: number;
+  ruleId: number;
   title?: string;
   fieldType: FieldType; // 新增：指定要更新的字段类型
 }
@@ -24,12 +28,13 @@ interface NumericalEditorProps {
 export default function NumericalEditor({
   data,
   onChange,
-  abilityId,
+  roleId,
+  ruleId,
   title = "数值数据",
   fieldType,
 }: NumericalEditorProps) {
-  const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
-  const { mutate: updateKeyField } = useUpdateKeyFieldMutation();
+  const { mutate: updateFiledAbility } = useUpdateRoleAbilityByRoleIdMutation();
+  const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
   const [isEditing, setIsEditing] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [localData, setLocalData] = useState(data);
@@ -49,7 +54,8 @@ export default function NumericalEditor({
 
     // 根据字段类型构建更新对象
     const updatedAbility: any = {
-      abilityId,
+      roleId,
+      ruleId,
     };
 
     // 根据fieldType设置对应的字段
@@ -97,7 +103,8 @@ export default function NumericalEditor({
 
     // 使用 API 更新字段 (根据 AbilityFieldUpdateRequest 定义)
     const fieldUpdateRequest = {
-      abilityId,
+      roleId,
+      ruleId,
       // 根据字段类型使用对应的字段
       ...(fieldType === "basic" && { basicFields: { [newFieldKey]: newFieldValue } }),
       ...(fieldType === "ability" && { abilityFields: { [newFieldKey]: newFieldValue } }),
@@ -119,7 +126,8 @@ export default function NumericalEditor({
 
     // 使用 API 删除字段（传 null 表示删除）
     const fieldUpdateRequest = {
-      abilityId,
+      roleId,
+      ruleId,
       // 根据字段类型使用对应的字段
       ...(fieldType === "basic" && { basicFields: { [fieldKey]: null as any } }),
       ...(fieldType === "ability" && { abilityFields: { [fieldKey]: null as any } }),
@@ -147,7 +155,8 @@ export default function NumericalEditor({
 
     // 删除旧字段，添加新字段
     const fieldUpdateRequest = {
-      abilityId,
+      roleId,
+      ruleId,
       // 根据字段类型使用对应的字段
       ...(fieldType === "basic" && {
         basicFields: {
@@ -181,7 +190,7 @@ export default function NumericalEditor({
     } ${isEditing ? "ring-2 ring-primary" : ""}`}
     >
       <div className="flex justify-between items-center mb-4">
-        <h3 className="card-title text-lg flex items-center gap-2 ml-1">
+        <h3 className="card-title text-lg flex items-center gap-2">
           ⚡
           {title}
         </h3>
@@ -218,8 +227,8 @@ export default function NumericalEditor({
         </button>
       </div>
 
-      <div className="bg-base-200 p-4 rounded-lg">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="bg-base-200 rounded-lg">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {Object.entries(localData).map(([key, value]) => (
             <EditableField
               key={key}

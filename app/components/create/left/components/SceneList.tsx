@@ -1,8 +1,8 @@
 import type { StageEntityResponse } from "api";
-import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
-import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useState } from "react";
+import { useModuleContext } from "../../workPlace/context/_moduleContext";
+import { ModuleItemEnum } from "../../workPlace/context/types";
 
 // 场景表单项
 function SceneListItem(
@@ -18,13 +18,13 @@ function SceneListItem(
   const [confirming, setConfirming] = useState(false);
   return (
     <div
-      className={`group w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""}`}
+      className={`group relative w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""}`}
       onClick={onClick}
     >
       {/* 左侧内容 */}
       <div className="flex items-center gap-2 min-w-0">
-        <div className="flex flex-col min-w-0">
-          <p className="text-sm font-medium truncate">{name}</p>
+        <div className="flex flex-col min-w-0 truncate">
+          <p className="text-sm font-medium">{name}</p>
           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{scene.entityInfo!.description}</p>
         </div>
       </div>
@@ -132,7 +132,7 @@ export default function SceneList({ stageId, searchQuery: controlledQuery, delet
   const effectiveQuery = (controlledQuery ?? searchQuery).toLowerCase();
 
   // 根据搜索查询过滤列表，并按 id 升序稳定排序
-  const filteredList = list?.filter(i => i.name?.toLowerCase().includes(effectiveQuery));
+  const filteredList = list?.filter(i => ((i.name) || "").toLowerCase().includes(effectiveQuery));
   const sortedList = filteredList?.slice().sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
 
   // 同步到地图
@@ -194,9 +194,9 @@ export default function SceneList({ stageId, searchQuery: controlledQuery, delet
                     }
                     updateMap({
                       id: mapData.id!,
+                      name: mapData.name,
                       entityType: 5,
                       entityInfo: {
-                        ...mapData.entityInfo,
                         sceneMap: newMap,
                       },
                     });

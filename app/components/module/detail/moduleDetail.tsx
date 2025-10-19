@@ -1,10 +1,11 @@
 import type { ModuleData } from "./constants";
-import { MarkDownViewer } from "@/components/common/markdown/markDownViewer";
 import { PopWindow } from "@/components/common/popWindow";
+import MarkdownMentionViewer from "@/components/common/quillEditor/MarkdownMentionViewer";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { useCreateSpaceMutation, useGetUserSpacesQuery } from "api/hooks/chatQueryHooks";
 import { useModuleInfoQuery } from "api/hooks/moduleQueryHooks";
 import { useImportFromModuleMutation } from "api/hooks/spaceModuleHooks";
+import { tuanchat } from "api/instance";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import Author from "./author";
@@ -112,9 +113,23 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
   };
 
   // 处理跳转到新空间
-  const handleNavigateToNewSpace = () => {
+  const handleNavigateToNewSpace = async () => {
     if (newSpaceId) {
-      navigate(`/chat/${newSpaceId}`);
+      try {
+        const roomsData = await tuanchat.roomController.getUserRooms(newSpaceId);
+
+        if (roomsData?.data && roomsData.data.length > 0) {
+          const firstRoomId = roomsData.data[0].roomId;
+          navigate(`/chat/${newSpaceId}/${firstRoomId}`);
+        }
+        else {
+          navigate(`/chat/${newSpaceId}`);
+        }
+      }
+      catch (error) {
+        console.error("获取群组列表失败:", error);
+        navigate(`/chat/${newSpaceId}`);
+      }
       setShowConfirmPopup(false);
     }
   };
@@ -353,8 +368,10 @@ function MainContent({ moduleData }: { moduleData: ModuleData }) {
           </label>
           <div className="tab-content">
             <div className="fieldset bg-base-100 border-base-300 rounded-box border p-4 mb-4">
-              {/* 使用 MarkDownViewer 显示用户内容 */}
-              <MarkDownViewer content={moduleData.instruction || userContent} />
+              {/* 使用 MarkdownMentionViewer 显示用户内容 */}
+              <MarkdownMentionViewer
+                markdown={moduleData.readMe ? moduleData.readMe : userContent}
+              />
             </div>
           </div>
           <label className="tab">

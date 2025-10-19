@@ -1,9 +1,9 @@
 import type { StageEntityResponse } from "api";
 import RoleAvatar from "@/components/common/roleAvatar";
-import { useModuleContext } from "@/components/module/workPlace/context/_moduleContext";
-import { ModuleItemEnum } from "@/components/module/workPlace/context/types";
 import { useDeleteEntityMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
 import { useState } from "react";
+import { useModuleContext } from "../../workPlace/context/_moduleContext";
+import { ModuleItemEnum } from "../../workPlace/context/types";
 
 // 角色表单项
 function RoleListItem(
@@ -17,10 +17,27 @@ function RoleListItem(
   },
 ) {
   const [confirming, setConfirming] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   return (
     <div
-      className={`group w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""}`}
+      className={`group relative w-full h-12 p-2 flex items-center justify-between hover:bg-base-200 cursor-pointer ${isSelected ? "bg-base-200" : ""} ${
+        isDragging ? "opacity-50 bg-blue-100" : ""
+      }`}
       onClick={onClick}
+      draggable
+      onDragStart={(e) => {
+        setIsDragging(true);
+        e.dataTransfer.setData("application/reactflow", JSON.stringify({
+          type: "role",
+          name: role.name,
+          id: role.id,
+          entityType: role.entityType,
+        }));
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragEnd={() => {
+        setIsDragging(false);
+      }}
     >
       {/* 左侧内容 */}
       <div className="flex items-center gap-2 min-w-0">
@@ -31,7 +48,7 @@ function RoleListItem(
         /> */}
         <RoleAvatar avatarId={role.entityInfo!.avatarId || (role.entityInfo!.avatarIds && role.entityInfo!.avatarIds.length > 0 ? role.entityInfo!.avatarIds[0] : 0)} width={10} isRounded={true} stopPopWindow={true} />
 
-        <div className="flex flex-col min-w-0">
+        <div className="flex flex-col min-w-0 truncate">
           <p className="text-sm font-medium truncate">{name}</p>
           <p className="text-xs text-gray-500 mt-1 line-clamp-2">{role.entityInfo!.description}</p>
         </div>
@@ -135,6 +152,7 @@ export default function RoleList({ stageId, searchQuery: controlledQuery, delete
   // 模组相关
   const { data, isSuccess: _isSuccess } = useQueryEntitiesQuery(stageId);
   const { mutate: updateScene } = useUpdateEntityMutation(stageId);
+  // const { mutate: updateRole } = useUpdateEntityMutation(stageId); // 编辑功能已移除
 
   const list = data?.data!.filter(i => i.entityType === 2);
   const sceneList = data?.data!.filter(i => i.entityType === 3);
@@ -144,7 +162,7 @@ export default function RoleList({ stageId, searchQuery: controlledQuery, delete
   const effectiveQuery = (controlledQuery ?? searchQuery).toLowerCase();
 
   // 根据搜索查询过滤列表
-  const filteredList = list?.filter(i => i.name?.toLowerCase().includes(effectiveQuery));
+  const filteredList = list?.filter(i => ((i.name) || "")!.toLowerCase().includes(effectiveQuery));
   // 使用稳定顺序：按 id 升序，避免因后端返回顺序变化或名称变化导致列表抖动
   const sortedList = (filteredList || []).slice().sort((a, b) => (a.id || 0) - (b.id || 0));
 

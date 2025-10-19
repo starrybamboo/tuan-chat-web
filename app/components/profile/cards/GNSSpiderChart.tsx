@@ -236,7 +236,7 @@ const GNSSpiderChart: React.FC<GNSSpiderChartProps> = ({ userId }) => {
 
   // 已配置状态的雷达图
   return (
-    <div className="flex flex-col items-center p-6 rounded-lg border border-gray-200 hover:shadow-md duration-200">
+    <div className="flex flex-col items-center rounded-lg">
       <div className="flex items-center gap-4 mb-4">
         <h1 className="text-xl font-bold text-center">
           {highlightedCategory ? `${categoryNames[highlightedCategory]}玩家` : "GNS 三角图"}

@@ -96,7 +96,7 @@ export function useListCommunitiesQuery() {
 export function usePublishPostMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: PostCreateRequest) => tuanchat.communityPost.publishPost(req),
+        mutationFn: (req: PostCreateRequest) => tuanchat.communityPostController.publishPost(req),
         mutationKey: ['publishPost'],
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({queryKey: ['pageCommunityPosts']});
@@ -113,7 +113,7 @@ export function usePageCommunityPostsInfiniteQuery(requestBody: PagePostRequest)
         queryKey: ['pageCommunityPosts', requestBody],
         queryFn: ({pageParam}) => {
             const params = {...requestBody, cursor: pageParam};
-            return tuanchat.communityPost.pageCommunityPosts(params);
+            return tuanchat.communityPostController.pageCommunityPosts(params);
         },
         initialPageParam: undefined as number | undefined,
         getNextPageParam: (lastPage) => {
@@ -128,7 +128,7 @@ export function usePageCommunityPostsInfiniteQuery(requestBody: PagePostRequest)
 export function usePageCommunityPostsQuery(requestBody: PagePostRequest) {
     return useQuery({
         queryKey: ['pageCommunityPosts', requestBody],
-        queryFn: () => tuanchat.communityPost.pageCommunityPosts(requestBody),
+        queryFn: () => tuanchat.communityPostController.pageCommunityPosts(requestBody),
         staleTime: 30000, // 30秒缓存
         enabled: !!requestBody.communityId
     });
@@ -140,9 +140,30 @@ export function usePageCommunityPostsQuery(requestBody: PagePostRequest) {
 export function usePageUserPostsQuery(requestBody: PagePostRequest) {
     return useQuery({
         queryKey: ['pageUserPosts', requestBody],
-        queryFn: () => tuanchat.communityPost.pageUserPosts(requestBody),
+        queryFn: () => tuanchat.communityPostController.pageUserPosts(requestBody),
         staleTime: 30000, // 30秒缓存
         enabled: !!requestBody.userId
+    });
+}
+
+/**
+ * 分页获取用户帖子 - 无限查询版本
+ */
+export function usePageUserPostsInfiniteQuery(requestBody: PagePostRequest) {
+    return useInfiniteQuery({
+        queryKey: ['pageUserPosts', requestBody],
+        queryFn: ({ pageParam }) => {
+            const params = { ...requestBody, cursor: pageParam };
+            return tuanchat.communityPostController.pageUserPosts(params);
+        },
+        initialPageParam: undefined as number | undefined,
+        getNextPageParam: (lastPage) => {
+            if (lastPage.data?.isLast) {
+                return undefined;
+            }
+            return lastPage.data?.cursor;
+        },
+        enabled: !!requestBody.userId && requestBody.userId > 0
     });
 }
 
@@ -153,7 +174,7 @@ export function usePageUserPostsQuery(requestBody: PagePostRequest) {
 export function useGetPostDetailQuery(postId: number) {
     return useQuery({
         queryKey: ['getPostDetail', postId],
-        queryFn: () => tuanchat.communityPost.getPostDetail(postId),
+        queryFn: () => tuanchat.communityPostController.getPostDetail(postId),
         staleTime: 300000, // 5分钟缓存
         enabled: postId > 0
     });
@@ -165,7 +186,7 @@ export function useGetPostDetailQuery(postId: number) {
 export function useDeletePostMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (postId: number) => tuanchat.communityPost.deletePost(postId),
+        mutationFn: (postId: number) => tuanchat.communityPostController.deletePost(postId),
         mutationKey: ['deletePost'],
         onSuccess: (_, postId) => {
             queryClient.invalidateQueries({queryKey: ['getPostDetail', postId]});

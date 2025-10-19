@@ -18,7 +18,7 @@ interface CreateRoleBySelfProps {
   setRoles?: React.Dispatch<React.SetStateAction<Role[]>>;
   setSelectedRoleId?: (id: number | null) => void;
   onSave?: (updatedRole: Role) => void;
-  onComplete?: (role: Role) => void; // 创建完成回调（本组件新增）
+  onComplete?: (role: Role, ruleId?: number) => void; // 创建完成回调（本组件新增）
 }
 
 export default function CreateRoleBySelf({ onBack, setRoles, setSelectedRoleId, onSave, onComplete }: CreateRoleBySelfProps) {
@@ -36,7 +36,7 @@ export default function CreateRoleBySelf({ onBack, setRoles, setSelectedRoleId, 
   const { mutateAsync: createRole } = useCreateRoleMutation();
   const { mutateAsync: uploadAvatar } = useUploadAvatarMutation();
   const { mutate: setRoleAbility } = useSetRoleAbilityMutation();
-  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave || (() => {}));
+  const { mutate: updateRole } = useUpdateRoleWithLocalMutation(onSave || (() => { }));
   const [isSaving, setIsSaving] = useState(false);
 
   // 监听选择的规则详情，填充默认模板
@@ -153,30 +153,30 @@ export default function CreateRoleBySelf({ onBack, setRoles, setSelectedRoleId, 
 
       case 4:
         return (
-          <AttributeStep
-            title="基础能力值"
-            attributes={characterData.basic}
-            onAttributeChange={(key, value) => handleAttributeChange("basic", key, value)}
-            onAddField={(k, v) => handleAddField("basic", k, v)}
-            onDeleteField={k => handleDeleteField("basic", k)}
-            onRenameField={(ok, nk) => handleRenameField("basic", ok, nk)}
-          />
+          <>
+            <AttributeStep
+              title="基础能力值"
+              attributes={characterData.basic}
+              onAttributeChange={(key, value) => handleAttributeChange("basic", key, value)}
+              onAddField={(k, v) => handleAddField("basic", k, v)}
+              onDeleteField={k => handleDeleteField("basic", k)}
+              onRenameField={(ok, nk) => handleRenameField("basic", ok, nk)}
+            />
+            <div className="mt-6">
+              <AttributeStep
+                title="计算能力值"
+                attributes={characterData.ability}
+                showInfoAlert={true}
+                onAttributeChange={(key, value) => handleAttributeChange("ability", key, value)}
+                onAddField={(k, v) => handleAddField("ability", k, v)}
+                onDeleteField={k => handleDeleteField("ability", k)}
+                onRenameField={(ok, nk) => handleRenameField("ability", ok, nk)}
+              />
+            </div>
+          </>
         );
 
       case 5:
-        return (
-          <AttributeStep
-            title="计算能力值"
-            attributes={characterData.ability}
-            showInfoAlert={true}
-            onAttributeChange={(key, value) => handleAttributeChange("ability", key, value)}
-            onAddField={(k, v) => handleAddField("ability", k, v)}
-            onDeleteField={k => handleDeleteField("ability", k)}
-            onRenameField={(ok, nk) => handleRenameField("ability", ok, nk)}
-          />
-        );
-
-      case 6:
         return (
           <AttributeStep
             title="技能设定"
@@ -261,7 +261,7 @@ export default function CreateRoleBySelf({ onBack, setRoles, setSelectedRoleId, 
       }
       // 触发 updateRole 用于其它依赖缓存更新
       updateRole(newRole);
-      onComplete?.(newRole);
+      onComplete?.(newRole, characterData.ruleId);
       // TODO: 加入 toast 成功提示 / 自动跳转返回
     }
     catch (error) {

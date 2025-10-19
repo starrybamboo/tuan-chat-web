@@ -58,8 +58,28 @@ export class UploadUtils {
    */
   async uploadImg(file: File, scene: 1 | 2 | 3 | 4 = 1, quality = 0.7, maxSize = 2560): Promise<string> {
     let new_file = file;
+    const originalSize = file.size;
+
+    const isGif = await this.isGifFile(file);
+    // 对于图片文件进行处理
     if (file.type.startsWith("image/")) {
-      new_file = await compressImage(file, quality, maxSize);
+      // 精确检测GIF文件，优先使用文件头检测
+      if (isGif) {
+        console.warn(`[图片上传] GIF 文件跳过压缩: ${file.name} (${(originalSize / 1024).toFixed(2)} KB)`);
+        new_file = file;
+      }
+      else {
+        // 其他图片格式进行压缩
+        new_file = await compressImage(file, quality, maxSize);
+        const compressedSize = new_file.size;
+        const compressionRatio = Number.parseFloat(((1 - compressedSize / originalSize) * 100).toFixed(1));
+        console.warn(
+          `[图片上传] 压缩完成: ${file.name}\n`
+          + `  原始大小: ${(originalSize / 1024).toFixed(2)} KB\n`
+          + `  压缩后: ${(compressedSize / 1024).toFixed(2)} KB\n`
+          + `  压缩率: ${compressionRatio}% ${compressionRatio > 0 ? "✅" : "⚠️"}`,
+        );
+      }
     }
 
     // 1. 计算文件内容的 SHA-256 哈希值
@@ -69,7 +89,7 @@ export class UploadUtils {
     const fileSize = new_file.size;
 
     // 3. 安全地获取文件扩展名
-    const extension = new_file.name.split(".").pop() || "bin"; // 使用 'bin' 作为无扩展名时的备用
+    const extension = isGif ? "gif" : "webp";
 
     // 4. 构造新的唯一文件名：hash_size.extension
     const newFileName = `${hash}_${fileSize}.${extension}`;
@@ -92,12 +112,51 @@ export class UploadUtils {
   }
 
   /**
+   * 精确检测文件是否为GIF格式
+   * 通过读取文件头的魔术字节来判断，比MIME类型检测更准确
+   * @param file 待检测的文件
+   * @returns Promise<boolean> 是否为GIF文件
+   */
+  private async isGifFile(file: File): Promise<boolean> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        if (!arrayBuffer || arrayBuffer.byteLength < 6) {
+          resolve(false);
+          return;
+        }
+
+        const uint8Array = new Uint8Array(arrayBuffer, 0, 6);
+
+        // GIF文件头魔术字节检测
+        // GIF87a: 47 49 46 38 37 61
+        // GIF89a: 47 49 46 38 39 61
+        const isGif87a = uint8Array[0] === 0x47 && uint8Array[1] === 0x49 && uint8Array[2] === 0x46
+          && uint8Array[3] === 0x38 && uint8Array[4] === 0x37 && uint8Array[5] === 0x61;
+
+        const isGif89a = uint8Array[0] === 0x47 && uint8Array[1] === 0x49 && uint8Array[2] === 0x46
+          && uint8Array[3] === 0x38 && uint8Array[4] === 0x39 && uint8Array[5] === 0x61;
+
+        resolve(isGif87a || isGif89a);
+      };
+
+      reader.onerror = () => resolve(false);
+
+      // 只读取前6个字节用于检测
+      const blob = file.slice(0, 6);
+      reader.readAsArrayBuffer(blob);
+    });
+  }
+
+  /**
    * 使用 ts-md5 计算文件的 MD5 哈希值。
    * 这个库是使用 TypeScript 编写的，所以不需要额外的类型定义文件。
    * @param file 文件对象
    * @returns 返回一个 Promise，解析为文件的 MD5 哈希字符串
    */
-  private calculateFileHash(file: File): Promise<string> {
+  public calculateFileHash(file: File): Promise<string> {
     return new Promise((resolve) => {
       const reader = new FileReader();
 

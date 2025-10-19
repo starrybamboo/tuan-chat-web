@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { getEntityListByType } from "../moduleUtils";
 import ItemDetail from "./scene/ItemDetail";
 
@@ -38,9 +38,12 @@ interface ItemsProps {
   entityType?: EntityType;
 }
 
-export default function EntityList({ moduleData: moduleInfo, entityType = "item" }: ItemsProps) {
+// 使用 memo 包裹组件，避免父组件（ContentTab）重渲染时不必要的重新渲染
+function EntityList({ moduleData: moduleInfo, entityType = "item" }: ItemsProps) {
   // 选中的实体唯一标识符为name
   const [selectedName, setSelectedName] = useState<string | null>(null);
+  // 控制侧边栏是否收起
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const entityList: any[] = useMemo(() => {
     return getEntityListByType(moduleInfo, entityType);
@@ -86,29 +89,79 @@ export default function EntityList({ moduleData: moduleInfo, entityType = "item"
         </select>
       </div>
 
-      {/* 桌面端实体列表 */}
-      <div className="hidden md:block basis-92 shrink-0 bg-base-100 max-h-128 overflow-y-auto">
-        {entityList.length > 0
-          ? entityList.map((entity) => {
-              const name: string = entity.name ?? "未命名";
-              return (
-                <EntityListItem
-                  key={name}
-                  name={name}
-                  isSelected={selectedName === name}
-                  onChange={setName}
-                />
-              );
-            })
-          : (
-              <div className="w-full text-center py-8">
-                没有数据
-              </div>
-            )}
-      </div>
+      {/* 桌面端布局 */}
+      {!isCollapsed && (
+        <div className="hidden md:flex shrink-0 flex-col basis-92 transition-all duration-300">
+          {/* 收起/展开按钮 - 固定在顶部 */}
+          <div
+            className="sticky top-0 z-10 flex items-center justify-between bg-base-200/95 backdrop-blur-sm px-3 py-2 cursor-pointer hover:bg-base-300/95 transition-colors duration-200 border-b border-base-300"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            title="收起列表"
+          >
+            <span className="text-sm font-semibold text-base-content/70">实体列表</span>
+            <svg
+              className="w-4 h-4 transition-transform duration-300"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </div>
+
+          {/* 实体列表 */}
+          <div className="flex-1 bg-base-100 overflow-y-auto">
+            {entityList.length > 0
+              ? entityList.map((entity) => {
+                  const name: string = entity.name ?? "未命名";
+                  return (
+                    <EntityListItem
+                      key={name}
+                      name={name}
+                      isSelected={selectedName === name}
+                      onChange={setName}
+                    />
+                  );
+                })
+              : (
+                  <div className="w-full text-center py-8">
+                    没有数据
+                  </div>
+                )}
+          </div>
+        </div>
+      )}
+
+      {/* 收起状态下的展开按钮 */}
+      {isCollapsed && (
+        <div
+          className="hidden md:flex shrink-0 w-8 items-start justify-center pt-4 bg-base-200 cursor-pointer hover:bg-base-300 transition-colors duration-200"
+          onClick={() => setIsCollapsed(false)}
+          title="展开列表"
+        >
+          <svg
+            className="w-5 h-5 rotate-180"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+        </div>
+      )}
 
       {/* 分隔线 */}
-      <div className="grow p-2 md:border-l-2 border-base-content/10 border-solid">
+      <div className="flex-1 p-2 md:border-l-2 border-base-content/10 border-solid min-w-0">
         {selectedName
           ? (
               <ItemDetail itemName={selectedName} itemList={entityList} entityType={entityType} />
@@ -122,3 +175,6 @@ export default function EntityList({ moduleData: moduleInfo, entityType = "item"
     </div>
   );
 }
+
+// 使用 memo 导出，避免 React Flow 状态更新时触发此组件重渲染
+export default memo(EntityList);

@@ -154,11 +154,11 @@ export function ContentCard({
                   <span className="font-semibold">时长：</span>
                   <span className="ml-1">
                     {minTime && maxTime
-                      ? `${Math.floor(minTime / 60)}-${Math.floor(maxTime / 60)}分钟`
+                      ? `${minTime}-${maxTime}小时`
                       : minTime
-                        ? `${Math.floor(minTime / 60)}+分钟`
+                        ? `${minTime}+小时`
                         : maxTime
-                          ? `最长${Math.floor(maxTime / 60)}分钟`
+                          ? `最长${maxTime}小时`
                           : ""}
                   </span>
                 </div>
@@ -292,7 +292,7 @@ export default function ModuleHome() {
         minTime: module.minTime,
         maxTime: module.maxTime,
         parent: module.parent, // 从哪个模组fork来
-        instruction: module.instruction, // md字段
+        readMe: module.readMe, // md字段
       }));
   }, [moduleData, RuleList]);
 
@@ -311,12 +311,26 @@ export default function ModuleHome() {
     );
   }, [allItems, searchKeyword]);
 
-  // 重新计算分页（基于搜索结果）
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  // 计算总页数（使用 API 返回的总记录数）
+  const totalPages = useMemo(() => {
+    // 如果有搜索关键词，使用前端过滤后的结果计算
+    if (searchKeyword.trim()) {
+      return Math.ceil(filteredItems.length / itemsPerPage);
+    }
+    // 否则使用后端返回的总记录数
+    return Math.ceil((moduleData?.totalRecords || 0) / itemsPerPage);
+  }, [moduleData?.totalRecords, filteredItems.length, itemsPerPage, searchKeyword]);
+
+  // 当前页显示的数据
   const currentItems = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredItems.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredItems, currentPage, itemsPerPage]);
+    // 如果有搜索关键词，使用前端分页
+    if (searchKeyword.trim()) {
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      return filteredItems.slice(startIndex, startIndex + itemsPerPage);
+    }
+    // 否则直接使用后端分页返回的数据
+    return filteredItems;
+  }, [filteredItems, currentPage, itemsPerPage, searchKeyword]);
 
   const [imagesReady, setImagesReady] = useState(false);
 
@@ -591,7 +605,7 @@ export default function ModuleHome() {
                             minTime: card.minTime, // 模组可能需要花费时间
                             maxTime: card.maxTime,
                             parent: card.parent, // 从哪个模组fork来
-                            instruction: card.instruction, // md字段
+                            readMe: card.readMe, // md字段
                           },
                         },
                       });

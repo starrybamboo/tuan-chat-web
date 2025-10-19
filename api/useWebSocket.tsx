@@ -6,7 +6,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import {useCallback, useEffect, useRef, useState} from "react";
 import { useImmer } from "use-immer";
 import {useGlobalContext} from "@/components/globalContextProvider";
-import type {ChatStatusEvent, ChatStatusType, DirectMessageEvent, RoomExtraChangeEvent} from "./wsModels";
+import type {
+  ChatStatusEvent,
+  ChatStatusType,
+  DirectMessageEvent,
+  MemberChangePush, RoleChangePush, RoomExtraChangeEvent,
+} from "./wsModels";
 import {tuanchat} from "./instance";
 import {
   useGetUserSessionsQuery,
@@ -231,13 +236,27 @@ export function useWebSocket() {
         break;
       }
       case 11:{ // 成员变动
-        queryClient.invalidateQueries({ queryKey: ["getSpaceMemberList"] });
-        queryClient.invalidateQueries({ queryKey: ["getRoomMemberList"] });
+        const event = message as MemberChangePush;
+        queryClient.invalidateQueries({ queryKey: ["getRoomMemberList",event.data.roomId] });
+        // 如果是加入群组，要更新订阅信息，以及所有的房间信息
+        if (event.data.changeType === 1){
+          queryClient.invalidateQueries({ queryKey: ['getUserSessions',event.data.roomId] });
+          queryClient.invalidateQueries({ queryKey: ['getRoomSession'] });
+        }
+        // 如果是加入或者退出群组，要更新所有的房间信息
+        if (event.data.changeType === 1 || event.data.changeType === 2){
+          // 延迟500ms，防止数据更新不及时
+          setTimeout(()=>{
+            queryClient.invalidateQueries({ queryKey: ["getUserSpaces"] });
+            queryClient.invalidateQueries({ queryKey: ["getUserRooms"] });
+          },500)
+        }
         break;
       }
       case 12:{ // 角色变动
+        const event = message as RoleChangePush
         queryClient.invalidateQueries({ queryKey: ["spaceRole"] });
-        queryClient.invalidateQueries({ queryKey: ["roomRole"] });
+        queryClient.invalidateQueries({ queryKey: ["roomRole",event.data.roomId] });
         break;
       }
       case 14:{ // 房间解散
@@ -306,8 +325,14 @@ export function useWebSocket() {
           draft[roomId] = messagesToAdd;
         }
       });
-      // 更新发送用户的输入状态
-      handleChatStatusChange({roomId, userId:chatMessageResponse.message.userId, status:"idle"})
+      // 更新发送用户的输入状态（设置为空闲，避免重复状态更新）
+      const sendingUserId = chatMessageResponse.message.userId;
+      if (sendingUserId) {
+        // 使用延迟设置为空闲，避免与其他窗口的状态更新冲突
+        setTimeout(() => {
+          handleChatStatusChange({roomId, userId: sendingUserId, status:"idle"});
+        }, 500); // 延迟500ms再设置为空闲
+      }
     }
   };
   /**

@@ -1,4 +1,5 @@
 import type { UserRole } from "../../../api";
+import { getEditorRange } from "@/utils/getSelectionCoords";
 import React, { useImperativeHandle, useRef } from "react";
 
 // --- 外部接口 ---
@@ -75,6 +76,14 @@ interface ChatInputAreaProps {
 function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.RefObject<ChatInputAreaHandle | null> }) {
   const internalTextareaRef = useRef<HTMLDivElement>(null);
 
+  // 🔧 修复无限循环：使用 ref 保存 props.onInputSync，避免依赖变化导致重新创建回调
+  const onInputSyncRef = useRef(props.onInputSync);
+
+  // 保持 ref 始终指向最新的 callback
+  React.useEffect(() => {
+    onInputSyncRef.current = props.onInputSync;
+  }, [props.onInputSync]);
+
   /**
    * [内部] 从 DOM 提取 @提及 和纯文本
    */
@@ -108,14 +117,14 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
   };
 
   /**
-   *  将 <br> 和 <div> 转换为 \n 并清理 HTML 以获取纯文本。
+   *  获取纯文本。
    */
   const getPlainText = (): string => {
-    const content = internalTextareaRef.current?.innerHTML || "";
-    return content
-      .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/&nbsp;/g, " ")
-      .replace(/<[^>]+(>|$)/g, ""); // 移除所有其他 HTML
+    return internalTextareaRef.current?.textContent || "";
+    // return content
+    //   .replace(/<br\s*\/?>/gi, "\n")
+    //   .replace(/&nbsp;/g, " ")
+    //   .replace(/<[^>]+(>|$)/g, ""); // 移除所有其他 HTML
   };
 
   /**
@@ -128,15 +137,12 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
       moveCursorToEnd?: boolean;
     },
   ): boolean => {
-    const { replaceSelection = false, moveCursorToEnd = false } = options || {};
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0)
+    const { moveCursorToEnd = false } = options || {};
+    const selectionInfo = getEditorRange(internalTextareaRef.current);
+    const selection = selectionInfo?.selection;
+    const range = selectionInfo?.range;
+    if (!selection || !range || selection.rangeCount === 0)
       return false;
-
-    const range = selection.getRangeAt(0);
-    if (replaceSelection) {
-      range.deleteContents();
-    }
 
     const insertedNode = typeof node === "string" ? document.createTextNode(node) : node;
     range.insertNode(insertedNode);
@@ -208,10 +214,6 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
     // 解析内容并将纯文本和提及列表发送给父组件
     const { textWithoutMentions, mentionedRoles } = extractMentionsAndTextInternal();
     props.onInputSync(getPlainText(), textWithoutMentions, mentionedRoles);
-
-    // 在某些情况下（如输入法结束），onCompositionEnd 可能会在 onInput 之前触发
-    // 但父组件的 isComposingRef 此时可能仍然是 true。
-    // 我们依赖父组件的 onCompositionEnd 来设置 ref=false。
   };
 
   // --- 暴露 Ref API ---
@@ -258,6 +260,12 @@ function ChatInputArea({ ref, ...props }: ChatInputAreaProps & { ref?: React.Ref
   return (
     <div
       className="w-full overflow-auto resize-none p-2 focus:outline-none div-textarea chatInputTextarea"
+      style={{
+        wordBreak: "break-all",
+        wordWrap: "break-word",
+        whiteSpace: "pre-wrap",
+        overflowWrap: "anywhere",
+      }}
       ref={internalTextareaRef}
       onInput={handleInputInternal} // 使用内部的 input 处理器
       onKeyDown={props.onKeyDown} // 转发给父组件

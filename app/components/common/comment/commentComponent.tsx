@@ -164,11 +164,11 @@ export default function CommentComponent({ comment, level = 1 }: {
         <div>
           <div className="flex items-center gap-2">
             <UserAvatarComponent userId={commentVO?.userId || -1} width={10} isRounded={true} withName={false} />
-            <CommentPreview commentVO={commentVO}></CommentPreview>
+            <CommentPreview commentVO={commentVO} />
           </div>
 
-          <div className="prose max-w-none pl-2 pt-2">
-            <p>{commentVO?.content}</p>
+          <div className="pl-2 pt-2 text-sm leading-relaxed break-words overflow-wrap-anywhere">
+            <p className="whitespace-pre-wrap">{commentVO?.content}</p>
           </div>
 
           <div className="card-actions">

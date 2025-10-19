@@ -2,15 +2,18 @@ import type { AtMentionHandle } from "@/components/atMentionController";
 import type { ChatInputAreaHandle } from "@/components/chat/chatInputArea";
 
 import type { RoomContextType } from "@/components/chat/roomContext";
+import type { ClueMessage } from "api/models/ClueMessage";
 import type { VirtuosoHandle } from "react-virtuoso";
-import type { ChatMessageRequest, ChatMessageResponse, Message, RoomMember, UserRole } from "../../../api";
-import type { ChatStatusEvent } from "../../../api/wsModels";
+import type { ChatMessageRequest, ChatMessageResponse, Message, SpaceMember, UserRole } from "../../../api";
+// hooks (local)
 import AtMentionController from "@/components/atMentionController";
 import AvatarSwitch from "@/components/chat/avatarSwitch";
 import ChatFrame from "@/components/chat/chatFrame";
 import ChatInputArea from "@/components/chat/chatInputArea";
+import ChatStatusBar from "@/components/chat/chatStatusBar";
 import ChatToolbar from "@/components/chat/chatToolbar";
 import CommandPanel from "@/components/chat/commandPanel";
+import useChatInputStatus from "@/components/chat/hooks/useChatInputStatus";
 import { useChatHistory } from "@/components/chat/indexedDB/useChatHistory";
 import SearchBar from "@/components/chat/inlineSearch";
 import DNDMap from "@/components/chat/map/DNDMap";
@@ -23,9 +26,7 @@ import useGetRoleSmartly from "@/components/chat/smallComponents/useGetRoleName"
 import { SpaceContext } from "@/components/chat/spaceContext";
 import { sendLlmStreamMessage } from "@/components/chat/utils/llmUtils";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
-import ItemWindow from "@/components/chat/window/itemWindow";
 import RenderWindow from "@/components/chat/window/renderWindow";
-import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
 import BetterImg from "@/components/common/betterImg";
 import { useLocalStorage } from "@/components/common/customHooks/useLocalStorage";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
@@ -35,26 +36,26 @@ import { PopWindow } from "@/components/common/popWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import {
   BaselineArrowBackIosNew,
-  Setting,
 } from "@/icons";
 import { getImageSize } from "@/utils/getImgSize";
+// *** 导入新组件及其 Handle 类型 ***
+
 import { getScreenSize } from "@/utils/getScreenSize";
 import { UploadUtils } from "@/utils/UploadUtils";
 import React, { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-// *** 导入新组件及其 Handle 类型 ***
-
 import { toast } from "react-hot-toast";
 import { useImmer } from "use-immer";
 import {
   useAddRoomRoleMutation,
   useGetMemberListQuery,
   useGetRoomInfoQuery,
+  useGetRoomModuleRoleQuery,
   useGetRoomRoleQuery,
   useGetSpaceInfoQuery,
 } from "../../../api/hooks/chatQueryHooks";
 import { useGetUserRolesQuery } from "../../../api/queryHooks";
-import DisplayOfItemDetail from "./displayOfItemsDetail";
-import ClueList from "./sideDrawer/clueList";
+import ClueListForKP from "./sideDrawer/clueListForKP";
+import ClueListForPL from "./sideDrawer/clueListForPL";
 
 // const PAGE_SIZE = 50; // 每页消息数量
 export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: number }) {
@@ -102,6 +103,8 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   const [emojiUrls, updateEmojiUrls] = useImmer<string[]>([]);
   // 引用的聊天记录id
   const [replyMessage, setReplyMessage] = useState<Message | undefined>(undefined);
+
+  // 切换房间时清空引用消息
   useEffect(() => {
     setReplyMessage(undefined);
   }, [roomId]);
@@ -112,9 +115,18 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   // 获取当前群聊中的所有角色
   const roomRolesQuery = useGetRoomRoleQuery(roomId);
   const roomRoles = useMemo(() => roomRolesQuery.data?.data ?? [], [roomRolesQuery.data?.data]);
+  // 获取当前群聊中的所有NPC角色
+  const roomNpcRolesQuery = useGetRoomModuleRoleQuery(roomId);
+  const roomNpcRoles = useMemo(() => roomNpcRolesQuery.data?.data ?? [], [roomNpcRolesQuery.data?.data]);
+  // 用户拥有的角色 + 所有NPC角色
   const roomRolesThatUserOwn = useMemo(() => {
-    return roomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
-  }, [roomRoles, userRoles]);
+    // 先获取用户拥有的玩家角色
+    const playerRoles = spaceContext.isSpaceOwner
+      ? roomRoles
+      : roomRoles.filter(role => userRoles.some(userRole => userRole.roleId === role.roleId));
+    // 合并玩家角色和NPC角色
+    return [...playerRoles, ...roomNpcRoles];
+  }, [roomRoles, roomNpcRoles, spaceContext.isSpaceOwner, userRoles]);
 
   // 房间ID到角色ID的映射
   const [curRoleIdMap, setCurRoleIdMap] = useLocalStorage<Record<number, number>>(
@@ -141,12 +153,15 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     }));
   }, [curRoleId, setCurAvatarIdMap]);
 
-  const [isSettingWindowOpen, setIsSettingWindowOpen] = useSearchParamsState<boolean>("roomSettingPop", false);
   // 渲染对话
   const [isRenderWindowOpen, setIsRenderWindowOpen] = useSearchParamsState<boolean>("renderPop", false);
 
-  const [isItemsWindowOpen, setIsItemsWindowOpen] = useState<boolean>(false);
-  const [selectedItemId, setSelectedItemId] = useState<number>(-1);
+  // 侧边栏宽度状态
+  const [userDrawerWidth, setUserDrawerWidth] = useLocalStorage("userDrawerWidth", 300);
+  const [roleDrawerWidth, setRoleDrawerWidth] = useLocalStorage("roleDrawerWidth", 300);
+  const [initiativeDrawerWidth, setInitiativeDrawerWidth] = useLocalStorage("initiativeDrawerWidth", 300);
+  const [clueDrawerWidth, setClueDrawerWidth] = useLocalStorage("clueDrawerWidth", 300);
+  const [mapDrawerWidth, setMapDrawerWidth] = useLocalStorage("mapDrawerWidth", 600);
 
   const [sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map" | "clue">("rightSideDrawer", "none");
 
@@ -154,9 +169,20 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
 
   // 获取当前群聊的成员列表
   const membersQuery = useGetMemberListQuery(roomId);
-  const members: RoomMember[] = useMemo(() => {
-    return membersQuery.data?.data ?? [];
-  }, [membersQuery.data?.data]);
+  const spaceMembers = useMemo(() => {
+    return spaceContext.spaceMembers ?? [];
+  }, [spaceContext.spaceMembers]);
+  const members: SpaceMember[] = useMemo(() => {
+    const members = membersQuery.data?.data ?? [];
+    return members.map((member) => {
+      const spaceMember = spaceMembers.find(m => m.userId === member.userId);
+      return {
+        ...member,
+        ...spaceMember,
+      };
+    });
+  }, [membersQuery.data?.data, spaceMembers]);
+
   // 全局登录用户对应的member
   const curMember = useMemo(() => {
     return members.find(member => member.userId === userId);
@@ -210,29 +236,17 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
   }, [roomId, members, curMember, roomRolesThatUserOwn, curRoleId, curAvatarId, useChatBubbleStyle, spaceId, chatHistory, scrollToGivenMessage]);
   const commandExecutor = useCommandExecutor(curRoleId, space?.ruleId ?? -1, roomContext);
 
-  // (输入状态 websocket 逻辑... 保持不变)
-  const roomChatStatues = webSocketUtils.chatStatus[roomId] ?? [];
-  const myStatue = roomChatStatues.find(s => s.userId === userId)?.status ?? "idle";
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  useEffect(() => {
-    if (!userId || roomId <= 0)
-      return;
-    const chatStatusEvent: ChatStatusEvent = { roomId, status: "input", userId };
-    if (typingTimeoutRef.current)
-      clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => {
-      webSocketUtils.updateChatStatus({ ...chatStatusEvent, status: "idle" } as ChatStatusEvent);
-      webSocketUtils.send({ type: 4, data: { ...chatStatusEvent, status: "idle" } as ChatStatusEvent });
-    }, 10000);
-    if (myStatue === "input" || myStatue === "wait" || !userId || roomId <= 0 || inputText.length === 0)
-      return;
-    webSocketUtils.updateChatStatus(chatStatusEvent);
-    webSocketUtils.send({ type: 4, data: chatStatusEvent });
-    return () => {
-      if (typingTimeoutRef.current)
-        clearTimeout(typingTimeoutRef.current);
-    };
-  }, [inputText]);
+  // 判断是否是观战成员 (memberType >= 3)
+  const isSpectator = (curMember?.memberType ?? 3) >= 3;
+
+  const { myStatus: myStatue, handleManualStatusChange } = useChatInputStatus({
+    roomId,
+    userId,
+    webSocketUtils,
+    inputText,
+    isSpectator, // 观战成员不发送状态
+  });
+  // 移除旧的输入状态即时 effect 和单独 idle 定时器（统一由 snapshot 驱动）
 
   /**
    * ai自动补全
@@ -346,6 +360,10 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
         toast.error("正在发送中，请稍等");
       return;
     }
+    if (inputText.length > 1024) {
+      toast.error("输入内容过长, 最长未1024个字符");
+      return;
+    }
     setIsSubmitting(true);
     try {
       for (let i = 0; i < imgFiles.length; i++) {
@@ -403,6 +421,23 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
     };
     send(messageRequest);
   }
+
+  // 线索消息发送
+  const handleClueSend = (clue: ClueMessage) => {
+    const clueMessage: ChatMessageRequest = {
+      roomId,
+      roleId: curRoleId,
+      messageType: 1000,
+      content: "",
+      avatarId: curAvatarId,
+      extra: {
+        img: clue.img,
+        name: clue.name,
+        description: clue.description,
+      },
+    };
+    send(clueMessage);
+  };
 
   // *** 新增: onPasteFiles 的回调处理器 ***
   const handlePasteFiles = (files: File[]) => {
@@ -490,11 +525,6 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           </div>
           <div className="flex gap-2 items-center">
             <SearchBar className={getScreenSize() === "sm" ? "" : "w-64"} />
-            <Setting
-              className="size-7 cursor-pointer hover:text-info"
-              onClick={() => setIsSettingWindowOpen(true)}
-            >
-            </Setting>
           </div>
         </div>
         <div className="h-px bg-base-300"></div>
@@ -502,7 +532,13 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
           <div className="flex flex-col flex-1 h-full">
             {/* 聊天框 */}
             <div className="bg-base-100 flex-1 flex-shrink-0">
-              <ChatFrame useChatBubbleStyle={useChatBubbleStyle} setUseChatBubbleStyle={setUseChatBubbleStyle} key={roomId} virtuosoRef={virtuosoRef}></ChatFrame>
+              <ChatFrame
+                useChatBubbleStyle={useChatBubbleStyle}
+                setUseChatBubbleStyle={setUseChatBubbleStyle}
+                key={roomId}
+                virtuosoRef={virtuosoRef}
+              >
+              </ChatFrame>
             </div>
             <div className="h-px bg-base-300 flex-shrink-0"></div>
             {/* 输入区域 */}
@@ -522,14 +558,19 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
                   className="absolute bottom-full w-[100%] mb-2 bg-base-200 rounded-box shadow-md overflow-hidden z-10"
                 />
                 {/* 底部工具栏 */}
+                {/* 状态显示条 */}
+                <ChatStatusBar roomId={roomId} userId={userId} webSocketUtils={webSocketUtils} excludeSelf={false} />
                 <ChatToolbar
                   sideDrawerState={sideDrawerState}
                   setSideDrawerState={setSideDrawerState}
                   updateEmojiUrls={updateEmojiUrls}
                   updateImgFiles={updateImgFiles}
-                  setIsItemsWindowOpen={setIsItemsWindowOpen}
                   disableSendMessage={disableSendMessage}
                   handleMessageSubmit={handleMessageSubmit}
+                  autoComplete={autoComplete}
+                  currentChatStatus={myStatue as any}
+                  onChangeChatStatus={handleManualStatusChange}
+                  isSpectator={isSpectator}
                 />
                 <div className="flex gap-2 items-stretch">
                   <AvatarSwitch
@@ -598,48 +639,54 @@ export function RoomWindow({ roomId, spaceId }: { roomId: number; spaceId: numbe
               </div>
             </form>
           </div>
-          <OpenAbleDrawer isOpen={sideDrawerState === "user"} className="h-full bg-base-100 overflow-auto z-20 flex-shrink-0">
-            <div className="w-px bg-base-300"></div>
+          <div className="w-px bg-base-300 flex-shrink-0"></div>
+          <OpenAbleDrawer
+            isOpen={sideDrawerState === "user"}
+            className="h-full bg-base-100 overflow-auto z-20 flex-shrink-0"
+            initialWidth={userDrawerWidth}
+            onWidthChange={setUserDrawerWidth}
+          >
             <RoomUserList></RoomUserList>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "role"} className="h-full bg-base-100 overflow-auto z-20 flex-shrink-0">
-            <div className="w-px bg-base-300"></div>
+          <OpenAbleDrawer
+            isOpen={sideDrawerState === "role"}
+            className="h-full bg-base-100 overflow-auto z-20 flex-shrink-0"
+            initialWidth={roleDrawerWidth}
+            onWidthChange={setRoleDrawerWidth}
+          >
             <RoomRoleList></RoomRoleList>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "initiative"} className="max-h-full overflow-auto z-20">
-            <div className="w-px bg-base-300"></div>
+          <OpenAbleDrawer
+            isOpen={sideDrawerState === "initiative"}
+            className="max-h-full overflow-auto z-20"
+            initialWidth={initiativeDrawerWidth}
+            onWidthChange={setInitiativeDrawerWidth}
+          >
             <InitiativeList></InitiativeList>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "map"} className="h-full overflow-auto z-20" overWrite>
-            <div className="w-px bg-base-300"></div>
+          <OpenAbleDrawer
+            isOpen={sideDrawerState === "map"}
+            className="h-full overflow-auto z-20"
+            initialWidth={mapDrawerWidth}
+            onWidthChange={setMapDrawerWidth}
+            maxWidth={window.innerWidth - 700}
+          >
             <DNDMap></DNDMap>
           </OpenAbleDrawer>
-          <OpenAbleDrawer isOpen={sideDrawerState === "clue"} className="h-full bg-base-100 overflow-auto z-20">
-            <div className="w-px bg-base-300"></div>
-            <ClueList></ClueList>
+          <OpenAbleDrawer
+            isOpen={sideDrawerState === "clue"}
+            className="h-full bg-base-100 overflow-auto z-20"
+            initialWidth={clueDrawerWidth}
+            onWidthChange={setClueDrawerWidth}
+          >
+            {spaceContext.isSpaceOwner
+              ? <ClueListForKP onSend={handleClueSend}></ClueListForKP>
+              : <ClueListForPL onSend={handleClueSend}></ClueListForPL>}
           </OpenAbleDrawer>
         </div>
       </div>
-      <PopWindow isOpen={isItemsWindowOpen} onClose={() => setIsItemsWindowOpen(false)}>
-        <ItemWindow setSelectedItemId={setSelectedItemId}></ItemWindow>
-      </PopWindow>
-      <PopWindow isOpen={isSettingWindowOpen} onClose={() => setIsSettingWindowOpen(false)}>
-        <RoomSettingWindow
-          onClose={() => setIsSettingWindowOpen(false)}
-          onShowMembers={() => setSideDrawerState("user")}
-          onRenderDialog={() => setIsRenderWindowOpen(true)}
-        />
-      </PopWindow>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleAddWindowOpen(false)}>
-        <AddRoleWindow handleAddRole={handleAddRole} addModuleRole={false}></AddRoleWindow>
-      </PopWindow>
-      <PopWindow
-        isOpen={selectedItemId > 0}
-        onClose={() => setSelectedItemId(-1)}
-      >
-        {selectedItemId && (
-          <DisplayOfItemDetail itemId={selectedItemId} />
-        )}
+        <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
       </PopWindow>
       <PopWindow isOpen={isRenderWindowOpen} onClose={() => setIsRenderWindowOpen(false)}>
         <RenderWindow></RenderWindow>

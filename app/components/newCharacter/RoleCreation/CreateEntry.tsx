@@ -1,19 +1,19 @@
 // 空状态组件
 export default function CreateEntry({
   AICreate,
-  ExcelImport,
   createBySelf,
+  STCreate,
   animationTrigger,
 }: {
   AICreate: () => void;
-  ExcelImport: () => void;
   createBySelf: () => void;
+  STCreate: () => void;
   animationTrigger?: number; // 动画触发器，每次变化时重新触发动画
 }) {
   return (
     <div
       key={animationTrigger || 0} // 使用key来强制重新渲染，触发CSS动画
-      className="flex flex-col items-center justify-center h-full min-h-[calc(100vh-4rem)] p-6 animate-scale-in"
+      className="animate-scale-in flex flex-col items-center justify-center h-full min-h-[calc(100vh-6rem)] p-6"
     >
       <div>
         <h1 className="text-3xl font-bold text-base-content mb-2">创建新角色</h1>
@@ -33,22 +33,22 @@ export default function CreateEntry({
             </p>
           </div>
 
-          {/* 从Excel导入 */}
-          <div className="bg-base-100 rounded-xl p-6 shadow-sm border border-base-200 hover:shadow-lg transition-all duration-200 cursor-pointer transform hover:scale-105" onClick={ExcelImport}>
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500 flex items-center justify-center">
+          {/* ST指令导入 */}
+          <div className="bg-base-100 rounded-xl p-6 shadow-sm border border-base-200 hover:shadow-lg transition-all duration-200 cursor-pointer transform hover:scale-105" onClick={STCreate}>
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-8 h-8 text-white">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-base-content mb-2 text-center">从Excel命令导入</h3>
+            <h3 className="text-lg font-semibold text-base-content mb-2 text-center">ST指令导入</h3>
             <p className="text-sm text-base-content/70 text-center leading-relaxed">
-              导入现有的Excel角色数据表，批量创建或更新角色信息
+              通过.st指令快速导入角色属性，适合已有角色数据的用户
             </p>
           </div>
 
           {/* 从0开始创建 */}
           <div className="bg-base-100 rounded-xl p-6 shadow-sm border border-base-200 hover:shadow-lg transition-all duration-200 cursor-pointer transform hover:scale-105" onClick={createBySelf}>
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-500 flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500 flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-8 h-8 text-white">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>

@@ -15,11 +15,12 @@ export type UseChatHistoryReturn = {
   error: Error | null;
   addOrUpdateMessage: (message: ChatMessageResponse) => Promise<void>;
   addOrUpdateMessages: (messages: ChatMessageResponse[]) => Promise<void>;
+  getMessagesByRoomId: (roomId: number) => Promise<ChatMessageResponse[]>;
   clearHistory: () => Promise<void>;
 };
 /**
  * 用于管理特定房间聊天记录的React Hook
- * @param roomId 要管理的房间ID
+ * @param roomId 要管理的房间ID, 你可以设置为null，然后通过getMessagesByRoomId获取
  */
 export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   const [messagesRaw, setMessages] = useState<ChatMessageResponse[]>([]);
@@ -43,8 +44,23 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       if (newMessages[0].message.roomId === roomId) {
         setMessages((prevMessages) => {
           const messageMap = new Map(prevMessages.map(msg => [msg.message.messageId, msg]));
+          let hasChanges = false;
+
           newMessages.filter(msg => msg.message.roomId === roomId)
-            .forEach(msg => messageMap.set(msg.message.messageId, msg));
+            .forEach((msg) => {
+              const existingMsg = messageMap.get(msg.message.messageId);
+              // 只有在消息真正变化时才更新
+              if (!existingMsg || JSON.stringify(existingMsg) !== JSON.stringify(msg)) {
+                messageMap.set(msg.message.messageId, msg);
+                hasChanges = true;
+              }
+            });
+
+          // 如果没有变化，返回原数组以避免不必要的重渲染
+          if (!hasChanges) {
+            return prevMessages;
+          }
+
           const updatedMessages = Array.from(messageMap.values());
           // 按 position 排序确保顺序
           return updatedMessages.sort((a, b) => a.message.position - b.message.position);
@@ -78,6 +94,36 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
   );
 
   /**
+   * 从服务器全量获取最新的消息
+   */
+  const fetchNewestMessages = useCallback(async (maxSyncId: number) => {
+    if (roomId === null)
+      return [];
+    // 从服务器获取最新消息
+    const serverResponse = await tuanchat.chatController.getHistoryMessages({
+      roomId,
+      syncId: maxSyncId + 1,
+    });
+    const newMessages = serverResponse.data ?? [];
+    if (newMessages.length > 0) {
+      await addOrUpdateMessages(newMessages);
+    }
+    return newMessages;
+  }, [addOrUpdateMessages, roomId]);
+
+  /**
+   * 按照房间获取消息
+   */
+  const getMessagesByRoomId = useCallback(async (roomId: number) => {
+    const messages = await dbGetMessagesByRoomId(roomId);
+    const maxSyncId = messages.length > 0
+      ? Math.max(...messages.map(msg => msg.message.syncId))
+      : -1;
+    const newMessages = await fetchNewestMessages(maxSyncId);
+    return [...messages, ...newMessages].sort((a, b) => a.message.position - b.message.position);
+  }, [fetchNewestMessages]);
+
+  /**
    * 清空当前房间的聊天记录
    */
   const clearHistory = useCallback(async () => {
@@ -91,23 +137,6 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
       setError(err as Error);
     }
   }, [roomId]);
-
-  /**
-   * 从服务器全量获取最新的消息
-   */
-  const fetchNewestMessages = async (maxSyncId: number) => {
-    if (roomId === null)
-      return;
-    // 从服务器获取最新消息
-    const serverResponse = await tuanchat.chatController.getHistoryMessages({
-      roomId,
-      syncId: maxSyncId + 1,
-    });
-    const newMessages = serverResponse.data ?? [];
-    if (newMessages.length > 0) {
-      await addOrUpdateMessages(newMessages);
-    }
-  };
 
   /**
    * 初始加载聊天记录
@@ -179,6 +208,7 @@ export function useChatHistory(roomId: number | null): UseChatHistoryReturn {
     error,
     addOrUpdateMessage, // 用于单条消息
     addOrUpdateMessages, // 用于批量消息
+    getMessagesByRoomId,
     clearHistory,
   };
 }

@@ -1,3 +1,4 @@
+import UNTIL from "@/components/common/dicer/utils";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import {
@@ -5,7 +6,6 @@ import {
   useSetRoleAbilityMutation,
   useUpdateRoleAbilityMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
-import { useGetRoleQuery } from "../../../../api/queryHooks";
 
 interface ImportWithStCmdProps {
   ruleId: number;
@@ -53,7 +53,6 @@ export default function ImportWithStCmd({ ruleId, roleId, onImportSuccess }: Imp
 
   return (
     <fieldset className="border border-base-300 rounded-lg p-4">
-      <legend className="px-2 font-bold">ST指令导入</legend>
       <div className="relative w-full">
         <textarea
           className="bg-base-200 rounded-lg p-4 w-full h-40 overflow-auto resize-none"
@@ -95,12 +94,10 @@ function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => string
     cm: "克苏鲁神话",
   };
 
-  const role = useGetRoleQuery(roleId).data?.data;
-
   const abilityQuery = useGetRoleAbilitiesQuery(roleId);
   const abilityList = abilityQuery.data?.data ?? [];
   // 当前规则下激活的能力组
-  const curAbility = abilityList.find(a => a.ruleId === ruleId);
+  const curAbility = abilityList.find(a => a.ruleId === ruleId) ?? {};
 
   const updateAbilityMutation = useUpdateRoleAbilityMutation(); // 更改属性与能力字段
   const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
@@ -112,34 +109,9 @@ function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => string
     cmd = cmd.slice(3).trim();
     const args = cmd.split(/\s+/).filter(arg => arg !== "");
     const input = args.join("");
-    const ability: { [key: string]: number } = {};
     // 使用正则匹配所有属性+数值的组合
     const matches = input.matchAll(/(\D+)(\d+)/g);
-
-    // st show 实现，目前仍使用聊天文本返回结果
-    // TODO 添加弹出窗口响应`st show`的属性展示
-    if (args[0]?.toLowerCase() === "show") {
-      if (!curAbility?.ability) {
-        return "未设置角色属性";
-      }
-
-      const showProps = args.slice(1).filter(arg => arg.trim() !== "");
-      if (showProps.length === 0) {
-        return "请指定要展示的属性";
-      }
-
-      const result: string[] = [];
-      for (const prop of showProps) {
-        const normalizedKey = prop.toLowerCase();
-        const key = ABILITY_MAP[normalizedKey] || prop;
-        const value = curAbility.ability[key] ?? 0; // 修改这里，添加默认值0
-
-        result.push(`${key}: ${value}`);
-      }
-
-      return `${role?.roleName || "当前角色"}的属性展示：\n${result.join("\n")}`;
-    }
-
+    const abilityToUpdate = new Map<string, string>();
     for (const match of matches) {
       const rawKey = match[1].trim();
       const value = Number.parseInt(match[2], 10);
@@ -149,10 +121,12 @@ function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => string
 
       // 查找映射关系
       if (ABILITY_MAP[normalizedKey]) {
-        ability[ABILITY_MAP[normalizedKey]] = value;
+        UNTIL.setRoleAbilityValue(curAbility, ABILITY_MAP[normalizedKey], String(value), "skill");
+        abilityToUpdate.set(ABILITY_MAP[normalizedKey], String(value));
       }
       else {
-        ability[rawKey] = value;
+        UNTIL.setRoleAbilityValue(curAbility, rawKey, String(value), "skill");
+        abilityToUpdate.set(rawKey, String(value));
       }
     }
 
@@ -160,8 +134,10 @@ function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => string
     if (curAbility) {
       updateAbilityMutation.mutate({
         abilityId: curAbility.abilityId ?? -1,
-        ability,
-        act: {},
+        act: curAbility.act,
+        basic: curAbility.basic,
+        ability: curAbility.ability,
+        skill: curAbility.skill,
       });
     }
     else {
@@ -169,10 +145,12 @@ function useHandleStCmd(ruleId: number, roleId: number): (cmd: string) => string
         roleId,
         ruleId,
         act: {},
-        ability,
+        basic: {},
+        ability: {},
+        skill: {},
       });
     }
-    return `更新属性: ${JSON.stringify(ability, null, 2)}`;
+    return `更新属性: ${JSON.stringify(abilityToUpdate, null, 2)}`;
   }
   return handleStCmdInner;
 }

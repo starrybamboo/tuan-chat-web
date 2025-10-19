@@ -1,15 +1,11 @@
 import type { InferRequest } from "@/tts/apis";
 
-import { createTTSApi } from "@/tts/apis";
+import { ttsApi } from "@/tts/apis";
 import { checkGameExist, terreApis } from "@/webGAL/index";
 
 import type { ChatMessageResponse, RoleAvatar } from "../../api";
 
-import { getAsyncMsg, uploadFile } from "./fileOperator";
-
-// 创建 TTS API 实例，从环境变量获取 URL
-const TTS_API_URL = import.meta.env.VITE_TTS_API_URL || "http://localhost:9000";
-export const ttsApi = createTTSApi(TTS_API_URL);
+import { checkFileExist, getAsyncMsg, uploadFile } from "./fileOperator";
 
 type Game = {
   name: string;
@@ -190,7 +186,7 @@ export class SceneEditor {
   ): Promise<{ success: boolean; fileName?: string; audioBase64?: string; error?: string }> {
     const text = message.message.content;
     const {
-      emotionMode = 0, // 默认与音色参考音频相同
+      emotionMode = 2, // 默认与音色参考音频相同
       emotionWeight = 0.8,
       emotionText,
       emotionVector,
@@ -328,7 +324,7 @@ export class SceneEditor {
     const text = message.message.content;
 
     // 使用hash作为文件名, 用于避免重复生成语音
-    const identifyString = `tts_${text}_${refVocal?.name || "default"}_${options.emotionMode || 0}_${refVocal?.name}`;
+    const identifyString = `tts_${text}_${refVocal?.name || "default"}_${JSON.stringify(options)}`;
     const hash = this.simpleHash(identifyString);
     const fileName = `${hash}.wav`;
 
@@ -336,9 +332,9 @@ export class SceneEditor {
       return;
 
     // 检查文件是否已存在
-    // if (await checkFileExist(`games/${this.game.name}/game/vocal/`, fileName)) {
-    //   return fileName;
-    // }
+    if (await checkFileExist(`games/${this.game.name}/game/vocal/`, fileName)) {
+      return fileName;
+    }
 
     try {
       // 生成语音

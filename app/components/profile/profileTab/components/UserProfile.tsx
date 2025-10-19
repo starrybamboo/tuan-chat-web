@@ -82,15 +82,25 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               </div>
             )
           : (
-              <h2 className={`font-bold overflow-hidden text-ellipsis whitespace-nowrap ${
-                isMobile ? "text-lg" : "text-2xl h-8"
-              }`}
-              >
-                {user?.username || "未知用户"}
+              <h2 className={`font-bold truncate ${isMobile ? "text-lg" : "text-2xl"}`}>
+                {user?.username
+                  ? (
+                      <>
+                        {user.username}
+                        {" "}
+                        <span className={`text-sm text-gray-400 ${isMobile ? "inline" : "block"}`}>
+                          UID:
+                          {" "}
+                          {userId}
+                        </span>
+                      </>
+                    )
+                  : (
+                      "未知用户"
+                    )}
               </h2>
             )}
       </div>
-
       {/* 描述 */}
       <div className={isMobile ? "mt-2" : "w-full mt-4"}>
         {isOwner && isEditingProfile && !isMobile
@@ -109,7 +119,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     editingDescription.length > 253 ? "textarea-error" : ""
                   }`}
                   rows={4}
-                  maxLength={253}
                   placeholder="请输入个人描述..."
                 />
                 {!isMobile && (
@@ -123,6 +132,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     </div>
                     <div className="flex gap-2">
                       <button
+                        type="button"
                         onClick={saveProfile}
                         className="btn btn-sm btn-success"
                         disabled={
@@ -135,6 +145,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                         保存
                       </button>
                       <button
+                        type="button"
                         onClick={cancelEditingProfile}
                         className="btn btn-sm btn-ghost"
                       >

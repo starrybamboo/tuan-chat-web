@@ -1,7 +1,10 @@
+import type { MoodRegulatorHandle } from "@/components/common/MoodRegulator";
 import type { RoleAvatar } from "api";
 import type { Transform } from "./TransformControl";
+import MoodRegulator from "@/components/common/MoodRegulator";
 import { PopWindow } from "@/components/common/popWindow";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useUpdateAvatarTitleMutation } from "api/queryHooks";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RenderPreview } from "./RenderPreview";
 import { SpriteCropper } from "./SpriteCropper";
 import { parseTransformFromAvatar } from "./utils";
@@ -58,11 +61,52 @@ export function SpriteRenderStudio({
   const [isManualSwitch, setIsManualSwitch] = useState(false);
   // 弹窗显示状态
   const [isPopWindowOpen, setIsPopWindowOpen] = useState(false);
-  // 立绘列表面板收起/展开状态
+  // 头像语音弹窗状态
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  // 立绘列表面板收起/展开状态 - 桌面端默认打开，移动端默认关闭
   const [isSpritePanelOpen, setIsSpritePanelOpen] = useState(false);
+
+  // 情绪调节组件需要
+  const { mutate: updateAvatarTitle } = useUpdateAvatarTitleMutation();
+  // 将 onChange 包装为稳定引用，避免作为 props 变化触发子组件重渲染
+  const moodChangeRef = useRef<(m: Record<string, string>) => void>(() => { });
+  const handleMoodChange = useCallback((m: Record<string, string>) => moodChangeRef.current(m), []);
+
+  // 标题的变化监控
+  const avatarTitleRef = useRef<Record<string, string>>({});
+  const moodControlRef = useRef<MoodRegulatorHandle | null>(null);
+
+  // 情绪调节器兜底标签（当当前头像没有定义 avatarTitle 时使用）
+  const DEFAULT_MOOD_LABELS = useMemo(
+    () => ["喜", "怒", "哀", "惧", "厌恶", "低落", "惊喜", "平静"],
+    [],
+  );
+  // 根据当前选中头像的情绪键生成 labels，若为空则回退到默认 8 项
+  const moodLabels = useMemo(() => {
+    const keys = Object.keys((roleAvatars[currentSpriteIndex]?.avatarTitle as Record<string, string>) || {});
+    return keys.length > 0 ? keys : DEFAULT_MOOD_LABELS;
+  }, [roleAvatars, currentSpriteIndex, DEFAULT_MOOD_LABELS]);
+
+  // 将 onChange 包装为稳定引用，避免作为 props 变化触发子组件重渲染
+  useEffect(() => {
+    moodChangeRef.current = (moodMap: Record<string, string>) => {
+      updateAvatarTitle({ roleId: roleAvatars[currentSpriteIndex].roleId!, avatarId: roleAvatars[currentSpriteIndex].avatarId!, avatarTitle: moodMap });
+    };
+  }, [updateAvatarTitle, roleAvatars, currentSpriteIndex]);
+
+  // 当外部选中头像变化时，查找对应头像并同步调节器（不触发渲染）
+  useEffect(() => {
+    const curr = roleAvatars.find(a => a.avatarId === roleAvatars[currentSpriteIndex]?.avatarId);
+    if (curr) {
+      const t = (curr.avatarTitle as Record<string, string>) || {};
+      avatarTitleRef.current = t;
+      moodControlRef.current?.setValue(t);
+    }
+  }, [roleAvatars, currentSpriteIndex]);
 
   // 处理立绘索引同步 - 当initialAvatarId变化时重置手动偏移
   useEffect(() => {
+    moodControlRef.current?.setValue(avatarTitleRef.current || {});
     // 当initialAvatarId变化时，清除手动偏移，回到自动计算的索引
     if (initialAvatarId !== lastInitialAvatarId) {
       // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
@@ -94,13 +138,16 @@ export function SpriteRenderStudio({
         if (matchingSprite) {
           return matchingSprite;
         }
+        avatarTitleRef.current = roleAvatars[currentSpriteIndex].avatarTitle || {};
+        // 通过 ref 直接同步到调节器，避免通过 props 传值导致重建
+        moodControlRef.current?.setValue(avatarTitleRef.current);
         return sprite;
       }
       // 手动模式下直接返回
       return sprite;
     }
     return null;
-  }, [spritesAvatars, currentSpriteIndex, initialAvatarId, manualIndexOffset]);
+  }, [currentSpriteIndex, spritesAvatars, initialAvatarId, manualIndexOffset, roleAvatars]);
 
   const spriteUrl = currentSprite?.spriteUrl || null;
 
@@ -168,7 +215,7 @@ export function SpriteRenderStudio({
 
   // 当立绘URL变化时，加载到预览Canvas (已修复)
   useEffect(() => {
-  // 如果没有 spriteUrl，直接清空并返回，简化逻辑
+    // 如果没有 spriteUrl，直接清空并返回，简化逻辑
     if (!spriteUrl || !previewCanvasRef.current || !currentSprite) {
       if (previewCanvasRef.current) {
         const canvas = previewCanvasRef.current;
@@ -191,7 +238,7 @@ export function SpriteRenderStudio({
       img.crossOrigin = "anonymous";
 
       img.onload = () => {
-      // 只有当这个 effect 仍然是“活跃”的，才执行操作
+        // 只有当这个 effect 仍然是“活跃”的，才执行操作
         if (isActive) {
           canvas.width = img.width;
           canvas.height = img.height;
@@ -200,7 +247,7 @@ export function SpriteRenderStudio({
 
           const newTransform = parseTransformFromAvatar(currentSprite);
           setDisplayTransform(newTransform);
-          setIsImageLoading(false);
+          setTimeout(() => setIsImageLoading(false), 200);
         }
       };
 
@@ -234,13 +281,13 @@ export function SpriteRenderStudio({
   return (
     <div className={`${className} flex-col`}>
       <div className="relative flex-1 min-h-0">
-        {/* 编辑按钮 - 定位到右上角，移动端自动缩小 */}
+        {/* 按钮 - 定位到右上角，移动端自动缩小 */}
         <button
           type="button"
-          className="absolute top-2 left-2 sm:right-2 sm:left-auto btn btn-sm md:btn-md btn-accent z-30"
+          className="absolute top-2 left-2 sm:right-2 sm:left-auto btn btn-sm md:btn-md btn-accent w-10 md:w-36 z-30"
           onClick={handleOpenPopWindow}
         >
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-2">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
               <path d="M11 4H4v14a2 2 0 002 2h12a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" />
               <path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z" stroke="currentColor" strokeWidth="2" />
@@ -256,14 +303,15 @@ export function SpriteRenderStudio({
             {!isSpritePanelOpen && (
               <button
                 type="button"
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-base-100/90 border border-base-300 shadow-lg hover:bg-base-200 transition-all"
+                className="btn btn-sm md:btn-md w-10 md:w-36 items-center justify-center bg-base-100/90 border border-base-300 shadow-lg hover:bg-base-200 transition-all"
                 title="展开立绘列表"
                 onClick={() => setIsSpritePanelOpen(true)}
               >
-                <svg className="w-5 h-5 text-base-content/70" viewBox="0 0 24 24" fill="none">
+                <svg className="w-6 md:w-5 h-6 md:h-5 text-base-content/70" viewBox="0 0 24 24" fill="none">
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
                   <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
+                <span className="hidden sm:inline">立绘列表</span>
               </button>
             )}
             {/* 展开时显示面板 */}
@@ -306,12 +354,7 @@ export function SpriteRenderStudio({
                             />
                           )
                         : (
-                            <div className="w-full h-full bg-base-200 flex items-center justify-center">
-                              <svg className="w-4 h-4 text-base-content/50" viewBox="0 0 24 24" fill="none">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="2" />
-                                <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" />
-                              </svg>
-                            </div>
+                            <div className="w-full h-full bg-base-200"></div>
                           )}
                     </button>
                   ))}
@@ -324,6 +367,26 @@ export function SpriteRenderStudio({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* 头像语音按钮 */}
+        {spritesAvatars.length > 0 && (
+          <div className="absolute top-12 md:top-26 right-2 z-20">
+            <button
+              type="button"
+              className="btn btn-sm md:btn-md w-10 md:w-36 items-center justify-center bg-base-100/90 border border-base-300 shadow-lg hover:bg-base-200 transition-all"
+              title="头像语音设置"
+              onClick={() => setIsVoiceModalOpen(true)}
+            >
+              <svg className="w-4 h-4 text-base-content/70" viewBox="0 0 24 24" fill="none">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="2" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M12 19v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M8 23h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="hidden sm:inline ml-2">情感设定</span>
+            </button>
           </div>
         )}
 
@@ -386,6 +449,17 @@ export function SpriteRenderStudio({
             R:
             {transform.rotation}
             °
+          </div>
+          <div>
+            情感:
+            {(() => {
+              const currentAvatar = roleAvatars[currentSpriteIndex];
+              const avatarTitle = currentAvatar?.avatarTitle as Record<string, string> || {};
+              const entries = Object.entries(avatarTitle);
+              return entries.length > 0
+                ? entries.map(([key, value]) => `${key}:${value}`).join(", ")
+                : "无";
+            })()}
           </div>
         </div>
 
@@ -458,10 +532,6 @@ export function SpriteRenderStudio({
                   roleAvatars={roleAvatars}
                   initialSpriteIndex={currentSpriteIndex}
                   characterName={characterName}
-                  onCropComplete={(croppedImageUrl) => {
-                    console.warn("单体裁剪完成:", croppedImageUrl);
-                    handleClosePopWindow();
-                  }}
                   onClose={handleClosePopWindow}
                 />
               )
@@ -471,6 +541,32 @@ export function SpriteRenderStudio({
                   <p>当前没有可用的立绘进行裁剪</p>
                 </div>
               )}
+        </PopWindow>
+      )}
+
+      {/* 头像语音设置弹窗 */}
+      {isVoiceModalOpen && (
+        <PopWindow
+          isOpen={isVoiceModalOpen}
+          onClose={() => setIsVoiceModalOpen(false)}
+          fullScreen={typeof window !== "undefined" ? window.innerWidth < 768 : false}
+        >
+          <div className="p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold">调整当前立绘语音参数</h3>
+            </div>
+            <div className="bg-info/10 p-4 rounded-md">
+              <MoodRegulator
+                controlRef={moodControlRef}
+                onChange={handleMoodChange}
+                // 显式传入 labels，避免在没有值时不渲染控件
+                labels={moodLabels}
+                // 仅用于初始显示，不参与受控更新；后续都通过 ref.setValue 同步
+                defaultValue={(roleAvatars[currentSpriteIndex]?.avatarTitle as Record<string, string>) || undefined}
+                fallbackDefaultLabels={true}
+              />
+            </div>
+          </div>
         </PopWindow>
       )}
     </div>

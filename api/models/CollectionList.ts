@@ -27,6 +27,14 @@ export type CollectionList = {
      */
     isPublic?: boolean;
     /**
+     * 逻辑删除
+     */
+    isDeleted?: boolean;
+    /**
+     * 资源列表类型
+     */
+    resourceListType?: string;
+    /**
      * 列表封面图片
      */
     coverImageUrl?: string;

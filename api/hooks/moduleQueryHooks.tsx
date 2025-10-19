@@ -34,7 +34,7 @@ export function useUpdateItemMutation() {
 export function useAddItemMutation() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (req: ItemAddRequest) => tuanchat.itemController.addItem1(req),
+        mutationFn: (req: ItemAddRequest) => tuanchat.itemController.addItem2(req),
         mutationKey: ['addItem'],
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['items'] });
@@ -73,7 +73,7 @@ export function useItemsQuery(requestBody: ItemPageRequest) {
 export function useItemDetailQuery(id: number) {
     return useQuery({
         queryKey: ['itemDetail', id],
-        queryFn: () => tuanchat.itemController.getById(id),
+        queryFn: () => tuanchat.itemController.getById1(id),
         staleTime: 300000, // 5分钟缓存
         enabled: !!id
     });
@@ -177,6 +177,15 @@ export function useModuleDetailQuery(moduleId: number) {
         data: moduleDetail ? { data: moduleDetail } : undefined,
         ...rest
     };
+}
+
+export function useModuleDetailByIdQuery(moduleId: number) {
+    return useQuery({
+        queryKey: ['moduleDetail', moduleId],
+        queryFn: () => tuanchat.moduleController.getById(moduleId),
+        enabled: !!moduleId,
+        staleTime: 300000 // 5分钟缓存
+    });
 }
 
 /*====================stages=======================*/
@@ -319,8 +328,9 @@ export function useUpdateEntityMutation(stageId: number) {
     return useMutation({
         mutationFn: (req: EntityUpdateRequest) => tuanchat.stageController.update(req),
         mutationKey: ['updateEntity'],
-        onSuccess: (_data) => {
+        onSuccess: (_data,variables) => {
             queryClient.invalidateQueries({ queryKey: ['queryEntities', stageId], refetchType: 'all' });
+            queryClient.invalidateQueries({ queryKey: ['roleAvatar', variables.id] });
         }
     })
 }

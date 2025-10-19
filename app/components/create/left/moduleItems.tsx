@@ -1,13 +1,12 @@
-import { useAddEntityMutation, useAddRoleMutation, useQueryEntitiesQuery, useUpdateEntityMutation } from "api/hooks/moduleQueryHooks";
+import { useAddEntityMutation, useAddRoleMutation, useQueryEntitiesQuery } from "api/hooks/moduleQueryHooks";
 import * as React from "react";
 import CreateRole from "./components/createRole";
 import ItemList from "./components/itemList";
 import { LocationList } from "./components/LocationList";
 import RoleList from "./components/roleList";
-import SceneList from "./components/SceneList";
 
-// 与后端 entityType 对齐的类型：1 物品 | 2 角色 | 3 剧情 | 4 地点
-type EntityType = 1 | 2 | 3 | 4;
+// 与后端 entityType 对齐的类型：1 物品 | 2 角色 | 4 地点
+type EntityType = 1 | 2 | 4;
 
 // 与 content-manager 风格一致的 Tab 触发按钮（图标 + 文案，四等分）
 function TabTriggerButton({
@@ -39,98 +38,40 @@ function ModuleItems({ stageId }: { stageId: number }) {
   // 全局实体搜索（角色/物品/地点/剧情）
   const [searchQuery, setSearchQuery] = React.useState("");
   const [activeTab, setActiveTab] = React.useState<EntityType>(2);
-  const [deleteMode, setDeleteMode] = React.useState(false);
+  // 删除模式相关功能已移除
   // 明确映射，避免字符串裁剪等错误
   const tabMeta = React.useMemo(
     () => ({
       2: { label: "角色" as const },
       1: { label: "物品" as const },
       4: { label: "地点" as const },
-      3: { label: "剧情" as const },
     }),
     [],
   );
   const activeTabLabel = tabMeta[activeTab].label;
 
-  // 防抖与重入保护：避免事件导致的设值与自身重新渲染引起的抖动
-  const switchingRef = React.useRef(false);
-
-  // 监听来自 MapModule 的切换事件，将当前 Tab 切换为 剧情（3），不改动上下文
-  React.useEffect(() => {
-    const handler = (e: Event) => {
-      if (switchingRef.current) {
-        return;
-      }
-      switchingRef.current = true;
-      try {
-        // 兜底：如果 detail.tab 指定了其他目标，这里也支持
-        const detail = (e as CustomEvent<{ tab?: number }>).detail;
-        const next = (detail?.tab ?? 3) as EntityType;
-        if (next !== activeTab && (next === 1 || next === 2 || next === 3 || next === 4)) {
-          // 延迟到下一帧再设置，避免在 effect 中直接 setState 引发的告警
-          requestAnimationFrame(() => setActiveTab(next));
-        }
-      }
-      finally {
-        // 在下一帧释放，避免同一渲染周期内重复处理
-        requestAnimationFrame(() => {
-          switchingRef.current = false;
-        });
-      }
-    };
-    window.addEventListener("switch-moduleitems-tab", handler as EventListener);
-    return () => window.removeEventListener("switch-moduleitems-tab", handler as EventListener);
-  }, [activeTab]);
-
-  // 首帧兜底：如果在监听器挂载前发出了切换请求，则从 sessionStorage 读取一次并清除
-  React.useEffect(() => {
-    try {
-      const key = "moduleitems.initialTab";
-      const v = window.sessionStorage.getItem(key);
-      if (v) {
-        window.sessionStorage.removeItem(key);
-        const nextNum = Number(v);
-        if (nextNum === 1 || nextNum === 2 || nextNum === 3 || nextNum === 4) {
-          const next = nextNum as EntityType;
-          if (next !== activeTab) {
-            // 同样延迟一帧设置，避免 effect 中直接 setState
-            requestAnimationFrame(() => setActiveTab(next));
-          }
-        }
-      }
-    }
-    catch {
-      // ignore
-    }
-  }, [activeTab]);
-
-  // 查询当前所有实体，便于生成唯一名称，以及在创建剧情后更新地图
+  // 查询当前所有实体，便于生成唯一名称
   const { data } = useQueryEntitiesQuery(stageId);
   const entities = React.useMemo(() => data?.data ?? [], [data]);
   const listByType = React.useMemo(() => ({
     1: entities.filter(e => e.entityType === 1), // item
     2: entities.filter(e => e.entityType === 2), // role
-    3: entities.filter(e => e.entityType === 3), // scene
     4: entities.filter(e => e.entityType === 4), // location
-    5: entities.filter(e => e.entityType === 5), // map (只用于剧情创建后同步)
   }), [entities]);
   const counts = React.useMemo(() => ({
     role: listByType[2]?.length ?? 0,
     item: listByType[1]?.length ?? 0,
     location: listByType[4]?.length ?? 0,
-    scene: listByType[3]?.length ?? 0,
   }), [listByType]);
   const activeCount = React.useMemo(() => (
-    activeTab === 2 ? counts.role : activeTab === 1 ? counts.item : activeTab === 4 ? counts.location : counts.scene
+    activeTab === 2 ? counts.role : activeTab === 1 ? counts.item : counts.location
   ), [activeTab, counts]);
 
   // 各类实体创建
   const { mutate: addItem } = useAddEntityMutation(1);
   const { mutate: addRole } = useAddEntityMutation(2);
   const { mutate: attachRoleToStage } = useAddRoleMutation();
-  const { mutate: addScene } = useAddEntityMutation(3);
   const { mutate: addLocation } = useAddEntityMutation(4);
-  const { mutate: updateMap } = useUpdateEntityMutation(stageId);
 
   const genUniqueName = (base: string, existing: Array<{ name?: string | null }>) => {
     let idx = 1;
@@ -177,40 +118,6 @@ function ModuleItems({ stageId }: { stageId: number }) {
           tip: "给予的提示",
           description: "新场景です",
           image: "/favicon.ico",
-        },
-      });
-      return;
-    }
-    if (type === 3) {
-      // 剧情
-      const name = genUniqueName("新剧情", listByType[3]);
-      const mapData = listByType[5][0];
-      addScene({
-        stageId,
-        name,
-        entityInfo: {
-          description: "无",
-          tip: "无",
-          items: [],
-          roles: [],
-          locations: [],
-        },
-      }, {
-        onSuccess: () => {
-          if (mapData) {
-            updateMap({
-              id: mapData.id!,
-              name: mapData.name,
-              entityType: 5,
-              entityInfo: {
-                ...mapData.entityInfo,
-                sceneMap: {
-                  ...mapData.entityInfo?.sceneMap,
-                  [name]: [],
-                },
-              },
-            });
-          }
         },
       });
     }
@@ -260,9 +167,9 @@ function ModuleItems({ stageId }: { stageId: number }) {
 
   return (
     <div className="w-full h-full flex flex-col overflow-hidden">
-      {/* Tab 切换（样式参考 content-manager：四列 + 图标 + 选中态） */}
+      {/* Tab 切换（样式参考 content-manager：三列 + 图标 + 选中态） */}
       <div className="px-2 pt-2">
-        <div role="tablist" aria-label="实体分类" className="grid w-full grid-cols-4 gap-2">
+        <div role="tablist" aria-label="实体分类" className="grid w-full grid-cols-3 gap-2">
           <TabTriggerButton selected={activeTab === 2} onClick={() => setActiveTab(2)}>
             {/* Users icon */}
             <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -271,7 +178,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
               <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
-            <span>角色</span>
+            <span>NPC</span>
           </TabTriggerButton>
           <TabTriggerButton selected={activeTab === 1} onClick={() => setActiveTab(1)}>
             {/* Package icon */}
@@ -290,14 +197,6 @@ function ModuleItems({ stageId }: { stageId: number }) {
             </svg>
             <span>地点</span>
           </TabTriggerButton>
-          <TabTriggerButton selected={activeTab === 3} onClick={() => setActiveTab(3)}>
-            {/* BookOpen icon */}
-            <svg className={iconClass} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M2 3h6a4 4 0 0 1 4 4v14a4 4 0 0 0-4-4H2z" />
-              <path d="M22 3h-6a4 4 0 0 0-4 4v14a4 4 0 0 1 4-4h6z" />
-            </svg>
-            <span>剧情</span>
-          </TabTriggerButton>
         </div>
       </div>
 
@@ -311,7 +210,7 @@ function ModuleItems({ stageId }: { stageId: number }) {
           <input
             type="text"
             className="grow"
-            placeholder="搜索实体（角色/物品/地点/剧情）..."
+            placeholder="搜索实体（角色/物品/地点）..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
@@ -328,16 +227,6 @@ function ModuleItems({ stageId }: { stageId: number }) {
           <span>)</span>
         </h3>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className={`btn btn-error btn-sm ${deleteMode ? "btn-active" : ""}`}
-            onClick={() => setDeleteMode(v => !v)}
-            aria-pressed={deleteMode}
-            aria-label="删除模式切换"
-            title={deleteMode ? "退出删除模式" : "进入删除模式"}
-          >
-            { deleteMode ? "退出删除模式" : "进入删除模式"}
-          </button>
           <button type="button" className="btn btn-primary btn-sm" onClick={handleCreate} aria-label={`新建${activeTabLabel}`}>
             新建
           </button>
@@ -346,10 +235,9 @@ function ModuleItems({ stageId }: { stageId: number }) {
 
       {/* 仅渲染当前 Tab 的列表（受全局搜索控制） */}
       <div className="flex-1 overflow-y-auto">
-        {activeTab === 2 && <RoleList stageId={stageId} searchQuery={searchQuery} deleteMode={deleteMode} showCreateButton={false} />}
-        {activeTab === 1 && <ItemList stageId={stageId} searchQuery={searchQuery} deleteMode={deleteMode} showCreateButton={false} />}
-        {activeTab === 4 && <LocationList stageId={stageId} searchQuery={searchQuery} deleteMode={deleteMode} showCreateButton={false} />}
-        {activeTab === 3 && <SceneList stageId={stageId} searchQuery={searchQuery} deleteMode={deleteMode} showCreateButton={false} />}
+        {activeTab === 2 && <RoleList stageId={stageId} searchQuery={searchQuery} showCreateButton={false} />}
+        {activeTab === 1 && <ItemList stageId={stageId} searchQuery={searchQuery} showCreateButton={false} />}
+        {activeTab === 4 && <LocationList stageId={stageId} searchQuery={searchQuery} showCreateButton={false} />}
       </div>
 
       {/* 角色创建/选择弹窗（仅在角色 Tab 下使用） */}

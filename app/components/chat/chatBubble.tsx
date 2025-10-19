@@ -6,17 +6,17 @@ import ForwardMessage from "@/components/chat/smallComponents/forwardMessage";
 import { PreviewMessage } from "@/components/chat/smallComponents/previewMessage";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import BetterImg from "@/components/common/betterImg";
-import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { EditableField } from "@/components/common/editableField";
-import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
+import toastWindow from "@/components/common/toastWindow/toastWindow";
 import { useGlobalContext } from "@/components/globalContextProvider";
 import { formatTimeSmartly } from "@/utils/dataUtil";
 import { useGetRoleQuery } from "api/queryHooks";
 import React, { use, useMemo } from "react";
 import { useUpdateMessageMutation } from "../../../api/hooks/chatQueryHooks";
+import ClueMessage from "./smallComponents/clueMessage";
 
-export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
+function ChatBubbleComponent({ chatMessageResponse, useChatBubbleStyle }: {
   /** 包含聊天消息内容、发送者等信息的数据对象 */
   chatMessageResponse: ChatMessageResponse;
   /** 控制是否应用气泡样式，默认为false */
@@ -26,8 +26,6 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
   const useRoleRequest = useGetRoleQuery(chatMessageResponse.message.roleId);
 
   const role = useRoleRequest.data?.data;
-  const [isExpressionChooserOpen, setIsExpressionChooserOpen] = useSearchParamsState<boolean>(`exprPop${message.messageId}`, false);
-  const [isRoleChooserOpen, setIsRoleChooserOpen] = useSearchParamsState<boolean>(`roleChoosePop${message.messageId}`, false);
 
   const updateMessageMutation = useUpdateMessageMutation();
 
@@ -42,9 +40,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       ...message,
       avatarId,
     };
-    updateMessageMutation.mutate(newMessage, {
-      onSettled: () => setIsExpressionChooserOpen(false),
-    });
+    updateMessageMutation.mutate(newMessage);
   }
 
   function handleRoleChange(new_roleId: number) {
@@ -53,18 +49,36 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       roleId: new_roleId,
       avatarId: roomContext.roomRolesThatUserOwn.find(role => role.roleId === new_roleId)?.avatarId ?? -1,
     };
-    updateMessageMutation.mutate(newMessage, {
-      onSettled: () => setIsRoleChooserOpen(false),
-    });
+    updateMessageMutation.mutate(newMessage);
   }
 
   const canEdit = userId === message.userId || spaceContext.isSpaceOwner;
 
   function handleAvatarClick() {
     if (canEdit) {
-      setIsExpressionChooserOpen(true);
+      // 打开表情选择器的 toast 窗口
+      toastWindow(
+        onClose => (
+          <RoomContext value={roomContext}>
+            <div className="flex flex-col">
+              <ExpressionChooser
+                roleId={message.roleId}
+                handleExpressionChange={(avatarId) => {
+                  handleExpressionChange(avatarId);
+                  onClose();
+                }}
+                handleRoleChange={(roleId) => {
+                  handleRoleChange(roleId);
+                  onClose();
+                }}
+              />
+            </div>
+          </RoomContext>
+        ),
+      );
     }
   }
+
   function handleContentUpdate(content: string) {
     if (message.content !== content) {
       updateMessageMutation.mutate({
@@ -73,6 +87,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       });
     }
   }
+
   const imgMsg = message.extra?.imageMessage;
   const scrollToGivenMessage = roomContext.scrollToGivenMessage;
 
@@ -91,6 +106,9 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
     }
     else if (message.messageType === 5) {
       return <ForwardMessage messageResponse={chatMessageResponse}></ForwardMessage>;
+    }
+    else if (message.messageType === 1000) {
+      return <ClueMessage messageResponse={chatMessageResponse}></ClueMessage>;
     }
     return (
       <>
@@ -121,12 +139,29 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       </>
 
     );
-  }, [message.content, message.extra, message.messageType]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message.content, message.extra, message.messageType, message.messageId, message.replyMessageId]);
 
   // @角色
   function handleRoleNameClick() {
     if (canEdit) {
-      setIsRoleChooserOpen(true);
+      // 打开角色选择器的 toast 窗口
+      toastWindow(
+        onClose => (
+          <RoomContext value={roomContext}>
+            <div className="flex flex-col items-center gap-4">
+              <div>选择新的角色</div>
+              <RoleChooser
+                handleRoleChange={(role) => {
+                  handleRoleChange(role.roleId);
+                  onClose();
+                }}
+                className="menu bg-base-100 rounded-box z-1 p-2 shadow-sm overflow-y-auto"
+              />
+            </div>
+          </RoomContext>
+        ),
+      );
     }
     else {
       const roleName = role?.roleName?.trim() || "Undefined";
@@ -155,7 +190,7 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
       {useChatBubbleStyle
         ? (
             <div
-              className="flex w-full items-start gap-1 py-1 group"
+              className="flex w-full items-start gap-1 py-2 group"
               key={message.messageId}
             >
               {/* Avatar */}
@@ -228,36 +263,101 @@ export function ChatBubble({ chatMessageResponse, useChatBubbleStyle }: {
               </div>
             </div>
           )}
-      {
-        canEdit
-        && (
-          <>
-            {/* 表情选择窗口 */}
-            <PopWindow isOpen={isExpressionChooserOpen} onClose={() => setIsExpressionChooserOpen(false)}>
-              <div className="flex flex-col">
-                <div>选择新的表情差分</div>
-                <ExpressionChooser
-                  roleId={message.roleId}
-                  handleExpressionChange={handleExpressionChange}
-                  handleRoleChange={handleRoleChange}
-                >
-                </ExpressionChooser>
-              </div>
-            </PopWindow>
-            {/* role选择窗口 */}
-            <PopWindow isOpen={isRoleChooserOpen} onClose={() => setIsRoleChooserOpen(false)}>
-              <div className="flex flex-col items-center gap-4">
-                <div>选择新的角色</div>
-                <RoleChooser
-                  handleRoleChange={role => handleRoleChange(role.roleId)}
-                  className=" menu bg-base-100 rounded-box z-1 w-40 p-2 shadow-sm overflow-y-auto"
-                >
-                </RoleChooser>
-              </div>
-            </PopWindow>
-          </>
-        )
-      }
     </div>
   );
 }
+
+// 使用 React.memo 优化性能,避免不必要的重新渲染
+// 只在 chatMessageResponse 的内容真正变化时才重新渲染
+export const ChatBubble = React.memo(ChatBubbleComponent, (prevProps, nextProps) => {
+  // 自定义比较函数:只比较消息的关键属性
+  const prevMsg = prevProps.chatMessageResponse.message;
+  const nextMsg = nextProps.chatMessageResponse.message;
+
+  // 如果消息ID不同,肯定需要重新渲染
+  if (prevMsg.messageId !== nextMsg.messageId) {
+    return false;
+  }
+
+  // 检查所有可能影响渲染的属性
+  const isEqual = (
+    prevMsg.content === nextMsg.content
+    && prevMsg.avatarId === nextMsg.avatarId
+    && prevMsg.roleId === nextMsg.roleId
+    && prevMsg.updateTime === nextMsg.updateTime
+    && prevMsg.messageType === nextMsg.messageType
+    && prevMsg.status === nextMsg.status // 新增: 检查消息状态(删除/正常)
+    && prevMsg.replyMessageId === nextMsg.replyMessageId // 新增: 检查回复消息ID
+    && prevProps.useChatBubbleStyle === nextProps.useChatBubbleStyle
+  );
+
+  // 如果基础属性不相等,直接返回 false
+  if (!isEqual) {
+    return false;
+  }
+
+  // 深度比较 extra 对象
+  // 如果两者都没有 extra,或者都是同一个引用,则相等
+  if (prevMsg.extra === nextMsg.extra) {
+    return true;
+  }
+
+  // 如果一个有 extra 另一个没有,则不相等
+  if (!prevMsg.extra || !nextMsg.extra) {
+    return false;
+  }
+
+  // 比较 extra 的关键属性
+  const prevExtra = prevMsg.extra;
+  const nextExtra = nextMsg.extra;
+
+  // 检查 imageMessage
+  if (prevExtra.imageMessage !== nextExtra.imageMessage) {
+    if (!prevExtra.imageMessage || !nextExtra.imageMessage) {
+      return false;
+    }
+    if (prevExtra.imageMessage.url !== nextExtra.imageMessage.url
+      || prevExtra.imageMessage.background !== nextExtra.imageMessage.background
+      || prevExtra.imageMessage.width !== nextExtra.imageMessage.width
+      || prevExtra.imageMessage.height !== nextExtra.imageMessage.height) {
+      return false;
+    }
+  }
+
+  // 检查 fileMessage
+  if (prevExtra.fileMessage !== nextExtra.fileMessage) {
+    if (!prevExtra.fileMessage && !nextExtra.fileMessage) {
+      // 都没有,继续检查其他属性
+    }
+    else if (!prevExtra.fileMessage || !nextExtra.fileMessage) {
+      return false;
+    }
+    else if (prevExtra.fileMessage.url !== nextExtra.fileMessage.url) {
+      return false;
+    }
+  }
+
+  // 检查 forwardMessage - 使用 JSON 序列化比较
+  if (JSON.stringify(prevExtra.forwardMessage) !== JSON.stringify(nextExtra.forwardMessage)) {
+    return false;
+  }
+
+  // 检查 clueMessage
+  if (JSON.stringify(prevExtra.clueMessage) !== JSON.stringify(nextExtra.clueMessage)) {
+    return false;
+  }
+
+  // 检查 soundMessage
+  if (JSON.stringify(prevExtra.soundMessage) !== JSON.stringify(nextExtra.soundMessage)) {
+    return false;
+  }
+
+  // 检查 diceResult
+  if (JSON.stringify(prevExtra.diceResult) !== JSON.stringify(nextExtra.diceResult)) {
+    return false;
+  }
+
+  return true;
+});
+
+ChatBubble.displayName = "ChatBubble";

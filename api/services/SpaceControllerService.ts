@@ -83,7 +83,7 @@ export class SpaceControllerService {
         });
     }
     /**
-     * 创建空间
+     * 创建空间，邀请的所有成员都为pl
      * @param requestBody
      * @returns ApiResultSpace OK
      * @throws ApiError
@@ -96,29 +96,6 @@ export class SpaceControllerService {
             url: '/capi/space/',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 将所有观战成员加入所有房间，后续如果有新的观战成员加入空间，则需要重新调用这个接口
-     * @param spaceId
-     * @returns ApiResultVoid OK
-     * @throws ApiError
-     */
-    public start(
-        spaceId: number,
-    ): CancelablePromise<ApiResultVoid> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/capi/space/start',
-            query: {
-                'spaceId': spaceId,
-            },
             errors: {
                 400: `Bad Request`,
                 405: `Method Not Allowed`,

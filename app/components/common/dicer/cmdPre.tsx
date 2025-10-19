@@ -1,22 +1,24 @@
 import type { RoomContextType } from "@/components/chat/roomContext";
 import type { RuleNameSpace } from "@/components/common/dicer/cmd";
 import type { ChatMessageRequest, RoleAbility, UserRole } from "../../../../api";
-import CmdExeCoc from "@/components/common/dicer/cmdExeCoc";
+import executorCoc from "@/components/common/dicer/cmdExeCoc";
 import executorDnd from "@/components/common/dicer/cmdExeDnd";
+import executorFu from "@/components/common/dicer/cmdExeFu";
 import executorPublic from "@/components/common/dicer/cmdExePublic";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import { useParams } from "react-router";
 import {
   useSetRoleAbilityMutation,
-  useUpdateRoleAbilityMutation,
+  useUpdateRoleAbilityByRoleIdMutation,
 } from "../../../../api/hooks/abilityQueryHooks";
 import { tuanchat } from "../../../../api/instance";
 import { useGetRoleQuery } from "../../../../api/queryHooks";
 
 const RULES: Map<number, RuleNameSpace> = new Map();
-RULES.set(1, CmdExeCoc);
+RULES.set(1, executorCoc); // CoC规则
 RULES.set(2, executorDnd); // DnD规则
+RULES.set(3, executorFu); // 最终物语规则
 
 export function isCommand(command: string) {
   const trimmed = command.trim();
@@ -55,7 +57,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
   const defaultDice = useRef(100);
 
   // 通过以下的mutation来对后端发送引起数据变动的请求
-  const updateAbilityMutation = useUpdateRoleAbilityMutation(); // 更改属性与能力字段
+  const updateAbilityMutation = useUpdateRoleAbilityByRoleIdMutation(); // 更改属性与能力字段
   const setAbilityMutation = useSetRoleAbilityMutation(); // 创建新的能力组
 
   const curRoleId = roomContext.curRoleId; // 当前选中的角色id
@@ -168,9 +170,12 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     for (const [_id, ability] of mentionedRoles) {
       if (ability) {
         updateAbilityMutation.mutate({
-          abilityId: ability.abilityId ?? -1,
-          act: {},
+          roleId,
+          ruleId,
+          act: ability.act,
+          basic: ability.basic,
           ability: ability.ability,
+          skill: ability.skill,
         });
       }
       else {
@@ -178,7 +183,9 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
           roleId,
           ruleId,
           act: {},
-          ability,
+          basic: {},
+          ability: {},
+          skill: {},
         });
       }
     }

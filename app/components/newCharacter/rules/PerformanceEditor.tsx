@@ -1,4 +1,7 @@
-import { useUpdateKeyFieldMutation, useUpdateRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
+import {
+  useUpdateKeyFieldByRoleIdMutation,
+  useUpdateRoleAbilityByRoleIdMutation,
+} from "api/hooks/abilityQueryHooks";
 import { useState } from "react";
 import AddFieldForm from "../shared/AddFieldForm";
 import PerformanceField from "../shared/PerformanceField";
@@ -7,7 +10,8 @@ interface PerformanceEditorProps {
   fields: Record<string, string>;
   onChange: (fields: Record<string, string>) => void;
   abilityData: Record<string, string>;
-  abilityId: number;
+  roleId: number;
+  ruleId: number;
 }
 
 /**
@@ -19,11 +23,12 @@ export default function PerformanceEditor({
   fields,
   onChange,
   abilityData,
-  abilityId,
+  roleId,
+  ruleId,
 }: PerformanceEditorProps) {
   // 接入api
-  const { mutate: updateFiledAbility } = useUpdateRoleAbilityMutation();
-  const { mutate: updateKeyField } = useUpdateKeyFieldMutation();
+  const { mutate: updateFiledAbility } = useUpdateRoleAbilityByRoleIdMutation();
+  const { mutate: updateKeyField } = useUpdateKeyFieldByRoleIdMutation();
   // 是否编辑
   const [isEditing, setIsEditing] = useState(false);
   // 编辑状态过渡
@@ -42,7 +47,8 @@ export default function PerformanceEditor({
       setIsTransitioning(true);
       // 保存更改
       const updateData = {
-        abilityId,
+        roleId,
+        ruleId,
         act: fields,
         ability: {}, // 表演编辑器不修改能力字段，传空对象
       };
@@ -63,7 +69,8 @@ export default function PerformanceEditor({
   const handleDeleteField = (key: string) => {
     updateKeyField(
       {
-        abilityId,
+        ruleId,
+        roleId,
         actFields: {
           [key]: "",
         },
@@ -158,7 +165,7 @@ export default function PerformanceEditor({
                   <div className="card bg-base-100 shadow-sm p-2 h-full">
                     <div className="divider">{key}</div>
                     <div className="text-base-content mt-0.5 flex justify-center p-2">
-                      <div className="text-left">
+                      <div className="text-left break-all">
                         {fields[key] || <span className="text-base-content/50">未设置</span>}
                       </div>
                     </div>

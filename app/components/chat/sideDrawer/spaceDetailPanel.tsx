@@ -2,11 +2,12 @@ import MemberLists from "@/components/chat/smallComponents/memberLists";
 import { SpaceContext } from "@/components/chat/spaceContext";
 import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import { AddRoleWindow } from "@/components/chat/window/addRoleWindow";
+import RenderWindow from "@/components/chat/window/renderWindow";
 import SpaceSettingWindow from "@/components/chat/window/spaceSettingWindow";
 import useSearchParamsState from "@/components/common/customHooks/useSearchParamState";
 import { PopWindow } from "@/components/common/popWindow";
 import RoleAvatarComponent from "@/components/common/roleAvatar";
-import { GirlIcon, MemberIcon, Setting } from "@/icons";
+import { GirlIcon, MemberIcon, Setting, WebgalIcon } from "@/icons";
 import React, { use } from "react";
 import toast from "react-hot-toast";
 import {
@@ -79,12 +80,12 @@ export default function SpaceDetailPanel() {
                   type="button"
                   onClick={() => setIsMemberHandleOpen(true)}
                 >
-                  添加成员
+                  邀请观战
                 </button>
               )
             }
           </div>
-          <MemberLists members={spaceMembers}></MemberLists>
+          <MemberLists members={spaceMembers} isSpace={true}></MemberLists>
         </div>
         {/* 角色列表 */}
         <label className="tab">
@@ -110,23 +111,21 @@ export default function SpaceDetailPanel() {
               )
             }
           </div>
-          {/* TODO: 适配新的角色列表 */}
           {spaceRoles.map((role) => {
-            const roleInfo = role.entityInfo as { avatarId?: number; roleName?: string } | undefined;
             return (
               <div
-                key={role.id}
+                key={role.roleId}
                 className="flex flex-row gap-3 p-3 bg-base-200 rounded-lg items-center "
               >
                 {/* role列表 */}
                 <RoleAvatarComponent
-                  avatarId={roleInfo?.avatarId ?? 0}
+                  avatarId={role.avatarId ?? 0}
                   width={8}
                   isRounded={true}
                   withTitle={false}
                 />
                 <div className="flex flex-col items-center gap-2 text-sm font-medium">
-                  <span>{role.name || roleInfo?.roleName || "未命名角色"}</span>
+                  <span>{role.roleName || "未命名角色"}</span>
                 </div>
               </div>
             );
@@ -147,9 +146,21 @@ export default function SpaceDetailPanel() {
             </>
           )
         }
+        {/* 渲染对话 */}
+        <label className="tab">
+          <input
+            type="radio"
+            name="space_detail_tabs"
+          />
+          <WebgalIcon className="size-4 mr-1" />
+          渲染
+        </label>
+        <div className="tab-content p-4 overflow-y-auto">
+          <RenderWindow></RenderWindow>
+        </div>
       </div>
       <PopWindow isOpen={isRoleHandleOpen} onClose={() => setIsRoleHandleOpen(false)}>
-        <AddRoleWindow handleAddRole={handleAddRole} addModuleRole={false}></AddRoleWindow>
+        <AddRoleWindow handleAddRole={handleAddRole}></AddRoleWindow>
       </PopWindow>
       <PopWindow isOpen={isMemberHandleOpen} onClose={() => setIsMemberHandleOpen(false)}>
         <AddMemberWindow handleAddMember={handleAddMember}></AddMemberWindow>

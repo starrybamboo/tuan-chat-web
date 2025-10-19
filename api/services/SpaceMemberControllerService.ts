@@ -3,6 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultListSpaceMember } from '../models/ApiResultListSpaceMember';
+import type { ApiResultLong } from '../models/ApiResultLong';
+import type { ApiResultString } from '../models/ApiResultString';
 import type { ApiResultVoid } from '../models/ApiResultVoid';
 import type { LeaderTransferRequest } from '../models/LeaderTransferRequest';
 import type { PlayerGrantRequest } from '../models/PlayerGrantRequest';
@@ -36,7 +38,7 @@ export class SpaceMemberControllerService {
         });
     }
     /**
-     * 撤销用户玩家的身份
+     * 将pl设置为观战，同时退出所有房间
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
@@ -58,7 +60,7 @@ export class SpaceMemberControllerService {
         });
     }
     /**
-     * 把裁判转让给其他成员
+     * 转让裁判，自己变成pl
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
@@ -80,7 +82,30 @@ export class SpaceMemberControllerService {
         });
     }
     /**
-     * 新增空间成员
+     * 通过邀请链接加入房间，返回spaceId
+     * @param code
+     * @returns ApiResultLong OK
+     * @throws ApiError
+     */
+    public invited(
+        code: string,
+    ): CancelablePromise<ApiResultLong> {
+        return this.httpRequest.request({
+            method: 'POST',
+            url: '/capi/space/member/invited/{code}',
+            path: {
+                'code': code,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 在空间内新增观战成员
      * @param requestBody
      * @returns ApiResultVoid OK
      * @throws ApiError
@@ -137,6 +162,32 @@ export class SpaceMemberControllerService {
             url: '/capi/space/member/list',
             query: {
                 'spaceId': spaceId,
+            },
+            errors: {
+                400: `Bad Request`,
+                405: `Method Not Allowed`,
+                429: `Too Many Requests`,
+                500: `Internal Server Error`,
+            },
+        });
+    }
+    /**
+     * 生成邀请码，过期时间以天为单位，为空则不过期
+     * @param spaceId
+     * @param duration
+     * @returns ApiResultString OK
+     * @throws ApiError
+     */
+    public inviteCode(
+        spaceId: number,
+        duration?: number,
+    ): CancelablePromise<ApiResultString> {
+        return this.httpRequest.request({
+            method: 'GET',
+            url: '/capi/space/member/inviteCode',
+            query: {
+                'spaceId': spaceId,
+                'duration': duration,
             },
             errors: {
                 400: `Bad Request`,
