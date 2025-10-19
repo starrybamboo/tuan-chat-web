@@ -1,5 +1,6 @@
 import antfu from "@antfu/eslint-config";
 import pluginQuery from "@tanstack/eslint-plugin-query";
+import reactHooks from "eslint-plugin-react-hooks";
 
 export default antfu(
   {
@@ -21,6 +22,7 @@ export default antfu(
     ],
     plugins: {
       "@tanstack/query": pluginQuery,
+      "react-hooks": reactHooks,
     },
   },
   {
@@ -49,6 +51,14 @@ export default antfu(
           ignore: ["README.md"],
         },
       ],
+    },
+  },
+  {
+    files: ["**/*.{js,jsx,ts,tsx}"],
+    rules: {
+      // Core React Hooks rules
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
     },
   },
   {

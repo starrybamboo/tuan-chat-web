@@ -35,15 +35,8 @@ function RoomSettingWindow({ onClose, onShowMembers: _onShowMembers, onRenderDia
   const globalContext = useGlobalContext();
   const userId = globalContext.userId;
 
-  // 尝试获取context，如果不存在则为null
-  let spaceContext = null;
-  try {
-    spaceContext = use(SpaceContext);
-  }
-  catch (e) {
-    console.warn(e);
-    // context不存在，使用默认值
-  }
+  // 获取context，可能为null（当组件在SpaceContext.Provider外部使用时）
+  const spaceContext = use(SpaceContext);
   const setActiveRoomId = spaceContext?.setActiveRoomId;
   const spaceId = spaceContext?.spaceId;
 
