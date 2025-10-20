@@ -1,5 +1,6 @@
 import type { Role } from "../types";
 import type { CharacterData } from "./types";
+import UNTIL from "@/components/common/dicer/utils";
 import { useSetRoleAbilityMutation } from "api/hooks/abilityQueryHooks";
 import { useRuleDetailQuery } from "api/hooks/ruleQueryHooks";
 import { useCreateRoleMutation, useUpdateRoleWithLocalMutation, useUploadAvatarMutation } from "api/queryHooks";
@@ -231,6 +232,25 @@ export default function CreateRoleBySelf({ onBack, setRoles, setSelectedRoleId, 
 
       // 3. 写入能力/属性数据（若有规则且模板数据已经加载）
       if (characterData.ruleId > 0) {
+        // 尝试计算所有表达式的值
+        // 先计算能力
+        for (const key in characterData.ability) {
+          let value = characterData.ability[key];
+          if (Number.isNaN(Number(value))) {
+            // 如果是表达式，计算
+            value = String(UNTIL.calculateExpression(value, characterData));
+          }
+          characterData.ability[key] = value;
+        }
+        // 再计算技能
+        for (const key in characterData.skill) {
+          let value = characterData.skill[key];
+          if (Number.isNaN(Number(value))) {
+            // 如果是表达式，计算
+            value = String(UNTIL.calculateExpression(value, characterData));
+          }
+          characterData.skill[key] = value;
+        }
         setRoleAbility({
           ruleId: characterData.ruleId,
           roleId,
