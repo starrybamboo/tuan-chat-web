@@ -4,12 +4,14 @@ interface ChatPageContextMenuProps {
   contextMenu: { x: number; y: number; roomId: number } | null;
   unreadMessagesNumber: Record<number, number>;
   onClose: () => void;
+  onInvitePlayer?: (roomId: number) => void;
 }
 
 export default function ChatPageContextMenu({
   contextMenu,
   unreadMessagesNumber,
   onClose,
+  onInvitePlayer,
 }: ChatPageContextMenuProps) {
   const subscribeRoomMutation = useSubscribeRoomMutation();
   const unsubscribeRoomMutation = useUnsubscribeRoomMutation();
@@ -26,6 +28,18 @@ export default function ChatPageContextMenu({
       onClick={e => e.stopPropagation()}
     >
       <ul className="menu p-2 w-50">
+        {/* --- Invite Player Menu --- */}
+        <li
+          className="relative group"
+          onClick={() => {
+            onInvitePlayer?.(contextMenu.roomId);
+            onClose();
+          }}
+        >
+          <div className="flex justify-between items-center w-full">
+            <span>邀请玩家</span>
+          </div>
+        </li>
         {/* --- Notification Settings Menu --- */}
         <li
           className="relative group"
