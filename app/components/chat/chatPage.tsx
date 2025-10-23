@@ -6,6 +6,8 @@ import SpaceDetailPanel from "@/components/chat/sideDrawer/spaceDetailPanel";
 import RoomButton from "@/components/chat/smallComponents/roomButton";
 import SpaceButton from "@/components/chat/smallComponents/spaceButton";
 import { SpaceContext } from "@/components/chat/spaceContext";
+import SpaceContextMenu from "@/components/chat/spaceContextMenu";
+import AddMemberWindow from "@/components/chat/window/addMemberWindow";
 import CreateRoomWindow from "@/components/chat/window/createRoomWindow";
 import CreateSpaceWindow from "@/components/chat/window/createSpaceWindow";
 import RoomSettingWindow from "@/components/chat/window/roomSettingWindow";
@@ -19,6 +21,7 @@ import LeftChatList from "@/components/privateChat/Left​​ChatList​​";
 import RightChatView from "@/components/privateChat/RightChatView";
 import { AddIcon, Setting } from "@/icons";
 import {
+  useAddRoomMemberMutation,
   useGetSpaceMembersQuery,
   useGetUserRoomsQueries,
   useGetUserRoomsQuery,
@@ -108,6 +111,8 @@ export default function ChatPage() {
   const [isShowSpacePanel, setIsShowSpacePanel] = useSearchParamsState<boolean>("spaceDetailPop", false);
   // 房间设置窗口状态
   const [activeRoomSettingId, setActiveRoomSettingId] = useState<number | null>(null);
+  // 房间邀请窗口状态
+  const [inviteRoomId, setInviteRoomId] = useState<number | null>(null);
   const [_sideDrawerState, setSideDrawerState] = useSearchParamsState<"none" | "user" | "role" | "search" | "initiative" | "map">("rightSideDrawer", "none");
   const [_isRenderWindowOpen, setIsRenderWindowOpen] = useState(false);
 
@@ -116,11 +121,19 @@ export default function ChatPage() {
 
   // 右键菜单
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; roomId: number } | null>(null);
+  // 空间右键菜单
+  const [spaceContextMenu, setSpaceContextMenu] = useState<{ x: number; y: number; spaceId: number } | null>(null);
 
   // 关闭右键菜单
   function closeContextMenu() {
     setContextMenu(null);
   }
+
+  // 关闭空间右键菜单
+  function closeSpaceContextMenu() {
+    setSpaceContextMenu(null);
+  }
+
   function handleContextMenu(e: React.MouseEvent) {
     e.preventDefault();
     const target = e.target as HTMLElement;
@@ -128,7 +141,16 @@ export default function ChatPage() {
     const messageElement = target.closest("[data-room-id]");
     setContextMenu({ x: e.clientX, y: e.clientY, roomId: Number(messageElement?.getAttribute("data-room-id")) });
   }
-  // 处理点击外部关闭菜单的逻辑
+
+  function handleSpaceContextMenu(e: React.MouseEvent) {
+    e.preventDefault();
+    const target = e.target as HTMLElement;
+    // 向上查找包含data-space-id属性的父元素
+    const spaceElement = target.closest("[data-space-id]");
+    setSpaceContextMenu({ x: e.clientX, y: e.clientY, spaceId: Number(spaceElement?.getAttribute("data-space-id")) });
+  }
+
+  // 处理点击外部关闭房间右键菜单的逻辑
   useEffect(() => {
     if (contextMenu) {
       window.addEventListener("click", closeContextMenu);
@@ -137,6 +159,16 @@ export default function ChatPage() {
       window.removeEventListener("click", closeContextMenu);
     };
   }, [contextMenu]); // 依赖于contextMenu状态
+
+  // 处理点击外部关闭空间右键菜单的逻辑
+  useEffect(() => {
+    if (spaceContextMenu) {
+      window.addEventListener("click", closeSpaceContextMenu);
+    }
+    return () => {
+      window.removeEventListener("click", closeSpaceContextMenu);
+    };
+  }, [spaceContextMenu]);
 
   // websocket封装, 用于发送接受消息
   const websocketUtils = useGlobalContext().websocketUtils;
@@ -182,6 +214,28 @@ export default function ChatPage() {
     return result;
   };
 
+  // 添加房间成员的mutation
+  const addRoomMemberMutation = useAddRoomMemberMutation();
+
+  // 处理邀请玩家
+  const handleInvitePlayer = (roomId: number) => {
+    setInviteRoomId(roomId);
+  };
+
+  // 处理添加成员
+  const handleAddMember = (userId: number) => {
+    if (inviteRoomId) {
+      addRoomMemberMutation.mutate({
+        roomId: inviteRoomId,
+        userIdList: [userId],
+      }, {
+        onSuccess: () => {
+          setInviteRoomId(null);
+        },
+      });
+    }
+  };
+
   return (
     <SpaceContext value={spaceContext}>
       <div className="flex flex-row bg-base-100 flex-1 h-full relative">
@@ -215,21 +269,22 @@ export default function ChatPage() {
               {/* 分隔线 */}
               <div className="w-8 h-px bg-base-300 mx-3"></div>
 
-              <div className="hidden-scrollbar overflow-x-hidden flex flex-col py-2 px-2">
+              <div className="hidden-scrollbar overflow-x-hidden flex flex-col py-2 px-2" onContextMenu={handleSpaceContextMenu}>
                 {/* 全部空间列表 */}
                 {spaces.map(space => (
-                  <SpaceButton
-                    space={space}
-                    unreadMessageNumber={getSpaceUnreadMessagesNumber(space.spaceId ?? -1)}
-                    onclick={() => {
-                      if (activeSpaceId !== space.spaceId) {
-                        setActiveSpaceId(space.spaceId ?? -1);
-                      }
-                    }}
-                    isActive={activeSpaceId === space.spaceId}
-                    key={space.spaceId}
-                  >
-                  </SpaceButton>
+                  <div key={space.spaceId} data-space-id={space.spaceId}>
+                    <SpaceButton
+                      space={space}
+                      unreadMessageNumber={getSpaceUnreadMessagesNumber(space.spaceId ?? -1)}
+                      onclick={() => {
+                        if (activeSpaceId !== space.spaceId) {
+                          setActiveSpaceId(space.spaceId ?? -1);
+                        }
+                      }}
+                      isActive={activeSpaceId === space.spaceId}
+                    >
+                    </SpaceButton>
+                  </div>
                 ))}
               </div>
               <button
@@ -379,11 +434,33 @@ export default function ChatPage() {
             />
           )}
         </PopWindow>
+        {/* 房间邀请玩家窗口 */}
+        <PopWindow
+          isOpen={inviteRoomId !== null}
+          onClose={() => setInviteRoomId(null)}
+        >
+          <AddMemberWindow
+            handleAddMember={handleAddMember}
+            showSpace={true}
+          />
+        </PopWindow>
       </div>
+
       <ChatPageContextMenu
         contextMenu={contextMenu}
         unreadMessagesNumber={unreadMessagesNumber}
         onClose={closeContextMenu}
+        onInvitePlayer={handleInvitePlayer}
+      />
+
+      <SpaceContextMenu
+        contextMenu={spaceContextMenu}
+        isSpaceOwner={
+          spaceContextMenu
+            ? spaces.find(space => space.spaceId === spaceContextMenu.spaceId)?.userId === globalContext.userId
+            : false
+        }
+        onClose={closeSpaceContextMenu}
       />
     </SpaceContext>
   );

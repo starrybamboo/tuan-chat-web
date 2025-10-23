@@ -372,7 +372,7 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
 
   // 定时器的更新 (localSceneRef 已在前面声明并更新)
   const handleSave = () => {
-    beginSelectionLock("scene-save", 700);
+    beginSelectionLock("scene-save", 10000);
     setIsTransitioning(true);
     setTimeout(() => {
       setIsTransitioning(false);
@@ -504,6 +504,9 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                 }}
                 onSpecialKey={handleAddEntity}
                 onDeleteSpecialKey={handleDeleteEntity}
+                persistSelectionKey={id ? `scene-description-${id}` : undefined}
+                active={currentSelectedTabId === scene.id?.toString() && selectedTab === "description"}
+                focusOnActive
               />
             </div>
           </div>
@@ -524,6 +527,9 @@ export default function SceneEdit({ scene, id }: SceneEditProps) {
                 }}
                 onSpecialKey={handleAddEntity}
                 onDeleteSpecialKey={handleDeleteEntity}
+                persistSelectionKey={id ? `scene-tip-${id}` : undefined}
+                active={currentSelectedTabId === scene.id?.toString() && selectedTab === "tip"}
+                focusOnActive
               />
             </div>
           </div>

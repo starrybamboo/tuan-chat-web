@@ -50,29 +50,41 @@ const cmdRc = new CommandExecutor(
   "rc",
   ["ra"],
   "进行技能检定",
-  [".rc 侦查 50", ".rc 侦查 +10", ".rc p 手枪", ".rc 力量"],
+  [".rc 侦查 50", ".rc 侦查 +10", ".rc p 手枪", ".rc 力量", ".rc 敏捷-10"],
   "rc [奖励/惩罚骰]? [技能名] [技能值]?",
   async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
     const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
     // 所有参数转为小写
     args = args.map(arg => arg.toLowerCase());
     const isForceToasted = UNTIL.doesHaveArg(args, "h");
+
     // 解析参数
-    // 1. 以正负号开头的数字
-    const signedNumbers = args.filter(str => /^[+-]\d+(?:\.\d+)?$/.test(str));
+    const signedNumbers: string[] = [];
+    const unsignedNumbers: string[] = [];
+    const numWithBp: string[] = [];
+    const names: string[] = [];
 
-    // 2. 无符号数字
-    const unsignedNumbers = args.filter(str => /^\d+(?:\.\d+)?$/.test(str));
+    for (const arg of args) {
+      // 先匹配“技能名+带符号数值”（如“力量+20”）
+      const nameBonusMatch = arg.match(/^([a-z\u4E00-\u9FA5]+)([+-]\d+)$/i);
+      if (nameBonusMatch) {
+        names.push(nameBonusMatch[1]); // 提取技能名
+        signedNumbers.push(nameBonusMatch[2]); // 提取带符号数值
+      }
+      else if (/^[+-]\d+(?:\.\d+)?$/.test(arg)) {
+        signedNumbers.push(arg);
+      }
+      else if (/^\d+(?:\.\d+)?$/.test(arg)) {
+        unsignedNumbers.push(arg);
+      }
+      else if (/^\d*[bp]$/.test(arg)) {
+        numWithBp.push(arg);
+      }
+      else {
+        names.push(arg);
+      }
+    }
 
-    // 3. 数字（可无）跟字母b或p
-    const numWithBp = args.filter(str => /^\d*[bp]$/.test(str));
-
-    // 4. 其他
-    const names = args.filter(str =>
-      !/^[+-]\d+(?:\.\d+)?$/.test(str)
-      && !/^\d+(?:\.\d+)?$/.test(str)
-      && !/^\d*[bp]$/.test(str),
-    );
     const [attr] = unsignedNumbers;
     const [bonus] = signedNumbers;
     // 计算加权总和
@@ -107,8 +119,8 @@ const cmdRc = new CommandExecutor(
 
     let value = Number.parseInt(UNTIL.getRoleAbilityValue(curAbility, name) || "");
 
-    if ((value === undefined || Number.isNaN(value)) && attr === undefined) {
-      cpi.sendMsg(prop, `错误：未找到技能或属性`);
+    if ((value === undefined || Number.isNaN(value)) && attr === undefined && !bonus) {
+      cpi.sendMsg(prop, "错误：未找到技能或属性且未指定技能值");
       return false;
     }
 
@@ -142,6 +154,387 @@ const cmdRc = new CommandExecutor(
   },
 );
 executorCoc.addCmd(cmdRc);
+
+const cmdRcb = new CommandExecutor(
+  "rcb",
+  [],
+  "进行带奖励骰的技能检定",
+  [".rcb 侦查", ".rcb 力量+10", ".rcb 力量90 2", ".rcb 手枪 3"],
+  "rcb [技能名/技能值] [奖励骰数量]?", // 调整格式说明
+  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+    const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
+    args = args.map(arg => arg.toLowerCase());
+    const isForceToasted = UNTIL.doesHaveArg(args, "h");
+
+    const signedNumbers: string[] = [];
+    const names: string[] = [];
+    let bonusCount: number = 1;
+    let manualSkillValue: number | null = null; // 手动指定的技能值
+
+    // 标记是否已找到技能名
+    let hasSkillName = false;
+
+    for (const arg of args) {
+      // 匹配“技能名+修正值”（如“力量+10”）
+      const nameBonusMatch = arg.match(/^([a-z\u4E00-\u9FA5]+)([+-]\d+)$/i);
+      if (nameBonusMatch) {
+        names.push(nameBonusMatch[1]);
+        signedNumbers.push(nameBonusMatch[2]);
+        hasSkillName = true;
+      }
+      // 匹配“技能名+纯数值”（如“力量90”）
+      else if (/^[a-z\u4E00-\u9FA5]+\d+$/i.test(arg)) {
+        const nameValueMatch = arg.match(/^([a-z\u4E00-\u9FA5]+)(\d+)$/i);
+        if (nameValueMatch) {
+          names.push(nameValueMatch[1]);
+          manualSkillValue = Number.parseInt(nameValueMatch[2]);
+          hasSkillName = true;
+        }
+      }
+      // 匹配纯数值（优先作为手动技能值，若已找到技能名则作为奖励骰数量）
+      else if (/^\d+$/.test(arg)) {
+        if (!hasSkillName) {
+          manualSkillValue = Number.parseInt(arg);
+        }
+        else {
+          bonusCount = Math.max(1, Number(arg));
+        }
+      }
+      // 纯技能名
+      else if (!hasSkillName) {
+        names.push(arg);
+        hasSkillName = true;
+      }
+    }
+
+    let [name] = names;
+    if (!name && manualSkillValue === null) {
+      cpi.sendMsg(prop, "错误：缺少技能名称或手动技能值");
+      return false;
+    }
+    // 处理属性简写映射（如ABILITY_MAP定义了“str”→“力量”）
+    if (name && ABILITY_MAP[name.toLowerCase()]) {
+      name = ABILITY_MAP[name.toLowerCase()];
+    }
+
+    // 从角色数据中获取技能基础值
+    const baseSkillValue = name ? (UNTIL.getRoleAbilityValue(curAbility, name) || "") : "";
+    let skillValue: number;
+
+    // 情况1：有技能名 → 优先用角色数据中的技能值
+    if (name) {
+      if (baseSkillValue) {
+        skillValue = Number.parseInt(baseSkillValue);
+        // 若有手动指定的技能值，覆盖基础值
+        if (manualSkillValue !== null) {
+          skillValue = manualSkillValue;
+        }
+      }
+      else if (manualSkillValue !== null) {
+        skillValue = manualSkillValue;
+      }
+      else {
+        cpi.sendMsg(prop, "错误：未找到技能或属性且未指定技能值");
+        return false;
+      }
+    }
+    // 情况2：无技能名 → 必须有手动指定的技能值
+    else {
+      if (manualSkillValue === null) {
+        cpi.sendMsg(prop, "错误：缺少技能名称且未指定技能值");
+        return false;
+      }
+      skillValue = manualSkillValue;
+      name = "手动指定"; // 用于结果提示
+    }
+
+    // 应用修正值
+    const [bonus] = signedNumbers;
+    if (bonus) {
+      skillValue += Number.parseInt(bonus);
+    }
+    skillValue = Math.max(0, skillValue);
+
+    // 奖励骰逻辑
+    const bp = bonusCount;
+    const roll: number[] = rollDiceWithBP(bp);
+    let result: string = buildCheckResult(name, roll[0], skillValue);
+    result += ` 奖励骰 [${roll.slice(1).join(",")}]`;
+
+    if (isForceToasted) {
+      cpi.sendToast(result);
+      cpi.sendMsg(prop, `${mentioned[mentioned.length - 1].roleName}进行了一次带奖励骰的暗骰`);
+      return true;
+    }
+    cpi.sendMsg(prop, result);
+    return true;
+  },
+);
+executorCoc.addCmd(cmdRcb);
+
+const cmdRcp = new CommandExecutor(
+  "rcp",
+  [],
+  "进行带惩罚骰的技能检定",
+  [".rcp 侦查", ".rcp 力量-10", ".rcp 90 2", ".rcp 手枪 3"],
+  "rcp [技能名/技能值] [惩罚骰数量]?",
+  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+    const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
+    args = args.map(arg => arg.toLowerCase());
+    const isForceToasted = UNTIL.doesHaveArg(args, "h");
+
+    const signedNumbers: string[] = [];
+    const names: string[] = [];
+    let penaltyCount: number = 1;
+    let manualSkillValue: number | null = null;
+
+    let hasSkillName = false;
+
+    for (const arg of args) {
+      const nameBonusMatch = arg.match(/^([a-z\u4E00-\u9FA5]+)([+-]\d+)$/i);
+      if (nameBonusMatch) {
+        names.push(nameBonusMatch[1]);
+        signedNumbers.push(nameBonusMatch[2]);
+        hasSkillName = true;
+      }
+      else if (/^[a-z\u4E00-\u9FA5]+\d+$/i.test(arg)) {
+        const nameValueMatch = arg.match(/^([a-z\u4E00-\u9FA5]+)(\d+)$/i);
+        if (nameValueMatch) {
+          names.push(nameValueMatch[1]);
+          manualSkillValue = Number.parseInt(nameValueMatch[2]);
+          hasSkillName = true;
+        }
+      }
+      else if (/^\d+$/.test(arg)) {
+        if (!hasSkillName) {
+          manualSkillValue = Number.parseInt(arg);
+        }
+        else {
+          penaltyCount = Math.max(1, Number(arg));
+        }
+      }
+      else if (!hasSkillName) {
+        names.push(arg);
+        hasSkillName = true;
+      }
+    }
+
+    let [name] = names;
+    if (!name && manualSkillValue === null) {
+      cpi.sendMsg(prop, "错误：缺少技能名称或手动技能值");
+      return false;
+    }
+    if (name && ABILITY_MAP[name.toLowerCase()]) {
+      name = ABILITY_MAP[name.toLowerCase()];
+    }
+
+    const baseSkillValue = name ? (UNTIL.getRoleAbilityValue(curAbility, name) || "") : "";
+    let skillValue: number;
+
+    if (name) {
+      if (baseSkillValue) {
+        skillValue = Number.parseInt(baseSkillValue);
+        if (manualSkillValue !== null) {
+          skillValue = manualSkillValue;
+        }
+      }
+      else if (manualSkillValue !== null) {
+        skillValue = manualSkillValue;
+      }
+      else {
+        cpi.sendMsg(prop, "错误：未找到技能或属性且未指定技能值");
+        return false;
+      }
+    }
+    else {
+      if (manualSkillValue === null) {
+        cpi.sendMsg(prop, "错误：缺少技能名称且未指定技能值");
+        return false;
+      }
+      skillValue = manualSkillValue;
+      name = "手动指定";
+    }
+
+    const [bonus] = signedNumbers;
+    if (bonus) {
+      skillValue += Number.parseInt(bonus);
+    }
+    skillValue = Math.max(0, skillValue);
+
+    const bp = -penaltyCount;
+    const roll: number[] = rollDiceWithBP(bp);
+    let result: string = buildCheckResult(name, roll[0], skillValue);
+    result += ` 惩罚骰 [${roll.slice(1).join(",")}]`;
+
+    if (isForceToasted) {
+      cpi.sendToast(result);
+      cpi.sendMsg(prop, `${mentioned[mentioned.length - 1].roleName}进行了一次带惩罚骰的暗骰`);
+      return true;
+    }
+    cpi.sendMsg(prop, result);
+    return true;
+  },
+);
+executorCoc.addCmd(cmdRcp);
+
+const cmdRh = new CommandExecutor(
+  "rh",
+  ["暗骰"], // 别名
+  "进行基础暗骰（结果仅自己可见）",
+  [".rh", ".rh 20", ".rh 3d6"], // 示例：默认D100 / D20 / 3个D6
+  "rh [骰子格式]?", // 格式：可选，默认D100，支持“数字”（Dn）或“ndm”（n个m面骰）
+  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+    // 解析骰子格式（默认D100）
+    let diceCount = 1; // 骰子数量
+    let diceSides = 100; // 骰子面数
+
+    if (args.length > 0) {
+      const diceArg = args[0].toLowerCase();
+      // 匹配“ndm”格式（如3d6）
+      const ndmMatch = diceArg.match(/^(\d+)d(\d+)$/);
+      if (ndmMatch) {
+        diceCount = Math.max(1, Number(ndmMatch[1])); // 至少1个骰子
+        diceSides = Math.max(2, Number(ndmMatch[2])); // 至少2面
+      }
+      // 匹配纯数字（视为Dn，如20 → D20）
+      else if (/^\d+$/.test(diceArg)) {
+        diceSides = Math.max(2, Number(diceArg));
+      }
+      else {
+        cpi.sendMsg(prop, "错误：骰子格式无效，支持 .rh（默认D100）、.rh 20（D20）、.rh 3d6（3个6面骰）");
+        return false;
+      }
+    }
+
+    // 掷骰子
+    const rolls: number[] = [];
+    for (let i = 0; i < diceCount; i++) {
+      rolls.push(Math.floor(Math.random() * diceSides) + 1);
+    }
+
+    // 计算总和（多骰时显示）
+    const total = rolls.reduce((sum, val) => sum + val, 0);
+
+    // 构建结果（仅自己可见）
+    let result = `暗骰结果：`;
+    if (diceCount === 1) {
+      result += `D${diceSides}=${rolls[0]}`;
+    }
+    else {
+      result += `${diceCount}D${diceSides}=${rolls.join("+")}=${total}`;
+    }
+
+    // 发送暗骰结果（仅发起者可见）
+    cpi.sendToast(result); // 假设sendToast是私聊/提示框发送
+    cpi.sendMsg(prop, `${mentioned[0].roleName}进行了一次暗骰`); // 公开频道提示
+    return true;
+  },
+);
+executorCoc.addCmd(cmdRh);
+
+const cmdRch = new CommandExecutor(
+  "rch",
+  ["暗骰检定"],
+  "进行技能/属性暗骰检定（无奖惩骰，结果仅自己可见）",
+  [".rch 侦查", ".rch 力量+10", ".rch 90", ".rch 力量 90"],
+  "rch [技能名] [技能值]?",
+  async (args: string[], mentioned: UserRole[], cpi: CPI, prop: ExecutorProp): Promise<boolean> => {
+    const curAbility = await cpi.getRoleAbilityList(mentioned[0].roleId);
+    args = args.map(arg => arg.toLowerCase());
+
+    const signedNumbers: string[] = [];
+    const names: string[] = [];
+    let manualSkillValue: number | null = null;
+    let hasSkillName = false;
+
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+
+      // 匹配“技能名+修正值”（如“力量-10”“侦查+5”）
+      const nameBonusMatch = arg.match(/^([a-z\u4E00-\u9FA5]+)([+-]\d+)$/i);
+      if (nameBonusMatch) {
+        names.push(nameBonusMatch[1]);
+        signedNumbers.push(nameBonusMatch[2]);
+        hasSkillName = true;
+      }
+      // 匹配“技能名+数值”（如“侦查50”“力量70”）
+      else if (/^[a-z\u4E00-\u9FA5]+\d+$/i.test(arg)) {
+        const nameValueMatch = arg.match(/^([a-z\u4E00-\u9FA5]+)(\d+)$/i);
+        if (nameValueMatch) {
+          names.push(nameValueMatch[1]);
+          manualSkillValue = Number.parseInt(nameValueMatch[2]);
+          hasSkillName = true;
+        }
+      }
+      // 匹配纯数值（作为手动技能值，如“90”）
+      else if (/^\d+$/.test(arg)) {
+        if (!hasSkillName) {
+          manualSkillValue = Number.parseInt(arg);
+        }
+        else {
+          // 若已找到技能名，后续的纯数值作为手动指定的技能值
+          manualSkillValue = Number.parseInt(arg);
+        }
+      }
+      // 纯技能名（如“力量”“侦查”）
+      else if (!hasSkillName) {
+        names.push(arg);
+        hasSkillName = true;
+      }
+    }
+
+    let [name] = names;
+    if (!name && manualSkillValue === null) {
+      cpi.sendMsg(prop, "错误：缺少技能名称或手动技能值");
+      return false;
+    }
+    if (name && ABILITY_MAP[name.toLowerCase()]) {
+      name = ABILITY_MAP[name.toLowerCase()];
+    }
+
+    const baseSkillValue = name ? (UNTIL.getRoleAbilityValue(curAbility, name) || "") : "";
+    let skillValue: number;
+
+    if (name) {
+      if (baseSkillValue) {
+        skillValue = Number.parseInt(baseSkillValue);
+        if (manualSkillValue !== null) {
+          skillValue = manualSkillValue;
+        }
+      }
+      else if (manualSkillValue !== null) {
+        skillValue = manualSkillValue;
+      }
+      else {
+        cpi.sendMsg(prop, "错误：未找到技能或属性且未指定技能值");
+        return false;
+      }
+    }
+    else {
+      if (manualSkillValue === null) {
+        cpi.sendMsg(prop, "错误：缺少技能名称且未指定技能值");
+        return false;
+      }
+      skillValue = manualSkillValue;
+      name = "手动指定";
+    }
+
+    const [bonus] = signedNumbers;
+    if (bonus) {
+      skillValue += Number.parseInt(bonus);
+    }
+    skillValue = Math.max(0, skillValue);
+
+    const rollResult = Math.floor(Math.random() * 100) + 1;
+
+    const result = buildCheckResult(name, rollResult, skillValue);
+
+    cpi.sendToast(`暗骰检定结果：${result}`);
+    cpi.sendMsg(prop, `${mentioned[0].roleName}进行了一次暗骰检定`);
+    return true;
+  },
+);
+executorCoc.addCmd(cmdRch);
 
 const cmdEn = new CommandExecutor(
   "en",
