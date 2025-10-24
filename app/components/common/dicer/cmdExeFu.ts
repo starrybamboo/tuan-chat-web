@@ -7,6 +7,7 @@ import { CommandExecutor, RuleNameSpace } from "./cmd";
 const PROPERTY_NAMES_MAP: Record<string, string> = {
   灵巧度: "敏捷",
   dex: "敏捷",
+  灵巧: "敏捷",
   敏捷: "敏捷",
   敏捷值: "敏捷",
   洞察力: "洞察",

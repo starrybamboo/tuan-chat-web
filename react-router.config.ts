@@ -3,8 +3,9 @@ import type { Config } from "@react-router/dev/config";
 
 export default {
   // Config options...
-  // Server-side render by default, to enable SPA mode set this to `false`
+  // 传统 SSR 模式（稳定可靠）
   ssr: false,
+  // 预渲染配置 - 构建时生成静态 HTML
   prerender: [
     "/",
     "/chat",
@@ -17,5 +18,4 @@ export default {
     "/module/detail",
     "/collection",
   ],
-  // prerender: true,
 } satisfies Config;
