@@ -4,6 +4,7 @@ import type { ChatMessageRequest, RoleAbility, UserRole } from "../../../../api"
 import executorCoc from "@/components/common/dicer/cmdExeCoc";
 import executorDnd from "@/components/common/dicer/cmdExeDnd";
 import executorFu from "@/components/common/dicer/cmdExeFu";
+import executorPokemon from "@/components/common/dicer/cmdExePokemon";
 import executorPublic from "@/components/common/dicer/cmdExePublic";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
@@ -19,6 +20,7 @@ const RULES: Map<number, RuleNameSpace> = new Map();
 RULES.set(1, executorCoc); // CoC规则
 RULES.set(2, executorDnd); // DnD规则
 RULES.set(3, executorFu); // 最终物语规则
+RULES.set(7, executorPokemon);// 宝可梦trpg规则
 
 export function isCommand(command: string) {
   const trimmed = command.trim();
@@ -152,7 +154,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
 
     const ruleExecutor = RULES.get(ruleId);
     if (!ruleExecutor) {
-      sendToast(`未知规则 ${ruleId}`);
+      sendToast(`未知规则，规则ruleId为: ${ruleId}`);
       return;
     }
     try {
