@@ -208,6 +208,7 @@ function computeNativeCaretPos(wrapper: HTMLElement | null, root: HTMLElement | 
       }
       catch {
         // ignore
+
       }
     }
     if (!rect || (rect.width === 0 && rect.height === 0)) {
@@ -312,7 +313,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
   const [activeInline, setActiveInline] = useState({ bold: false, italic: false, underline: false, strike: false });
   // ===== Mention Hover Preview =====
   const [mentionPreviewVisible, setMentionPreviewVisible] = useState(false);
-  const [mentionPreviewData, setMentionPreviewData] = useState<{ category: string; name: string; description?: string } | null>(null);
+  const [mentionPreviewData, setMentionPreviewData] = useState<{ category: string; name: string; description?: string; tips?: string } | null>(null);
   const [mentionPreviewPos, setMentionPreviewPos] = useState<{ leftVw: number; topVw: number }>({ leftVw: 0, topVw: 0 });
   const mentionPreviewLockRef = useRef(false);
   // 后续可在 popup UI 中使用这些状态。
@@ -345,6 +346,8 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
   const [mentionPos, setMentionPos] = useState<{ top: number; left: number } | null>(null); // popup 位置
   const [mentionStage, setMentionStage] = useState<"category" | "entity">("category");
   const [mentionHighlight, setMentionHighlight] = useState(0); // 当前高亮候选索引
+  // 记录“进入实体阶段后是否输入过字符”，用于判定 Backspace 是否允许回退到分类
+  const entityTypedRef = useRef(false);
   // 后端实体映射：根据 entityType 分类
   // 假设: 1=物品? 2=角色(人物) 3=场景(可视作地点) / 4=地点 / 5=其他 —— 依据项目其它文件的使用情况推测
   // 为稳定性：地点优先使用 entityType === 4，如果没有则备用 entityType === 3
@@ -373,6 +376,13 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
       const found = allEntities.find((e: any) => e?.entityType === t && e?.name === name);
       return found?.entityInfo?.description || found?.entityInfo?.tip || found?.entityInfo?.desc;
     };
+    const findTips = (category: string, name: string): string | undefined => {
+      const t = typeMap[category];
+      if (!t)
+        return undefined;
+      const found = allEntities.find((e: any) => e?.entityType === t && e?.name === name);
+      return found?.entityInfo?.tip;
+    };
     const onOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
       if (!target)
@@ -397,7 +407,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
         leftPx = Math.max(margin, viewportW - desiredWidthPx - margin);
       }
       setMentionPreviewPos({ leftVw: pxToVw(leftPx), topVw: pxToVw(topPx) });
-      setMentionPreviewData({ category, name, description: findDescription(category, name) });
+      setMentionPreviewData({ category, name, description: findDescription(category, name), tips: findTips(category, name) });
       setMentionPreviewVisible(true);
     };
     const onOut = (e: MouseEvent) => {
@@ -409,7 +419,19 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
       if (!mentionPreviewLockRef.current)
         setMentionPreviewVisible(false);
     };
-    const onScrollHide = () => {
+    const onScrollHide = (ev?: Event) => {
+      try {
+        // 若鼠标当前位于预览框或最近一次进入了预览框（锁定），则忽略滚动关闭
+        if (mentionPreviewLockRef.current) {
+          return;
+        }
+        const t = (ev?.target || null) as any;
+        const el: Element | null = (t && t instanceof Element) ? (t as Element) : null;
+        if (el && el.closest && el.closest(".mention-preview")) {
+          return;
+        }
+      }
+      catch { /* ignore */ }
       setMentionPreviewVisible(false);
     };
     wrapper.addEventListener("mouseover", onOver);
@@ -435,7 +457,9 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
       return [] as string[];
     }
     if (mentionStage === "category") {
-      return categoriesRef.current;
+      const q = _mentionQuery.trim();
+      const cats = categoriesRef.current;
+      return q ? cats.filter(c => c && c.includes(q)) : cats;
     }
     if (mentionStage === "entity" && currentCategory) {
       const list = entitiesRef.current[currentCategory] || [];
@@ -486,7 +510,22 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
     }
   }, [editorReady]);
 
-  const insertMentionEntity = useCallback((label: string) => {
+  // 反查实体所属分类
+  const getCategoryForEntity = useCallback((label: string): string | null => {
+    try {
+      const map = entitiesRef.current || {};
+      for (const cat of Object.keys(map)) {
+        const list = map[cat] || [];
+        if (list.includes(label)) {
+          return cat;
+        }
+      }
+      return null;
+    }
+    catch { return null; }
+  }, []);
+
+  const insertMentionEntity = useCallback((label: string, categoryOverride?: string | null) => {
     const editor = quillRef.current as any;
     if (!editor || mentionStart == null) {
       return;
@@ -505,7 +544,8 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
         onSpecialKey(allEntities.filter((e: StageEntityResponse) => e.name === label));
       }
       try {
-        editor.insertEmbed(mentionStart, "mention-span", { label, category: currentCategory || "" }, "user");
+        const catForEmbed = (categoryOverride ?? currentCategory ?? "");
+        editor.insertEmbed(mentionStart, "mention-span", { label, category: catForEmbed }, "user");
         insertedEmbed = true;
       }
       catch {
@@ -538,7 +578,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
       setMentionStage("category");
       setCurrentCategory(null);
     }
-  }, [mentionStart, currentCategory]);
+  }, [mentionStart, currentCategory, getCategoryForEntity]);
 
   // 监听键盘上下/回车/ESC/Tab（在 mentionActive 时）
   useEffect(() => {
@@ -549,6 +589,19 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
     const handler = (e: KeyboardEvent) => {
       if (!mentionActive) {
         return;
+      }
+      // 可回溯：实体阶段且查询为空时，Backspace 回退到“分类选择”，而不是删除 '@'
+      if (e.key === "Backspace" && mentionStage === "entity" && ((_mentionQuery || "").length === 0)) {
+        // 仅在“进入实体阶段后还未输入过任何字符”的首态允许回退到分类
+        if (!entityTypedRef.current) {
+          e.preventDefault();
+          e.stopPropagation();
+          setMentionStage("category");
+          setCurrentCategory(null);
+          setMentionHighlight(0);
+          return;
+        }
+        // 已经输入过（即便后来删空），此时 Backspace 不跨阶段，交给编辑器自行处理
       }
       if (["ArrowDown", "ArrowUp", "Enter", "Escape", "Tab"].includes(e.key)) {
         e.preventDefault();
@@ -577,9 +630,18 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
           setCurrentCategory(target);
           setMentionStage("entity");
           setMentionHighlight(0);
+          // 进入实体阶段后从空查询开始，便于直接输入实体名过滤
+          try {
+            setMentionQuery("");
+          }
+          catch {
+            // ignore
+          }
+          entityTypedRef.current = false;
         }
         else {
-          insertMentionEntity(target);
+          const cat = getCategoryForEntity(target);
+          insertMentionEntity(target, cat);
         }
       }
     };
@@ -598,7 +660,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
         // ignore
       }
     };
-  }, [mentionActive, filtered, mentionHighlight, mentionStage, insertMentionEntity]);
+  }, [mentionActive, filtered, mentionHighlight, mentionStage, insertMentionEntity, _mentionQuery, getCategoryForEntity]);
 
   // 读取当前选区的格式并刷新高亮
   const refreshActiveFormats = useCallback((): void => {
@@ -1045,6 +1107,8 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
           let inserted = "";
           // 记录 inserted 字符串中最后一个 @ 的相对位置（用于行首 fallback）
           let lastAtRelative: number | null = null;
+          // 记录 inserted 字符串中最后一个 '/' 的相对位置（用于行首 slash 快速检测）
+          let lastSlashRelative: number | null = null;
           if (delta && Array.isArray(delta.ops)) {
             for (const op of delta.ops) {
               if (op && typeof op.insert === "string") {
@@ -1059,12 +1123,19 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
                     lastAtRelative = relative;
                   }
                 }
+                if (op.insert.includes("/")) {
+                  const idxS = op.insert.lastIndexOf("/");
+                  if (idxS >= 0) {
+                    const relativeS = inserted.length - (op.insert.length - idxS);
+                    lastSlashRelative = relativeS;
+                  }
+                }
               }
             }
           }
           // ---- Minimal @ detection (Plan B) ----
           // 新增：检测本次 delta 是否删除了原始的 @ 位置；如果是则立即退出 mention 模式
-          if (mentionActive && mentionStart != null && delta && Array.isArray(delta.ops)) {
+          if (mentionActiveRef.current && mentionStartRef.current != null && delta && Array.isArray(delta.ops)) {
             try {
               let cursor = 0; // 游标表示当前文档扫描位置（基于 delta 应用前）
               let deletedAtMention = false;
@@ -1079,7 +1150,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
                 if (typeof op.delete === "number") {
                   const delStart = cursor; // 删除段开始位置
                   const delEnd = cursor + op.delete; // (开区间右端)
-                  if (mentionStart >= delStart && mentionStart < delEnd) {
+                  if ((mentionStartRef.current as number) >= delStart && (mentionStartRef.current as number) < delEnd) {
                     deletedAtMention = true;
                   }
                   // delete 不前进 cursor（Quill Delta 语义）
@@ -1094,12 +1165,13 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
                 setMentionQuery("");
                 mentionStageRef.current = null;
                 setMentionPos(null);
+                entityTypedRef.current = false;
               }
             }
             catch { /* ignore delta delete parse */ }
           }
           // 仅在本次 delta 新插入了 '@' 且当前未处于 mentionActive 时尝试激活
-          if (!mentionActive && mentionAtInsertedRef.current) {
+          if (!mentionActiveRef.current && mentionAtInsertedRef.current) {
             try {
               const selNow = lastRangeRef.current;
               if (selNow && typeof selNow.index === "number" && lastAtRelative != null) {
@@ -1163,7 +1235,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
             mentionAtInsertedRef.current = false; // 未使用也要复位
           }
           // 若已激活 mention，实时更新 query；若用户退格到 @ 之前或换行，则退出
-          if (mentionActive) {
+          if (mentionActiveRef.current) {
             try {
               const selNow = lastRangeRef.current;
               if (!selNow || typeof selNow.index !== "number") {
@@ -1172,19 +1244,21 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
                 setMentionQuery("");
                 mentionStageRef.current = null;
                 setMentionPos(null);
+                entityTypedRef.current = false;
               }
-              else if (mentionStart != null) {
-                if (selNow.index <= mentionStart) {
+              else if (mentionStartRef.current != null) {
+                if (selNow.index <= (mentionStartRef.current as number)) {
                   // 光标回到了 @ 之前，结束
                   setMentionActive(false);
                   setMentionStart(null);
                   setMentionQuery("");
                   mentionStageRef.current = null;
                   setMentionPos(null);
+                  entityTypedRef.current = false;
                 }
                 else {
                   // 获取 @ 到当前光标之间的文本，不包含 @
-                  const slice = editor.getText?.(mentionStart, selNow.index - mentionStart) || "";
+                  const slice = editor.getText?.(mentionStartRef.current as number, selNow.index - (mentionStartRef.current as number)) || "";
                   // 若包含换行，说明跨行或换行结束
                   if (/\n/.test(slice)) {
                     setMentionActive(false);
@@ -1192,9 +1266,18 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
                     setMentionQuery("");
                     mentionStageRef.current = null;
                     setMentionPos(null);
+                    entityTypedRef.current = false;
                   }
                   else {
-                    setMentionQuery(slice.slice(1)); // 去掉开头的 @
+                    const newQ = slice.slice(1);
+                    setMentionQuery(newQ); // 去掉开头的 @
+                    // 一旦在实体阶段出现非空输入，标记“已输入过”
+                    try {
+                      if (mentionStageRef.current === "entity" && newQ.length > 0) {
+                        entityTypedRef.current = true;
+                      }
+                    }
+                    catch { /* ignore */ }
                     // 更新位置（随 caret 移动）
                     try {
                       const b2 = editor.getBounds?.(selNow.index, 0) || { top: 0, left: 0, height: 0 };
@@ -1304,12 +1387,58 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
             catch { /* ignore hr detection */ }
           }
 
-          // ---- Hybrid Slash Command Detection ----
+          // ---- Slash Command Detection（含基于 delta 的行首快速检测） ----
           try {
             if (!mentionActive) {
               const selNow = lastRangeRef.current;
               if (selNow && typeof selNow.index === "number") {
                 const caret = selNow.index;
+                // A) 基于 delta 的快速检测：若刚刚插入的 '/' 左侧是行首或换行，则立即弹窗
+                if (!slashActiveRef.current && lastSlashRelative != null && inserted.includes("/")) {
+                  try {
+                    let globalSlashIdx = Math.max(0, selNow.index - (inserted.length - lastSlashRelative));
+                    // 验证确实是 '/'
+                    let chNow = "";
+                    try {
+                      chNow = editor.getText?.(globalSlashIdx, 1) || "";
+                    }
+                    catch {
+                      // ignore
+                    }
+                    if (chNow !== "/" && globalSlashIdx > 0) {
+                      // 极端合并场景，尝试校正 +/- 1
+                      try {
+                        const prevCh2 = editor.getText?.(globalSlashIdx - 1, 1) || "";
+                        if (prevCh2 === "/") {
+                          globalSlashIdx = globalSlashIdx - 1;
+                        }
+                      }
+                      catch {
+                        // ignore
+                      }
+                    }
+                    if (globalSlashIdx >= 0) {
+                      const prevC = globalSlashIdx === 0 ? "\n" : (editor.getText?.(globalSlashIdx - 1, 1) || "");
+                      if (globalSlashIdx === 0 || prevC === "\n") {
+                        slashStartRef.current = globalSlashIdx;
+                        setSlashQuery("");
+                        const b = editor.getBounds?.(caret, 0) || { top: 0, left: 0, height: 0 };
+                        const root = (editor as any).root as HTMLElement;
+                        const wrap = wrapperRef.current;
+                        if (root && wrap) {
+                          const rootRect = root.getBoundingClientRect();
+                          const wrapRect = wrap.getBoundingClientRect();
+                          const top = (rootRect.top + (b.top || 0) - root.scrollTop) - wrapRect.top + (b.height || 16);
+                          const left = (rootRect.left + (b.left || 0) - wrapRect.left);
+                          setSlashPos({ top, left });
+                        }
+                        setSlashHighlight(0);
+                        setSlashActive(true);
+                      }
+                    }
+                  }
+                  catch { /* ignore slash delta quick */ }
+                }
                 // 1) 即时触发：检测本次 inserted 中的新 '/'
                 if (inserted.includes("/")) {
                   const prevIdx = caret - 1;
@@ -1351,11 +1480,19 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
                 }
                 const leftLen = caret - scanStart;
                 const lineLeft = editor.getText?.(scanStart, leftLen) || "";
-                const trimmed = lineLeft.trimEnd();
-                const match = /^\s*\/(.*)$/.exec(trimmed);
-                if (match) {
-                  const after = match[1];
-                  const slashRel = lineLeft.lastIndexOf("/");
+                // 放宽规则：定位到“最后一个且其前一字符不是字母数字”的 '/'
+                let slashRel = -1;
+                for (let i = lineLeft.length - 1; i >= 0; i -= 1) {
+                  if (lineLeft[i] === "/") {
+                    const prev = i - 1 >= 0 ? lineLeft[i - 1] : "\n";
+                    if (!/[0-9a-z]/i.test(prev)) {
+                      slashRel = i;
+                      break;
+                    }
+                  }
+                }
+                if (slashRel >= 0) {
+                  const after = lineLeft.slice(slashRel + 1);
                   const globalSlash = scanStart + slashRel;
                   // 若当前还未记录 start 或 start 改变（例如用户在行中间删除重新形成）更新之
                   if (slashStartRef.current !== globalSlash) {
@@ -1388,7 +1525,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
                   catch { /* ignore */ }
                 }
                 else if (slashActiveRef.current) {
-                  // 行已经不再以 / 开头（允许前导空格）
+                  // 找不到合格的 '/'
                   // close slash popup: fallback pattern miss
                   setSlashActive(false);
                   setSlashQuery("");
@@ -2980,7 +3117,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
           <div style={{ maxHeight: 180, overflowY: "auto" }}>
             {mentionStage === "category" && (
               <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                {categoriesRef.current.map((cat, i) => {
+                {filtered.map((cat, i) => {
                   const onEnter = () => {
                     try {
                       setMentionHighlight(i);
@@ -2995,6 +3132,9 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
                       setCurrentCategory(cat);
                       setMentionStage("entity");
                       setMentionHighlight(0);
+                      // 点击选择分类后清空查询，开始实体过滤
+                      setMentionQuery("");
+                      entityTypedRef.current = false;
                     }
                     catch {
                       // ignore
@@ -3096,6 +3236,7 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
           category={mentionPreviewData.category}
           name={mentionPreviewData.name}
           description={mentionPreviewData.description}
+          tips={mentionPreviewData.tips}
           left={mentionPreviewPos.leftVw}
           top={mentionPreviewPos.topVw}
           onMouseEnter={() => { mentionPreviewLockRef.current = true; }}

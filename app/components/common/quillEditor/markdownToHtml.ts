@@ -172,17 +172,17 @@ export function rawMarkdownToHtml(md: string): string {
         content = indentHtml + content.slice(tokenSeq.length);
       }
     }
-    if (content.endsWith("c")) {
+    if (content.endsWith("/center")) {
       alignAttr = " align=\"center\"";
-      content = content.slice(0, -1).trimEnd();
+      content = content.slice(0, -7).trimEnd();
     }
-    else if (content.endsWith("r")) {
+    else if (content.endsWith("/right")) {
       alignAttr = " align=\"right\"";
-      content = content.slice(0, -1).trimEnd();
+      content = content.slice(0, -6).trimEnd();
     }
-    else if (content.endsWith("b")) {
+    else if (content.endsWith("/justify")) {
       alignAttr = " align=\"justify\"";
-      content = content.slice(0, -1).trimEnd();
+      content = content.slice(0, -8).trimEnd();
     }
     content = preserveRuns(content);
     blocks.push(`<p${alignAttr}>${applyInline(content)}</p>`);
