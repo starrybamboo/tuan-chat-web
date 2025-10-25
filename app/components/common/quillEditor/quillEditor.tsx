@@ -381,7 +381,12 @@ export default function QuillEditor({ id, placeholder, onchange, onSpecialKey, o
       if (!t)
         return undefined;
       const found = allEntities.find((e: any) => e?.entityType === t && e?.name === name);
-      return found?.entityInfo?.tip;
+      if (category !== "人物") {
+        return found?.entityInfo?.tips;
+      }
+      else {
+        return found?.entityInfo?.act?.背景故事;
+      }
     };
     const onOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
