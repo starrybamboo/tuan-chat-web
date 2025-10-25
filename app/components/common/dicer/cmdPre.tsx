@@ -172,7 +172,7 @@ export default function useCommandExecutor(roleId: number, ruleId: number, roomC
     for (const [_id, ability] of mentionedRoles) {
       if (ability) {
         updateAbilityMutation.mutate({
-          roleId,
+          roleId: ability.roleId as number,
           ruleId,
           act: ability.act,
           basic: ability.basic,

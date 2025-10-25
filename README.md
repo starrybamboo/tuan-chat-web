@@ -1,9 +1,11 @@
 # 简介
 
 这是团剧共创的前端项目。项目采用react作为框架，采用响应式界面设计。使用electron构建pc客户端，使用混合开发模式构建安卓客户端。基于webgal导出跑团replay。
+
 ## 在开始之前
 
 ### node版本
+
 请确保你的node版本在22及以上。
 
 ### 安装依赖
@@ -13,14 +15,18 @@ pnpm install
 ```
 
 ### electron安装与配置
+
 如果你的开发不涉及electron，可跳过此步。
 
 在安装electron依赖的时候，如果遇到
+
 ```
 Electron failed to install correctly,
  please delete node_modules/electron and try installing again
 ```
+
 尝试
+
 ```bash
 node node_modules/electron/install.js
 ```
@@ -28,12 +34,11 @@ node node_modules/electron/install.js
 如果要执行electron-build
 请先把webgal-terre解压到extraResources下，并把terre.exe放在extraResources同级目录下。
 
-
 ### 配置环境
 
 在项目根目录创建 .env （或 .env.development)文件，把下面的文字粘贴进去。
 
-```plain&#x20;text
+```plain
 VITE_API_BASE_URL=http://39.103.58.31:8081
 VITE_API_WS_URL=ws://39.103.58.31:8090
 VITE_TERRE_URL=http://localhost:3001
@@ -48,8 +53,6 @@ VITE_TERRE_WS=ws://localhost:3001/api/webgalsync
 
 **由于 Vscode 的限制，在你克隆仓库并安装依赖后，需要在终端中运行 `pnpm lint`以完成 eslint 的设置。**
 
-
-
 #### Webstorm 设置
 
 注意将设置中开启 `Run eslint --fix on save` 就可以，无需装别的插件（万一tailwind没提示就装一个tailwind的插件）。
@@ -57,6 +60,7 @@ VITE_TERRE_WS=ws://localhost:3001/api/webgalsync
 ![开启Run eslint --fix on save](https://ycn45b70r8yz.feishu.cn/space/api/box/stream/download/asynccode/?code=NmJlMTFkOWRmNTBlOWYxMTUxYzk1ZDhkM2Y5OGIyMDBfYUttUVd1TWtYcEVzQld6d3lZQlFHTGdqbnUzck5uclZfVG9rZW46TGF0aGJmdEtqb2F3V3h4cGkySGNpQ2ZYbmxnXzE3NTAwNzI1MDc6MTc1MDA3NjEwN19WNA)
 
 ### 启动！！！
+
 ```bash
 pnpm dev
 ```
@@ -70,8 +74,6 @@ pnpm lint:fix
 ```
 
 这将对整个仓库进行 lint，修复 `eslint` 可修复的错误，并显示其余的错误。
-
-
 
 ## CI/CD 流程
 
@@ -120,8 +122,6 @@ webgal相关
 ### utils
 
 存放各种工具类
-
-
 
 ## ./android
 
@@ -174,6 +174,3 @@ https://reactsvgicons.com/
 https://virtuoso.dev/
 
 虚拟列表的轮子，但ahook中也提供了虚拟列表，可按情况选择
-
-
-
