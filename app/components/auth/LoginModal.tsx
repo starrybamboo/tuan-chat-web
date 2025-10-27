@@ -14,10 +14,12 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
   const [searchParams, setSearchParams] = useSearchParams();
   const isLogin = searchParams.get("mode") !== "register";
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [loginMethod, setLoginMethod] = useState<"username" | "userId">("username"); // 默认用户名登录
 
   // 使用 React Query 检查登录状态
   const { data: authStatus } = useQuery({
@@ -69,7 +71,8 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
 
   // 修改登录mutation
   const loginMutation = useMutation({
-    mutationFn: loginUser,
+    mutationFn: (data: { username: string; password: string; loginMethod: "username" | "userId" }) =>
+      loginUser({ username: data.username, password: data.password }, data.loginMethod),
     onSuccess: (res) => {
       if (res.data) {
         localStorage.setItem("token", res.data);
@@ -101,6 +104,7 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
         setUsername("");
         setPassword("");
         setConfirmPassword("");
+        setEmail("");
 
         // 跳转到登录界面
         setSearchParams({ mode: "login" });
@@ -112,12 +116,14 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
         setTimeout(() => {
           setUsername(userId); // 使用返回的userId
           setPassword(registeredPassword);
+          setLoginMethod("userId"); // 注册后用userId登录
 
           // 再延迟一会自动登录
           setTimeout(() => {
             loginMutation.mutate({
               username: userId, // 使用userId进行登录
               password: registeredPassword,
+              loginMethod: "userId",
             });
           }, 1000);
         }, 500);
@@ -131,12 +137,17 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
     },
   });
 
-  // 修改表单提交处理函数中的密码不一致错误
+  // 修改表单提交处理函数
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
     if (isLogin) {
-      loginMutation.mutate({ username, password });
+      // 登录需要至少提供用户名或用户ID
+      if (!username) {
+        showTemporaryMessage(`请输入${loginMethod === "username" ? "用户名" : "用户ID"}`, "error");
+        return;
+      }
+      loginMutation.mutate({ username, password, loginMethod });
     }
     else {
       // 添加密码确认验证
@@ -144,7 +155,7 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
         showTemporaryMessage("两次输入的密码不一致", "error");
         return;
       }
-      registerMutation.mutate({ username, password });
+      registerMutation.mutate({ username, password, email });
     }
   };
 
@@ -188,12 +199,16 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
                     setPassword={setPassword}
                     handleSubmit={handleSubmit}
                     isLoading={loginMutation.isPending}
+                    loginMethod={loginMethod}
+                    setLoginMethod={setLoginMethod}
                   />
                 )
               : (
                   <RegisterForm
                     username={username}
                     setUsername={setUsername}
+                    email={email}
+                    setEmail={setEmail}
                     password={password}
                     setPassword={setPassword}
                     confirmPassword={confirmPassword}
@@ -218,6 +233,9 @@ export default function LoginModal({ isOpen, onClose }: { isOpen: boolean; onClo
                     setUsername("");
                     setPassword("");
                     setConfirmPassword("");
+                    setEmail("");
+                    // 重置登录方式为默认的用户名登录
+                    setLoginMethod("username");
                     // 清空错误信息
                     setErrorMessage("");
                     setSuccessMessage("");

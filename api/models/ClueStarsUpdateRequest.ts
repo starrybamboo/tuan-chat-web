@@ -2,12 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type SpaceClueUpdateRequest = {
+export type ClueStarsUpdateRequest = {
     id: number;
-    name?: string;
-    image?: string;
-    description?: string;
-    note?: string;
-    clueStarsId?: number;
+    name: string;
 };
 

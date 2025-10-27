@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResultBoolean } from '../models/ApiResultBoolean';
-import type { ApiResultCollectionList } from '../models/ApiResultCollectionList';
-import type { ApiResultPageBaseRespCollectionList } from '../models/ApiResultPageBaseRespCollectionList';
+import type { ApiResultCollectionListResponse } from '../models/ApiResultCollectionListResponse';
+import type { ApiResultPageBaseRespCollectionListResponse } from '../models/ApiResultPageBaseRespCollectionListResponse';
 import type { CollectionListAddRequest } from '../models/CollectionListAddRequest';
 import type { CollectionListUpdateRequest } from '../models/CollectionListUpdateRequest';
 import type { PageBaseRequest } from '../models/PageBaseRequest';
@@ -15,12 +15,12 @@ export class CollectionListControllerService {
     /**
      * 获取收藏列表详情
      * @param collectionListId
-     * @returns ApiResultCollectionList OK
+     * @returns ApiResultCollectionListResponse OK
      * @throws ApiError
      */
     public getCollectionList(
         collectionListId: number,
-    ): CancelablePromise<ApiResultCollectionList> {
+    ): CancelablePromise<ApiResultCollectionListResponse> {
         return this.httpRequest.request({
             method: 'GET',
             url: '/capi/collection/list',
@@ -38,12 +38,12 @@ export class CollectionListControllerService {
     /**
      * 更新收藏列表
      * @param requestBody
-     * @returns ApiResultCollectionList OK
+     * @returns ApiResultCollectionListResponse OK
      * @throws ApiError
      */
     public updateCollectionList(
         requestBody: CollectionListUpdateRequest,
-    ): CancelablePromise<ApiResultCollectionList> {
+    ): CancelablePromise<ApiResultCollectionListResponse> {
         return this.httpRequest.request({
             method: 'PUT',
             url: '/capi/collection/list',
@@ -60,12 +60,12 @@ export class CollectionListControllerService {
     /**
      * 创建收藏列表
      * @param requestBody
-     * @returns ApiResultCollectionList OK
+     * @returns ApiResultCollectionListResponse OK
      * @throws ApiError
      */
     public createCollectionList(
         requestBody: CollectionListAddRequest,
-    ): CancelablePromise<ApiResultCollectionList> {
+    ): CancelablePromise<ApiResultCollectionListResponse> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/collection/list',
@@ -105,12 +105,12 @@ export class CollectionListControllerService {
     /**
      * 获取用户的收藏列表
      * @param requestBody
-     * @returns ApiResultPageBaseRespCollectionList OK
+     * @returns ApiResultPageBaseRespCollectionListResponse OK
      * @throws ApiError
      */
     public getUserCollectionLists(
         requestBody: PageBaseRequest,
-    ): CancelablePromise<ApiResultPageBaseRespCollectionList> {
+    ): CancelablePromise<ApiResultPageBaseRespCollectionListResponse> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/collection/list/user',
@@ -128,65 +128,16 @@ export class CollectionListControllerService {
      * 获取用户指定类型的收藏列表
      * @param requestBody
      * @param resourceListType
-     * @returns ApiResultPageBaseRespCollectionList OK
+     * @returns ApiResultPageBaseRespCollectionListResponse OK
      * @throws ApiError
      */
     public getUserCollectionListsByType(
         requestBody: PageBaseRequest,
         resourceListType?: string,
-    ): CancelablePromise<ApiResultPageBaseRespCollectionList> {
+    ): CancelablePromise<ApiResultPageBaseRespCollectionListResponse> {
         return this.httpRequest.request({
             method: 'POST',
             url: '/capi/collection/list/user/type',
-            query: {
-                'resourceListType': resourceListType,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 获取热门公开收藏列表
-     * @param requestBody
-     * @returns ApiResultPageBaseRespCollectionList OK
-     * @throws ApiError
-     */
-    public getPopularCollectionLists(
-        requestBody: PageBaseRequest,
-    ): CancelablePromise<ApiResultPageBaseRespCollectionList> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/capi/collection/list/popular',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                400: `Bad Request`,
-                405: `Method Not Allowed`,
-                429: `Too Many Requests`,
-                500: `Internal Server Error`,
-            },
-        });
-    }
-    /**
-     * 获取指定类型的热门公开收藏列表
-     * @param requestBody
-     * @param resourceListType
-     * @returns ApiResultPageBaseRespCollectionList OK
-     * @throws ApiError
-     */
-    public getPopularCollectionListsByType(
-        requestBody: PageBaseRequest,
-        resourceListType?: string,
-    ): CancelablePromise<ApiResultPageBaseRespCollectionList> {
-        return this.httpRequest.request({
-            method: 'POST',
-            url: '/capi/collection/list/popular/type',
             query: {
                 'resourceListType': resourceListType,
             },

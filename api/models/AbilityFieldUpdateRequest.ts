@@ -23,5 +23,9 @@ export type AbilityFieldUpdateRequest = {
      * 新key为null代表删除
      */
     skillFields?: Record<string, string>;
+    /**
+     * 新key为null代表删除
+     */
+    recordFields?: Record<string, string>;
 };
 

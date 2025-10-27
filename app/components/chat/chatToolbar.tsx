@@ -7,14 +7,15 @@ import {
   GirlIcon,
   PointOnMapPerspectiveLinear,
   SendIcon,
+  SharpDownload,
   SparklesOutline,
   SwordSwing,
 } from "@/icons";
 
 interface ChatToolbarProps {
   // 侧边栏状态
-  sideDrawerState: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue";
-  setSideDrawerState: (state: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue") => void;
+  sideDrawerState: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export";
+  setSideDrawerState: (state: "none" | "user" | "role" | "search" | "initiative" | "map" | "clue" | "export") => void;
 
   // 文件和表情处理
   updateEmojiUrls: (updater: (draft: string[]) => void) => void;
@@ -186,6 +187,14 @@ export function ChatToolbar({
 
       {/* 右侧按钮组 */}
       <div className="flex gap-2">
+        <div
+          className="tooltip tooltip-bottom hover:text-info"
+          data-tip="导出记录"
+          onClick={() => setSideDrawerState(sideDrawerState === "export" ? "none" : "export")}
+        >
+          <SharpDownload className="size-7"></SharpDownload>
+        </div>
+
         <div
           className="tooltip tooltip-bottom hover:text-info"
           data-tip="查看线索"

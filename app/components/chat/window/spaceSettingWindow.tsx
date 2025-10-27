@@ -206,7 +206,7 @@ function SpaceSettingWindow({ onClose }: { onClose: () => void }) {
               </ul>
             </div>
           </div>
-          <div className="flex justify-between mt-16">
+          <div className="flex justify-between items-center mt-16">
             <button
               type="button"
               className="btn btn-error"
